@@ -921,7 +921,7 @@ checkSourceMod = ->
     bl = $()
     for id in root.currentBlockIds
       bl = bl.add $("##{id}")
-    if isLeisureBlock(bl) && bl[0]?.contains(mod) && bl.find '[data-org-src="dynamic"]'
+    if isLeisureBlock(bl) && bl[0]?.contains(mod) && bl.find('[data-org-src="dynamic"]').length
       root.orgApi.executeSource bl[0], mod
     if mod then checkStructure mod
 

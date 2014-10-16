@@ -53,8 +53,6 @@
 # MORE DOCUMETATION NEEDED :)
 #
 
-if = id
-
 afetch k alist  = alist (\h t D . h \key value . eq key k value (afetch k t)) nil
 
 defMacro 'when' \line . line \cond rest . [cond 'do':rest 'nil']
@@ -290,6 +288,10 @@ defCase showBase.some func obj | hasType obj some -> concat["(some " (showBase f
 
 defCase showBase.some2 func obj | hasType obj some2 -> concat["(some2 " (obj (\a b . showBase func [a ', ' b]) false) ")"]
 
+defCase showBase.parseErr func obj | hasType obj parseErr -> concat["(parseErr '' " (obj id) ")"]
+
+defCase showBase.err func obj | hasType obj err -> concat["(err " (obj id) ")"]
+
 defCase showBase.token func obj | hasType obj token -> obj \str pos .
   isFilepos pos
     pos \file line offset . concat['token ' str ' ' file ' ' line ' ' offset]
@@ -356,6 +358,11 @@ defCase presentHtml.html obj | hasType obj html -> obj id
 ## bind
 # If the cont result is not the same type as the monad, we call unit
 # We could raise an error but for now we'll just auto-convert
+
+defCase bind.bool opt cont | or (opt == true) (opt == false) -> opt
+  cont true
+  false
+
 defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt
   \value . bind (cont value) \res . isOption res res (some res)
   none
@@ -364,17 +371,21 @@ defCase bind.either either cont | isEither either -> either
   \_ . either
   \value . bind (cont value) \res . isEither res res (right res)
 
-defCase bind.cons list cont | hasType list cons -> bindCons list cont nil
-
-bindCons list cont res = list
-  \h t D . bind (cont h) \result . bindCons t cont [result | res]
-  foldr (\el prev . isList el append cons el prev) nil (reverse res)
+# the first def is for when we IO can auto-convert lists to bind-lists
+#defCase bind.cons list cont | hasType list cons -> map cont list
+defCase bind.cons list cont | hasType list cons -> doall (map cont list)
 
 defCase bind.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
 
 bindRepeat nums cont res = nums
   \n t D . bind (cont n) \result . bindRepeat t cont [result | res]
   foldr (\el prev . isList el append cons el prev) nil (reverse res)
+
+## asIO
+# convert a value to an IO value
+
+#defCase asIO.cons value | hasType value cons -> doall value
+
 #######################
 ## pre/postconditions
 #######################

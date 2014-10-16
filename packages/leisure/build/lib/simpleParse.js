@@ -1,5 +1,6 @@
 require('source-map-support').install();
 runMonad(resolve(L_setNameSpace)("core"));
+runMonad(resolve(L_define)("asIO")(1)("asIO x = x")(lazy(function(L_x){return resolve(L_x)})));
 runMonad(resolve(L_define)("true")(0)("true = \\a b . a")(lazy(setDataType(setType(function(L_a){return $F(arguments, function(L_b){return resolve(L_a)})}, 'true'), 'true'))));
 runMonad(resolve(L_define)("false")(0)("false = \\a b . b")(lazy(setDataType(setType(function(L_a){return $F(arguments, function(L_b){return resolve(L_b)})}, 'false'), 'false'))));
 runMonad(resolve(L_define)("not")(1)("not b = b false true")(lazy(function(L_b){return resolve(L_b)(L_false)(L_true)})));

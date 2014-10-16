@@ -1,5 +1,6 @@
 module.exports = L_runMonads([
   function(){return resolve(L_setNameSpace)("core")},
+ function(){return resolve(L_newDefine)("asIO")(1)("asIO x = x")(lazy(function(L_x){return resolve(L_x)}))},
  function(){return resolve(L_newDefine)("true")(0)("true = \\a b . a")(lazy(setDataType(setType(function(L_a){return $F(arguments, function(L_b){return resolve(L_a)})}, 'true'), 'true')))},
  function(){return resolve(L_newDefine)("false")(0)("false = \\a b . b")(lazy(setDataType(setType(function(L_a){return $F(arguments, function(L_b){return resolve(L_b)})}, 'false'), 'false')))},
  function(){return resolve(L_newDefine)("not")(1)("not b = b false true")(lazy(function(L_b){return resolve(L_b)(L_false)(L_true)}))},

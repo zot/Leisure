@@ -1,6 +1,5 @@
 module.exports = L_runMonads([
-  function(){return resolve(L_newDefine)("if")(0)("if = id")(L_id)},
- function(){return resolve(L_newDefine)("afetch")(2)("afetch k alist  = alist (\\h t D . h \\key value . eq key k value (afetch k t)) nil")(lazy((function () {
+  function(){return resolve(L_newDefine)("afetch")(2)("afetch k alist  = alist (\\h t D . h \\key value . eq key k value (afetch k t)) nil")(lazy((function () {
   var main;
   var full = function (L_k, L_alist) {
     return resolve(L_alist)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_h)(lazy(function(L_key){return $F(arguments, function(L_value){return resolve(L_eq)(L_key)(L_k)(L_value)(function(){return resolve(L_afetch)(L_k, L_t)})})}))})})}))(L_nil);
@@ -807,6 +806,8 @@ module.exports = L_runMonads([
  function(){return resolve(L_advise)("showBase")("unit")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_unit)(function(){return resolve(L_some)("")})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("some")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_some)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(some ", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func)(function(){return resolve(L_obj)(L_id)(L_false)})}, function(){return resolve(L_cons)(")", L_nil)})})})})})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("some2")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_some2)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(some2 ", function(){return resolve(L_cons)(function(){return resolve(L_obj)(lazy(function(L_a){return $F(arguments, function(L_b){return resolve(L_showBase)(L_func)(function(){return resolve(L_cons)(L_a, function(){return resolve(L_cons)(", ", function(){return resolve(L_cons)(L_b, L_nil)})})})})}))(L_false)}, function(){return resolve(L_cons)(")", L_nil)})})})})})(L_none)})}))},
+ function(){return resolve(L_advise)("showBase")("parseErr")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_parseErr)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(parseErr '' ", function(){return resolve(L_cons)(function(){return resolve(L_obj)(L_id)}, function(){return resolve(L_cons)(")", L_nil)})})})})})(L_none)})}))},
+ function(){return resolve(L_advise)("showBase")("err")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_err)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(err ", function(){return resolve(L_cons)(function(){return resolve(L_obj)(L_id)}, function(){return resolve(L_cons)(")", L_nil)})})})})})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("token")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_token)(function(){return resolve(L_some)(function(){return resolve(L_obj)(lazy(function(L_str){return $F(arguments, function(L_pos){return resolve(L_isFilepos)(L_pos)(function(){return resolve(L_pos)(lazy(function(L_file){return $F(arguments, function(L_line){return $F(arguments, function(L_offset){return resolve(L_strCat)(function(){return resolve(L_cons)("token ", function(){return resolve(L_cons)(L_str, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_file, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_line, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_offset, L_nil)})})})})})})})})})})}))})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(token ", function(){return resolve(L_cons)(L_str, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_pos, function(){return resolve(L_cons)(")", L_nil)})})})})})})})}))})})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("filepos")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_filepos)(function(){return resolve(L_some)(function(){return resolve(L_obj)(lazy(function(L_file){return $F(arguments, function(L_line){return $F(arguments, function(L_offset){return resolve(L_strCat)(function(){return resolve(L_cons)("(filepos ", function(){return resolve(L_cons)(L_file, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_line, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_offset, function(){return resolve(L_cons)(")", L_nil)})})})})})})})})})}))})})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("cons")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_cons)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_flatten)(function(){return resolve(L_cons)("[", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func)(function(){return resolve(L_head)(L_obj)})}, function(){return resolve(L_cons)(function(){return resolve(L_showConsElements)(L_func, function(){return resolve(L_tail)(L_obj)})}, function(){return resolve(L_cons)("]", L_nil)})})})})})})})(L_none)})}))},
@@ -853,36 +854,10 @@ module.exports = L_runMonads([
  function(){return resolve(L_advise)("present")("nil")(1)(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_nil)(function(){return resolve(L_some)("nil")})(L_none)}))},
  function(){return resolve(L_advise)("present")("none")(1)(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_none)(function(){return resolve(L_some)("none")})(L_none)}))},
  function(){return resolve(L_advise)("presentHtml")("html")(1)(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_html)(function(){return resolve(L_some)(function(){return resolve(L_obj)(L_id)})})(L_none)}))},
+ function(){return resolve(L_advise)("bind")("bool")(2)(lazy(function(L_opt){return $F(arguments, function(L_cont){return resolve(L_or)(function(){return resolve(L_$p$p)(L_opt)(L_true)}, function(){return resolve(L_$p$p)(L_opt)(L_false)})(function(){return resolve(L_some)(function(){return resolve(L_opt)(function(){return resolve(L_cont)(L_true)})(L_false)})})(L_none)})}))},
  function(){return resolve(L_advise)("bind")("option")(2)(lazy(function(L_opt){return $F(arguments, function(L_cont){return resolve(L_or)(function(){return resolve(L_hasType)(L_opt)(L_some)}, function(){return resolve(L_hasType)(L_opt)(L_none)})(function(){return resolve(L_some)(function(){return resolve(L_opt)(lazy(function(L_value){return resolve(L_bind)(function(){return resolve(L_cont)(L_value)})(lazy(function(L_res){return resolve(L_isOption)(L_res)(L_res)(function(){return resolve(L_some)(L_res)})}))}))(L_none)})})(L_none)})}))},
  function(){return resolve(L_advise)("bind")("either")(2)(lazy(function(L_either){return $F(arguments, function(L_cont){return resolve(L_isEither)(L_either)(function(){return resolve(L_some)(function(){return resolve(L_either)(lazy(function(L__){return resolve(L_either)}))(lazy(function(L_value){return resolve(L_bind)(function(){return resolve(L_cont)(L_value)})(lazy(function(L_res){return resolve(L_isEither)(L_res)(L_res)(function(){return resolve(L_right)(L_res)})}))}))})})(L_none)})}))},
- function(){return resolve(L_advise)("bind")("cons")(2)(lazy(function(L_list){return $F(arguments, function(L_cont){return resolve(L_hasType)(L_list)(L_cons)(function(){return resolve(L_some)(function(){return resolve(L_bindCons)(L_list, L_cont, L_nil)})})(L_none)})}))},
- function(){return resolve(L_newDefine)("bindCons")(3)("bindCons list cont res = list\n  \\h t D . bind (cont h) \\result . bindCons t cont [result | res]\n  foldr (\\el prev . isList el append cons el prev) nil (reverse res)")(lazy((function () {
-  var main;
-  var full = function (L_list, L_cont, L_res) {
-    return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind)(function(){return resolve(L_cont)(L_h)})(lazy(function(L_result){return resolve(L_bindCons)(L_t, L_cont, function(){return resolve(L_cons)(L_result, L_res)})}))})})}))(function(){return resolve(L_foldr)(lazy(function(L_el){return $F(arguments, function(L_prev){return resolve(L_isList)(L_el)(L_append)(L_cons)(L_el)(L_prev)})}), L_nil, function(){return resolve(L_reverse)(L_res)})});
-  };
-  var partial = function(L_list) {
-    var _1 = function(L_cont) {
-            var _2 = function(L_res) {
-              return full(L_list, L_cont, L_res);
-            };
-            _2.leisureInfo = {arg: L_cont, parent: _1.leisureInfo};
-            return _2;
-          };
-          _1.leisureInfo = {arg: L_list, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_list, L_cont, L_res, more) {
-    if (L_res && (typeof more == "undefined" || more == null)) {
-      return full(L_list, L_cont, L_res);
-    } else if (typeof L_cont == "undefined" || L_cont == null) {
-      return partial(L_list);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))},
+ function(){return resolve(L_advise)("bind")("cons")(2)(lazy(function(L_list){return $F(arguments, function(L_cont){return resolve(L_hasType)(L_list)(L_cons)(function(){return resolve(L_some)(function(){return resolve(L_doall)(function(){return resolve(L_map)(L_cont, L_list)})})})(L_none)})}))},
  function(){return resolve(L_advise)("bind")("repeat")(2)(lazy(function(L_r){return $F(arguments, function(L_cont){return resolve(L_hasType)(L_r)(L_repeat)(function(){return resolve(L_some)(function(){return resolve(L_bindRepeat)(function(){return resolve(L_r)(L_id)}, L_cont, L_nil)})})(L_none)})}))},
  function(){return resolve(L_newDefine)("bindRepeat")(3)("bindRepeat nums cont res = nums\n  \\n t D . bind (cont n) \\result . bindRepeat t cont [result | res]\n  foldr (\\el prev . isList el append cons el prev) nil (reverse res)")(lazy((function () {
   var main;

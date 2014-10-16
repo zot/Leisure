@@ -1,5 +1,25 @@
 setNameSpace 'core'
 
+#########################################################################
+#                                                                       #
+# This is the base Leisure Parser                                       #
+# It doesn't use macros or parse filters, because it defines them       #
+#                                                                       #
+# Steps that make uses to build the parser:                             #
+#                                                                       #
+# 1) Use simpleParseJS.coffee to compile simpleParse.lsr                #
+#    This creates the base Leisure parser                               #
+# 2) Catenate simpleParse.lsr + simpleParse2.lsr > generatedPrelude.lsr #
+#    This creates the full Leisure parser                               #
+#                                                                       #
+#########################################################################
+
+#############
+# IO SUPPORT
+#############
+
+asIO x = x
+
 ############
 # LOGIC
 ############

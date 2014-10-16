@@ -39,7 +39,7 @@ verboseMsg = (label, msg...)-> if (window ? global).verbose[label] then console.
 if !btoa? then (window ? global).btoa = require 'btoa'
 
 defaultEnv =
-  presentValue: (x)-> String x
+  presentValue: (x)-> String(x) + '\n'
   values: {}
   errorHandlers: []
 

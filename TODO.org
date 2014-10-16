@@ -1,34 +1,12 @@
 * Short list -- announcement
+- improve monad impl?
+  - should bind.cons just be a map?
+  - IO monad could convert values to IOs
+    - [(print 1) (print 2)] could print 1 and 2
+    - could uncomment and use asIO for this
+    - could fix compiler so it works in this model
+- rename "Monad" to "IO" in coffeeScript codebase
 - make sidebars work for any headline level
-- nested IO monad execution is not using bind properly
-
-  This works (it does not print 4 and returns none):
-    do
-      none
-      print 4
-
-  This works (it prints 4 and returns some true):
-    do
-      some 3
-      print 4
-
-  This works (it does not print 4 and returns some true):
-    do
-      do (some 3) none
-      print 4
-
-  This does not work (it prints 3 and 4 and returns true):
-    do
-      do (print 3) none
-      print 4
-
-  This does not work (it prints 4 and returns true):
-    do
-      do 3 none
-      print 4
-
-  need to call bind on result of nested execution
-
 - make checkpoint ask for commmit message
 - make revert redefine funcs
 - define showHtml.parseError to show a small error symbol that hover-expands to the message

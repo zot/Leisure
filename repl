@@ -1,13 +1,16 @@
 #!/bin/sh
+STACK=3000
+#STACK=10000
+
 if [ -n "$(expr "$(uname -s)" : '\(CYGWIN\|WIN\)')" ]; then
     dir=$(dirname $(cygpath -a -d $0))
     inst=$dir\\packages\\leisure\\build
     export NODE_PATH="$dir\\lib;$dir\\client;$inst\\lib;$inst\\src;$inst\\node_modules"
-    echo node --stack-size=3000 $inst\\src\\runRepl "$@"
-    node --stack-size=3000 $inst\\src\\runRepl "$@"
+    echo node --stack-size=$STACK $inst\\src\\runRepl "$@"
+    node --stack-size=$STACK $inst\\src\\runRepl "$@"
 else
     dir=$(dirname $0)
     inst=$dir/packages/leisure/build
     export NODE_PATH="$dir/lib:$dir/client:$inst/lib:$inst/src:$inst/node_modules"
-    node --stack-size=3000 $inst/src/runRepl "$@"
+    node --stack-size=$STACK $inst/src/runRepl "$@"
 fi

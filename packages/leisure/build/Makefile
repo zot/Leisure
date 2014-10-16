@@ -31,7 +31,7 @@ lib/yaml.js: node_modules $(YAML_SRC)
 node_modules:
 	npm install
 
-lib/generatedPrelude.lsr:
+lib/generatedPrelude.lsr: src/simpleParse.lsr src/simpleParse2.lsr
 	cat src/simpleParse.lsr src/simpleParse2.lsr > $@
 
 lib/generatedPrelude.js: lib/simpleParse.js lib/generatedPrelude.lsr
@@ -41,21 +41,21 @@ lib/generatedPrelude.js: lib/simpleParse.js lib/generatedPrelude.lsr
 lib/simpleParse.js: src/simpleParse.lsr
 	$(REPL) -d lib -0 -c src/simpleParse.lsr
 
-lib/std.js: src/std.lsr
+lib/std.js: src/std.lsr lib/generatedPrelude.js
 	$(REPL) -d lib -c $(@:lib/%.js=src/%.lsr)
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
 	cp $(@) $(CLIENT_STD)
 
-lib/svg.js: src/svg.lsr
+lib/svg.js: src/svg.lsr lib/std.js
 	$(REPL) -d lib -c -r std $(@:lib/%.js=src/%.lsr)
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
 	cp $(@) $(CLIENT_SVG)
 
-lib/parseAst.js: src/parseAst.lsr
+lib/parseAst.js: src/parseAst.lsr lib/std.js
 	$(REPL) -d lib -c -r std -r svg $(@:lib/%.js=src/%.lsr)
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1

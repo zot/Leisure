@@ -97,6 +97,8 @@ replEnv =
       catch err
         console.log "ERROR HANDLING PROMPT: #{err.stack}"
     )
+  presentValue: (x)-> show(x) + '\n'
+
 replEnv.__proto__ = defaultEnv
 
 getParseErr = (x)-> x lz (value)->rz value
@@ -176,7 +178,7 @@ prompt = ->
   rl.setPrompt promptText
   rl.prompt()
 
-show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
+show = (obj)-> if L_show? then rz(L_show)(lz obj) else String obj
 
 repl = (config)->
   lines = null

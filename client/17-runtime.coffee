@@ -289,13 +289,18 @@ warnAsync = false
 setWarnAsync = (state)-> warnAsync = state
 
 newRunMonad = (monad, env, cont, contStack)->
+  #if monad instanceof Monad2
+  #  console.log 'MONAD 2'
+  #  return runMonad2 monad, env, cont, contStack
   if cont then contStack.push cont
   try
     while true
-      if isMonad monad
+      #monad = L_asIO?()(lz monad) ? monad
+      if monad instanceof Monad2
+        return runMonad2 monad, env, continueMonads(contStack, env), []
+      else if isMonad monad
         if monad.binding
-          #contStack.push ((bnd)->(x)->bnd(lz x))(rz monad.binding)
-          do (bnd = rz monad.binding)-> contStack.push (x)-> rz(bnd) lz x
+          do (bnd = monad.binding)-> contStack.push (x)-> rz(bnd) lz x
           monad = rz monad.monad
           continue
         else if !monad.sync
@@ -314,6 +319,16 @@ newRunMonad = (monad, env, cont, contStack)->
     err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}...\n#{err.message}"
     console.log err.stack ? err
     if env.errorHandlers.length then env.errorHandlers.pop() err
+
+callBind = (value, contStack)->
+  func = contStack.pop()
+  val = lz value
+  tmp = L_bind()(val)(lz func)
+  if isMonad(tmp) && (tmp.monad == val || tmp.monad == value)
+    console.log "peeling bind"
+    func value
+  else tmp
+  #if isMonad(tmp) && tmp?.binding? then func value else tmp
 
 class Monad
   toString: -> "Monad: #{@cmd.toString()}"
@@ -344,10 +359,37 @@ define 'newDefine', lz (name)->(arity)->(src)->(def)->
     cont _unit
 
 define 'bind', lz (m)->(binding)->
-  bindMonad = makeMonad (env, cont)->
-  bindMonad.monad = m
-  bindMonad.binding = binding
-  bindMonad
+  if isMonad rz m
+    bindMonad = makeMonad (env, cont)->
+    bindMonad.monad = m
+    bindMonad.binding = binding
+    bindMonad
+  else rz(binding) m
+
+runMonad2 = (monad, env, cont)->
+  if monad instanceof Monad2 then monad.cmd(env, cont)
+  else cont monad
+
+#runMonads = (monads, i, arg)->
+#  if i < monads.length
+#    console.log "running monad #{i}"
+#    setTimeout (-> newRunMonad monads[i](arg), defaultEnv, ((x)-> runMonads monads, i + 1, x), []), 1
+#
+#global.L_runMonads = (monadArray)->
+#  console.log "RUNNING #{monadArray.length} monads, ..."
+#  runMonads monadArray, 0, 0
+#  monadArray
+
+class Monad2 extends Monad
+  constructor: (@cmd)->
+  toString: -> "Monad2: #{@cmd.toString()}"
+
+define 'bind2', lz (m)->(binding)->
+  if (rz m) instanceof Monad2
+    new Monad2 (env, cont)->
+      runMonad2 rz(m), env, (value)->
+        runMonad2 rz(L_bind2)(lz value)(binding), env, cont
+  else rz(binding) m
 
 values = {}
 
@@ -402,6 +444,11 @@ define 'getValue', lz (name)->
   makeSyncMonad (env, cont)->
     if !(rz(name) of values) then throw new Error "No value named '#{rz name}'"
     cont values[rz name]
+
+# New getValue for when the option monad is integrated with the parser
+#define 'getValue', lz (name)->
+#  makeSyncMonad (env, cont)->
+#    cont (if !(rz(name) of values) then none else some values[rz name])
 
 define 'setValue', lz (name)->(value)->
   makeSyncMonad (env, cont)->
@@ -480,6 +527,15 @@ define 'print', lz (msg)->
   makeSyncMonad (env, cont)->
     env.write env.presentValue rz msg
     cont _true
+
+define 'print2', lz (msg)->
+  new Monad2 (env, cont)->
+    env.write env.presentValue rz msg
+    cont _true
+
+define 'prompt2', lz (msg)->
+  new Monad2 (env, cont)->
+    env.prompt(String(rz msg), (input)-> cont input)
 
 define 'write', lz (msg)->
   makeSyncMonad (env, cont)->
@@ -838,6 +894,7 @@ root.stateValues = values
 root.runMonad = runMonad
 root.newRunMonad = newRunMonad
 root.isMonad = isMonad
+root.Monad2 = Monad2
 root.identity = identity
 root.setValue = setValue
 root.getValue = getValue

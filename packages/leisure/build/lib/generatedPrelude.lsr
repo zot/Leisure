@@ -1,5 +1,23 @@
 setNameSpace 'core'
 
+#############################################################################
+#                                                                           #
+#  This file doesn't use macros or parse filters, because it defines them   #
+#                                                                           #
+#############################################################################
+
+#############################################################################
+#                                                                           #
+# This is the base Leisure Parser                                           #
+#                                                                           #
+#############################################################################
+
+#############
+# IO SUPPORT
+#############
+
+asIO x = x
+
 ############
 # LOGIC
 ############
@@ -1144,11 +1162,22 @@ defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (
 resetStdTokenPacks
 setNameSpace 'core'
 
+#######################################################################
+#                                                                     #
+#  This file doesn't use std parse filters, because it defines them   #
+#                                                                     #
+#######################################################################
+
+#######################################################################
+#                                                                     #
+# std parse filter, basic token groups, do macro                      #
+#                                                                     #
+#######################################################################
+
 #################
 # Utilities
 #################
 
-# change this to return a list of results
 doall = foldr1 (\el res . bind el \_ . res)
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list

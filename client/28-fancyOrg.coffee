@@ -1068,10 +1068,12 @@ htmlForResults = (text, org)->
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
-  resType = (if !block.hasAttribute 'data-org-type' then block.firstChild else block).getAttribute 'data-org-results'
+  bl = $(block)
+  resType = bl.attr('data-org-results') || bl.find('[data-org-results]').attr('data-org-results')
   top = topNode block
-  newNode = replaceCodeBlock block, changeResultType getOrgText(block), (if resType == 'dynamic' then 'static' else 'dynamic')
-  if resType != 'dynamic' then executeSource top, $(newNode).find('[data-org-type="source"]')[0]
+  newResType = if resType == 'dynamic' then 'static' else 'dynamic'
+  newNode = replaceCodeBlock block, changeResultType getOrgText(block), newResType
+  if newResType == 'dynamic' then executeSource top, $(newNode).find('[data-org-type="source"]')[0]
 
 nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length - 1 else txt
 
