@@ -1,16 +1,18 @@
 setNameSpace 'core'
 
-#############################################################################
-#                                                                           #
-#  This file doesn't use macros or parse filters, because it defines them   #
-#                                                                           #
-#############################################################################
-
-#############################################################################
-#                                                                           #
-# This is the base Leisure Parser                                           #
-#                                                                           #
-#############################################################################
+#########################################################################
+#                                                                       #
+# This is the base Leisure Parser                                       #
+# It doesn't use macros or parse filters, because it defines them       #
+#                                                                       #
+# Steps that make uses to build the parser:                             #
+#                                                                       #
+# 1) Use simpleParseJS.coffee to compile simpleParse.lsr                #
+#    This creates the base Leisure parser                               #
+# 2) Catenate simpleParse.lsr + simpleParse2.lsr > generatedPrelude.lsr #
+#    This creates the full Leisure parser                               #
+#                                                                       #
+#########################################################################
 
 #############
 # IO SUPPORT
@@ -1178,7 +1180,9 @@ setNameSpace 'core'
 # Utilities
 #################
 
-doall = foldr1 (\el res . bind el \_ . res)
+# change this to return a list of results
+#doall = foldr1 (\el res . bind el \_ . res)
+doall = foldr1 (\el res . bind2 el \_ . res)
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list
   nil
@@ -1197,6 +1201,8 @@ listifyOp op list = list
 listify list = listifyOp 'cons' list
 
 defMacro '[' \list . list \h t . listify h
+
+# parse filter 'listFilter' gathers items after the '|' into a single argument
 
 listFilter code = bind (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
@@ -1405,7 +1411,7 @@ handleDo list inLet cont = list
 
 doClause steppingClause clause prefix inLet cont = \\
   makeBind var monad = cont false \rest . inLet (cons '.') id
-    ['bind' monad ['\\' var '.' | rest]]
+    ['bind2' monad ['\\' var '.' | rest]]
   .
   isCons steppingClause
     steppingClause \h t . isTokenString h '='

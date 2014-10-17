@@ -368,6 +368,7 @@ define 'bind', lz (m)->(binding)->
 
 runMonad2 = (monad, env, cont)->
   if monad instanceof Monad2 then monad.cmd(env, cont)
+  else if monad instanceof Monad then newRunMonad monad, env, cont, []
   else cont monad
 
 #runMonads = (monads, i, arg)->
@@ -384,10 +385,13 @@ class Monad2 extends Monad
   constructor: (@cmd)->
   toString: -> "Monad2: #{@cmd.toString()}"
 
+define 'return', lz (v)-> new Monad2 (env, cont)-> cont rz v
+
 define 'bind2', lz (m)->(binding)->
-  if (rz m) instanceof Monad2
+  newM = rz m
+  if newM instanceof Monad2
     new Monad2 (env, cont)->
-      runMonad2 rz(m), env, (value)->
+      runMonad2 newM, env, (value)->
         runMonad2 rz(L_bind2)(lz value)(binding), env, cont
   else rz(binding) m
 
