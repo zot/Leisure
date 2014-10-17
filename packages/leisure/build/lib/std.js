@@ -886,6 +886,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
+ function(){return resolve(L_advise)("asIO")("cons")(1)(lazy(function(L_value){return resolve(L_hasType)(L_value)(L_cons)(function(){return resolve(L_some)(function(){return resolve(L_doall)(L_value)})})(L_none)}))},
  function(){return resolve(L_defMacro)("defWrapper", lazy(function(L_list){return resolve(L_grabLeftOfArrow)(L_list, L_nil, lazy(function(L_left){return $F(arguments, function(L_right){return resolve(L_cons)("override", function(){return resolve(L_cons)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("'", function(){return resolve(L_cons)(function(){return resolve(L_strTokenString)(function(){return resolve(L_head)(L_left)})}, function(){return resolve(L_cons)("'", L_nil)})})})}, function(){return resolve(L_cons)(function(){return resolve(L_append)(function(){return resolve(L_cons)("\\", function(){return resolve(L_tail)(L_left)})}, function(){return resolve(L_cons)(".", L_right)})}, L_nil)})})})}))}))},
  function(){return resolve(L_newDefine)("grabLeftOfArrow")(3)("grabLeftOfArrow list left cont = isTokenString (head list) '->'\n  cont (reverse left) (tail list)\n  grabLeftOfArrow (tail list) (head list) : left cont")(lazy((function () {
   var main;

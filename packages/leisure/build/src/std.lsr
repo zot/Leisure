@@ -384,7 +384,7 @@ bindRepeat nums cont res = nums
 ## asIO
 # convert a value to an IO value
 
-#defCase asIO.cons value | hasType value cons -> doall value
+defCase asIO.cons value | hasType value cons -> doall value
 
 #######################
 ## pre/postconditions

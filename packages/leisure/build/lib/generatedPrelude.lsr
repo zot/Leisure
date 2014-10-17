@@ -1125,9 +1125,10 @@ resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
   \_ . bind (setValue 'tokenList' nil)
     \_ . bind (setValue 'activeTokenPacks' nil)
       \_ . bind (setValue 'parseFilters' nil)
-        \_ . foldr1
-          \packCmd result . bind packCmd \_ . result
-          map useTokenPack packs
+        \_ . return
+          foldr1
+            \packCmd result . bind packCmd \_ . result
+            map useTokenPack packs
 
 resetStdTokenPacks = bind (getValue 'stdTokenPacks')
   \stds . bind (resetTokenPacks stds)
@@ -1205,10 +1206,11 @@ defMacro '[' \list . list \h t . listify h
 # parse filter 'listFilter' gathers items after the '|' into a single argument
 
 listFilter code = bind (getValue 'listMacros')
-  \listMacros . filterApplies code \list . list \h t .
-    and (isToken h) (contains listMacros (tokenString h))
-      listFilterTail list
-      list
+  \listMacros . return
+    filterApplies code \list . list \h t .
+      and (isToken h) (contains listMacros (tokenString h))
+        listFilterTail list
+        list
 
 listFilterTail list = list
   \h t D . isTokenString h '|'

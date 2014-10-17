@@ -41,10 +41,11 @@ defMacro '[' \list . list \h t . listify h
 # parse filter 'listFilter' gathers items after the '|' into a single argument
 
 listFilter code = bind (getValue 'listMacros')
-  \listMacros . filterApplies code \list . list \h t .
-    and (isToken h) (contains listMacros (tokenString h))
-      listFilterTail list
-      list
+  \listMacros . return
+    filterApplies code \list . list \h t .
+      and (isToken h) (contains listMacros (tokenString h))
+        listFilterTail list
+        list
 
 listFilterTail list = list
   \h t D . isTokenString h '|'
