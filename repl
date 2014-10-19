@@ -1,5 +1,6 @@
 #!/bin/sh
 STACK=3000
+#STACK=4000
 #STACK=10000
 
 if [ -n "$(expr "$(uname -s)" : '\(CYGWIN\|WIN\)')" ]; then

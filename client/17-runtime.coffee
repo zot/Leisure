@@ -302,7 +302,7 @@ newRunMonad = (monad, env, cont, contStack)->
         if monad.binding
           do (bnd = monad.binding)-> contStack.push (x)-> rz(bnd) lz x
           monad = rz monad.monad
-          continue
+          continue##
         else if !monad.sync
           monadModeSync = false
           #console.log "turned off sync"
@@ -358,18 +358,17 @@ define 'newDefine', lz (name)->(arity)->(src)->(def)->
     define rz(name), def, rz(arity), rz(src), null, null, true
     cont _unit
 
-define 'bind', lz (m)->(binding)->
-  if isMonad rz m
-    bindMonad = makeMonad (env, cont)->
-    bindMonad.monad = m
-    bindMonad.binding = binding
-    bindMonad
-  else rz(binding) m
+newbind = false
+#newbind = true
 
-runMonad2 = (monad, env, cont)->
-  if monad instanceof Monad2 then monad.cmd(env, cont)
-  else if monad instanceof Monad then newRunMonad monad, env, cont, []
-  else cont monad
+if !newbind
+  define 'bind', lz (m)->(binding)->
+    if isMonad rz m
+      bindMonad = makeMonad (env, cont)->
+      bindMonad.monad = m
+      bindMonad.binding = binding
+      bindMonad
+    else rz(binding) m
 
 #runMonads = (monads, i, arg)->
 #  if i < monads.length
@@ -381,18 +380,45 @@ runMonad2 = (monad, env, cont)->
 #  runMonads monadArray, 0, 0
 #  monadArray
 
-class Monad2 extends Monad
-  constructor: (@cmd)->
-  toString: -> "Monad2: #{@cmd.toString()}"
+runMonad2 = (monad, env, cont)->
+  if monad instanceof Monad2 then monad.cmd(env, cont)
+  #else if isMonad Monad then newRunMonad monad, env, cont, []
+  else if isMonad Monad
+    if monad.binding
+      runMonad2 rz(monad.monad), env, (x)-> rz(monad.binding)(lz x)
+    else
+      monad.cmd(env, cont)
+  else cont monad
 
-define 'return', lz (v)-> new Monad2 (env, cont)-> cont rz v
+class Monad2 extends Monad
+  constructor: (@cmd, @cmdToString)->
+    if !@cmdToString then @cmdToString = => @cmd.toString()
+  toString: -> "Monad2: #{@cmdToString()}"
+
+define 'return', lz (v)-> new Monad2 ((env, cont)-> cont rz v), -> "return #{rz v}"
+
+define 'defer', lz (v)-> new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1), ->
+  "defer #{rz v}"
+
+if newbind
+  define 'bind', lz (m)->(binding)->
+    newM = rz m
+    if (newM instanceof Monad2) || (isMonad newM)
+      new Monad2 ((env, cont)->
+        runMonad2 newM, env, (value)->
+          #runMonad2 rz(L_bind2)(lz value)(binding), env, cont), ->
+          runMonad2 rz(binding)(lz value), env, cont), ->
+        "bind (#{rz m}), #{rz binding}"
+    else rz(binding) m
 
 define 'bind2', lz (m)->(binding)->
   newM = rz m
-  if newM instanceof Monad2
-    new Monad2 (env, cont)->
+  if (newM instanceof Monad2) || (isMonad newM)
+    new Monad2 ((env, cont)->
       runMonad2 newM, env, (value)->
-        runMonad2 rz(L_bind2)(lz value)(binding), env, cont
+        #runMonad2 rz(L_bind2)(lz value)(binding), env, cont), ->
+        runMonad2 rz(binding)(lz value), env, cont), ->
+      "bind (#{rz m}), #{rz binding}"
   else rz(binding) m
 
 values = {}
@@ -533,13 +559,14 @@ define 'print', lz (msg)->
     cont _true
 
 define 'print2', lz (msg)->
-  new Monad2 (env, cont)->
+  new Monad2 ((env, cont)->
     env.write env.presentValue rz msg
-    cont _true
+    cont _true), -> "print2 #{rz msg}"
 
 define 'prompt2', lz (msg)->
-  new Monad2 (env, cont)->
-    env.prompt(String(rz msg), (input)-> cont input)
+  new Monad2 ((env, cont)->
+    env.prompt(String(rz msg), (input)-> cont input)), ->
+    "prompt2 #{rz msg}"
 
 define 'write', lz (msg)->
   makeSyncMonad (env, cont)->

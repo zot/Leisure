@@ -4,12 +4,13 @@ MODULES=persistent-hash-trie source-map utf8 js-yaml
 LEISURE_SRC=generatedPrelude std svg parseAst simpleParse
 LEISURE_FILES=$(LEISURE_SRC:%=lib/%.js)
 LEISURE_GEN=$(LEISURE_FILES) $(LEISURE_SRC:%=lib/%.ast) $(LEISURE_SRC:%=lib/%.map) lib/generatedPrelude.lsr
-NODE=./runNode
+NODE=$(CURDIR)/runNode
 REPL=$(NODE) src/runRepl
-CLIENT_GENERATED_PRELUDE=../../../client/19-generatedPrelude.js
-CLIENT_STD=../../../client/20-std.js
-CLIENT_SVG=../../../client/22-svg.js
-CLIENT_PARSE_AST=../../../client/29-parseAst.js
+CLIENT_DIR=../../../client
+CLIENT_GENERATED_PRELUDE=$(CLIENT_DIR)/19-generatedPrelude.js
+CLIENT_STD=$(CLIENT_DIR)/20-std.js
+CLIENT_SVG=$(CLIENT_DIR)/22-svg.js
+CLIENT_PARSE_AST=$(CLIENT_DIR)/29-parseAst.js
 
 all: lib/generatedPrelude.js $(LEISURE_FILES) lib/browser.js
 
@@ -37,9 +38,12 @@ lib/generatedPrelude.lsr: src/simpleParse.lsr src/simpleParse2.lsr
 lib/generatedPrelude.js: lib/simpleParse.js lib/generatedPrelude.lsr
 	$(REPL) -d lib -1 -c lib/generatedPrelude.lsr
 	cp $(@) $(CLIENT_GENERATED_PRELUDE)
+	cp lib/generatedPrelude.map $(CLIENT_DIR)
 
 lib/simpleParse.js: src/simpleParse.lsr
 	$(REPL) -d lib -0 -c src/simpleParse.lsr
+	sed -e 's!^//@.*$$!//# sourceURL=../src/simpleParse.lsr!' lib/simpleParse.js > /tmp/tmp
+	mv /tmp/tmp lib/simpleParse.js
 
 lib/std.js: src/std.lsr lib/generatedPrelude.js
 	$(REPL) -d lib -c $(@:lib/%.js=src/%.lsr)

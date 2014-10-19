@@ -287,6 +287,7 @@ runFile = (file, cont)->
     cont []
 
 compile = (file, cont)->
+  defaultEnv.errorHandlers.push (e)-> process.exit 1
   ext = path.extname file
   runMonad rz(L_baseLoad)(lz file), defaultEnv, (result)->
     if verbose then console.log "Preparing to write code for #{file}"
@@ -322,7 +323,7 @@ compile = (file, cont)->
         outputFile = path.join(outDir, path.basename(outputFile))
         outputMap = path.join(outDir, path.basename(outputMap))
       if verbose then console.log "JS FILE: #{outputFile}"
-      console.log "FIRST AST: #{asts[0]}"
+      #console.log "FIRST AST: #{asts[0]}"
       try
         lastArgs = null
         result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
@@ -371,6 +372,7 @@ primCompile = (file, cont)->
       if outDir then outputFile = path.join(outDir, path.basename(outputFile))
       if verbose then console.log "JS FILE: #{outputFile}"
       writeFile outputFile, compiled, (err)-> if !err then cont(compiled)
+    else console.log "ERROR COMPILING: #{err}"
 
 genJsFromAst = (file, cont)->
   readFile file, (err, contents)->

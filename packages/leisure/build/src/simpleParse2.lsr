@@ -154,9 +154,10 @@ bind (getValue 'listMacros')
 infix code = bind (getValue 'infixPrecedence')
   \prec . bind (getValue 'infixRightAssociative')
     \right . bind (getValue 'tokenGroups')
-      \groups . filterApplies
-        code
-        \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
+      \groups . return
+        filterApplies
+          code
+          \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
 
 infixRearrange prec right closes list = \\
   len = length list
