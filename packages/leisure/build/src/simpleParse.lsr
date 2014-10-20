@@ -1066,43 +1066,43 @@ runNamedFile name text = \\
   .
   countedRunLines name names counted
 
-baseLoad file = bind (readFile file)
+baseLoad file = bind2 (readFile file)
   \result . result
-    \err . err
+    \err . return err
     \contents . baseLoadString file contents
 
-baseLoadString file contents = bind (getValue 'activeTokenPacks')
-  \activePacks . bind resetStdTokenPacks
-    \_ . bind resetNameSpaceInfo
-      \nsInfo . bind (runNamedFile file contents)
-        \result . bind (setNameSpaceInfo nsInfo)
+baseLoadString file contents = bind2 (getValue 'activeTokenPacks')
+  \activePacks . bind2 resetStdTokenPacks
+    \_ . bind2 resetNameSpaceInfo
+      \nsInfo . bind2 (runNamedFile file contents)
+        \result . bind2 (setNameSpaceInfo nsInfo)
           \_ . isNil activePacks
-            bind resetStdTokenPacks \_ . result
-            bind (resetTokenPacks activePacks) \_ . result
+            bind2 resetStdTokenPacks \_ . result
+            bind2 (resetTokenPacks activePacks) \_ . result
 
-load file = bind (baseLoad file)
+load file = bind2 (baseLoad file)
   \result . \\
     errs = foldr (\line results . tail line (\er . cons er results) (\x . results)) nil result
     .
-    fakereturn
+    return
       isNil errs
         right true
         left errs
 
-require file = bind (getValue 'requiredFiles')
+require file = bind2 (getValue 'requiredFiles')
   \files . contains files file
     right false
-    bind (setValue 'requiredFiles' (cons file files))
-      \_. bind (load file)
-        \result . fakereturn
+    bind2 (setValue 'requiredFiles' (cons file files))
+      \_. bind2 (load file)
+        \result . return
           result
             \x . left x
             \_ . right true
 
-scanFile file = bind (readFile file)
+scanFile file = bind2 (readFile file)
   \result . result
     \err . err
-      \_ . bind (runNamedFile file contents)
+      \_ . bind2 (runNamedFile file contents)
         counted = countedLinesForFile name text
         lines = map tail counted
         names = namesForLines lines
@@ -1110,9 +1110,9 @@ scanFile file = bind (readFile file)
         countedScanLines name names counted
 
 countedScanLines file names countedLines = countedLines
-  \h t D . bind (countedScanLineM (head h) (tail h))
-    \line . bind (countedScanLines file names t)
-      \rest . fakereturn
+  \h t D . bind2 (countedScanLineM (head h) (tail h))
+    \line . bind2 (countedScanLines file names t)
+      \rest . return
         cons line rest
   nil
 
@@ -1123,7 +1123,6 @@ countedScanLines file names countedLines = countedLines
 #newGen
 
 # pack is (tokens groups filters)
-#defTokenPack name pack = bind2 (getValue 'tokenPacks')
 defTokenPack name pack = bind (getValue 'tokenPacks')
   \packs . setValue 'tokenPacks' (acons name pack packs)
 
