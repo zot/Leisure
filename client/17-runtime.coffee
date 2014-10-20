@@ -302,7 +302,7 @@ newRunMonad = (monad, env, cont, contStack)->
         if monad.binding
           do (bnd = monad.binding)-> contStack.push (x)-> rz(bnd) lz x
           monad = rz monad.monad
-          continue##
+          continue
         else if !monad.sync
           monadModeSync = false
           #console.log "turned off sync"

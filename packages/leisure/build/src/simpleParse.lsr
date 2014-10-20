@@ -943,16 +943,16 @@ tokensM str =
       tokens str delimiterPat
 
 parseLines lines result = lines
-  \h t D . bind (parseLineM h)
+  \h t D . bind2 (parseLineM h)
     \ast . parseLines t (cons ast result)
-  fakereturn
+  return
     reverse result
 
 parseFile text = parseLines (linesForFile text) nil
 
-simpleScanLine line = bind (getValue 'tokenPat')
-  \tokenPat . bind (getValue 'tokenGroups')
-    \groups . fakereturn
+simpleScanLine line = bind2 (getValue 'tokenPat')
+  \tokenPat . bind2 (getValue 'tokenGroups')
+    \groups . return
       scanLineG line tokenPat groups id id
 
 scanLineM line = countedScanLineM emptyLineStarts line
@@ -977,17 +977,17 @@ findLines offset line = \\
     cons offset nil
     cons offset (findLines (+ offset idx) (strSubstring line idx 0))
 
-newParseLine offset names line = bind (scanLineM line)
-  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . fakereturn ast
+newParseLine offset names line = bind2 (scanLineM line)
+  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . return ast
 
 #countedParseLine names countedLine = bind (scanLineM (tail countedLine))
 countedParseLine names countedLine = bind (countedScanLineM (head countedLine) (tail countedLine))
   \scanned . ifNotErr (createAst (head countedLine) scanned names) \ast .
     fakereturn ast
 
-runLine offset names line = bind (newParseLine offset names line)
-  \ast . bind (runAst line ast)
-    \result . fakereturn
+runLine offset names line = bind2 (newParseLine offset names line)
+  \ast . bind2 (runAst line ast)
+    \result . return
       cons
         ast
         isParseErr result
@@ -1028,8 +1028,8 @@ countedRunLine file names countedLine = bind (countedParseLine names countedLine
         \result . resultOfRun wrapped result
 
 resultOfRun wrapped result =
-  #defer
-  fakereturn
+  defer
+  #fakereturn
     cons
       wrapped
       isParseErr result
@@ -1043,9 +1043,9 @@ basename file = strReplace file (regexp '^(.*/)?([^/]+)$') '$2'
 
 # use doall for this?
 runLines names lines = lines
-  \h t D . bind (runLine 0 names h)
-    \line . bind (runLines names t)
-      \rest . fakereturn
+  \h t D . bind2 (runLine 0 names h)
+    \line . bind2 (runLines names t)
+      \rest . return
         cons line rest
   nil
 
