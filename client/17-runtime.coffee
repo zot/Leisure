@@ -302,7 +302,7 @@ newRunMonad = (monad, env, cont, contStack)->
         if monad.binding
           do (bnd = monad.binding)-> contStack.push (x)-> rz(bnd) lz x
           monad = rz monad.monad
-          continue##
+          continue
         else if !monad.sync
           monadModeSync = false
           #console.log "turned off sync"
@@ -358,18 +358,6 @@ define 'newDefine', lz (name)->(arity)->(src)->(def)->
     define rz(name), def, rz(arity), rz(src), null, null, true
     cont _unit
 
-newbind = false
-#newbind = true
-
-if !newbind
-  define 'bind', lz (m)->(binding)->
-    if isMonad rz m
-      bindMonad = makeMonad (env, cont)->
-      bindMonad.monad = m
-      bindMonad.binding = binding
-      bindMonad
-    else rz(binding) m
-
 #runMonads = (monads, i, arg)->
 #  if i < monads.length
 #    console.log "running monad #{i}"
@@ -382,12 +370,12 @@ if !newbind
 
 runMonad2 = (monad, env, cont)->
   if monad instanceof Monad2 then monad.cmd(env, cont)
-  #else if isMonad Monad then newRunMonad monad, env, cont, []
-  else if isMonad Monad
-    if monad.binding
-      runMonad2 rz(monad.monad), env, (x)-> rz(monad.binding)(lz x)
-    else
-      monad.cmd(env, cont)
+  #else if isMonad monad then newRunMonad monad, env, cont, []
+  else if isMonad monad
+    if monad.binding?
+      runMonad2 rz(monad.monad), env, (x)->
+        runMonad2 rz(monad.binding)(lz x), env, cont
+    else monad.cmd(env, cont)
   else cont monad
 
 class Monad2 extends Monad
@@ -400,26 +388,28 @@ define 'return', lz (v)-> new Monad2 ((env, cont)-> cont rz v), -> "return #{rz 
 define 'defer', lz (v)-> new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1), ->
   "defer #{rz v}"
 
-if newbind
-  define 'bind', lz (m)->(binding)->
-    newM = rz m
-    if (newM instanceof Monad2) || (isMonad newM)
-      new Monad2 ((env, cont)->
-        runMonad2 newM, env, (value)->
-          #runMonad2 rz(L_bind2)(lz value)(binding), env, cont), ->
-          runMonad2 rz(binding)(lz value), env, cont), ->
-        "bind (#{rz m}), #{rz binding}"
-    else rz(binding) m
-
-define 'bind2', lz (m)->(binding)->
+define 'bind2', bind2 = lz (m)->(binding)->
   newM = rz m
   if (newM instanceof Monad2) || (isMonad newM)
     new Monad2 ((env, cont)->
       runMonad2 newM, env, (value)->
         #runMonad2 rz(L_bind2)(lz value)(binding), env, cont), ->
         runMonad2 rz(binding)(lz value), env, cont), ->
-      "bind (#{rz m}), #{rz binding}"
+      "bind (#{rz m})"
   else rz(binding) m
+
+newbind = false
+#newbind = true
+
+if newbind then define 'bind', bind2
+else
+  define 'bind', lz (m)->(binding)->
+    if isMonad rz m
+      bindMonad = makeMonad (env, cont)->
+      bindMonad.monad = m
+      bindMonad.binding = binding
+      bindMonad
+    else rz(binding) m
 
 values = {}
 

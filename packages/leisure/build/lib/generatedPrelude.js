@@ -110,7 +110,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("isNumber")(1)("isNumber s = == (getType s) '*number'")(lazy(function(L_s){return resolve(L_$p$p)(function(){return resolve(L_getType)(L_s)})("*number")}))},
  function(){return resolve(L_newDefine)("strAsc")(1)("strAsc string = _strAsc (assertType 'strAsc string' '*string' string)")(lazy(function(L_string){return resolve(L__strAsc)(function(){return resolve(L_assertType)("strAsc string", "*string", L_string)})}))},
  function(){return resolve(L_newDefine)("strChr")(1)("strChr ascii = _strChr (assertType 'strChr string' '*number' ascii)")(lazy(function(L_ascii){return resolve(L__strChr)(function(){return resolve(L_assertType)("strChr string", "*number", L_ascii)})}))},
- function(){return resolve(L_newDefine)("strAt")(2)("strAt string index = _strAt\n  assertType 'strAt string' '*string' string\n  assertType 'strAt index' '*number' index")(lazy((function () {
+ function(){return resolve(L_newDefine)("strAt")(2)("strAt string index = _strAt\r\n  assertType 'strAt string' '*string' string\r\n  assertType 'strAt index' '*number' index")(lazy((function () {
   var main;
   var full = function (L_string, L_index) {
     return resolve(L__strAt)(function(){return resolve(L_assertType)("strAt string", "*string", L_string)})(function(){return resolve(L_assertType)("strAt index", "*number", L_index)});
@@ -133,7 +133,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("strStartsWith")(2)("strStartsWith string prefix = _strStartsWith\n  assertType 'strStartsWith string' '*string' string\n  assertType 'strStartsWith prefix' '*string' prefix")(lazy((function () {
+ function(){return resolve(L_newDefine)("strStartsWith")(2)("strStartsWith string prefix = _strStartsWith\r\n  assertType 'strStartsWith string' '*string' string\r\n  assertType 'strStartsWith prefix' '*string' prefix")(lazy((function () {
   var main;
   var full = function (L_string, L_prefix) {
     return resolve(L__strStartsWith)(function(){return resolve(L_assertType)("strStartsWith string", "*string", L_string)})(function(){return resolve(L_assertType)("strStartsWith prefix", "*string", L_prefix)});
@@ -159,7 +159,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("strLen")(1)("strLen string = _strLen (assertType 'strLen string' '*string' string)")(lazy(function(L_string){return resolve(L__strLen)(function(){return resolve(L_assertType)("strLen string", "*string", L_string)})}))},
  function(){return resolve(L_newDefine)("strToLowerCase")(1)("strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' '*string' string)")(lazy(function(L_string){return resolve(L__strToLowerCase)(function(){return resolve(L_assertType)("strToLowerCase string", "*string", L_string)})}))},
  function(){return resolve(L_newDefine)("strToUpperCase")(1)("strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' '*string' string)")(lazy(function(L_string){return resolve(L__strToUpperCase)(function(){return resolve(L_assertType)("strToUpperCase string", "*string", L_string)})}))},
- function(){return resolve(L_newDefine)("strReplace")(3)("strReplace string pat repl = _strReplace\n  assertType 'strReplace string' '*string' string\n  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat\n  assertType 'strReplace repl' '*string' repl")(lazy((function () {
+ function(){return resolve(L_newDefine)("strReplace")(3)("strReplace string pat repl = _strReplace\r\n  assertType 'strReplace string' '*string' string\r\n  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat\r\n  assertType 'strReplace repl' '*string' repl")(lazy((function () {
   var main;
   var full = function (L_string, L_pat, L_repl) {
     return resolve(L__strReplace)(function(){return resolve(L_assertType)("strReplace string", "*string", L_string)})(function(){return resolve(L_assert)(function(){return resolve(L_or)(function(){return resolve(L_hasType)(L_pat)("*string")}, function(){return resolve(L_hasType)(L_pat)("*RegExp")})})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("strStartsWith pat should be type string or RegExp but it is type ", function(){return resolve(L_cons)(function(){return resolve(L_getType)(L_pat)}, function(){return resolve(L_cons)(": ", function(){return resolve(L_cons)(function(){return resolve(L_show)(L_pat)}, L_nil)})})})})})(L_pat)})(function(){return resolve(L_assertType)("strReplace repl", "*string", L_repl)});
@@ -186,7 +186,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("strSubstring")(3)("strSubstring str start end = _strSubstring\n  assertType 'strSubstring str' '*string' str\n  assertType 'strSubstring start' '*number' start\n  assertType 'strSubstring end' '*number' end")(lazy((function () {
+ function(){return resolve(L_newDefine)("strSubstring")(3)("strSubstring str start end = _strSubstring\r\n  assertType 'strSubstring str' '*string' str\r\n  assertType 'strSubstring start' '*number' start\r\n  assertType 'strSubstring end' '*number' end")(lazy((function () {
   var main;
   var full = function (L_str, L_start, L_end) {
     return resolve(L__strSubstring)(function(){return resolve(L_assertType)("strSubstring str", "*string", L_str)})(function(){return resolve(L_assertType)("strSubstring start", "*number", L_start)})(function(){return resolve(L_assertType)("strSubstring end", "*number", L_end)});
@@ -213,7 +213,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("strSplit")(2)("strSplit str pat = _strSplit\n  assertType 'strSplit str' '*string' str\n  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat")(lazy((function () {
+ function(){return resolve(L_newDefine)("strSplit")(2)("strSplit str pat = _strSplit\r\n  assertType 'strSplit str' '*string' str\r\n  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat")(lazy((function () {
   var main;
   var full = function (L_str, L_pat) {
     return resolve(L__strSplit)(function(){return resolve(L_assertType)("strSplit str", "*string", L_str)})(function(){return resolve(L_assert)(function(){return resolve(L_or)(function(){return resolve(L_hasType)(L_pat)("*string")}, function(){return resolve(L_hasType)(L_pat)("*RegExp")})})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("strSplit pat should be type string or RegExp but it is type ", function(){return resolve(L_cons)(function(){return resolve(L_getType)(L_pat)}, function(){return resolve(L_cons)(": ", function(){return resolve(L_cons)(function(){return resolve(L_show)(L_pat)}, L_nil)})})})})})(L_pat)});
@@ -236,7 +236,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("strCat")(1)("strCat list = _strCat\n  assert (isList list) (strCat (cons 'strCat list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list")(lazy(function(L_list){return resolve(L__strCat)(function(){return resolve(L_assert)(function(){return resolve(L_isList)(L_list)})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("strCat list should be type cons or nil but it is type ", function(){return resolve(L_cons)(function(){return resolve(L_getType)(L_list)}, function(){return resolve(L_cons)(": ", function(){return resolve(L_cons)(L_list)})})})})})(L_list)})}))},
+ function(){return resolve(L_newDefine)("strCat")(1)("strCat list = _strCat\r\n  assert (isList list) (strCat (cons 'strCat list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list")(lazy(function(L_list){return resolve(L__strCat)(function(){return resolve(L_assert)(function(){return resolve(L_isList)(L_list)})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("strCat list should be type cons or nil but it is type ", function(){return resolve(L_cons)(function(){return resolve(L_getType)(L_list)}, function(){return resolve(L_cons)(": ", function(){return resolve(L_cons)(L_list)})})})})})(L_list)})}))},
  function(){return resolve(L_newDefine)("strAdd")(2)("strAdd str1 str2 = _strAdd (assertType 'strAdd str1' '*string' str1) (assertType 'strAdd str2' '*string' str2)")(lazy((function () {
   var main;
   var full = function (L_str1, L_str2) {
@@ -260,7 +260,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("strMatch")(2)("strMatch str pat = _strMatch\n  assertType 'strMatch str' '*string' str\n  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat")(lazy((function () {
+ function(){return resolve(L_newDefine)("strMatch")(2)("strMatch str pat = _strMatch\r\n  assertType 'strMatch str' '*string' str\r\n  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat")(lazy((function () {
   var main;
   var full = function (L_str, L_pat) {
     return resolve(L__strMatch)(function(){return resolve(L_assertType)("strMatch str", "*string", L_str)})(function(){return resolve(L_assert)(function(){return resolve(L_or)(function(){return resolve(L_hasType)(L_pat)("*string")}, function(){return resolve(L_hasType)(L_pat)("*RegExp")})})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("strMatch pat should be type string or RegExp but it is type ", function(){return resolve(L_cons)(function(){return resolve(L_getType)(L_pat)}, function(){return resolve(L_cons)(": ", function(){return resolve(L_cons)(function(){return resolve(L_show)(L_pat)}, L_nil)})})})})})(L_pat)});
@@ -284,9 +284,9 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("strToList")(1)("strToList str = _strToList (assertType 'strToList str' '*string' str)")(lazy(function(L_str){return resolve(L__strToList)(function(){return resolve(L_assertType)("strToList str", "*string", L_str)})}))},
- function(){return resolve(L_newDefine)("strFromList")(1)("strFromList list = _strFromList\n  assert (isList list) (strCat (cons 'strFromList list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list")(lazy(function(L_list){return resolve(L__strFromList)(function(){return resolve(L_assert)(function(){return resolve(L_isList)(L_list)})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("strFromList list should be type cons or nil but it is type ", function(){return resolve(L_cons)(function(){return resolve(L_getType)(L_list)}, function(){return resolve(L_cons)(": ", function(){return resolve(L_cons)(L_list)})})})})})(L_list)})}))},
+ function(){return resolve(L_newDefine)("strFromList")(1)("strFromList list = _strFromList\r\n  assert (isList list) (strCat (cons 'strFromList list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list")(lazy(function(L_list){return resolve(L__strFromList)(function(){return resolve(L_assert)(function(){return resolve(L_isList)(L_list)})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("strFromList list should be type cons or nil but it is type ", function(){return resolve(L_cons)(function(){return resolve(L_getType)(L_list)}, function(){return resolve(L_cons)(": ", function(){return resolve(L_cons)(L_list)})})})})})(L_list)})}))},
  function(){return resolve(L_newDefine)("regexp")(1)("regexp str = _regexp (assertType 'regexp str' '*string' str)")(lazy(function(L_str){return resolve(L__regexp)(function(){return resolve(L_assertType)("regexp str", "*string", L_str)})}))},
- function(){return resolve(L_newDefine)("regexpFlags")(2)("regexpFlags str flags = _regexpFlags\n  assertType 'regexp str' '*string' str\n  assertType 'regexp flags' '*string' flags")(lazy((function () {
+ function(){return resolve(L_newDefine)("regexpFlags")(2)("regexpFlags str flags = _regexpFlags\r\n  assertType 'regexp str' '*string' str\r\n  assertType 'regexp flags' '*string' flags")(lazy((function () {
   var main;
   var full = function (L_str, L_flags) {
     return resolve(L__regexpFlags)(function(){return resolve(L_assertType)("regexp str", "*string", L_str)})(function(){return resolve(L_assertType)("regexp flags", "*string", L_flags)});
@@ -309,7 +309,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("jsonParse")(3)("jsonParse str failure success = _jsonParse\n  assertType 'jsonParse str' '*string' str\n  failure\n  success")(lazy((function () {
+ function(){return resolve(L_newDefine)("jsonParse")(3)("jsonParse str failure success = _jsonParse\r\n  assertType 'jsonParse str' '*string' str\r\n  failure\r\n  success")(lazy((function () {
   var main;
   var full = function (L_str, L_failure, L_success) {
     return resolve(L__jsonParse)(function(){return resolve(L_assertType)("jsonParse str", "*string", L_str)})(L_failure)(L_success);
@@ -446,10 +446,10 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("isNil")(1)("isNil n = hasType n nil")(lazy(function(L_n){return resolve(L_hasType)(L_n)(L_nil)}))},
  function(){return resolve(L_newDefine)("head")(1)("head l = l \\h t . h")(lazy(function(L_l){return resolve(L_l)(lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_h)})}))}))},
  function(){return resolve(L_newDefine)("tail")(1)("tail l = l \\h t . t")(lazy(function(L_l){return resolve(L_l)(lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_t)})}))}))},
- function(){return resolve(L_newDefine)("last")(1)("last l = isNil (tail l)\n  head l\n  last (tail l)")(lazy(function(L_l){return resolve(L_isNil)(function(){return resolve(L_tail)(L_l)})(function(){return resolve(L_head)(L_l)})(function(){return resolve(L_last)(function(){return resolve(L_tail)(L_l)})})}))},
- function(){return resolve(L_newDefine)("removeLast")(1)("removeLast l = isNil (tail l)\n  nil\n  cons (head l) (removeLast (tail l))")(lazy(function(L_l){return resolve(L_isNil)(function(){return resolve(L_tail)(L_l)})(L_nil)(function(){return resolve(L_cons)(function(){return resolve(L_head)(L_l)}, function(){return resolve(L_removeLast)(function(){return resolve(L_tail)(L_l)})})})}))},
- function(){return resolve(L_newDefine)("length")(1)("length list = isCons list\n  + 1 (length (tail list))\n  assert (hasType list nil) (strCat (cons \"length argument is not a proper list: \" (cons list nil))) 0")(lazy(function(L_list){return resolve(L_isCons)(L_list)(function(){return resolve(L_$o)(1)(function(){return resolve(L_length)(function(){return resolve(L_tail)(L_list)})})})(function(){return resolve(L_assert)(function(){return resolve(L_hasType)(L_list)(L_nil)})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("length argument is not a proper list: ", function(){return resolve(L_cons)(L_list, L_nil)})})})(0)})}))},
- function(){return resolve(L_newDefine)("append")(2)("append a b = isNil a\n  b\n  cons (head a) (append (tail a) b)")(lazy((function () {
+ function(){return resolve(L_newDefine)("last")(1)("last l = isNil (tail l)\r\n  head l\r\n  last (tail l)")(lazy(function(L_l){return resolve(L_isNil)(function(){return resolve(L_tail)(L_l)})(function(){return resolve(L_head)(L_l)})(function(){return resolve(L_last)(function(){return resolve(L_tail)(L_l)})})}))},
+ function(){return resolve(L_newDefine)("removeLast")(1)("removeLast l = isNil (tail l)\r\n  nil\r\n  cons (head l) (removeLast (tail l))")(lazy(function(L_l){return resolve(L_isNil)(function(){return resolve(L_tail)(L_l)})(L_nil)(function(){return resolve(L_cons)(function(){return resolve(L_head)(L_l)}, function(){return resolve(L_removeLast)(function(){return resolve(L_tail)(L_l)})})})}))},
+ function(){return resolve(L_newDefine)("length")(1)("length list = isCons list\r\n  + 1 (length (tail list))\r\n  assert (hasType list nil) (strCat (cons \"length argument is not a proper list: \" (cons list nil))) 0")(lazy(function(L_list){return resolve(L_isCons)(L_list)(function(){return resolve(L_$o)(1)(function(){return resolve(L_length)(function(){return resolve(L_tail)(L_list)})})})(function(){return resolve(L_assert)(function(){return resolve(L_hasType)(L_list)(L_nil)})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("length argument is not a proper list: ", function(){return resolve(L_cons)(L_list, L_nil)})})})(0)})}))},
+ function(){return resolve(L_newDefine)("append")(2)("append a b = isNil a\r\n  b\r\n  cons (head a) (append (tail a) b)")(lazy((function () {
   var main;
   var full = function (L_a, L_b) {
     return resolve(L_isNil)(L_a)(L_b)(function(){return resolve(L_cons)(function(){return resolve(L_head)(L_a)}, function(){return resolve(L_append)(function(){return resolve(L_tail)(L_a)}, L_b)})});
@@ -472,8 +472,8 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("flatten")(1)("flatten list = isCons list\n  subflatten list nil\n  list")(lazy(function(L_list){return resolve(L_isCons)(L_list)(function(){return resolve(L_subflatten)(L_list, L_nil)})(L_list)}))},
- function(){return resolve(L_newDefine)("subflatten")(2)("subflatten list result = isNil list\n  result\n  isCons list\n    subflatten (head list) (subflatten (tail list) result)\n    cons list result")(lazy((function () {
+ function(){return resolve(L_newDefine)("flatten")(1)("flatten list = isCons list\r\n  subflatten list nil\r\n  list")(lazy(function(L_list){return resolve(L_isCons)(L_list)(function(){return resolve(L_subflatten)(L_list, L_nil)})(L_list)}))},
+ function(){return resolve(L_newDefine)("subflatten")(2)("subflatten list result = isNil list\r\n  result\r\n  isCons list\r\n    subflatten (head list) (subflatten (tail list) result)\r\n    cons list result")(lazy((function () {
   var main;
   var full = function (L_list, L_result) {
     return resolve(L_isNil)(L_list)(L_result)(function(){return resolve(L_isCons)(L_list)(function(){return resolve(L_subflatten)(function(){return resolve(L_head)(L_list)}, function(){return resolve(L_subflatten)(function(){return resolve(L_tail)(L_list)}, L_result)})})(function(){return resolve(L_cons)(L_list, L_result)})});
@@ -497,7 +497,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("reverse")(1)("reverse l = rev l nil")(lazy(function(L_l){return resolve(L_rev)(L_l, L_nil)}))},
- function(){return resolve(L_newDefine)("rev")(2)("rev l result = isNil l\n  result\n  rev (tail l) (cons (head l) result)")(lazy((function () {
+ function(){return resolve(L_newDefine)("rev")(2)("rev l result = isNil l\r\n  result\r\n  rev (tail l) (cons (head l) result)")(lazy((function () {
   var main;
   var full = function (L_l, L_result) {
     return resolve(L_isNil)(L_l)(L_result)(function(){return resolve(L_rev)(function(){return resolve(L_tail)(L_l)}, function(){return resolve(L_cons)(function(){return resolve(L_head)(L_l)}, L_result)})});
@@ -520,7 +520,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("filter")(2)("filter func list = isNil list\n  nil\n  func (head list) (cons (head list)) id (filter func (tail list))")(lazy((function () {
+ function(){return resolve(L_newDefine)("filter")(2)("filter func list = isNil list\r\n  nil\r\n  func (head list) (cons (head list)) id (filter func (tail list))")(lazy((function () {
   var main;
   var full = function (L_func, L_list) {
     return resolve(L_isNil)(L_list)(L_nil)(function(){return resolve(L_func)(function(){return resolve(L_head)(L_list)})(function(){return resolve(L_cons)(function(){return resolve(L_head)(L_list)})})(L_id)(function(){return resolve(L_filter)(L_func, function(){return resolve(L_tail)(L_list)})})});
@@ -543,7 +543,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("find")(2)("find predicate list = isNil list\n  none\n  predicate (head list) (some (head list)) (find predicate (tail list))")(lazy((function () {
+ function(){return resolve(L_newDefine)("find")(2)("find predicate list = isNil list\r\n  none\r\n  predicate (head list) (some (head list)) (find predicate (tail list))")(lazy((function () {
   var main;
   var full = function (L_predicate, L_list) {
     return resolve(L_isNil)(L_list)(L_none)(function(){return resolve(L_predicate)(function(){return resolve(L_head)(L_list)})(function(){return resolve(L_some)(function(){return resolve(L_head)(L_list)})})(function(){return resolve(L_find)(L_predicate, function(){return resolve(L_tail)(L_list)})})});
@@ -589,7 +589,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("map")(2)("map func l = isNil l\n  nil\n  cons (func (head l)) (map func (tail l))")(lazy((function () {
+ function(){return resolve(L_newDefine)("map")(2)("map func l = isNil l\r\n  nil\r\n  cons (func (head l)) (map func (tail l))")(lazy((function () {
   var main;
   var full = function (L_func, L_l) {
     return resolve(L_isNil)(L_l)(L_nil)(function(){return resolve(L_cons)(function(){return resolve(L_func)(function(){return resolve(L_head)(L_l)})}, function(){return resolve(L_map)(L_func, function(){return resolve(L_tail)(L_l)})})});
@@ -612,7 +612,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("mapSave")(2)("mapSave func l = isNil l\n  nil\n  \\\\\n    newH = func (head l)\n    newT = mapSave func (tail l)\n    .\n    and (eq newH (head l)) (eq newT (tail l))\n      l\n      cons newH newT")(lazy((function () {
+ function(){return resolve(L_newDefine)("mapSave")(2)("mapSave func l = isNil l\r\n  nil\r\n  \\\\\r\n    newH = func (head l)\r\n    newT = mapSave func (tail l)\r\n    .\r\n    and (eq newH (head l)) (eq newT (tail l))\r\n      l\r\n      cons newH newT")(lazy((function () {
   var main;
   var full = function (L_func, L_l) {
     return resolve(L_isNil)(L_l)(L_nil)(function(){return(function(){
@@ -690,7 +690,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("foldr")(3)("foldr func initialValue list = list\n  \\h t D . func h (foldr func initialValue t)\n  initialValue")(lazy((function () {
+ function(){return resolve(L_newDefine)("foldr")(3)("foldr func initialValue list = list\r\n  \\h t D . func h (foldr func initialValue t)\r\n  initialValue")(lazy((function () {
   var main;
   var full = function (L_func, L_initialValue, L_list) {
     return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_func)(L_h)(function(){return resolve(L_foldr)(L_func, L_initialValue, L_t)})})})}))(L_initialValue);
@@ -717,7 +717,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("foldr1")(2)("foldr1 func list = list \\h t . isNil t\n  h\n  func h (foldr1 func t)")(lazy((function () {
+ function(){return resolve(L_newDefine)("foldr1")(2)("foldr1 func list = list \\h t . isNil t\r\n  h\r\n  func h (foldr1 func t)")(lazy((function () {
   var main;
   var full = function (L_func, L_list) {
     return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_isNil)(L_t)(L_h)(function(){return resolve(L_func)(L_h)(function(){return resolve(L_foldr1)(L_func, L_t)})})})}));
@@ -740,7 +740,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("intersperse")(2)("intersperse list element = list (\\h t D .\n  isNil t\n    list\n    cons h (cons element (intersperse t element))) nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("intersperse")(2)("intersperse list element = list (\\h t D .\r\n  isNil t\r\n    list\r\n    cons h (cons element (intersperse t element))) nil")(lazy((function () {
   var main;
   var full = function (L_list, L_element) {
     return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_isNil)(L_t)(L_list)(function(){return resolve(L_cons)(L_h, function(){return resolve(L_cons)(L_element, function(){return resolve(L_intersperse)(L_t, L_element)})})})})})}))(L_nil);
@@ -809,7 +809,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("idx")(3)("idx list func pos = list\n  \\h t D . func h\n    pos\n    idx t func (+ 1 pos)\n  -1")(lazy((function () {
+ function(){return resolve(L_newDefine)("idx")(3)("idx list func pos = list\r\n  \\h t D . func h\r\n    pos\r\n    idx t func (+ 1 pos)\r\n  -1")(lazy((function () {
   var main;
   var full = function (L_list, L_func, L_pos) {
     return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_func)(L_h)(L_pos)(function(){return resolve(L_idx)(L_t, L_func, function(){return resolve(L_$o)(1)(L_pos)})})})})}))(-1);
@@ -862,7 +862,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("increasing")(1)("increasing x = cons x (increasing (+ x 1))")(lazy(function(L_x){return resolve(L_cons)(L_x, function(){return resolve(L_increasing)(function(){return resolve(L_$o)(L_x)(1)})})}))},
  function(){return resolve(L_newDefine)("wholes")(0)("wholes = increasing 0")(function(){return resolve(L_increasing)(0)})},
  function(){return resolve(L_newDefine)("naturals")(0)("naturals = tail wholes")(function(){return resolve(L_tail)(L_wholes)})},
- function(){return resolve(L_newDefine)("zip")(2)("zip a b = isNil a\n  nil\n  isNil b\n    nil\n    cons (cons (head a) (head b)) (zip (tail a) (tail b))")(lazy((function () {
+ function(){return resolve(L_newDefine)("zip")(2)("zip a b = isNil a\r\n  nil\r\n  isNil b\r\n    nil\r\n    cons (cons (head a) (head b)) (zip (tail a) (tail b))")(lazy((function () {
   var main;
   var full = function (L_a, L_b) {
     return resolve(L_isNil)(L_a)(L_nil)(function(){return resolve(L_isNil)(L_b)(L_nil)(function(){return resolve(L_cons)(function(){return resolve(L_cons)(function(){return resolve(L_head)(L_a)}, function(){return resolve(L_head)(L_b)})}, function(){return resolve(L_zip)(function(){return resolve(L_tail)(L_a)}, function(){return resolve(L_tail)(L_b)})})})});
@@ -1009,7 +1009,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("appendAlist")(2)("appendAlist a b = isNil a\n  b\n  aconsPair (head a) (appendAlist (tail a) b)")(lazy((function () {
+ function(){return resolve(L_newDefine)("appendAlist")(2)("appendAlist a b = isNil a\r\n  b\r\n  aconsPair (head a) (appendAlist (tail a) b)")(lazy((function () {
   var main;
   var full = function (L_a, L_b) {
     return resolve(L_isNil)(L_a)(L_b)(function(){return resolve(L_aconsPair)(function(){return resolve(L_head)(L_a)}, function(){return resolve(L_appendAlist)(function(){return resolve(L_tail)(L_a)}, L_b)})});
@@ -1056,7 +1056,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("hasProperty")(2)("hasProperty func prop = getProperty func prop\n  \\_ . true\n  false")(lazy((function () {
+ function(){return resolve(L_newDefine)("hasProperty")(2)("hasProperty func prop = getProperty func prop\r\n  \\_ . true\r\n  false")(lazy((function () {
   var main;
   var full = function (L_func, L_prop) {
     return resolve(L_getProperty)(L_func, L_prop)(lazy(function(L__){return resolve(L_true)}))(L_false);
@@ -1102,7 +1102,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("qs")(2)("qs sortedFunc list = list\n  \\h t D . \\\\\n    greater = filter (sortedFunc h) t\n    lesser = filter (compose not (sortedFunc h)) t\n    .\n    \\rest . (qs sortedFunc lesser) (cons h ((qs sortedFunc greater) rest))\n  id")(lazy((function () {
+ function(){return resolve(L_newDefine)("qs")(2)("qs sortedFunc list = list\r\n  \\h t D . \\\\\r\n    greater = filter (sortedFunc h) t\r\n    lesser = filter (compose not (sortedFunc h)) t\r\n    .\r\n    \\rest . (qs sortedFunc lesser) (cons h ((qs sortedFunc greater) rest))\r\n  id")(lazy((function () {
   var main;
   var full = function (L_sortedFunc, L_list) {
     return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return (function(){
@@ -1130,7 +1130,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("insertSorted")(3)("insertSorted sortFunc item list = list\n  \\h t D . sortFunc item h (cons item list) (cons h (insertSorted sortFunc item t))\n  cons item nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("insertSorted")(3)("insertSorted sortFunc item list = list\r\n  \\h t D . sortFunc item h (cons item list) (cons h (insertSorted sortFunc item t))\r\n  cons item nil")(lazy((function () {
   var main;
   var full = function (L_sortFunc, L_item, L_list) {
     return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_sortFunc)(L_item)(L_h)(function(){return resolve(L_cons)(L_item, L_list)})(function(){return resolve(L_cons)(L_h, function(){return resolve(L_insertSorted)(L_sortFunc, L_item, L_t)})})})})}))(function(){return resolve(L_cons)(L_item, L_nil)});
@@ -1209,7 +1209,7 @@ module.exports = L_runMonads([
 })(), 'token')))},
  function(){return resolve(L_newDefine)("tokenString")(1)("tokenString tok = tok \\t p . t")(lazy(function(L_tok){return resolve(L_tok)(lazy(function(L_t){return $F(arguments, function(L_p){return resolve(L_t)})}))}))},
  function(){return resolve(L_newDefine)("tokenFilepos")(1)("tokenFilepos tok = tok \\t p . p")(lazy(function(L_tok){return resolve(L_tok)(lazy(function(L_t){return $F(arguments, function(L_p){return resolve(L_p)})}))}))},
- function(){return resolve(L_newDefine)("tokenPos")(1)("tokenPos tok = tok \\t p . isFilepos p\n  fileposOffset p\n  p")(lazy(function(L_tok){return resolve(L_tok)(lazy(function(L_t){return $F(arguments, function(L_p){return resolve(L_isFilepos)(L_p)(function(){return resolve(L_fileposOffset)(L_p)})(L_p)})}))}))},
+ function(){return resolve(L_newDefine)("tokenPos")(1)("tokenPos tok = tok \\t p . isFilepos p\r\n  fileposOffset p\r\n  p")(lazy(function(L_tok){return resolve(L_tok)(lazy(function(L_t){return $F(arguments, function(L_p){return resolve(L_isFilepos)(L_p)(function(){return resolve(L_fileposOffset)(L_p)})(L_p)})}))}))},
  function(){return resolve(L_newDefine)("isToken")(1)("isToken t = hasType t token")(lazy(function(L_t){return resolve(L_hasType)(L_t)(L_token)}))},
  function(){return resolve(L_newDefine)("emptyLineStarts")(0)("emptyLineStarts = cons 'EMPTYFILE.lsr' (cons 1 nil)")(function(){return resolve(L_cons)("EMPTYFILE.lsr", function(){return resolve(L_cons)(1, L_nil)})})},
  function(){return resolve(L_newDefine)("filepos")(3)("filepos file line offset = \\f . f file line offset")(lazy(setDataType((function () {
@@ -1243,7 +1243,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("fileposLine")(1)("fileposLine p = p \\file line offset . line")(lazy(function(L_p){return resolve(L_p)(lazy(function(L_file){return $F(arguments, function(L_line){return $F(arguments, function(L_offset){return resolve(L_line)})})}))}))},
  function(){return resolve(L_newDefine)("fileposOffset")(1)("fileposOffset p = p \\file line offset . offset")(lazy(function(L_p){return resolve(L_p)(lazy(function(L_file){return $F(arguments, function(L_line){return $F(arguments, function(L_offset){return resolve(L_offset)})})}))}))},
  function(){return resolve(L_newDefine)("isFilepos")(1)("isFilepos p = hasType p filepos")(lazy(function(L_p){return resolve(L_hasType)(L_p)(L_filepos)}))},
- function(){return resolve(L_newDefine)("addFilepos")(2)("addFilepos pos change = isFilepos pos pos emptyFilePos\n  \\file line offset . filepos file line (+ offset change)")(lazy((function () {
+ function(){return resolve(L_newDefine)("addFilepos")(2)("addFilepos pos change = isFilepos pos pos emptyFilePos\r\n  \\file line offset . filepos file line (+ offset change)")(lazy((function () {
   var main;
   var full = function (L_pos, L_change) {
     return resolve(L_isFilepos)(L_pos)(L_pos)(L_emptyFilePos)(lazy(function(L_file){return $F(arguments, function(L_line){return $F(arguments, function(L_offset){return resolve(L_filepos)(L_file, L_line, function(){return resolve(L_$o)(L_offset)(L_change)})})})}));
@@ -1270,7 +1270,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("isEmptyPos")(1)("isEmptyPos pos = and (isFilepos pos) (and (eq 0 (fileposLine pos)) (eq 0 (fileposOffset pos)))")(lazy(function(L_pos){return resolve(L_and)(function(){return resolve(L_isFilepos)(L_pos)}, function(){return resolve(L_and)(function(){return resolve(L_eq)(0)(function(){return resolve(L_fileposLine)(L_pos)})}, function(){return resolve(L_eq)(0)(function(){return resolve(L_fileposOffset)(L_pos)})})})}))},
  function(){return resolve(L_newDefine)("emptyFor")(1)("emptyFor thing = filepos (fileposFile (position thing)) 0 0")(lazy(function(L_thing){return resolve(L_filepos)(function(){return resolve(L_fileposFile)(function(){return resolve(L_position)(L_thing)})}, 0, 0)}))},
  function(){return resolve(L_newDefine)("startFilePos")(0)("startFilePos = emptyFilePos")(L_emptyFilePos)},
- function(){return resolve(L_newDefine)("filePosFor")(2)("filePosFor lineStarts offset = countFilePos (head (tail lineStarts)) 0 (tail (tail lineStarts)) offset\n  \\line offset . filepos (head lineStarts) line offset")(lazy((function () {
+ function(){return resolve(L_newDefine)("filePosFor")(2)("filePosFor lineStarts offset = countFilePos (head (tail lineStarts)) 0 (tail (tail lineStarts)) offset\r\n  \\line offset . filepos (head lineStarts) line offset")(lazy((function () {
   var main;
   var full = function (L_lineStarts, L_offset) {
     return resolve(L_countFilePos)(function(){return resolve(L_head)(function(){return resolve(L_tail)(L_lineStarts)})}, 0, function(){return resolve(L_tail)(function(){return resolve(L_tail)(L_lineStarts)})}, L_offset)(lazy(function(L_line){return $F(arguments, function(L_offset){return resolve(L_filepos)(function(){return resolve(L_head)(L_lineStarts)}, L_line, L_offset)})}));
@@ -1293,7 +1293,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("countFilePos")(4)("countFilePos line lineOffset starts offset = or (isNil starts) (> (head starts) offset)\n  \\f . f line (- offset lineOffset)\n  countFilePos (+ line 1) (head starts) (tail starts) offset")(lazy((function () {
+ function(){return resolve(L_newDefine)("countFilePos")(4)("countFilePos line lineOffset starts offset = or (isNil starts) (> (head starts) offset)\r\n  \\f . f line (- offset lineOffset)\r\n  countFilePos (+ line 1) (head starts) (tail starts) offset")(lazy((function () {
   var main;
   var full = function (L_line, L_lineOffset, L_starts, L_offset) {
     return resolve(L_or)(function(){return resolve(L_isNil)(L_starts)}, function(){return resolve(L_$z)(function(){return resolve(L_head)(L_starts)})(L_offset)})(lazy(function(L_f){return resolve(L_f)(L_line)(function(){return resolve(L_$_)(L_offset)(L_lineOffset)})}))(function(){return resolve(L_countFilePos)(function(){return resolve(L_$o)(L_line)(1)}, function(){return resolve(L_head)(L_starts)}, function(){return resolve(L_tail)(L_starts)}, L_offset)});
@@ -1356,7 +1356,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("parensEnd")(1)("parensEnd p = p \\s e c . e")(lazy(function(L_p){return resolve(L_p)(lazy(function(L_s){return $F(arguments, function(L_e){return $F(arguments, function(L_c){return resolve(L_e)})})}))}))},
  function(){return resolve(L_newDefine)("parensContent")(1)("parensContent p = p \\s e c . c")(lazy(function(L_p){return resolve(L_p)(lazy(function(L_s){return $F(arguments, function(L_e){return $F(arguments, function(L_c){return resolve(L_c)})})}))}))},
  function(){return resolve(L_newDefine)("isParens")(1)("isParens p = hasType p parens")(lazy(function(L_p){return resolve(L_hasType)(L_p)(L_parens)}))},
- function(){return resolve(L_newDefine)("makeParens")(3)("makeParens start end content =\n  and (isCons content) (isNil (tail content))\n    makeParens start end (head content)\n    or (isToken content) (isParens content)\n      content\n      parens start end content")(lazy((function () {
+ function(){return resolve(L_newDefine)("makeParens")(3)("makeParens start end content =\r\n  and (isCons content) (isNil (tail content))\r\n    makeParens start end (head content)\r\n    or (isToken content) (isParens content)\r\n      content\r\n      parens start end content")(lazy((function () {
   var main;
   var full = function (L_start, L_end, L_content) {
     return resolve(L_and)(function(){return resolve(L_isCons)(L_content)}, function(){return resolve(L_isNil)(function(){return resolve(L_tail)(L_content)})})(function(){return resolve(L_makeParens)(L_start, L_end, function(){return resolve(L_head)(L_content)})})(function(){return resolve(L_or)(function(){return resolve(L_isToken)(L_content)}, function(){return resolve(L_isParens)(L_content)})(L_content)(function(){return resolve(L_parens)(L_start, L_end, L_content)})});
@@ -1383,7 +1383,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parensFromToks")(3)("parensFromToks left right content = \\\\\n  start = tokenFilepos left\n  end = addFilepos (tokenFilepos right) (strLen (tokenString right))\n  .\n  parens start end content")(lazy((function () {
+ function(){return resolve(L_newDefine)("parensFromToks")(3)("parensFromToks left right content = \\\\\r\n  start = tokenFilepos left\r\n  end = addFilepos (tokenFilepos right) (strLen (tokenString right))\r\n  .\r\n  parens start end content")(lazy((function () {
   var main;
   var full = function (L_left, L_right, L_content) {
     return (function(){
@@ -1469,7 +1469,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("makeMoreTokens")(4)("makeMoreTokens lineStarts h t start = \\\\\n  next = makeTokens lineStarts t (+ start (strLen h))\n  .\n  and (strMatches h emptyToken) (or (isNil t) (or (strStartsWith (head t) '\\n') (strStartsWith (head t) '\\r\\n')))\n    makeTokens lineStarts t (+ start (strLen h))\n    or (strStartsWith h ' ') (strStartsWith h '#')\n      next\n      and (or (strStartsWith h '\\n') (strStartsWith h '\\r\\n')) (strStartsWith (head t) '#')\n        makeTokens lineStarts (tail t) (+ start (+ (strLen h) (strLen (head t))))\n        #cons (token h start) next\n        cons (makeTokenAt lineStarts h start) next")(lazy((function () {
+ function(){return resolve(L_newDefine)("makeMoreTokens")(4)("makeMoreTokens lineStarts h t start = \\\\\r\n  next = makeTokens lineStarts t (+ start (strLen h))\r\n  .\r\n  and (strMatches h emptyToken) (or (isNil t) (or (strStartsWith (head t) '\\n') (strStartsWith (head t) '\\r\\n')))\r\n    makeTokens lineStarts t (+ start (strLen h))\r\n    or (strStartsWith h ' ') (strStartsWith h '#')\r\n      next\r\n      and (or (strStartsWith h '\\n') (strStartsWith h '\\r\\n')) (strStartsWith (head t) '#')\r\n        makeTokens lineStarts (tail t) (+ start (+ (strLen h) (strLen (head t))))\r\n        #cons (token h start) next\r\n        cons (makeTokenAt lineStarts h start) next")(lazy((function () {
   var main;
   var full = function (L_lineStarts, L_h, L_t, L_start) {
     return (function(){
@@ -1532,7 +1532,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("showToken")(1)("showToken tok = log (strCat (cons 'token: ' (cons (tokenString tok) (cons ', ' (cons (showPos (tokenPos tok)) nil))))) tok")(lazy(function(L_tok){return resolve(L_log)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("token: ", function(){return resolve(L_cons)(function(){return resolve(L_tokenString)(L_tok)}, function(){return resolve(L_cons)(", ", function(){return resolve(L_cons)(function(){return resolve(L_showPos)(function(){return resolve(L_tokenPos)(L_tok)})}, L_nil)})})})})})(L_tok)}))},
- function(){return resolve(L_newDefine)("showPos")(1)("showPos pos = isFilepos pos\n  strCat (cons 'position: ' (cons (fileposFile pos) (cons ', ' (cons (fileposLine pos) (cons '.' (cons (fileposOffset pos) nil))))))\n  pos")(lazy(function(L_pos){return resolve(L_isFilepos)(L_pos)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("position: ", function(){return resolve(L_cons)(function(){return resolve(L_fileposFile)(L_pos)}, function(){return resolve(L_cons)(", ", function(){return resolve(L_cons)(function(){return resolve(L_fileposLine)(L_pos)}, function(){return resolve(L_cons)(".", function(){return resolve(L_cons)(function(){return resolve(L_fileposOffset)(L_pos)}, L_nil)})})})})})})})(L_pos)}))},
+ function(){return resolve(L_newDefine)("showPos")(1)("showPos pos = isFilepos pos\r\n  strCat (cons 'position: ' (cons (fileposFile pos) (cons ', ' (cons (fileposLine pos) (cons '.' (cons (fileposOffset pos) nil))))))\r\n  pos")(lazy(function(L_pos){return resolve(L_isFilepos)(L_pos)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("position: ", function(){return resolve(L_cons)(function(){return resolve(L_fileposFile)(L_pos)}, function(){return resolve(L_cons)(", ", function(){return resolve(L_cons)(function(){return resolve(L_fileposLine)(L_pos)}, function(){return resolve(L_cons)(".", function(){return resolve(L_cons)(function(){return resolve(L_fileposOffset)(L_pos)}, L_nil)})})})})})})})(L_pos)}))},
  function(){return resolve(L_newDefine)("splitTokens")(2)("splitTokens str pat = filter (\\s . not (eq s '')) (basicSplitTokens str pat true)")(lazy((function () {
   var main;
   var full = function (L_str, L_pat) {
@@ -1557,7 +1557,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("numberPat")(0)("numberPat = regexp '-?([0-9]+(\\\\.[0-9]+)?|\\\\.[0-9]+)'")(function(){return resolve(L_regexp)("-?([0-9]+(\\.[0-9]+)?|\\.[0-9]+)")})},
- function(){return resolve(L_newDefine)("matchOffset")(2)("matchOffset str match = isNil match\n  strLen str\n  head (tail (tail match))")(lazy((function () {
+ function(){return resolve(L_newDefine)("matchOffset")(2)("matchOffset str match = isNil match\r\n  strLen str\r\n  head (tail (tail match))")(lazy((function () {
   var main;
   var full = function (L_str, L_match) {
     return resolve(L_isNil)(L_match)(function(){return resolve(L_strLen)(L_str)})(function(){return resolve(L_head)(function(){return resolve(L_tail)(function(){return resolve(L_tail)(L_match)})})});
@@ -1580,7 +1580,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("basicSplitTokens")(3)("basicSplitTokens str pat prevIsDel = == str ''\n  nil\n  \\\\\n    num = strMatch str numberPat\n    del = strMatch str pat\n    numOffset = matchOffset str num\n    delOffset = matchOffset str del\n    select = and (== numOffset 0) prevIsDel\n      \\del num first . num\n      == delOffset 0\n        \\del num first . del\n        \\del num first . first\n    first = select (head del) (head num) (strSubstring str 0 delOffset)\n    .\n    cons\n      first\n      basicSplitTokens\n        strSubstring str (strLen first) 0\n        pat\n        select true false false")(lazy((function () {
+ function(){return resolve(L_newDefine)("basicSplitTokens")(3)("basicSplitTokens str pat prevIsDel = == str ''\r\n  nil\r\n  \\\\\r\n    num = strMatch str numberPat\r\n    del = strMatch str pat\r\n    numOffset = matchOffset str num\r\n    delOffset = matchOffset str del\r\n    select = and (== numOffset 0) prevIsDel\r\n      \\del num first . num\r\n      == delOffset 0\r\n        \\del num first . del\r\n        \\del num first . first\r\n    first = select (head del) (head num) (strSubstring str 0 delOffset)\r\n    .\r\n    cons\r\n      first\r\n      basicSplitTokens\r\n        strSubstring str (strLen first) 0\r\n        pat\r\n        select true false false")(lazy((function () {
   var main;
   var full = function (L_str, L_pat, L_prevIsDel) {
     return resolve(L_$p$p)(L_str)("")(L_nil)(function(){return(function(){
@@ -1666,7 +1666,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("isTokenString")(2)("isTokenString tok str = or\n  and (isToken tok) (eq (tokenString tok) str)\n  and (isString tok) (eq tok str)")(lazy((function () {
+ function(){return resolve(L_newDefine)("isTokenString")(2)("isTokenString tok str = or\r\n  and (isToken tok) (eq (tokenString tok) str)\r\n  and (isString tok) (eq tok str)")(lazy((function () {
   var main;
   var full = function (L_tok, L_str) {
     return resolve(L_or)(function(){return resolve(L_and)(function(){return resolve(L_isToken)(L_tok)}, function(){return resolve(L_eq)(function(){return resolve(L_tokenString)(L_tok)})(L_str)})}, function(){return resolve(L_and)(function(){return resolve(L_isString)(L_tok)}, function(){return resolve(L_eq)(L_tok)(L_str)})});
@@ -1689,7 +1689,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("isTokenStart")(2)("isTokenStart tok str = or\n  and (isToken tok) (strStartsWith (tokenString tok) str)\n  and (isString tok) (strStartsWith tok str)")(lazy((function () {
+ function(){return resolve(L_newDefine)("isTokenStart")(2)("isTokenStart tok str = or\r\n  and (isToken tok) (strStartsWith (tokenString tok) str)\r\n  and (isString tok) (strStartsWith tok str)")(lazy((function () {
   var main;
   var full = function (L_tok, L_str) {
     return resolve(L_or)(function(){return resolve(L_and)(function(){return resolve(L_isToken)(L_tok)}, function(){return resolve(L_strStartsWith)(function(){return resolve(L_tokenString)(L_tok)}, L_str)})}, function(){return resolve(L_and)(function(){return resolve(L_isString)(L_tok)}, function(){return resolve(L_strStartsWith)(L_tok, L_str)})});
@@ -1713,7 +1713,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("strTokenString")(1)("strTokenString tok = withToken tok nil \\str pos . str")(lazy(function(L_tok){return resolve(L_withToken)(L_tok, L_nil, lazy(function(L_str){return $F(arguments, function(L_pos){return resolve(L_str)})}))}))},
- function(){return resolve(L_newDefine)("withToken")(3)("withToken tok nonTokCase tokCase = isToken tok\n  tokCase (tokenString tok) (tokenPos tok)\n  isString tok\n    tokCase tok emptyFilePos\n    nonTokCase")(lazy((function () {
+ function(){return resolve(L_newDefine)("withToken")(3)("withToken tok nonTokCase tokCase = isToken tok\r\n  tokCase (tokenString tok) (tokenPos tok)\r\n  isString tok\r\n    tokCase tok emptyFilePos\r\n    nonTokCase")(lazy((function () {
   var main;
   var full = function (L_tok, L_nonTokCase, L_tokCase) {
     return resolve(L_isToken)(L_tok)(function(){return resolve(L_tokCase)(function(){return resolve(L_tokenString)(L_tok)})(function(){return resolve(L_tokenPos)(L_tok)})})(function(){return resolve(L_isString)(L_tok)(function(){return resolve(L_tokCase)(L_tok)(L_emptyFilePos)})(L_nonTokCase)});
@@ -1740,7 +1740,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parseToks")(2)("parseToks toks groups =\n  isNil toks nil\n    ifNotErr (parseTok toks groups) \\list . list \\h t .\n      ifNotErr (parseToks t groups) \\res .\n        cons h\n          and (isCons res) (isBlockStart (head res))\n            cons res nil\n            res")(lazy((function () {
+ function(){return resolve(L_newDefine)("parseToks")(2)("parseToks toks groups =\r\n  isNil toks nil\r\n    ifNotErr (parseTok toks groups) \\list . list \\h t .\r\n      ifNotErr (parseToks t groups) \\res .\r\n        cons h\r\n          and (isCons res) (isBlockStart (head res))\r\n            cons res nil\r\n            res")(lazy((function () {
   var main;
   var full = function (L_toks, L_groups) {
     return resolve(L_isNil)(L_toks)(L_nil)(function(){return resolve(L_ifNotErr)(function(){return resolve(L_parseTok)(L_toks, L_groups)}, lazy(function(L_list){return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_ifNotErr)(function(){return resolve(L_parseToks)(L_t, L_groups)}, lazy(function(L_res){return resolve(L_cons)(L_h, function(){return resolve(L_and)(function(){return resolve(L_isCons)(L_res)}, function(){return resolve(L_isBlockStart)(function(){return resolve(L_head)(L_res)})})(function(){return resolve(L_cons)(L_res, L_nil)})(L_res)})}))})}))}))});
@@ -1763,7 +1763,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parseTok")(2)("parseTok toks groups = withCons toks nil \\h t .\n  withToken h toks \\txt pos .\n    assoc txt groups\n      \\close . parseGroup h t nil close groups\n      (or (isTokenStart h '\\n') (isTokenStart h '\\r\\n')) (parseIndent h t nil groups)\n        toks")(lazy((function () {
+ function(){return resolve(L_newDefine)("parseTok")(2)("parseTok toks groups = withCons toks nil \\h t .\r\n  withToken h toks \\txt pos .\r\n    assoc txt groups\r\n      \\close . parseGroup h t nil close groups\r\n      (or (isTokenStart h '\\n') (isTokenStart h '\\r\\n')) (parseIndent h t nil groups)\r\n        toks")(lazy((function () {
   var main;
   var full = function (L_toks, L_groups) {
     return resolve(L_withCons)(L_toks, L_nil, lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_withToken)(L_h, L_toks, lazy(function(L_txt){return $F(arguments, function(L_pos){return resolve(L_assoc)(L_txt, L_groups)(lazy(function(L_close){return resolve(L_parseGroup)(L_h, L_t, L_nil, L_close, L_groups)}))(function(){return resolve(L_or)(function(){return resolve(L_isTokenStart)(L_h, "\n")}, function(){return resolve(L_isTokenStart)(L_h, "\r\n")})(function(){return resolve(L_parseIndent)(L_h, L_t, L_nil, L_groups)})(L_toks)})})}))})}));
@@ -1786,7 +1786,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parseGroup")(5)("parseGroup left toks gr close groups = withCons toks (parseErr 'Unterminated group starting ' (loc left))\n  \\h t . isTokenString h close\n    eq close ')'\n      cons (parensFromToks left h (reverse gr)) t\n      cons (cons left (cons (reverse gr) (cons h nil))) t\n    withToken h\n      ifNotErr (parseTok toks groups) \\list . list \\restH restT .\n        parseGroup left restT (cons restH gr) close groups\n      \\txt pos .\n        rassoc txt groups\n          \\open . parseErr (strCat (cons 'Mismatched group: ' (cons (tokenString left) (cons txt (cons ' ' nil))))) (loc left)\n          ifNotErr (parseTok toks groups) \\list . list \\restH restT . parseGroup left restT (cons restH gr) close groups")(lazy((function () {
+ function(){return resolve(L_newDefine)("parseGroup")(5)("parseGroup left toks gr close groups = withCons toks (parseErr 'Unterminated group starting ' (loc left))\r\n  \\h t . isTokenString h close\r\n    eq close ')'\r\n      cons (parensFromToks left h (reverse gr)) t\r\n      cons (cons left (cons (reverse gr) (cons h nil))) t\r\n    withToken h\r\n      ifNotErr (parseTok toks groups) \\list . list \\restH restT .\r\n        parseGroup left restT (cons restH gr) close groups\r\n      \\txt pos .\r\n        rassoc txt groups\r\n          \\open . parseErr (strCat (cons 'Mismatched group: ' (cons (tokenString left) (cons txt (cons ' ' nil))))) (loc left)\r\n          ifNotErr (parseTok toks groups) \\list . list \\restH restT . parseGroup left restT (cons restH gr) close groups")(lazy((function () {
   var main;
   var full = function (L_left, L_toks, L_gr, L_close, L_groups) {
     return resolve(L_withCons)(L_toks, function(){return resolve(L_parseErr)("Unterminated group starting ", function(){return resolve(L_loc)(L_left)})}, lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_isTokenString)(L_h, L_close)(function(){return resolve(L_eq)(L_close)(")")(function(){return resolve(L_cons)(function(){return resolve(L_parensFromToks)(L_left, L_h, function(){return resolve(L_reverse)(L_gr)})}, L_t)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)(L_left, function(){return resolve(L_cons)(function(){return resolve(L_reverse)(L_gr)}, function(){return resolve(L_cons)(L_h, L_nil)})})}, L_t)})})(function(){return resolve(L_withToken)(L_h, function(){return resolve(L_ifNotErr)(function(){return resolve(L_parseTok)(L_toks, L_groups)}, lazy(function(L_list){return resolve(L_list)(lazy(function(L_restH){return $F(arguments, function(L_restT){return resolve(L_parseGroup)(L_left, L_restT, function(){return resolve(L_cons)(L_restH, L_gr)}, L_close, L_groups)})}))}))}, lazy(function(L_txt){return $F(arguments, function(L_pos){return resolve(L_rassoc)(L_txt, L_groups)(lazy(function(L_open){return resolve(L_parseErr)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("Mismatched group: ", function(){return resolve(L_cons)(function(){return resolve(L_tokenString)(L_left)}, function(){return resolve(L_cons)(L_txt, function(){return resolve(L_cons)(" ", L_nil)})})})})}, function(){return resolve(L_loc)(L_left)})}))(function(){return resolve(L_ifNotErr)(function(){return resolve(L_parseTok)(L_toks, L_groups)}, lazy(function(L_list){return resolve(L_list)(lazy(function(L_restH){return $F(arguments, function(L_restT){return resolve(L_parseGroup)(L_left, L_restT, function(){return resolve(L_cons)(L_restH, L_gr)}, L_close, L_groups)})}))}))})})}))})})}));
@@ -1821,7 +1821,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parseIndent")(4)("parseIndent indent toks gr groups =\n  withCons toks (cons (makeParens (tokenFilepos indent) (lexEnd (head gr)) (reverse gr)) nil)\n    \\h t . or (withToken h false (\\txt pos . rassoc txt groups (\\open . true) false))\n      and (or (isTokenStart h '\\n') (isTokenStart h '\\r\\n')) (<= (strLen (tokenString h)) (strLen (tokenString indent)))\n      cons (makeParens (tokenFilepos indent) (tokenFilepos h) (reverse gr)) toks\n      ifNotErr (parseTok toks groups) \\list . list \\restH restT . parseIndent indent restT (cons restH gr) groups")(lazy((function () {
+ function(){return resolve(L_newDefine)("parseIndent")(4)("parseIndent indent toks gr groups =\r\n  withCons toks (cons (makeParens (tokenFilepos indent) (lexEnd (head gr)) (reverse gr)) nil)\r\n    \\h t . or (withToken h false (\\txt pos . rassoc txt groups (\\open . true) false))\r\n      and (or (isTokenStart h '\\n') (isTokenStart h '\\r\\n')) (<= (strLen (tokenString h)) (strLen (tokenString indent)))\r\n      cons (makeParens (tokenFilepos indent) (tokenFilepos h) (reverse gr)) toks\r\n      ifNotErr (parseTok toks groups) \\list . list \\restH restT . parseIndent indent restT (cons restH gr) groups")(lazy((function () {
   var main;
   var full = function (L_indent, L_toks, L_gr, L_groups) {
     return resolve(L_withCons)(L_toks, function(){return resolve(L_cons)(function(){return resolve(L_makeParens)(function(){return resolve(L_tokenFilepos)(L_indent)}, function(){return resolve(L_lexEnd)(function(){return resolve(L_head)(L_gr)})}, function(){return resolve(L_reverse)(L_gr)})}, L_nil)}, lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_or)(function(){return resolve(L_withToken)(L_h, L_false, lazy(function(L_txt){return $F(arguments, function(L_pos){return resolve(L_rassoc)(L_txt, L_groups)(lazy(function(L_open){return resolve(L_true)}))(L_false)})}))}, function(){return resolve(L_and)(function(){return resolve(L_or)(function(){return resolve(L_isTokenStart)(L_h, "\n")}, function(){return resolve(L_isTokenStart)(L_h, "\r\n")})}, function(){return resolve(L_$y$p)(function(){return resolve(L_strLen)(function(){return resolve(L_tokenString)(L_h)})})(function(){return resolve(L_strLen)(function(){return resolve(L_tokenString)(L_indent)})})})})(function(){return resolve(L_cons)(function(){return resolve(L_makeParens)(function(){return resolve(L_tokenFilepos)(L_indent)}, function(){return resolve(L_tokenFilepos)(L_h)}, function(){return resolve(L_reverse)(L_gr)})}, L_toks)})(function(){return resolve(L_ifNotErr)(function(){return resolve(L_parseTok)(L_toks, L_groups)}, lazy(function(L_list){return resolve(L_list)(lazy(function(L_restH){return $F(arguments, function(L_restT){return resolve(L_parseIndent)(L_indent, L_restT, function(){return resolve(L_cons)(L_restH, L_gr)}, L_groups)})}))}))})})}));
@@ -2034,7 +2034,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("setParens")(2)("setParens p func = isParens p\n  p \\start end content . parens start end (func content)\n  func p")(lazy((function () {
+ function(){return resolve(L_newDefine)("setParens")(2)("setParens p func = isParens p\r\n  p \\start end content . parens start end (func content)\r\n  func p")(lazy((function () {
   var main;
   var full = function (L_p, L_func) {
     return resolve(L_isParens)(L_p)(function(){return resolve(L_p)(lazy(function(L_start){return $F(arguments, function(L_end){return $F(arguments, function(L_content){return resolve(L_parens)(L_start, L_end, function(){return resolve(L_func)(L_content)})})})}))})(function(){return resolve(L_func)(L_p)});
@@ -2080,25 +2080,25 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("position")(1)("position thing = isToken thing (tokenFilepos thing)\n  isParens thing (parensStart thing)\n    isCons thing\n      \\\\\n        pos = position (head thing)\n        .\n        isEmptyPos pos (position (tail thing)) pos\n      isFilepos thing thing\n        emptyFilePos")(lazy(function(L_thing){return resolve(L_isToken)(L_thing)(function(){return resolve(L_tokenFilepos)(L_thing)})(function(){return resolve(L_isParens)(L_thing)(function(){return resolve(L_parensStart)(L_thing)})(function(){return resolve(L_isCons)(L_thing)(function(){return(function(){
+ function(){return resolve(L_newDefine)("position")(1)("position thing = isToken thing (tokenFilepos thing)\r\n  isParens thing (parensStart thing)\r\n    isCons thing\r\n      \\\\\r\n        pos = position (head thing)\r\n        .\r\n        isEmptyPos pos (position (tail thing)) pos\r\n      isFilepos thing thing\r\n        emptyFilePos")(lazy(function(L_thing){return resolve(L_isToken)(L_thing)(function(){return resolve(L_tokenFilepos)(L_thing)})(function(){return resolve(L_isParens)(L_thing)(function(){return resolve(L_parensStart)(L_thing)})(function(){return resolve(L_isCons)(L_thing)(function(){return(function(){
   var L_pos_0;
   L_pos_0 = function(){return resolve(L_position)(function(){return resolve(L_head)(L_thing)})};
 
   return resolve(L_isEmptyPos)(L_pos_0)(function(){return resolve(L_position)(function(){return resolve(L_tail)(L_thing)})})(L_pos_0)})();})(function(){return resolve(L_isFilepos)(L_thing)(L_thing)(L_emptyFilePos)})})})}))},
- function(){return resolve(L_newDefine)("lexEnd")(1)("lexEnd thing = isToken thing (addFilepos (tokenFilepos thing) (strLen (tokenString thing)))\n  isParens thing (parensEnd thing)\n    isCons thing (lexEnd (last thing))\n      emptyFilePos")(lazy(function(L_thing){return resolve(L_isToken)(L_thing)(function(){return resolve(L_addFilepos)(function(){return resolve(L_tokenFilepos)(L_thing)}, function(){return resolve(L_strLen)(function(){return resolve(L_tokenString)(L_thing)})})})(function(){return resolve(L_isParens)(L_thing)(function(){return resolve(L_parensEnd)(L_thing)})(function(){return resolve(L_isCons)(L_thing)(function(){return resolve(L_lexEnd)(function(){return resolve(L_last)(L_thing)})})(L_emptyFilePos)})})}))},
- function(){return resolve(L_newDefine)("loc")(1)("loc thing = \\\\\n  p = position thing\n  l = isEmptyPos p 'an unknown location' (showPos p)\n  .\n  strCat (cons 'at ' (cons l nil))")(lazy(function(L_thing){return (function(){
+ function(){return resolve(L_newDefine)("lexEnd")(1)("lexEnd thing = isToken thing (addFilepos (tokenFilepos thing) (strLen (tokenString thing)))\r\n  isParens thing (parensEnd thing)\r\n    isCons thing (lexEnd (last thing))\r\n      emptyFilePos")(lazy(function(L_thing){return resolve(L_isToken)(L_thing)(function(){return resolve(L_addFilepos)(function(){return resolve(L_tokenFilepos)(L_thing)}, function(){return resolve(L_strLen)(function(){return resolve(L_tokenString)(L_thing)})})})(function(){return resolve(L_isParens)(L_thing)(function(){return resolve(L_parensEnd)(L_thing)})(function(){return resolve(L_isCons)(L_thing)(function(){return resolve(L_lexEnd)(function(){return resolve(L_last)(L_thing)})})(L_emptyFilePos)})})}))},
+ function(){return resolve(L_newDefine)("loc")(1)("loc thing = \\\\\r\n  p = position thing\r\n  l = isEmptyPos p 'an unknown location' (showPos p)\r\n  .\r\n  strCat (cons 'at ' (cons l nil))")(lazy(function(L_thing){return (function(){
   var L_p_0, L_l_1;
   L_p_0 = function(){return resolve(L_position)(L_thing)};
   L_l_1 = function(){return resolve(L_isEmptyPos)(L_p_0)("an unknown location")(function(){return resolve(L_showPos)(L_p_0)})};
 
   return resolve(L_strCat)(function(){return resolve(L_cons)("at ", function(){return resolve(L_cons)(L_l_1, L_nil)})})})()}))},
  function(){return resolve(L_newDefine)("scrub")(1)("scrub str = strFromList (scrubList (strToList str))")(lazy(function(L_str){return resolve(L_strFromList)(function(){return resolve(L_scrubList)(function(){return resolve(L_strToList)(L_str)})})}))},
- function(){return resolve(L_newDefine)("scrubList")(1)("scrubList list = list\n  \\h t D . \\\\\n    next = scrubList t\n    .\n    eq h '\\\\' (cons h (cons (head t) (scrubList (tail t))))\n      eq h '\\\"' (cons '\\\\' (cons '\\\"' next))\n        cons h next\n  nil")(lazy(function(L_list){return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return (function(){
+ function(){return resolve(L_newDefine)("scrubList")(1)("scrubList list = list\r\n  \\h t D . \\\\\r\n    next = scrubList t\r\n    .\r\n    eq h '\\\\' (cons h (cons (head t) (scrubList (tail t))))\r\n      eq h '\\\"' (cons '\\\\' (cons '\\\"' next))\r\n        cons h next\r\n  nil")(lazy(function(L_list){return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return (function(){
   var L_next_0;
   L_next_0 = function(){return resolve(L_scrubList)(L_t)};
 
   return resolve(L_eq)(L_h)("\\")(function(){return resolve(L_cons)(L_h, function(){return resolve(L_cons)(function(){return resolve(L_head)(L_t)}, function(){return resolve(L_scrubList)(function(){return resolve(L_tail)(L_t)})})})})(function(){return resolve(L_eq)(L_h)("\"")(function(){return resolve(L_cons)("\\", function(){return resolve(L_cons)("\"", L_next_0)})})(function(){return resolve(L_cons)(L_h, L_next_0)})})})()})})}))(L_nil)}))},
- function(){return resolve(L_newDefine)("createAst")(3)("createAst lineStarts inList names = withStripped inList \\list .\n  isToken list (createLitOrRef list names)\n    list\n      \\h t D .\n        isTokenString h '\\\\\\\\' (createLet h t names)\n          isTokenString h '\\\\@' (createAnno h t names)\n            isTokenString h '\\\\' (createLambda h t names)\n              createApply list names\n      nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("createAst")(3)("createAst lineStarts inList names = withStripped inList \\list .\r\n  isToken list (createLitOrRef list names)\r\n    list\r\n      \\h t D .\r\n        isTokenString h '\\\\\\\\' (createLet h t names)\r\n          isTokenString h '\\\\@' (createAnno h t names)\r\n            isTokenString h '\\\\' (createLambda h t names)\r\n              createApply list names\r\n      nil")(lazy((function () {
   var main;
   var full = function (L_lineStarts, L_inList, L_names) {
     return resolve(L_withStripped)(L_inList, lazy(function(L_list){return resolve(L_isToken)(L_list)(function(){return resolve(L_createLitOrRef)(L_list, L_names)})(function(){return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_isTokenString)(L_h, "\\\\")(function(){return resolve(L_createLet)(L_h, L_t, L_names)})(function(){return resolve(L_isTokenString)(L_h, "\\@")(function(){return resolve(L_createAnno)(L_h, L_t, L_names)})(function(){return resolve(L_isTokenString)(L_h, "\\")(function(){return resolve(L_createLambda)(L_h, L_t, L_names)})(function(){return resolve(L_createApply)(L_list, L_names)})})})})})}))(L_nil)})}));
@@ -2151,7 +2151,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("digit")(0)("digit = regexp '^[0-9]+$'")(function(){return resolve(L_regexp)("^[0-9]+$")})},
  function(){return resolve(L_newDefine)("backslashCodes")(0)("backslashCodes = 'bfnrt'")("bfnrt")},
  function(){return resolve(L_newDefine)("backslashValues")(0)("backslashValues = '\\b\\f\\n\\r\\t'")("\b\f\n\r\t")},
- function(){return resolve(L_newDefine)("convertStringEscape")(3)("convertStringEscape char codes values =\n  eq codes ''\n    char\n    eq char (strAt codes 0)\n      strAt values 0\n      convertStringEscape char (strSubstring codes 1 0) (strSubstring values 1 0)")(lazy((function () {
+ function(){return resolve(L_newDefine)("convertStringEscape")(3)("convertStringEscape char codes values =\r\n  eq codes ''\r\n    char\r\n    eq char (strAt codes 0)\r\n      strAt values 0\r\n      convertStringEscape char (strSubstring codes 1 0) (strSubstring values 1 0)")(lazy((function () {
   var main;
   var full = function (L_char, L_codes, L_values) {
     return resolve(L_eq)(L_codes)("")(L_char)(function(){return resolve(L_eq)(L_char)(function(){return resolve(L_strAt)(L_codes, 0)})(function(){return resolve(L_strAt)(L_values, 0)})(function(){return resolve(L_convertStringEscape)(L_char, function(){return resolve(L_strSubstring)(L_codes, 1, 0)}, function(){return resolve(L_strSubstring)(L_values, 1, 0)})})});
@@ -2178,7 +2178,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("convertStringEscapes")(3)("convertStringEscapes orig str cont =\n  eq str ''\n    cont str\n    eq (strAt str 0) '\\\\'\n      eq (strLen str) 1 (parseErr \"Error, backslash without character in string: \" orig)\n        convertStringEscapes orig (strSubstring str 2 0) \\rest . cont\n          strAdd\n            convertStringEscape (strAt str 1) backslashCodes backslashValues\n            rest\n      convertStringEscapes orig (strSubstring str 1 0) \\rest . cont\n        strAdd\n          strAt str 0\n          rest")(lazy((function () {
+ function(){return resolve(L_newDefine)("convertStringEscapes")(3)("convertStringEscapes orig str cont =\r\n  eq str ''\r\n    cont str\r\n    eq (strAt str 0) '\\\\'\r\n      eq (strLen str) 1 (parseErr \"Error, backslash without character in string: \" orig)\r\n        convertStringEscapes orig (strSubstring str 2 0) \\rest . cont\r\n          strAdd\r\n            convertStringEscape (strAt str 1) backslashCodes backslashValues\r\n            rest\r\n      convertStringEscapes orig (strSubstring str 1 0) \\rest . cont\r\n        strAdd\r\n          strAt str 0\r\n          rest")(lazy((function () {
   var main;
   var full = function (L_orig, L_str, L_cont) {
     return resolve(L_eq)(L_str)("")(function(){return resolve(L_cont)(L_str)})(function(){return resolve(L_eq)(function(){return resolve(L_strAt)(L_str, 0)})("\\")(function(){return resolve(L_eq)(function(){return resolve(L_strLen)(L_str)})(1)(function(){return resolve(L_parseErr)("Error, backslash without character in string: ", L_orig)})(function(){return resolve(L_convertStringEscapes)(L_orig, function(){return resolve(L_strSubstring)(L_str, 2, 0)}, lazy(function(L_rest){return resolve(L_cont)(function(){return resolve(L_strAdd)(function(){return resolve(L_convertStringEscape)(function(){return resolve(L_strAt)(L_str, 1)}, L_backslashCodes, L_backslashValues)}, L_rest)})}))})})(function(){return resolve(L_convertStringEscapes)(L_orig, function(){return resolve(L_strSubstring)(L_str, 1, 0)}, lazy(function(L_rest){return resolve(L_cont)(function(){return resolve(L_strAdd)(function(){return resolve(L_strAt)(L_str, 0)}, L_rest)})}))})});
@@ -2205,7 +2205,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parseString")(2)("parseString str cont =\n  neq (strAt str 0) (strAt str -1) (parseErr \"Badly terminated string: \" str)\n    convertStringEscapes str (strSubstring str 1 -1) cont")(lazy((function () {
+ function(){return resolve(L_newDefine)("parseString")(2)("parseString str cont =\r\n  neq (strAt str 0) (strAt str -1) (parseErr \"Badly terminated string: \" str)\r\n    convertStringEscapes str (strSubstring str 1 -1) cont")(lazy((function () {
   var main;
   var full = function (L_str, L_cont) {
     return resolve(L_neq)(function(){return resolve(L_strAt)(L_str, 0)}, function(){return resolve(L_strAt)(L_str, -1)})(function(){return resolve(L_parseErr)("Badly terminated string: ", L_str)})(function(){return resolve(L_convertStringEscapes)(L_str, function(){return resolve(L_strSubstring)(L_str, 1, -1)}, L_cont)});
@@ -2228,7 +2228,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("createLitOrRef")(2)("createLitOrRef token names = \\\\\n  tok = tokenString token\n  tokRange = (fileposList (position token))\n  .\n  contains names tok\n    ref tok tokRange\n    or (strStartsWith tok '\\\"') (strStartsWith tok \"'\")\n      parseString tok \\str . lit str tokRange\n      strStartsWith tok '.'\n        jsonParse (strCat (cons '0' (cons tok nil))) (\\err . ref tok tokRange) (\\item . lit item tokRange)\n        or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')\n          jsonParse tok (\\err . ref tok tokRange) (\\item . lit item tokRange)\n          ref tok tokRange")(lazy((function () {
+ function(){return resolve(L_newDefine)("createLitOrRef")(2)("createLitOrRef token names = \\\\\r\n  tok = tokenString token\r\n  tokRange = (fileposList (position token))\r\n  .\r\n  contains names tok\r\n    ref tok tokRange\r\n    or (strStartsWith tok '\\\"') (strStartsWith tok \"'\")\r\n      parseString tok \\str . lit str tokRange\r\n      strStartsWith tok '.'\r\n        jsonParse (strCat (cons '0' (cons tok nil))) (\\err . ref tok tokRange) (\\item . lit item tokRange)\r\n        or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')\r\n          jsonParse tok (\\err . ref tok tokRange) (\\item . lit item tokRange)\r\n          ref tok tokRange")(lazy((function () {
   var main;
   var full = function (L_token, L_names) {
     return (function(){
@@ -2256,7 +2256,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("createLambda")(3)("createLambda start list names = \\\\\n  err = parseErr \"Lambda needs a variable name, a dot, and a body \" (loc start)\n  .\n  withCons list err \\name rest .\n    withToken name err \\n p .\n      withCons rest err \\dot body .\n        # are these partial applications too hard to read?\n        isTokenString dot '.'\n          ifNotErr (createAst nil body (cons n names)) \\bodyAst . lambda n bodyAst (fileposList (position name))\n          ifNotErr (createLambda start rest (cons n names)) \\bodyAst . lambda n bodyAst (fileposList (position name))")(lazy((function () {
+ function(){return resolve(L_newDefine)("createLambda")(3)("createLambda start list names = \\\\\r\n  err = parseErr \"Lambda needs a variable name, a dot, and a body \" (loc start)\r\n  .\r\n  withCons list err \\name rest .\r\n    withToken name err \\n p .\r\n      withCons rest err \\dot body .\r\n        # are these partial applications too hard to read?\r\n        isTokenString dot '.'\r\n          ifNotErr (createAst nil body (cons n names)) \\bodyAst . lambda n bodyAst (fileposList (position name))\r\n          ifNotErr (createLambda start rest (cons n names)) \\bodyAst . lambda n bodyAst (fileposList (position name))")(lazy((function () {
   var main;
   var full = function (L_start, L_list, L_names) {
     return (function(){
@@ -2287,7 +2287,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("createAnno")(3)("createAnno start list names =\n  withCons list (parseErr \"No annotation name or data in annotation \" (loc start)) \\name rest .\n    withCons rest (parseErr \"No data for annotation \" (loc start)) \\data rest . \\\\\n      finish data body = ifNotErr (createAst nil body names) \\bodyAst .\n        cleanTokens start name \\name .\n          cleanTokens start data \\data .\n            anno name data bodyAst\n      .\n      isTokenString data '.'\n        finish nil rest\n        withStripped data \\data .\n          withCons rest (parseErr \"No body for annotation \" (loc start)) \\dot body .\n            isTokenString dot '.'\n              finish data body\n              parseErr \"Annotation expects dot after name and data \" (loc start)")(lazy((function () {
+ function(){return resolve(L_newDefine)("createAnno")(3)("createAnno start list names =\r\n  withCons list (parseErr \"No annotation name or data in annotation \" (loc start)) \\name rest .\r\n    withCons rest (parseErr \"No data for annotation \" (loc start)) \\data rest . \\\\\r\n      finish data body = ifNotErr (createAst nil body names) \\bodyAst .\r\n        cleanTokens start name \\name .\r\n          cleanTokens start data \\data .\r\n            anno name data bodyAst\r\n      .\r\n      isTokenString data '.'\r\n        finish nil rest\r\n        withStripped data \\data .\r\n          withCons rest (parseErr \"No body for annotation \" (loc start)) \\dot body .\r\n            isTokenString dot '.'\r\n              finish data body\r\n              parseErr \"Annotation expects dot after name and data \" (loc start)")(lazy((function () {
   var main;
   var full = function (L_start, L_list, L_names) {
     return resolve(L_withCons)(L_list, function(){return resolve(L_parseErr)("No annotation name or data in annotation ", function(){return resolve(L_loc)(L_start)})}, lazy(function(L_name){return $F(arguments, function(L_rest){return resolve(L_withCons)(L_rest, function(){return resolve(L_parseErr)("No data for annotation ", function(){return resolve(L_loc)(L_start)})}, lazy(function(L_data){return $F(arguments, function(L_rest_0){return (function(){
@@ -2319,7 +2319,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("bodyStructPat")(0)("bodyStructPat = regexp '\\\\|\\\\\\\\|\\\\@'")(function(){return resolve(L_regexp)("\\|\\\\|\\@")})},
- function(){return resolve(L_newDefine)("createApply")(2)("createApply inList names = withStripped inList \\list .\n  withCons list (parseErr \"Funcion apply expecting a non-empty list \" (loc inList)) \\h t .\n    ifNotErr (createAst nil h names) \\func . chainApply func t names")(lazy((function () {
+ function(){return resolve(L_newDefine)("createApply")(2)("createApply inList names = withStripped inList \\list .\r\n  withCons list (parseErr \"Funcion apply expecting a non-empty list \" (loc inList)) \\h t .\r\n    ifNotErr (createAst nil h names) \\func . chainApply func t names")(lazy((function () {
   var main;
   var full = function (L_inList, L_names) {
     return resolve(L_withStripped)(L_inList, lazy(function(L_list){return resolve(L_withCons)(L_list, function(){return resolve(L_parseErr)("Funcion apply expecting a non-empty list ", function(){return resolve(L_loc)(L_inList)})}, lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_ifNotErr)(function(){return resolve(L_createAst)(L_nil, L_h, L_names)}, lazy(function(L_func){return resolve(L_chainApply)(L_func, L_t, L_names)}))})}))}));
@@ -2343,7 +2343,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("blockStarts")(0)("blockStarts = cons '\\\\' (cons '\\\\\\\\' (cons '\\\\@' nil))")(function(){return resolve(L_cons)("\\", function(){return resolve(L_cons)("\\\\", function(){return resolve(L_cons)("\\@", L_nil)})})})},
- function(){return resolve(L_newDefine)("chainApply")(3)("chainApply func list names = withCons list func \\argItem rest .\n  and (isToken argItem) (contains blockStarts (tokenString argItem))\n    ifNotErr (createAst nil list names) \\arg . apply func arg\n    ifNotErr (createAst nil argItem names) \\arg . chainApply (apply func arg) rest names")(lazy((function () {
+ function(){return resolve(L_newDefine)("chainApply")(3)("chainApply func list names = withCons list func \\argItem rest .\r\n  and (isToken argItem) (contains blockStarts (tokenString argItem))\r\n    ifNotErr (createAst nil list names) \\arg . apply func arg\r\n    ifNotErr (createAst nil argItem names) \\arg . chainApply (apply func arg) rest names")(lazy((function () {
   var main;
   var full = function (L_func, L_list, L_names) {
     return resolve(L_withCons)(L_list, L_func, lazy(function(L_argItem){return $F(arguments, function(L_rest){return resolve(L_and)(function(){return resolve(L_isToken)(L_argItem)}, function(){return resolve(L_contains)(L_blockStarts, function(){return resolve(L_tokenString)(L_argItem)})})(function(){return resolve(L_ifNotErr)(function(){return resolve(L_createAst)(L_nil, L_list, L_names)}, lazy(function(L_arg){return resolve(L_apply)(L_func, L_arg)}))})(function(){return resolve(L_ifNotErr)(function(){return resolve(L_createAst)(L_nil, L_argItem, L_names)}, lazy(function(L_arg){return resolve(L_chainApply)(function(){return resolve(L_apply)(L_func, L_arg)}, L_rest, L_names)}))})})}));
@@ -2370,7 +2370,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("cleanTokens")(3)("cleanTokens start toks cont = isToken toks\n  cont (tokenString toks)\n  withCons toks (cont toks) \\head tail .\n    cleanTokens start head \\head .\n      cleanTokens start tail \\tail .\n        cont (cons head tail)")(lazy((function () {
+ function(){return resolve(L_newDefine)("cleanTokens")(3)("cleanTokens start toks cont = isToken toks\r\n  cont (tokenString toks)\r\n  withCons toks (cont toks) \\head tail .\r\n    cleanTokens start head \\head .\r\n      cleanTokens start tail \\tail .\r\n        cont (cons head tail)")(lazy((function () {
   var main;
   var full = function (L_start, L_toks, L_cont) {
     return resolve(L_isToken)(L_toks)(function(){return resolve(L_cont)(function(){return resolve(L_tokenString)(L_toks)})})(function(){return resolve(L_withCons)(L_toks, function(){return resolve(L_cont)(L_toks)}, lazy(function(L_head){return $F(arguments, function(L_tail){return resolve(L_cleanTokens)(L_start, L_head, lazy(function(L_head_0){return resolve(L_cleanTokens)(L_start, L_tail, lazy(function(L_tail_1){return resolve(L_cont)(function(){return resolve(L_cons)(L_head_0, L_tail_1)})}))}))})}))});
@@ -2397,7 +2397,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("createLet")(3)("createLet start list names = withCons list\n  parseErr \"No variable or body for let \" (loc start)\n  \\binding body . eq body nil (createAst nil binding names)\n    ifNotErr (getLetNames start list names) \\newNames .\n      createSublets start binding body newNames")(lazy((function () {
+ function(){return resolve(L_newDefine)("createLet")(3)("createLet start list names = withCons list\r\n  parseErr \"No variable or body for let \" (loc start)\r\n  \\binding body . eq body nil (createAst nil binding names)\r\n    ifNotErr (getLetNames start list names) \\newNames .\r\n      createSublets start binding body newNames")(lazy((function () {
   var main;
   var full = function (L_start, L_list, L_names) {
     return resolve(L_withCons)(L_list, function(){return resolve(L_parseErr)("No variable or body for let ", function(){return resolve(L_loc)(L_start)})}, lazy(function(L_binding){return $F(arguments, function(L_body){return resolve(L_eq)(L_body)(L_nil)(function(){return resolve(L_createAst)(L_nil, L_binding, L_names)})(function(){return resolve(L_ifNotErr)(function(){return resolve(L_getLetNames)(L_start, L_list, L_names)}, lazy(function(L_newNames){return resolve(L_createSublets)(L_start, L_binding, L_body, L_newNames)}))})})}));
@@ -2424,7 +2424,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("getLetNames")(3)("getLetNames start list names = \\\\\n  err = parseErr \"Let expected binding \" (loc start)\n  .\n  withCons list names \\binding body .\n    isTokenString binding '.' names\n      withParens binding err \\start end def .\n        withCons def err \\name rest .\n          withToken name err \\str pos .\n            getLetNames start body (cons str names)")(lazy((function () {
+ function(){return resolve(L_newDefine)("getLetNames")(3)("getLetNames start list names = \\\\\r\n  err = parseErr \"Let expected binding \" (loc start)\r\n  .\r\n  withCons list names \\binding body .\r\n    isTokenString binding '.' names\r\n      withParens binding err \\start end def .\r\n        withCons def err \\name rest .\r\n          withToken name err \\str pos .\r\n            getLetNames start body (cons str names)")(lazy((function () {
   var main;
   var full = function (L_start, L_list, L_names) {
     return (function(){
@@ -2455,7 +2455,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("createSublets")(4)("createSublets start binding body names =\n  isTokenString binding '.' (createAst nil body names)\n    withCons body (parseErr \"Let expected a body \" (loc start)) \\bodyH bodyT .\n      ifNotErr (getNameAndDef (parensStart binding) (parensContent binding) names) \\res . res \\name def .\n        ifNotErr (createSublets start bodyH bodyT names) \\bodyAst .\n          let (tokenString name) def bodyAst nilRange")(lazy((function () {
+ function(){return resolve(L_newDefine)("createSublets")(4)("createSublets start binding body names =\r\n  isTokenString binding '.' (createAst nil body names)\r\n    withCons body (parseErr \"Let expected a body \" (loc start)) \\bodyH bodyT .\r\n      ifNotErr (getNameAndDef (parensStart binding) (parensContent binding) names) \\res . res \\name def .\r\n        ifNotErr (createSublets start bodyH bodyT names) \\bodyAst .\r\n          let (tokenString name) def bodyAst nilRange")(lazy((function () {
   var main;
   var full = function (L_start, L_binding, L_body, L_names) {
     return resolve(L_isTokenString)(L_binding, ".")(function(){return resolve(L_createAst)(L_nil, L_body, L_names)})(function(){return resolve(L_withCons)(L_body, function(){return resolve(L_parseErr)("Let expected a body ", function(){return resolve(L_loc)(L_start)})}, lazy(function(L_bodyH){return $F(arguments, function(L_bodyT){return resolve(L_ifNotErr)(function(){return resolve(L_getNameAndDef)(function(){return resolve(L_parensStart)(L_binding)}, function(){return resolve(L_parensContent)(L_binding)}, L_names)}, lazy(function(L_res){return resolve(L_res)(lazy(function(L_name){return $F(arguments, function(L_def){return resolve(L_ifNotErr)(function(){return resolve(L_createSublets)(L_start, L_bodyH, L_bodyT, L_names)}, lazy(function(L_bodyAst){return resolve(L_let)(function(){return resolve(L_tokenString)(L_name)}, L_def, L_bodyAst, L_nilRange)}))})}))}))})}))});
@@ -2486,7 +2486,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("getNameAndDef")(3)("getNameAndDef pos binding names =\n  withCons (tail binding) (parseErr \"Let expected binding at \" pos) \\snd sndT .\n    isTokenString snd '=' (ifNotErr (createAst nil sndT names) \\def . cons (head binding) def)\n      ifNotErr (getLetLambda pos (tail binding) nil names) \\lamb . cons (head binding) lamb")(lazy((function () {
+ function(){return resolve(L_newDefine)("getNameAndDef")(3)("getNameAndDef pos binding names =\r\n  withCons (tail binding) (parseErr \"Let expected binding at \" pos) \\snd sndT .\r\n    isTokenString snd '=' (ifNotErr (createAst nil sndT names) \\def . cons (head binding) def)\r\n      ifNotErr (getLetLambda pos (tail binding) nil names) \\lamb . cons (head binding) lamb")(lazy((function () {
   var main;
   var full = function (L_pos, L_binding, L_names) {
     return resolve(L_withCons)(function(){return resolve(L_tail)(L_binding)}, function(){return resolve(L_parseErr)("Let expected binding at ", L_pos)}, lazy(function(L_snd){return $F(arguments, function(L_sndT){return resolve(L_isTokenString)(L_snd, "=")(function(){return resolve(L_ifNotErr)(function(){return resolve(L_createAst)(L_nil, L_sndT, L_names)}, lazy(function(L_def){return resolve(L_cons)(function(){return resolve(L_head)(L_binding)}, L_def)}))})(function(){return resolve(L_ifNotErr)(function(){return resolve(L_getLetLambda)(L_pos, function(){return resolve(L_tail)(L_binding)}, L_nil, L_names)}, lazy(function(L_lamb){return resolve(L_cons)(function(){return resolve(L_head)(L_binding)}, L_lamb)}))})})}));
@@ -2513,7 +2513,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("getLetLambda")(4)("getLetLambda pos def args names =\n  withCons def (parseErr \"Let expected binding at \" pos) \\arg rest .\n    not (isToken arg) (parseErr \"Let expected binding at \" pos)\n      isTokenString arg '='\n        createAst nil (cons (token '\\\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names\n        getLetLambda pos rest (cons arg args) names")(lazy((function () {
+ function(){return resolve(L_newDefine)("getLetLambda")(4)("getLetLambda pos def args names =\r\n  withCons def (parseErr \"Let expected binding at \" pos) \\arg rest .\r\n    not (isToken arg) (parseErr \"Let expected binding at \" pos)\r\n      isTokenString arg '='\r\n        createAst nil (cons (token '\\\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names\r\n        getLetLambda pos rest (cons arg args) names")(lazy((function () {
   var main;
   var full = function (L_pos, L_def, L_args, L_names) {
     return resolve(L_withCons)(L_def, function(){return resolve(L_parseErr)("Let expected binding at ", L_pos)}, lazy(function(L_arg){return $F(arguments, function(L_rest){return resolve(L_not)(function(){return resolve(L_isToken)(L_arg)})(function(){return resolve(L_parseErr)("Let expected binding at ", L_pos)})(function(){return resolve(L_isTokenString)(L_arg, "=")(function(){return resolve(L_createAst)(L_nil, function(){return resolve(L_cons)(function(){return resolve(L_token)("\\", L_pos)}, function(){return resolve(L_append)(function(){return resolve(L_reverse)(L_args)}, function(){return resolve(L_cons)(function(){return resolve(L_token)(".", function(){return resolve(L_position)(L_arg)})}, L_rest)})})}, L_names)})(function(){return resolve(L_getLetLambda)(L_pos, L_rest, function(){return resolve(L_cons)(L_arg, L_args)}, L_names)})})})}));
@@ -2579,7 +2579,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("countedScanLineG")(7)("countedScanLineG lineStarts str pat groups props onDef onExpr = \\\\\n  toks = countedTokens lineStarts str pat\n  groupToks = foldr (\\el value . el \\h t . cons h (cons t value)) (cons '=' blockStarts) groups\n  .\n  # check if it's a definition\n  find (\\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\\r?\\n'))) toks (\\item . isTokenString item '=') false\n    toks \\name rest . \\\\\n      parseIt func = \\\\\n        parsed = parseToks (checkSetDataType func rest name) groups\n        .\n        onDef (ifNotErr parsed \\list . createDef list name (arity rest 0) str props)\n      .\n      isTokenString (head rest) '='\n        isTokenString (head (tail rest)) '\\\\'\n          parseIt (setTypeAnno (tail rest) (tokenString name))\n          parseIt (tail rest)\n        ifNotErr (transformDef name rest) \\def .\n          parseIt (cons (token '\\\\' (addFilepos (position (head rest)) -1)) def)\n    ifNotErr (parseToks toks groups) \\list . onExpr list")(lazy((function () {
+ function(){return resolve(L_newDefine)("countedScanLineG")(7)("countedScanLineG lineStarts str pat groups props onDef onExpr = \\\\\r\n  toks = countedTokens lineStarts str pat\r\n  groupToks = foldr (\\el value . el \\h t . cons h (cons t value)) (cons '=' blockStarts) groups\r\n  .\r\n  # check if it's a definition\r\n  find (\\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\\r?\\n'))) toks (\\item . isTokenString item '=') false\r\n    toks \\name rest . \\\\\r\n      parseIt func = \\\\\r\n        parsed = parseToks (checkSetDataType func rest name) groups\r\n        .\r\n        onDef (ifNotErr parsed \\list . createDef list name (arity rest 0) str props)\r\n      .\r\n      isTokenString (head rest) '='\r\n        isTokenString (head (tail rest)) '\\\\'\r\n          parseIt (setTypeAnno (tail rest) (tokenString name))\r\n          parseIt (tail rest)\r\n        ifNotErr (transformDef name rest) \\def .\r\n          parseIt (cons (token '\\\\' (addFilepos (position (head rest)) -1)) def)\r\n    ifNotErr (parseToks toks groups) \\list . onExpr list")(lazy((function () {
   var main;
   var full = function (L_lineStarts, L_str, L_pat, L_groups, L_props, L_onDef, L_onExpr) {
     return (function(){
@@ -2635,7 +2635,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parseLineG")(6)("parseLineG str pat names groups onDef onExpr = \\\\\n  astCallback cb = \\list . ifNotErr (createAst nil list names) \\ast . cb ast\n  .\n  scanLineG str pat groups (astCallback onDef) (astCallback onExpr)")(lazy((function () {
+ function(){return resolve(L_newDefine)("parseLineG")(6)("parseLineG str pat names groups onDef onExpr = \\\\\r\n  astCallback cb = \\list . ifNotErr (createAst nil list names) \\ast . cb ast\r\n  .\r\n  scanLineG str pat groups (astCallback onDef) (astCallback onExpr)")(lazy((function () {
   var main;
   var full = function (L_str, L_pat, L_names, L_groups, L_onDef, L_onExpr) {
     return (function(){
@@ -2678,7 +2678,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("transformDef")(2)("transformDef name toks = withCons toks (parseErr \"Bad definition, expecting tokens\" (loc name)) \\h t .\n  isTokenString h '='\n    isTokenString (head t) '\\\\'\n      cons (token '.' (position h)) (setTypeAnno t (tokenString name))\n      cons (token '.' (position h)) t\n    ifNotErr (transformDef name t) \\list . cons h list")(lazy((function () {
+ function(){return resolve(L_newDefine)("transformDef")(2)("transformDef name toks = withCons toks (parseErr \"Bad definition, expecting tokens\" (loc name)) \\h t .\r\n  isTokenString h '='\r\n    isTokenString (head t) '\\\\'\r\n      cons (token '.' (position h)) (setTypeAnno t (tokenString name))\r\n      cons (token '.' (position h)) t\r\n    ifNotErr (transformDef name t) \\list . cons h list")(lazy((function () {
   var main;
   var full = function (L_name, L_toks) {
     return resolve(L_withCons)(L_toks, function(){return resolve(L_parseErr)("Bad definition, expecting tokens", function(){return resolve(L_loc)(L_name)})}, lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_isTokenString)(L_h, "=")(function(){return resolve(L_isTokenString)(function(){return resolve(L_head)(L_t)}, "\\")(function(){return resolve(L_cons)(function(){return resolve(L_token)(".", function(){return resolve(L_position)(L_h)})}, function(){return resolve(L_setTypeAnno)(L_t, function(){return resolve(L_tokenString)(L_name)})})})(function(){return resolve(L_cons)(function(){return resolve(L_token)(".", function(){return resolve(L_position)(L_h)})}, L_t)})})(function(){return resolve(L_ifNotErr)(function(){return resolve(L_transformDef)(L_name, L_t)}, lazy(function(L_list){return resolve(L_cons)(L_h, L_list)}))})})}));
@@ -2701,7 +2701,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("setTypeAnno")(2)("setTypeAnno toks name = \\\\\n  tok = \\str . token str (position toks)\n  .\n  cons (tok '\\\\@') (cons (tok 'type') (cons (tok name) (cons (tok '.') toks)))")(lazy((function () {
+ function(){return resolve(L_newDefine)("setTypeAnno")(2)("setTypeAnno toks name = \\\\\r\n  tok = \\str . token str (position toks)\r\n  .\r\n  cons (tok '\\\\@') (cons (tok 'type') (cons (tok name) (cons (tok '.') toks)))")(lazy((function () {
   var main;
   var full = function (L_toks, L_name) {
     return (function(){
@@ -2728,7 +2728,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("setDataTypeAnno")(2)("setDataTypeAnno toks name = \\\\\n  tok = \\str . token str (position toks)\n  .\n  cons (tok '\\\\@') (cons (tok 'dataType') (cons (tok (tokenString name)) (cons (tok '.') toks)))")(lazy((function () {
+ function(){return resolve(L_newDefine)("setDataTypeAnno")(2)("setDataTypeAnno toks name = \\\\\r\n  tok = \\str . token str (position toks)\r\n  .\r\n  cons (tok '\\\\@') (cons (tok 'dataType') (cons (tok (tokenString name)) (cons (tok '.') toks)))")(lazy((function () {
   var main;
   var full = function (L_toks, L_name) {
     return (function(){
@@ -2755,7 +2755,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("createDef")(5)("createDef def name arity src props = \\\\\n  #tok str = token str (position def)\n  tok str = token str (position name)\n  .\n  jsonStringify (tokenString name) (\\err . parseErr (strCat (cons \"Bad function name \" (cons (loc name) nil))) err) \\nameStr .\n    jsonStringify src (\\err . parseErr (strCat (cons \"Bad source \" (cons (loc name) nil))) err) \\srcStr .\n      #cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (spliceFuncProps arity props def) nil))))))))\n      cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))")(lazy((function () {
+ function(){return resolve(L_newDefine)("createDef")(5)("createDef def name arity src props = \\\\\r\n  #tok str = token str (position def)\r\n  tok str = token str (position name)\r\n  .\r\n  jsonStringify (tokenString name) (\\err . parseErr (strCat (cons \"Bad function name \" (cons (loc name) nil))) err) \\nameStr .\r\n    jsonStringify src (\\err . parseErr (strCat (cons \"Bad source \" (cons (loc name) nil))) err) \\srcStr .\r\n      #cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (spliceFuncProps arity props def) nil))))))))\r\n      cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))")(lazy((function () {
   var main;
   var full = function (L_def, L_name, L_arity, L_src, L_props) {
     return (function(){
@@ -2794,7 +2794,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("spliceFuncProps")(3)("spliceFuncProps arity props ast = or (isNil props) (== arity 0)\n  ast\n  subSpliceFuncProps props ast")(lazy((function () {
+ function(){return resolve(L_newDefine)("spliceFuncProps")(3)("spliceFuncProps arity props ast = or (isNil props) (== arity 0)\r\n  ast\r\n  subSpliceFuncProps props ast")(lazy((function () {
   var main;
   var full = function (L_arity, L_props, L_ast) {
     return resolve(L_or)(function(){return resolve(L_isNil)(L_props)}, function(){return resolve(L_$p$p)(L_arity)(0)})(L_ast)(function(){return resolve(L_subSpliceFuncProps)(L_props, L_ast)});
@@ -2821,7 +2821,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("subSpliceFuncProps")(2)("subSpliceFuncProps props ast = \\\\\n  slash = head ast\n  var = head (tail ast)\n  afterVar = tail (tail ast)\n  dot = head afterVar\n  body = tail afterVar\n  .\n  isTokenString slash '\\\\'\n    cons\n      slash\n      cons\n        var\n        isTokenString dot '.'\n          cons dot (addProps props body)\n          cons '.' (addProps props afterVar)\n    cons\n      head ast\n      subSpliceFuncProps props (tail ast)")(lazy((function () {
+ function(){return resolve(L_newDefine)("subSpliceFuncProps")(2)("subSpliceFuncProps props ast = \\\\\r\n  slash = head ast\r\n  var = head (tail ast)\r\n  afterVar = tail (tail ast)\r\n  dot = head afterVar\r\n  body = tail afterVar\r\n  .\r\n  isTokenString slash '\\\\'\r\n    cons\r\n      slash\r\n      cons\r\n        var\r\n        isTokenString dot '.'\r\n          cons dot (addProps props body)\r\n          cons '.' (addProps props afterVar)\r\n    cons\r\n      head ast\r\n      subSpliceFuncProps props (tail ast)")(lazy((function () {
   var main;
   var full = function (L_props, L_ast) {
     return (function(){
@@ -2852,7 +2852,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("addProps")(2)("addProps props ast = foldr\n  \\prop result . cons '\\\\@' (cons (head prop) (cons (tail prop) (cons '.' result)))\n  ast\n  props")(lazy((function () {
+ function(){return resolve(L_newDefine)("addProps")(2)("addProps props ast = foldr\r\n  \\prop result . cons '\\\\@' (cons (head prop) (cons (tail prop) (cons '.' result)))\r\n  ast\r\n  props")(lazy((function () {
   var main;
   var full = function (L_props, L_ast) {
     return resolve(L_foldr)(lazy(function(L_prop){return $F(arguments, function(L_result){return resolve(L_cons)("\\@", function(){return resolve(L_cons)(function(){return resolve(L_head)(L_prop)}, function(){return resolve(L_cons)(function(){return resolve(L_tail)(L_prop)}, function(){return resolve(L_cons)(".", L_result)})})})})}), L_ast, L_props);
@@ -2875,7 +2875,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("checkSetDataType")(3)("checkSetDataType toks curToks name = withCons curToks toks \\h t .\n  isTokenString h '='\n    isTokenString (head t) '\\\\'\n      setDataTypeAnno toks name\n      toks\n    checkSetDataType toks t name")(lazy((function () {
+ function(){return resolve(L_newDefine)("checkSetDataType")(3)("checkSetDataType toks curToks name = withCons curToks toks \\h t .\r\n  isTokenString h '='\r\n    isTokenString (head t) '\\\\'\r\n      setDataTypeAnno toks name\r\n      toks\r\n    checkSetDataType toks t name")(lazy((function () {
   var main;
   var full = function (L_toks, L_curToks, L_name) {
     return resolve(L_withCons)(L_curToks, L_toks, lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_isTokenString)(L_h, "=")(function(){return resolve(L_isTokenString)(function(){return resolve(L_head)(L_t)}, "\\")(function(){return resolve(L_setDataTypeAnno)(L_toks, L_name)})(L_toks)})(function(){return resolve(L_checkSetDataType)(L_toks, L_t, L_name)})})}));
@@ -2930,7 +2930,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("emptyLinePat")(0)("emptyLinePat = regexp '(^[ \\\\i]*\\\\#.*|^[ \\\\i]*$|^\\\\r?\\\\n[ \\\\i]*$)'")(function(){return resolve(L_regexp)("(^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$)")})},
  function(){return resolve(L_newDefine)("lineScrub")(0)("lineScrub = regexpFlags '\\\\r\\\\n' 'g'")(function(){return resolve(L_regexpFlags)("\\r\\n", "g")})},
  function(){return resolve(L_newDefine)("linesForFile")(1)("linesForFile text = map tail (countedLinesForFile \"NOTHING.lsr\" text)")(lazy(function(L_text){return resolve(L_map)(L_tail, function(){return resolve(L_countedLinesForFile)("NOTHING.lsr", L_text)})}))},
- function(){return resolve(L_newDefine)("countedLinesForFile")(2)("countedLinesForFile name text = filter\n  \\line . isNil (strMatch (tail line) emptyLinePat)\n  countedLines name 1 text")(lazy((function () {
+ function(){return resolve(L_newDefine)("countedLinesForFile")(2)("countedLinesForFile name text = filter\r\n  \\line . isNil (strMatch (tail line) emptyLinePat)\r\n  countedLines name 1 text")(lazy((function () {
   var main;
   var full = function (L_name, L_text) {
     return resolve(L_filter)(lazy(function(L_line){return resolve(L_isNil)(function(){return resolve(L_strMatch)(function(){return resolve(L_tail)(L_line)}, L_emptyLinePat)})}), function(){return resolve(L_countedLines)(L_name, 1, L_text)});
@@ -2953,7 +2953,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("countedLines")(3)("countedLines filename lineOffset str = \\\\\n  m = strMatch str linePat\n  idx = head (tail (tail m))\n  chunk = strSubstring str 0 idx\n  next = + idx (strLen (head m))\n  chunkLines = findLines 0 chunk\n  .\n  eq str ''\n    nil\n    isNil m\n      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) nil\n      cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk)\n        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)")(lazy((function () {
+ function(){return resolve(L_newDefine)("countedLines")(3)("countedLines filename lineOffset str = \\\\\r\n  m = strMatch str linePat\r\n  idx = head (tail (tail m))\r\n  chunk = strSubstring str 0 idx\r\n  next = + idx (strLen (head m))\r\n  chunkLines = findLines 0 chunk\r\n  .\r\n  eq str ''\r\n    nil\r\n    isNil m\r\n      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) nil\r\n      cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk)\r\n        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)")(lazy((function () {
   var main;
   var full = function (L_filename, L_lineOffset, L_str) {
     return (function(){
@@ -2990,12 +2990,12 @@ module.exports = L_runMonads([
 })()))},
  function(){return resolve(L_newDefine)("defPat")(0)("defPat = regexp '^[^ =]+.* =( |$)'")(function(){return resolve(L_regexp)("^[^ =]+.* =( |$)")})},
  function(){return resolve(L_newDefine)("unanchoredDefPat")(0)("unanchoredDefPat = regexp '^((?:\\\\s*\\\\n|#[^\\\\n]*\\\\n)*)([^=\\\\n]*)(=\\\\([^=]+=|=)?'")(function(){return resolve(L_regexp)("^((?:\\s*\\n|#[^\\n]*\\n)*)([^=\\n]*)(=\\([^=]+=|=)?")})},
- function(){return resolve(L_newDefine)("namesForLines")(1)("namesForLines lines = foldl\n  \\result line . \\\\\n    m = strMatch line defPat\n    .\n    isNil m result (cons (head (tail m)) result)\n  nil\n  lines")(lazy(function(L_lines){return resolve(L_foldl)(lazy(function(L_result){return $F(arguments, function(L_line){return (function(){
+ function(){return resolve(L_newDefine)("namesForLines")(1)("namesForLines lines = foldl\r\n  \\result line . \\\\\r\n    m = strMatch line defPat\r\n    .\r\n    isNil m result (cons (head (tail m)) result)\r\n  nil\r\n  lines")(lazy(function(L_lines){return resolve(L_foldl)(lazy(function(L_result){return $F(arguments, function(L_line){return (function(){
   var L_m_0;
   L_m_0 = function(){return resolve(L_strMatch)(L_line, L_defPat)};
 
   return resolve(L_isNil)(L_m_0)(L_result)(function(){return resolve(L_cons)(function(){return resolve(L_head)(function(){return resolve(L_tail)(L_m_0)})}, L_result)})})()})}), L_nil, L_lines)}))},
- function(){return resolve(L_newDefine)("runParseFilters")(2)("runParseFilters filters line = filters\n  \\h t D . bind (h line) \\filtered . runParseFilters t filtered\n  fakereturn line\n  #return line\n  #defer line")(lazy((function () {
+ function(){return resolve(L_newDefine)("runParseFilters")(2)("runParseFilters filters line = filters\r\n  \\h t D . bind (h line) \\filtered . runParseFilters t filtered\r\n  fakereturn line\r\n  #return line\r\n  #defer line")(lazy((function () {
   var main;
   var full = function (L_filters, L_line) {
     return resolve(L_filters)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind)(function(){return resolve(L_h)(L_line)})(lazy(function(L_filtered){return resolve(L_runParseFilters)(L_t, L_filtered)}))})})}))(function(){return resolve(L_fakereturn)(L_line)});
@@ -3018,7 +3018,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("isBlockStart")(1)("isBlockStart tok = and\n  or (isToken tok) (isString tok)\n  contains blockStarts (strTokenString tok)")(lazy(function(L_tok){return resolve(L_and)(function(){return resolve(L_or)(function(){return resolve(L_isToken)(L_tok)}, function(){return resolve(L_isString)(L_tok)})}, function(){return resolve(L_contains)(L_blockStarts, function(){return resolve(L_strTokenString)(L_tok)})})}))},
+ function(){return resolve(L_newDefine)("isBlockStart")(1)("isBlockStart tok = and\r\n  or (isToken tok) (isString tok)\r\n  contains blockStarts (strTokenString tok)")(lazy(function(L_tok){return resolve(L_and)(function(){return resolve(L_or)(function(){return resolve(L_isToken)(L_tok)}, function(){return resolve(L_isString)(L_tok)})}, function(){return resolve(L_contains)(L_blockStarts, function(){return resolve(L_strTokenString)(L_tok)})})}))},
  function(){return resolve(L_newDefine)("macroSub")(2)("macroSub macs expr = postProcessMacro (emptyFor expr) (emptyFor expr) (baseMacroSub macs expr)")(lazy((function () {
   var main;
   var full = function (L_macs, L_expr) {
@@ -3043,7 +3043,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("consifyMacroValue")(1)("consifyMacroValue value = isCons value value (cons value nil)")(lazy(function(L_value){return resolve(L_isCons)(L_value)(L_value)(function(){return resolve(L_cons)(L_value, L_nil)})}))},
- function(){return resolve(L_newDefine)("baseMacroSub")(2)("baseMacroSub macs expr = isToken expr\n  expr\n  isParens expr\n    expr \\start end content . \\\\\n      result = baseMacroSub macs content\n      .\n      isToken result result (parens start end result)\n    withCons expr expr \\h t .\n      isBlockStart h\n        cons h\n          isTokenString h '\\\\\\\\'\n            macroSubLet macs t\n            macroSubBody '.' macs t\n        withToken h\n          \\\\\n            subH = baseMacroSub macs h\n            .\n            withToken subH\n              cons subH (map (baseMacroSub macs) t)\n              \\tok pos . baseMacroSub macs (cons subH t)\n          \\tok pos . assoc tok macs\n            \\def . baseMacroSub macs (def t)\n            cons h (map (baseMacroSub macs) t)")(lazy((function () {
+ function(){return resolve(L_newDefine)("baseMacroSub")(2)("baseMacroSub macs expr = isToken expr\r\n  expr\r\n  isParens expr\r\n    expr \\start end content . \\\\\r\n      result = baseMacroSub macs content\r\n      .\r\n      isToken result result (parens start end result)\r\n    withCons expr expr \\h t .\r\n      isBlockStart h\r\n        cons h\r\n          isTokenString h '\\\\\\\\'\r\n            macroSubLet macs t\r\n            macroSubBody '.' macs t\r\n        withToken h\r\n          \\\\\r\n            subH = baseMacroSub macs h\r\n            .\r\n            withToken subH\r\n              cons subH (map (baseMacroSub macs) t)\r\n              \\tok pos . baseMacroSub macs (cons subH t)\r\n          \\tok pos . assoc tok macs\r\n            \\def . baseMacroSub macs (def t)\r\n            cons h (map (baseMacroSub macs) t)")(lazy((function () {
   var main;
   var full = function (L_macs, L_expr) {
     return resolve(L_isToken)(L_expr)(L_expr)(function(){return resolve(L_isParens)(L_expr)(function(){return resolve(L_expr)(lazy(function(L_start){return $F(arguments, function(L_end){return $F(arguments, function(L_content){return (function(){
@@ -3074,7 +3074,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("macroSubLet")(2)("macroSubLet macs list = list\n  \\h t D . isTokenString h '.'\n    cons h (baseMacroSub macs t)\n    cons (setParens h \\content . macroSubBody '=' macs content) (macroSubLet macs t)\n  # Don't bother with parse errors at this point -- ast generator will detect them\n  nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("macroSubLet")(2)("macroSubLet macs list = list\r\n  \\h t D . isTokenString h '.'\r\n    cons h (baseMacroSub macs t)\r\n    cons (setParens h \\content . macroSubBody '=' macs content) (macroSubLet macs t)\r\n  # Don't bother with parse errors at this point -- ast generator will detect them\r\n  nil")(lazy((function () {
   var main;
   var full = function (L_macs, L_list) {
     return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_isTokenString)(L_h, ".")(function(){return resolve(L_cons)(L_h, function(){return resolve(L_baseMacroSub)(L_macs, L_t)})})(function(){return resolve(L_cons)(function(){return resolve(L_setParens)(L_h, lazy(function(L_content){return resolve(L_macroSubBody)("=", L_macs, L_content)}))}, function(){return resolve(L_macroSubLet)(L_macs, L_t)})})})})}))(L_nil);
@@ -3097,7 +3097,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("macroSubBody")(3)("macroSubBody char macs list = list\n  \\h t D . cons h\n    isTokenString h char baseMacroSub (macroSubBody char)\n      macs\n      t\n  nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("macroSubBody")(3)("macroSubBody char macs list = list\r\n  \\h t D . cons h\r\n    isTokenString h char baseMacroSub (macroSubBody char)\r\n      macs\r\n      t\r\n  nil")(lazy((function () {
   var main;
   var full = function (L_char, L_macs, L_list) {
     return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_cons)(L_h, function(){return resolve(L_isTokenString)(L_h, L_char)(L_baseMacroSub)(function(){return resolve(L_macroSubBody)(L_char)})(L_macs)(L_t)})})})}))(L_nil);
@@ -3124,7 +3124,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("postProcessMacro")(3)("postProcessMacro before after expr = isString expr\n  token expr (isEmptyPos after before after)\n  isParens expr\n    expr \\start end contents . parens start end (postProcessMacro start end contents)\n    isCons expr\n      expr \\h t .\n        isToken h\n          cons h (postProcessMacro (addFilepos (addFilepos (tokenFilepos h) (strLen (tokenString h))) 1) (emptyFor h) t)\n          \\\\\n            posStart = position h\n            posEnd = position t\n            t2 = postProcessMacro (emptyFor posStart) after t\n            h2 = postProcessMacro before (emptyFor posStart) h\n            .\n            isEmptyPos posStart\n              cons (postProcessMacro before (position t2) h) t2\n              cons h2 (postProcessMacro (addFilepos (lexEnd h2) 1) after t)\n      isNumber expr\n        token (strString expr) (isEmptyPos after before after)\n        expr")(lazy((function () {
+ function(){return resolve(L_newDefine)("postProcessMacro")(3)("postProcessMacro before after expr = isString expr\r\n  token expr (isEmptyPos after before after)\r\n  isParens expr\r\n    expr \\start end contents . parens start end (postProcessMacro start end contents)\r\n    isCons expr\r\n      expr \\h t .\r\n        isToken h\r\n          cons h (postProcessMacro (addFilepos (addFilepos (tokenFilepos h) (strLen (tokenString h))) 1) (emptyFor h) t)\r\n          \\\\\r\n            posStart = position h\r\n            posEnd = position t\r\n            t2 = postProcessMacro (emptyFor posStart) after t\r\n            h2 = postProcessMacro before (emptyFor posStart) h\r\n            .\r\n            isEmptyPos posStart\r\n              cons (postProcessMacro before (position t2) h) t2\r\n              cons h2 (postProcessMacro (addFilepos (lexEnd h2) 1) after t)\r\n      isNumber expr\r\n        token (strString expr) (isEmptyPos after before after)\r\n        expr")(lazy((function () {
   var main;
   var full = function (L_before, L_after, L_expr) {
     return resolve(L_isString)(L_expr)(function(){return resolve(L_token)(L_expr, function(){return resolve(L_isEmptyPos)(L_after)(L_before)(L_after)})})(function(){return resolve(L_isParens)(L_expr)(function(){return resolve(L_expr)(lazy(function(L_start){return $F(arguments, function(L_end){return $F(arguments, function(L_contents){return resolve(L_parens)(L_start, L_end, function(){return resolve(L_postProcessMacro)(L_start, L_end, L_contents)})})})}))})(function(){return resolve(L_isCons)(L_expr)(function(){return resolve(L_expr)(lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_isToken)(L_h)(function(){return resolve(L_cons)(L_h, function(){return resolve(L_postProcessMacro)(function(){return resolve(L_addFilepos)(function(){return resolve(L_addFilepos)(function(){return resolve(L_tokenFilepos)(L_h)}, function(){return resolve(L_strLen)(function(){return resolve(L_tokenString)(L_h)})})}, 1)}, function(){return resolve(L_emptyFor)(L_h)}, L_t)})})(function(){return(function(){
@@ -3183,18 +3183,18 @@ module.exports = L_runMonads([
 })()))},
  function(){return resolve(L_newDefine)("delimiterListPrefix")(0)("delimiterListPrefix = \"\\\"(?:\\\\\\\\.|[^\\\"])*\\\"|'(?:\\\\\\\\.|[^'])*'|\\\\r?\\\\n *|#.*| +\"")("\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *|#.*| +")},
  function(){return resolve(L_newDefine)("regexpEscapePat")(0)("regexpEscapePat = regexpFlags '[\\\\-\\\\[\\\\]/\\\\{\\\\}\\\\(\\\\)\\\\*\\\\+\\\\?\\\\.\\\\\\\\\\\\^\\\\$\\\\|]' 'g'")(function(){return resolve(L_regexpFlags)("[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]", "g")})},
- function(){return resolve(L_newDefine)("addToken")(1)("addToken del = bind (getValue 'tokenList')\n  \\dels . contains dels del\n    false\n    \\\\\n      newDels = insertSorted (\\a b . > (strLen a) (strLen b)) del dels\n      .\n      bind (setValue 'tokenList' newDels)\n        \\_ . computeTokenPat newDels")(lazy(function(L_del){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenList")})(lazy(function(L_dels){return resolve(L_contains)(L_dels, L_del)(L_false)(function(){return(function(){
+ function(){return resolve(L_newDefine)("addToken")(1)("addToken del = bind (getValue 'tokenList')\r\n  \\dels . contains dels del\r\n    false\r\n    \\\\\r\n      newDels = insertSorted (\\a b . > (strLen a) (strLen b)) del dels\r\n      .\r\n      bind (setValue 'tokenList' newDels)\r\n        \\_ . computeTokenPat newDels")(lazy(function(L_del){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenList")})(lazy(function(L_dels){return resolve(L_contains)(L_dels, L_del)(L_false)(function(){return(function(){
   var L_newDels_0;
   L_newDels_0 = function(){return resolve(L_insertSorted)(lazy(function(L_a){return $F(arguments, function(L_b){return resolve(L_$z)(function(){return resolve(L_strLen)(L_a)})(function(){return resolve(L_strLen)(L_b)})})}), L_del, L_dels)};
 
   return resolve(L_bind)(function(){return resolve(L_setValue)("tokenList")(L_newDels_0)})(lazy(function(L__){return resolve(L_computeTokenPat)(L_newDels_0)}))})();})}))}))},
- function(){return resolve(L_newDefine)("computeTokenPat")(1)("computeTokenPat dels = \\\\\n  delPats = map (\\item . strReplace item regexpEscapePat \"\\\\$&\") dels\n  newPat = strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil)))\n  .\n  setValue 'tokenPat' newPat")(lazy(function(L_dels){return (function(){
+ function(){return resolve(L_newDefine)("computeTokenPat")(1)("computeTokenPat dels = \\\\\r\n  delPats = map (\\item . strReplace item regexpEscapePat \"\\\\$&\") dels\r\n  newPat = strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil)))\r\n  .\r\n  setValue 'tokenPat' newPat")(lazy(function(L_dels){return (function(){
   var L_delPats_0, L_newPat_1;
   L_delPats_0 = function(){return resolve(L_map)(lazy(function(L_item){return resolve(L_strReplace)(L_item, L_regexpEscapePat, "\\$&")}), L_dels)};
   L_newPat_1 = function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(", function(){return resolve(L_cons)(function(){return resolve(L_join)(function(){return resolve(L_cons)(L_delimiterListPrefix, L_delPats_0)}, "|")}, function(){return resolve(L_cons)(")", L_nil)})})})};
 
   return resolve(L_setValue)("tokenPat")(L_newPat_1)})()}))},
- function(){return resolve(L_newDefine)("addTokenGroup")(2)("addTokenGroup open close = bind (addToken open)\n  \\_ . bind (addToken close)\n    \\_ . bind (getValue 'tokenGroups')\n      \\gr . setValue 'tokenGroups' (acons open close gr)")(lazy((function () {
+ function(){return resolve(L_newDefine)("addTokenGroup")(2)("addTokenGroup open close = bind (addToken open)\r\n  \\_ . bind (addToken close)\r\n    \\_ . bind (getValue 'tokenGroups')\r\n      \\gr . setValue 'tokenGroups' (acons open close gr)")(lazy((function () {
   var main;
   var full = function (L_open, L_close) {
     return resolve(L_bind)(function(){return resolve(L_addToken)(L_open)})(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_addToken)(L_close)})(lazy(function(L___0){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_gr){return resolve(L_setValue)("tokenGroups")(function(){return resolve(L_acons)(L_open, L_close, L_gr)})}))}))}));
@@ -3291,7 +3291,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parseM")(1)("parseM str =\n  bind2 (getValue 'tokenPat')\n    \\tokPat . bind2 (getValue 'tokenGroups')\n      \\groups . return\n        parseG str tokPat groups")(lazy(function(L_str){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenPat")})(lazy(function(L_tokPat){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_return)(function(){return resolve(L_parseG)(L_str, L_tokPat, L_groups)})}))}))}))},
+ function(){return resolve(L_newDefine)("parseM")(1)("parseM str =\r\n  bind2 (getValue 'tokenPat')\r\n    \\tokPat . bind2 (getValue 'tokenGroups')\r\n      \\groups . return\r\n        parseG str tokPat groups")(lazy(function(L_str){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenPat")})(lazy(function(L_tokPat){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_return)(function(){return resolve(L_parseG)(L_str, L_tokPat, L_groups)})}))}))}))},
  function(){return resolve(L_newDefine)("scanLine")(4)("scanLine str pat onDef onExpr = scanLineG str pat parenGroups onDef onExpr")(lazy((function () {
   var main;
   var full = function (L_str, L_pat, L_onDef, L_onExpr) {
@@ -3358,14 +3358,14 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parseLineM")(1)("parseLineM str = bind2 (getValue 'tokenPat')\n  \\tokPat . bind2 (getValue 'tokenGroups')\n    \\groups . return\n      parseLineG str tokPat nil groups id id")(lazy(function(L_str){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenPat")})(lazy(function(L_tokPat){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_return)(function(){return resolve(L_parseLineG)(L_str, L_tokPat, L_nil, L_groups, L_id, L_id)})}))}))}))},
- function(){return resolve(L_newDefine)("macroSubM")(1)("macroSubM expr =\n  bind2 (getValue 'macroDefs')\n    \\macs . return\n      macroSub macs expr")(lazy(function(L_expr){return resolve(L_bind2)(function(){return resolve(L_getValue)("macroDefs")})(lazy(function(L_macs){return resolve(L_return)(function(){return resolve(L_macroSub)(L_macs, L_expr)})}))}))},
- function(){return resolve(L_newDefine)("macroParse")(1)("macroParse str =\n  bind2 (parseM str)\n    \\ex . macroSubM ex")(lazy(function(L_str){return resolve(L_bind2)(function(){return resolve(L_parseM)(L_str)})(lazy(function(L_ex){return resolve(L_macroSubM)(L_ex)}))}))},
- function(){return resolve(L_newDefine)("tokensM")(1)("tokensM str =\n  bind2 (getValue 'tokenPat')\n    \\delimiterPat . return\n      tokens str delimiterPat")(lazy(function(L_str){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenPat")})(lazy(function(L_delimiterPat){return resolve(L_return)(function(){return resolve(L_tokens)(L_str, L_delimiterPat)})}))}))},
- function(){return resolve(L_newDefine)("parseLines")(2)("parseLines lines result = lines\n  \\h t D . bind (parseLineM h)\n    \\ast . parseLines t (cons ast result)\n  fakereturn\n    reverse result")(lazy((function () {
+ function(){return resolve(L_newDefine)("parseLineM")(1)("parseLineM str = bind2 (getValue 'tokenPat')\r\n  \\tokPat . bind2 (getValue 'tokenGroups')\r\n    \\groups . return\r\n      parseLineG str tokPat nil groups id id")(lazy(function(L_str){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenPat")})(lazy(function(L_tokPat){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_return)(function(){return resolve(L_parseLineG)(L_str, L_tokPat, L_nil, L_groups, L_id, L_id)})}))}))}))},
+ function(){return resolve(L_newDefine)("macroSubM")(1)("macroSubM expr =\r\n  bind2 (getValue 'macroDefs')\r\n    \\macs . return\r\n      macroSub macs expr")(lazy(function(L_expr){return resolve(L_bind2)(function(){return resolve(L_getValue)("macroDefs")})(lazy(function(L_macs){return resolve(L_return)(function(){return resolve(L_macroSub)(L_macs, L_expr)})}))}))},
+ function(){return resolve(L_newDefine)("macroParse")(1)("macroParse str =\r\n  bind2 (parseM str)\r\n    \\ex . macroSubM ex")(lazy(function(L_str){return resolve(L_bind2)(function(){return resolve(L_parseM)(L_str)})(lazy(function(L_ex){return resolve(L_macroSubM)(L_ex)}))}))},
+ function(){return resolve(L_newDefine)("tokensM")(1)("tokensM str =\r\n  bind2 (getValue 'tokenPat')\r\n    \\delimiterPat . return\r\n      tokens str delimiterPat")(lazy(function(L_str){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenPat")})(lazy(function(L_delimiterPat){return resolve(L_return)(function(){return resolve(L_tokens)(L_str, L_delimiterPat)})}))}))},
+ function(){return resolve(L_newDefine)("parseLines")(2)("parseLines lines result = lines\r\n  \\h t D . bind2 (parseLineM h)\r\n    \\ast . parseLines t (cons ast result)\r\n  return\r\n    reverse result")(lazy((function () {
   var main;
   var full = function (L_lines, L_result) {
-    return resolve(L_lines)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind)(function(){return resolve(L_parseLineM)(L_h)})(lazy(function(L_ast){return resolve(L_parseLines)(L_t, function(){return resolve(L_cons)(L_ast, L_result)})}))})})}))(function(){return resolve(L_fakereturn)(function(){return resolve(L_reverse)(L_result)})});
+    return resolve(L_lines)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind2)(function(){return resolve(L_parseLineM)(L_h)})(lazy(function(L_ast){return resolve(L_parseLines)(L_t, function(){return resolve(L_cons)(L_ast, L_result)})}))})})}))(function(){return resolve(L_return)(function(){return resolve(L_reverse)(L_result)})});
   };
   var partial = function(L_lines) {
     var _1 = function(L_result) {
@@ -3386,9 +3386,9 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("parseFile")(1)("parseFile text = parseLines (linesForFile text) nil")(lazy(function(L_text){return resolve(L_parseLines)(function(){return resolve(L_linesForFile)(L_text)}, L_nil)}))},
- function(){return resolve(L_newDefine)("simpleScanLine")(1)("simpleScanLine line = bind (getValue 'tokenPat')\n  \\tokenPat . bind (getValue 'tokenGroups')\n    \\groups . fakereturn\n      scanLineG line tokenPat groups id id")(lazy(function(L_line){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenPat")})(lazy(function(L_tokenPat){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_fakereturn)(function(){return resolve(L_scanLineG)(L_line, L_tokenPat, L_groups, L_id, L_id)})}))}))}))},
+ function(){return resolve(L_newDefine)("simpleScanLine")(1)("simpleScanLine line = bind2 (getValue 'tokenPat')\r\n  \\tokenPat . bind2 (getValue 'tokenGroups')\r\n    \\groups . return\r\n      scanLineG line tokenPat groups id id")(lazy(function(L_line){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenPat")})(lazy(function(L_tokenPat){return resolve(L_bind2)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_return)(function(){return resolve(L_scanLineG)(L_line, L_tokenPat, L_groups, L_id, L_id)})}))}))}))},
  function(){return resolve(L_newDefine)("scanLineM")(1)("scanLineM line = countedScanLineM emptyLineStarts line")(lazy(function(L_line){return resolve(L_countedScanLineM)(L_emptyLineStarts, L_line)}))},
- function(){return resolve(L_newDefine)("countedScanLineM")(2)("countedScanLineM lineStarts line = bind (getValue 'tokenPat')\n  \\tokenPat . bind (getValue 'tokenGroups')\n    \\groups . bind (getValue 'parseFilters')\n      \\filters . bind (getValue 'macroDefs')\n        \\macros . bind (getValue 'parser_funcProps')\n          \\props . bind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups props id id))\n            \\scanned . fakereturn\n              macroSub macros scanned")(lazy((function () {
+ function(){return resolve(L_newDefine)("countedScanLineM")(2)("countedScanLineM lineStarts line = bind (getValue 'tokenPat')\r\n  \\tokenPat . bind (getValue 'tokenGroups')\r\n    \\groups . bind (getValue 'parseFilters')\r\n      \\filters . bind (getValue 'macroDefs')\r\n        \\macros . bind (getValue 'parser_funcProps')\r\n          \\props . bind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups props id id))\r\n            \\scanned . fakereturn\r\n              macroSub macros scanned")(lazy((function () {
   var main;
   var full = function (L_lineStarts, L_line) {
     return resolve(L_bind)(function(){return resolve(L_getValue)("tokenPat")})(lazy(function(L_tokenPat){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_bind)(function(){return resolve(L_getValue)("parseFilters")})(lazy(function(L_filters){return resolve(L_bind)(function(){return resolve(L_getValue)("macroDefs")})(lazy(function(L_macros){return resolve(L_bind)(function(){return resolve(L_getValue)("parser_funcProps")})(lazy(function(L_props){return resolve(L_bind)(function(){return resolve(L_runParseFilters)(L_filters, function(){return resolve(L_countedScanLineG)(L_lineStarts, L_line, L_tokenPat, L_groups, L_props, L_id, L_id)})})(lazy(function(L_scanned){return resolve(L_fakereturn)(function(){return resolve(L_macroSub)(L_macros, L_scanned)})}))}))}))}))}))}));
@@ -3412,7 +3412,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("newline")(0)("newline = regexp '\\\\r?\\\\n'")(function(){return resolve(L_regexp)("\\r?\\n")})},
- function(){return resolve(L_newDefine)("findLines")(2)("findLines offset line = \\\\\n  m = strMatch line newline\n  idx = + 1 (head (tail (tail m)))\n  .\n  eq m nil\n    cons offset nil\n    cons offset (findLines (+ offset idx) (strSubstring line idx 0))")(lazy((function () {
+ function(){return resolve(L_newDefine)("findLines")(2)("findLines offset line = \\\\\r\n  m = strMatch line newline\r\n  idx = + 1 (head (tail (tail m)))\r\n  .\r\n  eq m nil\r\n    cons offset nil\r\n    cons offset (findLines (+ offset idx) (strSubstring line idx 0))")(lazy((function () {
   var main;
   var full = function (L_offset, L_line) {
     return (function(){
@@ -3440,10 +3440,10 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("newParseLine")(3)("newParseLine offset names line = bind (scanLineM line)\n  \\scanned . ifNotErr (createAst (cons \"NEWPARSE.lsr\" (findLines offset line)) scanned names) \\ast . fakereturn ast")(lazy((function () {
+ function(){return resolve(L_newDefine)("newParseLine")(3)("newParseLine offset names line = bind2 (scanLineM line)\r\n  \\scanned . ifNotErr (createAst (cons \"NEWPARSE.lsr\" (findLines offset line)) scanned names) \\ast . return ast")(lazy((function () {
   var main;
   var full = function (L_offset, L_names, L_line) {
-    return resolve(L_bind)(function(){return resolve(L_scanLineM)(L_line)})(lazy(function(L_scanned){return resolve(L_ifNotErr)(function(){return resolve(L_createAst)(function(){return resolve(L_cons)("NEWPARSE.lsr", function(){return resolve(L_findLines)(L_offset, L_line)})}, L_scanned, L_names)}, lazy(function(L_ast){return resolve(L_fakereturn)(L_ast)}))}));
+    return resolve(L_bind2)(function(){return resolve(L_scanLineM)(L_line)})(lazy(function(L_scanned){return resolve(L_ifNotErr)(function(){return resolve(L_createAst)(function(){return resolve(L_cons)("NEWPARSE.lsr", function(){return resolve(L_findLines)(L_offset, L_line)})}, L_scanned, L_names)}, lazy(function(L_ast){return resolve(L_return)(L_ast)}))}));
   };
   var partial = function(L_offset) {
     var _1 = function(L_names) {
@@ -3467,7 +3467,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("countedParseLine")(2)("countedParseLine names countedLine = bind (countedScanLineM (head countedLine) (tail countedLine))\n  \\scanned . ifNotErr (createAst (head countedLine) scanned names) \\ast .\n    fakereturn ast")(lazy((function () {
+ function(){return resolve(L_newDefine)("countedParseLine")(2)("countedParseLine names countedLine = bind (countedScanLineM (head countedLine) (tail countedLine))\r\n  \\scanned . ifNotErr (createAst (head countedLine) scanned names) \\ast .\r\n    fakereturn ast")(lazy((function () {
   var main;
   var full = function (L_names, L_countedLine) {
     return resolve(L_bind)(function(){return resolve(L_countedScanLineM)(function(){return resolve(L_head)(L_countedLine)}, function(){return resolve(L_tail)(L_countedLine)})})(lazy(function(L_scanned){return resolve(L_ifNotErr)(function(){return resolve(L_createAst)(function(){return resolve(L_head)(L_countedLine)}, L_scanned, L_names)}, lazy(function(L_ast){return resolve(L_fakereturn)(L_ast)}))}));
@@ -3490,10 +3490,10 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("runLine")(3)("runLine offset names line = bind (newParseLine offset names line)\n  \\ast . bind (runAst line ast)\n    \\result . fakereturn\n      cons\n        ast\n        isParseErr result\n          left (parseErrMsg result)\n          right result")(lazy((function () {
+ function(){return resolve(L_newDefine)("runLine")(3)("runLine offset names line = bind2 (newParseLine offset names line)\r\n  \\ast . bind2 (runAst line ast)\r\n    \\result . defer # return\r\n      cons\r\n        ast\r\n        isParseErr result\r\n          left (parseErrMsg result)\r\n          right result")(lazy((function () {
   var main;
   var full = function (L_offset, L_names, L_line) {
-    return resolve(L_bind)(function(){return resolve(L_newParseLine)(L_offset, L_names, L_line)})(lazy(function(L_ast){return resolve(L_bind)(function(){return resolve(L_runAst)(L_line)(L_ast)})(lazy(function(L_result){return resolve(L_fakereturn)(function(){return resolve(L_cons)(L_ast, function(){return resolve(L_isParseErr)(L_result)(function(){return resolve(L_left)(function(){return resolve(L_parseErrMsg)(L_result)})})(function(){return resolve(L_right)(L_result)})})})}))}));
+    return resolve(L_bind2)(function(){return resolve(L_newParseLine)(L_offset, L_names, L_line)})(lazy(function(L_ast){return resolve(L_bind2)(function(){return resolve(L_runAst)(L_line)(L_ast)})(lazy(function(L_result){return resolve(L_defer)(function(){return resolve(L_cons)(L_ast, function(){return resolve(L_isParseErr)(L_result)(function(){return resolve(L_left)(function(){return resolve(L_parseErrMsg)(L_result)})})(function(){return resolve(L_right)(L_result)})})})}))}));
   };
   var partial = function(L_offset) {
     var _1 = function(L_names) {
@@ -3517,7 +3517,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("countedRunLine")(3)("countedRunLine file names countedLine = bind (countedParseLine names countedLine)\n  \\ast . \\\\\n    wrapped = astFileWrap file ast\n    value = runAst (tail countedLine) wrapped\n    .\n    not (== (getType value) 'monad')\n      resultOfRun wrapped value\n      bind (runAst (tail countedLine) wrapped)\n        \\result . resultOfRun wrapped result")(lazy((function () {
+ function(){return resolve(L_newDefine)("countedRunLine")(3)("countedRunLine file names countedLine = bind (countedParseLine names countedLine)\r\n  \\ast . \\\\\r\n    wrapped = astFileWrap file ast\r\n    value = runAst (tail countedLine) wrapped\r\n    .\r\n    not (== (getType value) 'monad')\r\n      resultOfRun wrapped value\r\n      bind (runAst (tail countedLine) wrapped)\r\n        \\result . resultOfRun wrapped result")(lazy((function () {
   var main;
   var full = function (L_file, L_names, L_countedLine) {
     return resolve(L_bind)(function(){return resolve(L_countedParseLine)(L_names, L_countedLine)})(lazy(function(L_ast){return (function(){
@@ -3549,10 +3549,10 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("resultOfRun")(2)("resultOfRun wrapped result =\n  #defer\n  fakereturn\n    cons\n      wrapped\n      isParseErr result\n        left (parseErrMsg result)\n        right result")(lazy((function () {
+ function(){return resolve(L_newDefine)("resultOfRun")(2)("resultOfRun wrapped result =\r\n  defer\r\n  #fakereturn\r\n    cons\r\n      wrapped\r\n      isParseErr result\r\n        left (parseErrMsg result)\r\n        right result")(lazy((function () {
   var main;
   var full = function (L_wrapped, L_result) {
-    return resolve(L_fakereturn)(function(){return resolve(L_cons)(L_wrapped, function(){return resolve(L_isParseErr)(L_result)(function(){return resolve(L_left)(function(){return resolve(L_parseErrMsg)(L_result)})})(function(){return resolve(L_right)(L_result)})})});
+    return resolve(L_defer)(function(){return resolve(L_cons)(L_wrapped, function(){return resolve(L_isParseErr)(L_result)(function(){return resolve(L_left)(function(){return resolve(L_parseErrMsg)(L_result)})})(function(){return resolve(L_right)(L_result)})})});
   };
   var partial = function(L_wrapped) {
     var _1 = function(L_result) {
@@ -3596,10 +3596,10 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("basename")(1)("basename file = strReplace file (regexp '^(.*/)?([^/]+)$') '$2'")(lazy(function(L_file){return resolve(L_strReplace)(L_file, function(){return resolve(L_regexp)("^(.*/)?([^/]+)$")}, "$2")}))},
- function(){return resolve(L_newDefine)("runLines")(2)("runLines names lines = lines\n  \\h t D . bind (runLine 0 names h)\n    \\line . bind (runLines names t)\n      \\rest . fakereturn\n        cons line rest\n  nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("runLines")(2)("runLines names lines = lines\r\n  \\h t D . bind2 (runLine 0 names h)\r\n    \\line . bind2 (runLines names t)\r\n      \\rest . fakereturn\r\n        cons line rest\r\n  nil")(lazy((function () {
   var main;
   var full = function (L_names, L_lines) {
-    return resolve(L_lines)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind)(function(){return resolve(L_runLine)(0, L_names, L_h)})(lazy(function(L_line){return resolve(L_bind)(function(){return resolve(L_runLines)(L_names, L_t)})(lazy(function(L_rest){return resolve(L_fakereturn)(function(){return resolve(L_cons)(L_line, L_rest)})}))}))})})}))(L_nil);
+    return resolve(L_lines)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind2)(function(){return resolve(L_runLine)(0, L_names, L_h)})(lazy(function(L_line){return resolve(L_bind2)(function(){return resolve(L_runLines)(L_names, L_t)})(lazy(function(L_rest){return resolve(L_fakereturn)(function(){return resolve(L_cons)(L_line, L_rest)})}))}))})})}))(L_nil);
   };
   var partial = function(L_names) {
     var _1 = function(L_lines) {
@@ -3619,10 +3619,10 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("countedRunLines")(3)("countedRunLines file names countedLines = countedLines\n  \\h t D . bind (countedRunLine file names h)\n    \\line . bind (countedRunLines file names t)\n      \\rest . fakereturn\n        cons line rest\n  nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("countedRunLines")(3)("countedRunLines file names countedLines = countedLines\r\n  \\h t D . bind2 (countedRunLine file names h)\r\n    \\line . bind2 (countedRunLines file names t)\r\n      \\rest . return\r\n        cons line rest\r\n  nil")(lazy((function () {
   var main;
   var full = function (L_file, L_names, L_countedLines) {
-    return resolve(L_countedLines)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind)(function(){return resolve(L_countedRunLine)(L_file, L_names, L_h)})(lazy(function(L_line){return resolve(L_bind)(function(){return resolve(L_countedRunLines)(L_file, L_names, L_t)})(lazy(function(L_rest){return resolve(L_fakereturn)(function(){return resolve(L_cons)(L_line, L_rest)})}))}))})})}))(L_nil);
+    return resolve(L_countedLines)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind2)(function(){return resolve(L_countedRunLine)(L_file, L_names, L_h)})(lazy(function(L_line){return resolve(L_bind2)(function(){return resolve(L_countedRunLines)(L_file, L_names, L_t)})(lazy(function(L_rest){return resolve(L_return)(function(){return resolve(L_cons)(L_line, L_rest)})}))}))})})}))(L_nil);
   };
   var partial = function(L_file) {
     var _1 = function(L_names) {
@@ -3647,7 +3647,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("runFile")(1)("runFile text = runNamedFile \"RUNFILE.lsr\" text")(lazy(function(L_text){return resolve(L_runNamedFile)("RUNFILE.lsr", L_text)}))},
- function(){return resolve(L_newDefine)("runNamedFile")(2)("runNamedFile name text = \\\\\n  counted = countedLinesForFile name text\n  lines = map tail counted\n  names = namesForLines lines\n  .\n  countedRunLines name names counted")(lazy((function () {
+ function(){return resolve(L_newDefine)("runNamedFile")(2)("runNamedFile name text = \\\\\r\n  counted = countedLinesForFile name text\r\n  lines = map tail counted\r\n  names = namesForLines lines\r\n  .\r\n  countedRunLines name names counted")(lazy((function () {
   var main;
   var full = function (L_name, L_text) {
     return (function(){
@@ -3676,8 +3676,8 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("baseLoad")(1)("baseLoad file = bind (readFile file)\n  \\result . result\n    \\err . err\n    \\contents . baseLoadString file contents")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_readFile)(L_file)})(lazy(function(L_result){return resolve(L_result)(lazy(function(L_err){return resolve(L_err)}))(lazy(function(L_contents){return resolve(L_baseLoadString)(L_file, L_contents)}))}))}))},
- function(){return resolve(L_newDefine)("baseLoadString")(2)("baseLoadString file contents = bind (getValue 'activeTokenPacks')\n  \\activePacks . bind resetStdTokenPacks\n    \\_ . bind resetNameSpaceInfo\n      \\nsInfo . bind (runNamedFile file contents)\n        \\result . bind (setNameSpaceInfo nsInfo)\n          \\_ . isNil activePacks\n            bind resetStdTokenPacks \\_ . result\n            bind (resetTokenPacks activePacks) \\_ . result")(lazy((function () {
+ function(){return resolve(L_newDefine)("baseLoad")(1)("baseLoad file = bind (readFile file)\r\n  \\result . result\r\n    \\err . err\r\n    \\contents . baseLoadString file contents")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_readFile)(L_file)})(lazy(function(L_result){return resolve(L_result)(lazy(function(L_err){return resolve(L_err)}))(lazy(function(L_contents){return resolve(L_baseLoadString)(L_file, L_contents)}))}))}))},
+ function(){return resolve(L_newDefine)("baseLoadString")(2)("baseLoadString file contents = bind (getValue 'activeTokenPacks')\r\n  \\activePacks . bind resetStdTokenPacks\r\n    \\_ . bind resetNameSpaceInfo\r\n      \\nsInfo . bind (runNamedFile file contents)\r\n        \\result . bind (setNameSpaceInfo nsInfo)\r\n          \\_ . isNil activePacks\r\n            bind resetStdTokenPacks \\_ . result\r\n            bind (resetTokenPacks activePacks) \\_ . result")(lazy((function () {
   var main;
   var full = function (L_file, L_contents) {
     return resolve(L_bind)(function(){return resolve(L_getValue)("activeTokenPacks")})(lazy(function(L_activePacks){return resolve(L_bind)(L_resetStdTokenPacks)(lazy(function(L__){return resolve(L_bind)(L_resetNameSpaceInfo)(lazy(function(L_nsInfo){return resolve(L_bind)(function(){return resolve(L_runNamedFile)(L_file, L_contents)})(lazy(function(L_result){return resolve(L_bind)(function(){return resolve(L_setNameSpaceInfo)(L_nsInfo)})(lazy(function(L___0){return resolve(L_isNil)(L_activePacks)(function(){return resolve(L_bind)(L_resetStdTokenPacks)(lazy(function(L___1){return resolve(L_result)}))})(function(){return resolve(L_bind)(function(){return resolve(L_resetTokenPacks)(L_activePacks)})(lazy(function(L___1){return resolve(L_result)}))})}))}))}))}))}));
@@ -3700,14 +3700,14 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("load")(1)("load file = bind (baseLoad file)\n  \\result . \\\\\n    errs = foldr (\\line results . tail line (\\er . cons er results) (\\x . results)) nil result\n    .\n    fakereturn\n      isNil errs\n        right true\n        left errs")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_baseLoad)(L_file)})(lazy(function(L_result){return (function(){
+ function(){return resolve(L_newDefine)("load")(1)("load file = bind (baseLoad file)\r\n  \\result . \\\\\r\n    errs = foldr (\\line results . tail line (\\er . cons er results) (\\x . results)) nil result\r\n    .\r\n    fakereturn\r\n      isNil errs\r\n        right true\r\n        left errs")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_baseLoad)(L_file)})(lazy(function(L_result){return (function(){
   var L_errs_0;
   L_errs_0 = function(){return resolve(L_foldr)(lazy(function(L_line){return $F(arguments, function(L_results){return resolve(L_tail)(L_line)(lazy(function(L_er){return resolve(L_cons)(L_er, L_results)}))(lazy(function(L_x){return resolve(L_results)}))})}), L_nil, L_result)};
 
   return resolve(L_fakereturn)(function(){return resolve(L_isNil)(L_errs_0)(function(){return resolve(L_right)(L_true)})(function(){return resolve(L_left)(L_errs_0)})})})()}))}))},
- function(){return resolve(L_newDefine)("require")(1)("require file = bind (getValue 'requiredFiles')\n  \\files . contains files file\n    right false\n    bind (setValue 'requiredFiles' (cons file files))\n      \\_. bind (load file)\n        \\result . fakereturn\n          result\n            \\x . left x\n            \\_ . right true")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_getValue)("requiredFiles")})(lazy(function(L_files){return resolve(L_contains)(L_files, L_file)(function(){return resolve(L_right)(L_false)})(function(){return resolve(L_bind)(function(){return resolve(L_setValue)("requiredFiles")(function(){return resolve(L_cons)(L_file, L_files)})})(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_load)(L_file)})(lazy(function(L_result){return resolve(L_fakereturn)(function(){return resolve(L_result)(lazy(function(L_x){return resolve(L_left)(L_x)}))(lazy(function(L___0){return resolve(L_right)(L_true)}))})}))}))})}))}))},
- function(){return resolve(L_newDefine)("scanFile")(1)("scanFile file = bind (readFile file)\n  \\result . result\n    \\err . err\n      \\_ . bind (runNamedFile file contents)\n        counted = countedLinesForFile name text\n        lines = map tail counted\n        names = namesForLines lines\n        .\n        countedScanLines name names counted")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_readFile)(L_file)})(lazy(function(L_result){return resolve(L_result)(lazy(function(L_err){return resolve(L_err)(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_runNamedFile)(L_file, L_contents)})(function(){return resolve(L_counted)(L_$p)(L_countedLinesForFile)(L_name)(L_text)})(function(){return resolve(L_lines)(L_$p)(L_map)(L_tail)(L_counted)})(function(){return resolve(L_names)(L_$p)(L_namesForLines)(L_lines)})(L_$B)(function(){return resolve(L_countedScanLines)(L_name, L_names, L_counted)})}))}))}))}))},
- function(){return resolve(L_newDefine)("countedScanLines")(3)("countedScanLines file names countedLines = countedLines\n  \\h t D . bind (countedScanLineM (head h) (tail h))\n    \\line . bind (countedScanLines file names t)\n      \\rest . fakereturn\n        cons line rest\n  nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("require")(1)("require file = bind (getValue 'requiredFiles')\r\n  \\files . contains files file\r\n    right false\r\n    bind (setValue 'requiredFiles' (cons file files))\r\n      \\_. bind (load file)\r\n        \\result . fakereturn\r\n          result\r\n            \\x . left x\r\n            \\_ . right true")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_getValue)("requiredFiles")})(lazy(function(L_files){return resolve(L_contains)(L_files, L_file)(function(){return resolve(L_right)(L_false)})(function(){return resolve(L_bind)(function(){return resolve(L_setValue)("requiredFiles")(function(){return resolve(L_cons)(L_file, L_files)})})(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_load)(L_file)})(lazy(function(L_result){return resolve(L_fakereturn)(function(){return resolve(L_result)(lazy(function(L_x){return resolve(L_left)(L_x)}))(lazy(function(L___0){return resolve(L_right)(L_true)}))})}))}))})}))}))},
+ function(){return resolve(L_newDefine)("scanFile")(1)("scanFile file = bind (readFile file)\r\n  \\result . result\r\n    \\err . err\r\n      \\_ . bind (runNamedFile file contents)\r\n        counted = countedLinesForFile name text\r\n        lines = map tail counted\r\n        names = namesForLines lines\r\n        .\r\n        countedScanLines name names counted")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_readFile)(L_file)})(lazy(function(L_result){return resolve(L_result)(lazy(function(L_err){return resolve(L_err)(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_runNamedFile)(L_file, L_contents)})(function(){return resolve(L_counted)(L_$p)(L_countedLinesForFile)(L_name)(L_text)})(function(){return resolve(L_lines)(L_$p)(L_map)(L_tail)(L_counted)})(function(){return resolve(L_names)(L_$p)(L_namesForLines)(L_lines)})(L_$B)(function(){return resolve(L_countedScanLines)(L_name, L_names, L_counted)})}))}))}))}))},
+ function(){return resolve(L_newDefine)("countedScanLines")(3)("countedScanLines file names countedLines = countedLines\r\n  \\h t D . bind (countedScanLineM (head h) (tail h))\r\n    \\line . bind (countedScanLines file names t)\r\n      \\rest . fakereturn\r\n        cons line rest\r\n  nil")(lazy((function () {
   var main;
   var full = function (L_file, L_names, L_countedLines) {
     return resolve(L_countedLines)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind)(function(){return resolve(L_countedScanLineM)(function(){return resolve(L_head)(L_h)}, function(){return resolve(L_tail)(L_h)})})(lazy(function(L_line){return resolve(L_bind)(function(){return resolve(L_countedScanLines)(L_file, L_names, L_t)})(lazy(function(L_rest){return resolve(L_fakereturn)(function(){return resolve(L_cons)(L_line, L_rest)})}))}))})})}))(L_nil);
@@ -3734,7 +3734,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("defTokenPack")(2)("defTokenPack name pack = bind (getValue 'tokenPacks')\n  \\packs . setValue 'tokenPacks' (acons name pack packs)")(lazy((function () {
+ function(){return resolve(L_newDefine)("defTokenPack")(2)("defTokenPack name pack = bind (getValue 'tokenPacks')\r\n  \\packs . setValue 'tokenPacks' (acons name pack packs)")(lazy((function () {
   var main;
   var full = function (L_name, L_pack) {
     return resolve(L_bind)(function(){return resolve(L_getValue)("tokenPacks")})(lazy(function(L_packs){return resolve(L_setValue)("tokenPacks")(function(){return resolve(L_acons)(L_name, L_pack, L_packs)})}));
@@ -3757,16 +3757,16 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("useTokenPack")(1)("useTokenPack name = bind (getValue 'tokenPacks')\n  \\packs . bind (getValue 'tokenGroups')\n    \\groups . bind (getValue 'tokenList')\n      \\tokens . bind (getValue 'activeTokenPacks')\n        \\activePacks . bind (getValue 'parseFilters')\n          \\filters . assoc name packs\n            \\pack . \\\\\n              groupToks = foldl (\\value el . el \\h t . cons h (cons t value)) nil (head (tail pack))\n              newToks = quicksort (\\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))\n              .\n              bind (setValue 'tokenList' newToks)\n                \\_ . bind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))\n                  \\_ . bind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))\n                    \\_ . bind (computeTokenPat newToks)\n                      \\_ . setValue 'activeTokenPacks' (cons name activePacks)\n            nil")(lazy(function(L_name){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenPacks")})(lazy(function(L_packs){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenList")})(lazy(function(L_tokens){return resolve(L_bind)(function(){return resolve(L_getValue)("activeTokenPacks")})(lazy(function(L_activePacks){return resolve(L_bind)(function(){return resolve(L_getValue)("parseFilters")})(lazy(function(L_filters){return resolve(L_assoc)(L_name, L_packs)(lazy(function(L_pack){return (function(){
+ function(){return resolve(L_newDefine)("useTokenPack")(1)("useTokenPack name = bind (getValue 'tokenPacks')\r\n  \\packs . bind (getValue 'tokenGroups')\r\n    \\groups . bind (getValue 'tokenList')\r\n      \\tokens . bind (getValue 'activeTokenPacks')\r\n        \\activePacks . bind (getValue 'parseFilters')\r\n          \\filters . assoc name packs\r\n            \\pack . \\\\\r\n              groupToks = foldl (\\value el . el \\h t . cons h (cons t value)) nil (head (tail pack))\r\n              newToks = quicksort (\\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))\r\n              .\r\n              bind (setValue 'tokenList' newToks)\r\n                \\_ . bind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))\r\n                  \\_ . bind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))\r\n                    \\_ . bind (computeTokenPat newToks)\r\n                      \\_ . setValue 'activeTokenPacks' (cons name activePacks)\r\n            nil")(lazy(function(L_name){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenPacks")})(lazy(function(L_packs){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenList")})(lazy(function(L_tokens){return resolve(L_bind)(function(){return resolve(L_getValue)("activeTokenPacks")})(lazy(function(L_activePacks){return resolve(L_bind)(function(){return resolve(L_getValue)("parseFilters")})(lazy(function(L_filters){return resolve(L_assoc)(L_name, L_packs)(lazy(function(L_pack){return (function(){
   var L_groupToks_0, L_newToks_1;
   L_groupToks_0 = function(){return resolve(L_foldl)(lazy(function(L_value){return $F(arguments, function(L_el){return resolve(L_el)(lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_cons)(L_h, function(){return resolve(L_cons)(L_t, L_value)})})}))})}), L_nil, function(){return resolve(L_head)(function(){return resolve(L_tail)(L_pack)})})};
   L_newToks_1 = function(){return resolve(L_quicksort)(lazy(function(L_a){return $F(arguments, function(L_b){return resolve(L_$z)(function(){return resolve(L_strLen)(L_a)})(function(){return resolve(L_strLen)(L_b)})})}), function(){return resolve(L_append)(function(){return resolve(L_head)(L_pack)}, function(){return resolve(L_append)(L_groupToks_0, L_tokens)})})};
 
   return resolve(L_bind)(function(){return resolve(L_setValue)("tokenList")(L_newToks_1)})(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_setValue)("tokenGroups")(function(){return resolve(L_appendAlist)(function(){return resolve(L_head)(function(){return resolve(L_tail)(L_pack)})}, L_groups)})})(lazy(function(L___2){return resolve(L_bind)(function(){return resolve(L_setValue)("parseFilters")(function(){return resolve(L_append)(L_filters, function(){return resolve(L_head)(function(){return resolve(L_tail)(function(){return resolve(L_tail)(L_pack)})})})})})(lazy(function(L___3){return resolve(L_bind)(function(){return resolve(L_computeTokenPat)(L_newToks_1)})(lazy(function(L___4){return resolve(L_setValue)("activeTokenPacks")(function(){return resolve(L_cons)(L_name, L_activePacks)})}))}))}))}))})()}))(L_nil)}))}))}))}))}))}))},
- function(){return resolve(L_newDefine)("resetTokenPacks")(1)("resetTokenPacks packs = bind (setValue 'tokenGroups' nil)\n  \\_ . bind (setValue 'tokenList' nil)\n    \\_ . bind (setValue 'activeTokenPacks' nil)\n      \\_ . bind (setValue 'parseFilters' nil)\n        \\_ . foldr1\n          \\packCmd result . bind packCmd \\_ . result\n          fakereturn (map useTokenPack packs)")(lazy(function(L_packs){return resolve(L_bind)(function(){return resolve(L_setValue)("tokenGroups")(L_nil)})(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_setValue)("tokenList")(L_nil)})(lazy(function(L___0){return resolve(L_bind)(function(){return resolve(L_setValue)("activeTokenPacks")(L_nil)})(lazy(function(L___1){return resolve(L_bind)(function(){return resolve(L_setValue)("parseFilters")(L_nil)})(lazy(function(L___2){return resolve(L_foldr1)(lazy(function(L_packCmd){return $F(arguments, function(L_result){return resolve(L_bind)(L_packCmd)(lazy(function(L___3){return resolve(L_result)}))})}), function(){return resolve(L_fakereturn)(function(){return resolve(L_map)(L_useTokenPack, L_packs)})})}))}))}))}))}))},
- function(){return resolve(L_newDefine)("resetStdTokenPacks")(0)("resetStdTokenPacks = bind (getValue 'stdTokenPacks')\n  \\stds . bind (resetTokenPacks stds)\n    \\_ . setValue 'activeTokenPacks' nil")(function(){return resolve(L_bind)(function(){return resolve(L_getValue)("stdTokenPacks")})(lazy(function(L_stds){return resolve(L_bind)(function(){return resolve(L_resetTokenPacks)(L_stds)})(lazy(function(L__){return resolve(L_setValue)("activeTokenPacks")(L_nil)}))}))})},
- function(){return resolve(L_newDefine)("addStdTokenPacks")(1)("addStdTokenPacks morePacks = bind (getValue 'stdTokenPacks')\n  \\stds . setValue 'stdTokenPacks' (append stds morePacks)")(lazy(function(L_morePacks){return resolve(L_bind)(function(){return resolve(L_getValue)("stdTokenPacks")})(lazy(function(L_stds){return resolve(L_setValue)("stdTokenPacks")(function(){return resolve(L_append)(L_stds, L_morePacks)})}))}))},
- function(){return resolve(L_newDefine)("addParseFilter")(1)("addParseFilter filt = bind (getValue 'parseFilters')\n  \\filters . setValue 'parseFilters' (append filters (cons filt nil))")(lazy(function(L_filt){return resolve(L_bind)(function(){return resolve(L_getValue)("parseFilters")})(lazy(function(L_filters){return resolve(L_setValue)("parseFilters")(function(){return resolve(L_append)(L_filters, function(){return resolve(L_cons)(L_filt, L_nil)})})}))}))},
+ function(){return resolve(L_newDefine)("resetTokenPacks")(1)("resetTokenPacks packs = bind (setValue 'tokenGroups' nil)\r\n  \\_ . bind (setValue 'tokenList' nil)\r\n    \\_ . bind (setValue 'activeTokenPacks' nil)\r\n      \\_ . bind (setValue 'parseFilters' nil)\r\n        \\_ . foldr1\r\n          \\packCmd result . bind packCmd \\_ . result\r\n          fakereturn (map useTokenPack packs)")(lazy(function(L_packs){return resolve(L_bind)(function(){return resolve(L_setValue)("tokenGroups")(L_nil)})(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_setValue)("tokenList")(L_nil)})(lazy(function(L___0){return resolve(L_bind)(function(){return resolve(L_setValue)("activeTokenPacks")(L_nil)})(lazy(function(L___1){return resolve(L_bind)(function(){return resolve(L_setValue)("parseFilters")(L_nil)})(lazy(function(L___2){return resolve(L_foldr1)(lazy(function(L_packCmd){return $F(arguments, function(L_result){return resolve(L_bind)(L_packCmd)(lazy(function(L___3){return resolve(L_result)}))})}), function(){return resolve(L_fakereturn)(function(){return resolve(L_map)(L_useTokenPack, L_packs)})})}))}))}))}))}))},
+ function(){return resolve(L_newDefine)("resetStdTokenPacks")(0)("resetStdTokenPacks = bind (getValue 'stdTokenPacks')\r\n  \\stds . bind (resetTokenPacks stds)\r\n    \\_ . setValue 'activeTokenPacks' nil")(function(){return resolve(L_bind)(function(){return resolve(L_getValue)("stdTokenPacks")})(lazy(function(L_stds){return resolve(L_bind)(function(){return resolve(L_resetTokenPacks)(L_stds)})(lazy(function(L__){return resolve(L_setValue)("activeTokenPacks")(L_nil)}))}))})},
+ function(){return resolve(L_newDefine)("addStdTokenPacks")(1)("addStdTokenPacks morePacks = bind (getValue 'stdTokenPacks')\r\n  \\stds . setValue 'stdTokenPacks' (append stds morePacks)")(lazy(function(L_morePacks){return resolve(L_bind)(function(){return resolve(L_getValue)("stdTokenPacks")})(lazy(function(L_stds){return resolve(L_setValue)("stdTokenPacks")(function(){return resolve(L_append)(L_stds, L_morePacks)})}))}))},
+ function(){return resolve(L_newDefine)("addParseFilter")(1)("addParseFilter filt = bind (getValue 'parseFilters')\r\n  \\filters . setValue 'parseFilters' (append filters (cons filt nil))")(lazy(function(L_filt){return resolve(L_bind)(function(){return resolve(L_getValue)("parseFilters")})(lazy(function(L_filters){return resolve(L_setValue)("parseFilters")(function(){return resolve(L_append)(L_filters, function(){return resolve(L_cons)(L_filt, L_nil)})})}))}))},
  function(){return resolve(L_newDefine)("d")(3)("d label value expr = log (strCat (cons label (cons value nil))) expr")(lazy((function () {
   var main;
   var full = function (L_label, L_value, L_expr) {
