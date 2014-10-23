@@ -1146,7 +1146,7 @@ resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
       \_ . bind (setValue 'parseFilters' nil)
         \_ . foldr1
           \packCmd result . bind packCmd \_ . result
-          fakereturn (map useTokenPack packs)
+          map useTokenPack packs
 
 resetStdTokenPacks = bind (getValue 'stdTokenPacks')
   \stds . bind (resetTokenPacks stds)

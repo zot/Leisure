@@ -359,23 +359,29 @@ defCase presentHtml.html obj | hasType obj html -> obj id
 # If the cont result is not the same type as the monad, we call unit
 # We could raise an error but for now we'll just auto-convert
 
-defCase bind.bool opt cont | or (opt == true) (opt == false) -> opt
+defCase bind2.bool opt cont | or (opt == true) (opt == false) -> opt
   cont true
   false
 
-defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt
+defCase bind2.option opt cont | or (hasType opt some) (hasType opt none) -> opt
   \value . bind (cont value) \res . isOption res res (some res)
   none
 
-defCase bind.either either cont | isEither either -> either
+defCase bind2.either either cont | isEither either -> either
   \_ . either
   \value . bind (cont value) \res . isEither res res (right res)
 
 # the first def is for when we IO can auto-convert lists to bind-lists
 #defCase bind.cons list cont | hasType list cons -> map cont list
-defCase bind.cons list cont | hasType list cons -> doall (map cont list)
+#defCase bind2.cons list cont | hasType list cons -> doall (map cont list)
+defCase bind2.cons list cont | hasType list cons -> bindCons list cont id
 
-defCase bind.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
+bindCons list cont results = list
+  \h t D . bind2 (cont h) \result . bindCons t cont
+    isCons result (dlAppend results (append result)) (dlPush results result)
+  return (results nil)
+
+defCase bind2.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
 
 bindRepeat nums cont res = nums
   \n t D . bind (cont n) \result . bindRepeat t cont [result | res]

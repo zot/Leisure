@@ -854,11 +854,38 @@ module.exports = L_runMonads([
  function(){return resolve(L_advise)("present")("nil")(1)(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_nil)(function(){return resolve(L_some)("nil")})(L_none)}))},
  function(){return resolve(L_advise)("present")("none")(1)(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_none)(function(){return resolve(L_some)("none")})(L_none)}))},
  function(){return resolve(L_advise)("presentHtml")("html")(1)(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_html)(function(){return resolve(L_some)(function(){return resolve(L_obj)(L_id)})})(L_none)}))},
- function(){return resolve(L_advise)("bind")("bool")(2)(lazy(function(L_opt){return $F(arguments, function(L_cont){return resolve(L_or)(function(){return resolve(L_$p$p)(L_opt)(L_true)}, function(){return resolve(L_$p$p)(L_opt)(L_false)})(function(){return resolve(L_some)(function(){return resolve(L_opt)(function(){return resolve(L_cont)(L_true)})(L_false)})})(L_none)})}))},
- function(){return resolve(L_advise)("bind")("option")(2)(lazy(function(L_opt){return $F(arguments, function(L_cont){return resolve(L_or)(function(){return resolve(L_hasType)(L_opt)(L_some)}, function(){return resolve(L_hasType)(L_opt)(L_none)})(function(){return resolve(L_some)(function(){return resolve(L_opt)(lazy(function(L_value){return resolve(L_bind)(function(){return resolve(L_cont)(L_value)})(lazy(function(L_res){return resolve(L_isOption)(L_res)(L_res)(function(){return resolve(L_some)(L_res)})}))}))(L_none)})})(L_none)})}))},
- function(){return resolve(L_advise)("bind")("either")(2)(lazy(function(L_either){return $F(arguments, function(L_cont){return resolve(L_isEither)(L_either)(function(){return resolve(L_some)(function(){return resolve(L_either)(lazy(function(L__){return resolve(L_either)}))(lazy(function(L_value){return resolve(L_bind)(function(){return resolve(L_cont)(L_value)})(lazy(function(L_res){return resolve(L_isEither)(L_res)(L_res)(function(){return resolve(L_right)(L_res)})}))}))})})(L_none)})}))},
- function(){return resolve(L_advise)("bind")("cons")(2)(lazy(function(L_list){return $F(arguments, function(L_cont){return resolve(L_hasType)(L_list)(L_cons)(function(){return resolve(L_some)(function(){return resolve(L_doall)(function(){return resolve(L_map)(L_cont, L_list)})})})(L_none)})}))},
- function(){return resolve(L_advise)("bind")("repeat")(2)(lazy(function(L_r){return $F(arguments, function(L_cont){return resolve(L_hasType)(L_r)(L_repeat)(function(){return resolve(L_some)(function(){return resolve(L_bindRepeat)(function(){return resolve(L_r)(L_id)}, L_cont, L_nil)})})(L_none)})}))},
+ function(){return resolve(L_advise)("bind2")("bool")(2)(lazy(function(L_opt){return $F(arguments, function(L_cont){return resolve(L_or)(function(){return resolve(L_$p$p)(L_opt)(L_true)}, function(){return resolve(L_$p$p)(L_opt)(L_false)})(function(){return resolve(L_some)(function(){return resolve(L_opt)(function(){return resolve(L_cont)(L_true)})(L_false)})})(L_none)})}))},
+ function(){return resolve(L_advise)("bind2")("option")(2)(lazy(function(L_opt){return $F(arguments, function(L_cont){return resolve(L_or)(function(){return resolve(L_hasType)(L_opt)(L_some)}, function(){return resolve(L_hasType)(L_opt)(L_none)})(function(){return resolve(L_some)(function(){return resolve(L_opt)(lazy(function(L_value){return resolve(L_bind)(function(){return resolve(L_cont)(L_value)})(lazy(function(L_res){return resolve(L_isOption)(L_res)(L_res)(function(){return resolve(L_some)(L_res)})}))}))(L_none)})})(L_none)})}))},
+ function(){return resolve(L_advise)("bind2")("either")(2)(lazy(function(L_either){return $F(arguments, function(L_cont){return resolve(L_isEither)(L_either)(function(){return resolve(L_some)(function(){return resolve(L_either)(lazy(function(L__){return resolve(L_either)}))(lazy(function(L_value){return resolve(L_bind)(function(){return resolve(L_cont)(L_value)})(lazy(function(L_res){return resolve(L_isEither)(L_res)(L_res)(function(){return resolve(L_right)(L_res)})}))}))})})(L_none)})}))},
+ function(){return resolve(L_advise)("bind2")("cons")(2)(lazy(function(L_list){return $F(arguments, function(L_cont){return resolve(L_hasType)(L_list)(L_cons)(function(){return resolve(L_some)(function(){return resolve(L_bindCons)(L_list, L_cont, L_id)})})(L_none)})}))},
+ function(){return resolve(L_newDefine)("bindCons")(3)("bindCons list cont results = list\n  \\h t D . bind2 (cont h) \\result . bindCons t cont\n    isCons result (dlAppend results (append result)) (dlPush results result)\n  return (results nil)")(lazy((function () {
+  var main;
+  var full = function (L_list, L_cont, L_results) {
+    return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind2)(function(){return resolve(L_cont)(L_h)})(lazy(function(L_result){return resolve(L_bindCons)(L_t, L_cont, function(){return resolve(L_isCons)(L_result)(function(){return resolve(L_dlAppend)(L_results, function(){return resolve(L_append)(L_result)})})(function(){return resolve(L_dlPush)(L_results, L_result)})})}))})})}))(function(){return resolve(L_return)(function(){return resolve(L_results)(L_nil)})});
+  };
+  var partial = function(L_list) {
+    var _1 = function(L_cont) {
+            var _2 = function(L_results) {
+              return full(L_list, L_cont, L_results);
+            };
+            _2.leisureInfo = {arg: L_cont, parent: _1.leisureInfo};
+            return _2;
+          };
+          _1.leisureInfo = {arg: L_list, name: main.leisureName};
+          return _1;
+  };
+  main = function(L_list, L_cont, L_results, more) {
+    if (L_results && (typeof more == "undefined" || more == null)) {
+      return full(L_list, L_cont, L_results);
+    } else if (typeof L_cont == "undefined" || L_cont == null) {
+      return partial(L_list);
+    } else {
+      return Leisure.curryCall(arguments, partial);
+    }
+  };
+  return main;
+})()))},
+ function(){return resolve(L_advise)("bind2")("repeat")(2)(lazy(function(L_r){return $F(arguments, function(L_cont){return resolve(L_hasType)(L_r)(L_repeat)(function(){return resolve(L_some)(function(){return resolve(L_bindRepeat)(function(){return resolve(L_r)(L_id)}, L_cont, L_nil)})})(L_none)})}))},
  function(){return resolve(L_newDefine)("bindRepeat")(3)("bindRepeat nums cont res = nums\n  \\n t D . bind (cont n) \\result . bindRepeat t cont [result | res]\n  foldr (\\el prev . isList el append cons el prev) nil (reverse res)")(lazy((function () {
   var main;
   var full = function (L_nums, L_cont, L_res) {

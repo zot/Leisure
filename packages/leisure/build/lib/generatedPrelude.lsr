@@ -980,7 +980,6 @@ findLines offset line = \\
 newParseLine offset names line = bind2 (scanLineM line)
   \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . return ast
 
-#countedParseLine names countedLine = bind (scanLineM (tail countedLine))
 countedParseLine names countedLine = bind2 (countedScanLineM (head countedLine) (tail countedLine))
   \scanned . return (createAst (head countedLine) scanned names)
 
@@ -1147,7 +1146,7 @@ resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
       \_ . bind (setValue 'parseFilters' nil)
         \_ . foldr1
           \packCmd result . bind packCmd \_ . result
-          fakereturn (map useTokenPack packs)
+          map useTokenPack packs
 
 resetStdTokenPacks = bind (getValue 'stdTokenPacks')
   \stds . bind (resetTokenPacks stds)
