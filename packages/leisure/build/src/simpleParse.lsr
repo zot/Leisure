@@ -19,7 +19,6 @@ setNameSpace 'core'
 #############
 
 asIO x = x
-#return x = \f . f x
 fakereturn x = x
 
 ############
@@ -268,10 +267,6 @@ errMsg err = err \m . m
 isErr thing = hasType thing err
 
 ifNotErr thing cont = hasType thing parseErr thing (cont thing)
-
-#advise 'bind2' 'return' 2 \v cont . hasType v return
-#  some (cont (v id))
-#  none
 
 ############
 ############
@@ -921,7 +916,7 @@ parseToAst str pat = createAst nil (testParse str pat) nil
 parseM str =
   bind2 (getValue 'tokenPat')
     \tokPat . bind2 (getValue 'tokenGroups')
-      \groups . return
+      \groups . defer
         parseG str tokPat groups
 
 scanLine str pat onDef onExpr = scanLineG str pat parenGroups onDef onExpr
@@ -930,12 +925,12 @@ parseLine str pat names onDef onExpr = parseLineG str pat names parenGroups onDe
 
 parseLineM str = bind2 (getValue 'tokenPat')
   \tokPat . bind2 (getValue 'tokenGroups')
-    \groups . return
+    \groups . defer
       parseLineG str tokPat nil groups id id
 
 macroSubM expr =
   bind2 (getValue 'macroDefs')
-    \macs . return
+    \macs . defer
       macroSub macs expr
 
 macroParse str =
@@ -944,20 +939,20 @@ macroParse str =
 
 tokensM str =
   bind2 (getValue 'tokenPat')
-    \delimiterPat . return
+    \delimiterPat . defer
       tokens str delimiterPat
 
 parseLines lines result = lines
   \h t D . bind2 (parseLineM h)
     \ast . parseLines t (cons ast result)
-  return
+  defer
     reverse result
 
 parseFile text = parseLines (linesForFile text) nil
 
 simpleScanLine line = bind2 (getValue 'tokenPat')
   \tokenPat . bind2 (getValue 'tokenGroups')
-    \groups . return
+    \groups . defer
       scanLineG line tokenPat groups id id
 
 scanLineM line = countedScanLineM emptyLineStarts line
@@ -968,7 +963,7 @@ countedScanLineM lineStarts line = bind (getValue 'tokenPat')
       \filters . bind (getValue 'macroDefs')
         \macros . bind (getValue 'parser_funcProps')
           \props . bind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups props id id))
-            \scanned . return
+            \scanned . defer
               macroSub macros scanned
 
 newline = regexp '\\r?\\n'
@@ -983,10 +978,10 @@ findLines offset line = \\
     cons offset (findLines (+ offset idx) (strSubstring line idx 0))
 
 newParseLine offset names line = bind2 (scanLineM line)
-  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . return ast
+  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . defer ast
 
 countedParseLine names countedLine = bind2 (countedScanLineM (head countedLine) (tail countedLine))
-  \scanned . return (createAst (head countedLine) scanned names)
+  \scanned . defer (createAst (head countedLine) scanned names)
 
 runLine offset names line = bind2 (newParseLine offset names line)
   \ast . bind2 (runAst line ast)
@@ -1047,7 +1042,7 @@ basename file = strReplace file (regexp '^(.*/)?([^/]+)$') '$2'
 runLines names lines = lines
   \h t D . bind2 (runLine 0 names h)
     \line . bind2 (runLines names t)
-      \rest . return
+      \rest . defer
         cons line rest
   nil
 
@@ -1055,7 +1050,7 @@ runLines names lines = lines
 countedRunLines file names countedLines = countedLines
   \h t D . bind2 (countedRunLine file names h)
     \line . bind2 (countedRunLines file names t)
-      \rest . return
+      \rest . defer
         cons line rest
   nil
 
@@ -1070,7 +1065,7 @@ runNamedFile name text = \\
 
 baseLoad file = bind2 (readFile file)
   \result . result
-    \err . return err
+    \err . defer err
     \contents . baseLoadString file contents
 
 baseLoadString file contents = bind2 (getValue 'activeTokenPacks')
@@ -1079,14 +1074,14 @@ baseLoadString file contents = bind2 (getValue 'activeTokenPacks')
       \nsInfo . bind2 (runNamedFile file contents)
         \result . bind2 (setNameSpaceInfo nsInfo)
           \_ . isNil activePacks
-            bind2 resetStdTokenPacks \_ . return result
-            bind2 (resetTokenPacks activePacks) \_ . return result
+            bind2 resetStdTokenPacks \_ . defer result
+            bind2 (resetTokenPacks activePacks) \_ . defer result
 
 load file = bind2 (baseLoad file)
   \result . \\
     errs = foldr (\line results . tail line (\er . cons er results) (\x . results)) nil result
     .
-    return
+    defer
       isNil errs
         right true
         left errs
@@ -1096,7 +1091,7 @@ require file = bind2 (getValue 'requiredFiles')
     right false
     bind2 (setValue 'requiredFiles' (cons file files))
       \_. bind2 (load file)
-        \result . return
+        \result . defer
           result
             \x . left x
             \_ . right true
@@ -1114,7 +1109,7 @@ scanFile file = bind2 (readFile file)
 countedScanLines file names countedLines = countedLines
   \h t D . bind2 (countedScanLineM (head h) (tail h))
     \line . bind2 (countedScanLines file names t)
-      \rest . return
+      \rest . defer
         cons line rest
   nil
 

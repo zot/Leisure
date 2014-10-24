@@ -383,7 +383,7 @@ class Monad2 extends Monad
     if !@cmdToString then @cmdToString = => @cmd.toString()
   toString: -> "Monad2: #{@cmdToString()}"
 
-define 'return', lz (v)-> new Monad2 ((env, cont)-> cont rz v), -> "return #{rz v}"
+#define 'return', lz (v)-> new Monad2 ((env, cont)-> cont rz v), -> "return #{rz v}"
 
 define 'defer', lz (v)-> new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1), ->
   "defer #{rz v}"

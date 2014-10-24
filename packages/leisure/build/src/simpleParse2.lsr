@@ -41,7 +41,7 @@ defMacro '[' \list . list \h t . listify h
 # parse filter 'listFilter' gathers items after the '|' into a single argument
 
 listFilter code = bind (getValue 'listMacros')
-  \listMacros . return
+  \listMacros . defer
     filterApplies code \list . list \h t .
       and (isToken h) (contains listMacros (tokenString h))
         listFilterTail list
@@ -154,7 +154,7 @@ bind (getValue 'listMacros')
 infix code = bind (getValue 'infixPrecedence')
   \prec . bind (getValue 'infixRightAssociative')
     \right . bind (getValue 'tokenGroups')
-      \groups . return
+      \groups . defer
         filterApplies
           code
           \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
