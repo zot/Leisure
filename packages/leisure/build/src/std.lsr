@@ -358,6 +358,16 @@ defCase presentHtml.html obj | hasType obj html -> obj id
 ## bind
 # If the cont result is not the same type as the monad, we call unit
 # We could raise an error but for now we'll just auto-convert
+#
+# At this point, boolean monads return unit for "false" values
+# and the list monad ellides unit values from results
+#
+# This makes bind useful for list comprehensions, like this:
+#
+# do
+#   x <- [1 2 3]
+#   x > 1
+#   x + 2
 
 #wrap -- make a value bindable without interpretation
 wrap x = \f . f x
@@ -368,14 +378,14 @@ defCase bind2.wrap v cont | hasType v wrap -> cont (v id)
 
 defCase bind2.bool opt cont | or (opt == true) (opt == false) -> opt
   cont true
-  false
+  unit
 
 defCase bind2.option opt cont | or (hasType opt some) (hasType opt none) -> opt
   \value . bindIOish (cont value) \res . isOption res res (some res)
-  none
+  unit
 
 defCase bind2.either either cont | isEither either -> either
-  \_ . either
+  \_ . unit
   \value . bindIOish (cont value) \res . isEither res res (right res)
 
 # the first def is for if we can get IO to auto-convert values...
@@ -384,7 +394,11 @@ defCase bind2.cons list cont | hasType list cons -> bindCons list cont id
 
 bindCons list cont results = list
   \h t D . bindIOish (cont h) \result . bindCons t cont
-    isCons result (dlAppend results (append result)) (dlPush results result)
+    hasType result unit
+      results
+      isCons result
+        dlAppend results (append result)
+        dlPush results result
   results nil
 
 defCase bind2.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
@@ -403,7 +417,7 @@ bindIOish m cont = bind2
     wrap m
   cont
 
-## asIO
+## asIO, for if/when we can get IO to convert values automatically
 # convert a value to an IO value
 
 defCase asIO.cons value | hasType value cons -> doall value
