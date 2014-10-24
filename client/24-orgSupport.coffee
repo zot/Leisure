@@ -1041,7 +1041,8 @@ leisureEnv = (env)->
       while results != L_nil()
         res = results.head().tail()
         if getType(res) == 'left' then env.write "PARSE ERROR: #{getLeft res}"
-        else env.write String(env.presentValue getRight res)
+        else runMonad getRight(res), env, (res2)->
+          env.write String(env.presentValue res2)
         results = results.tail()
       setValue 'parser_funcProps', old
       cont?()

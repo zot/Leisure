@@ -381,19 +381,19 @@ defCase bind2.bool opt cont | or (opt == true) (opt == false) -> opt
   false
 
 defCase bind2.option opt cont | isOption opt -> opt
-  \value . bindIOish (cont value) \res . isOption res res (some res)
+  \value . subbind (cont value) \res . isOption res res (some res)
   none
 
 defCase bind2.either either cont | isEither either -> either
   \_ . either
-  \value . bindIOish (cont value) \res . isEither res res (right res)
+  \value . subbind (cont value) \res . isEither res res (right res)
 
 # the first def is for if we can get IO to auto-convert values...
 #defCase bind.cons list cont | hasType list cons -> map cont list
 defCase bind2.cons list cont | hasType list cons -> bindCons list cont id
 
 bindCons list cont results = list
-  \h t D . bindIOish (cont h) \result . bindCons t cont
+  \h t D . subbind (cont h) \result . bindCons t cont
     result == unit
       results
       isCons result
@@ -404,21 +404,21 @@ bindCons list cont results = list
 defCase bind2.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
 
 bindRepeat nums cont res = nums
-  \n t D . bindIOish (cont n) \result . bindRepeat t cont [result | res]
+  \n t D . subbind (cont n) \result . bindRepeat t cont [result | res]
   foldr (\el prev . isList el append cons el prev) nil (reverse res)
 
-## bindIOish
+## subbind
 # bind a non-IO value to make it more IO-friendly
 # so that we can more easily intersperse the IO monad with others
 # this also treats false-ish values as unit
 
-bindIOish m cont = bind2 (wrap m) cont
+subbind m cont = bind2 (wrap m) cont
 
-defCase bindIOish.monad m cont | or (hasType m "*Monad2") (hasType m 'monad') ->
+defCase subbind.monad m cont | or (hasType m "*Monad2") (hasType m 'monad') ->
   bind2 m cont
-defCase bindIOish.boolean m cont | m == false -> bind2 unit cont
-defCase bindIOish.option m cont | hasType m none -> bind2 unit cont
-defCase bindIOish.either m cont | hasType m left -> bind2 unit cont
+defCase subbind.boolean m cont | m == false -> bind2 unit cont
+defCase subbind.option m cont | hasType m none -> bind2 unit cont
+defCase subbind.either m cont | hasType m left -> bind2 unit cont
 
 ## asIO, for if/when we can get IO to convert values automatically
 # convert a value to an IO value
