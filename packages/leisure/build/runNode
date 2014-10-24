@@ -4,4 +4,21 @@ getDir() {
     cygpath -d $dir/$1
 }
 export NODE_PATH="$(getDir lib);$(getDir src);$(getDir node_modules);$(getDir ../../../client);$(getDir ../../../lib)"
-exec node --stack-size=3000 "$@"
+#exec node --stack-size=3000 "$@"
+x=0
+r=0
+while [ $x -lt 3 ]; do
+    x=$((x + 1))
+    node --stack-size=3000 "$@"
+    r=$?
+    if [ $r != 3 -a $r != 7 ]; then
+        if [ $r != 0 ]; then
+            echo "node exited with $r"
+        fi
+        break
+    else
+        echo Retrying node after failure to start...
+        sleep 1
+    fi
+done
+exit $r

@@ -19,6 +19,7 @@ setNameSpace 'core'
 #############
 
 asIO x = x
+#return x = \f . f x
 fakereturn x = x
 
 ############
@@ -267,6 +268,10 @@ errMsg err = err \m . m
 isErr thing = hasType thing err
 
 ifNotErr thing cont = hasType thing parseErr thing (cont thing)
+
+#advise 'bind2' 'return' 2 \v cont . hasType v return
+#  some (cont (v id))
+#  none
 
 ############
 ############
