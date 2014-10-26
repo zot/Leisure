@@ -16,6 +16,7 @@ Meteor-based collaboration -- server side
     gitHasFile = Leisure.git.hasFile
     connections = new Meteor.Collection ' connections ', connection: null
     tempDocs = {}
+    restrictedPattern = /^posts\//
 
     createAccount = (name, passwd)->
       if !(Meteor.users.find username: name)
@@ -33,13 +34,13 @@ Meteor-based collaboration -- server side
           id = loadDoc m[1], true
           connectedToTemp id
           this.connection.onClose -> disconnectedFromTemp id
-          id: id, hasGit: false
+          id: id, hasGit: false, temporary: true
         else if m = name.match /^(tmp|local\/[^\/]*)\/(.*)$/
           id = m[2]
           if tempDocs[id]
             connectedToTemp id, this.connection
             this.connection.onClose -> disconnectedFromTemp id, this.connection
-            id: id, hasGit: false
+            id: id, hasGit: false, temporary: true
           else error: "No temporary document #{m[2]}"
         else
           try
@@ -98,6 +99,7 @@ Meteor-based collaboration -- server side
 Document model that ties orgmode parse trees to HTML DOM
 
     loadDoc = (name, temp, text, reload)->
+      if !temp && (name.match restrictedPattern) then throw new Error "ENOENT, open '#{name}'"
       if reload && (temp || tempDocs[name]) then throw new Error "Attempt to reload temporary document, #{name}"
       try
         text = crnl text ? (if gitHasFile name then gitReadFile(name).toString() else GlobalAssets.getText name)
