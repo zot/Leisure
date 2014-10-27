@@ -106,9 +106,13 @@ pre[class*="language-"] {
 }
 
 .token.atrule,
-.token.attr-value,
-.token.keyword {
+.token.attr-value {
 	color: #07a;
+}
+
+.token.keyword {
+	color: #gray;
+	font-weight: bold;
 }
 
 
