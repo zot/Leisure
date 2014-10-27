@@ -109,7 +109,7 @@ Handle changes to the doc nodes
           switch item.type
             when 'added' then addIndex doc, item.data
             when 'changed' then changeIndex doc, item.data, item.oldData
-            when 'removeed' then removeIndex doc, item.data
+            when 'removed' then removeIndex doc, item.data
           if item.type in ['changed', 'removed']
             d = if item.type == 'changed' then item.oldData else item.data
             if d.codeName? && (item.type == 'removed' || d.codeName != item.data.codeName)
@@ -645,7 +645,9 @@ Handling local content.
 Leisure initially uses local content from the document.
 Any changes to local data stay on the client and override the data in the document.
 
-Users can mark any slide as local by setting a "local" property to true in the slide.  You can make data nonlocal by changing the local property so that it is no longer true (change its name, change its value, etc)
+Users can mark any slide as local by setting a "local" property to true in the slide.  You can make data nonlocal by changing the local property so that it is no longer true (change its name, change its value, etc).
+
+You can also mark any piece of data as local.
 
     initLocal = (col, cont)->
       localCol = col.leisure.localCollection = new Meteor.Collection(null)

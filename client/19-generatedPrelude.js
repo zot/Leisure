@@ -1079,7 +1079,66 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("quicksort")(2)("quicksort less list = (qs less list) nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("odds")(1)("odds l = l\r\n  \\h t D . cons h (evens t)\r\n  nil")(lazy(function(L_l){return resolve(L_l)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_cons)(L_h, function(){return resolve(L_evens)(L_t)})})})}))(L_nil)}))},
+ function(){return resolve(L_newDefine)("evens")(1)("evens l = l\r\n  \\h t D . odds t\r\n  nil")(lazy(function(L_l){return resolve(L_l)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_odds)(L_t)})})}))(L_nil)}))},
+ function(){return resolve(L_newDefine)("cleave")(1)("cleave l = cons (evens l) (odds l)")(lazy(function(L_l){return resolve(L_cons)(function(){return resolve(L_evens)(L_l)}, function(){return resolve(L_odds)(L_l)})}))},
+ function(){return resolve(L_newDefine)("merge")(3)("merge cmp a b = a\r\n  \\ah at D . b\r\n    \\bh bt D . cmp ah bh\r\n      cons ah (merge cmp at b)\r\n      cons bh (merge cmp a bt)\r\n    a\r\n  b")(lazy((function () {
+  var main;
+  var full = function (L_cmp, L_a, L_b) {
+    return resolve(L_a)(lazy(function(L_ah){return $F(arguments, function(L_at){return $F(arguments, function(L_D){return resolve(L_b)(lazy(function(L_bh){return $F(arguments, function(L_bt){return $F(arguments, function(L_D_0){return resolve(L_cmp)(L_ah)(L_bh)(function(){return resolve(L_cons)(L_ah, function(){return resolve(L_merge)(L_cmp, L_at, L_b)})})(function(){return resolve(L_cons)(L_bh, function(){return resolve(L_merge)(L_cmp, L_a, L_bt)})})})})}))(L_a)})})}))(L_b);
+  };
+  var partial = function(L_cmp) {
+    var _1 = function(L_a) {
+            var _2 = function(L_b) {
+              return full(L_cmp, L_a, L_b);
+            };
+            _2.leisureInfo = {arg: L_a, parent: _1.leisureInfo};
+            return _2;
+          };
+          _1.leisureInfo = {arg: L_cmp, name: main.leisureName};
+          return _1;
+  };
+  main = function(L_cmp, L_a, L_b, more) {
+    if (L_b && (typeof more == "undefined" || more == null)) {
+      return full(L_cmp, L_a, L_b);
+    } else if (typeof L_a == "undefined" || L_a == null) {
+      return partial(L_cmp);
+    } else {
+      return Leisure.curryCall(arguments, partial);
+    }
+  };
+  return main;
+})()))},
+ function(){return resolve(L_newDefine)("mergeSort")(2)("mergeSort cmp l = l\r\n  \\h t D . eq (tail l) nil\r\n    l\r\n    \\\\\r\n      cl = cleave l\r\n      e = head cl\r\n      o = tail cl\r\n      .\r\n      merge cmp (mergeSort cmp e) (mergeSort cmp o)\r\n  nil")(lazy((function () {
+  var main;
+  var full = function (L_cmp, L_l) {
+    return resolve(L_l)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_eq)(function(){return resolve(L_tail)(L_l)})(L_nil)(L_l)(function(){return(function(){
+  var L_cl_0, L_e_1, L_o_2;
+  L_cl_0 = function(){return resolve(L_cleave)(L_l)};
+  L_e_1 = function(){return resolve(L_head)(L_cl_0)};
+  L_o_2 = function(){return resolve(L_tail)(L_cl_0)};
+
+  return resolve(L_merge)(L_cmp, function(){return resolve(L_mergeSort)(L_cmp, L_e_1)}, function(){return resolve(L_mergeSort)(L_cmp, L_o_2)})})();})})})}))(L_nil);
+  };
+  var partial = function(L_cmp) {
+    var _1 = function(L_l) {
+            return full(L_cmp, L_l);
+          };
+          _1.leisureInfo = {arg: L_cmp, name: main.leisureName};
+          return _1;
+  };
+  main = function(L_cmp, L_l, more) {
+    if (L_l && (typeof more == "undefined" || more == null)) {
+      return full(L_cmp, L_l);
+    } else if (typeof L_l == "undefined" || L_l == null) {
+      return partial(L_cmp);
+    } else {
+      return Leisure.curryCall(arguments, partial);
+    }
+  };
+  return main;
+})()))},
+ function(){return resolve(L_newDefine)("slowsort")(2)("slowsort less list = (qs less list) nil")(lazy((function () {
   var main;
   var full = function (L_less, L_list) {
     return resolve(L_qs)(L_less, L_list)(L_nil);
@@ -3757,10 +3816,10 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("useTokenPack")(1)("useTokenPack name = bind (getValue 'tokenPacks')\r\n  \\packs . bind (getValue 'tokenGroups')\r\n    \\groups . bind (getValue 'tokenList')\r\n      \\tokens . bind (getValue 'activeTokenPacks')\r\n        \\activePacks . bind (getValue 'parseFilters')\r\n          \\filters . assoc name packs\r\n            \\pack . \\\\\r\n              groupToks = foldl (\\value el . el \\h t . cons h (cons t value)) nil (head (tail pack))\r\n              newToks = quicksort (\\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))\r\n              .\r\n              bind (setValue 'tokenList' newToks)\r\n                \\_ . bind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))\r\n                  \\_ . bind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))\r\n                    \\_ . bind (computeTokenPat newToks)\r\n                      \\_ . setValue 'activeTokenPacks' (cons name activePacks)\r\n            nil")(lazy(function(L_name){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenPacks")})(lazy(function(L_packs){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenList")})(lazy(function(L_tokens){return resolve(L_bind)(function(){return resolve(L_getValue)("activeTokenPacks")})(lazy(function(L_activePacks){return resolve(L_bind)(function(){return resolve(L_getValue)("parseFilters")})(lazy(function(L_filters){return resolve(L_assoc)(L_name, L_packs)(lazy(function(L_pack){return (function(){
+ function(){return resolve(L_newDefine)("useTokenPack")(1)("useTokenPack name = bind (getValue 'tokenPacks')\r\n  \\packs . bind (getValue 'tokenGroups')\r\n    \\groups . bind (getValue 'tokenList')\r\n      \\tokens . bind (getValue 'activeTokenPacks')\r\n        \\activePacks . bind (getValue 'parseFilters')\r\n          \\filters . assoc name packs\r\n            \\pack . \\\\\r\n              groupToks = foldl (\\value el . el \\h t . cons h (cons t value)) nil (head (tail pack))\r\n              newToks = mergeSort (\\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))\r\n              .\r\n              bind (setValue 'tokenList' newToks)\r\n                \\_ . bind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))\r\n                  \\_ . bind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))\r\n                    \\_ . bind (computeTokenPat newToks)\r\n                      \\_ . setValue 'activeTokenPacks' (cons name activePacks)\r\n            nil")(lazy(function(L_name){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenPacks")})(lazy(function(L_packs){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenGroups")})(lazy(function(L_groups){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenList")})(lazy(function(L_tokens){return resolve(L_bind)(function(){return resolve(L_getValue)("activeTokenPacks")})(lazy(function(L_activePacks){return resolve(L_bind)(function(){return resolve(L_getValue)("parseFilters")})(lazy(function(L_filters){return resolve(L_assoc)(L_name, L_packs)(lazy(function(L_pack){return (function(){
   var L_groupToks_0, L_newToks_1;
   L_groupToks_0 = function(){return resolve(L_foldl)(lazy(function(L_value){return $F(arguments, function(L_el){return resolve(L_el)(lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_cons)(L_h, function(){return resolve(L_cons)(L_t, L_value)})})}))})}), L_nil, function(){return resolve(L_head)(function(){return resolve(L_tail)(L_pack)})})};
-  L_newToks_1 = function(){return resolve(L_quicksort)(lazy(function(L_a){return $F(arguments, function(L_b){return resolve(L_$z)(function(){return resolve(L_strLen)(L_a)})(function(){return resolve(L_strLen)(L_b)})})}), function(){return resolve(L_append)(function(){return resolve(L_head)(L_pack)}, function(){return resolve(L_append)(L_groupToks_0, L_tokens)})})};
+  L_newToks_1 = function(){return resolve(L_mergeSort)(lazy(function(L_a){return $F(arguments, function(L_b){return resolve(L_$z)(function(){return resolve(L_strLen)(L_a)})(function(){return resolve(L_strLen)(L_b)})})}), function(){return resolve(L_append)(function(){return resolve(L_head)(L_pack)}, function(){return resolve(L_append)(L_groupToks_0, L_tokens)})})};
 
   return resolve(L_bind)(function(){return resolve(L_setValue)("tokenList")(L_newToks_1)})(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_setValue)("tokenGroups")(function(){return resolve(L_appendAlist)(function(){return resolve(L_head)(function(){return resolve(L_tail)(L_pack)})}, L_groups)})})(lazy(function(L___2){return resolve(L_bind)(function(){return resolve(L_setValue)("parseFilters")(function(){return resolve(L_append)(L_filters, function(){return resolve(L_head)(function(){return resolve(L_tail)(function(){return resolve(L_tail)(L_pack)})})})})})(lazy(function(L___3){return resolve(L_bind)(function(){return resolve(L_computeTokenPat)(L_newToks_1)})(lazy(function(L___4){return resolve(L_setValue)("activeTokenPacks")(function(){return resolve(L_cons)(L_name, L_activePacks)})}))}))}))}))})()}))(L_nil)}))}))}))}))}))}))},
  function(){return resolve(L_newDefine)("resetTokenPacks")(1)("resetTokenPacks packs = bind (setValue 'tokenGroups' nil)\r\n  \\_ . bind (setValue 'tokenList' nil)\r\n    \\_ . bind (setValue 'activeTokenPacks' nil)\r\n      \\_ . bind (setValue 'parseFilters' nil)\r\n        \\_ . foldr1\r\n          \\packCmd result . bind packCmd \\_ . result\r\n          map useTokenPack packs")(lazy(function(L_packs){return resolve(L_bind)(function(){return resolve(L_setValue)("tokenGroups")(L_nil)})(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_setValue)("tokenList")(L_nil)})(lazy(function(L___0){return resolve(L_bind)(function(){return resolve(L_setValue)("activeTokenPacks")(L_nil)})(lazy(function(L___1){return resolve(L_bind)(function(){return resolve(L_setValue)("parseFilters")(L_nil)})(lazy(function(L___2){return resolve(L_foldr1)(lazy(function(L_packCmd){return $F(arguments, function(L_result){return resolve(L_bind)(L_packCmd)(lazy(function(L___3){return resolve(L_result)}))})}), function(){return resolve(L_map)(L_useTokenPack, L_packs)})}))}))}))}))}))},

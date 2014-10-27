@@ -514,6 +514,9 @@ define 'defMacro', lz (name)->(def)->
     values.macros = cons cons(rz(name), rz(def)), values.macros
     cont _true
 
+define 'funcList', lz makeSyncMonad (env, cont)->
+  cont consFrom global.leisureFuncNames.toArray().sort()
+
 define 'funcs', lz makeSyncMonad (env, cont)->
   console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
   cont _true

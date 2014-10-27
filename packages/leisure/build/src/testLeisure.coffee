@@ -667,10 +667,10 @@ readFile 'packages/leisure/build/src/simpleParse.lsr', (err, code)->
         leisureAst54: -> assertEq lsrM("eq true true 3 4"), 3
       runTests 'Leisure Utils',
         leisureUtil1: ->
-          assertEq String(monad lsr "quicksort < nil"), 'Cons[]'
-          assertEq String(monad lsr "quicksort < (cons 1 nil)"), 'Cons[1]'
-          assertEq String(monad lsr "quicksort < (cons 1 (cons 2 nil))"), 'Cons[1 2]'
-          assertEq String(monad lsr "quicksort < (cons 2 (cons 1 nil))"), 'Cons[1 2]'
-          assertEq String(monad lsr "quicksort < (cons 2 (cons 3 (cons 1 nil)))"), 'Cons[1 2 3]'
+          assertEq String(monad lsr "mergeSort < nil"), 'Cons[]'
+          assertEq String(monad lsr "mergeSort < (cons 1 nil)"), 'Cons[1]'
+          assertEq String(monad lsr "mergeSort < (cons 1 (cons 2 nil))"), 'Cons[1 2]'
+          assertEq String(monad lsr "mergeSort < (cons 2 (cons 1 nil))"), 'Cons[1 2]'
+          assertEq String(monad lsr "mergeSort < (cons 2 (cons 3 (cons 1 nil)))"), 'Cons[1 2 3]'
       console.log '\nDone'
       process.exit T.totalFailures

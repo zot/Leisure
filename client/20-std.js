@@ -609,65 +609,6 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("odds")(1)("odds l = l\n  \\h t D . [h | evens t]\n  nil")(lazy(function(L_l){return resolve(L_l)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_cons)(L_h, function(){return resolve(L_evens)(L_t)})})})}))(L_nil)}))},
- function(){return resolve(L_newDefine)("evens")(1)("evens l = l\n  \\h t D . odds t\n  nil")(lazy(function(L_l){return resolve(L_l)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_odds)(L_t)})})}))(L_nil)}))},
- function(){return resolve(L_newDefine)("cleave")(1)("cleave l = [(evens l) | (odds l)]")(lazy(function(L_l){return resolve(L_cons)(function(){return resolve(L_evens)(L_l)}, function(){return resolve(L_odds)(L_l)})}))},
- function(){return resolve(L_newDefine)("merge")(3)("merge cmp a b = a\n  \\ah at D . b\n    \\bh bt D . cmp ah bh\n      [ah | (merge cmp at b)]\n      [bh | (merge cmp a bt)]\n    a\n  b")(lazy((function () {
-  var main;
-  var full = function (L_cmp, L_a, L_b) {
-    return resolve(L_a)(lazy(function(L_ah){return $F(arguments, function(L_at){return $F(arguments, function(L_D){return resolve(L_b)(lazy(function(L_bh){return $F(arguments, function(L_bt){return $F(arguments, function(L_D_0){return resolve(L_cmp)(L_ah)(L_bh)(function(){return resolve(L_cons)(L_ah, function(){return resolve(L_merge)(L_cmp, L_at, L_b)})})(function(){return resolve(L_cons)(L_bh, function(){return resolve(L_merge)(L_cmp, L_a, L_bt)})})})})}))(L_a)})})}))(L_b);
-  };
-  var partial = function(L_cmp) {
-    var _1 = function(L_a) {
-            var _2 = function(L_b) {
-              return full(L_cmp, L_a, L_b);
-            };
-            _2.leisureInfo = {arg: L_a, parent: _1.leisureInfo};
-            return _2;
-          };
-          _1.leisureInfo = {arg: L_cmp, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_cmp, L_a, L_b, more) {
-    if (L_b && (typeof more == "undefined" || more == null)) {
-      return full(L_cmp, L_a, L_b);
-    } else if (typeof L_a == "undefined" || L_a == null) {
-      return partial(L_cmp);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))},
- function(){return resolve(L_newDefine)("mergeSort")(2)("mergeSort cmp l = l\n  \\h t D . eq (tail l) nil\n    l\n    do\n      cl = cleave l\n      e = head cl\n      o = tail cl\n      merge cmp (mergeSort cmp e) (mergeSort cmp o)\n  nil")(lazy((function () {
-  var main;
-  var full = function (L_cmp, L_l) {
-    return resolve(L_l)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_eq)(function(){return resolve(L_tail)(L_l)})(L_nil)(L_l)(function(){return(function(){
-  var L_cl_0, L_e_1, L_o_2;
-  L_cl_0 = function(){return resolve(L_cleave)(L_l)};
-  L_e_1 = function(){return resolve(L_head)(L_cl_0)};
-  L_o_2 = function(){return resolve(L_tail)(L_cl_0)};
-
-  return resolve(L_merge)(L_cmp, function(){return resolve(L_mergeSort)(L_cmp, L_e_1)}, function(){return resolve(L_mergeSort)(L_cmp, L_o_2)})})();})})})}))(L_nil);
-  };
-  var partial = function(L_cmp) {
-    var _1 = function(L_l) {
-            return full(L_cmp, L_l);
-          };
-          _1.leisureInfo = {arg: L_cmp, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_cmp, L_l, more) {
-    if (L_l && (typeof more == "undefined" || more == null)) {
-      return full(L_cmp, L_l);
-    } else if (typeof L_l == "undefined" || L_l == null) {
-      return partial(L_cmp);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))},
  function(){return resolve(L_newDefine)("sort")(1)("sort l = sortBy (<=) l")(lazy(function(L_l){return resolve(L_sortBy)(L_$y$p, L_l)}))},
  function(){return resolve(L_newDefine)("sortBy")(2)("sortBy cmp l = mergeSort cmp l")(lazy((function () {
   var main;
@@ -1002,6 +943,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("getLetRange")(1)("getLetRange ast = _4of4 ast")(lazy(function(L_ast){return resolve(L__4of4)(L_ast)}))},
  function(){return resolve(L_newDefine)("getAnnoName")(1)("getAnnoName ast = _1of3 ast")(lazy(function(L_ast){return resolve(L__1of3)(L_ast)}))},
  function(){return resolve(L_newDefine)("getAnnoData")(1)("getAnnoData ast = _2of3 ast")(lazy(function(L_ast){return resolve(L__2of3)(L_ast)}))},
- function(){return resolve(L_newDefine)("getAnnoBody")(1)("getAnnoBody ast = _3of3 ast")(lazy(function(L_ast){return resolve(L__3of3)(L_ast)}))}]);
+ function(){return resolve(L_newDefine)("getAnnoBody")(1)("getAnnoBody ast = _3of3 ast")(lazy(function(L_ast){return resolve(L__3of3)(L_ast)}))},
+ function(){return resolve(L_newDefine)("definitionList")(0)("definitionList = do\n  f <- funcList\n  m <- getValue 'macroDefs'\n  sort (append f (map head m))")(function(){return resolve(L_bind2)(L_funcList)(lazy(function(L_f){return resolve(L_bind2)(function(){return resolve(L_getValue)("macroDefs")})(lazy(function(L_m){return resolve(L_sort)(function(){return resolve(L_append)(L_f, function(){return resolve(L_map)(L_head, L_m)})})}))}))})}]);
 
 //# sourceMappingURL=std.map

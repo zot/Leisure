@@ -196,36 +196,6 @@ countIf f l = (eq l nil) 0
 countIfNot f l = countIf (\x. not (f x)) l
 
 # list sorting
-# merge sort implemented according to http://www.haskell.org/haskellwiki/Performance/Laziness
-
-odds l = l
-  \h t D . [h | evens t]
-  nil
-
-evens l = l
-  \h t D . odds t
-  nil
-
-cleave l = [(evens l) | (odds l)]
-
-merge cmp a b = a
-  \ah at D . b
-    \bh bt D . cmp ah bh
-      [ah | (merge cmp at b)]
-      [bh | (merge cmp a bt)]
-    a
-  b
-
-mergeSort cmp l = l
-  \h t D . eq (tail l) nil
-    l
-    do
-      cl = cleave l
-      e = head cl
-      o = tail cl
-      merge cmp (mergeSort cmp e) (mergeSort cmp o)
-  nil
-
 sort l = sortBy (<=) l
 sortBy cmp l = mergeSort cmp l
 
@@ -500,3 +470,13 @@ getLetRange ast = _4of4 ast
 getAnnoName ast = _1of3 ast
 getAnnoData ast = _2of3 ast
 getAnnoBody ast = _3of3 ast
+
+
+####
+# Util funcs
+####
+
+definitionList = do
+  f <- funcList
+  m <- getValue 'macroDefs'
+  sort (append f (map head m))

@@ -243,7 +243,40 @@ hasProperty func prop = getProperty func prop
 ############
 # SORTING
 ############
-quicksort less list = (qs less list) nil
+
+# merge sort implemented according to http://www.haskell.org/haskellwiki/Performance/Laziness
+odds l = l
+  \h t D . cons h (evens t)
+  nil
+
+evens l = l
+  \h t D . odds t
+  nil
+
+cleave l = cons (evens l) (odds l)
+
+merge cmp a b = a
+  \ah at D . b
+    \bh bt D . cmp ah bh
+      cons ah (merge cmp at b)
+      cons bh (merge cmp a bt)
+    a
+  b
+
+mergeSort cmp l = l
+  \h t D . eq (tail l) nil
+    l
+    \\
+      cl = cleave l
+      e = head cl
+      o = tail cl
+      .
+      merge cmp (mergeSort cmp e) (mergeSort cmp o)
+  nil
+
+### this quicksort is really, really slow
+### so it's renamed to slowsort
+slowsort less list = (qs less list) nil
 # qs is written using a difference list so it can append in linear time
 # sortedFunc must return whether the two args are in sorted order
 # \rest . (qs ... makes a difference list.  id is the empty difference list.
@@ -1131,7 +1164,7 @@ useTokenPack name = bind (getValue 'tokenPacks')
           \filters . assoc name packs
             \pack . \\
               groupToks = foldl (\value el . el \h t . cons h (cons t value)) nil (head (tail pack))
-              newToks = quicksort (\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
+              newToks = mergeSort (\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
               .
               bind (setValue 'tokenList' newToks)
                 \_ . bind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))
