@@ -1338,7 +1338,7 @@ hamtify list = list
 
 defTokenPack 'list' [
   ['|' '='] #adding = here so so we don't need spaces around = in definitions
-  {['{' | '}'] ['hamt{' | '}'] ['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']'] ['concatFlat[' | ']']}
+  {['{' | '}'] ['hamt{' | '}'] ['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']'] ['print[' | ']'] ['concatFlat[' | ']']}
   [listFilter]]
 
 ### Yay!  From here down, we can use list constructors!
@@ -1348,6 +1348,8 @@ addTokenGroup 'or[' ']'
 addTokenGroup 'and[' ']'
 
 addTokenGroup 'concat[' ']'
+
+addTokenGroup 'print[' ']'
 
 addTokenGroup 'concatFlat[' ']'
 
@@ -1360,12 +1362,11 @@ defMacro 'or[' \list . listMacroFoldOp 'or' 'false' list
 
 defMacro 'and[' \list . listMacroFoldOp 'and' 'true' list
 
+defMacro 'print[' \list . ['print' ['strCat' [(listify (head list))]]]
+
 defMacro 'concat[' \list . ['strCat' [(listify (head list))]]
 
 defMacro 'concatFlat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
-
-bind (getValue 'listMacros')
-  \lm . ['concat[' | lm]
 
 infix code = bind (getValue 'infixPrecedence')
   \prec . bind (getValue 'infixRightAssociative')

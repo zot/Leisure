@@ -84,6 +84,7 @@ consFrom = (array, i)->
 
 identity = (x)-> x
 _identity = (x)-> rz x
+_unit = setType ((x)->rz x), 'unit'
 _true = setType ((a)->(b)->rz a), 'true'
 _false = setType ((a)->(b)->rz b), 'false'
 left = (x)-> setType ((lCase)->(rCase)-> rz(lCase)(lz x)), 'left'
@@ -473,12 +474,12 @@ define 'getValue', lz (name)->
 define 'setValue', lz (name)->(value)->
   makeSyncMonad (env, cont)->
     values[rz name] = rz value
-    cont _true
+    cont _unit
 
 define 'deleteValue', lz (name)->
   makeSyncMonad (env, cont)->
     delete values[rz name]
-    cont _true
+    cont _unit
 
 setValue = (key, value)-> values[key] = value
 
@@ -500,26 +501,26 @@ define 'envGet', lz (name)->
 define 'envSet', lz (name)->(value)->
   makeSyncMonad (env, cont)->
     env.values[rz name] = rz(value)
-    cont _true
+    cont _unit
 
 define 'envDelete', lz (name)->
   makeSyncMonad (env, cont)->
     delete env.values[rz name]
-    cont _true
+    cont _unit
 
 setValue 'macros', Nil
 
 define 'defMacro', lz (name)->(def)->
   makeSyncMonad (env, cont)->
     values.macros = cons cons(rz(name), rz(def)), values.macros
-    cont _true
+    cont _unit
 
 define 'funcList', lz makeSyncMonad (env, cont)->
   cont consFrom global.leisureFuncNames.toArray().sort()
 
 define 'funcs', lz makeSyncMonad (env, cont)->
   console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
-  cont _true
+  cont _unit
 
 define 'funcSrc', lz (func)->
   if typeof rz(func) == 'function'
@@ -534,7 +535,7 @@ define 'override', lz (name)->(newFunc)->
     oldDef = global[n]
     if !oldDef then throw new Error("No definition for #{rz name}")
     global[n] = -> rz(newFunc)(oldDef)
-    cont _true
+    cont _unit
 
 #######################
 # IO
@@ -549,12 +550,12 @@ define 'gensym', lz makeSyncMonad (env, cont)-> cont "G#{gensymCounter++}"
 define 'print', lz (msg)->
   makeSyncMonad (env, cont)->
     env.write env.presentValue rz msg
-    cont _true
+    cont _unit
 
 define 'print2', lz (msg)->
   new Monad2 ((env, cont)->
     env.write env.presentValue rz msg
-    cont _true), -> "print2 #{rz msg}"
+    cont _unit), -> "print2 #{rz msg}"
 
 define 'prompt2', lz (msg)->
   new Monad2 ((env, cont)->
@@ -564,7 +565,7 @@ define 'prompt2', lz (msg)->
 define 'write', lz (msg)->
   makeSyncMonad (env, cont)->
     env.write String(rz msg)
-    cont _true
+    cont _unit
 
 define 'readFile', lz (name)->
   makeMonad (env, cont)->
@@ -603,7 +604,7 @@ define 'js', lz (str)->
 
 define 'delay', lz (timeout)->
   makeMonad (env, cont)->
-    setTimeout (-> cont _true), rz(timeout)
+    setTimeout (-> cont _unit), rz(timeout)
 
 define 'once', lz makeSyncMonad (->
   ran = false
@@ -611,7 +612,7 @@ define 'once', lz makeSyncMonad (->
     if !ran
       console.log "RUNNING"
       ran = true
-      cont _true
+      cont _unit
     else console.log "ALREADY RAN")()
 
 ##################
@@ -822,7 +823,7 @@ define 'pushNameSpace', lz (newNameSpace)->
 
 define 'clearNameSpacePath', lz makeSyncMonad (env, cont)->
   root.nameSpacePath = []
-  cont _true
+  cont _unit
 
 define 'resetNameSpaceInfo', lz makeSyncMonad (enf, cont)->
   old = [root.nameSpacePath, root.currentNameSpace]
@@ -836,7 +837,7 @@ define 'setNameSpaceInfo', lz (info)->
     #console.log "RESTORING NAME SPACE INFO: #{require('util').inspect rz info}"
     [root.nameSpacePath, root.currentNameSpace] = rz info
     nsLog "SETTING NAME SPACE: #{root.currentNameSpace}"
-    cont _true
+    cont _unit
 
 #######################
 # Classes for Printing
@@ -896,12 +897,12 @@ define 'funcName', lz (f)-> if rz(f).leisureName then some rz(f).leisureName els
 define 'trackCreation', lz (flag)->
   makeSyncMonad (env, cont)->
     root.trackCreation = rz(flag)(lz true)(lz false)
-    cont _true
+    cont _unit
 
 define 'trackVars', lz (flag)->
   makeSyncMonad (env, cont)->
     root.trackVars = rz(flag)(lz true)(lz false)
-    cont _true
+    cont _unit
 
 define 'getFunction', lz (name)->
   f = rz global['L_' + (nameSub rz name)]

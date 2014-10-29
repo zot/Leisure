@@ -113,7 +113,8 @@ evalInput = (text, cont)->
             cont "PARSE ERORR: #{getParseErr ast}"
           else
             if diag
-              if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad rz(L_simplify) lz text}"
+              if L_simplify?
+                runMonad (rz(L_simplify) lz text), replEnv, (result)-> console.log "\nSIMPLIFIED: #{result}"
               console.log "\nAST: #{ast}"
             source = genSource text, ast
             if diag
@@ -151,7 +152,7 @@ leisureFunctions = null
 updateCompleter = (rl)->
   if root.functionCount != oldFunctionCount
     oldFunctionCount = root.functionCount
-    leisureFunctions = global.leisureFuncNames.toArray()
+    leisureFunctions = global.leisureFuncNames.toArray().concat (root.getValue('macroDefs')?.map((x)->x.head()).toArray() ? [])
 
 tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
 rl = null
