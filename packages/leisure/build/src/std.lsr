@@ -364,11 +364,9 @@ defCase bind2.cons list cont | hasType list cons -> bindCons list cont id
 
 bindCons list cont results = list
   \h t D . subbind (cont h) \result . bindCons t cont
-    or (result == unit) (result == nil)
+    result == unit
       results
-      isCons result
-        dlAppend results (append result)
-        dlPush results result
+      dlPush results result
   results nil
 
 defCase bind2.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
