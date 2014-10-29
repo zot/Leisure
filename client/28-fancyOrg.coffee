@@ -740,7 +740,8 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   wrapper += codeName
   wrapper += "<div class='hidden' data-source-lead>#{escapeHtml lead}</div>"
   #wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
-  wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden'>#{escapeHtml trail}</span>"
+  syntax = Highlighting.highlight lang, srcContent
+  wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{syntax}</div><span class='hidden'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText, resOrg
   wrapper += "</td></tr></table>"
   result = contHtml + wrapper + (if name then "</div>#{commentBlock name.info.trim()}" else "</div>")
