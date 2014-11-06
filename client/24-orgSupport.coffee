@@ -1038,14 +1038,19 @@ leisureEnv = (env)->
     setValue 'parser_funcProps', props
     result = rz(L_baseLoadString)('notebook')(text)
     runMonad result, env, (results)->
-      while results != L_nil()
-        res = results.head().tail()
-        if getType(res) == 'left' then env.write "PARSE ERROR: #{getLeft res}"
-        else runMonad getRight(res), env, (res2)->
-          env.write String(env.presentValue res2)
-        results = results.tail()
-      setValue 'parser_funcProps', old
-      cont?()
+      runNextResult results, env, ->
+        setValue 'parser_funcProps', old
+        cont?()
+
+runNextResult = (results, env, cont)->
+  while results != L_nil() && getType(results.head().tail()) == 'left'
+    env.write "PARSE ERROR: #{getLeft results.head().tail()}"
+    results = results.tail()
+  if results != L_nil()
+    runMonad getRight(results.head().tail()), env, (res2)->
+      env.write String(env.presentValue res2)
+      runNextResult results.tail(), env, cont
+  else cont()
 
 jsEnv = (env)->
   env.presentValue = (v)-> if v instanceof Html then v.content else escapeHtml v
@@ -1069,6 +1074,8 @@ installEnvLang = (nodeOrLang, env)->
     when 'leisure' then leisureEnv env
     when 'javascript' then jsEnv env
     else unknownLanguageEnv env
+
+defaultEnv.prompt = (msg, cont)-> cont prompt rz msg
 
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
@@ -1186,9 +1193,11 @@ loadOrg = (parent, text, downloadPath, target)->
     else $('#saveLink').attr 'download', downloadPath
   reparse parent, text, target
   if !target
-    setTimeout (->
-      for node in $(parent).find('[data-org-src="def"]')
-        executeDef node), 1
+    executeDefs (node for node in $(parent).find('[data-org-src="def"]')), 0
+
+executeDefs = (defs, index)->
+  if index < defs.length
+    setTimeout (-> executeDef defs[index], -> executeDefs defs, index + 1), 1
 
 reparse = (parent, text, target)-> root.orgApi.reparse parent, text, target
 

@@ -739,9 +739,9 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   wrapper += "</td><td class='code-content'>"
   wrapper += codeName
   wrapper += "<div class='hidden' data-source-lead>#{escapeHtml lead}</div>"
-  #wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
-  syntax = Highlighting.highlight lang, srcContent
-  wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{syntax}</div><span class='hidden'>#{escapeHtml trail}</span>"
+  wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
+  #syntax = Highlighting.highlight lang, srcContent
+  #wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{syntax}</div><span class='hidden'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText, resOrg
   wrapper += "</td></tr></table>"
   result = contHtml + wrapper + (if name then "</div>#{commentBlock name.info.trim()}" else "</div>")
@@ -1339,13 +1339,11 @@ orgEnv = (parent, node)->
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     write: (str)-> processResults (colonify (String str)), r
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
-    prompt: (msg, cont)-> cont prompt rz msg
   else
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     write: (str)-> console.log colonify str
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
-    prompt: (msg, cont)-> cont prompt rz msg
   installEnvLang node, env
   env
 

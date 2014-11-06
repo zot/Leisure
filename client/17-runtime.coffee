@@ -228,6 +228,7 @@ define 'logStack', lz (str)->(res)->
 
 # an identity function you can put a breakpoint on
 define 'breakpoint', lz (x)->
+  console.log 'Break point ', rz x
   rz x
 
 ############

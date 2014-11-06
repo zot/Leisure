@@ -1,4 +1,5 @@
 * Short list -- announcement
+- bug: first change to local data seems not to trigger an update
 - improve monad impl?
   - should bind.cons just be a map?
   - IO monad could convert values to IOs

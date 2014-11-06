@@ -42,6 +42,7 @@ defaultEnv =
   presentValue: (x)-> String(x) + '\n'
   values: {}
   errorHandlers: []
+  prompt: ->
 
 rz = (window ? global).resolve = (value)->
   if typeof value == 'function'

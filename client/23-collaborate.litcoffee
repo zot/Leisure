@@ -102,7 +102,7 @@ Handle changes to the doc nodes
           continue
         if !!item.data.local == !!local
           root.changeContext = item.context
-          if item.data.local && item.type == 'added' && (old = doc.findOne item.data._id)
+          if item.data.local && item.type == 'added' && (old = doc.leisure.master.findOne item.data._id)
             item.type = 'changed'
             item.oldData = old
           if !item.data.local then expungeLocalData doc.leisure.master, item.data._id
@@ -322,6 +322,7 @@ Handle changes to the doc nodes
     processingLeisure = false
 
     processLeisureBlock = (data)->
+      console.log "LEISURE BLOCK: #{data._id}"
       leisureBlocks.push data
       if !processingLeisure
         processingLeisure = true
@@ -329,9 +330,10 @@ Handle changes to the doc nodes
 
     processNextLeisureBlock = ->
       if leisureBlocks.length == 0 then processingLeisure = false
-      else
-        data = leisureBlocks.shift()
-        delay -> root.textEnv('leisure').executeText codeString(data), {}, processNextLeisureBlock
+      else delay runLeisure
+
+    runLeisure = ->
+      root.textEnv('leisure').executeText codeString(leisureBlocks.shift()), {}, processNextLeisureBlock
 
     codeString = (data)-> (data.codePrelen? && data.codePostlen? && data.text.substring data.codePrelen, data.text.length - data.codePostlen) ? ''
 
@@ -667,7 +669,7 @@ You can also mark any piece of data as local.
           getFromLocalStore col, 'info', (
             onsuccess: (e)->
               info = e.target.result
-              if info.collectionId == col.leisure.info._id
+              if info && info.collectionId == col.leisure.info._id
                 loadRecords localCol, cont, e.target.transaction
               else
                 clearLocal col, localCol, nullHandlers, e.target.transaction
