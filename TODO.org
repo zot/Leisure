@@ -1,5 +1,9 @@
 * Short list -- announcement
-- bug: first change to local data seems not to trigger an update
+- create an STM-like "transaction block" that can redo if there are data conflicts
+  - record ids of data fetched in the block
+  - buffer up "puts"
+  - send puts to the server along with fetched ids
+  - fail if sent ids are not current ones
 - improve monad impl?
   - should bind.cons just be a map?
   - IO monad could convert values to IOs

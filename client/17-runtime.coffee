@@ -106,7 +106,8 @@ define 'assertLog', lz (bool)->$F(arguments, (msg)-> $F(arguments, (expr)-> rz(b
 define 'trace', lz (msg)->
   console.log "STACKTRACE: ", new Error(rz msg).stack
   msg
-
+define 'truish', lz (x)-> if rz(x) then _true else _false
+define 'falsish', lz (x)-> if rz(x) then _false else _true
 define 'error', lz (msg)-> throw new Error rz msg
 
 ############

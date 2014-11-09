@@ -28,17 +28,25 @@ Leisure integration for environment
     lz = lazy
     rz = resolve
 
-    define 'incrementField', (lz (path)->$F(arguments, lz (amount)->
+    define 'serverIncrement', (lz (path)->$F(arguments, lz (amount)->
       makeMonad (env, cont)->
         Meteor.call 'incrementField', root.currentDocument.leisure.name, rz(path), rz(amount), (err, res)->
           cont res?.error ? res
-    #), 2, null, null, null, true
+    )), 2
+
+    define 'serverAppend', (lz (path)->$F(arguments, lz (item)->
+      makeMonad (env, cont)->
+        Meteor.call 'appendToField', root.currentDocument.leisure.name, rz(path), rz(item), (err, res)->
+          cont res?.error ? res
     )), 2
 
     define 'addDataAfter', lz (id)->$F(arguments, lz (value)-> $F(arguments, lz (attrLine)->
       makeMonad (env, cont)->
-        addDataAfter (rz id), (rz value), (rz attrLine)
-        cont _true))
+        cont addDataAfter (rz id), (rz value), (rz attrLine)))
+
+    define 'addNamedDataAfter', lz (name)->$F(arguments, lz (id)->$F(arguments, lz (value)-> $F(arguments, lz (attrLine)->
+      makeMonad (env, cont)->
+        cont addDataAfter (rz id), (rz value), (rz attrLine), null, rz name)))
 
     define 'getBaseDataNamed', lz (name)->
       makeMonad (env, cont)-> cont getDataNamed rz name

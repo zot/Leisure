@@ -322,7 +322,6 @@ Handle changes to the doc nodes
     processingLeisure = false
 
     processLeisureBlock = (data)->
-      console.log "LEISURE BLOCK: #{data._id}"
       leisureBlocks.push data
       if !processingLeisure
         processingLeisure = true
@@ -393,18 +392,19 @@ Add some data to the document -- for now, it is unnamed
 
 doc and attrLine are optional
 
-    addDataAfter = (id, value, attrLine, doc)->
+    addDataAfter = (id, value, attrLine, doc, name)->
       if !doc
         if !attrLine || typeof attrLine == 'string' then doc = root.currentDocument
         else
           doc = attrLine
           attrLine = null
       parent = getBlock id
-      block = (orgDoc parseOrgMode """
-      #+BEGIN_SRC yaml#{if attrLine then ' ' + attrLine else ''}
+      src = """
+      #{if name? then "#+NAME: #{name}\n" else ""}#+BEGIN_SRC yaml#{if attrLine then ' ' + attrLine else ''}
       #{dump value}
       #+END_SRC
-      """)[0]
+      """
+      block = (orgDoc parseOrgMode src)[0]
       overrides = new Overrides()
       addItem overrides, block, parent._id
       rc = createRenderingComputer overrides
@@ -412,6 +412,8 @@ doc and attrLine are optional
       rc.change getBlock(id), getBlock parent._id
       rc.add block
       rc.render()
+      namedBlocks[name] = block._id
+      block._id
 
     getSourceAttribute = (text, attr)->
       text.match(new RegExp "#\\+BEGIN_SRC.*:#{attr}\\b([^:]*)", 'i')?[1]?.trim()
@@ -535,7 +537,7 @@ Data index attributes specify an indexer and have the form
 
     replaceIndexDef = (doc, name, compare)->
       if name
-        console.log "Redefining index #{name}"
+        console.log "Redefining index #{name} #{if compare then 'desc' else 'asc'}"
         oldIndex = doc.leisure.indexes[name]
         newIndex = doc.leisure.indexes[name] = new SortedMap null, null, compare
         oldIndex?.forEach (value, key)-> newIndex.set key, value
