@@ -1623,6 +1623,10 @@ renderLink = (node, data)->
     .attr 'data-view-key', viewKey
     .attr 'data-view-id', data._id
 
+updateIndexViews = (index)->
+  for link in $("[data-view-indexes=#{index}]")
+    renderLink link, getBlock link.getAttribute "data-view-id"
+
 updateViews = (id)->
   if block = getBlock id
     for link in $("[data-view-ids~=#{id}]")
@@ -1687,7 +1691,7 @@ Handlebars.registerHelper 'deref', (item)->
     item
 
 Handlebars.registerHelper 'find', (index, options)->
-  ret = ''
+  ret = "<span data-org-index='#{index}'></span>"
   indexedCursor(root.currentDocument, index)?.forEach (data)-> if data then ret += options.fn data
   ret
 
@@ -1822,7 +1826,9 @@ fancyOrg =
     lang = block.language?.toLowerCase()
     attr = block.codeAttributes
     restorePosition null, ->
-      if lang in ['css', 'yaml'] then updateViews block._id
+      if lang in ['css', 'yaml']
+        updateViews block._id
+        if index = block.codeAttributes?.index then updateIndexViews index.split(' ')[0]
       else if lang == 'html' && attr?.defview
         incRenderCount()
         viewTypeData[block.codeAttributes.defview] = codeString(block).trim()

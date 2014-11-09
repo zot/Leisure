@@ -67,6 +67,7 @@ every time, because func is ignored after the first call in a batch
 
     addBatch = (name, value, func)->
       if !disableUpdates && (!committing || passesFilters name, value)
+        #console.log "Adding batch: #{JSON.stringify value}"
         if !batchers
           batchers = []
           setTimeout runBatches, 100
@@ -139,6 +140,7 @@ Handle changes to the doc nodes
 
     # at this point, fully rerender all changed slides
     createRenderingComputer = (overrides)->
+      if !overrides? then overrides = new Overrides()
       changedStructure: false
       rerender: {}
       add: (data)->

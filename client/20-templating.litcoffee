@@ -55,7 +55,7 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
                 root.nonOrg content
                 node.appendChild content
               Templating.currentView = el
-              if block then addId Templating.currentViewLink, block._id
+              if block then addBlockInfo Templating.currentViewLink, block, el
               activateScripts viewRoots node
               if cont then cont(data, target, block, update)
             finally
@@ -64,7 +64,7 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
               Templating.currentView = oldView
               rendering = oldRendering
         else if block
-          addId Templating.currentViewLink, block._id
+          addBlockInfo Templating.currentViewLink, block
           "<span#{updateAttr}>#{comp data}</span>"
         else comp data
 
@@ -76,10 +76,20 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
         frag.appendChild scratch.firstChild
       frag
 
+    addBlockInfo = (el, block, view)->
+      addId el, block._id
+      for node in $(view).find "[data-org-index]"
+        addIndex el, node.getAttribute 'data-org-index'
+
     addId = (el, id)->
       for node in $(el).not("[data-view-ids~=#{id}]")
         old = node.getAttribute('data-view-ids')
         node.setAttribute 'data-view-ids', "#{if old then old + ' ' else ''}#{id}"
+
+    addIndex = (el, index)->
+      for node in $(el).not("[data-view-indexes~=#{index}]")
+        old = node.getAttribute('data-view-indexes')
+        node.setAttribute 'data-view-indexes', "#{if old then old + ' ' else ''}#{index}"
 
     numberInputs = (el)->
       for input in $(el).find('input')
