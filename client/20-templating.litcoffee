@@ -32,8 +32,10 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
               oldData = Templating.currentViewData
               oldViewLink = Templating.currentViewLink
               oldView = Templating.currentView
+              oldInputCount = Templating.currentInputCount
               Templating.currentViewData = data
               Templating.currentViewLink = node
+              Templating.currentInputCount = 0
               html = "<span class='view'#{updateAttr}>#{comp data}</span>"
               el = if update
                 node.innerHTML = comp data
@@ -62,6 +64,7 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
               Templating.currentViewData = oldData
               Templating.currentViewLink = oldViewLink
               Templating.currentView = oldView
+              Templating.currentInputCount = oldInputCount
               rendering = oldRendering
         else if block
           addBlockInfo Templating.currentViewLink, block

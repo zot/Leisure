@@ -514,12 +514,16 @@ Data index attributes specify an indexer and have the form
 
     addIndex = (doc, data, info)->
       if key = data.codeAttributes?.index
-        new Indexer(doc, key).add data._id, data.yaml
+        ind = new Indexer(doc, key)
+        ind.add data._id, data.yaml
+        for i in ind.indexes
+          root.orgApi.updateIndexViews i
       else if data.language?.toLowerCase() == 'index'
         try
           info = info ? safeLoad codeString data
           compare = if info.order.toLowerCase() == 'desc' then (a, b)-> -Object.compare(a,b)
           replaceIndexDef doc, info.name, compare
+          root.orgApi.updateIndexViews info.name
         catch err then
 
     changeIndex = (doc, data, oldData)->

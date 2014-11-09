@@ -171,30 +171,24 @@ class FancySelectionDescriptor
     el = getDeepestActiveElement()
     @parent = $(parent)[0] ? (slideParent sel.focusNode)
     @focusNode = sel.focusNode
+    if inputNum = el?.getAttribute "data-input-number"
+      @linkParent = $(el).closest("[data-view-link]").attr("data-view-id")
+      @inputNum = inputNum
+      @inputSel = [el.selectionStart, el.selectionEnd]
     @x = window.scrollX
     @y = window.scrollY
-    if el.nodeType == Node.ELEMENT_NODE && (sid = el.getAttribute('data-shadow-id')) && el.nodeName.match(/input/i) && el.type.match(/text/i)
-      view = $(el).closest('[data-view-link]')
-      descriptor = view.attr('data-view-descriptor')
-      index = $("[data-view-descriptor='#{descriptor}']").index view
-      start = el.selectionStart
-      end = el.selectionEnd
-      #@toString = -> "Selection(input: #{$('[maindoc]').find("[data-view-descriptor='#{descriptor}']").shadow().find("[data-shadow-id='#{sid}']")[0]})"
-      @toString = -> "Selection(input: #{$('[maindoc]').find("[data-view-descriptor='#{descriptor}']").find("[data-shadow-id='#{sid}']")[0]})"
-      @restore = (delta, doc)->
-        #newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[index]).shadow().find("[data-shadow-id='#{sid}']")[0]
-        newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[index]).find("[data-shadow-id='#{sid}']")[0]
-        #if newEl != el then newEl.setSelectionRange start, end
-        if newEl != document.activeElement then newEl.setSelectionRange start, end
-        window.scrollTo @x, @y
-    else if sel.type != 'None'
+    if sel.type != 'None'
       startNode = sel.getRangeAt(0).startContainer
       [start, end, offset, note] = getDocRange()
       @toString = -> "Selection(doc: #{start}, #{end})"
       @restore = (delta, doc)->
-        sel = getSelection()
-        if (sel.type != 'None' && sel.getRangeAt(0))?.startContainer != startNode
-          restoreDocRange doc, [start + delta, end + delta, offset, note]
+        if @linkParent && (input = $("[data-view-id='#{@linkParent}']").find("[data-input-number='#{@inputNum}']")).length > 0
+          input[0].focus()
+          [input[0].selectionStart, input[0].selectionEnd] = @inputSel
+        else
+          sel = getSelection()
+          if (sel.type != 'None' && sel.getRangeAt(0))?.startContainer != startNode
+            restoreDocRange doc, [start + delta, end + delta, offset, note]
         window.scrollTo @x, @y
       #[id, start, end, left, top] = pos = getSlidePosition sel.focusNode
       #if id
@@ -1639,14 +1633,16 @@ updateViews = (id)->
       $("##{id} [name=css]").html codeString block
 
 viewBlock = (el)->
-  if id = $(el).closest('[data-view-id]').attr('data-view-id')
+  if id = $(el).closest('[data-view-block]').attr('data-view-block')
     getBlock id
 
 Leisure.bindWidgets = bindWidgets = (parent)->
   link = Templating.currentViewLink
   for input in $(parent).find 'input[data-value]'
+    input.setAttribute 'data-input-number', ++Templating.currentInputCount
+    blockParent = $(input).closest '[data-view-block]'
     field = input.getAttribute 'data-value'
-    input.value = Templating.currentViewData[field]
+    input.value = viewBlock(input)?.yaml?[field] ? ''
     nextButton = input.getAttribute 'button'
     input.onkeyup = (e)->
       #console.log input.value
@@ -1668,7 +1664,7 @@ Handlebars.registerHelper 'view', (item, name, options)->
   data = if typeof item == 'string'
     block = getBlockNamed item
     block?.yaml
-  else if item.yaml && item._id
+  else if item?.yaml && item._id
     block = item
     item.yaml
   else
@@ -1834,6 +1830,7 @@ fancyOrg =
         viewTypeData[block.codeAttributes.defview] = codeString(block).trim()
         viewIdTypes[block._id] = attr.defview
         root.orgApi.defineView block._id
+  updateIndexViews: -> updateIndexViews
   updateAllBlocks: ->
     restorePosition null, ->
       console.log "UPDATE ALL"

@@ -1488,6 +1488,7 @@ basicOrg =
     else $('[maindoc]').prepend slide
     slide[0]
   inMode: -> true
+  updateIndexViews: ->
   updateBlock: ->
   updateAllBlocks: ->
 
