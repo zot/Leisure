@@ -407,14 +407,7 @@ doc and attrLine are optional
       #+END_SRC
       """
       block = (orgDoc parseOrgMode src)[0]
-      overrides = new Overrides()
-      addItem overrides, block, parent._id
-      rc = createRenderingComputer overrides
-      commitOverrides overrides
-      rc.change getBlock(id), getBlock parent._id
-      rc.add block
-      rc.render()
-      namedBlocks[name] = block._id
+      Meteor.call 'addBlockAfter', root.currentDocument.leisure.name, id, block
       block._id
 
     getSourceAttribute = (text, attr)->

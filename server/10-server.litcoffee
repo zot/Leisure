@@ -111,6 +111,19 @@ Meteor-based collaboration -- server side
               doc.update dataId, orig
               data[components[i]]
         r
+      addBlockAfter: (docId, id, block)->
+        if !(doc = docs[docId]) then error: "No document named #{docId}"
+        else if !(before = doc.findOne id) then error: "No block: #{id}"
+        else
+          after = doc.findOne before.next
+          before.next = block._id
+          block.prev = before._id
+          doc.update before._id, before
+          if after
+            block.next = after?._id
+            after?.prev = before._id
+            doc.update after._id, after
+          doc.insert block
 
     connectedToTemp = (id, connection)->
       if cur = tempDocs[id] then cur.count++
