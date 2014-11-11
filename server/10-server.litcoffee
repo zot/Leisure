@@ -79,7 +79,6 @@ Meteor-based collaboration -- server side
             else
               result = data[components[i]] += amount
               orig.text = orig.text.substring(0, orig.codePrelen) + dump(orig.yaml, orig.codeAttributes ? {}) + orig.text.substring orig.text.length - orig.codePostlen
-              console.log "UPDATING: #{dataId}, #{dump orig}"
               doc.update dataId, orig
               result
         r
@@ -107,7 +106,6 @@ Meteor-based collaboration -- server side
             else
               data[components[i]].push item
               orig.text = orig.text.substring(0, orig.codePrelen) + dump(orig.yaml, orig.codeAttributes ? {}) + orig.text.substring orig.text.length - orig.codePostlen
-              console.log "UPDATING: #{dataId}, #{dump orig}"
               doc.update dataId, orig
               data[components[i]]
         r
@@ -115,6 +113,7 @@ Meteor-based collaboration -- server side
         if !(doc = docs[docId]) then error: "No document named #{docId}"
         else if !(before = doc.findOne id) then error: "No block: #{id}"
         else
+          block._id = new Meteor.Collection.ObjectID().toJSONValue()
           after = doc.findOne before.next
           before.next = block._id
           block.prev = before._id
@@ -124,6 +123,7 @@ Meteor-based collaboration -- server side
             after?.prev = before._id
             doc.update after._id, after
           doc.insert block
+          #console.log "INSERTING: #{dump block}"
 
     connectedToTemp = (id, connection)->
       if cur = tempDocs[id] then cur.count++

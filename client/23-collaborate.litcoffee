@@ -400,7 +400,6 @@ doc and attrLine are optional
         else
           doc = attrLine
           attrLine = null
-      parent = getBlock id
       src = """
       #{if name? then "#+NAME: #{name}\n" else ""}#+BEGIN_SRC yaml#{if attrLine then ' ' + attrLine else ''}
       #{dump value}
@@ -536,9 +535,10 @@ Data index attributes specify an indexer and have the form
 
     replaceIndexDef = (doc, name, compare)->
       if name
-        console.log "Redefining index #{name} #{if compare then 'desc' else 'asc'}"
+        #console.log "Redefining index '#{name}' #{if compare then 'desc' else 'asc'}"
         oldIndex = doc.leisure.indexes[name]
         newIndex = doc.leisure.indexes[name] = new SortedMap null, null, compare
+        newIndex._leisure_intentional = true
         oldIndex?.forEach (value, key)-> newIndex.set key, value
         updateAll = true
 
@@ -566,7 +566,8 @@ Data index attributes specify an indexer and have the form
           for i in [1...desc.length]
             v = v && v[desc[i]]
           if v?
-            index = (@doc.leisure.indexes[desc[0]] ? (@doc.leisure.indexes[desc[0]] = new SortedMap()))
+            if !@doc.leisure.indexes[desc[0]] then console.log "No index '#{desc[0]}'"
+            index = (@doc.leisure.indexes[desc[0]] ? (console.log("Defining default index '#{desc[0]}'"); @doc.leisure.indexes[desc[0]] = new SortedMap()))
             if !(a = index.get v) then index.set v, a = []
             a.push id
       remove: (id, data)->
@@ -577,7 +578,7 @@ Data index attributes specify an indexer and have the form
           if v? && (index = @doc.leisure.indexes[desc[0]]) && a = index.get v
             _.remove a, (el)-> el == id
             if a.length == 0
-              if index.length == 1 then delete @doc.leisure.indexes[desc[0]]
+              if index.length == 1 && !index._leisure_intentional then console.log("removing index '#{desc[0]}'"); delete @doc.leisure.indexes[desc[0]]
               else index.delete v
 
     class IndexedCursor

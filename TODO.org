@@ -53,6 +53,11 @@
 - JavaScript/CoffeeScript source blocks
 - fix floaty notes
 * Milestone features
+- indexedDB reorg
+  - use a single db to store all Leisure data for a site
+    - makes it easier to toast data
+  - use an object store to register all DBs with expiration dates
+    - scan registry whenever a page opens to remove expired dbs
 - user accounts
   - prevent spam on announcement
     - protected files (only demo mode allows anonymous editing)
