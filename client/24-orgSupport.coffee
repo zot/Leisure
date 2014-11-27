@@ -129,7 +129,6 @@ idCount = 0
 nodes = {}
 reparseListeners = []
 savingPosition = false
-savedPositionOverride = null
 clipboardKey = null
 root.currentMode = null
 parentSpec = null
@@ -1087,9 +1086,14 @@ orgEnv = (parent, node)->
     __proto__: defaultEnv
   installEnvLang node, env
   if r
-    r.innerHTML = ''
+    wrote = false
+    nodeId = $(node).closest('[data-shared]')[0].id
     env.write = (str)->
       @changed = true
+      r = getResultsForSource(parent, $("##{nodeId}")[0])
+      if !wrote
+        wrote = true
+        r.innerHTML = ''
       r.textContent += ": #{str.replace /\n/g, '\n: '}\n"
   else env.write = (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
   env
@@ -1115,55 +1119,61 @@ getResultsForSource = (parent, node)->
 getExistingResultsForSource = (node)->
   $(blockElementForNode(node)).find("[data-org-type='results'] [data-org-src='example']")[0]
 
-nativeRange = (r)->
+nativeRange = (r, startOffset, endNode, endOffset)->
   if r instanceof Range then r
   else
     r2 = document.createRange()
-    container = if r instanceof Array then r[0] else r.startContainer
+    container = if r instanceof Node then r else if r instanceof Array then r[0] else r.startContainer
     if !container then null
     else
-      offset = if r instanceof Array then r[1] else r.startOffset
+      offset = if r instanceof Node then startOffset else if r instanceof Array then r[1] else r.startOffset
       r2.setStart container, offset
-      r2.collapse true
+      if endNode then r2.setEnd endNode, endOffset
+      else r2.collapse true
       r2
 
 class SelectionDescriptor
   constructor: (@parent, range, optStartOffset, optEndContainer, optEndOffset)->
     if range
-      @offset = 0
       if range instanceof Range
-        @start = getTextPosition parent, range.startContainer, range.startOffset
-        @end = getTextPosition parent, range.endContainer, range.endOffset
+        startNode = range.startContainer
+        startOffset = range.startOffset
+        endNode = range.endContainer
+        endOffset = range.endOffset
       else
-        @start = getTextPosition parent, range, optStartOffset
+        startNode = range
+        startOffset = optStartOffset
         if optEndContainer
-          @end = getTextPosition parent, optEndContainer, optEndOffset
-        else @end = @start
+          endNode = optEndContainer
+          endOffset = optEndOffset
+        else
+          endNode = startNode
+          endOffset = startOff
+      @ids = []
+      n = $(startNode)
+      while (n = n.closest '[data-shared]').length
+        @ids.push [n[0].id, getTextPosition(n[0], startNode, startOffset), getTextPosition(n[0], endNode, endOffset)]
+        n = n.parent()
     else
       @restore = ->
       @toString = "Selection(none)"
+  offset: 0
   currentRange: ->
-    if document.body.compareDocumentPosition(@parent) & Node.DOCUMENT_POSITION_DISCONNECTED
-      @parent = $('[maindoc]')[0]
-    [startContainer, startOffset] = findDomPosition @parent, @start + @offset
-    if startContainer
-      r = document.createRange()
-      r.setStart startContainer, startOffset
-      if startOffset == endOffset then r.collapse true
-      else
-        [endContainer, endOffset] = findDomPosition @parent, @end + @offset, true
-        if !endContainer then r.collapse true
-        else
-          if startContainer.compareDocumentPosition(endContainer) & Node.DOCUMENT_POSITION_PRECEDING then r.setEnd startContainer, startOffset
-          else r.setEnd endContainer, endOffset
-      r
+    for [id, startPos, endPos] in @ids
+      [n] = $("##{id}")
+      if n
+        [startNode, startOffset] = findDomPosition n, startPos + @offset
+        [endNode, endOffset] = findDomPosition n, endPos + @offset
+        return nativeRange startNode, startOffset, endNode, endOffset
+    null
   restore: -> selectRange @currentRange()
   toString: -> "Selection(#{@start}, #{@end})"
 
-saveSelection = ->
+saveSelection = (parent)->
   sel = getSelection()
-  if sel.type == 'None' then new SelectionDescriptor()
-  else new SelectionDescriptor parentForNode(sel.focusNode), sel.getRangeAt 0
+  desc = if sel.type == 'None' then new SelectionDescriptor()
+  else new SelectionDescriptor parent, sel.anchorNode, sel.anchorOffset, sel.extentNode, sel.extentOffset
+  -> desc.restore()
 
 savePosition = (saveFunc, block)->
   if savingPosition then block()
@@ -1173,16 +1183,8 @@ savePosition = (saveFunc, block)->
     try
       block()
     finally
-      if savedPositionOverride
-        savedPositionOverride.restore()
-        savedPositionOverride = null
-      else pos()
       savingPosition = false
-
-overrideSavedPosition = (parent, range)->
-  if savingPosition
-    if range instanceof SelectionDescriptor then savedPositionOverride = range
-    else savedPositionOverride = new SelectionDescriptor parent, range
+      pos()
 
 restorePosition = (parent, block)-> savePosition saveSelection, block
 
@@ -1573,7 +1575,6 @@ root.textEnv = textEnv
 root.escapeAttr = escapeAttr
 root.restorePosition = restorePosition
 root.savePosition = savePosition
-root.overrideSavedPosition = overrideSavedPosition
 root.saveSelection = saveSelection
 root.splitLines = splitLines
 root.orgSrcAttrs = orgSrcAttrs

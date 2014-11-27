@@ -1,4 +1,9 @@
 * Short list -- announcement
+- make compiler work for lorg files
+  - document importing
+  - integrate compilation into backend for importing -- keep compiled version in Mongo
+- use CSS selectors for event binding, like Meteor does (kudos to Meteor)
+- use white-space: pre-line for rich text formattting
 - create an STM-like "transaction block" that can redo if there are data conflicts
   - record ids of data fetched in the block
   - buffer up "puts"

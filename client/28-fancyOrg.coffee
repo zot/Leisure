@@ -202,7 +202,9 @@ isParentSelectionOf = (parent, child)-> parent?.parent?.contains child.parent
 
 restoreStack = []
 
-fancySaveSelection = (parent)->
+fancySaveSelection = root.saveSelection
+
+XfancySaveSelection = (parent)->
   selection = new FancySelectionDescriptor parent
   slide = slideParent selection.focusNode
   activeSlideIndex = slideOffset slide
