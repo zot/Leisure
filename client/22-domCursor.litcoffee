@@ -235,7 +235,7 @@ the previous text node (node, node.length)
           if t.length
             while n.type != 'text'
               n.prev()
-            n.pos = n.node.length
+            n = n.newPos n.node, n.node.length
             while n.pos > 0 && reject n.filter n
               n.pos--
             t.substring 0, t.length - n.node.length + n.pos
@@ -305,6 +305,7 @@ the end if the node ends in a newline)
             if line == 1 && goalFunc(n.textPosition().left - 2) in [-1, 0] then return n.adjustBackward()
             else if line == 2 then return prev.adjustBackward()
           prev = n
+        n
 
 **forwardChar** move forward by one character (using the filter)
 
@@ -345,10 +346,10 @@ the end if the node ends in a newline)
 **show** scroll the position into view.  Optionally takes a rectangle representing a toolbar at the top of the page (sorry, this is a bit limited at the moment)
 
       show: (topRect)->
-        p = @textPosition()
-        top = if topRect?.width && topRect.top == 0 then topRect.bottom else 0
-        if p.bottom > window.innerHeight then window.scrollBy 0, p.bottom - window.innerHeight
-        else if p.top < top then window.scrollBy 0, p.top - top
+        if p = @textPosition()
+          top = if topRect?.width && topRect.top == 0 then topRect.bottom else 0
+          if p.bottom > window.innerHeight then window.scrollBy 0, p.bottom - window.innerHeight
+          else if p.top < top then window.scrollBy 0, p.top - top
         this
 
 **immutable** return an immutable version of this cursor
@@ -532,13 +533,10 @@ Node location routines
       if offset < textNode.length
         spareRange.setStart textNode, offset
         spareRange.setEnd textNode, offset + 1
-        #r = spareRange.getBoundingClientRect()
         r = getTopClientRect spareRange
         if !r || r.width == 0
           spareRange.selectNodeContents textNode.parentNode
           if spareRange.getClientRects().length == 0
-            #n = textNode.parentNode
-            #r = top: n.offsetTop, bottom: n.offsetTop + n.offsetHeight, left: n.offsetLeft, height: n.offsetHeight
             r = textNode.parentNode.getBoundingClientRect()
       else r = emptyRect
       if !r || r.width == 0 || r.height == 0
@@ -548,6 +546,7 @@ Node location routines
         spareRange.selectNode positioner
         r = spareRange.getBoundingClientRect()
         positioner.parentNode.removeChild positioner
+        textNode.parentNode.normalize()
       r
 
     getTopClientRect = (r)->
