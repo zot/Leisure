@@ -23,6 +23,8 @@ lz = lazy
   unescapePresentationHtml,
 } = require '17-runtime'
 {
+  checkLast,
+  changeSavedSelectionOffset,
   parseOrgMode,
   Headline,
   headlineRE,
@@ -401,6 +403,9 @@ markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
     "<#{tag} #{orgAttrs org}>#{meatText org.text}</#{tag}>"
 
 meatText = (meat)->
+  escapeHtml(meat).replace /([^\n]*\n)\n|^\n/g, "<div class='meat-text'>$1</div><span class='meat-break'>\n</span>"
+
+XmeatText = (meat)->
   paras = escapeHtml(meat).replace /(\n)\n|^\n/g, "$1<span class='meat-break'>\n</span>"
 
 isLeisure = (org)-> org instanceof Source && org.getLanguage().toLowerCase() == 'leisure'
@@ -888,6 +893,30 @@ recreateAstButtons = (node)->
   restorePosition top, ->
     $(node).find('[data-ast-offset]').remove()
     t = getOrgText node
+    lines = t.split /(\n)/
+    index = 0
+    while lines.length > 0
+      codeContent = lines.shift()
+      if codeContent.trim()
+        [cur, offset] = findDomPosition node, index + codeContent.length
+        if offset != 0 then cur.splitText offset
+        div = document.createElement 'div'
+        div.setAttribute 'class', 'ast-button'
+        div.setAttribute 'contenteditable', 'false'
+        div.setAttribute 'data-ast-offset', index
+        do (d = div)-> d.onmousedown = (e)->
+          e.preventDefault()
+          e.stopPropagation()
+          showAst d
+        #if mchunk.index == 0 then div.setAttribute 'style', 'top: 0'
+        cur.parentNode.insertBefore div, cur
+      index += codeContent.length + (lines.shift()?.length ? 0)
+
+XrecreateAstButtons = (node)->
+  if !(top = $(node).closest('.codeblock')[0]) then return
+  restorePosition top, ->
+    $(node).find('[data-ast-offset]').remove()
+    t = getOrgText node
     chunk = /^[^ \n].*$/mg
     num = /(^|[^0-9.]+)([0-9][0-9.]*|\.[0-9.]+)/mg
     node.normalize()
@@ -1188,6 +1217,12 @@ handleKey = (div)->(e)->
   c = (e.charCode || e.keyCode || e.which)
   if !addKeyPress e, c then return
   s = getSelection()
+  #if s.anchorNode.parentNode.getAttribute('class') == 'meat-break' && s.anchorNode == s.extentNode
+  #  r = document.createRange()
+  #  r.setStartAfter s.anchorNode.parentNode
+  #  r.setEndAfter s.anchorNode.parentNode
+  #  s.removeAllRanges()
+  #  s.addRange r
   r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
   root.currentBlockIds = blockIdsForSelection s, r
   [bound, checkMod] = findKeyBinding e, div, r
@@ -1208,9 +1243,10 @@ handleKey = (div)->(e)->
       if c == ENTER
         e.preventDefault()
         if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
-          br = document.createTextNode('\n')
+          br = document.createTextNode('\n\n')
+          changeSavedSelectionOffset 1
           $(br).prependTo followingSpan n.parentNode
-        else r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
+        else r.insertNode br = document.createTextNode(fancyCheckExtraNewline r, n, div)
         r.setStart br, br.length
         r.setEnd br, br.length
         s.removeAllRanges()
@@ -1221,6 +1257,12 @@ handleKey = (div)->(e)->
       else if el.nodeType == Node.TEXT_NODE && el.data[el.length - 1] == '\n'
         root.checkNewline = el
 
+fancyCheckExtraNewline = (range, n, parent)->
+  if range.collapsed && n.nodeType == Node.TEXT_NODE && range.startOffset == n.length && getOrgText(n)[n.length - 1] != '\n' then checkLast n, parent
+  else if $(n).closest('[data-org-type=meat]').length
+    changeSavedSelectionOffset 1
+    '\n\n'
+  else '\n'
 
 cancelAndReselect = (event, selection, oldRange, currentRange)->
   e.preventDefault()

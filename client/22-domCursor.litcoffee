@@ -26,15 +26,20 @@ In Leisure, I use it like this, to retrieve text from the page (scroll down to s
 
 And like this for cursor movement.  Once I have the cursor, I can use forwardChar, backwardChar, forwardLine, backwardLine to move it around:
 
-      domCursorForCaret = ->
+      domCursorForCaret = (end)->
         sel = getSelection()
-        parent = parentForNode sel.focusNode
-        n = domCursor sel.focusNode, sel.focusOffset
-          .mutable()
-          .filterVisibleTextNodes()
-          .filterParent parent
-          .firstText()
-        if n.pos < n.node.length then n else n.next()
+        c = if sel.type == 'None' then emptyDOMCursor
+        else if end then domCursor sel.extentNode, sel.extendOffset
+        else domCursor sel.anchorNode, sel.anchorOffset
+        if !c.empty
+          parent = parentForNode sel.focusNode
+          c = c
+            .mutable()
+            .filterVisibleTextNodes()
+            .filterParent parent
+            .firstText()
+          if c.pos < c.node.length then c else c.next()
+        c
 
 DOMCursor Class
 ---------------
@@ -61,12 +66,17 @@ The class...
         @pos = @pos ? 0
         @filter = filter || -> true
         @computeType()
+        @savedTextPosition = null
       computeType: ->
         @type = if !@node then 'empty'
         else if @node.nodeType == Node.TEXT_NODE then 'text'
         else 'element'
         this
       newPos: (node, pos)-> new DOMCursor node, pos, @filter
+
+      textPosition: ->
+        if @isEmpty() then null
+        else @savedTextPosition ? (@savedTextPosition = getTextPosition @node, @pos)
 
 **isEmpty** returns true if the cursor is empty
 
@@ -263,18 +273,18 @@ the end if the node ends in a newline)
 
       forwardLine: (goalFunc)->
         if !goalFunc then goalFunc = -> -1
-        r = @charRect()
-        bottom = r.bottom
+        tp = @textPosition()
         line = 0
-        n = this
-        while n = n.forwardChar()
-          if n.isEmpty() then return n.backwardChar()
-          r = n.charRect()
-          if r.bottom != bottom
-            bottom = r.bottom
+        prev = n = @immutable()
+        while n = n.simpleForwardChar()
+          if n.isEmpty() then return prev
+          pos = n.textPosition()
+          if differentLines tp, pos
+            tp = pos
             line++
-          if line == 1 && goalFunc(r.left) > -1 then return n
-          if line == 2 then return n.backwardChar()
+          if line == 1 && goalFunc(pos.left + 2) > -1 then return n
+          if line == 2 then return prev
+          prev = n
 
 **backwardLine** moves to the previous line, trying to keep the current screen pixel column.  Optionally takes a goalFunc that takes the position's screen pixel column as input and returns -1, 0, or 1 from comparing the input to an internal goal column
 
@@ -282,49 +292,63 @@ the end if the node ends in a newline)
         # optional goalFunc takes the position's screen pixel column as input
         # It returns -1, 0, or 1, comparing the input to the internal goal column
         if !goalFunc then goalFunc = -> -1
-        r = @charRect()
-        prevTop = top = r.top
+        p = @textPosition()
         line = 0
-        n = this
-        while n = n.backwardChar()
-          if n.isEmpty() then return n.forwardChar()
-          r = n.charRect()
-          if r.top != top
-            top = r.top
-            line++
-          if line == 1
-            switch goalFunc r.left
-              when 0 then return n
-              when -1 then return (if prevTop == top then n.forwardChar() else n)
-          if line == 2 then return n.forwardChar()
-          prevTop = top
+        prev = n = @immutable()
+        while n = n.simpleBackwardChar()
+          if n.isEmpty() then return prev.adjustBackward()
+          else
+            p2 = n.textPosition()
+            if differentLines p, p2
+              p = p2
+              line++
+            if line == 1 && goalFunc(n.textPosition().left - 2) in [-1, 0] then return n.adjustBackward()
+            else if line == 2 then return prev.adjustBackward()
+          prev = n
 
 **forwardChar** move forward by one character (using the filter)
 
       forwardChar: ->
-        r = stubbornCharRectNext(@node, @pos)
-        left = r?.left
-        bottom = r?.bottom
+        p = @textPosition()
         n = this
-        while n = (if n.pos + 1 < n.node.length then n.newPos n.node, n.pos + 1 else n.next())
-          if n.isEmpty() || ((r = stubbornCharRectNext(n.node, n.pos)) && (left != r?.left || bottom != r?.bottom)) then return n
+        while n = n.simpleForwardChar()
+          if n.isEmpty() || differentPosition p, n.textPosition() then return n
+
+      simpleForwardChar: ->
+        if @pos + 1 < @node.length then @newPos @node, @pos + 1 else @next()
 
 **backwardChar** move backward by one character (using the filter)
 
       backwardChar: ->
-        r = stubbornCharRectPrev @node, @pos
+        p = @textPosition()
         n = this
-        while r && n = (if n.pos > 0 then n.newPos n.node, n.pos  - 1 else n.prev())
-          if n.isEmpty() || n.moved(r) then return n
+        while n = n.simpleBackwardChar()
+          if n.isEmpty() || differentPosition p, n.textPosition() then return n.adjustBackward()
+        n
+
+      simpleBackwardChar: ->
+        p = this
+        while !p.isEmpty() && p.pos == 0
+          p = p.prev()
+        if !p.isEmpty() then p.newPos p.node, p.pos  - 1
+        else p
+
+      adjustBackward: ->
+        p = @textPosition()
+        n = @immutable()
+        while !n.isEmpty()
+          prev = n
+          n = n.simpleBackwardChar()
+          if n.isEmpty() || differentPosition p, n.textPosition() then return prev
         n
 
 **show** scroll the position into view.  Optionally takes a rectangle representing a toolbar at the top of the page (sorry, this is a bit limited at the moment)
 
       show: (topRect)->
-        posRect = @charRect()
+        p = @textPosition()
         top = if topRect?.width && topRect.top == 0 then topRect.bottom else 0
-        if posRect.bottom > window.innerHeight then window.scrollBy 0, posRect.bottom - window.innerHeight
-        else if posRect.top < top then window.scrollBy 0, posRect.top - top
+        if p.bottom > window.innerHeight then window.scrollBy 0, p.bottom - window.innerHeight
+        else if p.top < top then window.scrollBy 0, p.top - top
         this
 
 **immutable** return an immutable version of this cursor
@@ -402,15 +426,6 @@ the end if the node ends in a newline)
         next: (up)=> if up then @next up else this
         nodeAfter: (up)=> if up then @nodeAfter up else this
 
-**moved** return whether a rectangle is at a different position than the current character
-
-      moved: (rec)->
-        (@node.length > @pos) && (r2 = stubbornCharRectPrev @node, @pos) && (rec.top != r2.top || rec.left != r2.left)
-      charRect: (r, prev)->
-        if prev
-          stubbornCharRectPrev(@node, @pos, r) || stubbornCharRectNext(@node, @pos, r)
-        else stubbornCharRect @node, @pos, r
-
 EmptyDOMCursor Class
 --------------------
 
@@ -435,7 +450,9 @@ A mutable cursor -- cursor movement, filter changes, etc. change the cursor inst
     class MutableDOMCursor extends DOMCursor
       constructor: (@node, @pos, @filter)-> super node, pos, filter
       setFilter: (@filter)-> this
-      newPos: (@node, @pos)-> @computeType()
+      newPos: (@node, @pos)->
+        @savedTextPosition = null
+        @computeType()
       copy: -> new MutableDOMCursor @node, @pos, @filter
       mutable: -> this
       immutable: -> new DOMCursor @node, @pos, @filter
@@ -498,32 +515,60 @@ These are available as properties on DOMCursor.
 
     reject = (filterResult)-> !filterResult || (filterResult in ['quit', 'skip'])
 
-    # charRect returns null for newlines when not using pre
-    stubbornCharRect = (node, pos, r)->
-      stubbornCharRectNext(node, pos, r) || stubbornCharRectPrev(node, pos, r)
+Node location routines
+----------------------
 
-    stubbornCharRectNext = (node, pos, r)->
-      r = r || document.createRange()
-      for i in [pos ... node.length] by 1
-        if rec = charRect node, i, r then return rec
-      null
+    positioner = document.createElement 'DIV'
 
-    stubbornCharRectPrev = (node, pos, r)->
-      r = r || document.createRange()
-      for i in [pos .. 0] by -1
-        if rec = charRect node, i, r then return rec
-      null
+    positioner.setAttribute 'style', 'display: inline-block'
 
-    charRect = (node, pos, r)->
-      r = r || document.createRange()
-      r.setStart node, pos
-      r.collapse true
+    positioner.innerHTML = 'x'
+
+    spareRange = document.createRange()
+
+    emptyRect = width: 0
+
+    getTextPosition = (textNode, offset)->
+      if offset < textNode.length
+        spareRange.setStart textNode, offset
+        spareRange.setEnd textNode, offset + 1
+        #r = spareRange.getBoundingClientRect()
+        r = getTopClientRect spareRange
+        if !r || r.width == 0
+          spareRange.selectNodeContents textNode.parentNode
+          if spareRange.getClientRects().length == 0
+            #n = textNode.parentNode
+            #r = top: n.offsetTop, bottom: n.offsetTop + n.offsetHeight, left: n.offsetLeft, height: n.offsetHeight
+            r = textNode.parentNode.getBoundingClientRect()
+      else r = emptyRect
+      if !r || r.width == 0 || r.height == 0
+        if offset == 0 then textNode.parentNode.insertBefore positioner, textNode
+        else if offset == textNode.length || textNode.splitText offset
+          textNode.parentNode.insertBefore positioner, textNode.nextSibling
+        spareRange.selectNode positioner
+        r = spareRange.getBoundingClientRect()
+        positioner.parentNode.removeChild positioner
+      r
+
+    getTopClientRect = (r)->
       rects = r.getClientRects()
-      rects[rects.length - 1]
+      if rects.length == 1 then rects[0]
+      else
+        result = rects[0]
+        for rect in rects
+          if rect.top < result.top then result = rect
+        result
+
+    differentPosition = (pos1, pos2)->
+      Math.floor(pos1.left) != Math.floor(pos2.left) || differentLines(pos2, pos1)
+
+    differentLines = (pos1, pos2)->
+      (pos1.bottom - 4 <= pos2.top) || (pos2.bottom - 4 <= pos1.top)
 
     DOMCursor.MutableDOMCursor = MutableDOMCursor
     DOMCursor.emptyDOMCursor = emptyDOMCursor
     DOMCursor.isCollapsed = isCollapsed
     DOMCursor.selectRange = selectRange
+    DOMCursor.getTextPosition = getTextPosition
 
     @DOMCursor = DOMCursor

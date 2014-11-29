@@ -249,14 +249,13 @@ pasteListener = (e)->
     text = e.clipboardData.getData('text/plain')
     r = sel.getRangeAt 0
     r.deleteContents()
-    savedSel = new SelectionDescriptor parentForNode(sel.focusNode), r
+    savedSel = new SelectionDescriptor r
     r.insertNode document.createTextNode text
     r2 = document.createRange()
     r2.setStart r.endContainer, r.endOffset
     r2.setEnd r.endContainer, r.endOffset
     root.orgApi.checkSourceMod()
-    savedSel.offset = text.length
-    savedSel.restore()
+    savedSel.restore text.length
 
 editFile = -> $('#file')[0].click()
 
@@ -270,18 +269,15 @@ updateSelection = Lodash.throttle (-> actualSelectionUpdate()), 30,
 
 actualSelectionUpdate = ->
   if selectionActive
-    s = getSelection()
-    if s.type != 'None' && !isCollapsed(s.focusNode)
-      range = s.getRangeAt(0)
-      rects = range.getClientRects()
-      if rects.length > 0
-        right = _(rects).last().right
-        top = _(rects).last().top
-        bubble = $("#selectionBubble")[0]
-        bubble.style.left = "#{right}px"
-        bubble.style.top = "#{top - bubble.offsetHeight}px"
-        $(document.body).addClass 'selection'
-        return
+    c = domCursorForCaret true
+    if !c.isEmpty() && p = c.textPosition()
+      left = p.left
+      top = p.top
+      bubble = $("#selectionBubble")[0]
+      bubble.style.left = "#{left}px"
+      bubble.style.top = "#{top - bubble.offsetHeight}px"
+      $(document.body).addClass 'selection'
+      return
   $(document.body).removeClass 'selection'
 
 installSelectionMenu = ->
@@ -380,7 +376,7 @@ headlineOffset = (domCur, col)->
     domCur.hlOff = $(domCur.node).closest("[data-org-headline='1']")[0].getClientRects()[0].left
   col - domCur.hlOff
 
-getMovementGoal = (domCur)-> headlineOffset domCur, domCur.charRect().left
+getMovementGoal = (domCur)-> headlineOffset domCur, domCur.textPosition().left
 
 moveSelectionUp = (parent, r)->
   pos = domCursorForCaret()
@@ -440,7 +436,7 @@ keyFuncs =
     if r.collapsed && txt.nodeType == Node.TEXT_NODE && ((r.startOffset > 2 && txt.data[r.startOffset - 3] == '\n') || (r.startOffset == 2 && followsNewline txt))
       str = txt.data.substring r.startOffset - 2, r.startOffset
       if exp = templateExpansions[str]
-        seld = new SelectionDescriptor parent, r.startContainer, r.startOffset - str.length
+        seld = new SelectionDescriptor r.startContainer, r.startOffset - str.length
         start = r.startOffset
         [first, second] = exp
         pos = (getTextPosition parent, txt, start) - 2
@@ -452,9 +448,9 @@ keyFuncs =
           next.data = next.data.substring 2
         templateText = document.createTextNode first + second
         txt.parentNode.insertBefore templateText, next
-        seld.offset = templateText.length
+        offset = templateText.length
         root.orgApi.checkSourceMod()
-        seld.restore()
+        seld.restore offset
   save: (e, parent, r)->
     e.preventDefault()
     Leisure.snapshot()
@@ -1133,7 +1129,7 @@ nativeRange = (r, startOffset, endNode, endOffset)->
       r2
 
 class SelectionDescriptor
-  constructor: (@parent, range, optStartOffset, optEndContainer, optEndOffset)->
+  constructor: (range, optStartOffset, optEndContainer, optEndOffset)->
     if range
       if range instanceof Range
         startNode = range.startContainer
@@ -1149,6 +1145,10 @@ class SelectionDescriptor
         else
           endNode = startNode
           endOffset = startOff
+      if startNode.nodeType == 1
+        [startNode, startOffset] = findDomPosition startNode.childNodes[startOffset], 0
+      if endNode.nodeType == 1
+        [endNode, endOffset] = findDomPosition endNode.childNodes[endOffset], 0
       @ids = []
       n = $(startNode)
       while (n = n.closest '[data-shared]').length
@@ -1157,34 +1157,40 @@ class SelectionDescriptor
     else
       @restore = ->
       @toString = "Selection(none)"
-  offset: 0
-  currentRange: ->
+  currentRange: (offset)->
     for [id, startPos, endPos] in @ids
       [n] = $("##{id}")
       if n
-        [startNode, startOffset] = findDomPosition n, startPos + @offset
-        [endNode, endOffset] = findDomPosition n, endPos + @offset
-        return nativeRange startNode, startOffset, endNode, endOffset
+        [startNode, startOffset] = findDomPosition n, startPos + offset
+        [endNode, endOffset] = findDomPosition n, endPos + offset
+        if startNode && endNode
+          return nativeRange startNode, startOffset, endNode, endOffset
     null
-  restore: -> selectRange @currentRange()
+  restore: (offset)-> selectRange @currentRange offset ? 0
   toString: -> "Selection(#{@start}, #{@end})"
 
-saveSelection = (parent)->
+currentSelectionDescriptor = ->
   sel = getSelection()
-  desc = if sel.type == 'None' then new SelectionDescriptor()
-  else new SelectionDescriptor parent, sel.anchorNode, sel.anchorOffset, sel.extentNode, sel.extentOffset
-  -> desc.restore()
+  if sel.type == 'None' then new SelectionDescriptor()
+  else new SelectionDescriptor sel.anchorNode, sel.anchorOffset, sel.extentNode, sel.extentOffset
+
+saveSelection = ->
+  desc = currentSelectionDescriptor()
+  (offset)-> desc.restore offset
 
 savePosition = (saveFunc, block)->
-  if savingPosition then block()
+  if savingPosition != null then block()
   else
-    savingPosition = true
+    savingPosition = 0
     pos = saveFunc()
     try
       block()
     finally
-      savingPosition = false
-      pos()
+      savingPosition = null
+      pos savingPosition
+
+changeSavedSelectionOffset = (offset)->
+  if savingPosition != null then savingPosition += offset
 
 restorePosition = (parent, block)-> savePosition saveSelection, block
 
@@ -1502,7 +1508,7 @@ domCursorForRange = (r)->
     .filterVisibleTextNodes()
     .filterRange r
     .firstText()
-  if n.pos < n.node.length then n else n.next()
+  if n.isEmpty() || n.pos < n.node.length then n else n.next()
 
 domCursorForCaret = ->
   sel = getSelection()
@@ -1512,7 +1518,7 @@ domCursorForCaret = ->
     .filterVisibleTextNodes()
     .filterParent parent
     .firstText()
-  if n.pos < n.node.length then n else n.next()
+  if n.isEmpty() || n.pos < n.node.length then n else n.next()
 
 domCursorForSelectedText = ->
   sel = getSelection()
@@ -1524,7 +1530,7 @@ domCursorForSelectedText = ->
       .filterTextNodes()
       .filterRange r
       .firstText()
-    if n.pos < n.node.length then n else n.next()
+    if n.isEmpty() || n.pos < n.node.length then n else n.next()
 
 root.findOrIs = findOrIs
 root.parentForNode = parentForNode
@@ -1612,6 +1618,10 @@ root.domCursorForSelectedText = domCursorForSelectedText
 root.editFile = editFile
 root.domCursor = domCursor
 root.plainEnv = orgEnv
+root.checkLast = checkLast
+root.SelectionDescriptor = SelectionDescriptor
+root.currentSelectionDescriptor = currentSelectionDescriptor
+root.changeSavedSelectionOffset = changeSavedSelectionOffset
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg

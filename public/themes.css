@@ -1041,10 +1041,13 @@ body {
 }
 [data-edit-mode='fancy'] [data-org-type='meat'] {
     white-space: normal;
+    display: block;
 }
 [data-edit-mode='fancy'] .meat-break {
     display: block;
-    white-space: pre;
+}
+[data-edit-mode='fancy'] .meat-text {
+    min-height: 1em;
 }
 [data-edit-mode='fancy'] .default-lang[data-lang] {
     border: 0px;
@@ -1438,7 +1441,7 @@ button:hover {
 }
 .ast-button {
     position: absolute;
-    margin-top: 5px;
+    /*margin-top: 5px;*/
     right: 5px;
     width: 16px;
     height: 16px;
