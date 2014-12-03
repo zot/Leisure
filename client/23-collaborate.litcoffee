@@ -642,7 +642,8 @@ Data index attributes specify an indexer and have the form
       change = type: type, here: committing, editing: editing, data: data, context: context.toObject()
       if !cont then cont = oldData
       else change.oldData = oldData
-      addBatch name, change, cont
+      if editing then cont [change]
+      else addBatch name, change, cont
 
 Handling local content.
 

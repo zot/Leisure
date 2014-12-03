@@ -128,7 +128,7 @@ modifying = false
 idCount = 0
 nodes = {}
 reparseListeners = []
-savingPosition = false
+savingPosition = null
 clipboardKey = null
 root.currentMode = null
 parentSpec = null
@@ -156,6 +156,7 @@ keyCombos = []
 prevKeybinding = curKeyBinding = null
 root.modCancelled = false
 root.currentMatch = null
+keyCommands = []
 
 DOMCursor.prototype.filterOrg = -> @addFilter (n)-> !n.hasAttribute('data-nonorg') || 'skip'
 
@@ -263,9 +264,13 @@ toggleLeisureBar = ->
   g = $("body")
   if g.hasClass 'bar_collapse' then g.removeClass 'bar_collapse' else g.addClass 'bar_collapse'
 
-updateSelection = Lodash.throttle (-> actualSelectionUpdate()), 30,
+throttledUpdateSelection = Lodash.throttle (-> actualSelectionUpdate()), 30,
   leading: true
   trailing: true
+
+updateSelection = ->
+  #console.log "updating selection...", new Error('trace').stack
+  throttledUpdateSelection()
 
 actualSelectionUpdate = ->
   if selectionActive
@@ -273,6 +278,7 @@ actualSelectionUpdate = ->
     if !c.isEmpty() && p = c.textPosition()
       left = p.left
       top = p.top
+      #console.log "UPDATING SELECTION BUBBLE: #{left}, #{top}"
       bubble = $("#selectionBubble")[0]
       bubble.style.left = "#{left}px"
       bubble.style.top = "#{top - bubble.offsetHeight}px"
@@ -714,14 +720,11 @@ adjustSelection = (e)->
       pos.pos--
     if (pos.node != r.startContainer || pos.pos > r.startOffset) && (pos.node != r.endContainer || pos.pos < r.endOffset)
       r.setEnd pos.node, pos.pos
-      s.removeAllRanges()
-      s.addRange r
+      selectRange r
 
 handleDrop = (e)->
   e.preventDefault()
   t = e.dataTransfer
-  s = getSelection()
-  s.removeAllRanges()
   r = document.caretRangeFromPoint(e.clientX,e.clientY)
   if 'text/html' in t.types
     item = $(t.getData('text/html'))
@@ -731,7 +734,7 @@ handleDrop = (e)->
       r.insertNode node
       r.selectNode node
       edited node, true
-  s.addRange r
+  selectRange r
   actualSelectionUpdate()
 
 backspace = (parent, event, sel, r, allowBlockCrossing)->
@@ -791,15 +794,8 @@ del = (parent, event, sel, r, allowBlockCrossing)->
         console.log 'newline'
       if t.data[r.startOffset] == '\n' && (isCollapsed(next) || (!allowBlockCrossing && beforeBlockBorder parent, r))
         return root.modCancelled = true
-    if r.startOffset == 0
-      if t.length == 1
-        $(t).remove()
-        root.modified = next
-        r.setStart next, 0
-      else t.data = t.data.substring 1
-    else
-      t.data = t.data.substring(0, r.startOffset) + t.data.substring r.startOffset + 1
-      r.setStart t, offset
+    t.data = t.data.substring(0, r.startOffset) + t.data.substring r.startOffset + 1
+    r.setStart t, offset
     if r.startOffset == t.length
       if isCollapsed next then next = visibleTextNodeAfter parent, next
       r.setStart next, 0
@@ -826,8 +822,7 @@ afterBlockBorder = (r)->
 setCaret = (r)->
   sel = getSelection()
   r.collapse true
-  sel.removeAllRanges()
-  sel.addRange r
+  selectRange r
   actualSelectionUpdate()
 
 blockElementsForSelection = (sel, r)->
@@ -851,14 +846,21 @@ blockIdsForSelection = (sel, r)->
 blockElementForNode = (node)-> $(node).closest('[data-shared]')[0]
 
 handleKeyup = (div)-> (e)->
+  #console.log "handle key up"
   if clipboardKey || (!e.leisureShiftkey && !root.modCancelled && modifyingKey((e.charCode || e.keyCode || e.which), e))
     if (t = root.checkNewline) && t.data[t.length - 1] != '\n' && noFollowingText t
-      t.data += '\n'
-      r = document.createRange()
-      r.setStart t, t.length - 1
-      setCaret r
+      t.parentNode.insertBefore document.createTextNode('\n'), t.nextSibling
+      t.parentNode.normalize()
     root.orgApi.checkSourceMod div
     clipboardKey = null
+  runKeyCommands()
+
+runKeyCommands = ->
+  for cmd in keyCommands
+    cmd()
+  keyCommands = []
+
+queueKeyCommand = (cmd)-> keyCommands.push cmd
 
 noFollowingText = (t)->
   next = t.nextSibling
@@ -925,35 +927,36 @@ isLeisureBlock = (bl)-> bl.is("[data-lang='leisure']") || bl.find("[data-lang='l
 # Selection should be type Caret, because this should only be called
 # after a textual modification (from typing), which should never preserve a selection
 checkStructure = (node)->
-  root.restorePosition null, ->
-    sel = getSelection()
-    if sel.type == 'Caret'
-      blockIds = L(root.currentBlockIds).filter((v)-> v).toArray()
-      currentBlockId = blockElementForNode(sel.focusNode).id
-      if !(currentBlockId in [blockIds[0], blockIds[blockIds.length - 1]])
-        if getBlock(blockIds[0])?.prev == currentBlockId then blockIds.unshift currentBlockId
-        else if getBlock(L(blockIds).last())?.next == currentBlockId then blockIds.push currentBlockId
-        else return console.log "Can't locate current block"
-      # blockIds now contains the changed nodes
-      if prev = getBlock(blockIds[0]).prev then blockIds.unshift prev
-      if next = getBlock(L(blockIds).last()).next then blockIds.push next
-      oldBlocks = (getBlock(id) for id in blockIds)
-      newBlocks = orgDoc parseOrgMode (blockText($("##{id}")[0]) for id in blockIds).join ''
-      for bl in newBlocks
-        bl._id = new Meteor.Collection.ObjectID().toJSONValue()
-      overrides = new Overrides()
-      checkMerge(overrides, fo = oldBlocks[0], newBlocks[0], getBlock(fo.prev), (aux)->
-        aux + newBlocks.shift().text)
-      if !_(newBlocks).isEmpty()
-        checkMerge(overrides, lo = _(oldBlocks).last(), _(newBlocks).last(), getBlock(lo.next), (aux)->
-          newBlocks.pop().text + aux)
-      remapBlocks overrides, oldBlocks, newBlocks
-      rc = createRenderingComputer overrides
-      rc.add item for id, item of overrides.adds
-      rc.remove getBlock id for id of overrides.removes
-      rc.change getBlock(id), item for id, item of overrides.updates
+  sel = getSelection()
+  if sel.type == 'Caret'
+    blockIds = L(root.currentBlockIds).filter((v)-> v).toArray()
+    currentBlockId = blockElementForNode(sel.focusNode).id
+    if !(currentBlockId in [blockIds[0], blockIds[blockIds.length - 1]])
+      if getBlock(blockIds[0])?.prev == currentBlockId then blockIds.unshift currentBlockId
+      else if getBlock(L(blockIds).last())?.next == currentBlockId then blockIds.push currentBlockId
+      else return console.log "Can't locate current block"
+    # blockIds now contains the changed nodes
+    if prev = getBlock(blockIds[0]).prev then blockIds.unshift prev
+    if next = getBlock(L(blockIds).last()).next then blockIds.push next
+    oldBlocks = (getBlock(id) for id in blockIds)
+    newBlocks = orgDoc parseOrgMode (blockText($("##{id}")[0]) for id in blockIds).join ''
+    for bl in newBlocks
+      bl._id = new Meteor.Collection.ObjectID().toJSONValue()
+    overrides = new Overrides()
+    checkMerge(overrides, fo = oldBlocks[0], newBlocks[0], getBlock(fo.prev), (aux)->
+      aux + newBlocks.shift().text)
+    if !_(newBlocks).isEmpty()
+      checkMerge(overrides, lo = _(oldBlocks).last(), _(newBlocks).last(), getBlock(lo.next), (aux)->
+        newBlocks.pop().text + aux)
+    remapBlocks overrides, oldBlocks, newBlocks
+    rc = createRenderingComputer overrides
+    rc.add item for id, item of overrides.adds
+    rc.remove getBlock id for id of overrides.removes
+    rc.change getBlock(id), item for id, item of overrides.updates
+    restorePosition null, ->
       commitEdits overrides
       rc.render()
+    root.checkNewline = null
 
 # check whether to merge the new text with the preceding/following old text
 # returns the id of the old block if merge, otherwise the id of the new block
@@ -1129,7 +1132,7 @@ nativeRange = (r, startOffset, endNode, endOffset)->
       r2
 
 class SelectionDescriptor
-  constructor: (range, optStartOffset, optEndContainer, optEndOffset)->
+  constructor: (range, optStartOffset, optEndContainer, optEndOffset, start)->
     if range
       if range instanceof Range
         startNode = range.startContainer
@@ -1144,13 +1147,13 @@ class SelectionDescriptor
           endOffset = optEndOffset
         else
           endNode = startNode
-          endOffset = startOff
+          endOffset = startOffset
       if startNode.nodeType == 1
         [startNode, startOffset] = findDomPosition startNode.childNodes[startOffset], 0
       if endNode.nodeType == 1
         [endNode, endOffset] = findDomPosition endNode.childNodes[endOffset], 0
       @ids = []
-      n = $(startNode)
+      n = $(start ? startNode)
       while (n = n.closest '[data-shared]').length
         @ids.push [n[0].id, getTextPosition(n[0], startNode, startOffset), getTextPosition(n[0], endNode, endOffset)]
         n = n.parent()
@@ -1186,8 +1189,9 @@ savePosition = (saveFunc, block)->
     try
       block()
     finally
+      sp = savingPosition
       savingPosition = null
-      pos savingPosition
+      pos sp
 
 changeSavedSelectionOffset = (offset)->
   if savingPosition != null then savingPosition += offset
@@ -1214,7 +1218,8 @@ installOrgDOM = (parent, orgNode, orgText, target)->
     result = $(orgText)[0]
     $(target).replaceWith result
   else
-    parent.innerHTML = orgText
+    parent.innerHTML = ''
+    parent.appendChild $(orgText)[0]
     result = parent.firstElementChild
   result
 
@@ -1449,14 +1454,17 @@ orgNotebook =
     (mode = $(el).closest("[data-edit-mode]")).length == 0 || $(mode).attr('data-edit-mode') == @name
   reparse: (parent, text, target)->
     text = text || (getNodeText target || parent)
-    sel = getSelection()
     [orgNode, orgText] = @markupOrgWithNode text, null, target
-    node = null
-    root.restorePosition parent, => node = @installOrgDOM parent, orgNode, orgText, target
-    setTimeout (->
-      for l in reparseListeners
-        l parent, orgNode, orgText
-      ), 1
+    element = $(orgText)[0]
+    if target && target.outerHTML == element.outerHTML then node = target
+    else
+      #if target then console.log "reparse #{text.allText()}"
+      node = null
+      root.restorePosition parent, => node = @installOrgDOM parent, orgNode, element, target
+      setTimeout (->
+        for l in reparseListeners
+          l parent, orgNode, element
+        ), 1
     node
   checkSourceMod: checkSourceMod
   configureMenu: configureMenu
@@ -1518,7 +1526,7 @@ domCursorForCaret = ->
     .filterVisibleTextNodes()
     .filterParent parent
     .firstText()
-  if n.isEmpty() || n.pos < n.node.length then n else n.next()
+  if n.isEmpty() || n.pos <= n.node.length then n else n.next()
 
 domCursorForSelectedText = ->
   sel = getSelection()
@@ -1622,6 +1630,8 @@ root.checkLast = checkLast
 root.SelectionDescriptor = SelectionDescriptor
 root.currentSelectionDescriptor = currentSelectionDescriptor
 root.changeSavedSelectionOffset = changeSavedSelectionOffset
+root.queueKeyCommand = queueKeyCommand
+root.updateSelection = updateSelection
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg

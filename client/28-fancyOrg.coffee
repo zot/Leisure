@@ -23,8 +23,6 @@ lz = lazy
   unescapePresentationHtml,
 } = require '17-runtime'
 {
-  checkLast,
-  changeSavedSelectionOffset,
   parseOrgMode,
   Headline,
   headlineRE,
@@ -59,8 +57,15 @@ yaml = root.yaml
 } = require '12-docOrg'
 {
   isCollapsed,
+  selectRange,
 } = window.DOMCursor
 {
+  updateSelection,
+  queueKeyCommand,
+  SelectionDescriptor,
+  checkLast,
+  changeSavedSelectionOffset,
+  currentSelectionDescriptor,
   parentForNode,
   savePosition,
   findOrIs,
@@ -245,8 +250,7 @@ setSlidePosition = ([id, start, end, left, top])->
   r.startOffset = r1[1]
   r.endContainer = r2[0]
   r.endOffset = r2[1]
-  s.removeAllRanges()
-  s.addRange r
+  selectRange r
 
 # get a logical document range with an optional note
 # [startPos, endPos, scrollOffset, noteId]
@@ -284,8 +288,7 @@ restoreDocRange = (parent, [start, end, offset, noteId])->
   else
     window.scrollTo window.pageXOffset, offset + getDocumentOffset(r)
     s = getSelection()
-  s.removeAllRanges()
-  s.addRange r
+  selectRange r
 
 getDocumentOffset = (r)->
   parent = parentForNode r.startContainer
@@ -403,7 +406,13 @@ markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
     "<#{tag} #{orgAttrs org}>#{meatText org.text}</#{tag}>"
 
 meatText = (meat)->
-  escapeHtml(meat).replace /([^\n]*\n)\n|^\n/g, "<div class='meat-text'>$1</div><span class='meat-break'>\n</span>"
+  paras = escapeHtml(meat).split /\n\n/
+  last = paras.pop()
+  result = _(paras).map((i)-> "<div class='meat-text'>#{i}\n</div>").join "<span class='meat-break'>\n</span>"
+  if last
+    if result then result += "<span class='meat-break'>\n</span>"
+    result + "<div class='meat-text'>#{last}</div>"
+  else result
 
 XmeatText = (meat)->
   paras = escapeHtml(meat).replace /(\n)\n|^\n/g, "$1<span class='meat-break'>\n</span>"
@@ -768,9 +777,7 @@ selectPrevious = (node)->
   top = topNode node
   pos = getTextPosition top, node, 0
   r = nativeRange findDomPosition top, Math.max 0, pos - 1
-  sel = getSelection()
-  sel.removeAllRanges()
-  sel.addRange r
+  selectRange r
 
 replaceCodeBlock = (node, text)->
   newNode = null
@@ -1206,6 +1213,7 @@ bindContent = (div)->
       setCurKeyBinding null
   div.addEventListener 'mouseup', (e)-> adjustSelection e
   div.addEventListener 'keydown', handleKey div
+  div.addEventListener 'keypress', -> updateSelection()
   div.addEventListener 'keyup', handleKeyup div
 
 handleKey = (div)->(e)->
@@ -1235,32 +1243,78 @@ handleKey = (div)->(e)->
   else if !bound
     if modifyingKey c, e
       n = s.focusNode
+      offset = s.anchorOffset
       el = r.startContainer
-      root.checkNewline = null
       root.modified = el
-      par = el.parentNode
       root.currentMatch = lineCodeBlockType currentLine div
       if c == ENTER
         e.preventDefault()
-        if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
-          br = document.createTextNode('\n\n')
-          changeSavedSelectionOffset 1
-          $(br).prependTo followingSpan n.parentNode
-        else r.insertNode br = document.createTextNode(fancyCheckExtraNewline r, n, div)
-        r.setStart br, br.length
-        r.setEnd br, br.length
-        s.removeAllRanges()
-        s.addRange(r)
-        restorePosition br.parentNode, -> br.parentNode.normalize()
-      else if c == BS then backspace div, e, s, r
-      else if c == DEL then del div, e, s, r
+        if n.nodeType == 3 && (s.type == 'Caret' || (s.type == 'Range' && s.anchorNode == s.extentNode))
+          n.data = n.data.substring(0, offset) + '\n\n' + n.data.substring(s.extentOffset)
+        else
+          console.log "INSERT NEWLINE IN NON-TEXT NODE"
+          r.insertNode n = document.createTextNode '\n\n'
+          offset = 1
+        sel = new SelectionDescriptor n, offset + 1, null, null, $(n).closest('[data-shared]').parent()
+        queueKeyCommand -> sel.restore()
+        sel.restore()
+      else if c == BS then fancyBackspace div, e, s, r
+      else if c == DEL then fancyDel div, e, s, r
       else if el.nodeType == Node.TEXT_NODE && el.data[el.length - 1] == '\n'
         root.checkNewline = el
+
+fancyBackspace = (div, e, s, r)->
+  n = s.anchorNode
+  if !(s.type == 'Caret' && n.type == Node.TEXT_NODE && s.anchorOffset > 0)
+    if s.type == 'Caret' && (b = $(n).closest('.meat-text').prev('.meat-break')[0]) && beginsMeat(s)
+      e.preventDefault()
+      sel = currentSelectionDescriptor()
+      offset = -b.textContent.length
+      pp = b.previousSibling
+      if n.textContent[0] == '\n'
+        n.textContent = n.textContent.substring 1
+        offset--
+      else if isMeatText(pp)
+        txt = pp.textContent
+        if txt.match(/\n$/)
+          offset--
+          pp.textContent = txt.substring(0, txt.length - 1)
+      b.remove()
+      sel.restore offset
+      updateSelection()
+    else backspace div, e, s, r
+
+fancyDel = (div, e, s, r)->
+  n = s.anchorNode
+  if !(s.type == 'Caret' && n.type == Node.TEXT_NODE && s.anchorOffset > 0)
+    if s.type == 'Caret' && (b = $(n).closest('.meat-text').next('.meat-break')[0]) && endsMeat(s)
+      e.preventDefault()
+      b.remove()
+      sel = currentSelectionDescriptor()
+      if n.nodeType == Node.ELEMENT_NODE && n.textContent.match /^\s*\n$/ then n.remove()
+      else n.textContent = n.textContent.substring(0, n.length - 1)
+      sel.restore()
+      updateSelection()
+    else del div, e, s, r
+
+beginsMeat = (s)->
+  n = s.anchorNode
+  s.anchorOffset == 0 &&
+    (isMeatText(n) || (n.nodeType == Node.TEXT_NODE && isMeatText n.parentNode))
+
+endsMeat = (s)->
+  n = s.anchorNode
+  p = s.anchorOffset
+  (isMeatText(n) && n.textContent.match /^\s*\n/) ||
+    (n.nodeType == Node.TEXT_NODE && isMeatText(n.parentNode) && p == n.length - 1 && n.data[p] == '\n')
+
+isMeatText = (n)-> n.nodeType == Node.ELEMENT_NODE && n.classList.contains 'meat-text'
+
+isMeatBreak = (n)-> n.nodeType == Node.ELEMENT_NODE && n.classList.contains 'meat-break'
 
 fancyCheckExtraNewline = (range, n, parent)->
   if range.collapsed && n.nodeType == Node.TEXT_NODE && range.startOffset == n.length && getOrgText(n)[n.length - 1] != '\n' then checkLast n, parent
   else if $(n).closest('[data-org-type=meat]').length
-    changeSavedSelectionOffset 1
     '\n\n'
   else '\n'
 
@@ -1268,15 +1322,11 @@ cancelAndReselect = (event, selection, oldRange, currentRange)->
   e.preventDefault()
   root.modCancelled = true
   if oldRange != currentRange
-    selection.removeAllRanges()
-    selection.addRange oldRange
+    selectRange oldRange
   null
 
 getCodeContainer = (node)->
   $(node).closest("[data-org-src]")[0] || $(node).find("[data-org-src]")[0]
-
-fancyCheckSourceMod = (focus, div, currentMatch, el)->
-  restorePosition null, -> checkSourceMod()
 
 needsNewline = (el)->
   if !el then false
@@ -1859,9 +1909,7 @@ fancyOrg =
       if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0
         $(node).addClass('hidden-slide')
     applySlides()
-  checkSourceMod: (div, currentMatch)->
-    focus = getSelection().focusNode
-    fancyCheckSourceMod focus, div, currentMatch, (if focus.nodeType == 1 then focus.firstChild else focus)
+  checkSourceMod: checkSourceMod
   updateBlock: (block)->
     lang = block.language?.toLowerCase()
     attr = block.codeAttributes

@@ -140,6 +140,14 @@ The class...
         selectRange r
         this
 
+**range** create a range between two positions
+
+      range: (other, r)->
+        if !r then r = document.createRange()
+        r.setStart @node, @pos
+        r.setEnd other.node, other.pos
+        r
+
 **firstText** find the first text node (the 'backwards' argument is optional and if true,
 indicates to find the first text node behind the cursor).
 
@@ -230,12 +238,33 @@ the previous text node (node, node.length)
         if n.isEmpty() then ''
         else
           t = n.node.data.substring n.pos
-          while !n.next().isEmpty()
-            if n.type == 'text' then t += n.node.data.substring n.pos
+          while !(n = n.next()).isEmpty()
+            if n.type == 'text' then t += n.node.data
           if t.length
             while n.type != 'text'
               n.prev()
             n = n.newPos n.node, n.node.length
+            while n.pos > 0 && reject n.filter n
+              n.pos--
+            t.substring 0, t.length - n.node.length + n.pos
+          else ''
+
+**getTextTo** gets all of the text at or after the cursor (useful with filtering; see above)
+
+      getTextTo: (other)->
+        n = @mutable().firstText()
+        if n.isEmpty() then ''
+        else
+          t = n.node.data.substring n.pos
+          if n.node != other.node
+            while !(n = n.next()).isEmpty()
+              if n.type == 'text' then t += n.node.data
+              if n.node == other.node then break
+          if t.length
+            while n.type != 'text'
+              n.prev()
+            if n.node == other.node then n = n.newPos n.node, other.pos
+            else n = n.newPos n.node, n.node.length
             while n.pos > 0 && reject n.filter n
               n.pos--
             t.substring 0, t.length - n.node.length + n.pos
@@ -269,22 +298,73 @@ the end if the node ends in a newline)
 
       moveToPrevEnd: -> @prev().moveToEnd()
 
+**forwardWhile** moves forward until the given function is false or 'found',
+returning the previous position if the function is false or the current
+position if the function is 'found'
+
+      forwardWhile: (test)->
+        prev = n = @immutable()
+        while n = n.simpleForwardChar()
+          if n.isEmpty() || !(t = test n) then return prev
+          if t == 'found' then return n
+          prev = n
+
+**checkToEndOfLine** checks whether a condition is true until the EOL
+
+      checkToEndOfLine: (test)->
+        n = @immutable()
+        tp = n.textPosition()
+        while !n.isEmpty() && (test n)
+          if differentLines tp, n.textPosition() then return true
+          n = n.simpleForwardChar()
+        n.isEmpty()
+
+**checkToStartOfLine** checks whether a condition is true until the EOL
+
+      checkToStartOfLine: (test)->
+        n = @immutable()
+        tp = n.textPosition()
+        while !n.isEmpty() && (test n)
+          if differentLines tp, n.textPosition() then return true
+          n = n.simpleBackwardChar()
+        n.isEmpty()
+
+**endOfLine** moves to the end of the current line
+
+      endOfLine: ->
+        tp = @textPosition()
+        @forwardWhile (n)-> !differentLines tp, n.textPosition()
+
 **forwardLine** moves to the next line, trying to keep the current screen pixel column.  Optionally takes a goalFunc that takes the position's screen pixel column as input and returns -1, 0, or 1 from comparing the input to the an goal column
 
       forwardLine: (goalFunc)->
         if !goalFunc then goalFunc = -> -1
-        tp = @textPosition()
         line = 0
-        prev = n = @immutable()
-        while n = n.simpleForwardChar()
-          if n.isEmpty() then return prev
+        tp = @textPosition()
+        @forwardWhile (n)->
           pos = n.textPosition()
           if differentLines tp, pos
             tp = pos
             line++
-          if line == 1 && goalFunc(pos.left + 2) > -1 then return n
-          if line == 2 then return prev
+          if line == 1 && goalFunc(pos.left + 2) > -1 then 'found'
+          else line != 2
+
+**backwardWhile** moves backward until the given function is false or 'found',
+returning the previous position if the function is false or the current
+position if the function is 'found'
+
+      backwardWhile: (test)->
+        prev = n = @immutable()
+        while n = n.simpleBackwardChar()
+          if n.isEmpty() || !(t = test n) then return prev
+          if t == 'found' then return n
           prev = n
+
+**endOfLine** moves to the end of the current line
+
+      startOfLine: ->
+        tp = @textPosition()
+        @backwardWhile (n)-> !differentLines tp, n.textPosition()
 
 **backwardLine** moves to the previous line, trying to keep the current screen pixel column.  Optionally takes a goalFunc that takes the position's screen pixel column as input and returns -1, 0, or 1 from comparing the input to an internal goal column
 
@@ -292,20 +372,19 @@ the end if the node ends in a newline)
         # optional goalFunc takes the position's screen pixel column as input
         # It returns -1, 0, or 1, comparing the input to the internal goal column
         if !goalFunc then goalFunc = -> -1
-        p = @textPosition()
+        tp = @textPosition()
         line = 0
-        prev = n = @immutable()
-        while n = n.simpleBackwardChar()
-          if n.isEmpty() then return prev.adjustBackward()
-          else
-            p2 = n.textPosition()
-            if differentLines p, p2
-              p = p2
-              line++
-            if line == 1 && goalFunc(n.textPosition().left - 2) in [-1, 0] then return n.adjustBackward()
-            else if line == 2 then return prev.adjustBackward()
-          prev = n
-        n
+        (@backwardWhile (n)->
+          pos = n.textPosition()
+          if differentLines tp, pos
+            tp = pos
+            line++
+          if line == 1 && goalFunc(n.textPosition().left - 2) in [-1, 0] then 'found'
+          else line != 2).adjustBackward()
+
+      adjustBackward: ->
+        p = @textPosition()
+        @backwardWhile (n)-> !differentPosition p, n.textPosition()
 
 **forwardChar** move forward by one character (using the filter)
 
@@ -316,7 +395,11 @@ the end if the node ends in a newline)
           if n.isEmpty() || differentPosition p, n.textPosition() then return n
 
       simpleForwardChar: ->
-        if @pos + 1 < @node.length then @newPos @node, @pos + 1 else @next()
+        if @pos + 1 <= @node.length then @newPos @node, @pos + 1 else @next()
+
+      boundedForwardChar: ->
+        n = @save().simpleForwardChar()
+        if n.isEmpty() then n.prev() else n
 
 **backwardChar** move backward by one character (using the filter)
 
@@ -334,14 +417,9 @@ the end if the node ends in a newline)
         if !p.isEmpty() then p.newPos p.node, p.pos  - 1
         else p
 
-      adjustBackward: ->
-        p = @textPosition()
-        n = @immutable()
-        while !n.isEmpty()
-          prev = n
-          n = n.simpleBackwardChar()
-          if n.isEmpty() || differentPosition p, n.textPosition() then return prev
-        n
+      boundedBackwardChar: ->
+        n = @save().simpleBackwardChar()
+        if n.isEmpty() then n.prev() else n
 
 **show** scroll the position into view.  Optionally takes a rectangle representing a toolbar at the top of the page (sorry, this is a bit limited at the moment)
 
@@ -510,9 +588,13 @@ These are available as properties on DOMCursor.
         (type == Node.ELEMENT_NODE && node.offsetHeight == 0)
 
     selectRange = (r)->
-      sel = getSelection()
-      sel.removeAllRanges()
-      sel.addRange r
+      if r
+        debug "select range", r, new Error('trace').stack
+        sel = getSelection()
+        sel.removeAllRanges()
+        sel.addRange r
+
+    debug = (args...)-> if DOMCursor.debug then console.log args...
 
     reject = (filterResult)-> !filterResult || (filterResult in ['quit', 'skip'])
 
@@ -559,7 +641,9 @@ Node location routines
         result
 
     differentPosition = (pos1, pos2)->
-      Math.floor(pos1.left) != Math.floor(pos2.left) || differentLines(pos2, pos1)
+      differentLines(pos2, pos1) ||
+        if pos1.right? && pos2.right? then Math.floor(pos2.right) - 1 <= Math.floor(pos1.left) || Math.floor(pos1.right) - 1 <= Math.floor(pos2.left)
+        else Math.floor(pos1.left) != Math.floor(pos2.left)
 
     differentLines = (pos1, pos2)->
       (pos1.bottom - 4 <= pos2.top) || (pos2.bottom - 4 <= pos1.top)
@@ -569,5 +653,8 @@ Node location routines
     DOMCursor.isCollapsed = isCollapsed
     DOMCursor.selectRange = selectRange
     DOMCursor.getTextPosition = getTextPosition
+    DOMCursor.differentPosition = differentPosition
+    DOMCursor.differentLines = differentLines
+    DOMCursor.debug = false
 
     @DOMCursor = DOMCursor
