@@ -408,11 +408,13 @@ markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
 meatText = (meat)->
   paras = escapeHtml(meat).split /\n\n/
   last = paras.pop()
-  result = _(paras).map((i)-> "<div class='meat-text'>#{i}\n</div>").join "<span class='meat-break'>\n</span>"
+  result = _(paras).map((i)-> "<span class='meat-text#{checkBlankMeat i}'>#{i}\n</span>").join "<span class='meat-break'>\n</span>"
   if last
     if result then result += "<span class='meat-break'>\n</span>"
-    result + "<div class='meat-text'>#{last}</div>"
+    result + "<span class='meat-text#{checkBlankMeat last}'>#{last}</span>"
   else result
+
+checkBlankMeat = (hunk)-> if hunk in ['', '\n'] then " blank" else ""
 
 XmeatText = (meat)->
   paras = escapeHtml(meat).replace /(\n)\n|^\n/g, "$1<span class='meat-break'>\n</span>"
@@ -423,16 +425,19 @@ isExecutable = (org)->
   org instanceof Source && (org.getLanguage() in ['javascript', 'leisure'])
 
 markupFragment = (org, delay, note)->
-  if isCodeBlock org.children[0]
-    {first, name, source, last} = getCodeItems org.children[0]
+  {first, name, source, last} = getCodeItems org.children[0]
+  if source
     if first == name then first = first.next
-    if first == org.children[0] && !last.next
+    if first in [org.children[0], org.children[1]] && !last.next
       prelude = ''
       while first != source
         prelude += first.allText()
         first = first.next
-      return "<span #{orgAttrs org}>#{markupSource source, name, prelude, delay, true}</span>"
+      return "<span #{orgAttrs org}#{blockForLeisure source}>#{markupSource source, name, prelude, delay, true}</span>"
   "<span #{orgAttrs org}>#{(markupNode child, false, delay, note, false, true for child in org.children).join ''}</span>"
+
+blockForLeisure = (source)->
+  if source.getLanguage() == 'leisure' then " class='inline'" else ''
 
 markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
 
@@ -699,50 +704,22 @@ markupCSS = (org, name, doctext, delay, inFragment)->
 dragging = false
 
 markupLeisure = (org, name, doctext, delay, inFragment)->
+  attr = org.attributes()
   lang = org.getLanguage() || ''
-  top = name ? org
-  srcContent = org.content
-  lead = org.text.substring 0, org.contentPos
-  trail = org.text.substring org.contentPos + org.content.length
   lastOrgOffset = org.offset
-  if name then codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'>"
-  else codeBlock = ">"
-  startHtml = "<div "
-  contHtml = "class='codeblock' contenteditable='false' data-lang='#{lang}' #{orgAttrs org}"
-  if view = org.attributes()?.view
-    contHtml = "data-code-view='#{escapeAttr view.trim()}' " + contHtml
-    codeBlock = "#{codeBlock}<span class='hidden'>"
-  contHtml += codeBlock + "<div class='codeborder'></div>"
-  node = org.next
-  intertext = ''
-  finalIntertext = ''
-  resText = ''
-  resOrg = null
-  while node
-    if node instanceof Results
-      lastOrgOffset = node.offset
-      resText = node.text.substring node.contentPos
-      resOrg = node
-      finalIntertext = intertext
-      break
-    else if node instanceof Drawer
-      if node.name.toLowerCase() == 'expected'
-        expected = node
-        lastOrgOffset = node.offset
-        finalIntertext = intertext += escapeHtml node.text
-      else break
-    else if node instanceof Headline || node instanceof Keyword then break
-    else intertext += escapeHtml node.text
-    node = node.next
+  startHtml = "<div class='codeblock' contenteditable='false' data-lang='#{lang}' #{orgAttrs org}"
+  parts = parseSrcBlock org
+  if name then startHtml += " data-org-codeblock='#{escapeAttr name.info.trim()}'"
+  if view = attr?.view
+    return "#{startHtml} data-code-view='#{escapeAttr view.trim()}'>#{simpleLeisure org, doctext, attr, parts}</div>"
+  startHtml += "><div class='codeborder'></div>"
+  {lead, srcContent, trail, resText, intertext, resOrg} = parts
   if name
-    nameM = name.text.match keywordRE
-    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div>#{escapeHtml name.info}</div>#{meatText doctext}</div>"
+    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{nameBoilerplate name}</span><div class='name'>#{escapeHtml name.info}</div>#{meatText doctext}</div>"
   else codeName = "<div class='codename' contenteditable='true'></div>"
-  wrapper = "<table class='codewrapper'><tr>"
-  wrapper += "<td class='code-buttons'>"
-  if testCaseButton = toTestCaseButton org then wrapper += "<div>#{testCaseButton}</div>"
-  if testCaseButton
-    #wrapper += "<div><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-gear'></i><div></div></button></div>"
+  wrapper = "<table class='codewrapper'><tr><td class='code-buttons'>"
+  if testCaseButton = toTestCaseButton org
+    wrapper += "<div>#{testCaseButton}</div>"
     wrapper += "<div><button class='results-indicator' onclick='Leisure.executeCode(event)'><i class='fa fa-gear'></i><div></div></button></div>"
     wrapper += "<div><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'><i class='fa fa-link'></i><i class='fa fa-unlink'></i></span></button></div>"
   if name then wrapper += "<div>#{commentButton name.info.trim()}</div>"
@@ -750,16 +727,68 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   wrapper += codeName
   wrapper += "<div class='hidden' data-source-lead>#{escapeHtml lead}</div>"
   wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
-  #syntax = Highlighting.highlight lang, srcContent
-  #wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{syntax}</div><span class='hidden'>#{escapeHtml trail}</span>"
-  wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText, resOrg
+  wrapper += "<span class='hidden'>#{intertext}</span>" + htmlForResults resText, resOrg
   wrapper += "</td></tr></table>"
-  result = contHtml + wrapper + (if name then "</div>#{commentBlock name.info.trim()}" else "</div>")
+  top = name ? org
   fluff = if top.prev instanceof Source || top.prev instanceof Results then "<div class='fluff' data-newline></div>" else ''
-  inner = fluff + startHtml + result
+  result = startHtml + wrapper + (if name then "</div>#{commentBlock name.info.trim()}" else "</div>")
+  inner = fluff + result
   if view then inner += "</span>"
-  if inFragment then inner
-  else '<div>' + inner + '</div>'
+  "<div></div>" + (if inFragment then inner
+  else '<div>' + inner + '</div>') + "<div></div>"
+
+nameBoilerplate = (name)->
+  if nameM = name.text.match keywordRE then escapeHtml nameM[KW_BOILERPLATE]
+
+parseSrcBlock = (org, name)->
+  result =
+    intertext: ''
+    lead: org.text.substring 0, org.contentPos
+    trail: org.text.substring org.contentPos + org.content.length
+    srcContent: org.content
+  if name
+    result.nameBoilerplate = nameBoilerplate name
+    result.name = name.info
+  node = org.next
+  intertext = ''
+  while node
+    if node instanceof Results
+      lastOrgOffset = node.offset
+      result.resBoilerplate = node.text.substring 0, node.contentPos
+      result.resText = node.text.substring node.contentPos
+      result.resOrg = node
+      result.intertext = intertext
+      break
+    else if node instanceof Drawer
+      if node.name.toLowerCase() == 'expected'
+        lastOrgOffset = node.offset
+        result.intertext = intertext + escapeHtml node.text
+      else break
+    else if node instanceof Headline || node instanceof Keyword
+      break
+    else intertext += escapeHtml node.text
+    node = node.next
+  result
+
+editable = 'contenteditable="true"'
+
+simpleLeisure = (org, doctext, attr, parts)->
+  html = ''
+  html += sourceSpan 'name-boilerplate', parts.nameBoilerplate
+  html += sourceSpan 'name', parts.name
+  html += sourceSpan 'doctext', doctext, meatText
+  html += sourceSpan 'lead', parts.lead
+  html += sourceSpan 'content', parts.srcContent
+  html += sourceSpan 'trail', parts.trail
+  html += sourceSpan 'intertext', parts.intertext
+  html += sourceSpan 'results-boilerplate', parts.resBoilerplate
+  html += sourceSpan 'results', parts.resText
+  html
+
+sourceSpan = (type, content, process)->
+  if content
+    "<span data-source-#{type}>#{(process ? escapeHtml) content}</span>"
+  else ''
 
 updateChannels = (org)-> org instanceof Source && (org.info.match /:update *([^:]*)/)?[1]
 
@@ -2059,3 +2088,4 @@ root.clearCodeAttributes = clearCodeAttributes
 root.addStyles = addStyles
 root.noRenderWhile = noRenderWhile
 root.fancyEnv = orgEnv
+root.unescapeString = unescapeString

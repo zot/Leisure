@@ -372,47 +372,69 @@ splitLines = (str)->
     pos = nl + 1
   result
 
-makeGoalFunc = (domCur, goal)->
-  (col)->
-    o = headlineOffset(domCur, col)
-    if o < goal then -1 else if o == goal then 0 else 1
-
-headlineOffset = (domCur, col)->
+slideColumn = (domCur)->
   if !domCur.hlOff
     domCur.hlOff = $(domCur.node).closest("[data-org-headline='1']")[0].getClientRects()[0].left
-  col - domCur.hlOff
+  domCur.textPosition().left - domCur.hlOff
 
-getMovementGoal = (domCur)-> headlineOffset domCur, domCur.textPosition().left
+moveSelectionForward = -> showCaret moveForward()
 
-moveSelectionUp = (parent, r)->
-  pos = domCursorForCaret()
-  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = getMovementGoal pos
-  goalFunc = makeGoalFunc pos, movementGoal
+moveSelectionDown = -> showCaret moveDown()
+
+moveSelectionBackward = -> showCaret moveBackward()
+
+moveSelectionUp = -> showCaret moveUp()
+
+showCaret = (pos)-> pos.show $("#leisure_bar")[0].getClientRects()[0]
+
+moveForward = ->
+  start = pos = domCursorForCaret().save()
+  while !pos.isEmpty() && domCursorForCaret().equals start
+    pos = pos.forwardChar()
+    pos.moveCaret()
   pos
-    .backwardLine(goalFunc)
-    .moveCaret()
-    .show $("#leisure_bar")[0].getClientRects()[0]
 
-moveSelectionDown = (parent, r)->
-  pos = domCursorForCaret()
-  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = getMovementGoal pos
-  goalFunc = makeGoalFunc pos, movementGoal
+moveBackward = ->
+  start = pos = domCursorForCaret().save()
+  while !pos.isEmpty() && domCursorForCaret().equals start
+    pos = pos.backwardChar()
+    pos.moveCaret()
   pos
-    .forwardLine(goalFunc)
-    .moveCaret()
-    .show $("#leisure_bar")[0].getClientRects()[0]
 
-moveSelectionForward = (parent, r)->
-  pos = domCursorForCaret()
-    .forwardChar()
-    .moveCaret()
-    .show $("#leisure_bar")[0].getClientRects()[0]
+moveDown = ->
+  linePos = prev = pos = domCursorForCaret().save()
+  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = slideColumn pos
+  line = 0
+  while !(pos = moveSelectionForward()).isEmpty()
+    if linePos.differentLines pos
+      line++
+      linePos = pos
+    if line == 2 then return prev.moveCaret()
+    if line == 1 && slideColumn(pos) >= movementGoal
+      return moveToBestPosition pos, prev, linePos
+    prev = pos
+  pos
 
-moveSelectionBackward = (parent, r)->
-  domCursorForCaret()
-    .backwardChar()
-    .moveCaret()
-    .show $("#leisure_bar")[0].getClientRects()[0]
+moveUp = ->
+  linePos = prev = pos = domCursorForCaret().save()
+  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = slideColumn pos
+  line = 0
+  while !(pos = moveBackward()).isEmpty()
+    if linePos.differentLines pos
+      line++
+      linePos = pos
+    if line == 2 then return prev.moveCaret()
+    if line == 1 && slideColumn(pos) <= movementGoal
+      return moveToBestPosition pos, prev, linePos
+    prev = pos
+  pos
+
+# if pos is closer to the goal, return it
+# otherwise move to prev and return prev
+moveToBestPosition = (pos, prev, linePos)->
+  if linePos == pos || Math.abs(slideColumn(pos) - movementGoal) < Math.abs(slideColumn(prev) - movementGoal)
+    pos
+  else prev.moveCaret()
 
 # functions return whether to check for mods
 keyFuncs =
@@ -479,6 +501,7 @@ defaultBindings =
   'RIGHT': keyFuncs.forwardChar
   'TAB': keyFuncs.expandTemplate
   'C-C C-C': keyFuncs.swapMarkup
+
   #'C-F': keyFuncs.forwardChar
   #'C-B': keyFuncs.backwardChar
   #'C-P': keyFuncs.previousLine
@@ -767,8 +790,8 @@ backspace = (parent, event, sel, r, allowBlockCrossing)->
       if t.data == ''
         n = visibleTextNodeAfter parent, t
         if n
-          r.setStart n.node, 0
-          root.modified = n.node
+          r.setStart n, 0
+          root.modified = n
         $(t).remove()
       else
         root.modified = r.startContainer

@@ -1,37 +1,44 @@
 * Short list -- announcement
-- make compiler work for lorg files
+** TODO fix selection bubble in shadow.lorg
+  - in testShadow view definition
+  - beginning of 2nd line (under <span>)
+** TODO fix inline one-liner code boxes
+  - an inline code editor
+  - an inline results box view
+  - an inline code + results view
+  - shortcuts to create the two views
+** TODO make compiler work for lorg files
   - document importing
   - integrate compilation into backend for importing -- keep compiled version in Mongo
-- use CSS selectors for event binding, like Meteor does (kudos to Meteor)
-- use white-space: pre-line for rich text formattting
-- create an STM-like "transaction block" that can redo if there are data conflicts
+** TODO use CSS selectors for event binding, like Meteor does (kudos to Meteor)
+** TODO create an STM-like "transaction block" that can redo if there are data conflicts
   - record ids of data fetched in the block
   - buffer up "puts"
   - send puts to the server along with fetched ids
   - fail if sent ids are not current ones
-- improve monad impl?
+** TODO improve monad impl?
   - should bind.cons just be a map?
   - IO monad could convert values to IOs
     - [(print 1) (print 2)] could print 1 and 2
     - could uncomment and use asIO for this
     - could fix compiler so it works in this model
-- rename "Monad" to "IO" in coffeeScript codebase
-- make sidebars work for any headline level
-- make checkpoint ask for commmit message
-- make revert redefine funcs
-- define showHtml.parseError to show a small error symbol that hover-expands to the message
-- *update jqueryui to get selectmenu widget*
-- warning for potentially misspelled index names
+** TODO rename "Monad" to "IO" in coffeeScript codebase
+** TODO make sidebars work for any headline level
+** TODO make checkpoint ask for commmit message
+** TODO make revert redefine funcs
+** TODO define showHtml.parseError to show a small error symbol that hover-expands to the message
+** TODO *update jqueryui to get selectmenu widget*
+** TODO warning for potentially misspelled index names
   - index defs that refer to empty indexes
   - data index names for indexes that only contain one piece of data
-- disable checkpoint and revert buttons if there are no changes
+** TODO disable checkpoint and revert buttons if there are no changes
   - use the info record to report changes
-- switch from persistent-hash-trie to [[https://github.com/facebook/immutable-js][immutable-js]]
+** TODO switch from persistent-hash-trie to [[https://github.com/facebook/immutable-js][immutable-js]]
   - it's already located in 5-immutable.js
-- attach block documentation/properties to JS/CS functions
+** TODO attach block documentation/properties to JS/CS functions
   - parse code to find function names
   - add properties to funcs after eval
-- use JIT technique for global names?  Maybe V8 will dynamically inline, anyway?
+** TODO use JIT technique for global names?  Maybe V8 will dynamically inline, anyway?
   - when a symbol is *redefined*, increment a version counter
   - mark top-level functions with the version counter value at compile time
   - when a function runs, check the version number
@@ -41,22 +48,30 @@
     - L$_ is the result
   - this allows funcs to resolve global names in advance
   - this trades off one verrsion check for all of the global name function calls
-- some way to control access to the root documents
+** TODO some way to control access to the root documents
   - maybe just a random URL, for now
-- warning for controllers that don't define @initializeView
-- warning for observers that don't define @update
-- fix parsing bugs
+** TODO warning for controllers that don't define @initializeView
+** TODO warning for observers that don't define @update
+** TODO fix parsing bugs
   - * Caveats slide is not parsed as a slide
   - newline at end of list double NL after it is not properly rendered in fancy
-- reactivate note button
-- reactivete selection bubble
-- collaboration
+** TODO reactivate note button
+** TODO reactivete selection bubble
+** TODO collaboration
   - multple documents on a session
   - show users' cursors/selections
   - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)
-- JavaScript/CoffeeScript source blocks
-- fix floaty notes
+** TODO JavaScript/CoffeeScript source blocks
+** TODO fix floaty notes
+** DONE change meat to spans
+   CLOSED: [2014-12-06 Sat 13:12]
+  - markup is breaking
+  - this allows inline views to work
+  - meat-breaks should be paper-thin divs
+** DONE use white-space: pre-line for rich text formattting
+   CLOSED: [2014-12-06 Sat 13:13]
+  - changed approach
 * Milestone features
 - indexedDB reorg
   - use a single db to store all Leisure data for a site
