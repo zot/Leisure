@@ -1,4 +1,4 @@
-    root = (window ? global).Leisure
+    root = Org
 
     {
       Headline,
@@ -9,14 +9,14 @@
       Meat,
       Results,
       parseOrgMode,
-    } = (Org ? window?.Org ? global?.Org)
+    } = Org
 
     {
       safeLoad,
       dump,
-    } = root.yaml
+    } = Yaml
 
-    _L = (Lazy ? window?.Lazy ? global?.Lazy)
+    _L = Lazy
 
     getCodeItems = (org)->
       if !getSourceNodeType org then {}

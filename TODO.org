@@ -1,23 +1,26 @@
 * Short list -- announcement
+** TODO make compiler work for lorg files
+- defs run all the time
+- notebook-only blocks run only in the notebook
+  - HTML & CSS blocks
+- integrate compilation into backend for importing -- keep compiled version in Mongo
+** TODO Document importing
 ** TODO value slider final value isn't always used
 ** TODO fix selection bubble in shadow.lorg
-  - in testShadow view definition
-  - beginning of 2nd line (under <span>)
-** TODO make compiler work for lorg files
-  - document importing
-  - integrate compilation into backend for importing -- keep compiled version in Mongo
+- in testShadow view definition
+- beginning of 2nd line (under <span>)
 ** TODO use CSS selectors for event binding, like Meteor does (kudos to Meteor)
 ** TODO create an STM-like "transaction block" that can redo if there are data conflicts
-  - record ids of data fetched in the block
-  - buffer up "puts"
-  - send puts to the server along with fetched ids
-  - fail if sent ids are not current ones
+- record ids of data fetched in the block
+- buffer up "puts"
+- send puts to the server along with fetched ids
+- fail if sent ids are not current ones
 ** TODO improve monad impl?
-  - should bind.cons just be a map?
-  - IO monad could convert values to IOs
-    - [(print 1) (print 2)] could print 1 and 2
-    - could uncomment and use asIO for this
-    - could fix compiler so it works in this model
+- should bind.cons just be a map?
+- IO monad could convert values to IOs
+  - [(print 1) (print 2)] could print 1 and 2
+  - could uncomment and use asIO for this
+  - could fix compiler so it works in this model
 ** TODO rename "Monad" to "IO" in coffeeScript codebase
 ** TODO make sidebars work for any headline level
 ** TODO make checkpoint ask for commmit message
@@ -25,58 +28,58 @@
 ** TODO define showHtml.parseError to show a small error symbol that hover-expands to the message
 ** TODO *update jqueryui to get selectmenu widget*
 ** TODO warning for potentially misspelled index names
-  - index defs that refer to empty indexes
-  - data index names for indexes that only contain one piece of data
+- index defs that refer to empty indexes
+- data index names for indexes that only contain one piece of data
 ** TODO disable checkpoint and revert buttons if there are no changes
-  - use the info record to report changes
+- use the info record to report changes
 ** TODO switch from persistent-hash-trie to [[https://github.com/facebook/immutable-js][immutable-js]]
-  - it's already located in 5-immutable.js
+- it's already located in 5-immutable.js
 ** TODO attach block documentation/properties to JS/CS functions
-  - parse code to find function names
-  - add properties to funcs after eval
+- parse code to find function names
+- add properties to funcs after eval
 ** TODO use JIT technique for global names?  Maybe V8 will dynamically inline, anyway?
-  - when a symbol is *redefined*, increment a version counter
-  - mark top-level functions with the version counter value at compile time
-  - when a function runs, check the version number
-  - if the function is out of date, recompile it
-  - use new name space for evaluated defs
-    - L_x is a function
-    - L$_ is the result
-  - this allows funcs to resolve global names in advance
-  - this trades off one verrsion check for all of the global name function calls
+- when a symbol is *redefined*, increment a version counter
+- mark top-level functions with the version counter value at compile time
+- when a function runs, check the version number
+- if the function is out of date, recompile it
+- use new name space for evaluated defs
+  - L_x is a function
+  - L$_ is the result
+- this allows funcs to resolve global names in advance
+- this trades off one verrsion check for all of the global name function calls
 ** TODO some way to control access to the root documents
-  - maybe just a random URL, for now
+- maybe just a random URL, for now
 ** TODO warning for controllers that don't define @initializeView
 ** TODO warning for observers that don't define @update
 ** TODO fix parsing bugs
-  - * Caveats slide is not parsed as a slide
-  - newline at end of list double NL after it is not properly rendered in fancy
+- * Caveats slide is not parsed as a slide
+- newline at end of list double NL after it is not properly rendered in fancy
 ** TODO reactivate note button
 ** TODO reactivete selection bubble
 ** TODO collaboration
-  - multple documents on a session
-  - show users' cursors/selections
-  - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
-  - hooks for programs to react to data changes (subscriptions)
+- multple documents on a session
+- show users' cursors/selections
+- react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
+- hooks for programs to react to data changes (subscriptions)
 ** TODO JavaScript/CoffeeScript source blocks
 ** TODO fix floaty notes
 ** DONE change meat to spans
    CLOSED: [2014-12-06 Sat 13:12]
-  - markup is breaking
-  - this allows inline views to work
-  - meat-breaks should be paper-thin divs
+- markup is breaking
+- this allows inline views to work
+- meat-breaks should be paper-thin divs
 ** DONE use white-space: pre-line for rich text formattting
    CLOSED: [2014-12-06 Sat 13:13]
-  - changed approach
+- changed approach
 ** DONE fix inline one-liner code boxes
    CLOSED: [2014-12-07 Sun 13:33]
-  - an inline code editor
-  - an inline results box view
-  - an inline code + results view
-  - shortcuts to create the two views
+- an inline code editor
+- an inline results box view
+- an inline code + results view
+- shortcuts to create the two views
 ** DONE buffered results in fancy mode
    CLOSED: [2014-12-07 Sun 15:06]
-  - put results in all at once instead of incrementally
+- put results in all at once instead of incrementally
 * Milestone features
 - indexedDB reorg
   - use a single db to store all Leisure data for a site

@@ -5798,6 +5798,7 @@
 
 }(this));
 
-if (!(typeof module === "object" && module && module.exports === this)) {
-    (typeof window != 'undefined' ? window : global).Lazy = this.Lazy;
-}
+//if (!(typeof module === "object" && module && module.exports === this)) {
+//    (typeof window != 'undefined' ? window : global).Lazy = this.Lazy;
+//}
+Lazy = this.Lazy;

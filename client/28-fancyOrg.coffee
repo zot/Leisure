@@ -1252,11 +1252,11 @@ handleKey = (div)->(e)->
       root.currentMatch = lineCodeBlockType currentLine div
       if c == ENTER
         e.preventDefault()
-        if n.nodeType == 3 && (s.type == 'Caret' || (s.type == 'Range' && s.anchorNode == s.extentNode))
-          n.data = n.data.substring(0, offset) + '\n\n' + n.data.substring(s.extentOffset)
+        if n.nodeType == Node.TEXT_NODE && (s.type == 'Caret' || (s.type == 'Range' && s.anchorNode == s.extentNode))
+          n.data = n.data.substring(0, offset) + newLinesForNode(n) + n.data.substring(s.extentOffset)
         else
           console.log "INSERT NEWLINE IN NON-TEXT NODE"
-          r.insertNode n = document.createTextNode '\n\n'
+          r.insertNode n = document.createTextNode newLineForNode(n)
           offset = 1
         sel = new SelectionDescriptor n, offset + 1, null, null, $(n).closest('[data-shared]').parent()
         queueKeyCommand -> sel.restore()
@@ -1265,6 +1265,11 @@ handleKey = (div)->(e)->
       else if c == DEL then fancyDel div, e, s, r
       else if el.nodeType == Node.TEXT_NODE && el.data[el.length - 1] == '\n'
         root.checkNewline = el
+
+newLinesForNode = (node)->
+  if $(node).closest('[data-shared]').attr('data-shared') in ['chunk','headline']
+    '\n\n'
+  else '\n'
 
 fancyBackspace = (div, e, s, r)->
   n = s.anchorNode

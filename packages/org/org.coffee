@@ -30,11 +30,9 @@ misrepresented as being the original software.
 # alText() gets its text, plus its childrens'
 #
 
-root = module?.exports ? {}
+root = Org
 
 _ = Lazy
-
-(window ? global).Org = root
 
 todoKeywords = ['TODO', 'DONE']
 
@@ -389,6 +387,7 @@ class Source extends Keyword
     infoPos: @infoPos
     content: @content
     contentPos: @contentPos
+    contentLength: @content.length
 
 class HTML extends Keyword
   constructor: (@text, @offset, @name, @contentPos, @contentLength, @info)-> super @text, @offset, @name, @info

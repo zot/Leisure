@@ -24,6 +24,8 @@ start = ->
 
 if Meteor.isServer
   console.log "MAIN"
+  console.log "FRED ", Fred ? 'null'
+  console.log "TestTunnel ", TestTunnel ? 'null'
   global.GlobalAssets = Assets
 
 if Meteor.isClient
