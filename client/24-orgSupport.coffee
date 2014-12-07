@@ -120,6 +120,7 @@ _ = require 'lodash.min'
   dump,
 } = root.yaml
 
+nbsp = new RegExp (String.fromCharCode 160), 'g'
 PAGEUP = 33
 PAGEDOWN = 34
 editDiv = null
@@ -160,6 +161,8 @@ keyCommands = []
 
 breakPoint = ->
   console.log "break"
+
+replaceNbsp = (txt)-> txt.replace nbsp, ' '
 
 DOMCursor.prototype.filterOrg = -> @addFilter (n)-> !n.hasAttribute('data-nonorg') || 'skip'
 
@@ -1064,7 +1067,7 @@ leisureEnv = (env)->
     runMonad result, env, (results)->
       runNextResult results, env, ->
         setValue 'parser_funcProps', old
-        cont?()
+        cont? env
 
 runNextResult = (results, env, cont)->
   while results != L_nil() && getType(results.head().tail()) == 'left'
@@ -1083,6 +1086,8 @@ jsEnv = (env)->
       @write @presentValue eval text
     catch err
       @write errorDiv err.stack
+    finally
+      cont? env
 
 unknownLanguageEnv = leisureEnv
 
@@ -1278,7 +1283,7 @@ getSource = (node)->
   if node
     txt = $(node).text().substring($(node).find('[data-org-type="text"]').text().length)
     m = txt.match /(^|\n)#\+end_src/i
-    if m then txt.substring(0, m.index) else null
+    if m then replaceNbsp txt.substring(0, m.index) else null
 
 executeSource = (parent, node, cont)->
   if isSourceNode node
@@ -1287,7 +1292,7 @@ executeSource = (parent, node, cont)->
       env = orgEnv(parent, node)
       env.executeText txt, propsFor(node), ->
         if env.changed then edited node
-        cont?()
+        cont? env
     else console.log "No end for src block"
   else getOrgType(node) != 'text' && !isDocNode(node) && executeSource parent, node.parentElement
 
@@ -1296,7 +1301,7 @@ getNodeLang = (node) ->
 
 getNodeSource = (node)->
   if (src = $(node).closest("[data-org-type='source']")).length == 0 then []
-  else [src[0], getOrgText src.find('[data-org-src]')[0]]
+  else [src[0], replaceNbsp getOrgText(src.find('[data-org-src]')[0])]
 
 # given a node, find the enclosing source node and execute it's content as a definition
 executeDef = (node, cont)->

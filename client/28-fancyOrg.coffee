@@ -1380,8 +1380,8 @@ executeSource = (parent, node, cont, skipTests)->
     createResults srcNode
     if text.trim().length
       lang = getNodeLang node
-      orgEnv(parent, srcNode).executeText text.trim(), propsFor(srcNode), ->
-        cont?()
+      orgEnv(parent, srcNode).executeText text.trim(), propsFor(srcNode), (env)->
+        cont? env
         if !skipTests then runAutotests doc
     else if r = $(srcNode).find('[data-results-content]').length then clearResults srcNode
 
@@ -1458,16 +1458,20 @@ orgEnv = (parent, node)->
   if id = $(node).closest('[data-shared]')[0]?.id
     r = -> $("##{id}")[0]
   env = if r?()
-    clearResults r()
+    pendingResults = ''
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
-    write: (str)-> processResults (colonify (String str)), r()
+    write: (str)-> pendingResults += String str
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
+    finishedComputation: ->
+      clearResults r()
+      processResults (colonify pendingResults), r()
   else
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     write: (str)-> console.log colonify str
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
+    finishedComputation: ->
   installEnvLang node, env
   env
 
@@ -1885,9 +1889,10 @@ fancyOrg =
           if presenter.astCodeContains? pos
             shouldRedrawAst = true
           presenter = emptyPresenter
-        executeSource.call this, parent, node, ->
+        executeSource.call this, parent, node, (env)->
           recreateAstButtons code
           if shouldRedrawAst then redrawAst code, pos
+          env.finishedComputation()
           if cont then cont()
   executeDef: fancyExecuteDef
   createResults: createResults
