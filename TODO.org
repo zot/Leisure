@@ -1,6 +1,5 @@
 * Short list -- announcement
-** TODO buffered results in fancy mode
-  - put results in all at once instead of incrementally
+** TODO value slider final value isn't always used
 ** TODO fix selection bubble in shadow.lorg
   - in testShadow view definition
   - beginning of 2nd line (under <span>)
@@ -75,6 +74,9 @@
   - an inline results box view
   - an inline code + results view
   - shortcuts to create the two views
+** DONE buffered results in fancy mode
+   CLOSED: [2014-12-07 Sun 15:06]
+  - put results in all at once instead of incrementally
 * Milestone features
 - indexedDB reorg
   - use a single db to store all Leisure data for a site

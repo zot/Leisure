@@ -943,36 +943,6 @@ recreateAstButtons = (node)->
         cur.parentNode.insertBefore div, cur
       index += codeContent.length + (lines.shift()?.length ? 0)
 
-XrecreateAstButtons = (node)->
-  if !(top = $(node).closest('.codeblock')[0]) then return
-  restorePosition top, ->
-    $(node).find('[data-ast-offset]').remove()
-    t = getOrgText node
-    chunk = /^[^ \n].*$/mg
-    num = /(^|[^0-9.]+)([0-9][0-9.]*|\.[0-9.]+)/mg
-    node.normalize()
-    mchunk = chunk.exec t
-    cur = node.firstChild
-    curStart = 0
-    while cur && mchunk
-      if mchunk.index - curStart > cur.length
-        curStart += cur.length
-        cur = visibleTextNodeAfter parentForNode(cur), cur
-        continue
-      cur = (if mchunk.index > curStart then cur.splitText mchunk.index - curStart else cur)
-      curStart = mchunk.index
-      div = document.createElement 'div'
-      div.setAttribute 'class', 'ast-button'
-      div.setAttribute 'contenteditable', 'false'
-      div.setAttribute 'data-ast-offset', mchunk.index
-      do (d = div, offset = mchunk.index)-> div.onmousedown = (e)->
-        e.preventDefault()
-        e.stopPropagation()
-        showAst d
-      if curStart == 0 then div.setAttribute 'style', 'top: 0'
-      node.insertBefore div, cur
-      mchunk = chunk.exec t
-
 newCodeContent = (name, content)->
   parent = $("[data-org-codeblock='#{name}']")
   if node = parent.find('[data-org-src]')[0]
@@ -1461,11 +1431,11 @@ orgEnv = (parent, node)->
     pendingResults = ''
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
-    write: (str)-> pendingResults += String str
+    write: (str)-> pendingResults += colonify String str
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
     finishedComputation: ->
       clearResults r()
-      processResults (colonify pendingResults), r()
+      processResults pendingResults, r()
   else
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
@@ -1890,9 +1860,9 @@ fancyOrg =
             shouldRedrawAst = true
           presenter = emptyPresenter
         executeSource.call this, parent, node, (env)->
+          env.finishedComputation()
           recreateAstButtons code
           if shouldRedrawAst then redrawAst code, pos
-          env.finishedComputation()
           if cont then cont()
   executeDef: fancyExecuteDef
   createResults: createResults
