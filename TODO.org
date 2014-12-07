@@ -1,12 +1,9 @@
 * Short list -- announcement
+** TODO buffered results in fancy mode
+  - put results in all at once instead of incrementally
 ** TODO fix selection bubble in shadow.lorg
   - in testShadow view definition
   - beginning of 2nd line (under <span>)
-** TODO fix inline one-liner code boxes
-  - an inline code editor
-  - an inline results box view
-  - an inline code + results view
-  - shortcuts to create the two views
 ** TODO make compiler work for lorg files
   - document importing
   - integrate compilation into backend for importing -- keep compiled version in Mongo
@@ -72,6 +69,12 @@
 ** DONE use white-space: pre-line for rich text formattting
    CLOSED: [2014-12-06 Sat 13:13]
   - changed approach
+** DONE fix inline one-liner code boxes
+   CLOSED: [2014-12-07 Sun 13:33]
+  - an inline code editor
+  - an inline results box view
+  - an inline code + results view
+  - shortcuts to create the two views
 * Milestone features
 - indexedDB reorg
   - use a single db to store all Leisure data for a site

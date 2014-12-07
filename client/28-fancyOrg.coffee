@@ -773,21 +773,19 @@ parseSrcBlock = (org, name)->
 editable = 'contenteditable="true"'
 
 simpleLeisure = (org, doctext, attr, parts)->
-  html = ''
-  html += sourceSpan 'name-boilerplate', parts.nameBoilerplate
+  html = sourceSpan 'name-boilerplate', parts.nameBoilerplate
   html += sourceSpan 'name', parts.name
   html += sourceSpan 'doctext', doctext, meatText
   html += sourceSpan 'lead', parts.lead
-  html += sourceSpan 'content', parts.srcContent
+  html += "<div #{orgSrcAttrs org} data-source-content>#{escapeHtml parts.srcContent}</div>"
   html += sourceSpan 'trail', parts.trail
   html += sourceSpan 'intertext', parts.intertext
-  html += sourceSpan 'results-boilerplate', parts.resBoilerplate
-  html += sourceSpan 'results', parts.resText
+  if parts.resText? then html += htmlForViewResults parts.resText, parts.resBoilerplate
   html
 
-sourceSpan = (type, content, process)->
+sourceSpan = (type, content, process, attrs)->
   if content
-    "<span data-source-#{type}>#{(process ? escapeHtml) content}</span>"
+    "<span#{if attrs then ' ' + attrs else ''} data-source-#{type}>#{(process ? escapeHtml) content}</span>"
   else ''
 
 updateChannels = (org)-> org instanceof Source && (org.info.match /:update *([^:]*)/)?[1]
@@ -817,8 +815,7 @@ replaceCodeBlock = (node, text)->
     newNode = $(markupNewNode org, false, true)[0]
     $(node).replaceWith(newNode)
     edited newNode
-    for n in $(newNode).find('.resultscontent')
-      reprocessResults n
+    reprocessResults newNode
     fixupHtml blockElementForNode newNode
     setTimeout (=>
       nn = $(newNode)
@@ -893,8 +890,6 @@ createNextValueSlider = (node, slideFunc, cur)->
           mid)
         numberSpan = $(mid).wrap("<span class='org-num'></span>").parent()[0]
         do (n = numberSpan)-> n.onmousedown = (e)->
-          e.stopPropagation()
-          e.preventDefault()
           showSliderButton node, n, slideFunc
       if !done
         return createNextValueSlider node, slideFunc, cur
@@ -1126,7 +1121,14 @@ defaultMarkup = (org, tag, attrs...)->
 htmlForResults = (text, org)->
   attr = if org?.shared then " id='#{org.nodeId}' data-shared='#{org.shared}'" else ''
   """
-  <div class='coderesults' data-org-type='results'#{attr}><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><div data-nonorg></div><span class='hidden'>#{escapeHtml text}</span></div></div>"""
+  <div class='coderesults' data-org-type='results'#{attr}><span data-results-boilerplate class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><div data-results-display data-nonorg></div><span data-results-content class='hidden'>#{escapeHtml text}</span></div></div>"""
+
+htmlForViewResults = (text, boilerplate)->
+  html = sourceSpan 'results-boilerplate', boilerplate ? '#+RESULTS:\n'
+  html += "<div data-source-results class='resultscontent'><div data-results-display data-nonorg>"
+  for line in splitLines text
+    if line.match /^: / then html += "<div class='resultsline'>#{unescapeString line.substring(2)}</div>"
+  html += "</div><span data-results-content class='hidden'>#{text}</span></div>"
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
@@ -1141,8 +1143,10 @@ nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length -
 
 createResults = (srcNode)->
   srcNode = $(srcNode).closest('.codeblock')
-  if created = (srcNode && !$(srcNode).find('.coderesults').length)
-    $(srcNode).find('.codewrapper').append htmlForResults ''
+  if created = (srcNode && !$(srcNode).find('[data-results-boilerplate]').length)
+    if $(srcNode).is('[data-code-view]')
+      $(srcNode).find('.codewrapper').append htmlForViewResults ''
+    else $(srcNode).find('.codewrapper').append htmlForResults ''
   created
 
 executeCode = (event)->
@@ -1379,7 +1383,7 @@ executeSource = (parent, node, cont, skipTests)->
       orgEnv(parent, srcNode).executeText text.trim(), propsFor(srcNode), ->
         cont?()
         if !skipTests then runAutotests doc
-    else if r = $(srcNode).find('.resultscontent')[0] then clearResults r
+    else if r = $(srcNode).find('[data-results-content]').length then clearResults srcNode
 
 fancyExecuteDef = (node, cont)->
   doc = topNode node
@@ -1394,15 +1398,18 @@ runAutotests = (doc)->
 runTest = (doc, node)-> executeSource doc, node, (if $(node).is("[data-org-results='autotest']") then (-> checkTestResults node)), true
 
 checkTestResults = (node)->
-  node.setAttribute 'data-org-test', (if node.getAttribute('data-org-expected') == $(node).find('.resultscontent').text() then 'pass' else 'fail')
+  node.setAttribute 'data-org-test', (if node.getAttribute('data-org-expected') == $(node).find('[data-results-content]').text() then 'pass' else 'fail')
 
 reprocessResults = (node)->
-  processResults getOrgText(node.firstChild.nextElementSibling), node, true
+  block = $(node).closest('[data-shared]')
+  text = getOrgText block.find('[data-results-content]')[0]
+  clearResults block[0]
+  processResults text, block[0], true
 
 processResults = (str, node, skipText)->
-  resultsNode = node.firstChild
+  resultsNode = $(node).find('[data-results-display]')[0]
   if !skipText
-    node.firstChild.nextElementSibling.textContent += str
+    $(node).find('[data-results-content]')[0].textContent += str
     edited node
   classes = 'resultsline'
   if theme != null then classes = theme + ' ' + classes
@@ -1443,18 +1450,18 @@ newCommentBox = (name, codeId)->
 colonify = (str)-> ': ' + (str.replace /[\n\\]/g, (c)-> if c == '\n' then '\\n' else '\\\\') + '\n'
 
 clearResults = (node)->
-  node.firstChild.innerHTML = ''
-  node.firstChild.nextElementSibling.innerHTML = ''
+  $(node).find('[data-results-display]').html ''
+  $(node).find('[data-results-content]').html ''
 
 # like orgSupport's orgEnv, but wrap the leading ': ' in hidden spans
 orgEnv = (parent, node)->
-  r = node
-  if !$(r).is('.resultscontent') then r = $(r).find('.resultscontent')[0]
-  env = if r
-    clearResults r
+  if id = $(node).closest('[data-shared]')[0]?.id
+    r = -> $("##{id}")[0]
+  env = if r?()
+    clearResults r()
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
-    write: (str)-> processResults (colonify (String str)), r
+    write: (str)-> processResults (colonify (String str)), r()
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
   else
     __proto__: defaultEnv
@@ -1853,7 +1860,7 @@ fancyOrg =
         parent.setAttribute 'maindoc', ''
       hadTarget = target
       target = orgNotebook.installOrgDOM parent, orgNode, orgText, target
-      fixupHtml target || parent
+      fixupHtml target || parent, null
       @newNode target
       if !hadTarget
         @applyShowHidden()
@@ -1867,6 +1874,7 @@ fancyOrg =
     fixupViews target
     createNoteShadows()
   executeSource: (parent, node, cont)->
+    node = $(node).closest('[data-org-type="source"]')[0]
     if isPlainEditing node then plainOrg.executeSource arguments...
     else
       restorePosition null, ->
@@ -1988,7 +1996,7 @@ fixupHtml = (parent, note)->
     createValueSliders node, leisureNumberSlider
   for node in findOrIs findOrIs($(parent), "[data-lang]:not([data-lang='leisure'])"), '[data-org-src]'
     createValueSliders node, regularNumberSlider
-  for node in findOrIs $(parent), '.resultscontent'
+  for node in findOrIs($(parent), '[data-results-content]').closest('[data-shared]')
     reprocessResults node
   createNoteShadows()
   createEditToggleButton parent
@@ -2000,12 +2008,10 @@ fixupHtml = (parent, note)->
   #    .click (e)->
   #      e.preventDefault()
   #      #root.currentMode.createNotes()
-  setTimeout (=>
-    for node in $(parent).find("[data-code-view]")
-      displayCodeView node
-    for node in findOrIs $(parent), '[data-org-comments]'
-      setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
-    ), 1
+  for node in $(parent).find("[data-code-view]")
+    displayCodeView node
+  for node in findOrIs $(parent), '[data-org-comments]'
+    setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
 
 displayCodeView = (node)->
   if node

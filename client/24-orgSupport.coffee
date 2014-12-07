@@ -158,6 +158,9 @@ root.modCancelled = false
 root.currentMatch = null
 keyCommands = []
 
+breakPoint = ->
+  console.log "break"
+
 DOMCursor.prototype.filterOrg = -> @addFilter (n)-> !n.hasAttribute('data-nonorg') || 'skip'
 
 DOMCursor.prototype.filterShared = -> @addFilter (n)-> n.hasAttribute('data-shared')
@@ -941,7 +944,7 @@ checkSourceMod = ->
     bl = $()
     for id in root.currentBlockIds
       bl = bl.add $("##{id}")
-    if isLeisureBlock(bl) && bl[0]?.contains(mod) && bl.find('[data-org-src="dynamic"]').length
+    if isLeisureBlock(bl) && bl[0]?.contains(mod) && bl.find('[data-org-results="dynamic"]').length
       root.orgApi.executeSource bl[0], mod
     if mod then checkStructure mod
 
@@ -1655,6 +1658,7 @@ root.currentSelectionDescriptor = currentSelectionDescriptor
 root.changeSavedSelectionOffset = changeSavedSelectionOffset
 root.queueKeyCommand = queueKeyCommand
 root.updateSelection = updateSelection
+root.breakPoint = breakPoint
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg
