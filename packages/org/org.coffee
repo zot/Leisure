@@ -30,9 +30,9 @@ misrepresented as being the original software.
 # alText() gets its text, plus its childrens'
 #
 
-root = Org
+root = require?('./preamble') ? Org
 
-_ = Lazy
+_ = require?('./lazy') ? Lazy
 
 todoKeywords = ['TODO', 'DONE']
 
@@ -135,9 +135,8 @@ class Node
   fixOffsets: (newOff)->
     @offset = newOff
     if @children then @fixChildrenOffsets()
-    else
-      newOff + @text.length
-  fixChildrenOffsets: ()->
+    else newOff + @allText().length
+  fixChildrenOffsets: ->
     offset = @offset + @text.length
     for child in @children
       offset = child.fixOffsets offset
@@ -635,3 +634,5 @@ root.SRC_BOILERPLATE = SRC_BOILERPLATE
 root.SRC_INFO = SRC_INFO
 root.nextOrgNode = nextOrgNode
 root.AttrHtml = AttrHtml
+
+if require? then module.exports = root

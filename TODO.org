@@ -4,6 +4,11 @@
 - notebook-only blocks run only in the notebook
   - HTML & CSS blocks
 - integrate compilation into backend for importing -- keep compiled version in Mongo
+- in notebooks, newly declared js/cs variables won't add to the scope
+  - use a nested eval function to access private variables
+  - for new code, use parser check for new variables
+    - if there are new variables, generate a new nested eval function
+  - a page refresh will probably be needed if nesting level becomes too great
 ** TODO Document importing
 ** TODO value slider final value isn't always used
 ** TODO fix selection bubble in shadow.lorg

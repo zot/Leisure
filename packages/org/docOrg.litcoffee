@@ -1,4 +1,4 @@
-    root = Org
+    root = require?('./org') ? Org
 
     {
       Headline,
@@ -9,14 +9,14 @@
       Meat,
       Results,
       parseOrgMode,
-    } = Org
+    } = root
 
     {
       safeLoad,
       dump,
-    } = Yaml
+    } = require?('./yaml') ? Yaml
 
-    _L = Lazy
+    _L = require?('./lazy') ? Lazy
 
     getCodeItems = (org)->
       if !getSourceNodeType org then {}
@@ -97,11 +97,11 @@
       if org instanceof Headline
         local = local || (org.level == 1 && org.properties.local)
         children = createChildrenDocs org, local
-        result = if org.level == 0 then (org.children.length && children) || _L([text: '\n', type: 'chunk'])
-        else _L([text: org.text, type: 'headline', level: org.level]).concat children
+        result = if org.level == 0 then (org.children.length && children) || _L([text: '\n', type: 'chunk', offset: org.offset])
+        else _L([text: org.text, type: 'headline', level: org.level, offset: org.offset]).concat children
       else if org instanceof HTML then [result, next] = createHtmlBlockDoc org
       else if isCodeBlock org then [result, next] = createCodeBlockDoc org
-      else result = _L([text: org.allText(), type: 'chunk'])
+      else result = _L([text: org.allText(), type: 'chunk', offset: org.offset])
       if local then result.each (item)-> item.local = true
       [result, next]
 
@@ -109,33 +109,35 @@
       children = _L()
       child = org.children[0]
       mergedText = ''
+      offset = org.children[0].offset
       while child
         if isMergeable child
           mergedText += child.allText()
           child = child.next
         else
-          [mergedText, children] = checkMerged mergedText, children
+          [mergedText, children] = checkMerged mergedText, children, offset
           [childDoc, child] = createOrgDoc child, local
           children = children.concat [childDoc]
-      [mergedText, children] = checkMerged mergedText, children
+          offset = child?.offset
+      [mergedText, children] = checkMerged mergedText, children, offset
       children
 
     isMergeable = (org)-> !(org instanceof Headline || org instanceof HTML || isCodeBlock org)
 
-    checkMerged = (mergedText, children)->
-      if mergedText != '' then children = children.concat [text: mergedText, type: 'chunk']
+    checkMerged = (mergedText, children, offset)->
+      if mergedText != '' then children = children.concat [text: mergedText, type: 'chunk', offset: offset]
       ['', children]
 
     createCodeBlockDoc = (org)->
       text = ''
       {first, name, source, last, expected, results} = getCodeItems org
-      firstOffset = first.offset
-      if !first then [_L([text: org.allText(), type: 'chunk']), org.next]
+      if !first then [_L([text: org.allText(), type: 'chunk', offset: org.offset]), org.next]
       else
+        firstOffset = first.offset
         while first != last.next
           text += first.allText()
           first = first.next
-        obj = text: text, type: 'code'
+        obj = text: text, type: 'code', offset: firstOffset
         obj.codeAttributes = source.attributes()
         obj.codePrelen = source.contentPos + source.offset - firstOffset
         obj.codePostlen = text.length - obj.codePrelen - source.content.length
@@ -158,7 +160,7 @@
 
     createHtmlBlockDoc = (org)->
         text = org.allText()
-        obj = text: text, type: 'code'
+        obj = text: text, type: 'code', offset: org.offset
         obj.codePrelen = org.contentPos
         obj.codePostlen = text.length - obj.codePrelen - org.contentLength
         obj.language = 'html'
@@ -192,3 +194,5 @@
     root.isYaml = isYaml
     root.crnl = crnl
     root.lineCodeBlockType = lineCodeBlockType
+
+    if require? then module.exports = root

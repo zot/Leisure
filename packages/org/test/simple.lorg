@@ -1,0 +1,90 @@
+* slide
+a b
+
+
+
+c d
+
+e f
+#+BEGIN_SRC coffee :results def
+3+4
+#+END_SRC
+#+RESULTS:
+: 7
+
+text
+#+BEGIN_HTML
+test
+#+END_HTML
+
+#+BEGIN_SRC html :defview testShadow
+<span class='test-shadow'><div class='shadow-code'><content select='[data-source-content]'></content></div><span class='shadow-results'>&nbsp;-&gt;&nbsp;<div class='shadow-result'><content select='.resultscontent'></content></div></span></span>
+#+END_SRC
+
+#+BEGIN_SRC css
+[data-code-view='testShadow'] {
+  white-space: normal;
+}
+[data-code-view='testShadow'] [data-source-content],
+[data-code-view='testShadow'] [data-source-results] {
+  display: inline-block;
+  position: relative;
+  min-width: 0;
+  padding: 3px;
+  vertical-align: middle;
+  background: inherit;
+}
+[data-code-view='testShadow'] [data-source-content] {
+  padding-right: 25px;
+}
+[data-results-display]:empty:before {
+  content: ' ';
+}
+/*
+.flat [data-edit-mode='fancy'] [data-code-view='testShadow'] [data-org-src] {
+  background: inherit;
+}
+*/
+body /deep/ .test-shadow {
+  white-space: nowrap;
+}
+body /deep/ .shadow-code {
+  border: solid black 2px;
+  display: inline-block;
+  white-space: pre;
+}
+body /deep/ .shadow-results {
+}
+body /deep/ .shadow-result {
+  border: solid black 2px;
+  display: inline-block;
+  white-space: pre;
+}
+#+END_SRC
+
+
+#+BEGIN_SRC coffee :control testShadow
+{
+  unescapeString,
+  splitLines,
+  restorePosition,
+  orgForNode,
+  getCodeItems,
+  Fragment,
+  breakPoint,
+} = Leisure
+
+@initializeView = (view)->
+  parent = view.parentNode
+  root = parent.createShadowRoot()
+  parent.setAttribute 'contenteditable', true
+  parent.style.minHeight = '0'
+  parent.style.display = 'inline-block'
+  $(view).closest('[data-shared]').removeClass('block')
+  $(parent).find('.resultscontent').attr 'contenteditable', false
+  codeBlock = $(view).closest('.codeblock')
+  root.appendChild view
+  codeBlock.removeClass('codeblock hidden')
+  #breakPoint()
+  if !$(parent).find('[data-source-results]').length then $(view).find('.shadow-results').remove()
+#+END_SRC
