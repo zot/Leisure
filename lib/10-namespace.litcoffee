@@ -7,12 +7,12 @@ Namespace definition
       window.ENV = 'browser'
       window.NW = false
       window.App = {}
-      root = window.Leisure = {}
+      root = window.Leisure = window.Leisure ? {}
     else
       if !global.NW? then global.NW = false
       global.ENV = 'node'
       global.App = {}
-      root = global.Leisure = {}
+      root = global.Leisure = global.Leisure ? {}
 
     delay = (time, func)->
       if typeof time == 'function'

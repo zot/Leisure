@@ -34,6 +34,7 @@ lz = lazy
 _ = require 'lodash.min'
 path = require 'path'
 fs = require 'fs'
+compiler = require 'compiler'
 
 {
   getType,

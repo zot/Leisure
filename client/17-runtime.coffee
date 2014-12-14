@@ -54,7 +54,7 @@ misrepresented as being the original software.
 } = require '16-ast'
 _ = require 'lodash.min'
 amt = require('persistent-hash-trie')
-yaml = require '12-yaml'
+yaml = require 'yaml'
 {
   safeLoad,
   dump,

@@ -7374,8 +7374,10 @@ parseStatement: true, parseSourceElement: true */
     }
 
 this.Yaml = yaml;
-YAML = yaml    
+YAML = yaml;
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"js-yaml":2}]},{},[33]);
 if (typeof module != 'undefined') module.exports = YAML;
+else if (typeof window != 'undefined') window.Yaml = YAML;
+else global.Yaml = YAML;
 return YAML;

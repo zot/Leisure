@@ -3,7 +3,7 @@ dir=$(dirname $(realpath $0))
 getDir() {
     cygpath -d $dir/$1
 }
-export NODE_PATH="$(getDir lib);$(getDir src);$(getDir node_modules);$(getDir ../../../client);$(getDir ../../../lib)"
+export NODE_PATH="$(getDir lib);$(getDir src);$(getDir node_modules);$(getDir ../../../client);$(getDir ../../../lib);$(getDir ../../../packages/org)"
 #exec node --stack-size=3000 "$@"
 x=0
 r=0
