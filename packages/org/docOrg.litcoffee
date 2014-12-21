@@ -108,18 +108,19 @@
     createChildrenDocs = (org, local)->
       children = _L()
       child = org.children[0]
-      mergedText = ''
-      offset = org.children[0].offset
-      while child
-        if isMergeable child
-          mergedText += child.allText()
-          child = child.next
-        else
-          [mergedText, children] = checkMerged mergedText, children, offset
-          [childDoc, child] = createOrgDoc child, local
-          children = children.concat [childDoc]
-          offset = child?.offset
-      [mergedText, children] = checkMerged mergedText, children, offset
+      if child
+        mergedText = ''
+        offset = org.children[0].offset
+        while child
+          if isMergeable child
+            mergedText += child.allText()
+            child = child.next
+          else
+            [mergedText, children] = checkMerged mergedText, children, offset
+            [childDoc, child] = createOrgDoc child, local
+            children = children.concat [childDoc]
+            offset = child?.offset
+        [mergedText, children] = checkMerged mergedText, children, offset
       children
 
     isMergeable = (org)-> !(org instanceof Headline || org instanceof HTML || isCodeBlock org)

@@ -156,8 +156,8 @@ maxLastKeys = 4
 keyCombos = []
 prevKeybinding = curKeyBinding = null
 root.modCancelled = false
-root.currentMatch = null
 keyCommands = []
+root.ignoreModCheck = 0
 
 breakPoint = ->
   console.log "break"
@@ -394,15 +394,15 @@ moveSelectionUp = -> showCaret moveUp()
 showCaret = (pos)-> pos.show $("#leisure_bar")[0].getClientRects()[0]
 
 moveForward = ->
-  start = pos = domCursorForCaret().save()
-  while !pos.isEmpty() && domCursorForCaret().equals start
+  start = pos = domCursorForCaret().firstText().save()
+  while !pos.isEmpty() && domCursorForCaret().firstText().equals start
     pos = pos.forwardChar()
     pos.moveCaret()
   pos
 
 moveBackward = ->
-  start = pos = domCursorForCaret().save()
-  while !pos.isEmpty() && domCursorForCaret().equals start
+  start = pos = domCursorForCaret().firstText().save()
+  while !pos.isEmpty() && domCursorForCaret().firstText().equals start
     pos = pos.backwardChar()
     pos.moveCaret()
   pos
@@ -688,7 +688,6 @@ bindContent = (div)->
   div.addEventListener 'keyup', handleKeyup div
   div.addEventListener 'keydown', (e)->
     root.modCancelled = false
-    root.currentMatch = null
     c = (e.charCode || e.keyCode || e.which)
     if !addKeyPress e, c then return
     s = getSelection()
@@ -700,7 +699,6 @@ bindContent = (div)->
     [bound, checkMod] = findKeyBinding e, div, r
     if bound then root.modCancelled = !checkMod
     else
-      checkMod = modifyingKey c, e
       root.modCancelled = false
     if !bound
       if c == TAB
@@ -709,30 +707,32 @@ bindContent = (div)->
         collapseNode()
       else if String.fromCharCode(c) == 'C' && e.altKey
         root.orgApi.executeSource div, getSelection().focusNode
-      else if c == ENTER
-        e.preventDefault()
-        n = s.focusNode
-        inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
-        if inCollapsedText && r.startOffset == el.length then return
-        # Make sure that newlines at the end of a 'text' span go after the span
-        else if r.collapsed && r.startOffset == n.length && isCollapsibleText n
-          br = document.createTextNode('\n')
-          $(br).prependTo followingSpan n.parentNode
-          r.setStart br, br.length
-          r.setEnd br, br.length
-        else
-          window.N = n
-          r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
-          br.parentNode.normalize()
-        r.collapse()
-        selectRange r
+      else if c == ENTER then handleEnter e, s, '\n'
       else if c == BS then backspace div, e, s, r, true
       else if c == DEL then del div, e, s, r, true
-    if !root.modCancelled && checkMod
-      #root.currentMatch = matchLine currentLine div
-      root.currentMatch = lineCodeBlockType currentLine div
+
+handleEnter = (e, s, newlines)->
+  e.preventDefault()
+  shared = $(s.anchorNode).closest('[data-shared]')[0]
+  pos = getTextPosition shared, s.anchorNode, s.anchorOffset
+  block = getBlock shared.id
+  prev = getBlock block.prev
+  next = getBlock block.next
+  text = block.text
+  main = $(shared).closest('[maindoc]')[0]
+  #mainPos = getTextPosition(main, s.anchorNode, s.anchorOffset) + newlines.length
+  mainPos = getTextPosition(main, s.anchorNode, s.anchorOffset) + 1
+  newBlocks = orgDoc parseOrgMode [prev?.text ? '', text.substring(0, pos), newlines, text.substring(pos, text.length), next?.text ? ''].join ''
+  changeStructure [prev, block, next].filter((x)-> x?), newBlocks
+  domCursorForTextPosition(main, mainPos).moveCaret()
 
 domCursor = (node, pos)-> new DOMCursor(node, pos).filterOrg()
+
+domCursorForText = (node, pos, parent)->
+  c = domCursor node, pos
+    .filterTextNodes()
+    .firstText()
+  if parent? then c.filterParent parent else c
 
 adjustSelection = (e)->
   if e.detail == 1 then return
@@ -875,11 +875,17 @@ blockIdsForSelection = (sel, r)->
 blockElementForNode = (node)-> $(node).closest('[data-shared]')[0]
 
 handleKeyup = (div)-> (e)->
-  #console.log "handle key up"
-  if clipboardKey || (!e.leisureShiftkey && !root.modCancelled && modifyingKey((e.charCode || e.keyCode || e.which), e))
-    if (t = root.checkNewline) && t.data[t.length - 1] != '\n' && noFollowingText t
-      t.parentNode.insertBefore document.createTextNode('\n'), t.nextSibling
-      t.parentNode.normalize()
+  if root.ignoreModCheck then root.ignoreModCheck--
+  else if clipboardKey || (!e.leisureShiftkey && !root.modCancelled && modifyingKey((e.charCode || e.keyCode || e.which), e))
+    if root.checkNewlineChild
+      t = root.checkNewlineChild.childNodes[root.checkNewlineIndex]
+      if t.data[t.data.length - 1] != '\n'
+        s = getSelection()
+        node = s.anchorNode
+        offset = s.anchorOffset
+        t.data += '\n'
+        selectRange nativeRange node, offset
+      root.checkNewlineChild = null
     root.orgApi.checkSourceMod div
     clipboardKey = null
   runKeyCommands()
@@ -953,6 +959,28 @@ checkSourceMod = ->
 
 isLeisureBlock = (bl)-> bl.is("[data-lang='leisure']") || bl.find("[data-lang='leisure']").length > 0
 
+# Change oldBlocks into newBlocks
+# rerender the changed parts of the doc
+changeStructure = (oldBlocks, newBlocks)->
+  for bl in newBlocks
+    bl._id = new Meteor.Collection.ObjectID().toJSONValue()
+  overrides = new Overrides()
+  checkMerge(overrides, fo = oldBlocks[0], newBlocks[0], getBlock(fo.prev), (aux)->
+    aux + newBlocks.shift().text)
+  if !_(newBlocks).isEmpty()
+    checkMerge(overrides, lo = _(oldBlocks).last(), _(newBlocks).last(), getBlock(lo.next), (aux)->
+      newBlocks.pop().text + aux)
+  remapBlocks overrides, oldBlocks, newBlocks
+  rc = createRenderingComputer overrides
+  for id, item of overrides.adds
+    rc.add item
+  for id of overrides.removes
+    rc.remove bl
+  for id, item of overrides.updates
+    rc.change getBlock(id), item
+  commitEdits overrides
+  rc.render()
+
 # Selection should be type Caret, because this should only be called
 # after a textual modification (from typing), which should never preserve a selection
 checkStructure = (node)->
@@ -969,23 +997,9 @@ checkStructure = (node)->
     if next = getBlock(L(blockIds).last()).next then blockIds.push next
     oldBlocks = (getBlock(id) for id in blockIds)
     newBlocks = orgDoc parseOrgMode (blockText($("##{id}")[0]) for id in blockIds).join ''
-    for bl in newBlocks
-      bl._id = new Meteor.Collection.ObjectID().toJSONValue()
-    overrides = new Overrides()
-    checkMerge(overrides, fo = oldBlocks[0], newBlocks[0], getBlock(fo.prev), (aux)->
-      aux + newBlocks.shift().text)
-    if !_(newBlocks).isEmpty()
-      checkMerge(overrides, lo = _(oldBlocks).last(), _(newBlocks).last(), getBlock(lo.next), (aux)->
-        newBlocks.pop().text + aux)
-    remapBlocks overrides, oldBlocks, newBlocks
-    rc = createRenderingComputer overrides
-    rc.add item for id, item of overrides.adds
-    rc.remove getBlock id for id of overrides.removes
-    rc.change getBlock(id), item for id, item of overrides.updates
-    restorePosition null, ->
-      commitEdits overrides
-      rc.render()
-    root.checkNewline = null
+    changeStructure oldBlocks, newBlocks
+    root.checkNewlineChild = null
+
 
 # check whether to merge the new text with the preceding/following old text
 # returns the id of the old block if merge, otherwise the id of the new block
@@ -1180,9 +1194,13 @@ class SelectionDescriptor
           endNode = startNode
           endOffset = startOffset
       if startNode.nodeType == 1
-        [startNode, startOffset] = findDomPosition startNode.childNodes[startOffset], 0
+        c = domCursorForText startNode, startOffset
+        startNode = c.node
+        startOffset = c.pos
       if endNode.nodeType == 1
-        [endNode, endOffset] = findDomPosition endNode.childNodes[endOffset], 0
+        c = domCursorForText endNode, endOffset
+        endNode = c.node
+        endOffset = c.pos
       @ids = []
       n = $(start ? startNode)
       while (n = n.closest '[data-shared]').length
@@ -1358,22 +1376,25 @@ findOrgNode = (parent, pos)->
   org = parseOrgMode getOrgText parent
   orgNode = org.findNodeAt pos
 
+textPositionForDomCursor = (c)->
+  c2 = c.save().firstText()
+  getTextPosition $(c.node).closest('[maindoc]')[0], c2.node, c2.pos
+
 getTextPosition = (parent, target, pos)->
   if parent
-    domCursor parent, 0
+    domCursorForText parent, 0, parent
       .mutable()
-      .filterTextNodes()
-      .filterParent parent
       .countChars target, pos
   else -1
 
 findDomPosition = (parent, pos, contain)->
-  n = domCursor parent, 0
-    .mutable()
-    .filterTextNodes()
-    .filterParent parent
-    .forwardChars pos, contain
+  n = domCursorForTextPosition parent, pos, contain
   if n.isEmpty() then [null, null] else [n.node, n.pos]
+
+domCursorForTextPosition = (parent, pos, contain)->
+  domCursorForText parent, 0, parent
+    .mutable()
+    .forwardChars pos, contain
 
 nonOrg = (node)->
   $(node)
@@ -1417,7 +1438,7 @@ root.orgChildrenForNode = orgChildrenForNode
 
 # return the block text for a node -- just the text that's in its mongo block
 blockText = (node)->
-  domCursor node.firstChild, 0
+  domCursor node, 0
     .mutable()
     .addFilter (n)-> !n.hasAttribute('data-shared') || 'skip'
     .filterParent node
@@ -1664,6 +1685,9 @@ root.changeSavedSelectionOffset = changeSavedSelectionOffset
 root.queueKeyCommand = queueKeyCommand
 root.updateSelection = updateSelection
 root.breakPoint = breakPoint
+root.textPositionForDomCursor = textPositionForDomCursor
+root.domCursorForTextPosition = domCursorForTextPosition
+root.handleEnter = handleEnter
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg

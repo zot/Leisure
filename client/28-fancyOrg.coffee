@@ -60,6 +60,9 @@ yaml = root.yaml
   selectRange,
 } = window.DOMCursor
 {
+  handleEnter,
+  domCursorForCaret,
+  textPositionForDomCursor,
   updateSelection,
   queueKeyCommand,
   SelectionDescriptor,
@@ -171,6 +174,7 @@ emptyPresenter =
   isRelated: -> false
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
+keyupSelectionDescriptor = null
 
 class FancySelectionDescriptor
   constructor: (parent)->
@@ -210,21 +214,6 @@ isParentSelectionOf = (parent, child)-> parent?.parent?.contains child.parent
 restoreStack = []
 
 fancySaveSelection = root.saveSelection
-
-XfancySaveSelection = (parent)->
-  selection = new FancySelectionDescriptor parent
-  slide = slideParent selection.focusNode
-  activeSlideIndex = slideOffset slide
-  if selection.focusNode && activeSlideIndex > -1 && !isParentSelectionOf(_(restoreStack).last(), selection)
-    doc = topNode(slide).parentNode
-    parent = doc.parentNode
-    docPos = childIndex parent, doc
-    currentSlide = slideIndex()
-    ->
-      if doc = parent.children[docPos]
-        if slideMode && currentSlide > -1 then setCurrentSlide getSlides()[currentSlide], true
-        selection.restore 0, doc
-  else ->
 
 root.restorePosition = restorePosition = (parent, block)->
   savePosition fancySaveSelection, block
@@ -296,11 +285,6 @@ getDocumentOffset = (r)->
   while isCollapsed c
     c = textNodeBefore parent, c
   documentTop c
-
-childIndex = (parent, child)->
-  for i in [0...parent.children.length]
-    if parent.children[i] == child then return i
-  return -1
 
 rootNode = (node)->
   while node.parentNode
@@ -500,12 +484,12 @@ markupHeadline = (org, delay, note, replace)->
   editMode = if org.level == 1 then " data-edit-mode='fancy'" else ""
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textborder' contenteditable='false'></div><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span>\n</div></div></span>#{markupGuts org, checkStart start, org.text}</span></div>"
-    else "#{startNewSlide()}<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
+      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='headline-content'><div class='textborder' contenteditable='false'></div><div class='headline-content'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span></div></div><span class='meat-break'>\n</span></span>#{markupGuts org, checkStart start, org.text}</span></div>"
+    else "#{startNewSlide()}<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='headline-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
     slide = if org.text.trim() != ''
-      "<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span>\n</div></span>#{markupGuts org, checkStart start, org.text}</div>"
-    else "<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
+      "<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='headline-content'><div class='headline-content'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span>\n</div></span>#{markupGuts org, checkStart start, org.text}</div>"
+    else "<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='headline-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
     floatize org, slide
     #slide
 
@@ -669,7 +653,7 @@ markupYaml = (org, name, doctext, delay, inFragment)->
   if name
     n = escapeAttr name.info.trim()
     yamlAttr += " data-org-codeblock='#{n}' data-yaml-name='#{n}'"
-  "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight 'yaml',  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span></div>"
+  "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src data-contain>#{Highlighting.highlight 'yaml',  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span></div>"
 
 markupCode = (org, name, doctext, delay, inFragment)->
   [pre, src, post] = getSourceSegments name, org
@@ -682,7 +666,7 @@ markupCode = (org, name, doctext, delay, inFragment)->
   else addAttr = ''
   if (l = source.getLanguage()) #&& !inFragment
     addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
-  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span></div>"
+  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src data-contain>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span></div>"
 
 markupCSS = (org, name, doctext, delay, inFragment)->
   [pre, src, post] = getSourceSegments name, org
@@ -699,9 +683,11 @@ markupCSS = (org, name, doctext, delay, inFragment)->
   if (l = source.getLanguage()) #&& !inFragment
     addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
   cssBlock = nonOrg("<style name='css'#{styleName}>#{src}</style>")[0].outerHTML
-  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span>#{cssBlock}</div>"
+  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src data-contain>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span>#{cssBlock}</div>"
 
 dragging = false
+
+butLast = (str)-> str.substring 0, str.length - 1
 
 markupLeisure = (org, name, doctext, delay, inFragment)->
   attr = org.attributes()
@@ -715,7 +701,7 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   startHtml += "><div class='codeborder'></div>"
   {lead, srcContent, trail, resText, intertext, resOrg} = parts
   if name
-    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{nameBoilerplate name}</span><div class='name'>#{escapeHtml name.info}</div>#{meatText doctext}</div>"
+    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{nameBoilerplate name}</span><div class='name'>#{escapeHtml butLast name.info}</div><span class='meat-break'>\n</span>#{meatText doctext}</div>"
   else codeName = "<div class='codename' contenteditable='true'></div>"
   wrapper = "<table class='codewrapper'><tr><td class='code-buttons'>"
   if testCaseButton = toTestCaseButton org
@@ -726,7 +712,7 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   wrapper += "</td><td class='code-content'>"
   wrapper += codeName
   wrapper += "<div class='hidden' data-source-lead>#{escapeHtml lead}</div>"
-  wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
+  wrapper += "<div #{orgSrcAttrs org} data-contain contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{intertext}</span>" + htmlForResults resText, resOrg
   wrapper += "</td></tr></table>"
   top = name ? org
@@ -777,7 +763,7 @@ simpleLeisure = (org, doctext, attr, parts)->
   html += sourceSpan 'name', parts.name
   html += sourceSpan 'doctext', doctext, meatText
   html += sourceSpan 'lead', parts.lead
-  html += "<div #{orgSrcAttrs org} data-source-content>#{escapeHtml parts.srcContent}</div>"
+  html += "<div #{orgSrcAttrs org} data-contain data-source-content>#{escapeHtml parts.srcContent}</div>"
   html += sourceSpan 'trail', parts.trail
   html += sourceSpan 'intertext', parts.intertext
   if parts.resText? then html += htmlForViewResults parts.resText, parts.resBoilerplate
@@ -928,9 +914,10 @@ recreateAstButtons = (node)->
     index = 0
     while lines.length > 0
       codeContent = lines.shift()
+      nl = lines.shift() ? ""
       if codeContent.trim()
         [cur, offset] = findDomPosition node, index + codeContent.length
-        if offset != 0 then cur.splitText offset
+        cur.splitText offset + 1
         div = document.createElement 'div'
         div.setAttribute 'class', 'ast-button'
         div.setAttribute 'contenteditable', 'false'
@@ -939,9 +926,8 @@ recreateAstButtons = (node)->
           e.preventDefault()
           e.stopPropagation()
           showAst d
-        #if mchunk.index == 0 then div.setAttribute 'style', 'top: 0'
         cur.parentNode.insertBefore div, cur
-      index += codeContent.length + (lines.shift()?.length ? 0)
+      index += codeContent.length + nl.length
 
 newCodeContent = (name, content)->
   parent = $("[data-org-codeblock='#{name}']")
@@ -1216,8 +1202,13 @@ bindContent = (div)->
       setCurKeyBinding null
   div.addEventListener 'mouseup', (e)-> adjustSelection e
   div.addEventListener 'keydown', handleKey div
-  div.addEventListener 'keypress', -> updateSelection()
-  div.addEventListener 'keyup', handleKeyup div
+  div.addEventListener 'keypress', ->
+    updateSelection()
+  oldKeyup = handleKeyup div
+  div.addEventListener 'keyup', (e)->
+    keyupSelectionDescriptor?.restore()
+    keyupSelectionDescriptor = null
+    oldKeyup e
 
 handleKey = (div)->(e)->
   if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
@@ -1228,12 +1219,6 @@ handleKey = (div)->(e)->
   c = (e.charCode || e.keyCode || e.which)
   if !addKeyPress e, c then return
   s = getSelection()
-  #if s.anchorNode.parentNode.getAttribute('class') == 'meat-break' && s.anchorNode == s.extentNode
-  #  r = document.createRange()
-  #  r.setStartAfter s.anchorNode.parentNode
-  #  r.setEndAfter s.anchorNode.parentNode
-  #  s.removeAllRanges()
-  #  s.addRange r
   r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
   root.currentBlockIds = blockIdsForSelection s, r
   [bound, checkMod] = findKeyBinding e, div, r
@@ -1250,21 +1235,20 @@ handleKey = (div)->(e)->
       el = r.startContainer
       root.modified = el
       root.currentMatch = lineCodeBlockType currentLine div
-      if c == ENTER
-        e.preventDefault()
-        if n.nodeType == Node.TEXT_NODE && (s.type == 'Caret' || (s.type == 'Range' && s.anchorNode == s.extentNode))
-          n.data = n.data.substring(0, offset) + newLinesForNode(n) + n.data.substring(s.extentOffset)
-        else
-          console.log "INSERT NEWLINE IN NON-TEXT NODE"
-          r.insertNode n = document.createTextNode newLineForNode(n)
-          offset = 1
-        sel = new SelectionDescriptor n, offset + 1, null, null, $(n).closest('[data-shared]').parent()
-        queueKeyCommand -> sel.restore()
-        sel.restore()
+      if c == ENTER then handleEnter e, s, newLinesForNode el
       else if c == BS then fancyBackspace div, e, s, r
       else if c == DEL then fancyDel div, e, s, r
-      else if el.nodeType == Node.TEXT_NODE && el.data[el.length - 1] == '\n'
-        root.checkNewline = el
+      else
+        el = domCursorForCaret().firstText().node
+        if el.nodeType == Node.TEXT_NODE && el.data[el.length - 1] == '\n'
+          root.checkNewlineChild = el.parentNode
+          root.checkNewlineIndex = childIndex el
+
+childIndex = (el)->
+  count = 0
+  while el = el.previousSibling
+    count++
+  count
 
 newLinesForNode = (node)->
   if $(node).closest('[data-shared]').attr('data-shared') in ['chunk','headline']
@@ -1272,38 +1256,51 @@ newLinesForNode = (node)->
   else '\n'
 
 fancyBackspace = (div, e, s, r)->
-  n = s.anchorNode
-  if !(s.type == 'Caret' && n.type == Node.TEXT_NODE && s.anchorOffset > 0)
-    if s.type == 'Caret' && (b = $(n).closest('.meat-text').prev('.meat-break')[0]) && beginsMeat(s)
-      e.preventDefault()
-      sel = currentSelectionDescriptor()
-      offset = -b.textContent.length
-      pp = b.previousSibling
-      if n.textContent[0] == '\n'
-        n.textContent = n.textContent.substring 1
-        offset--
-      else if isMeatText(pp)
-        txt = pp.textContent
-        if txt.match(/\n$/)
+  c = domCursorForCaret().save()
+  if $(c.node).closest('[data-shared]')[0] != $(c.backwardChar().node).closest('[data-shared]')[0]
+    e.preventDefault()
+    root.ignoreModCheck++
+  else
+    n = s.anchorNode
+    if !(s.type == 'Caret' && n.type == Node.TEXT_NODE && s.anchorOffset > 0)
+      if s.type == 'Caret' && (b = $(n).closest('.meat-text').prev('.meat-break')[0]) && beginsMeat(s)
+        e.preventDefault()
+        sel = currentSelectionDescriptor()
+        offset = -b.textContent.length
+        pp = b.previousSibling
+        if n.textContent[0] == '\n'
+          n.textContent = n.textContent.substring 1
           offset--
-          pp.textContent = txt.substring(0, txt.length - 1)
-      b.remove()
-      sel.restore offset
-      updateSelection()
-    else backspace div, e, s, r
+        else if isMeatText(pp)
+          txt = pp.textContent
+          if txt.match(/\n$/)
+            offset--
+            pp.textContent = txt.substring(0, txt.length - 1)
+        b.remove()
+        sel.restore offset
+        updateSelection()
+      else backspace div, e, s, r
 
 fancyDel = (div, e, s, r)->
-  n = s.anchorNode
-  if !(s.type == 'Caret' && n.type == Node.TEXT_NODE && s.anchorOffset > 0)
-    if s.type == 'Caret' && (b = $(n).closest('.meat-text').next('.meat-break')[0]) && endsMeat(s)
-      e.preventDefault()
-      b.remove()
-      sel = currentSelectionDescriptor()
-      if n.nodeType == Node.ELEMENT_NODE && n.textContent.match /^\s*\n$/ then n.remove()
-      else n.textContent = n.textContent.substring(0, n.length - 1)
-      sel.restore()
-      updateSelection()
-    else del div, e, s, r
+  c = domCursorForCaret().firstText().save()
+  parent = $(c.node).closest('[data-shared]')[0]
+  c2 = c.forwardChar()
+  c3 = c2.forwardChar()
+  if parent != $(c2.node).closest('[data-shared]')[0] || (c.node.data[c.pos] == '\n' && parent != $(c3.node).closest('[data-shared]')[0])
+    e.preventDefault()
+    root.ignoreModCheck++
+  else
+    n = s.anchorNode
+    if !(s.type == 'Caret' && n.type == Node.TEXT_NODE && s.anchorOffset > 0)
+      if s.type == 'Caret' && (b = $(n).closest('.meat-text').next('.meat-break')[0]) && endsMeat(s)
+        e.preventDefault()
+        b.remove()
+        sel = currentSelectionDescriptor()
+        if n.nodeType == Node.ELEMENT_NODE && n.textContent.match /^\s*\n$/ then n.remove()
+        else n.textContent = n.textContent.substring(0, n.length - 1)
+        sel.restore()
+        updateSelection()
+      else del div, e, s, r
 
 beginsMeat = (s)->
   n = s.anchorNode
@@ -1939,7 +1936,7 @@ fancyOrg =
         viewTypeData[block.codeAttributes.defview] = codeString(block).trim()
         viewIdTypes[block._id] = attr.defview
         root.orgApi.defineView block._id
-  updateIndexViews: -> updateIndexViews
+  updateIndexViews: -> restorePosition null, -> updateIndexViews
   updateAllBlocks: ->
     restorePosition null, ->
       console.log "UPDATE ALL"

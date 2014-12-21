@@ -63,6 +63,10 @@ The class...
 
     class DOMCursor
       constructor: (@node, @pos, filter)->
+        if @node instanceof Range
+          filter = @pos
+          @pos = @node.startOffset
+          @node = @node.startContainer
         @pos = @pos ? 0
         @filter = filter || -> true
         @computeType()
@@ -76,11 +80,18 @@ The class...
 
       equals: (other)-> @node == other.node && @pos == other.pos
 
-      newPos: (node, pos)-> new DOMCursor node, pos, @filter
+      newPos: (node, pos)->
+        if node instanceof Range then new DOMCursor node
+        else new DOMCursor node, pos, @filter
 
       textPosition: ->
         if @isEmpty() then null
         else @savedTextPosition ? (@savedTextPosition = getTextPosition @node, @pos)
+
+      isDomCaretTextPosition: ->
+        p = @textPosition()
+        r = document.caretRangeFromPoint p.left, p.top
+        r.startContainer == @node && r.startOffset == @pos
 
 **isEmpty** returns true if the cursor is empty
 
@@ -399,8 +410,8 @@ position if the function is 'found'
         if @pos + 1 <= @node.length then @newPos @node, @pos + 1
         else
           n = this
-          while !n.isEmpty()
-            if (n = @next()).node.length != 0 then break
+          while !(n = n.next()).isEmpty()
+            if n.node.length != 0 then break
           n
 
       boundedForwardChar: ->
@@ -613,7 +624,7 @@ Node location routines
       if offset < textNode.length
         spareRange.setStart textNode, offset
         spareRange.setEnd textNode, offset + 1
-        r = getTopClientRect spareRange
+        r = getClientRect spareRange
         if !r || (r.width == 0 && r.height == 0)
           spareRange.selectNodeContents textNode.parentNode
           if spareRange.getClientRects().length == 0
@@ -621,7 +632,7 @@ Node location routines
       else
         spareRange.setStart textNode, offset
         spareRange.collapse true
-        r = getTopClientRect spareRange
+        r = getClientRect spareRange
       if !r || (r.width == 0 && r.height == 0)
         if offset == 0 then textNode.parentNode.insertBefore positioner, textNode
         else if offset == textNode.length || textNode.splitText offset
@@ -632,16 +643,22 @@ Node location routines
         textNode.parentNode.normalize()
       r
 
-    getTopClientRect = (r)->
+    chooseUpper = (r1, r2)-> r1.top < r2.top
+
+    chooseLower = (r1, r2)-> r1.top > r2.top
+
+    getClientRect = (r)->
       rects = r.getClientRects()
       if rects.length == 1 then rects[0]
-      else if rects.length > 1
+      else if rects.length == 2
         result = rects[0]
+        comp = if r.startContainer.data[r.startOffset] == '\n' then chooseUpper
+        else chooseLower
         for rect in rects
-          if rect.top < result.top then result = rect
+          if comp rect, result then result = rect
         result
       else emptyRect
-
+        
     differentPosition = (pos1, pos2)->
       differentLines(pos2, pos1) ||
         if pos1.right? && pos2.right?

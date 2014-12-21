@@ -1,4 +1,22 @@
 * Short list -- announcement
+** TODO fix up backspace/del to check org text
+- deleting newlines should regen the HTML
+- fancy deletes before or after the current block should be disallowed
+** TODO merge root.modCancelled wth root.ignoreModCheck
+** TODO code view doesn't handle rapid typing when there are numbers and operators
+** TODO AST buttons are horked for code containing blank lines
+** TODO pop up a toolbar for code blocks
+** TODO make the selection bubble pop up a toolbar
+** TODO allow views to markup headlines
+- use shadow to rearrange parts, etc. like
+- simplify markup for views based on chunks
+  - headline boilerplate
+  - headline content
+  - headline tags
+  - headline properties
+  - headline contents
+    - meat
+    - other headlines
 ** TODO make compiler work for lorg files
 - defs run all the time
 - notebook-only blocks run only in the notebook
@@ -68,6 +86,20 @@
 - hooks for programs to react to data changes (subscriptions)
 ** TODO JavaScript/CoffeeScript source blocks
 ** TODO fix floaty notes
+** DONE error adding newline after headline in fancy mode
+   CLOSED: [2014-12-21 Sun 19:36]
+- headline is immediately followed by an HTML block
+** DONE check out CKEditor
+   CLOSED: [2014-12-21 Sun 19:37]
+Didn't see an easy way to programmatically define widgets -- need to make files
+- inline mode: [[http://ckeditor.com/demo#inline]]
+- use [[http://nightly.ckeditor.com/14-12-17-07-09/standard/samples/datafiltering.html][advanced content filter]] for supported markup
+- use [[http://stackoverflow.com/a/17760912/1026782][dataProcessor]] to convert HTML/orgFile
+- bind arrow keys in editor to move between regions
+- make HTML blocks explicitly create an HTML chunk
+- blank lines make paragraphs so blocks can be inline
+  - like [[http://localhost:3000/#load=/shadow.lorg][the html block in this page]]
+- use contenteditable to selectively allow editing in source views, etc.
 ** DONE change meat to spans
    CLOSED: [2014-12-06 Sat 13:12]
 - markup is breaking
