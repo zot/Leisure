@@ -89,7 +89,6 @@ yaml = root.yaml
   modifyingKey,
   handleKeyup,
   backspace,
-  del,
   getOrgParent,
   getOrgType,
   executeDef,
@@ -1204,14 +1203,25 @@ bindContent = (div)->
     if replaceUnrelatedPresenter e.target, emptyPresenter
       setCurKeyBinding null
   div.addEventListener 'mouseup', (e)-> adjustSelection e
-  div.addEventListener 'keydown', handleKey div
-  div.addEventListener 'keypress', ->
+  div.addEventListener 'keydown', handleSpecialKeys div
+  hk = handleKey div
+  div.addEventListener 'keypress', (e)->
+    hk e
     updateSelection()
   oldKeyup = handleKeyup div
   div.addEventListener 'keyup', (e)->
     keyupSelectionDescriptor?.restore()
     keyupSelectionDescriptor = null
     oldKeyup e
+
+handleSpecialKeys = (div)->(e)->
+  if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
+    return
+  c = (e.charCode || e.keyCode || e.which)
+  s = getSelection()
+  r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
+  if c == BS then fancyBackspace div, e, s, r
+  else if c == DEL then fancyDel div, e, s, r
 
 handleKey = (div)->(e)->
   if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
@@ -1259,6 +1269,7 @@ whitespaceEnd = /(\n | )*(\n*)$/
 fancyBackspace = (div, e, s, r)->
   handleDelete e, s, false, (text, pos)->
     if pos == 0 then false
+    else if $(s.anchorNode).closest('.code-content').length then true
     else
       [start, stop] = if text[pos - 1] in [' ', '\n']
         fore = text.substring 0, pos
@@ -1277,6 +1288,7 @@ fancyDel = (div, e, s, r)->
   # doesn't update the DOM in time and pos isn't changing
   handleDelete e, s, true, (text, pos)->
     if isEmptyText text then [0, '']
+    else if $(s.anchorNode).closest('.code-content').length then pos < text.length - 1
     else
       [start, stop] = if text[pos] != '\n' then [pos, pos + 1]
       else if text[pos + 1] == '\n' then [pos, pos + 2]

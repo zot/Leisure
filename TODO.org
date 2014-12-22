@@ -1,8 +1,9 @@
 * Short list -- announcement
-** TODO handle inserts with org change/regen
-** TODO typing a character on the first new blank line adds another blank line
+** TODO bad behavior after editing 3 + 4
+- delete and reinsert space
+- moving forward at EOL requires two key presses
+- AST buttons hork
 ** TODO merge root.modCancelled wth root.ignoreModCheck
-** TODO code view doesn't handle rapid typing when there are numbers and operators
 ** TODO AST buttons are horked for code containing blank lines
 ** TODO pop up a toolbar for code blocks
 ** TODO make the selection bubble pop up a toolbar
@@ -85,6 +86,12 @@
 - hooks for programs to react to data changes (subscriptions)
 ** TODO JavaScript/CoffeeScript source blocks
 ** TODO fix floaty notes
+** DONE code view doesn't handle rapid typing when there are numbers and operators
+   CLOSED: [2014-12-22 Mon 21:00]
+** DONE typing a character on the first new blank line adds another blank line
+   CLOSED: [2014-12-22 Mon 20:50]
+** DONE handle inserts with org change/regen
+   CLOSED: [2014-12-22 Mon 20:50]
 ** DONE you can delete the newline before the inline html in shadow.lorg, fancy mode
    CLOSED: [2014-12-22 Mon 10:17]
 ** DONE fix up backspace/del to check org text

@@ -687,6 +687,12 @@ bindContent = (div)->
   div.addEventListener 'mouseup', (e)-> adjustSelection e
   div.addEventListener 'keyup', handleKeyup div
   div.addEventListener 'keydown', (e)->
+    c = (e.charCode || e.keyCode || e.which)
+    s = getSelection()
+    r = s.rangeCount > 0 && s.getRangeAt(0)
+    if c == BS then backspace div, e, s, r, true
+    else if c == DEL then del div, e, s, r, true
+  div.addEventListener 'keypress', (e)->
     root.modCancelled = false
     c = (e.charCode || e.keyCode || e.which)
     if !addKeyPress e, c then return
