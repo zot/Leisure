@@ -688,10 +688,15 @@ bindContent = (div)->
   div.addEventListener 'keyup', handleKeyup div
   div.addEventListener 'keydown', (e)->
     c = (e.charCode || e.keyCode || e.which)
+    if !addKeyPress e, c then return
     s = getSelection()
     r = s.rangeCount > 0 && s.getRangeAt(0)
-    if c == BS then backspace div, e, s, r, true
-    else if c == DEL then del div, e, s, r, true
+    [bound, checkMod] = findKeyBinding e, div, r
+    if bound then root.modCancelled = !checkMod
+    else root.modCancelled = false
+    if !bound
+      if c == BS then backspace div, e, s, r, true
+      else if c == DEL then del div, e, s, r, true
   div.addEventListener 'keypress', (e)->
     root.modCancelled = false
     c = (e.charCode || e.keyCode || e.which)
@@ -704,8 +709,7 @@ bindContent = (div)->
     par = el.parentNode
     [bound, checkMod] = findKeyBinding e, div, r
     if bound then root.modCancelled = !checkMod
-    else
-      root.modCancelled = false
+    else root.modCancelled = false
     if !bound
       if c == TAB
         e.preventDefault()

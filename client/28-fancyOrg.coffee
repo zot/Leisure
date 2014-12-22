@@ -1218,8 +1218,14 @@ handleSpecialKeys = (div)->(e)->
   if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
     return
   c = (e.charCode || e.keyCode || e.which)
+  if !addKeyPress e, c then return
   s = getSelection()
   r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
+  [bound, checkMod] = findKeyBinding e, div, r
+  if bound then root.modCancelled = !checkMod
+  else
+    checkMod = modifyingKey c, e
+    root.modCancelled = false
   if c == BS then fancyBackspace div, e, s, r
   else if c == DEL then fancyDel div, e, s, r
 
