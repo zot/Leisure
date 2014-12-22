@@ -61,6 +61,7 @@ yaml = root.yaml
 } = window.DOMCursor
 {
   handleEnter,
+  handleDelete,
   domCursorForCaret,
   textPositionForDomCursor,
   updateSelection,
@@ -393,15 +394,12 @@ meatText = (meat)->
   paras = escapeHtml(meat).split /\n\n/
   last = paras.pop()
   result = _(paras).map((i)-> "<span class='meat-text#{checkBlankMeat i}'>#{i}\n</span>").join "<span class='meat-break'>\n</span>"
+  if result then result += "<span class='meat-break'>\n</span>"
   if last
-    if result then result += "<span class='meat-break'>\n</span>"
     result + "<span class='meat-text#{checkBlankMeat last}'>#{last}</span>"
   else result
 
 checkBlankMeat = (hunk)-> if hunk in ['', '\n'] then " blank" else ""
-
-XmeatText = (meat)->
-  paras = escapeHtml(meat).replace /(\n)\n|^\n/g, "$1<span class='meat-break'>\n</span>"
 
 isLeisure = (org)-> org instanceof Source && org.getLanguage().toLowerCase() == 'leisure'
 
@@ -1255,52 +1253,37 @@ newLinesForNode = (node)->
     '\n\n'
   else '\n'
 
+whitespaceStart = /^(|\n|\n\n)( \n| )*/
+
 fancyBackspace = (div, e, s, r)->
-  c = domCursorForCaret().save()
-  if $(c.node).closest('[data-shared]')[0] != $(c.backwardChar().node).closest('[data-shared]')[0]
-    e.preventDefault()
-    root.ignoreModCheck++
-  else
-    n = s.anchorNode
-    if !(s.type == 'Caret' && n.type == Node.TEXT_NODE && s.anchorOffset > 0)
-      if s.type == 'Caret' && (b = $(n).closest('.meat-text').prev('.meat-break')[0]) && beginsMeat(s)
-        e.preventDefault()
-        sel = currentSelectionDescriptor()
-        offset = -b.textContent.length
-        pp = b.previousSibling
-        if n.textContent[0] == '\n'
-          n.textContent = n.textContent.substring 1
-          offset--
-        else if isMeatText(pp)
-          txt = pp.textContent
-          if txt.match(/\n$/)
-            offset--
-            pp.textContent = txt.substring(0, txt.length - 1)
-        b.remove()
-        sel.restore offset
-        updateSelection()
-      else backspace div, e, s, r
+  handleDelete e, s, false, (text, pos)->
+    if pos == 0 then false
+    else
+      [start, stop] = if text[pos - 1] in [' ', '\n']
+        fore = text.substring 0, pos
+        ws = (m = fore.match(whitespaceEnd))?[0] ? ''
+        nls = m?[2] ? ''
+        if nls.length > 3 then [pos - 2, pos]
+        else [pos - ws.length, pos]
+      else [pos - 1, pos]
+      result = text.substring(0, start) + text.substring stop
+      if isEmptyText result then [0, ''] else start < text.length - 1 && [start, result]
+
+isEmptyText = (text)-> text in ['\n', '\n\n']
 
 fancyDel = (div, e, s, r)->
-  c = domCursorForCaret().firstText().save()
-  parent = $(c.node).closest('[data-shared]')[0]
-  c2 = c.forwardChar()
-  c3 = c2.forwardChar()
-  if parent != $(c2.node).closest('[data-shared]')[0] || (c.node.data[c.pos] == '\n' && parent != $(c3.node).closest('[data-shared]')[0])
-    e.preventDefault()
-    root.ignoreModCheck++
-  else
-    n = s.anchorNode
-    if !(s.type == 'Caret' && n.type == Node.TEXT_NODE && s.anchorOffset > 0)
-      if s.type == 'Caret' && (b = $(n).closest('.meat-text').next('.meat-break')[0]) && endsMeat(s)
-        e.preventDefault()
-        b.remove()
-        sel = currentSelectionDescriptor()
-        if n.nodeType == Node.ELEMENT_NODE && n.textContent.match /^\s*\n$/ then n.remove()
-        else n.textContent = n.textContent.substring(0, n.length - 1)
-        sel.restore()
-        updateSelection()
-      else del div, e, s, r
+  # do delete manually here because using repeat
+  # doesn't update the DOM in time and pos isn't changing
+  handleDelete e, s, true, (text, pos)->
+    if isEmptyText text then [0, '']
+    else
+      [start, stop] = if text[pos] != '\n' then [pos, pos + 1]
+      else if text[pos + 1] == '\n' then [pos, pos + 2]
+      else if text[pos - 1] == '\n' then [pos - 1, pos + 1]
+      else [pos, pos + 1]
+      if stop < text.length
+        result = [start, text.substring(0, start) + text.substring stop]
+        if isEmptyText result then [0, ''] else result
 
 beginsMeat = (s)->
   n = s.anchorNode

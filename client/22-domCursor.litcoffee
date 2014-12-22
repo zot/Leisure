@@ -93,6 +93,12 @@ The class...
         r = document.caretRangeFromPoint p.left, p.top
         r.startContainer == @node && r.startOffset == @pos
 
+**Character** returns the character at the position
+
+      character: ->
+        p = if @type == 'text' then this else @save().firstText()
+        p.node[p.pos]
+
 **isEmpty** returns true if the cursor is empty
 
       isEmpty: -> @type == 'empty'

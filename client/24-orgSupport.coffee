@@ -710,6 +710,16 @@ bindContent = (div)->
       else if c == ENTER then handleEnter e, s, '\n'
       else if c == BS then backspace div, e, s, r, true
       else if c == DEL then del div, e, s, r, true
+      else handleInsert e, s, c
+
+handleInsert = (e, s, c)->
+  if s.type == 'Caret'
+    e.preventDefault()
+    holder = $(s.anchorNode).closest('[data-shared]')[0]
+    block = getBlock holder.id
+    pos = getTextPosition holder, s.anchorNode, s.anchorOffset
+    root.ignoreModCheck = root.ignoreModCheck || 1
+    editBlock [block], pos, pos, String.fromCharCode(c), pos + 1
 
 handleEnter = (e, s, newlines)->
   e.preventDefault()
@@ -722,9 +732,49 @@ handleEnter = (e, s, newlines)->
   main = $(shared).closest('[maindoc]')[0]
   #mainPos = getTextPosition(main, s.anchorNode, s.anchorOffset) + newlines.length
   mainPos = getTextPosition(main, s.anchorNode, s.anchorOffset) + 1
-  newBlocks = orgDoc parseOrgMode [prev?.text ? '', text.substring(0, pos), newlines, text.substring(pos, text.length), next?.text ? ''].join ''
-  changeStructure [prev, block, next].filter((x)-> x?), newBlocks
+  changeStructure [prev, block, next].filter((x)-> x?), [prev?.text ? '', text.substring(0, pos), newlines, text.substring(pos, text.length), next?.text ? ''].join ''
   domCursorForTextPosition(main, mainPos).moveCaret()
+
+handleDelete = (e, s, forward, del)->
+  if s.type == 'Caret'
+    c = domCursorForCaret().firstText()
+    shared = $(c.node).closest('[data-shared]')[0]
+    block = getBlock shared.id
+    pos = getTextPosition shared, c.node, c.pos
+    result = del block.text, pos
+    if result instanceof Array
+      [caret, newText] = result
+      root.ignoreModCheck = root.ignoreModCheck || 1
+      e.preventDefault()
+      blocks = []
+      if block.prev
+        blocks.push bl = getBlock block.prev
+        newText = bl.text + newText
+      blocks.push block
+      if block.next
+        blocks.push bl = getBlock block.next
+        newText += bl.text
+      main = $(shared).closest('[maindoc]')[0]
+      saveC = domCursor(shared, 0).firstText()
+      save = getTextPosition(main, saveC.node, saveC.pos) + caret
+      changeStructure blocks, newText
+      domCursorForTextPosition(main, save).moveCaret()
+    else if !result
+      root.ignoreModCheck = root.ignoreModCheck || 1
+      e.preventDefault()
+
+editBlock = (blocks, start, end, newContent, caret)->
+  oldText = (block.text for block in blocks).join ''
+  newText = oldText.substring(0, start) + newContent + oldText.substring end
+  top = $("#blocks[0]._id").closest("[maindoc]")
+  bl = blocks.slice()
+  changeStructure blocks, newText
+  if caret?
+    if prev = getBlock bl[0].prev
+      c = domCursor $("##{bl[0].prev}")[0], 0
+      c = c.forwardChars prev.text.length
+    else c = domCusor top.find('[data-shared]')[0]
+    c.forwardChars(caret).moveCaret()
 
 domCursor = (node, pos)-> new DOMCursor(node, pos).filterOrg()
 
@@ -767,68 +817,14 @@ handleDrop = (e)->
   actualSelectionUpdate()
 
 backspace = (parent, event, sel, r, allowBlockCrossing)->
-  event.preventDefault()
-  if sel.type == 'Range'
-    sel.getRangeAt(0).deleteContents()
-  else if sel.type == 'Caret'
-    r.startContainer.parentNode.normalize()
-    # get new range in case normalization changed it
-    r = sel.getRangeAt 0
-    if r.startOffset == 0
-      if t = textNodeBefore parent, r.startContainer
-        if isCollapsed(t) || (!allowBlockCrossing && afterBlockBorder r) then return
-        if t && parent.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_CONTAINED_BY
-          root.currentMatch = lineCodeBlockType lineForRange t, t.length - 1
-          if t.length == 1
-            root.modified = r.startContainer
-            $(t).remove()
-          else
-            root.modified = t
-            t.data = t.data.substring 0, t.length - 1
-            r.startOffset = r.startOffset - 1
-            setCaret r
-    else
-      t = r.startContainer
-      offset = r.startOffset
-      txt = t.data.substring(0, offset - 1)
-      if offset < t.length then txt += t.data.substring offset
-      t.data = txt
-      if t.data == ''
-        n = visibleTextNodeAfter parent, t
-        if n
-          r.setStart n, 0
-          root.modified = n
-        $(t).remove()
-      else
-        root.modified = r.startContainer
-        r.setStart t, offset - 1
-      setCaret r
+  holder = $(sel.anchorNode).closest('[data-shared]')[0]
+  root.currentBlockIds = [(getBlock holder.id)._id]
+  handleDelete event, sel, false, (text, pos)-> true
 
 del = (parent, event, sel, r, allowBlockCrossing)->
-  event.preventDefault()
-  if sel.type == 'Range'
-    sel.getRangeAt(0).deleteContents()
-  else if sel.type == 'Caret'
-    if r.startContainer.nodeType != Node.TEXT_NODE
-      console.log "NOT A TEXT NODE"
-    r.startContainer.parentNode.normalize()
-    # get new range in case normalization changed it
-    r = sel.getRangeAt 0
-    root.modified = t = r.startContainer
-    next = textNodeAfter parent, t
-    chooseNext = false
-    offset = r.startOffset
-    if r.startOffset == t.length - 1
-      if t.data[r.startOffset] == '\n'
-        console.log 'newline'
-      if t.data[r.startOffset] == '\n' && (isCollapsed(next) || (!allowBlockCrossing && beforeBlockBorder parent, r))
-        return root.modCancelled = true
-    t.data = t.data.substring(0, r.startOffset) + t.data.substring r.startOffset + 1
-    r.setStart t, offset
-    if r.startOffset == t.length
-      if isCollapsed next then next = visibleTextNodeAfter parent, next
-      r.setStart next, 0
-    setCaret r
+  holder = $(sel.anchorNode).closest('[data-shared]')[0]
+  root.currentBlockIds = [(getBlock holder.id)._id]
+  handleDelete event, sel, true, (text, pos)-> true
 
 beforeBlockBorder = (parent, r)->
   t = r.startContainer
@@ -875,8 +871,8 @@ blockIdsForSelection = (sel, r)->
 blockElementForNode = (node)-> $(node).closest('[data-shared]')[0]
 
 handleKeyup = (div)-> (e)->
-  if root.ignoreModCheck then root.ignoreModCheck--
-  else if clipboardKey || (!e.leisureShiftkey && !root.modCancelled && modifyingKey((e.charCode || e.keyCode || e.which), e))
+  if ignoreModCheck = root.ignoreModCheck then root.ignoreModCheck--
+  if clipboardKey || (!e.leisureShiftkey && !root.modCancelled && modifyingKey((e.charCode || e.keyCode || e.which), e))
     if root.checkNewlineChild
       t = root.checkNewlineChild.childNodes[root.checkNewlineIndex]
       if t.data[t.data.length - 1] != '\n'
@@ -886,7 +882,7 @@ handleKeyup = (div)-> (e)->
         t.data += '\n'
         selectRange nativeRange node, offset
       root.checkNewlineChild = null
-    root.orgApi.checkSourceMod div
+    root.orgApi.checkSourceMod div, ignoreModCheck
     clipboardKey = null
   runKeyCommands()
 
@@ -947,7 +943,7 @@ collapseNode = ->
       modifying = false
     else status "EMPTY ENTRY"
 
-checkSourceMod = ->
+checkSourceMod = (div, ignore)->
   if (el = getDeepestActiveElement()) && el.nodeName.match /input/i then return
   if (s = getSelection()).type == 'Caret' && mod = s.getRangeAt(0).startContainer
     bl = $()
@@ -955,31 +951,9 @@ checkSourceMod = ->
       bl = bl.add $("##{id}")
     if isLeisureBlock(bl) && bl[0]?.contains(mod) && bl.find('[data-org-results="dynamic"]').length
       root.orgApi.executeSource bl[0], mod
-    if mod then checkStructure mod
+    if mod && !ignore then checkStructure mod
 
 isLeisureBlock = (bl)-> bl.is("[data-lang='leisure']") || bl.find("[data-lang='leisure']").length > 0
-
-# Change oldBlocks into newBlocks
-# rerender the changed parts of the doc
-changeStructure = (oldBlocks, newBlocks)->
-  for bl in newBlocks
-    bl._id = new Meteor.Collection.ObjectID().toJSONValue()
-  overrides = new Overrides()
-  checkMerge(overrides, fo = oldBlocks[0], newBlocks[0], getBlock(fo.prev), (aux)->
-    aux + newBlocks.shift().text)
-  if !_(newBlocks).isEmpty()
-    checkMerge(overrides, lo = _(oldBlocks).last(), _(newBlocks).last(), getBlock(lo.next), (aux)->
-      newBlocks.pop().text + aux)
-  remapBlocks overrides, oldBlocks, newBlocks
-  rc = createRenderingComputer overrides
-  for id, item of overrides.adds
-    rc.add item
-  for id of overrides.removes
-    rc.remove bl
-  for id, item of overrides.updates
-    rc.change getBlock(id), item
-  commitEdits overrides
-  rc.render()
 
 # Selection should be type Caret, because this should only be called
 # after a textual modification (from typing), which should never preserve a selection
@@ -1000,6 +974,28 @@ checkStructure = (node)->
     changeStructure oldBlocks, newBlocks
     root.checkNewlineChild = null
 
+# Change oldBlocks into newBlocks
+# rerender the changed parts of the doc
+changeStructure = (oldBlocks, newBlocks)->
+  if typeof newBlocks == 'string' then newBlocks = orgDoc parseOrgMode newBlocks
+  for bl in newBlocks
+    bl._id = new Meteor.Collection.ObjectID().toJSONValue()
+  overrides = new Overrides()
+  checkMerge(overrides, fo = oldBlocks[0], newBlocks[0], getBlock(fo.prev), (aux)->
+    aux + newBlocks.shift().text)
+  if !_(newBlocks).isEmpty()
+    checkMerge(overrides, lo = _(oldBlocks).last(), _(newBlocks).last(), getBlock(lo.next), (aux)->
+      newBlocks.pop().text + aux)
+  remapBlocks overrides, oldBlocks, newBlocks
+  rc = createRenderingComputer overrides
+  for id, item of overrides.adds
+    rc.add item
+  for id of overrides.removes
+    rc.remove getBlock id
+  for id, item of overrides.updates
+    rc.change getBlock(id), item
+  commitEdits overrides
+  rc.render()
 
 # check whether to merge the new text with the preceding/following old text
 # returns the id of the old block if merge, otherwise the id of the new block
@@ -1688,6 +1684,8 @@ root.breakPoint = breakPoint
 root.textPositionForDomCursor = textPositionForDomCursor
 root.domCursorForTextPosition = domCursorForTextPosition
 root.handleEnter = handleEnter
+root.handleDelete = handleDelete
+root.editBlock = editBlock
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg
