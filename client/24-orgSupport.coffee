@@ -687,17 +687,6 @@ bindContent = (div)->
   div.addEventListener 'mouseup', (e)-> adjustSelection e
   div.addEventListener 'keyup', handleKeyup div
   div.addEventListener 'keydown', (e)->
-    c = (e.charCode || e.keyCode || e.which)
-    if !addKeyPress e, c then return
-    s = getSelection()
-    r = s.rangeCount > 0 && s.getRangeAt(0)
-    [bound, checkMod] = findKeyBinding e, div, r
-    if bound then root.modCancelled = !checkMod
-    else root.modCancelled = false
-    if !bound
-      if c == BS then backspace div, e, s, r, true
-      else if c == DEL then del div, e, s, r, true
-  div.addEventListener 'keypress', (e)->
     root.modCancelled = false
     c = (e.charCode || e.keyCode || e.which)
     if !addKeyPress e, c then return
@@ -720,18 +709,78 @@ bindContent = (div)->
       else if c == ENTER then handleEnter e, s, '\n'
       else if c == BS then backspace div, e, s, r, true
       else if c == DEL then del div, e, s, r, true
-      else handleInsert e, s, c
+      else handleInsert e, s
 
-handleInsert = (e, s, c)->
+###
+# getEventChar
+# adapted from Vega on StackOverflow
+# http://stackoverflow.com/a/13127566/1026782
+###
+
+_to_ascii =
+  '188': '44'
+  '109': '45'
+  '190': '46'
+  '191': '47'
+  '192': '96'
+  '220': '92'
+  '222': '39'
+  '221': '93'
+  '219': '91'
+  '173': '45'
+  '187': '61' #IE Key codes
+  '186': '59' #IE Key codes
+  '189': '45' #IE Key codes
+
+shiftUps =
+  "96": "~"
+  "49": "!"
+  "50": "@"
+  "51": "#"
+  "52": "$"
+  "53": "%"
+  "54": "^"
+  "55": "&"
+  "56": "*"
+  "57": "("
+  "48": ")"
+  "45": "_"
+  "61": "+"
+  "91": "{"
+  "93": "}"
+  "92": "|"
+  "59": ":"
+  "39": "\""
+  "44": "<"
+  "46": ">"
+  "47": "?"
+
+getEventChar = (e)->
+  c = (e.charCode || e.keyCode || e.which)
+  # normalize keyCode
+  if _to_ascii.hasOwnProperty(c) then c = _to_ascii[c]
+  if !e.shiftKey && (c >= 65 && c <= 90) then c = String.fromCharCode(c + 32)
+  else if e.shiftKey && shiftUps.hasOwnProperty(c)
+    # get shifted keyCode value
+    c = shiftUps[c]
+  else c = String.fromCharCode(c)
+  c
+
+###
+# end of getEventChar
+###
+
+handleInsert = (e, s)->
   if s.type == 'Caret'
     e.preventDefault()
+    c = getEventChar e
     holder = $(s.anchorNode).closest('[data-shared]')[0]
     block = getBlock holder.id
     blocks = [block]
     pos = getTextPosition holder, s.anchorNode, s.anchorOffset
     if pos == block.text.length && block.next then blocks.push getBlock block.next
     root.ignoreModCheck = root.ignoreModCheck || 1
-    editBlock blocks, pos, pos, String.fromCharCode(c), pos + 1
+    editBlock blocks, pos, pos, c, pos + 1
 
 handleEnter = (e, s, newlines)->
   e.preventDefault()
@@ -1699,6 +1748,7 @@ root.handleEnter = handleEnter
 root.handleDelete = handleDelete
 root.handleInsert = handleInsert
 root.editBlock = editBlock
+root.getEventChar = getEventChar
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg

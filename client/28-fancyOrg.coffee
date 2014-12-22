@@ -60,6 +60,7 @@ yaml = root.yaml
   selectRange,
 } = window.DOMCursor
 {
+  getEventChar,
   handleEnter,
   handleDelete,
   handleInsert,
@@ -1203,31 +1204,13 @@ bindContent = (div)->
     if replaceUnrelatedPresenter e.target, emptyPresenter
       setCurKeyBinding null
   div.addEventListener 'mouseup', (e)-> adjustSelection e
-  div.addEventListener 'keydown', handleSpecialKeys div
-  hk = handleKey div
-  div.addEventListener 'keypress', (e)->
-    hk e
-    updateSelection()
+  div.addEventListener 'keydown', handleKey div
+  div.addEventListener 'keypress', (e)-> updateSelection()
   oldKeyup = handleKeyup div
   div.addEventListener 'keyup', (e)->
     keyupSelectionDescriptor?.restore()
     keyupSelectionDescriptor = null
     oldKeyup e
-
-handleSpecialKeys = (div)->(e)->
-  if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
-    return
-  c = (e.charCode || e.keyCode || e.which)
-  if !addKeyPress e, c then return
-  s = getSelection()
-  r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
-  [bound, checkMod] = findKeyBinding e, div, r
-  if bound then root.modCancelled = !checkMod
-  else
-    checkMod = modifyingKey c, e
-    root.modCancelled = false
-  if c == BS then fancyBackspace div, e, s, r
-  else if c == DEL then fancyDel div, e, s, r
 
 handleKey = (div)->(e)->
   if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
@@ -1257,7 +1240,7 @@ handleKey = (div)->(e)->
       if c == ENTER then handleEnter e, s, newLinesForNode el
       else if c == BS then fancyBackspace div, e, s, r
       else if c == DEL then fancyDel div, e, s, r
-      else handleInsert e, s, c
+      else handleInsert e, s
 
 childIndex = (el)->
   count = 0
