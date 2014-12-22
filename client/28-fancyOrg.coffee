@@ -62,6 +62,7 @@ yaml = root.yaml
 {
   handleEnter,
   handleDelete,
+  handleInsert,
   domCursorForCaret,
   textPositionForDomCursor,
   updateSelection,
@@ -396,8 +397,12 @@ meatText = (meat)->
   result = _(paras).map((i)-> "<span class='meat-text#{checkBlankMeat i}'>#{i}\n</span>").join "<span class='meat-break'>\n</span>"
   if result then result += "<span class='meat-break'>\n</span>"
   if last
-    result + "<span class='meat-text#{checkBlankMeat last}'>#{last}</span>"
-  else result
+    if last[last.length - 1] == '\n'
+      end = '\n'
+      last = last.substring 0, last.length - 1
+    if last then result += "<span class='meat-text#{checkBlankMeat last}'>#{last}</span>"
+    if end then result += "<span class='hidden'>\n</span><span data-nonorg contenteditable='false'>\n</span>"
+  result
 
 checkBlankMeat = (hunk)-> if hunk in ['', '\n'] then " blank" else ""
 
@@ -1236,11 +1241,7 @@ handleKey = (div)->(e)->
       if c == ENTER then handleEnter e, s, newLinesForNode el
       else if c == BS then fancyBackspace div, e, s, r
       else if c == DEL then fancyDel div, e, s, r
-      else
-        el = domCursorForCaret().firstText().node
-        if el.nodeType == Node.TEXT_NODE && el.data[el.length - 1] == '\n'
-          root.checkNewlineChild = el.parentNode
-          root.checkNewlineIndex = childIndex el
+      else handleInsert e, s, c
 
 childIndex = (el)->
   count = 0
@@ -1253,7 +1254,7 @@ newLinesForNode = (node)->
     '\n\n'
   else '\n'
 
-whitespaceStart = /^(|\n|\n\n)( \n| )*/
+whitespaceEnd = /(\n | )*(\n*)$/
 
 fancyBackspace = (div, e, s, r)->
   handleDelete e, s, false, (text, pos)->

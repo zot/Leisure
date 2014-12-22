@@ -717,9 +717,11 @@ handleInsert = (e, s, c)->
     e.preventDefault()
     holder = $(s.anchorNode).closest('[data-shared]')[0]
     block = getBlock holder.id
+    blocks = [block]
     pos = getTextPosition holder, s.anchorNode, s.anchorOffset
+    if pos == block.text.length && block.next then blocks.push getBlock block.next
     root.ignoreModCheck = root.ignoreModCheck || 1
-    editBlock [block], pos, pos, String.fromCharCode(c), pos + 1
+    editBlock blocks, pos, pos, String.fromCharCode(c), pos + 1
 
 handleEnter = (e, s, newlines)->
   e.preventDefault()
@@ -1685,6 +1687,7 @@ root.textPositionForDomCursor = textPositionForDomCursor
 root.domCursorForTextPosition = domCursorForTextPosition
 root.handleEnter = handleEnter
 root.handleDelete = handleDelete
+root.handleInsert = handleInsert
 root.editBlock = editBlock
 
 # evil mod of Templating
