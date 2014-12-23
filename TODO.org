@@ -1,8 +1,8 @@
 * Short list -- announcement
-** TODO bad behavior after editing 3 + 4
-- delete and reinsert space
-- moving forward at EOL requires two key presses
-- AST buttons hork
+** TODO factor out editor into tiny extensible package
+- save other people from this pain
+- list difficulties
+- talk about model-generation solution
 ** TODO merge root.modCancelled wth root.ignoreModCheck
 ** TODO AST buttons are horked for code containing blank lines
 ** TODO pop up a toolbar for code blocks
@@ -86,6 +86,12 @@
 - hooks for programs to react to data changes (subscriptions)
 ** TODO JavaScript/CoffeeScript source blocks
 ** TODO fix floaty notes
+** DONE bad behavior after editing 3 + 4
+   CLOSED: [2014-12-23 Tue 09:02]
+- delete and reinsert space
+- moving forward at EOL requires two key presses
+- AST buttons hork
+- problems only occur with local editing, not remote
 ** DONE code view doesn't handle rapid typing when there are numbers and operators
    CLOSED: [2014-12-22 Mon 21:00]
 ** DONE typing a character on the first new blank line adds another blank line

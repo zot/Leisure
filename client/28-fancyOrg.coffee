@@ -60,7 +60,6 @@ yaml = root.yaml
   selectRange,
 } = window.DOMCursor
 {
-  getEventChar,
   handleEnter,
   handleDelete,
   handleInsert,
@@ -919,8 +918,8 @@ recreateAstButtons = (node)->
       codeContent = lines.shift()
       nl = lines.shift() ? ""
       if codeContent.trim()
-        [cur, offset] = findDomPosition node, index + codeContent.length
-        cur.splitText offset + 1
+        [cur, offset] = findDomPosition node, index
+        if offset > 0 then cur = cur.splitText offset
         div = document.createElement 'div'
         div.setAttribute 'class', 'ast-button'
         div.setAttribute 'contenteditable', 'false'
@@ -931,6 +930,7 @@ recreateAstButtons = (node)->
           showAst d
         cur.parentNode.insertBefore div, cur
       index += codeContent.length + nl.length
+    node.normalize()
 
 newCodeContent = (name, content)->
   parent = $("[data-org-codeblock='#{name}']")
