@@ -1,4 +1,7 @@
 ###
+Copyright and license
+=====================
+
 Copyright (C) 2013, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
 
 (licensed with ZLIB license)
@@ -21,16 +24,21 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 ###
-
+#Intro
+#=====
 #
-# editing principle:
-# You should only be able to edit text you can see
-# i.e. backspace/delete/cut/replace should not delete any hidden text
+#Welcome to the Decent Editor.  This is a tiny library for HTML5 that
+#tries to help make building editors easier.
 #
+#Here's an editing principle we use:
+#-----------------------------------
+#You should only be able to edit text you can see
+#i.e. backspace/delete/cut/replace should not delete any hidden text
+#
+#Code
+#====
 
-{
-  delay,
-} = require '10-namespace'
+require '10-namespace'
 {
   getType,
   cons,
@@ -485,9 +493,17 @@ keyFuncs =
         offset = templateText.length
         root.orgApi.checkSourceMod()
         seld.restore offset
+        return true
+    e.preventDefault()
+    root.orgApi.collapseNode()
+    false
   save: (e, parent, r)->
     e.preventDefault()
     Leisure.snapshot()
+    false
+  execute: (e, parent, r)->
+    root.orgApi.executeSource parent, getSelection().focusNode
+    false
 
 followsNewline = (txt)->
   prev = textNodeBefore parentForNode(txt), txt
@@ -507,6 +523,7 @@ defaultBindings =
   'RIGHT': keyFuncs.forwardChar
   'TAB': keyFuncs.expandTemplate
   'C-C C-C': keyFuncs.swapMarkup
+  'M-C': keyFuncs.execute
 
   #'C-F': keyFuncs.forwardChar
   #'C-B': keyFuncs.backwardChar
@@ -694,22 +711,15 @@ bindContent = (div)->
     r = s.rangeCount > 0 && s.getRangeAt(0)
     root.currentBlockIds = blockIdsForSelection s, r
     el = r.startContainer
-    root.modified = el
     par = el.parentNode
     [bound, checkMod] = findKeyBinding e, div, r
     if bound then root.modCancelled = !checkMod
-    else root.modCancelled = false
-    if !bound
-      if c == TAB
-        e.preventDefault()
-        root.modCancelled = true
-        collapseNode()
-      else if String.fromCharCode(c) == 'C' && e.altKey
-        root.orgApi.executeSource div, getSelection().focusNode
-      else if c == ENTER then handleEnter e, s, '\n'
+    else
+      root.modCancelled = false
+      if c == ENTER then handleInsert e, s, '\n'
       else if c == BS then backspace div, e, s, r, true
       else if c == DEL then del div, e, s, r, true
-      else handleInsert e, s
+      else if modifyingKey c, e then handleInsert e, s
 
 ###
 # getEventChar
@@ -770,31 +780,16 @@ getEventChar = (e)->
 # end of getEventChar
 ###
 
-handleInsert = (e, s)->
+handleInsert = (e, s, text)->
   if s.type == 'Caret'
     e.preventDefault()
-    c = getEventChar e
     holder = $(s.anchorNode).closest('[data-shared]')[0]
     block = getBlock holder.id
     blocks = [block]
     pos = getTextPosition holder, s.anchorNode, s.anchorOffset
     if pos == block.text.length && block.next then blocks.push getBlock block.next
     root.ignoreModCheck = root.ignoreModCheck || 1
-    editBlock blocks, pos, pos, c, pos + 1
-
-handleEnter = (e, s, newlines)->
-  e.preventDefault()
-  shared = $(s.anchorNode).closest('[data-shared]')[0]
-  pos = getTextPosition shared, s.anchorNode, s.anchorOffset
-  block = getBlock shared.id
-  prev = getBlock block.prev
-  next = getBlock block.next
-  text = block.text
-  main = $(shared).closest('[maindoc]')[0]
-  #mainPos = getTextPosition(main, s.anchorNode, s.anchorOffset) + newlines.length
-  mainPos = getTextPosition(main, s.anchorNode, s.anchorOffset) + 1
-  changeStructure [prev, block, next].filter((x)-> x?), [prev?.text ? '', text.substring(0, pos), newlines, text.substring(pos, text.length), next?.text ? ''].join ''
-  domCursorForTextPosition(main, mainPos).moveCaret()
+    editBlock blocks, pos, pos, (text ? getEventChar e), pos + 1
 
 handleDelete = (e, s, forward, del)->
   if s.type == 'Caret'
@@ -934,15 +929,6 @@ blockElementForNode = (node)-> $(node).closest('[data-shared]')[0]
 handleKeyup = (div)-> (e)->
   if ignoreModCheck = root.ignoreModCheck then root.ignoreModCheck--
   if clipboardKey || (!e.leisureShiftkey && !root.modCancelled && modifyingKey((e.charCode || e.keyCode || e.which), e))
-    if root.checkNewlineChild
-      t = root.checkNewlineChild.childNodes[root.checkNewlineIndex]
-      if t.data[t.data.length - 1] != '\n'
-        s = getSelection()
-        node = s.anchorNode
-        offset = s.anchorOffset
-        t.data += '\n'
-        selectRange nativeRange node, offset
-      root.checkNewlineChild = null
     root.orgApi.checkSourceMod div, ignoreModCheck
     clipboardKey = null
   runKeyCommands()
@@ -1033,7 +1019,6 @@ checkStructure = (node)->
     oldBlocks = (getBlock(id) for id in blockIds)
     newBlocks = orgDoc parseOrgMode (blockText($("##{id}")[0]) for id in blockIds).join ''
     changeStructure oldBlocks, newBlocks
-    root.checkNewlineChild = null
 
 # Change oldBlocks into newBlocks
 # rerender the changed parts of the doc
@@ -1589,6 +1574,7 @@ orgNotebook =
         else node = parent.find("[data-org-type='source']")[0]
         if node then return @executeSource parent[0], node
     observerContext?.update? block.yaml, block, type
+  collapseNode: ->
 
 basicOrg =
   __proto__: orgNotebook
@@ -1616,6 +1602,7 @@ basicOrg =
   updateIndexViews: ->
   updateBlock: ->
   updateAllBlocks: ->
+  #collapseNode: collapseNode
 
 findOrIs = (set, selector)-> if set.is selector then set else set.find selector
 
@@ -1744,7 +1731,6 @@ root.updateSelection = updateSelection
 root.breakPoint = breakPoint
 root.textPositionForDomCursor = textPositionForDomCursor
 root.domCursorForTextPosition = domCursorForTextPosition
-root.handleEnter = handleEnter
 root.handleDelete = handleDelete
 root.handleInsert = handleInsert
 root.editBlock = editBlock

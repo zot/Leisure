@@ -60,7 +60,6 @@ yaml = root.yaml
   selectRange,
 } = window.DOMCursor
 {
-  handleEnter,
   handleDelete,
   handleInsert,
   domCursorForCaret,
@@ -907,29 +906,26 @@ regularNumberSlider = (numberSpan)->
       leading: true
       trailing: true
 
+lineStart = /^[^ ].*$/gm
+
 recreateAstButtons = (node)->
   if !(top = $(node).closest('.codeblock')[0]) then return
   restorePosition top, ->
     $(node).find('[data-ast-offset]').remove()
     t = getOrgText node
-    lines = t.split /(\n)/
-    index = 0
-    while lines.length > 0
-      codeContent = lines.shift()
-      nl = lines.shift() ? ""
-      if codeContent.trim()
-        [cur, offset] = findDomPosition node, index
+    while m = lineStart.exec t
+      if (tr = m[0].trim()) && tr[0] != '#'
+        [cur, offset] = findDomPosition node, m.index
         if offset > 0 then cur = cur.splitText offset
         div = document.createElement 'div'
         div.setAttribute 'class', 'ast-button'
         div.setAttribute 'contenteditable', 'false'
-        div.setAttribute 'data-ast-offset', index
+        div.setAttribute 'data-ast-offset', m.index
         do (d = div)-> d.onmousedown = (e)->
           e.preventDefault()
           e.stopPropagation()
           showAst d
         cur.parentNode.insertBefore div, cur
-      index += codeContent.length + nl.length
     node.normalize()
 
 newCodeContent = (name, content)->
@@ -948,13 +944,13 @@ isOrContains = (parent, node)->
   n = parent.compareDocumentPosition(node)
   (n & DOCUMENT_POSITION_CONTAINED_BY) || n == 0
 
-linePat = /\r?\n(?=[^ ]|$)/
-
 redrawAst = (code, pos)->
   [button] = findDomPosition code, pos
   while (button = nodeBefore button) != code && !$(button).is '.ast-button' then
   console.log "redraw ast", button
   showAst button, true
+
+linePat = /\r?\n(?=[^ ]|$)/
 
 showAst = (astButton, force)->
   offset = Number(astButton.getAttribute 'data-ast-offset')
@@ -1216,7 +1212,6 @@ handleKey = (div)->(e)->
   if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
     return
   root.modCancelled = false
-  root.currentMatch = null
   curPos = -1
   c = (e.charCode || e.keyCode || e.which)
   if !addKeyPress e, c then return
@@ -1226,21 +1221,14 @@ handleKey = (div)->(e)->
   [bound, checkMod] = findKeyBinding e, div, r
   if bound then root.modCancelled = !checkMod
   else
-    checkMod = modifyingKey c, e
     root.modCancelled = false
-  if String.fromCharCode(c) == 'C' && e.altKey
-    root.orgApi.executeSource div, getSelection().focusNode
-  else if !bound
-    if modifyingKey c, e
-      n = s.focusNode
-      offset = s.anchorOffset
-      el = r.startContainer
-      root.modified = el
-      root.currentMatch = lineCodeBlockType currentLine div
-      if c == ENTER then handleEnter e, s, newLinesForNode el
-      else if c == BS then fancyBackspace div, e, s, r
-      else if c == DEL then fancyDel div, e, s, r
-      else handleInsert e, s
+    n = s.focusNode
+    offset = s.anchorOffset
+    el = r.startContainer
+    if c == ENTER then handleInsert e, s, newLinesForNode el
+    else if c == BS then fancyBackspace div, e, s, r
+    else if c == DEL then fancyDel div, e, s, r
+    else if modifyingKey c, e then handleInsert e, s
 
 childIndex = (el)->
   count = 0

@@ -429,6 +429,41 @@ doc and attrLine are optional
 Private function to observe a document
 
     observeDocument = (name)->
+      basicObserveDocument name, ((result, docCol)->
+        if name.match /^demo\/(.*)$/
+          document.location.hash = "#load=/tmp/#{result.id}"
+          docCol.demo = true
+        else docCol.demo = (name.match(/^tmp\//) || name.match(/^local\//))
+      ), (docCol, downloadPath)->
+        initLocal root.currentDocument, ->
+          docCol.find().observe observer docCol, false
+          blockId = getBlock docCol.leisure.info.head
+          b = while blockId && block = getBlock blockId
+            blockId = block.next
+            type: 'added', data: block, editing: false, context: context
+          processChanges docCol, b, false, true
+          org = docOrg root.currentDocument, -> #(item)-> processDataChange type: 'added', data: item
+          root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, downloadPath
+          if name.match /^demo\/(.*)$/
+            $("#hide-show-button")
+              .tooltip()
+              .tooltip('option', 'content', 'Give the temporary URL in the location bar to other people to collaborate')
+              .tooltip('open')
+            setTimeout (->
+              $('#hide-show-button').tooltip 'close'
+              setTimeout (->Leisure.applyShowHidden()), 2000), 3000
+            setTimeout (->
+              if document.location.hash.match /^#load=\/tmp\//
+                $('#hide-show-button')
+                  .tooltip('option', 'content', 'Restored URL; press the forward history buttom to see the collaboration URL, again')
+                  .tooltip('open')
+                history.back()
+                setTimeout (->
+                  $('#hide-show-button').tooltip 'close'
+                  setTimeout (->Leisure.applyShowHidden()), 2000), 3000
+              ), 10000
+
+    basicObserveDocument = (name, docBlock, initializedBlock)->
       login()
       obs = Meteor.call 'hasDocument', name, (err, result)->
         if !err
@@ -442,48 +477,19 @@ Private function to observe a document
               $('#revert').css 'display', ''
             console.log "OBSERVING #{result.id}, #{if result.hasGit then 'HAS' else 'NO'} GIT"
             observingDoc[result.id] = true
+
+Not sure why we're subscribing twice to result.id...
+
             Meteor.subscribe result.id, ->
               root.currentDocument = observingDoc[result.id] = docCol = new Meteor.Collection result.id
               docCol.leisure = {name: result.id, indexes: {}, master: docCol}
               downloadPath = result.id
-              if name.match /^demo\/(.*)$/
-                document.location.hash = "#load=/tmp/#{result.id}"
-                docCol.demo = true
-              else docCol.demo = (name.match(/^tmp\//) || name.match(/^local\//))
-              if m = name.match(/^local\/([^\/]*)\//)
-                downloadPath = m[1]
-              res = null
+              docBlock result, docCol
+              if m = name.match(/^local\/([^\/]*)\//) then downloadPath = m[1]
               res = Meteor.subscribe result.id, ->
                 res.stop()
                 docCol.leisure.info = docCol.findOne info: true
-                initLocal root.currentDocument, ->
-                  cursor = docCol.find()
-                  sub = cursor.observe observer docCol, false
-                  blockId = getBlock docCol.leisure.info.head
-                  b = while blockId && block = getBlock blockId
-                    blockId = block.next
-                    type: 'added', data: block, editing: false, context: context
-                  processChanges docCol, b, false, true
-                  org = docOrg root.currentDocument, -> #(item)-> processDataChange type: 'added', data: item
-                  root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, downloadPath
-                  if name.match /^demo\/(.*)$/
-                    $("#hide-show-button")
-                      .tooltip()
-                      .tooltip('option', 'content', 'Give the temporary URL in the location bar to other people to collaborate')
-                      .tooltip('open')
-                    setTimeout (->
-                      $('#hide-show-button').tooltip 'close'
-                      setTimeout (->Leisure.applyShowHidden()), 2000), 3000
-                    setTimeout (->
-                      if document.location.hash.match /^#load=\/tmp\//
-                        $('#hide-show-button')
-                          .tooltip('option', 'content', 'Restored URL; press the forward history buttom to see the collaboration URL, again')
-                          .tooltip('open')
-                        history.back()
-                        setTimeout (->
-                          $('#hide-show-button').tooltip 'close'
-                          setTimeout (->Leisure.applyShowHidden()), 2000), 3000
-                      ), 10000
+                initializedBlock docCol, downloadPath
             document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}\n#{err.stack}", err
 
