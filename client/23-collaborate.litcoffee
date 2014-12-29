@@ -42,6 +42,9 @@ Meteor-based collaboration -- client side
     context = L()
     allIndexes = {}
     updateAll = false
+    deferredChanges = []
+    processingDeferredChange = false
+    scriptCounter = 0
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -228,10 +231,28 @@ Handle changes to the doc nodes
             break
       result
 
-    scriptCounter = 0
-
     processDataChange = ({type, data}, updated)->
       lang = data.language?.toLowerCase()
+      if shouldDeferChange lang, data then deferChange type, lang, data, updated
+      else basicProcessDataChange type, lang, data, updated
+
+    shouldDeferChange = (lang, data)->
+      processingDeferredChange || deferredChanges.length ||
+        (lang == 'leisure' && isDef(data))
+
+    deferChange = (type, lang, data, updated)->
+      deferredChanges.push [type, lang, data, updated]
+      processDeferredChanges()
+
+    processDeferredChanges = ->
+      if !processingDeferredChange && deferredChanges.length
+        processingDeferredChange = true
+        [type, lang, data, updated] = deferredChanges.shift()
+        basicProcessDataChange type, data, updated, ->
+          processingDeferredChange = false
+          setTimeout processDeferredChanges, 1
+
+    basicProcessDataChange = (type, lang, data, updated, cont)->
       if type in ['changed', 'removed']
         if viewIdTypes[data._id] && (type == 'removed' || lang != 'html')
           root.orgApi.deleteView viewIdTypes[data._id]
@@ -278,10 +299,12 @@ Handle changes to the doc nodes
         else if lang == 'leisure'
           if needsContext data
             codeContexts[data._id] =
-              update: -> processLeisureBlock data
-              initializeView: -> processLeisureBlock data
+              update: -> runLeisureBlock data
+              initializeView: -> runLeisureBlock data
               block: data
-          if isDef(data) == 'def' then processLeisureBlock data
+          if isDef(data) == 'def' then return runLeisureBlock data, ->
+            updateObservers data, type, updated
+            cont?()
         updateObservers data, type, updated
 
     coffeeOpts = ->
@@ -319,22 +342,8 @@ Handle changes to the doc nodes
           if id != data._id
             root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
 
-    leisureBlocks = []
-
-    processingLeisure = false
-
-    processLeisureBlock = (data)->
-      leisureBlocks.push data
-      if !processingLeisure
-        processingLeisure = true
-        processNextLeisureBlock()
-
-    processNextLeisureBlock = ->
-      if leisureBlocks.length == 0 then processingLeisure = false
-      else delay runLeisure
-
-    runLeisure = ->
-      root.textEnv('leisure').executeText codeString(leisureBlocks.shift()), {}, processNextLeisureBlock
+    runLeisureBlock = (block, cont)->
+      root.textEnv('leisure').executeText codeString(block), {}, cont?()
 
     codeString = (data)-> (data.codePrelen? && data.codePostlen? && data.text.substring data.codePrelen, data.text.length - data.codePostlen) ? ''
 
@@ -429,12 +438,12 @@ doc and attrLine are optional
 Private function to observe a document
 
     observeDocument = (name)->
-      basicObserveDocument name, ((result, docCol)->
+      basicObserveDocument name, (result, docCol, downloadPath)->
+        root.currentDocument = docCol
         if name.match /^demo\/(.*)$/
-          document.location.hash = "#load=/tmp/#{result.id}"
+          document.location.hash = "#load=/tmp/#{docCol.leisure.name}"
           docCol.demo = true
         else docCol.demo = (name.match(/^tmp\//) || name.match(/^local\//))
-      ), (docCol, downloadPath)->
         initLocal root.currentDocument, ->
           docCol.find().observe observer docCol, false
           blockId = getBlock docCol.leisure.info.head
@@ -463,9 +472,8 @@ Private function to observe a document
                   setTimeout (->Leisure.applyShowHidden()), 2000), 3000
               ), 10000
 
-    basicObserveDocument = (name, docBlock, initializedBlock)->
-      login()
-      obs = Meteor.call 'hasDocument', name, (err, result)->
+    basicObserveDocument = (name, initializedBlock)->
+      Meteor.call 'hasDocument', name, (err, result)->
         if !err
           if result.error
             $("#error").html "Error: #{result.error}"
@@ -476,24 +484,15 @@ Private function to observe a document
               $('#checkpoint').css 'display', ''
               $('#revert').css 'display', ''
             console.log "OBSERVING #{result.id}, #{if result.hasGit then 'HAS' else 'NO'} GIT"
-            observingDoc[result.id] = true
-
-Not sure why we're subscribing twice to result.id...
-
             Meteor.subscribe result.id, ->
-              root.currentDocument = observingDoc[result.id] = docCol = new Meteor.Collection result.id
+              observingDoc[result.id] = docCol = new Meteor.Collection result.id
               docCol.leisure = {name: result.id, indexes: {}, master: docCol}
               downloadPath = result.id
-              docBlock result, docCol
               if m = name.match(/^local\/([^\/]*)\//) then downloadPath = m[1]
-              res = Meteor.subscribe result.id, ->
-                res.stop()
-                docCol.leisure.info = docCol.findOne info: true
-                initializedBlock docCol, downloadPath
+              docCol.leisure.info = docCol.findOne info: true
+              initializedBlock result, docCol, downloadPath
             document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}\n#{err.stack}", err
-
-    login = ->
 
     observer = (docCol, local)->
       changeName = "changes-#{local}"
