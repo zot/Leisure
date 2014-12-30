@@ -48,10 +48,11 @@
 
     isSourceEnd = (org)-> !org || org instanceof Headline
 
-    createDocFromOrg = (org, collection, reloading)->
+    createDocFromOrg = (org, collection, reloading, filter)->
       doc = orgDoc org
+      if filter? then doc = (filter block for block in doc)
       replaceOrgDoc doc, collection, reloading
-      doc._id
+      collection
 
     docRoot = (collection)->
       (collection.leisure ? collection.leisure = {}).info ? (collection.leisure.info = collection.findOne info: true)
@@ -98,7 +99,8 @@
         local = local || (org.level == 1 && org.properties.local)
         children = createChildrenDocs org, local
         result = if org.level == 0 then (org.children.length && children) || _L([text: '\n', type: 'chunk', offset: org.offset])
-        else _L([text: org.text, type: 'headline', level: org.level, offset: org.offset]).concat children
+        else
+          _L([text: org.text, type: 'headline', level: org.level, offset: org.offset, properties: org.properties]).concat children
       else if org instanceof HTML then [result, next] = createHtmlBlockDoc org
       else if isCodeBlock org then [result, next] = createCodeBlockDoc org
       else result = _L([text: org.allText(), type: 'chunk', offset: org.offset])

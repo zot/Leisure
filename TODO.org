@@ -1,4 +1,11 @@
 * Short list -- announcement
+** TODO code scope inspector
+- inspector button on code scope
+  - highlight view under mouse
+  - show data, viewdef, & controller
+  - allow linking codeviews
+** TODO headline blocks should contain their properties
+Right now, properties are stored in chunks following headlines
 ** TODO add editor objects
 - editor for plain and fancy modes
   - customize key bindings (backspace vs. fancyBackspace, etc.)
@@ -6,15 +13,6 @@
   - save other people from this pain
   - list difficulties
   - talk about model-generation solution
-** TODO Document importing
-- make require delegate to the environment
-  - allows the env to intervene, update lists, etc.
-- library data augments the current document
-  - copy on write
-  - initializes the data in the doc
-  - adds a "imported" parameter to tie the data to the imported doc
-  - if the imported doc is removed, it removes the associated data
-    - scan data after load and prune obsolete imported data
 ** TODO redo value slider creation
 base it on org text, not DOM text
 ** TODO fix ast popup placement
@@ -100,6 +98,12 @@ base it on org text, not DOM text
 - hooks for programs to react to data changes (subscriptions)
 ** TODO JavaScript/CoffeeScript source blocks
 ** TODO fix floaty notes
+** DONE Document importing
+   CLOSED: [2014-12-30 Tue 14:56]
+- headline property: import
+  - the imported doc may inject data into the headline with copy-on-write
+  - blocks have origin set to the document id
+  - when there's a change, make a clone if there's an origin
 ** DONE AST buttons are horked for code containing blank lines
    CLOSED: [2014-12-23 Tue 23:04]
 ** DONE bad behavior after editing 3 + 4

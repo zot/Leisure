@@ -26,6 +26,7 @@ Meteor-based collaboration -- client side
 
     viewTypeData = {}
     viewIdTypes = {}
+    dataTypeIds = {}
     controllerIdDescriptor = {}
     controllerDescriptorIds = {}
     committing = false
@@ -37,6 +38,7 @@ Meteor-based collaboration -- client side
     observers = {}
     observing = {}
     observingDoc = {}
+    importedDocs = {}
     universalObservers = {}
     namedBlocks = {}
     context = L()
@@ -45,6 +47,7 @@ Meteor-based collaboration -- client side
     deferredChanges = []
     processingDeferredChange = false
     scriptCounter = 0
+    valid = true
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -96,16 +99,25 @@ Handle changes to the doc nodes
 
     textLevel = Number.MAX_SAFE_INTEGER
 
-    processChanges = (doc, batch, local, norender)->
+    processChanges = (doc, batch, local, norender, initial, cont)->
       incRenderCount()
       if !norender then rc = createRenderingComputer()
       updated = {}
       for item in batch
-        if item.data.info? && !item.removed
-          doc.leisure.info = item.data
+        if item.data.info?
+          if item.type != 'removed'
+            doc.leisure.info = item.data
+            if !valid && doc == root.currentDocument
+              do (oldCont = cont)->
+                cont = ->
+                  valid = true
+                  root.loadOrg root.parentForDocId(doc.leisure.info._id), docOrg(), doc.leisure.name
+                  oldCont?()
+          else if doc == root.currentDocument then valid = false
           continue
+        if !isCurrent item.data then continue
         if !!item.data.local == !!local
-          root.changeContext = item.context
+          root.changeContext = item.context ? {}
           if item.data.local && item.type == 'added' && (old = doc.leisure.master.findOne item.data._id)
             item.type = 'changed'
             item.oldData = old
@@ -124,8 +136,9 @@ Handle changes to the doc nodes
         if item.data.info? && !item.removed
           doc.leisure.info = item.data
           continue
+        if !isCurrent item.data then continue
         if !!item.data.local == !!local
-          processDataChange item, updated
+          processDataChange item, updated, initial
           if !item.editing && !norender
             #console.log "ITEM: #{item.type} #{item.data._id}"
             switch item.type
@@ -133,10 +146,16 @@ Handle changes to the doc nodes
               when 'removed' then rc.remove item.data
               when 'changed' then rc.change item.oldData, item.data
         else updateObservers item.data, item.type, updated
-      if !norender then rc.render()
+      if !norender && valid then rc.render()
       if updateAll
         updateAll = false
-        root.orgApi.updateAllBlocks()
+        deferChange (c)->
+          root.orgApi.updateAllBlocks()
+          cont?()
+          c()
+      else deferChange (c)->
+        cont?()
+        c()
 
     getRenderCount = -> renderCount
     incRenderCount = -> renderCount++
@@ -231,39 +250,48 @@ Handle changes to the doc nodes
             break
       result
 
-    processDataChange = ({type, data}, updated)->
-      lang = data.language?.toLowerCase()
-      if shouldDeferChange lang, data then deferChange type, lang, data, updated
-      else basicProcessDataChange type, lang, data, updated
+    processDataChange = (item, updated, init)->
+      lang = item.data.language?.toLowerCase()
+      if shouldDeferChange lang, item.data then deferChange (cont)->
+        basicProcessDataChange item, lang, updated, cont, init
+      else basicProcessDataChange item, lang, updated, null, init
 
     shouldDeferChange = (lang, data)->
       processingDeferredChange || deferredChanges.length ||
         (lang == 'leisure' && isDef(data))
 
-    deferChange = (type, lang, data, updated)->
-      deferredChanges.push [type, lang, data, updated]
+    deferChange = (cont)->
+      deferredChanges.push cont
       processDeferredChanges()
 
     processDeferredChanges = ->
       if !processingDeferredChange && deferredChanges.length
         processingDeferredChange = true
-        [type, lang, data, updated] = deferredChanges.shift()
-        basicProcessDataChange type, data, updated, ->
+        deferredChanges.shift() ->
           processingDeferredChange = false
-          setTimeout processDeferredChanges, 1
+          if deferredChanges.length then setTimeout processDeferredChanges, 1
 
-    basicProcessDataChange = (type, lang, data, updated, cont)->
+    isCurrent = (block)-> block.text == getBlock(block._id)?.text
+
+    basicProcessDataChange = ({type, context, data, oldData}, lang, updated, cont, init)->
       if type in ['changed', 'removed']
-        if viewIdTypes[data._id] && (type == 'removed' || lang != 'html')
-          root.orgApi.deleteView viewIdTypes[data._id]
-          delete viewTypeData[viewIdTypes[data._id]]
-          delete viewIdTypes[data._id]
+        if type == 'removed' then oldData = data
+        if viewIdTypes[oldData._id] && (type == 'removed' || lang != 'html')
+          root.orgApi.deleteView viewIdTypes[oldData._id]
+          delete viewTypeData[viewIdTypes[oldData._id]]
+          delete viewIdTypes[oldData._id]
+          if dataTypeIds[oldData.type]? then delete dataTypeIds[oldData.type][oldData._id]
         if descriptor = controllerIdDescriptor[data._id]
           old = controllerDescriptorIds[descriptor]
           if old.length == 1 then delete controllerDescriptorIds[descriptor]
           else _.remove old, (i)-> i == data._id
           delete controllerIdDescriptor[data._id]
-      if type in ['changed', 'added'] && data.type == 'code'
+      if init && type == 'added' && data.type == 'headline' && data.properties.import?
+        importDocument data.properties.import
+      else if type in ['changed', 'added'] && data.type == 'code'
+        if data.language.toLowerCase() == 'yaml' && data.yaml.type
+          if !dataTypeIds[data.yaml.type]? then dataTypeIds[data.yaml.type] = {}
+          dataTypeIds[data.yaml.type][data._id] = true
         attr = data.codeAttributes ? {}
         if descriptor = attr.control
           if !(ids = controllerDescriptorIds[descriptor])
@@ -283,6 +311,9 @@ Handle changes to the doc nodes
             a.push attr.observe
         else delete universalObservers[data._id]
         if lang in ['css', 'yaml', 'html']
+          if def = data.codeAttributes?.defview
+            viewTypeData[def] = codeString(data).trim()
+            viewIdTypes[data._id] = def
           root.orgApi.updateBlock data
         else if isDef(data) && lang in ['js', 'javascript']
           try
@@ -306,6 +337,27 @@ Handle changes to the doc nodes
             updateObservers data, type, updated
             cont?()
         updateObservers data, type, updated
+      cont?()
+
+    importDocument = (name)->
+      console.log "IMPORT: #{name}"
+      pending = deferredChanges
+      deferredChanges = []
+      processingDeferredChange = true
+      name = "import/#{name}"
+      basicObserveDocument name, (result, docCol, downloadPath)->
+        docCol.find().observe observer docCol, false, true, name
+        docCol.leisure.localCollection = new Meteor.Collection null
+        processingDeferredChange = false
+        importedDocs[name] = docCol
+        b = mapDocumentBlocks docCol, (block)->
+          type: 'added', data: block, editing: false, context: null
+        processChanges docCol, b, false, true, true, ->
+          console.log "RESUMING #{pending.length} CHANGES"
+          if deferredChanges.length
+            console.log new Error("ERROR, #{deferredChanges.length} CHANGES ARE STILL PENDING AFTER IMPORT!").stack
+            deferredChanges.push pending...
+          else deferredChanges = pending
 
     coffeeOpts = ->
       filename = "coffeescript-#{++scriptCounter}"
@@ -313,7 +365,7 @@ Handle changes to the doc nodes
 
     isDef = (data)->
       (attr = data.codeAttributes) &&
-        (attr.results?.toLowerCase() == 'def' ||
+        (attr.results?.toLowerCase() in ['def', 'notebook'] ||
         attr.observe ||
         attr.control)
 
@@ -350,7 +402,12 @@ Handle changes to the doc nodes
     getBlock = (id)->
       if id
         doc = root.currentDocument
-        doc.leisure.localCollection.findOne(id) ? doc.findOne id
+        doc.leisure.localCollection.findOne(id) ? doc.findOne(id) ? findImportedBlock(id)
+
+    findImportedBlock = (id)->
+      for name, doc of importedDocs
+        if block = doc.findOne id then return block
+      null
 
     getBlockNamed = (name)-> if id = namedBlocks[name] then getBlock id
 
@@ -388,6 +445,16 @@ Handle changes to the doc nodes
 
     getData = (id, value)-> getBlock(id)?.yaml
 
+Set the data for an id.  This may do copy-on-write if the data is
+local or imported.
+
+commitOverrides handles copy-on-write for local data by adding it to
+an indexed db in the browser.
+
+setData handles copy-on-write for imported data by inserting it into
+the document as the bottom child of the headline that imports the
+data.
+
     setData = (id, value)->
       doc = root.currentDocument
       cur = getBlock id
@@ -397,6 +464,17 @@ Handle changes to the doc nodes
         cur.text = newText
         cur.yaml = value
         updateItem overrides = new Overrides(), cur
+        if cur.origin? && !(root.currentDocument.findOne id)
+          node = $("[data-property-import='#{(cur.origin.match /^import\/(.*)$/)[1]}']")
+          last = node.find('[data-shared]').last()
+          prevNode = getBlock (if last.length then last else node)[0].id
+          cur.prev = prevNode._id
+          cur.next = prevNode.next
+          prevNode.next = cur._id
+          updateItem overrides, prevNode
+          if nextNode = getBlock cur.next
+            nextNode.prev = cur._id
+            updateItem overrides, nextNode
         commitOverrides overrides
 
 Add some data to the document -- for now, it is unnamed
@@ -437,7 +515,7 @@ doc and attrLine are optional
 
 Private function to observe a document
 
-    observeDocument = (name)->
+    observeDocument = (name, cont)->
       basicObserveDocument name, (result, docCol, downloadPath)->
         root.currentDocument = docCol
         if name.match /^demo\/(.*)$/
@@ -446,11 +524,9 @@ Private function to observe a document
         else docCol.demo = (name.match(/^tmp\//) || name.match(/^local\//))
         initLocal root.currentDocument, ->
           docCol.find().observe observer docCol, false
-          blockId = getBlock docCol.leisure.info.head
-          b = while blockId && block = getBlock blockId
-            blockId = block.next
+          b = mapDocumentBlocks docCol, (block)->
             type: 'added', data: block, editing: false, context: context
-          processChanges docCol, b, false, true
+          processChanges docCol, b, false, true, true
           org = docOrg root.currentDocument, -> #(item)-> processDataChange type: 'added', data: item
           root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, downloadPath
           if name.match /^demo\/(.*)$/
@@ -471,6 +547,13 @@ Private function to observe a document
                   $('#hide-show-button').tooltip 'close'
                   setTimeout (->Leisure.applyShowHidden()), 2000), 3000
               ), 10000
+
+    mapDocumentBlocks = (docCol, each)->
+      blockId = getBlock docCol.leisure.info.head
+      b = while blockId && block = getBlock blockId
+        blockId = block.next
+        each block
+      b
 
     basicObserveDocument = (name, initializedBlock)->
       Meteor.call 'hasDocument', name, (err, result)->
@@ -494,12 +577,12 @@ Private function to observe a document
             document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}\n#{err.stack}", err
 
-    observer = (docCol, local)->
-      changeName = "changes-#{local}"
+    observer = (docCol, local, norender, name)->
+      changeName = "changes-#{name ? local}"
       _suppress_initial: true
-      added: (el)-> addChange changeName, 'added', copy(el), (items)-> processChanges docCol, items, local
-      removed: (el)-> addChange changeName, 'removed', copy(el), (items)-> processChanges docCol, items, local
-      changed: (el, oldEl)-> addChange changeName, 'changed', copy(el), copy(oldEl), (items)-> processChanges docCol, items, local
+      added: (el)-> addChange changeName, 'added', copy(el), (items)-> processChanges docCol, items, local, norender
+      removed: (el)-> addChange changeName, 'removed', copy(el), (items)-> processChanges docCol, items, local, norender
+      changed: (el, oldEl)-> addChange changeName, 'changed', copy(el), copy(oldEl), (items)-> processChanges docCol, items, local, norender
 
 Indexer is a private helper class for indexed data.  Indexes store
 value -> id pairs and are in-memory until we switch to IndexedDB.
@@ -1051,6 +1134,11 @@ You can also mark any piece of data as local.
       Meteor.call 'snapshot', name, (err, result)->
         console.log "SNAPSHOT RESULT: #{result}"
 
+    revertAll = ->
+      for name of importedDocs
+        revert name
+      revert root.currentDocument.leisure.name
+
     revert = (name)->
       name = name ? root.currentDocument.leisure.name
       Meteor.call 'revert', name, (err, result)->
@@ -1095,7 +1183,9 @@ You can also mark any piece of data as local.
     root.setSourceAttribute = setSourceAttribute
     root.snapshot = snapshot
     root.revert = revert
+    root.revertAll = revertAll
     root.indexedCursor = indexedCursor
     root.getRenderCount = getRenderCount
     root.incRenderCount = incRenderCount
     root.addDataAfter = addDataAfter
+    root.dataTypeIds = dataTypeIds

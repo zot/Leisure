@@ -216,7 +216,7 @@ Code
       $('#checkpoint').css 'display', 'none'
       $('#checkpoint').click -> Leisure.snapshot()
       $('#revert').css 'display', 'none'
-      $('#revert').click -> root.restorePosition null, -> Leisure.revert()
+      $('#revert').click -> root.restorePosition null, -> Leisure.revertAll()
       $('#edit').click -> editFile()
       $('#file').change (evt)->
         files = evt.target.files
@@ -581,8 +581,10 @@ Code
     
     isDef = (org)-> resultsType(org) == 'def'
     
+    isNotebook = (org)-> resultsType(org) == 'notebook' || org.info?.match /:(observe|control) /i
+
     orgSrcAttrs = (org)->
-      "data-org-src='#{if isDef org then 'def' else if isDynamic org then 'dynamic' else 'example'}'"
+      "data-org-src='#{if isDef org then 'def' else if isDynamic org then 'dynamic' else if isNotebook org then 'notebook' else 'example'}'"
     
     markupNode = (org, start, inFragment)->
       if org instanceof Source || org instanceof Results

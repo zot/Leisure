@@ -134,6 +134,7 @@ yaml = root.yaml
   createComment,
 } = require '26-storage'
 {
+  dataTypeIds,
   edited,
   pretty,
   setData,
@@ -1718,21 +1719,20 @@ viewBlock = (el)->
 Leisure.bindWidgets = bindWidgets = (parent)->
   link = Templating.currentViewLink
   for input in $(parent).find 'input[data-value]'
-    input.setAttribute 'data-input-number', ++Templating.currentInputCount
-    blockParent = $(input).closest '[data-view-block]'
-    field = input.getAttribute 'data-value'
-    input.value = viewBlock(input)?.yaml?[field] ? ''
-    nextButton = input.getAttribute 'button'
-    input.onkeyup = (e)->
-      #console.log input.value
-      block = viewBlock(input)
-      data = block.yaml
-      #data = getBlock(id).yaml
-      data[field] = input.value
-      noRenderWhile $(link), -> setData block._id, data
-      if nextButton && e.keyCode == 13
-        e.preventDefault()
-        $(rootNode(input).firstChild).find("##{nextButton}").click()
+    do (input)->
+      input.setAttribute 'data-input-number', ++Templating.currentInputCount
+      blockParent = $(input).closest '[data-view-block]'
+      field = input.getAttribute 'data-value'
+      input.value = viewBlock(input)?.yaml?[field] ? ''
+      nextButton = input.getAttribute 'button'
+      input.onkeyup = (e)->
+        block = viewBlock(input)
+        data = block.yaml
+        data[field] = input.value
+        noRenderWhile $(link), -> setData block._id, data
+        if nextButton && e.keyCode == 13
+          e.preventDefault()
+          $(rootNode(input).firstChild).find("##{nextButton}").click()
 
 Handlebars.registerHelper 'values', (items..., options)-> items
 
@@ -1880,13 +1880,13 @@ fancyOrg =
             codeContexts[id]?.initializeView? view, data, block._id
       dataType = type.match /([^/]*)\/?(.*)?/
       restorePosition null, ->
-        rerenderIds = {}
-        for node in $("[data-view-type='#{dataType[1]}']")
-          for parent in $("[data-view-ids~='#{node.getAttribute 'data-view-block'}']")
-            rerenderIds[parent.getAttribute 'data-view-id'] = true
-        for id of rerenderIds
-          for node in $("[data-view-id='#{id}']")
-            renderLink node, getBlock id
+        vBlock = getBlock id
+        for dataId of dataTypeIds[vBlock?.codeAttributes?.defview] ? {}
+          if block = getBlock dataId
+            nodes = $("[data-view-ids~='#{dataId}']")
+            if block.codeName?
+              for node in $("[data-view-link='#{block.codeName}']")
+                renderLink node, block
   deleteView: (type)->
     delete viewMarkup[type]
     for node in $("[data-view-key='#{type}']")
@@ -1906,8 +1906,6 @@ fancyOrg =
         if index = block.codeAttributes?.index then updateIndexViews index.split(' ')[0]
       else if lang == 'html' && attr?.defview
         incRenderCount()
-        viewTypeData[block.codeAttributes.defview] = codeString(block).trim()
-        viewIdTypes[block._id] = attr.defview
         root.orgApi.defineView block._id
   updateIndexViews: -> restorePosition null, -> updateIndexViews
   updateAllBlocks: ->
