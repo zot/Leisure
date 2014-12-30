@@ -829,7 +829,7 @@ Code
         if prev = getBlock bl[0].prev
           c = domCursor $("##{bl[0].prev}")[0], 0
           c = c.forwardChars prev.text.length
-        else c = domCusor top.find('[data-shared]')[0]
+        else c = domCursor $("##{bl[0]._id}")[0], 0
         c.forwardChars(caret).moveCaret()
     
     domCursor = (node, pos)-> new DOMCursor(node, pos).filterOrg()
