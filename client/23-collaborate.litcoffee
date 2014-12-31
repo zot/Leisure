@@ -24,6 +24,7 @@ Meteor-based collaboration -- client side
     root = require '15-base'
     _ = require 'lodash.min'
 
+    Nil = resolve L_nil
     viewTypeData = {}
     viewIdTypes = {}
     dataTypeIds = {}
@@ -369,7 +370,7 @@ Handle changes to the doc nodes
             root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
 
     runLeisureBlock = (block, cont)->
-      root.textEnv('leisure').executeText codeString(block), {}, cont
+      root.textEnv('leisure').executeText codeString(block), Nil, cont
 
     codeString = (data)-> (data.codePrelen? && data.codePostlen? && data.text.substring data.codePrelen, data.text.length - data.codePostlen) ? ''
 
