@@ -44,10 +44,9 @@ Meteor-based collaboration -- client side
     context = L()
     allIndexes = {}
     updateAll = false
-    deferredChanges = []
-    processingDeferredChange = false
     scriptCounter = 0
     valid = true
+    changePromise = Promise.resolve 0
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -135,27 +134,28 @@ Handle changes to the doc nodes
       for item in batch
         if item.data.info? && !item.removed
           doc.leisure.info = item.data
-          continue
-        if !isCurrent item.data then continue
-        if !!item.data.local == !!local
-          processDataChange item, updated, initial
-          if !item.editing && !norender
-            #console.log "ITEM: #{item.type} #{item.data._id}"
-            switch item.type
-              when 'added' then rc.add item.data
-              when 'removed' then rc.remove item.data
-              when 'changed' then rc.change item.oldData, item.data
-        else updateObservers item.data, item.type, updated
+        else if isCurrent item.data
+          work = do (item)-> ->
+            if !!item.data.local == !!local
+              if !item.editing && !norender
+                switch item.type
+                  when 'added' then rc.add item.data
+                  when 'removed' then rc.remove item.data
+                  when 'changed' then rc.change item.oldData, item.data
+              lang = item.data.language?.toLowerCase()
+              new Promise (good, bad)-> processDataChange item, lang, updated, initial, good
+            else updateObservers item.data, item.type, updated
+          changePromise = if changePromise.isFulfilled() then Promise.method(work)()
+          else changePromise.then work
       if !norender && valid then rc.render()
-      if updateAll
+      work = if updateAll
         updateAll = false
-        deferChange (c)->
+        ->
           root.orgApi.updateAllBlocks()
           cont?()
-          c()
-      else deferChange (c)->
-        cont?()
-        c()
+      else cont ? ->
+      changePromise = if changePromise.isFulfilled() then Promise.method(work)()
+      else changePromise.then work
 
     getRenderCount = -> renderCount
     incRenderCount = -> renderCount++
@@ -250,30 +250,9 @@ Handle changes to the doc nodes
             break
       result
 
-    processDataChange = (item, updated, init)->
-      lang = item.data.language?.toLowerCase()
-      if shouldDeferChange lang, item.data then deferChange (cont)->
-        basicProcessDataChange item, lang, updated, cont, init
-      else basicProcessDataChange item, lang, updated, null, init
-
-    shouldDeferChange = (lang, data)->
-      processingDeferredChange || deferredChanges.length ||
-        (lang == 'leisure' && isDef(data))
-
-    deferChange = (cont)->
-      deferredChanges.push cont
-      processDeferredChanges()
-
-    processDeferredChanges = ->
-      if !processingDeferredChange && deferredChanges.length
-        processingDeferredChange = true
-        deferredChanges.shift() ->
-          processingDeferredChange = false
-          if deferredChanges.length then setTimeout processDeferredChanges, 1
-
     isCurrent = (block)-> block.text == getBlock(block._id)?.text
 
-    basicProcessDataChange = ({type, context, data, oldData}, lang, updated, cont, init)->
+    processDataChange = ({type, context, data, oldData}, lang, updated, init, cont)->
       if type in ['changed', 'removed']
         if type == 'removed' then oldData = data
         if viewIdTypes[oldData._id] && (type == 'removed' || lang != 'html')
@@ -287,7 +266,7 @@ Handle changes to the doc nodes
           else _.remove old, (i)-> i == data._id
           delete controllerIdDescriptor[data._id]
       if init && type == 'added' && data.type == 'headline' && data.properties.import?
-        importDocument data.properties.import
+        return importDocument data.properties.import, cont
       else if type in ['changed', 'added'] && data.type == 'code'
         if data.language.toLowerCase() == 'yaml' && data.yaml.type
           if !dataTypeIds[data.yaml.type]? then dataTypeIds[data.yaml.type] = {}
@@ -333,31 +312,26 @@ Handle changes to the doc nodes
               update: -> runLeisureBlock data
               initializeView: -> runLeisureBlock data
               block: data
-          if isDef(data) == 'def' then return runLeisureBlock data, ->
-            updateObservers data, type, updated
-            cont?()
+          if data.codeAttributes?.results == 'def'
+            return runLeisureBlock data, ->
+              updateObservers data, type, updated
+              cont?()
         updateObservers data, type, updated
       cont?()
 
-    importDocument = (name)->
-      console.log "IMPORT: #{name}"
-      pending = deferredChanges
-      deferredChanges = []
-      processingDeferredChange = true
+    importDocument = (name, cont)->
       name = "import/#{name}"
       basicObserveDocument name, (result, docCol, downloadPath)->
         docCol.find().observe observer docCol, false, true, name
         docCol.leisure.localCollection = new Meteor.Collection null
-        processingDeferredChange = false
         importedDocs[name] = docCol
         b = mapDocumentBlocks docCol, (block)->
           type: 'added', data: block, editing: false, context: null
+        oldPromise = changePromise
+        changePromise = Promise.resolve 0
         processChanges docCol, b, false, true, true, ->
-          console.log "RESUMING #{pending.length} CHANGES"
-          if deferredChanges.length
-            console.log new Error("ERROR, #{deferredChanges.length} CHANGES ARE STILL PENDING AFTER IMPORT!").stack
-            deferredChanges.push pending...
-          else deferredChanges = pending
+          changePromise = changePromise.then oldPromise
+          cont()
 
     coffeeOpts = ->
       filename = "coffeescript-#{++scriptCounter}"
@@ -395,7 +369,7 @@ Handle changes to the doc nodes
             root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
 
     runLeisureBlock = (block, cont)->
-      root.textEnv('leisure').executeText codeString(block), {}, cont?()
+      root.textEnv('leisure').executeText codeString(block), {}, cont
 
     codeString = (data)-> (data.codePrelen? && data.codePostlen? && data.text.substring data.codePrelen, data.text.length - data.codePostlen) ? ''
 
@@ -527,7 +501,7 @@ Private function to observe a document
           b = mapDocumentBlocks docCol, (block)->
             type: 'added', data: block, editing: false, context: context
           processChanges docCol, b, false, true, true
-          org = docOrg root.currentDocument, -> #(item)-> processDataChange type: 'added', data: item
+          org = docOrg root.currentDocument
           root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, downloadPath
           if name.match /^demo\/(.*)$/
             $("#hide-show-button")

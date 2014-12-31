@@ -381,8 +381,12 @@ runMonad2 = (monad, env, cont)->
   else cont monad
 
 class Monad2 extends Monad
-  constructor: (@cmd, @cmdToString)->
-    if !@cmdToString then @cmdToString = => @cmd.toString()
+  constructor: (@name, @cmd, @cmdToString)->
+    if typeof @name == 'function'
+      @cmdToString = @cmd
+      @cmd = name
+      @name = null
+    if !@cmdToString then @cmdToString = => (if name then "#{name}: " else '') + @cmd.toString()
   toString: -> "Monad2: #{@cmdToString()}"
 
 #define 'return', lz (v)-> new Monad2 ((env, cont)-> cont rz v), -> "return #{rz v}"
@@ -393,7 +397,7 @@ define 'defer', lz (v)-> new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1),
 define 'bind2', bind2 = lz (m)->(binding)->
   newM = rz m
   if (newM instanceof Monad2) || (isMonad newM)
-    new Monad2 ((env, cont)->
+    new Monad2 'bind', ((env, cont)->
       runMonad2 newM, env, (value)->
         #runMonad2 rz(L_bind2)(lz value)(binding), env, cont), ->
         runMonad2 rz(binding)(lz value), env, cont), ->
@@ -554,7 +558,7 @@ define 'print', lz (msg)->
     cont _unit
 
 define 'print2', lz (msg)->
-  new Monad2 ((env, cont)->
+  new Monad2 'print2', ((env, cont)->
     env.write env.presentValue rz msg
     cont _unit), -> "print2 #{rz msg}"
 

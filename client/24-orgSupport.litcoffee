@@ -1295,8 +1295,8 @@ Code
         if nwDispatcher? then $('#saveFile').attr 'nwsaveas', downloadPath
         else $('#saveLink').attr 'download', downloadPath
       reparse parent, text, target
-      if !target
-        executeDefs (node for node in $(parent).find('[data-org-src="def"]')), 0
+      #if !target
+      #  executeDefs (node for node in $(parent).find('[data-org-src="def"]')), 0
     
     executeDefs = (defs, index)->
       if index < defs.length

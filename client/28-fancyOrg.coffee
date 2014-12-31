@@ -1419,6 +1419,11 @@ orgEnv = (parent, node)->
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
     finishedComputation: ->
   installEnvLang node, env
+  et = env.executeText
+  env.executeText = (text, props, cont)->
+    et.call this, text, props, ->
+      env.finishedComputation()
+      cont()
   env
 
 #################
