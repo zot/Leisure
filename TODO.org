@@ -1,4 +1,11 @@
 * Short list -- announcement
+** TODO cache compiled Leisure JS in blocks
+- keep change count in info block
+- cache code in leisure block and keep change count
+- edits recache code and propagate to connected clients
+- initial reads recompile code with old counts
+  - connected clients can ignore cache updates from reads if block text hasn't changed
+** TODO fix game.lorg's layout
 ** TODO support multiple imports per headline
 add support for multiple property values
 ** TODO code scope inspector
@@ -99,6 +106,8 @@ base it on org text, not DOM text
 - hooks for programs to react to data changes (subscriptions)
 ** TODO JavaScript/CoffeeScript source blocks
 ** TODO fix floaty notes
+** DONE fix imported indexed data
+   CLOSED: [2015-01-02 Fri 01:06]
 ** DONE value slider final value isn't always used
    CLOSED: [2015-01-01 Thu 13:07]
 ** DONE put origin in all blocks & use regular paths for imports (instead of import/)

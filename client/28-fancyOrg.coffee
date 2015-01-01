@@ -1061,7 +1061,7 @@ commentBlock = (name)->
 
 toggleComment = (name, evt)->
   button = $(evt.target).closest('button')[0]
-  block = $("[data-org-comments=#{name}]")
+  block = $("[data-org-comments='#{name}']")
   console.log "comments clicked!"
   if block.hasClass 'showcomments'
     if !replaceRelatedPresenter button, null then block.removeClass 'showcomments'
@@ -1711,12 +1711,12 @@ renderLink = (node, data)->
     .attr 'data-view-id', data._id
 
 updateIndexViews = (index)->
-  for link in $("[data-view-indexes=#{index}]")
+  for link in $("[data-view-indexes='#{index}']")
     renderLink link, getBlock link.getAttribute "data-view-id"
 
 updateViews = (id)->
   if block = getBlock id
-    for link in $("[data-view-ids~=#{id}]")
+    for link in $("[data-view-ids~='#{id}']")
       if !root.changeContext.blockViews?.is(link)
         for view in $(link).find("[data-view-block='#{id}']")
           if !root.changeContext.blockViews?.is(view)
@@ -1741,11 +1741,19 @@ Leisure.bindWidgets = bindWidgets = (parent)->
       input.onkeyup = (e)->
         block = viewBlock(input)
         data = block.yaml
-        data[field] = input.value
+        setField data, field, input.value
         noRenderWhile $(link), -> setData block._id, data
         if nextButton && e.keyCode == 13
           e.preventDefault()
           $(rootNode(input).firstChild).find("##{nextButton}").click()
+
+setField = (data, field, value)->
+  data[field] = if typeof value == 'number' then value
+  else if typeof value == 'string'
+    n = Number value
+    if String(n) == value.trim() then n
+    else value
+  else value
 
 Handlebars.registerHelper 'values', (items..., options)-> items
 

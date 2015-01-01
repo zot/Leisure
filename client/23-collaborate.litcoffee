@@ -44,6 +44,7 @@ Meteor-based collaboration -- client side
     namedBlocks = {}
     context = L()
     allIndexes = {}
+    indexes = {}
     updateAll = false
     scriptCounter = 0
     valid = true
@@ -115,14 +116,18 @@ Handle changes to the doc nodes
                   oldCont?()
           else if doc == root.currentDocument then valid = false
           continue
-        if !isCurrent item.data then continue
+        if item.type != 'removed' && !isCurrent item.data then continue
         if !!item.data.local == !!local
           root.changeContext = item.context ? {}
           if item.data.local && item.type == 'added' && (old = doc.leisure.master.findOne item.data._id)
             item.type = 'changed'
             item.oldData = old
           if !item.data.local then expungeLocalData doc.leisure.master, item.data._id
-          switch item.type
+          if item.type == 'added' && oldData = overridingIndexedItem doc, item.data
+            changeIndex doc, item.data, oldData
+          else if item.type == 'removed' && oldData = overridingIndexedItem doc, item.data
+            changeIndex doc, oldData, item.data
+          else switch item.type
             when 'added' then addIndex doc, item.data
             when 'changed' then changeIndex doc, item.data, item.oldData
             when 'removed' then removeIndex doc, item.data
@@ -550,7 +555,7 @@ Private function to observe a document
             console.log "OBSERVING #{result.id}, #{if result.hasGit then 'HAS' else 'NO'} GIT"
             Meteor.subscribe result.id, ->
               observingDoc[result.id] = docCol = new Meteor.Collection result.id
-              docCol.leisure = {name: result.id, indexes: {}, master: docCol}
+              docCol.leisure = {name: result.id, master: docCol}
               downloadPath = result.id
               if m = name.match(/^local\/([^\/]*)\//) then downloadPath = m[1]
               docCol.leisure.info = docCol.findOne info: true
@@ -572,6 +577,9 @@ Indexers manage adding and removing data from these indexes.
 Data index attributes specify an indexer and have the form
 
 :index name1 field1, name field2, ...
+
+    overridingIndexedItem = (doc, data)->
+      doc == root.currentDocument && data.origin != doc.leisure.name && data.codeAttributes?.index && findImportedBlock(data._id)
 
     addIndex = (doc, data, info)->
       if key = data.codeAttributes?.index
@@ -605,12 +613,13 @@ Data index attributes specify an indexer and have the form
     replaceIndexDef = (doc, name, compare)->
       if name
         #console.log "Redefining index '#{name}' #{if compare then 'desc' else 'asc'}"
-        oldIndex = doc.leisure.indexes[name]
-        newIndex = doc.leisure.indexes[name] = new SortedMap null, null, compare
+        oldIndex = indexes[name]
+        newIndex = indexes[name] = new SortedMap null, null, compare
         newIndex._leisure_intentional = true
         oldIndex?.forEach (value, key)-> newIndex.set key, value
         updateAll = true
 
+    #TODO: remove @doc from this
     class Indexer
       constructor: (@doc, key)->
         @indexes = []
@@ -635,8 +644,8 @@ Data index attributes specify an indexer and have the form
           for i in [1...desc.length]
             v = v && v[desc[i]]
           if v?
-            if !@doc.leisure.indexes[desc[0]] then console.log "No index '#{desc[0]}'"
-            index = (@doc.leisure.indexes[desc[0]] ? (console.log("Defining default index '#{desc[0]}'"); @doc.leisure.indexes[desc[0]] = new SortedMap()))
+            if !indexes[desc[0]] then console.log "No index '#{desc[0]}'"
+            index = (indexes[desc[0]] ? (console.log("Defining default index '#{desc[0]}'"); indexes[desc[0]] = new SortedMap()))
             if !(a = index.get v) then index.set v, a = []
             a.push id
       remove: (id, data)->
@@ -644,15 +653,16 @@ Data index attributes specify an indexer and have the form
           v = data
           for i in [1...desc.length]
             v = v && v[desc[i]]
-          if v? && (index = @doc.leisure.indexes[desc[0]]) && a = index.get v
+          if v? && (index = indexes[desc[0]]) && a = index.get v
             _.remove a, (el)-> el == id
             if a.length == 0
-              if index.length == 1 && !index._leisure_intentional then console.log("removing index '#{desc[0]}'"); delete @doc.leisure.indexes[desc[0]]
+              if index.length == 1 && !index._leisure_intentional then console.log("removing index '#{desc[0]}'"); delete indexes[desc[0]]
               else index.delete v
 
+    #TODO: remove @doc from this
     class IndexedCursor
       constructor: (@doc, @name, node, getFirst, limit)->
-        if @index = @doc.leisure.indexes[@name]
+        if @index = indexes[@name]
           if getFirst then @_getFirst = getFirst
           if node then @node = node else @rewind()
           @limit = limit ? -> true
@@ -662,7 +672,7 @@ Data index attributes specify an indexer and have the form
       forEach: (f)->
         while @node && @limit @node.value.key
           for id in @node.value.value
-            f @doc.findOne id
+            f getBlock id
           @node = @index.store.findLeastGreaterThan @node.value
       _getFirst: -> @index.store.findLeast()
       rewind: -> @node = @_getFirst()
@@ -1171,3 +1181,4 @@ You can also mark any piece of data as local.
     root.addDataAfter = addDataAfter
     root.dataTypeIds = dataTypeIds
     root.curOrgDoc = curOrgDoc
+    root.indexes = indexes
