@@ -321,7 +321,6 @@ Handle changes to the doc nodes
       cont?()
 
     importDocument = (name, cont)->
-      name = "import/#{name}"
       basicObserveDocument name, (result, docCol, downloadPath)->
         docCol.find().observe observer docCol, false, true, name
         docCol.leisure.localCollection = new Meteor.Collection null
@@ -440,7 +439,7 @@ data.
         cur.yaml = value
         updateItem overrides = new Overrides(), cur
         if cur.origin? && !(root.currentDocument.findOne id)
-          node = $("[data-property-import='#{(cur.origin.match /^import\/(.*)$/)[1]}']")
+          node = $("[data-property-import='#{cur.origin}']")
           last = node.find('[data-shared]').last()
           prevNode = getBlock (if last.length then last else node)[0].id
           cur.prev = prevNode._id
@@ -467,9 +466,15 @@ doc and attrLine are optional
       #{dump value}
       #+END_SRC
       """
-      block = (orgDoc parseOrgMode src)[0]
+      block = (curOrgDoc src)[0]
       Meteor.call 'addBlockAfter', root.currentDocument.leisure.name, id, block
       block._id
+
+    curOrgDoc = (text)->
+      blocks = orgDoc parseOrgMode text
+      for block in blocks
+        block.origin = root.currentDocument.leisure.name
+      blocks
 
     getSourceAttribute = (text, attr)->
       text.match(new RegExp "#\\+BEGIN_SRC.*:#{attr}\\b([^:]*)", 'i')?[1]?.trim()
@@ -1040,7 +1045,7 @@ You can also mark any piece of data as local.
       prev = getItem overrides, cur?.prev
       next = getItem overrides, cur?.next
       if newText[newText.length - 1] != '\n' then newText += stealFirstLine overrides, next
-      newDoc = orgDoc parseOrgMode newText
+      newDoc = curOrgDoc newText
       mergeFirstChunk overrides, prev, newDoc
       mergeFirstCode overrides, prev, cur, newDoc
       mergeLastChunk overrides, next, newDoc
@@ -1089,7 +1094,7 @@ You can also mark any piece of data as local.
 
     simpleCheckCodeMerge = (prev, code)->
       if prev?.type == 'chunk' && code?.type == 'code' && prev.text.match sourceStart
-        newDoc = orgDoc parseOrgMode prev.text + code.text
+        newDoc = curOrgDoc prev.text + code.text
         if newDoc.length == 1
           prev.text = null
           code.text = newDoc[0].text
@@ -1164,3 +1169,4 @@ You can also mark any piece of data as local.
     root.incRenderCount = incRenderCount
     root.addDataAfter = addDataAfter
     root.dataTypeIds = dataTypeIds
+    root.curOrgDoc = curOrgDoc

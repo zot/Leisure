@@ -98,6 +98,8 @@ base it on org text, not DOM text
 - hooks for programs to react to data changes (subscriptions)
 ** TODO JavaScript/CoffeeScript source blocks
 ** TODO fix floaty notes
+** DONE put origin in all blocks & use regular paths for imports (instead of import/)
+   CLOSED: [2015-01-01 Thu 10:24]
 ** DONE editing headline doesn't move cursor
    CLOSED: [2014-12-30 Tue 16:50]
 ** DONE Document importing

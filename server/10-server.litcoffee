@@ -142,20 +142,6 @@ Document model that ties orgmode parse trees to HTML DOM
     loadDoc = (name, temp, text, reload)->
       if !temp && (name.match restrictedPattern) then throw new Error "ENOENT, open '#{name}'"
       if reload && (temp || tempDocs[name]) then throw new Error "Attempt to reload temporary document, #{name}"
-      if m = name.match /^import\/(.*)$/
-        fname = m[1]
-        filter = (block)->
-          block.origin = name
-          block
-      else
-        fname = name
-        filter = (x)-> x
-      try
-        text = crnl text ? (if gitHasFile fname then gitReadFile(fname).toString() else GlobalAssets.getText fname)
-      catch err
-        delete docs[id]
-        if temp then delete tempDocs[id]
-        throw err
       if temp
         id = new Meteor.Collection.ObjectID().toJSONValue()
         # this doesn't seem to accept changes from the clients
@@ -168,10 +154,18 @@ Document model that ties orgmode parse trees to HTML DOM
         id = name
         doc = if reload then docs[id] else docs[id] = new Meteor.Collection id
         if !doc then throw new Error "Attempt to reload unloaded document, #{name}"
+      try
+        text = crnl text ? (if gitHasFile name then gitReadFile(name).toString() else GlobalAssets.getText name)
+      catch err
+        delete docs[id]
+        if temp then delete tempDocs[id]
+        throw err
       doc.leisure = name: id
       if temp then doc.leisure.temp = true
       doc.remove {}
-      createDocFromText text, doc, false, filter
+      createDocFromText text, doc, false, (block)->
+        block.origin = id
+        block
       doc.namedBlocks = {}
       doc.find().observe
         added: (data)-> indexData doc, data

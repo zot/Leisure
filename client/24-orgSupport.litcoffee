@@ -65,6 +65,7 @@ Code
       selectRange,
     } = DOMCursor = root.DOMCursor = window.DOMCursor
     {
+      curOrgDoc,
       crnl,
       docOrg,
       subDoc,
@@ -1019,13 +1020,13 @@ Code
         if prev = getBlock(blockIds[0]).prev then blockIds.unshift prev
         if next = getBlock(L(blockIds).last()).next then blockIds.push next
         oldBlocks = (getBlock(id) for id in blockIds)
-        newBlocks = orgDoc parseOrgMode (blockText($("##{id}")[0]) for id in blockIds).join ''
+        newBlocks = curOrgDoc (blockText($("##{id}")[0]) for id in blockIds).join ''
         changeStructure oldBlocks, newBlocks
     
     # Change oldBlocks into newBlocks
     # rerender the changed parts of the doc
     changeStructure = (oldBlocks, newBlocks)->
-      if typeof newBlocks == 'string' then newBlocks = orgDoc parseOrgMode newBlocks
+      if typeof newBlocks == 'string' then newBlocks = curOrgDoc newBlocks
       for bl in newBlocks
         bl._id = new Meteor.Collection.ObjectID().toJSONValue()
       overrides = new Overrides()

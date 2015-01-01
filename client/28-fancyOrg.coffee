@@ -484,7 +484,7 @@ markupHeadline = (org, delay, note, replace)->
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}' data-nonorg='true'><i class='fa fa-wrench'></i></span>" else ''
   optImport = if org.properties.import
-    "<div class='import' data-nonorg='true' contenteditable='false'><span><a href='#load=/import/#{org.properties.import}' target='_blank'>#{org.properties.import}</a></span></div>"
+    "<div class='import' data-nonorg='true' contenteditable='false'><span><a href='#load=/#{org.properties.import}' target='_blank'>#{org.properties.import}</a></span></div>"
   else ''
   editMode = if org.level == 1 then " data-edit-mode='fancy'" else ""
   if org.level == 1 && !note && !org.properties?.note
