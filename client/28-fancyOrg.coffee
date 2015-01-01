@@ -806,7 +806,6 @@ replaceCodeBlock = (node, text)->
     newNode = $(markupNewNode org, false, true)[0]
     $(node).replaceWith(newNode)
     edited newNode
-    reprocessResults newNode
     fixupHtml blockElementForNode newNode
     setTimeout (=>
       nn = $(newNode)
@@ -890,18 +889,29 @@ leisureNumberSlider = (numberSpan)->
   orgParent = getOrgParent numberSpan
   orgType = orgParent.getAttribute 'data-org-results'
   computing = false
-  (event, ui)->
-    numberSpan.innerHTML = String(ui.value)
-    if !computing && orgType in ['dynamic', 'def']
-      computing = true
-      doc = topNode orgParent
-      selection = new FancySelectionDescriptor doc
-      done = ->
-        setTimeout (->selection.restore 0, doc), 1
-        computing = false
-      setTimeout (->
-        if orgType == 'dynamic' then root.orgApi.executeSource parent, numberSpan.parentNode, done
-        else if orgType == 'def' then root.orgApi.executeDef orgParent, done), 1
+  pending = false
+  newValue = ->
+    computing = true
+    pending = false
+    doc = topNode orgParent
+    selection = new FancySelectionDescriptor doc
+    done = ->
+      setTimeout (->selection.restore 0, doc), 1
+      computing = false
+    setTimeout (->
+      if orgType == 'dynamic' then root.orgApi.executeSource parent, numberSpan.parentNode, done
+      else if orgType == 'def' then root.orgApi.executeDef orgParent, done), 1
+  pollFunc = ->
+    if !computing && pending then newValue()
+    else setTimeout pollFunc, 100
+  if orgType in ['dynamic', 'def']
+    (event, ui)->
+      numberSpan.innerHTML = String(ui.value)
+      if !computing then newValue()
+      else if !pending
+        pending = true
+        pollFunc()
+  else ->
 
 regularNumberSlider = (numberSpan)->
   Lodash.throttle ((event, ui)->
@@ -1079,8 +1089,11 @@ defaultMarkup = (org, tag, attrs...)->
 
 htmlForResults = (text, org)->
   attr = if org?.shared then " id='#{org.nodeId}' data-shared='#{org.shared}'" else ''
+  bareResults = ''
+  for line in splitLines text
+    if line.match /^: / then bareResults += "<div class='resultsline'>#{unescapeString line.substring(2)}</div>"
   """
-  <div class='coderesults' data-org-type='results'#{attr}><span data-results-boilerplate class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><div data-results-display data-nonorg></div><span data-results-content class='hidden'>#{escapeHtml text}</span></div></div>"""
+  <div class='coderesults' data-org-type='results'#{attr}><span data-results-boilerplate class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><div data-results-display data-nonorg>#{bareResults}</div><span data-results-content class='hidden'>#{escapeHtml text}</span></div></div>"""
 
 htmlForViewResults = (text, boilerplate)->
   html = sourceSpan 'results-boilerplate', boilerplate ? '#+RESULTS:\n'
@@ -1349,16 +1362,8 @@ runTest = (doc, node)-> executeSource doc, node, (if $(node).is("[data-org-resul
 checkTestResults = (node)->
   node.setAttribute 'data-org-test', (if node.getAttribute('data-org-expected') == $(node).find('[data-results-content]').text() then 'pass' else 'fail')
 
-reprocessResults = (node)->
-  block = $(node).closest('[data-shared]')
-  text = getOrgText block.find('[data-results-content]')[0]
-  clearResults block[0]
-  processResults text, block[0], true
-
 processResults = (str, node, skipText)->
-  if node.hasAttribute 'data-no-results'
-    console.log colonify str
-  else
+  if !(node.hasAttribute 'data-no-results')
     resultsNode = $(node).find('[data-results-display]')[0]
     if !skipText
       $(node).find('[data-results-content]')[0].textContent += str
@@ -1409,7 +1414,7 @@ clearResults = (node)->
 orgEnv = (parent, node)->
   if id = $(node).closest('[data-shared]')[0]?.id
     r = -> $("##{id}")[0]
-  env = if r?()
+  env = if r?() && !r().hasAttribute 'data-no-results'
     pendingResults = ''
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
@@ -1421,7 +1426,7 @@ orgEnv = (parent, node)->
   else
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
-    write: (str)-> console.log colonify str
+    write: (str)-> console.log colonify String str
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
     finishedComputation: ->
   installEnvLang node, env
@@ -1849,7 +1854,7 @@ fancyOrg =
           env.finishedComputation()
           recreateAstButtons code
           if shouldRedrawAst then redrawAst code, pos
-          if cont then cont()
+          cont?()
   executeDef: fancyExecuteDef
   createResults: createResults
   bindings: defaultBindings
@@ -1955,8 +1960,6 @@ fixupHtml = (parent, note)->
     createValueSliders node, leisureNumberSlider
   for node in findOrIs findOrIs($(parent), "[data-lang]:not([data-lang='leisure'])"), '[data-org-src]'
     createValueSliders node, regularNumberSlider
-  for node in findOrIs($(parent), '[data-results-content]').closest('[data-shared]')
-    reprocessResults node
   createNoteShadows()
   createEditToggleButton parent
   #if !note
