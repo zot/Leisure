@@ -512,7 +512,7 @@ Code
     
     templateExpansions =
       '<s': ['#+BEGIN_SRC leisure\n', '\n#+END_SRC']
-      '<=': ['#+BEGIN_SRC leisure :results def\n', '\n#+END_SRC']
+      '<D': ['#+BEGIN_SRC leisure :results def\n', '\n#+END_SRC']
       '<d': ['#+BEGIN_SRC leisure :results dynamic\n', '\n#+END_SRC']
       '<h': ['#+BEGIN_HTML\n', '\n#+END_HTML']
     
@@ -561,6 +561,7 @@ Code
       nodes[org.nodeId] = org
       extra = if rt = resultsType org then " data-org-results='#{rt}'"
       else ''
+      if noResults org then extra += " data-no-results"
       if org.shared then extra += " data-shared='#{org.shared}' data-nodecount='#{org.nodeCount}'"
       if org.local then extra += " data-local=true"
       t = org.allTags()
@@ -579,7 +580,9 @@ Code
       "id='#{escapeAttr org.nodeId}' data-org-type='#{escapeAttr org.type}'#{extra}"
     
     resultsType = (org)-> org instanceof Source && (org.info.match /:results *([^ ]*)/)?[1].toLowerCase()
-    
+
+    noResults = (org)-> org instanceof Source && org.info.match /:noresults(\s|$)/
+
     isDynamic = (org)-> resultsType(org) == 'dynamic'
     
     isDef = (org)-> resultsType(org) == 'def'
@@ -999,7 +1002,7 @@ Code
         bl = $()
         for id in root.currentBlockIds
           bl = bl.add $("##{id}")
-        if isLeisureBlock(bl) && bl[0]?.contains(mod) && bl.find('[data-org-results="dynamic"]').length
+        if isLeisureBlock(bl) && bl[0]?.contains(mod) && findOrIs(bl, '[data-org-results="dynamic"]').length
           root.orgApi.executeSource bl[0], mod
         if mod && !ignore then checkStructure mod
     
@@ -1739,6 +1742,7 @@ Code
     root.handleInsert = handleInsert
     root.editBlock = editBlock
     root.getEventChar = getEventChar
+    root.templateExpansions = templateExpansions
     
     # evil mod of Templating
     Templating.nonOrg = nonOrg

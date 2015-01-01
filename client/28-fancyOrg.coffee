@@ -1356,15 +1356,18 @@ reprocessResults = (node)->
   processResults text, block[0], true
 
 processResults = (str, node, skipText)->
-  resultsNode = $(node).find('[data-results-display]')[0]
-  if !skipText
-    $(node).find('[data-results-content]')[0].textContent += str
-    edited node
-  classes = 'resultsline'
-  if theme != null then classes = theme + ' ' + classes
-  if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
-  for line in splitLines str
-    if line.match /^: / then resultsNode.innerHTML += "<div class='#{classes}'>#{unescapeString line.substring(2)}</div>"
+  if node.hasAttribute 'data-no-results'
+    console.log colonify str
+  else
+    resultsNode = $(node).find('[data-results-display]')[0]
+    if !skipText
+      $(node).find('[data-results-content]')[0].textContent += str
+      edited node
+    classes = 'resultsline'
+    if theme != null then classes = theme + ' ' + classes
+    if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
+    for line in splitLines str
+      if line.match /^: / then resultsNode.innerHTML += "<div class='#{classes}'>#{unescapeString line.substring(2)}</div>"
 
 charCodes =
   "b": '\b'
@@ -1426,7 +1429,7 @@ orgEnv = (parent, node)->
   env.executeText = (text, props, cont)->
     et.call this, text, props, ->
       env.finishedComputation()
-      cont()
+      cont? env
   env
 
 #################
@@ -1925,7 +1928,7 @@ fancyOrg =
     restorePosition null, =>
       orgNotebook.updateObserver.apply this, args
       if observerContext.block.codeAttributes.view
-        displayCodeView $("##{observerContext.block._id}").find('[data-code-view]')[0]
+        displayCodeView findOrIs($("##{observerContext.block._id}"), '[data-code-view]')[0]
   removeSlide: (id)->
     el = $("##{id}")
     holder = el.closest ".slideholder"
@@ -1964,7 +1967,7 @@ fixupHtml = (parent, note)->
   #    .click (e)->
   #      e.preventDefault()
   #      #root.currentMode.createNotes()
-  for node in $(parent).find("[data-code-view]")
+  for node in findOrIs $(parent), "[data-code-view]"
     displayCodeView node
   for node in findOrIs $(parent), '[data-org-comments]'
     setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
