@@ -898,19 +898,15 @@ leisureNumberSlider = (numberSpan)->
     done = ->
       setTimeout (->selection.restore 0, doc), 1
       computing = false
+      setTimeout (-> if !computing && pending then newValue()), 100
     setTimeout (->
       if orgType == 'dynamic' then root.orgApi.executeSource parent, numberSpan.parentNode, done
       else if orgType == 'def' then root.orgApi.executeDef orgParent, done), 1
-  pollFunc = ->
-    if !computing && pending then newValue()
-    else setTimeout pollFunc, 100
   if orgType in ['dynamic', 'def']
     (event, ui)->
       numberSpan.innerHTML = String(ui.value)
       if !computing then newValue()
-      else if !pending
-        pending = true
-        pollFunc()
+      else pending = true
   else ->
 
 regularNumberSlider = (numberSpan)->
