@@ -321,6 +321,7 @@ Handle changes to the doc nodes
       cont?()
 
     importDocument = (name, cont)->
+      name = new URI("x://h/#{root.currentDocument.leisure.name}", name).path.substring 1
       basicObserveDocument name, (result, docCol, downloadPath)->
         docCol.find().observe observer docCol, false, true, name
         docCol.leisure.localCollection = new Meteor.Collection null

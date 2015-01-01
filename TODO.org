@@ -1,4 +1,6 @@
 * Short list -- announcement
+** TODO support multiple imports per headline
+add support for multiple property values
 ** TODO code scope inspector
 - inspector button on code scope
   - highlight view under mouse
