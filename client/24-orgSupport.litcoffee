@@ -1427,9 +1427,10 @@ Code
     
     getTextPosition = (parent, target, pos)->
       if parent
+        targ = domCursorForText target, pos
         domCursorForText parent, 0, parent
           .mutable()
-          .countChars target, pos
+          .countChars targ.node, targ.pos
       else -1
     
     findDomPosition = (parent, pos, contain)->
