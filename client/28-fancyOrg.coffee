@@ -483,11 +483,14 @@ markupHeadline = (org, delay, note, replace)->
   for k, v of org.properties
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}' data-nonorg='true'><i class='fa fa-wrench'></i></span>" else ''
+  optImport = if org.properties.import
+    "<div class='import' data-nonorg='true' contenteditable='false'><span><a href='#load=/import/#{org.properties.import}' target='_blank'>#{org.properties.import}</a></span></div>"
+  else ''
   editMode = if org.level == 1 then " data-edit-mode='fancy'" else ""
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='headline-content'><div class='textborder' contenteditable='false'></div><div class='headline-content'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span></div></div><span class='meat-break'>\n</span></span>#{markupGuts org, checkStart start, org.text}</span></div>"
-    else "#{startNewSlide()}<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='headline-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
+      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='headline-content'><div class='textborder' contenteditable='false'></div><div class='headline-content'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span></div></div><span class='meat-break'>\n</span></span>#{optImport}#{markupGuts org, checkStart start, org.text}</span></div>"
+    else "#{startNewSlide()}<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='headline-content'><span class='hidden'>#{org.text}</span></span></span>#{optImport}#{markupGuts org, checkStart start, org.text}</div>"
   else
     slide = if org.text.trim() != ''
       "<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='headline-content'><div class='headline-content'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span>\n</div></span>#{markupGuts org, checkStart start, org.text}</div>"

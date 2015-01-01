@@ -1792,6 +1792,17 @@ i.fa + div, i.fa + span, i.fa + div + span {
 .flat .org-plain, .flat  /deep/ .ui-button-text {
     font-family: Arial;
 }
+.flat [data-edit-mode='fancy'] .import span {
+    display: inline-block;
+    border: solid gray 2px;
+    border-radius: 5px;
+    padding: 5px;
+    font-style: italic;
+    font-weight: bold;
+}
+.flat [data-edit-mode='fancy'] .import span:before {
+    content: 'Import: ';
+}
 .flat [data-edit-mode='fancy'] .default-lang[data-lang], .flat [data-edit-mode='fancy'] [data-lang='yaml'] {
     padding: 0;
 }

@@ -287,10 +287,9 @@ Code
     actualSelectionUpdate = ->
       if selectionActive
         c = domCursorForCaret true
-        if !c.isEmpty() && p = c.textPosition()
+        if !c.isEmpty() && (p = c.textPosition()) && isContentEditable c.node
           left = p.left
           top = p.top
-          #console.log "UPDATING SELECTION BUBBLE: #{left}, #{top}"
           bubble = $("#selectionBubble")[0]
           bubble.style.left = "#{left}px"
           bubble.style.top = "#{top - bubble.offsetHeight}px"
@@ -298,6 +297,9 @@ Code
           return
       $(document.body).removeClass 'selection'
     
+    isContentEditable = (node)->
+      (if node instanceof Element then node else node.parentElement).isContentEditable
+
     installSelectionMenu = ->
       $("#selectionBubble")
         .html selectionMenu
