@@ -1086,7 +1086,7 @@ defaultMarkup = (org, tag, attrs...)->
 htmlForResults = (text, org)->
   attr = if org?.shared then " id='#{org.nodeId}' data-shared='#{org.shared}'" else ''
   bareResults = ''
-  for line in splitLines text
+  for line in splitLines text ? ''
     if line.match /^: / then bareResults += "<div class='resultsline'>#{unescapeString line.substring(2)}</div>"
   """
   <div class='coderesults' data-org-type='results'#{attr}><span data-results-boilerplate class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><div data-results-display data-nonorg>#{bareResults}</div><span data-results-content class='hidden'>#{escapeHtml text}</span></div></div>"""
