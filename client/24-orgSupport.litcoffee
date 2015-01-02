@@ -1129,7 +1129,7 @@ Code
         runMonad result, env, (results)->
           runNextResult results, env, ->
             setValue 'parser_funcProps', old
-            cont? env
+            cont? env, results
     
     runNextResult = (results, env, cont)->
       while results != L_nil() && getType(results.head().tail()) == 'left'
@@ -1167,6 +1167,7 @@ Code
         else unknownLanguageEnv env
     
     defaultEnv.prompt = (msg, cont)-> cont prompt rz msg
+    defaultEnv.write = (str)-> console.log str
     
     orgEnv = (parent, node)->
       r = getResultsForSource parent, node
@@ -1452,11 +1453,13 @@ Code
     
     # full text for node
     getOrgText = (node)->
-      domCursor node.firstChild, 0
-        .mutable()
-        .filterTextNodes()
-        .filterParent node
-        .getText()
+      if node
+        domCursor node.firstChild, 0
+          .mutable()
+          .filterTextNodes()
+          .filterParent node
+          .getText()
+      else ''
     
     orgForNode = (node)->
       org = suborgForNode node

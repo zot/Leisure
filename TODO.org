@@ -1,4 +1,5 @@
 * Short list -- announcement
+** TODO meta-1 inserts a 1
 ** TODO cache compiled Leisure JS in blocks
 - keep change count in info block
 - cache code in leisure block and keep change count

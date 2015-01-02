@@ -1,11 +1,29 @@
 Meteor-based collaboration -- client side
 
     {
+      resolve,
+      lazy,
+    } = root = module.exports = require '15-base'
+    rz = resolve
+    lz = lazy
+    {
       SortedMap
     } = require 'collections/sorted-map'
     {
+      gen,
+      genMap,
+      genSource,
+      withFile,
+      sourceNode,
+      SourceNode,
+    } = require '18-gen'
+    {
       loadOrg,
     } = require '24-orgSupport'
+    {
+      json2Ast,
+      ast2Json,
+    } = require '16-ast'
     {
       parseOrgMode,
       Headline,
@@ -17,13 +35,15 @@ Meteor-based collaboration -- client side
       crnl,
     } = require '12-docOrg'
     {
+      Monad2,
+    } = require '17-runtime'
+    {
       safeLoad,
       dump,
     } = Leisure.yaml
 
     root = require '15-base'
     _ = require 'lodash.min'
-
     Nil = resolve L_nil
     viewTypeData = {}
     viewIdTypes = {}
@@ -149,7 +169,7 @@ Handle changes to the doc nodes
                   when 'removed' then rc.remove item.data
                   when 'changed' then rc.change item.oldData, item.data
               lang = item.data.language?.toLowerCase()
-              new Promise (good, bad)-> processDataChange item, lang, updated, initial, good
+              new Promise (good, bad)-> processDataChange doc, item, lang, updated, initial, good
             else updateObservers item.data, item.type, updated
           changePromise = if changePromise.isFulfilled() then Promise.method(work)()
           else changePromise.then work
@@ -258,7 +278,7 @@ Handle changes to the doc nodes
 
     isCurrent = (block)-> block.text == getBlock(block._id)?.text
 
-    processDataChange = ({type, context, data, oldData}, lang, updated, init, cont)->
+    processDataChange = (doc, {type, context, data, oldData}, lang, updated, init, cont)->
       if type in ['changed', 'removed']
         if type == 'removed' then oldData = data
         if viewIdTypes[oldData._id] && (type == 'removed' || lang != 'html')
@@ -318,12 +338,51 @@ Handle changes to the doc nodes
               update: -> runLeisureBlock data
               initializeView: -> runLeisureBlock data
               block: data
-          if data.codeAttributes?.results == 'def'
-            return runLeisureBlock data, ->
-              updateObservers data, type, updated
-              cont?()
+          if data.codeAttributes?.results == 'def' && data.text != oldData?.text
+            return runCachedLeisure doc, data, cont
         updateObservers data, type, updated
       cont?()
+
+    runCachedLeisure = (doc, data, cont)->
+      cont ||= ->
+      if !data.js && data.asts then cacheCodeFromAsts doc, block, _.map asts, (ast)-> json2Ast ast
+      if data.js
+        eval(data.js) resolve, new Monad2 (env, c)->
+          c()
+          cont()
+      else runLeisureBlock data, true, (env, results)->
+        cacheCode doc, data, results
+        cont()
+
+    cacheCode = (doc, block, results)->
+      errors = []
+      asts = _.map results.toArray(), (each)-> each.head()
+      block.asts = _.map asts, (ast)-> ast2Json ast
+      cacheCodeFromAsts doc, block, asts
+
+    cacheCodeFromAsts = (doc, block, asts)->
+      leisureName = doc.leisure.name + ":source"
+      jsName = doc.leisure.name + ":code"
+      lastArgs = null
+      try
+        gennedCode = withFile leisureName, null, -> (new SourceNode 1, 0, leisureName, [
+          "(function(resolve, last) {L_runMonads([\n  ",
+          intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
+          ", function(){return last}]);})"
+        ]).toStringWithSourceMap(file: jsName)
+        block.js = gennedCode.code
+        doc.update block._id, block
+      catch err
+        console.log "Error in source node,\nargs:", lastArgs
+        console.log "Error: #{err.stack}"
+
+    intersperse = (array, element)->
+      if array.length < 2 then array
+      else
+        result = [array[0]]
+        for i in [1...array.length]
+          result.push element, array[i]
+        result
 
     importDocument = (name, cont)->
       name = new URI("x://h/#{root.currentDocument.leisure.name}", name).path.substring 1
@@ -374,7 +433,7 @@ Handle changes to the doc nodes
           if id != data._id
             root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
 
-    runLeisureBlock = (block, cont)->
+    runLeisureBlock = (block, init, cont)->
       root.textEnv('leisure').executeText codeString(block), Nil, cont
 
     codeString = (data)-> (data.codePrelen? && data.codePostlen? && data.text.substring data.codePrelen, data.text.length - data.codePostlen) ? ''
@@ -443,19 +502,23 @@ data.
         newText = cur.text.substring(0, cur.codePrelen) + dump(value, cur.codeAttributes ? {}) + cur.text.substring cur.text.length - cur.codePostlen
         cur.text = newText
         cur.yaml = value
-        updateItem overrides = new Overrides(), cur
-        if cur.origin? && !(root.currentDocument.findOne id)
-          node = $("[data-property-import='#{cur.origin}']")
-          last = node.find('[data-shared]').last()
-          prevNode = getBlock (if last.length then last else node)[0].id
-          cur.prev = prevNode._id
-          cur.next = prevNode.next
-          prevNode.next = cur._id
-          updateItem overrides, prevNode
-          if nextNode = getBlock cur.next
-            nextNode.prev = cur._id
-            updateItem overrides, nextNode
-        commitOverrides overrides
+        storeBlock cur
+
+    storeBlock = (block)->
+      id = block._id
+      updateItem overrides = new Overrides(), block
+      if block.origin? && !(root.currentDocument.findOne id)
+        node = $("[data-property-import='#{block.origin}']")
+        last = node.find('[data-shared]').last()
+        prevNode = getBlock (if last.length then last else node)[0].id
+        block.prev = prevNode._id
+        block.next = prevNode.next
+        prevNode.next = block._id
+        updateItem overrides, prevNode
+        if nextNode = getBlock block.next
+          nextNode.prev = block._id
+          updateItem overrides, nextNode
+      commitOverrides overrides
 
 Add some data to the document -- for now, it is unnamed
 
