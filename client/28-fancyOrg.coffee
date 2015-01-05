@@ -128,6 +128,7 @@ yaml = root.yaml
   orgForNode,
   plainOrg,
   blockElementForNode,
+  executeSource,
 } = require '24-orgSupport'
 {
   redrawAllIssues,
@@ -1258,36 +1259,14 @@ newLinesForNode = (node)->
 whitespaceEnd = /(\n | )*(\n*)$/
 
 fancyBackspace = (div, e, s, r)->
-  handleDelete e, s, false, (text, pos)->
-    if pos == 0 then false
-    else if $(s.anchorNode).closest('.code-content').length then true
-    else
-      [start, stop] = if text[pos - 1] in [' ', '\n']
-        fore = text.substring 0, pos
-        ws = (m = fore.match(whitespaceEnd))?[0] ? ''
-        nls = m?[2] ? ''
-        if nls.length > 3 then [pos - 2, pos]
-        else [pos - ws.length, pos]
-      else [pos - 1, pos]
-      result = text.substring(0, start) + text.substring stop
-      if isEmptyText result then [0, ''] else start < text.length - 1 && [start, result]
+  handleDelete e, s, false, (text, pos)-> true
 
 isEmptyText = (text)-> text in ['\n', '\n\n']
 
 fancyDel = (div, e, s, r)->
   # do delete manually here because using repeat
   # doesn't update the DOM in time and pos isn't changing
-  handleDelete e, s, true, (text, pos)->
-    if isEmptyText text then [0, '']
-    else if $(s.anchorNode).closest('.code-content').length then pos < text.length - 1
-    else
-      [start, stop] = if text[pos] != '\n' then [pos, pos + 1]
-      else if text[pos + 1] == '\n' then [pos, pos + 2]
-      else if text[pos - 1] == '\n' then [pos - 1, pos + 1]
-      else [pos, pos + 1]
-      if stop < text.length
-        result = [start, text.substring(0, start) + text.substring stop]
-        if isEmptyText result then [0, ''] else result
+  handleDelete e, s, true, (text, pos)-> true
 
 beginsMeat = (s)->
   n = s.anchorNode
@@ -1332,14 +1311,14 @@ bsWillDestroyParent = (r)->
 
 allowEvents = true
 
-executeSource = (parent, node, cont, skipTests)->
+executeSource = (parent, node, env, cont, skipTests)->
   doc = topNode node
   [srcNode, text] = getNodeSource node
   if srcNode
     createResults srcNode
     if text.trim().length
       lang = getNodeLang node
-      orgEnv(parent, srcNode).executeText text.trim(), propsFor(srcNode), (env)->
+      orgEnv(parent, srcNode).executeText text.trim(), propsFor(srcNode), env, (env)->
         cont? env
         if !skipTests then runAutotests doc
     else if r = $(srcNode).find('[data-results-content]').length then clearResults srcNode
@@ -1361,15 +1340,16 @@ checkTestResults = (node)->
 
 processResults = (str, node, skipText)->
   if !(node.hasAttribute 'data-no-results')
-    resultsNode = $(node).find('[data-results-display]')[0]
-    if !skipText
-      $(node).find('[data-results-content]')[0].textContent += str
-      edited node
-    classes = 'resultsline'
-    if theme != null then classes = theme + ' ' + classes
-    if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
-    for line in splitLines str
-      if line.match /^: / then resultsNode.innerHTML += "<div class='#{classes}'>#{unescapeString line.substring(2)}</div>"
+    if resultsNode = $(node).find('[data-results-display]')[0]
+      if !skipText
+        $(node).find('[data-results-content]')[0]?.textContent += str
+        edited node
+      classes = 'resultsline'
+      if theme != null then classes = theme + ' ' + classes
+      if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
+      for line in splitLines str
+        if line.match /^: / then resultsNode.innerHTML += "<div class='#{classes}'>#{unescapeString line.substring(2)}</div>"
+    else console.log str
 
 charCodes =
   "b": '\b'
@@ -1416,6 +1396,9 @@ orgEnv = (parent, node)->
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     write: (str)-> pendingResults += colonify String str
+    clear: ->
+      pendingResults = ''
+      clearResults r()
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
     finishedComputation: ->
       clearResults r()
@@ -1847,7 +1830,7 @@ fancyOrg =
     node = $(node).closest('[data-org-type="source"]')[0]
     if isPlainEditing node then plainOrg.executeSource arguments...
     else
-      restorePosition null, ->
+      restorePosition null, =>
         code = getCodeContainer node
         shouldRedrawAst = false
         if presenter?.astCode == code
@@ -1855,7 +1838,7 @@ fancyOrg =
           if presenter.astCodeContains? pos
             shouldRedrawAst = true
           presenter = emptyPresenter
-        executeSource.call this, parent, node, (env)->
+        executeSource.call this, parent, node, this, (env)->
           env.finishedComputation()
           recreateAstButtons code
           if shouldRedrawAst then redrawAst code, pos

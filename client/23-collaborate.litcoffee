@@ -340,6 +340,7 @@ Handle changes to the doc nodes
         env = null
       if lang in ['js', 'javascript']
         try
+          env?.clear()
           eval codeString data
         catch err
           console.log err.stack
@@ -347,10 +348,11 @@ Handle changes to the doc nodes
         try
           if needsContext data then compileCoffeeContext data._id, data
           else
+            env?.clear()
             CoffeeScript.eval codeString(data), coffeeOpts()
         catch err
           console.log err.stack
-      else if lang == 'leisure' then return runCachedLeisure doc, data, editing, cont
+      else if lang == 'leisure' then return runCachedLeisure doc, data, editing, env, cont
       cont?()
 
     pendingLeisure = {}
@@ -367,8 +369,17 @@ Handle changes to the doc nodes
           env = null
         cont ||= ->
         if !data.js && data.asts then cacheCodeFromAsts doc, block, editing, _.map asts, (ast)-> json2Ast ast
+        if env
+          written = false
+          w = env.write
+          env.write = (str)->
+            if !written then env.clear()
+            written = true
+            w.call this, str
+        else written = true
         finished = ->
           #console.log "FINISHED"
+          if !written then env.clear()
           cont?()
           processingLeisure = null
           if pendingLeisureQueue.length
@@ -380,9 +391,10 @@ Handle changes to the doc nodes
           eval(data.js) resolve, (new Monad2 (env, c)->
             c()
             finished()), env
-        else runLeisureBlock data, true, env, (env, results)->
-          cacheCode doc, data, editing, results
-          finished()
+        else
+          runLeisureBlock data, true, env, (env, results)->
+            cacheCode doc, data, editing, results
+            finished()
       else
         if !pendingLeisure[data._id]
           pendingLeisure[data._id] = true

@@ -1177,6 +1177,7 @@ Code
     
     defaultEnv.prompt = (msg, cont)-> cont prompt rz msg
     defaultEnv.write = (str)-> console.log str
+    defaultEnv.clear = ->
     
     orgEnv = (parent, node)->
       r = getResultsForSource parent, node
@@ -1188,14 +1189,12 @@ Code
         __proto__: defaultEnv
       installEnvLang node, env
       if r
-        wrote = false
         nodeId = $(node).closest('[data-shared]')[0].id
+        env.clear = ->
+          getResultsForSource(parent, $("##{nodeId}")[0]).textContent = ''
         env.write = (str)->
           @changed = true
           r = getResultsForSource(parent, $("##{nodeId}")[0])
-          if !wrote
-            wrote = true
-            r.innerHTML = ''
           r.textContent += ": #{str.replace /\n/g, '\n: '}\n"
       else env.write = (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
       env
@@ -1690,6 +1689,7 @@ Code
     root.getOrgParent = getOrgParent
     root.getOrgType = getOrgType
     root.executeDef = executeDef
+    root.executeSource = executeSource
     root.propsFor = propsFor
     root.orgEnv = orgEnv
     root.baseEnv = baseEnv
