@@ -65,11 +65,13 @@ Code
       selectRange,
     } = DOMCursor = root.DOMCursor = window.DOMCursor
     {
+      runBlock,
       curOrgDoc,
       crnl,
       docOrg,
       subDoc,
       edited,
+      editingWhile,
       getBlock,
       Overrides,
       getItem,
@@ -798,47 +800,54 @@ Code
         editBlock blocks, pos, pos, (text ? getEventChar e), pos + 1
     
     handleDelete = (e, s, forward, del)->
+      e.preventDefault()
       if s.type == 'Caret'
         c = domCursorForCaret().firstText()
         shared = $(c.node).closest('[data-shared]')[0]
         block = getBlock shared.id
         pos = getTextPosition shared, c.node, c.pos
         result = del block.text, pos
-        if result instanceof Array
-          [caret, newText] = result
-          root.ignoreModCheck = root.ignoreModCheck || 1
-          e.preventDefault()
-          blocks = []
-          if block.prev
-            blocks.push bl = getBlock block.prev
-            newText = bl.text + newText
+        blocks = []
+        if !result then root.ignoreModCheck = root.ignoreModCheck || 1
+        else
+          if result instanceof Array
+            [pos, stop] = result
+          else
+            pos += if forward then 0 else -1
+            stop = pos + 1
+          if pos < 0
+            if blocks.prev
+              blocks.push bl = getBlock block.prev
+              pos += bl.text.length
+              stop += bl.text.length
+            else return
           blocks.push block
-          if block.next
-            blocks.push bl = getBlock block.next
-            newText += bl.text
-          main = $(shared).closest('[maindoc]')[0]
-          saveC = domCursor(shared, 0).firstText()
-          save = getTextPosition(main, saveC.node, saveC.pos) + caret
-          changeStructure blocks, newText
-          domCursorForTextPosition(main, save).moveCaret()
-        else if !result
-          root.ignoreModCheck = root.ignoreModCheck || 1
-          e.preventDefault()
+          if pos == block.text.length - 1 && block.text[block.text.length - 1] == '\n'
+            if block.next then blocks.push getBlock block.next
+            else return
+          editBlock blocks, pos, stop, '', pos
     
     editBlock = (blocks, start, end, newContent, caret)->
       oldText = (block.text for block in blocks).join ''
       newText = oldText.substring(0, start) + newContent + oldText.substring end
-      top = $("#blocks[0]._id").closest("[maindoc]")
-      bl = blocks.slice()
-      changeStructure blocks, newText
       if caret?
-        if prev = getBlock bl[0].prev
-          c = domCursor $("##{bl[0].prev}")[0], 0
-          c = c.forwardChars prev.text.length
-        else c = domCursor $("##{bl[0]._id}")[0], 0
-        c.forwardChars(caret).moveCaret()
+        bl = blocks.slice()
+        prev = bl[0]
+        for i in [0...2]
+          if newPrev = getBlock(prev.prev)
+            prev = newPrev
+            caret += prev.text.length
+        shared = $("##{prev._id}")[0]
+        saveC = domCursor(shared, 0).firstText()
+        save = getTextPosition(shared, saveC.node, saveC.pos) + caret
+      editingWhile -> changeStructure blocks, newText
+      if caret? then return domCursorForTextPosition(shared, save).moveCaret()
     
-    domCursor = (node, pos)-> new DOMCursor(node, pos).filterOrg()
+    domCursor = (node, pos)->
+      if node instanceof jQuery
+        node = node[0]
+        pos = pos ? 0
+      new DOMCursor(node, pos).filterOrg()
     
     domCursorForText = (node, pos, parent)->
       c = domCursor node, pos
@@ -963,7 +972,7 @@ Code
     lineForRange = (node, offset)->
       lineText = node.data
       lineEnd = -1
-      pos = domCursor(node).mutable().filterTextNodes()
+      pos = domCursorForText node, 0
       if (lineStart = node.data.substring(0, offset).lastIndexOf '\n') == -1
         while !pos.isEmpty() && lineStart == -1
           if pos = pos.prev()
@@ -1002,7 +1011,7 @@ Code
         bl = $()
         for id in root.currentBlockIds
           bl = bl.add $("##{id}")
-        if isLeisureBlock(bl) && bl[0]?.contains(mod) && findOrIs(bl, '[data-org-results="dynamic"]').length
+        if isLeisureBlock(bl) && bl[0]?.contains(mod) && (node = findOrIs(bl, '[data-org-results]')).attr('data-org-results') in ['dynamic', 'def']
           root.orgApi.executeSource bl[0], mod
         if mod && !ignore then checkStructure mod
     
@@ -1137,7 +1146,7 @@ Code
         results = results.tail()
       if results != L_nil()
         runMonad getRight(results.head().tail()), env, (res2)->
-          env.write String(env.presentValue res2)
+          if getType(res2) != 'unit' then env.write String(env.presentValue res2)
           runNextResult results.tail(), env, cont
       else cont()
     
@@ -1197,18 +1206,21 @@ Code
       write: (str)-> console.log unescapePresentationHtml str
       newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
     
-    textEnv = (lang)->
-      env = __proto__: baseEnv
+    textEnv = (lang, env)->
+      env = env ? (__proto__: baseEnv)
       installEnvLang lang, env
       env
     
     getResultsForSource = (parent, node)->
       r = getExistingResultsForSource node
-      if !r
+      if !r && needsResults node
         newResults parent, parseOrgMode getNodeText parent
         getExistingResultsForSource node
       else r
     
+    needsResults = (node)->
+      node.getAttribute('data-org-results')?.toLowerCase() != 'def'
+
     getExistingResultsForSource = (node)->
       $(blockElementForNode(node)).find("[data-org-type='results'] [data-org-src='example']")[0]
     
@@ -1357,11 +1369,11 @@ Code
         #checkReparse parent
         if txt = getSource node
           env = orgEnv(parent, node)
-          env.executeText txt, propsFor(node), ->
+          runBlock root.currentDocument, getBlock(parent.id), env, ->
             if env.changed then edited node
             cont? env
         else console.log "No end for src block"
-      else getOrgType(node) != 'text' && !isDocNode(node) && executeSource parent, node.parentElement
+      else getOrgType(node) != 'text' && !isDocNode(node) && executeSource parent, node.parentElement, cont
     
     getNodeLang = (node) ->
       ($(node).closest("[data-lang]").attr('data-lang') || '')
@@ -1442,7 +1454,7 @@ Code
       if n.isEmpty() then [null, null] else [n.node, n.pos]
     
     domCursorForTextPosition = (parent, pos, contain)->
-      domCursorForText parent, 0, parent
+      domCursorForText parent, 0, (if contain then parent)
         .mutable()
         .forwardChars pos, contain
     

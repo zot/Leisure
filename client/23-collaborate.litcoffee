@@ -85,7 +85,7 @@ every time, because func is ignored after the first call in a batch
       if !funcBatchQueued
         funcBatchQueued = true
         setTimeout (->
-          console.log "Running batch of #{funcBatch.length} funcs"
+          #console.log "Running batch of #{funcBatch.length} funcs"
           b = funcBatch
           funcBatch = []
           funcBatchQueued = false
@@ -278,7 +278,7 @@ Handle changes to the doc nodes
 
     isCurrent = (block)-> block.text == getBlock(block._id)?.text
 
-    processDataChange = (doc, {type, context, data, oldData}, lang, updated, init, cont)->
+    processDataChange = (doc, {editing, type, context, data, oldData}, lang, updated, init, cont)->
       if type in ['changed', 'removed']
         if type == 'removed' then oldData = data
         if viewIdTypes[oldData._id] && (type == 'removed' || lang != 'html')
@@ -294,7 +294,7 @@ Handle changes to the doc nodes
       if init && type == 'added' && data.type == 'headline' && data.properties.import?
         return importDocument data.properties.import, cont
       else if type in ['changed', 'added'] && data.type == 'code'
-        if data.language.toLowerCase() == 'yaml' && data.yaml.type
+        if data.yaml?.type
           if !dataTypeIds[data.yaml.type]? then dataTypeIds[data.yaml.type] = {}
           dataTypeIds[data.yaml.type][data._id] = true
         attr = data.codeAttributes ? {}
@@ -320,61 +320,110 @@ Handle changes to the doc nodes
             viewTypeData[def] = codeString(data).trim()
             viewIdTypes[data._id] = def
           root.orgApi.updateBlock data
-        else if isDef(data) && lang in ['js', 'javascript']
-          try
-            eval codeString data
-          catch err
-            console.log err.stack
-        else if isDef(data) && lang in ['coffeescript', 'coffee']
-          try
-            if needsContext data then compileCoffeeContext data._id, data
-            else
-              CoffeeScript.eval codeString(data), coffeeOpts()
-          catch err
-            console.log err.stack
-        else if lang == 'leisure'
-          if needsContext data
+        else
+          if lang == 'leisure' && needsContext data
             codeContexts[data._id] =
               update: -> runLeisureBlock data
               initializeView: -> runLeisureBlock data
               block: data
-          if data.codeAttributes?.results == 'def' && data.text != oldData?.text
-            return runCachedLeisure doc, data, cont
+          if !editing && isDef(data) && data.text != oldData?.text
+            return runBlock doc, data, root.textEnv(lang), ->
+              updateObservers data, type, updated
+              cont?()
         updateObservers data, type, updated
       cont?()
 
-    runCachedLeisure = (doc, data, cont)->
-      cont ||= ->
-      if !data.js && data.asts then cacheCodeFromAsts doc, block, _.map asts, (ast)-> json2Ast ast
-      if data.js
-        eval(data.js) resolve, new Monad2 (env, c)->
-          c()
-          cont()
-      else runLeisureBlock data, true, (env, results)->
-        cacheCode doc, data, results
-        cont()
+    runBlock = (doc, data, env, cont)->
+      lang = data.language?.toLowerCase()
+      if typeof env == 'function'
+        cont = env
+        env = null
+      if lang in ['js', 'javascript']
+        try
+          eval codeString data
+        catch err
+          console.log err.stack
+      else if lang in ['coffeescript', 'coffee']
+        try
+          if needsContext data then compileCoffeeContext data._id, data
+          else
+            CoffeeScript.eval codeString(data), coffeeOpts()
+        catch err
+          console.log err.stack
+      else if lang == 'leisure' then return runCachedLeisure doc, data, editing, cont
+      cont?()
 
-    cacheCode = (doc, block, results)->
-      errors = []
-      asts = _.map results.toArray(), (each)-> each.head()
-      block.asts = _.map asts, (ast)-> ast2Json ast
-      cacheCodeFromAsts doc, block, asts
+    pendingLeisure = {}
+    pendingLeisureQueue = []
+    processingLeisure = null
 
-    cacheCodeFromAsts = (doc, block, asts)->
-      leisureName = doc.leisure.name + ":source"
-      jsName = doc.leisure.name + ":code"
-      lastArgs = null
-      try
-        gennedCode = withFile leisureName, null, -> (new SourceNode 1, 0, leisureName, [
-          "(function(resolve, last) {L_runMonads([\n  ",
-          intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
-          ", function(){return last}]);})"
-        ]).toStringWithSourceMap(file: jsName)
-        block.js = gennedCode.code
-        doc.update block._id, block
-      catch err
-        console.log "Error in source node,\nargs:", lastArgs
-        console.log "Error: #{err.stack}"
+    runCachedLeisure = (doc, data, editing, env, cont)->
+      if typeof env == 'function' then [env, cont] = [null, env]
+      #console.log "run: #{JSON.stringify codeString data}"
+      if !processingLeisure
+        processingLeisure = data._id
+        if typeof env == 'function'
+          cont = env
+          env = null
+        cont ||= ->
+        if !data.js && data.asts then cacheCodeFromAsts doc, block, editing, _.map asts, (ast)-> json2Ast ast
+        finished = ->
+          #console.log "FINISHED"
+          cont?()
+          processingLeisure = null
+          if pendingLeisureQueue.length
+            next = pendingLeisureQueue.shift()
+            pendingLeisure[next] = null
+            if block = getBlock next
+              runCachedLeisure doc, block, editing, env, ->
+        if data.js
+          eval(data.js) resolve, (new Monad2 (env, c)->
+            c()
+            finished()), env
+        else runLeisureBlock data, true, env, (env, results)->
+          cacheCode doc, data, editing, results
+          finished()
+      else
+        if !pendingLeisure[data._id]
+          pendingLeisure[data._id] = true
+          pendingLeisureQueue.push data._id
+        cont?()
+
+    cacheCode = (doc, block, editing, results)->
+      if getBlock(block._id).text == block.text
+        errors = []
+        asts = _.map results.toArray(), (each)-> each.head()
+        block.asts = _.map asts, (ast)-> ast2Json ast
+        cacheCodeFromAsts doc, block, editing, asts
+
+    editingCont = (block)->
+      oldEditing = editing
+      editing = true
+      block -> editing = oldEditing
+
+    editingWhile = (block)->
+      editingCont (done)->
+        try
+          block()
+        finally
+          done()
+
+    cacheCodeFromAsts = (doc, block, newEditing, asts)->
+      if getBlock(block._id).text == block.text
+        leisureName = doc.leisure.name + ":source"
+        jsName = doc.leisure.name + ":code"
+        lastArgs = null
+        try
+          gennedCode = withFile leisureName, null, -> (new SourceNode 1, 0, leisureName, [
+            "(function(resolve, last) {L_runMonads([\n  ",
+            intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
+            ", function(){return last}]);})"
+          ]).toStringWithSourceMap(file: jsName)
+          block.js = gennedCode.code
+          editingWhile -> doc.update block._id, block
+        catch err
+          console.log "Error in source node,\nargs:", lastArgs
+          console.log "Error: #{err.stack}"
 
     intersperse = (array, element)->
       if array.length < 2 then array
@@ -419,7 +468,7 @@ Handle changes to the doc nodes
       con.block = data
       if !con.update
         if data.codeAttributes?.results?.toLowerCase == 'dynamic'
-          console.log "plug in results"
+          console.log "need to plug in results"
         con.update = -> compileCoffeeContext id
 
     updateObservers = (data, type, updated)->
@@ -433,8 +482,11 @@ Handle changes to the doc nodes
           if id != data._id
             root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
 
-    runLeisureBlock = (block, init, cont)->
-      root.textEnv('leisure').executeText codeString(block), Nil, cont
+    runLeisureBlock = (block, init, env, cont)->
+      if typeof env == 'function'
+        cont = env
+        env = null
+      root.textEnv('leisure', env).executeText codeString(block), Nil, cont
 
     codeString = (data)-> (data.codePrelen? && data.codePostlen? && data.text.substring data.codePrelen, data.text.length - data.codePostlen) ? ''
 
@@ -959,12 +1011,8 @@ You can also mark any piece of data as local.
           commitEdits overrides
           if render then renderBlock getBlock id
 
-    commitEdits = (overrides)->
-        editing = true
-        try
-          commitOverrides overrides
-        finally
-          editing = false
+    commitEdits = (overrides, verbose)->
+      editingWhile -> commitOverrides overrides, verbose
 
     isRemoved = (overrides, id)-> overrides.removes[id]
 
@@ -1038,7 +1086,7 @@ You can also mark any piece of data as local.
               assert next.prev == id, "Bad prev/next for", block.next, " / ", id
       assert getItem(overrides, overrides.head), "Missing head: ", overrides.head
 
-    commitOverrides = (overrides)->
+    commitOverrides = (overrides, verbose)->
       doc = overrides.doc
       localDoc = doc.leisure.localCollection
       committing = true
@@ -1229,6 +1277,7 @@ You can also mark any piece of data as local.
     root.changeContext = {}
     root.renderBlock = renderBlock
     root.commitEdits = commitEdits
+    root.editingWhile = editingWhile
     root.codeContexts = codeContexts
     root.getBlockNamed = getBlockNamed
     root.getDataNamed = getDataNamed
@@ -1245,3 +1294,4 @@ You can also mark any piece of data as local.
     root.dataTypeIds = dataTypeIds
     root.curOrgDoc = curOrgDoc
     root.indexes = indexes
+    root.runBlock = runBlock

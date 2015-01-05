@@ -335,10 +335,10 @@ callBind = (value, contStack)->
 class Monad
   toString: -> "Monad: #{@cmd.toString()}"
 
-global.L_runMonads = (monadArray)->
+global.L_runMonads = (monadArray, env)->
   #console.log "RUNNING MONADS"
   monadArray.reverse()
-  newRunMonad 0, defaultEnv, null, monadArray
+  newRunMonad 0, (env ? defaultEnv), null, monadArray
   monadArray
 
 ensureLeisureClass 'unit'

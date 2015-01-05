@@ -184,6 +184,9 @@ indicates to find the first text node behind the cursor).
 Include (node, 0) up to but not including (node, pos)
 
       countChars: (node, pos)->
+        if node instanceof DOMCursor
+          pos = node.pos
+          node = node.node
         n = this
         tot = 0
         while !n.isEmpty() && n.node != node
