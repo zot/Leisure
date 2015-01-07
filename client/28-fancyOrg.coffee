@@ -1259,14 +1259,28 @@ newLinesForNode = (node)->
 whitespaceEnd = /(\n | )*(\n*)$/
 
 fancyBackspace = (div, e, s, r)->
-  handleDelete e, s, false, (text, pos)-> true
+  handleDelete e, s, false, (text, pos)->
+    if pos == 0 then false
+    else if $(s.anchorNode).closest('.code-content').length then true
+    else if text[pos - 1] in [' ', '\n']
+      fore = text.substring 0, pos
+      ws = (m = fore.match(whitespaceEnd))?[0] ? ''
+      nls = m?[2] ? ''
+      if nls.length > 3 then [pos - 2, pos]
+      else [pos - ws.length, pos]
+    else [pos - 1, pos]
 
 isEmptyText = (text)-> text in ['\n', '\n\n']
 
 fancyDel = (div, e, s, r)->
-  # do delete manually here because using repeat
-  # doesn't update the DOM in time and pos isn't changing
-  handleDelete e, s, true, (text, pos)-> true
+  handleDelete e, s, true, (text, pos)->
+    if pos in [text.length, text.length - 1] then false
+    else if isEmptyText text then [0, '']
+    else if $(s.anchorNode).closest('.code-content').length then pos < text.length - 1
+    else if text[pos] != '\n' then [pos, pos + 1]
+    else if text[pos + 1] == '\n' then [pos, pos + 2]
+    else if text[pos - 1] == '\n' then [pos - 1, pos + 1]
+    else [pos, pos + 1]
 
 beginsMeat = (s)->
   n = s.anchorNode

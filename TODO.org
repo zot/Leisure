@@ -1,9 +1,15 @@
 * Short list -- announcement
+** TODO add loot to dice page
+** TODO test nested imports
+** TODO editing a fancy code block's name slot has problems
+- inserting in a blank name slot should create a name keyword
+- newlines don't work properly
+** TODO redefining a token pack doesn't remove the previous one for that name
+** TODO redefining a defCase doesn't work
+** TODO adding an import fails to create import property in block (have to revert)
 ** TODO insert right before a #+BEGIN_SRC fails
 ** TODO change checkSourceMod
 - make changeStructure return existing changed blocks (added or changed, not removed)
-
-
 - call executeSource from editBlock instead of keyup
 ** TODO meta-1 inserts a 1
 ** TODO cache compiled Leisure JS in blocks

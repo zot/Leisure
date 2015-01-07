@@ -84,6 +84,12 @@ The class...
         if node instanceof Range then new DOMCursor node
         else new DOMCursor node, pos, @filter
 
+      toString: ->
+        "DOMCursor(#{@type}, #{@pos}#{if @type == 'text' then ', ' + @posString() else ''})"
+
+      posString: ->
+        @node.data.substring(0, @pos) + '|' + @node.data.substring @pos
+
       textPosition: ->
         if @isEmpty() then null
         else @savedTextPosition ? (@savedTextPosition = getTextPosition @node, @pos)
@@ -97,7 +103,7 @@ The class...
 
       character: ->
         p = if @type == 'text' then this else @save().firstText()
-        p.node[p.pos]
+        p.node.data[p.pos]
 
 **isEmpty** returns true if the cursor is empty
 
@@ -160,6 +166,23 @@ The class...
         r.collapse true
         selectRange r
         this
+
+      adjustForNewline: ->
+        if @isEmpty() then this
+        else
+          s = @save()
+          n = this
+          if @pos == 0 && @node.data[0] == '\n'
+            while !n.isEmpty() && (n = n.prev()).type != 'text' then
+            if n.isEmpty() then s
+            else
+              if n.node.data[n.pos - 1] == '\n' then s
+              else n
+          else if @pos == @node.length && @node.data[@pos - 1] == '\n'
+            while !n.isEmpty() && (n = n.next()).type != 'text' then
+            if n.node.data[n.pos] == '\n' then s
+            n
+          else this
 
 **range** create a range between two positions
 

@@ -761,6 +761,8 @@ jsonConvert = (obj)->
 
 define 'fromJson', lz (obj)-> jsonConvert rz obj
 
+define 'parseYaml', lz (obj)-> safeLoad rz obj
+
 define 'toJsonArray', lz (list)->
   list = rz list
   array = []

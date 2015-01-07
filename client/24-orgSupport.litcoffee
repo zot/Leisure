@@ -841,7 +841,10 @@ Code
         saveC = domCursor(shared, 0).firstText()
         save = getTextPosition(shared, saveC.node, saveC.pos) + caret
       editingWhile -> changeStructure blocks, newText
-      if caret? then return domCursorForTextPosition(shared, save).moveCaret()
+      if caret?
+        if shared.ownerDocument.compareDocumentPosition(shared) & Node.DOCUMENT_POSITION_DISCONNECTED
+          shared = $("##{prev._id}")[0]
+        return domCursorForTextPosition(shared, save).moveCaret()
     
     domCursor = (node, pos)->
       if node instanceof jQuery
@@ -1456,6 +1459,7 @@ Code
       domCursorForText parent, 0, (if contain then parent)
         .mutable()
         .forwardChars pos, contain
+        .adjustForNewline()
     
     nonOrg = (node)->
       $(node)
