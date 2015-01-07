@@ -1366,15 +1366,18 @@ Code
         m = txt.match /(^|\n)#\+end_src/i
         if m then replaceNbsp txt.substring(0, m.index) else null
     
-    executeSource = (parent, node, cont)->
+    executeSource = (parent, node, env, cont)->
+      if !cont then [env, cont] = [null, env]
       if isSourceNode node
         #checkReparse parent
         if txt = getSource node
-          env = orgEnv(parent, node)
+          env ||= orgEnv(parent, node)
           runBlock root.currentDocument, getBlock(parent.id), env, ->
             if env.changed then edited node
             cont? env
-        else console.log "No end for src block"
+        else
+          console.log "No end for src block"
+          cont? env
       else getOrgType(node) != 'text' && !isDocNode(node) && executeSource parent, node.parentElement, cont
     
     getNodeLang = (node) ->
@@ -1388,6 +1391,7 @@ Code
     executeDef = (node, cont)->
       [srcNode, text] = getNodeSource node
       if srcNode then textEnv(getNodeLang node).executeText text, propsFor(srcNode), cont
+      else cont?()
     
     followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(node.parentNode)[0]
     

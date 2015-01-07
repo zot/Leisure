@@ -898,12 +898,13 @@ leisureNumberSlider = (numberSpan)->
     doc = topNode orgParent
     selection = new FancySelectionDescriptor doc
     done = ->
-      setTimeout (->selection.restore 0, doc), 1
+      selection.restore 0, doc
       computing = false
-      setTimeout (-> if !computing && pending then newValue()), 100
+      if pending then newValue()
     setTimeout (->
       if orgType == 'dynamic' then root.orgApi.executeSource parent, numberSpan.parentNode, done
-      else if orgType == 'def' then root.orgApi.executeDef orgParent, done), 1
+      else if orgType == 'def' then root.orgApi.executeDef orgParent, done
+      else done()), 1
   if orgType in ['dynamic', 'def']
     (event, ui)->
       numberSpan.innerHTML = String(ui.value)
@@ -1326,16 +1327,19 @@ bsWillDestroyParent = (r)->
 allowEvents = true
 
 executeSource = (parent, node, env, cont, skipTests)->
+  if typeof env == 'function' then [env, cont, skipTests] = [null, env, cont]
   doc = topNode node
   [srcNode, text] = getNodeSource node
   if srcNode
     createResults srcNode
     if text.trim().length
       lang = getNodeLang node
-      orgEnv(parent, srcNode).executeText text.trim(), propsFor(srcNode), env, (env)->
+      orgEnv(parent, srcNode).executeText text.trim(), propsFor(srcNode), (env)->
         cont? env
         if !skipTests then runAutotests doc
-    else if r = $(srcNode).find('[data-results-content]').length then clearResults srcNode
+    else
+      if r = $(srcNode).find('[data-results-content]').length then clearResults srcNode
+      cont?()
 
 fancyExecuteDef = (node, cont)->
   doc = topNode node
