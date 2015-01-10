@@ -24,6 +24,8 @@ misrepresented as being the original software.
 
 require('source-map-support').install()
 
+require '10-namespace'
+
 Error.stackTraceLimit = Infinity
 #Error.stackTraceLimit = 50
 {
@@ -534,7 +536,6 @@ else
   prog = path.basename(process.argv[1])
   switch prog.toLowerCase()
     when 'repl' , 'runrepl' , 'leisure'
-      console.log "a"
       if verbose then console.log "RUNNING REPL"
       run process.argv, home: process.env.HOME
     else

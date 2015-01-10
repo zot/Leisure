@@ -1,5 +1,5 @@
 Org = {};
-Leisure = {};
+Leisure = Leisure || {};
 
 if (typeof require != 'undefined') {
     //console.log("require defined");
