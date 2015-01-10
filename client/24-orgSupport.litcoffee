@@ -88,6 +88,9 @@ Code
       lineCodeBlockType,
     } = require '12-docOrg'
     {
+      createNode,
+      nodeText,
+      activateScripts,
       escapeHtml,
       getDeepestActiveElement,
     } = Templating
@@ -880,7 +883,7 @@ Code
       t = e.dataTransfer
       r = document.caretRangeFromPoint(e.clientX,e.clientY)
       if 'text/html' in t.types
-        item = $(t.getData('text/html'))
+        item = createNode t.getData('text/html')
         if item.length == 1
           txt = if item.is 'img' then "[[#{item[0].src}]]" else item.text()
           node = document.createTextNode txt
@@ -1327,12 +1330,12 @@ Code
     
     installOrgDOM = (parent, orgNode, orgText, target)->
       if target
-        result = $(orgText)[0]
-        $(target).replaceWith result
+        $(target).replaceWith inserted = createNode orgText
       else
         parent.innerHTML = ''
-        parent.appendChild $(orgText)[0]
-        result = parent.firstElementChild
+        parent.appendChild createNode orgText
+        inserted = result = parent.firstElementChild
+      activateScripts inserted
       result
     
     checkEnterReparse = (parent, r)->
@@ -1578,7 +1581,7 @@ Code
       reparse: (parent, text, target)->
         text = text || (getNodeText target || parent)
         [orgNode, orgText] = @markupOrgWithNode text, null, target
-        element = $(orgText)[0]
+        element = createNode orgText
         if target && target.outerHTML == element.outerHTML then node = target
         else
           #if target then console.log "reparse #{text.allText()}"

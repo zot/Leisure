@@ -156,6 +156,7 @@ yaml = root.yaml
   viewIdTypes,
 } = require '23-collaborate'
 {
+  nodeText,
   createTemplateRenderer,
   escapeHtml,
   getDeepestActiveElement,
@@ -611,7 +612,7 @@ markupHtml = (org)->
     post = org.text.substring org.contentPos + org.contentLength
     "<span #{orgAttrs org} data-html-view='#{v}'><span data-org-html='true'></span><span class='hidden'>#{escapeHtml pre}</span><span class='hidden' data-content>#{escapeHtml org.content()}</span><span class='hidden'>#{escapeHtml post}</span></span>"
   else
-    "<span #{orgAttrs org}><span contenteditable='false' data-nonorg='true' data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></span>"
+    "<span #{orgAttrs org}><span contenteditable='false' data-nonorg='true' data-org-html='true'>#{nodeText(org.content())}</span><span class='hidden'>#{escapeHtml org.text}</span></span>"
 
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
@@ -1648,7 +1649,7 @@ fixupViews = (target)->
       if !rendered[dataName] && data = getBlockNamed dataName
         renderLink link, data
   else
-    for dataEl in $(cb)
+    for dataEl in $('[data-yaml-name]')
       renderView dataEl
     for html in $('[data-html-view]')
       renderHtmlView html

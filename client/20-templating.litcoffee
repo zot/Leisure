@@ -111,6 +111,7 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
               newScript = document.createElement 'script'
               newScript.type = 'text/javascript'
               newScript.textContent = script.textContent
+              newScript.src = script.src
               Templating.currentScript = newScript
               script.parentNode.insertBefore newScript, script
               script.parentNode.removeChild script
@@ -120,6 +121,22 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
         finally
           Templating.currentScript = null
           activating = false
+
+    createNode = (txt)->
+      if typeof txt == 'string'
+        d = document.createElement 'div'
+        d.innerHTML = txt
+        d.firstChild
+      else $(txt)[0]
+
+nodeText uses innerHTML to validate HTML text
+
+    nodeText = (txt)->
+      if typeof txt == 'string'
+        d = document.createElement 'div'
+        d.innerHTML = txt
+        d.innerHTML
+      else $(txt).html(true)
 
     setShadowHtml = (holder, html, noactivate)->
       if !(el = holder.shadowRoot)
@@ -155,3 +172,5 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
     root.viewMarkup = viewMarkup
     root.escapeHtml = escapeHtml
     root.getDeepestActiveElement = getDeepestActiveElement
+    root.createNode = createNode
+    root.nodeText = nodeText
