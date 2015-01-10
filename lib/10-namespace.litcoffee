@@ -21,3 +21,5 @@ Namespace definition
       setTimeout func, time
 
     root.delay = delay
+
+    module?.exports = root

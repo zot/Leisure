@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-(window ? global).Leisure = root = (global.Leisure ? module.exports)
+(window ? global).Leisure = root = module.exports = (global.Leisure ? module.exports)
 
 root.currentNameSpace = 'core'
 root.nameSpacePath = ['core']

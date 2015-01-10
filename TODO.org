@@ -1,4 +1,40 @@
 * Short list -- announcement
+** TODO data observers
+- fire when data changes
+- API
+  - add(data)
+  - remove(data)
+  - update(data, oldData)
+** TODO index observers
+- code block that defines API methods that react to index changes
+- API
+  - indexChange(newIndex, oldIndex)
+  - add(data)
+  - remove(data)
+  - update(data, oldData)
+** TODO Music box document
+- multiuser
+- songs
+  - organize patterns
+- patterns
+  - monadic
+    - chain can handle runtime changes
+    - need a way to commit blocks
+      - a way to switch from the old definition to the new
+      - still saves changes
+      - has notion of "currently edited version"
+      - maybe allow a #+COMMITED keyword between #+BEGIN_SRC and #+END_SRC
+        - code between #+COMMITED and #+END_SRC is the committed code
+        - code between #+BEGIN_SRC and #+COMMITTED is the editing version
+  - data
+    - sorted by position value
+    - each pattern defines its own index
+    - entries are created muted -- use active flag to turn on a piece of data
+    - data controls the song
+    - player state is local
+- each browser has its own player
+- procedures can change the player objects
+** TODO AST buttons are inside of number slider elements
 ** TODO add loot to dice page
 ** TODO test nested imports
 ** TODO editing a fancy code block's name slot has problems

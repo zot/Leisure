@@ -243,4 +243,4 @@ Sourcemap is [here](https://github.com/mozilla/source-map/blob/master/lib/source
     if require? then module.exports = root
 
     #console.log 'compiler'
-    if require? then setTimeout (->test()), 1
+    #if require? then setTimeout (->test()), 1

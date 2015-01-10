@@ -75,8 +75,10 @@ _ = require 'lodash.min'
 consFrom = newConsFrom
 
 {
-  SourceNode,
-  SourceMapConsumer,
+  sourceMap:{
+    SourceNode,
+    SourceMapConsumer,
+  }
 } = require("source-map")
 
 varNameSub = (n)-> "L_#{nameSub n}"
