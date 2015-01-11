@@ -298,8 +298,7 @@ insertSorted sortFunc item list = list
 err msg = \f . f msg
 errMsg err = err \m . m
 isErr thing = hasType thing err
-
-ifNotErr thing cont = hasType thing parseErr thing (cont thing)
+ifNotErr thing cont = (isErr thing) thing (cont thing)
 
 ############
 ############
@@ -362,25 +361,22 @@ parensFromToks left right content = \\
   parens start end content
 stripParens p = isParens p (parensContent p) p
 
-parseErr msg1 msg2 = \f . f (strCat (cons msg1 (cons msg2 nil)))
-parseErrMsg err = err \m . m
-isParseErr thing = hasType thing parseErr
+parseErr msg1 msg2 = err (strCat (cons msg1 (cons msg2 nil)))
 
+lineStart  = regexp '^\\r?\\n'
+commentPat = regexp '^\\r?\\n[ \\i]*#'
 emptyToken = regexp '^\\r?\\n[ \\i]*(#|$)'
 
 makeTokens lineStarts strings start = strings (\h t D . makeMoreTokens lineStarts h t start) nil
+
+# changed to allow comments only at the start of a line (with optional whitespace)
 makeMoreTokens lineStarts h t start = \\
   next = makeTokens lineStarts t (+ start (strLen h))
   .
-  and (strMatches h emptyToken) (or (isNil t) (or (strStartsWith (head t) '\n') (strStartsWith (head t) '\r\n')))
-    makeTokens lineStarts t (+ start (strLen h))
-    or (strStartsWith h ' ') (strStartsWith h '#')
-      next
-      and (or (strStartsWith h '\n') (strStartsWith h '\r\n')) (strStartsWith (head t) '#')
-        makeTokens lineStarts (tail t) (+ start (+ (strLen h) (strLen (head t))))
-        #cons (token h start) next
-        cons (makeTokenAt lineStarts h start) next
-#makeTokenAt lineStarts txt offset = showToken (token txt (filePosFor lineStarts offset))
+  or (strStartsWith h ' ') (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))
+    next
+    cons (makeTokenAt lineStarts h start) next
+
 makeTokenAt lineStarts txt offset = token txt (filePosFor lineStarts offset)
 
 showToken tok = log (strCat (cons 'token: ' (cons (tokenString tok) (cons ', ' (cons (showPos (tokenPos tok)) nil))))) tok
@@ -906,7 +902,7 @@ defMacro name def = bind (getValue 'macroDefs') \macs . setValue 'macroDefs' (ac
 # Token Patterns
 #################
 
-delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *|#.*| +"
+delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#.*|\\r?\\n *| +"
 
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
@@ -1021,8 +1017,8 @@ runLine offset names line = bind2 (newParseLine offset names line)
     \result . defer
       cons
         ast
-        isParseErr result
-          left (parseErrMsg result)
+        isErr result
+          left (errMsg result)
           right result
 
 #countedRunLine file names countedLine = \\
@@ -1062,8 +1058,8 @@ resultOfRun wrapped result =
   defer
     cons
       wrapped
-      isParseErr result
-        left (parseErrMsg result)
+      isErr result
+        left (errMsg result)
         right result
 
 #astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast

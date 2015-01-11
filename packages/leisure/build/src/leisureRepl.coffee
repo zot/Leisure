@@ -113,7 +113,7 @@ evalInput = (text, cont)->
       result = rz(L_newParseLine)(0)(lz Nil)(lz text)
       runMonad result, replEnv, (ast)->
         try
-          if getType(ast) == 'parseErr'
+          if getType(ast) == 'err'
             cont "PARSE ERORR: #{getParseErr ast}"
           else
             if diag

@@ -22,7 +22,6 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_defMacro)("when", lazy(function(L_line){return resolve(L_line)(lazy(function(L_cond){return $F(arguments, function(L_rest){return resolve(L_cons)(L_cond, function(){return resolve(L_cons)(function(){return resolve(L_cons)("do", L_rest)}, function(){return resolve(L_cons)("nil", L_nil)})})})}))}))},
  function(){return resolve(L_addTokenGroup)("js[", "]")},
  function(){return resolve(L_defMacro)("js[", lazy(function(L_list){return resolve(L_cons)("js", function(){return resolve(L_cons)(function(){return resolve(L_cons)("strCat", function(){return resolve(L_cons)(function(){return resolve(L_cons)("flatten", function(){return resolve(L_cons)(function(){return resolve(L_cons)(function(){return resolve(L_listify)(function(){return resolve(L_head)(L_list)})}, L_nil)}, L_nil)})}, L_nil)})}, L_nil)})}))},
  function(){return resolve(L_newDefine)("html")(1)("html x = \\f . f x")(lazy(setDataType(function(L_x){return setType(function(L_f){return resolve(L_f)(L_x)}, 'html')}, 'html')))},
@@ -747,7 +746,6 @@ module.exports = L_runMonads([
  function(){return resolve(L_advise)("showBase")("unit")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_unit)(function(){return resolve(L_some)("")})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("some")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_some)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(some ", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func)(function(){return resolve(L_obj)(L_id)(L_false)})}, function(){return resolve(L_cons)(")", L_nil)})})})})})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("some2")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_some2)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(some2 ", function(){return resolve(L_cons)(function(){return resolve(L_obj)(lazy(function(L_a){return $F(arguments, function(L_b){return resolve(L_showBase)(L_func)(function(){return resolve(L_cons)(L_a, function(){return resolve(L_cons)(", ", function(){return resolve(L_cons)(L_b, L_nil)})})})})}))(L_false)}, function(){return resolve(L_cons)(")", L_nil)})})})})})(L_none)})}))},
- function(){return resolve(L_advise)("showBase")("parseErr")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_parseErr)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(parseErr '' ", function(){return resolve(L_cons)(function(){return resolve(L_obj)(L_id)}, function(){return resolve(L_cons)(")", L_nil)})})})})})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("err")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_err)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(err ", function(){return resolve(L_cons)(function(){return resolve(L_obj)(L_id)}, function(){return resolve(L_cons)(")", L_nil)})})})})})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("token")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_token)(function(){return resolve(L_some)(function(){return resolve(L_obj)(lazy(function(L_str){return $F(arguments, function(L_pos){return resolve(L_isFilepos)(L_pos)(function(){return resolve(L_pos)(lazy(function(L_file){return $F(arguments, function(L_line){return $F(arguments, function(L_offset){return resolve(L_strCat)(function(){return resolve(L_cons)("token ", function(){return resolve(L_cons)(L_str, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_file, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_line, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_offset, L_nil)})})})})})})})})})})}))})(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(token ", function(){return resolve(L_cons)(L_str, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_pos, function(){return resolve(L_cons)(")", L_nil)})})})})})})})}))})})(L_none)})}))},
  function(){return resolve(L_advise)("showBase")("filepos")(2)(lazy(function(L_func){return $F(arguments, function(L_obj){return resolve(L_hasType)(L_obj)(L_filepos)(function(){return resolve(L_some)(function(){return resolve(L_obj)(lazy(function(L_file){return $F(arguments, function(L_line){return $F(arguments, function(L_offset){return resolve(L_strCat)(function(){return resolve(L_cons)("(filepos ", function(){return resolve(L_cons)(L_file, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_line, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_offset, function(){return resolve(L_cons)(")", L_nil)})})})})})})})})})}))})})(L_none)})}))},
@@ -857,6 +855,32 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
+ function(){return resolve(L_newDefine)("caseResult")(1)("caseResult x = \\f . f x")(lazy(setDataType(function(L_x){return setType(function(L_f){return resolve(L_f)(L_x)}, 'caseResult')}, 'caseResult')))},
+ function(){return resolve(L_newDefine)("isCaseResult")(1)("isCaseResult v = hasType v caseResult")(lazy(function(L_v){return resolve(L_hasType)(L_v)(L_caseResult)}))},
+ function(){return resolve(L_newDefine)("case")(2)("case test res = test (caseResult res) unit")(lazy((function () {
+  var main;
+  var full = function (L_test, L_res) {
+    return resolve(L_test)(function(){return resolve(L_caseResult)(L_res)})(L_unit);
+  };
+  var partial = function(L_test) {
+    var _1 = function(L_res) {
+            return full(L_test, L_res);
+          };
+          _1.leisureInfo = {arg: L_test, name: main.leisureName};
+          return _1;
+  };
+  main = function(L_test, L_res, more) {
+    if (L_res && (typeof more == "undefined" || more == null)) {
+      return full(L_test, L_res);
+    } else if (typeof L_res == "undefined" || L_res == null) {
+      return partial(L_test);
+    } else {
+      return Leisure.curryCall(arguments, partial);
+    }
+  };
+  return main;
+})()))},
+ function(){return resolve(L_advise)("bind2")("caseResult")(2)(lazy(function(L_data){return $F(arguments, function(L_cont){return resolve(L_isCaseResult)(L_data)(function(){return resolve(L_some)(function(){return resolve(L_data)(L_id)})})(L_none)})}))},
  function(){return resolve(L_newDefine)("subbind")(2)("subbind m cont = bind2 (wrap m) cont")(lazy((function () {
   var main;
   var full = function (L_m, L_cont) {

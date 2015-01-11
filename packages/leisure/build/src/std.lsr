@@ -55,7 +55,9 @@
 
 afetch k alist  = alist (\h t D . h \key value . eq key k value (afetch k t)) nil
 
-defMacro 'when' \line . line \cond rest . [cond 'do':rest 'nil']
+#TODO a when macro would be nice inside do, instead of using caseResult, below
+#but this old definition doesn't do it right
+#defMacro 'when' \line . line \cond rest . [cond 'do':rest 'nil']
 
 addTokenGroup 'js[' ']'
 
@@ -258,8 +260,6 @@ defCase showBase.some func obj | hasType obj some -> concat["(some " (showBase f
 
 defCase showBase.some2 func obj | hasType obj some2 -> concat["(some2 " (obj (\a b . showBase func [a ', ' b]) false) ")"]
 
-defCase showBase.parseErr func obj | hasType obj parseErr -> concat["(parseErr '' " (obj id) ")"]
-
 defCase showBase.err func obj | hasType obj err -> concat["(err " (obj id) ")"]
 
 defCase showBase.token func obj | hasType obj token -> obj \str pos .
@@ -374,6 +374,17 @@ defCase bind2.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
 bindRepeat nums cont res = nums
   \n t D . subbind (cont n) \result . bindRepeat t cont [result | res]
   foldr (\el prev . isList el append cons el prev) nil (reverse res)
+
+# when/unless and caseResults
+# binding a caseResult exits with the value
+
+caseResult x = \f . f x
+
+isCaseResult v = hasType v caseResult
+
+case test res = test (caseResult res) unit
+
+defCase bind2.caseResult data cont | isCaseResult data -> data id
 
 ## subbind
 # bind a non-IO value to make it more IO-friendly

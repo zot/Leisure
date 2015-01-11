@@ -121,7 +121,8 @@ hamtify list = list
   ['hamt']
 
 defTokenPack 'list' [
-  ['|' '='] #adding = here so so we don't need spaces around = in definitions
+  #adding = here so so we don't need spaces around = in definitions
+  ['|' '=']
   {['{' | '}'] ['hamt{' | '}'] ['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']'] ['print[' | ']'] ['concatFlat[' | ']']}
   [listFilter]]
 

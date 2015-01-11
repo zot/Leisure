@@ -1186,7 +1186,6 @@ Code
     defaultEnv.clear = ->
     
     orgEnv = (parent, node)->
-      r = getResultsForSource parent, node
       env =
         changed: false
         readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
@@ -1194,7 +1193,7 @@ Code
         newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
         __proto__: defaultEnv
       installEnvLang node, env
-      if r
+      if !$(node).is('[data-no-results]') && r = getResultsForSource parent, node
         nodeId = $(node).closest('[data-shared]')[0].id
         env.clear = ->
           getResultsForSource(parent, $("##{nodeId}")[0]).textContent = ''
