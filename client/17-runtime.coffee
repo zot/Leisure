@@ -341,6 +341,15 @@ global.L_runMonads = (monadArray, env)->
   newRunMonad 0, (env ? defaultEnv), null, monadArray
   monadArray
 
+#global.L_runMonads = (monadArray, env, cont)->
+#  nextMonad = (ind)->
+#    if ind >= monadArray.length then cont?()
+#    else
+#      runMonad2 monadArray[ind], env, ->
+#        setTimeout (->nextMonad ind + 1), 1
+#  nextMonad 0
+#  monadArray
+
 ensureLeisureClass 'unit'
 
 class Leisure_unit extends LeisureObject
@@ -562,12 +571,17 @@ define 'print2', lz (msg)->
     env.write env.presentValue rz msg
     cont _unit), -> "print2 #{rz msg}"
 
+define 'write', lz (msg)->
+  new Monad2 'write', ((env, cont)->
+    env.write String(rz msg)
+    cont _unit), -> "write #{rz msg}"
+
 define 'prompt2', lz (msg)->
   new Monad2 ((env, cont)->
     env.prompt(String(rz msg), (input)-> cont input)), ->
     "prompt2 #{rz msg}"
 
-define 'write', lz (msg)->
+define 'oldWrite', lz (msg)->
   makeSyncMonad (env, cont)->
     env.write String(rz msg)
     cont _unit
@@ -924,6 +938,7 @@ root._true = _true
 root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
+root.runMonad2 = runMonad2
 root.newRunMonad = newRunMonad
 root.isMonad = isMonad
 root.Monad2 = Monad2

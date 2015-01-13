@@ -358,6 +358,17 @@ defCase bind2.either either cont | isEither either -> either
   \_ . either
   \value . bind2 (cont value) \res . isEither res res (right res)
 
+# when/unless and caseResults
+# binding a caseResult exits with the value
+
+caseResult x = \f . f x
+
+isCaseResult v = hasType v caseResult
+
+case test res = test (caseResult res) unit
+
+defCase bind2.caseResult data cont | isCaseResult data -> data id
+
 # the first def is for if we can get IO to auto-convert values...
 #defCase bind.cons list cont | hasType list cons -> map cont list
 defCase bind2.cons list cont | hasType list cons -> bindCons list cont id
@@ -375,29 +386,17 @@ bindRepeat nums cont res = nums
   \n t D . subbind (cont n) \result . bindRepeat t cont [result | res]
   foldr (\el prev . isList el append cons el prev) nil (reverse res)
 
-# when/unless and caseResults
-# binding a caseResult exits with the value
-
-caseResult x = \f . f x
-
-isCaseResult v = hasType v caseResult
-
-case test res = test (caseResult res) unit
-
-defCase bind2.caseResult data cont | isCaseResult data -> data id
-
 ## subbind
 # bind a non-IO value to make it more IO-friendly
 # so that we can more easily intersperse the IO monad with others
-# this also treats false-ish values as unit
+# this also treats false-ish values as unit so we can filter values
 
 subbind m cont = bind2 (wrap m) cont
 
-defCase subbind.monad m cont | or (hasType m "*Monad2") (hasType m 'monad') ->
-  bind2 m cont
-defCase subbind.boolean m cont | m == false -> bind2 unit cont
-defCase subbind.option m cont | hasType m none -> bind2 unit cont
-defCase subbind.either m cont | hasType m left -> bind2 unit cont
+defCase subbind.monad m cont | or (hasType m '*Monad2') (hasType m 'monad') -> bind2 m cont
+defCase subbind.boolean m cont | m == false -> cont unit
+defCase subbind.option m cont | hasType m none -> cont unit
+defCase subbind.either m cont | hasType m left -> cont unit
 
 ## asIO, for if/when we can get IO to convert values automatically
 # convert a value to an IO value

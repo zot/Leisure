@@ -65,6 +65,7 @@ charCodes =
   '>': '$z'
   '%': '$A'
   '.': '$B'
+  '#': '$C'
 
 nameSub = (name)->
   s = ''

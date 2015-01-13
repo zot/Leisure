@@ -1528,7 +1528,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("makeMoreTokens")(4)("makeMoreTokens lineStarts h t start = \\\\\r\n  next = makeTokens lineStarts t (+ start (strLen h))\r\n  .\r\n  or (strStartsWith h ' ') (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))\r\n    next\r\n    #or (strMatches h commentPat) (and (strMatches h emptyToken) (strStartsWith (head t) '#'))\r\n    #  makeMoreTokens lineStarts (strCat h (head t)) (tail t) start\r\n    #  cons (makeTokenAt lineStarts h start) next\r\n    cons (makeTokenAt lineStarts h start) next")(lazy((function () {
+ function(){return resolve(L_newDefine)("makeMoreTokens")(4)("makeMoreTokens lineStarts h t start = \\\\\r\n  next = makeTokens lineStarts t (+ start (strLen h))\r\n  .\r\n  or (strStartsWith h ' ') (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))\r\n    next\r\n    cons (makeTokenAt lineStarts h start) next")(lazy((function () {
   var main;
   var full = function (L_lineStarts, L_h, L_t, L_start) {
     return (function(){

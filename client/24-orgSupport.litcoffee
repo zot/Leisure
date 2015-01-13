@@ -51,6 +51,8 @@ Code
     rz = resolve
     lz = lazy
     {
+      runMonad,
+      runMonad2,
       newConsFrom,
       setValue,
       getValue,
@@ -1141,7 +1143,7 @@ Code
         old = getValue 'parser_funcProps'
         setValue 'parser_funcProps', props
         result = rz(L_baseLoadString)('notebook')(text)
-        runMonad result, env, (results)->
+        runMonad2 result, env, (results)->
           runNextResult results, env, ->
             setValue 'parser_funcProps', old
             cont? env, results
@@ -1151,7 +1153,7 @@ Code
         env.write "PARSE ERROR: #{getLeft results.head().tail()}"
         results = results.tail()
       if results != L_nil()
-        runMonad getRight(results.head().tail()), env, (res2)->
+        runMonad2 getRight(results.head().tail()), env, (res2)->
           if getType(res2) != 'unit' then env.write String(env.presentValue res2)
           runNextResult results.tail(), env, cont
       else cont()

@@ -364,9 +364,6 @@ Handle changes to the doc nodes
       #console.log "run: #{JSON.stringify codeString data}"
       if !processingLeisure
         processingLeisure = data._id
-        if typeof env == 'function'
-          cont = env
-          env = null
         cont ||= ->
         if !data.js && data.asts then cacheCodeFromAsts doc, block, editing, _.map asts, (ast)-> json2Ast ast
         if env
@@ -384,9 +381,12 @@ Handle changes to the doc nodes
           processingLeisure = null
           if pendingLeisureQueue.length
             next = pendingLeisureQueue.shift()
+            conts = pendingLeisure[next]
             pendingLeisure[next] = null
             if block = getBlock next
               runCachedLeisure doc, block, editing, env, ->
+                for c in conts
+                  c?()
         if data.js
           eval(data.js) resolve, (new Monad2 (env, c)->
             c()
@@ -397,9 +397,9 @@ Handle changes to the doc nodes
             finished()
       else
         if !pendingLeisure[data._id]
-          pendingLeisure[data._id] = true
+          pendingLeisure[data._id] = []
           pendingLeisureQueue.push data._id
-        cont?()
+        if cont? then pendingLeisure[data._id].push cont
 
     cacheCode = (doc, block, editing, results)->
       if getBlock(block._id).text == block.text
@@ -429,7 +429,7 @@ Handle changes to the doc nodes
           gennedCode = withFile leisureName, null, -> (new SourceNode 1, 0, leisureName, [
             "(function(resolve, last) {L_runMonads([\n  ",
             intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
-            ", function(){return last}]);})"
+            ", function(){return last()}]);})"
           ]).toStringWithSourceMap(file: jsName)
           block.js = gennedCode.code
           editingWhile -> doc.update block._id, block

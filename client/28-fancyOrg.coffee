@@ -838,15 +838,16 @@ markupListItem = (org, delay)->
 
 markupListContents = (children)-> (markupNode child, true for child in children).join ''
 
+legalListContent = (org)->
+  org && (!(org instanceof Meat) || !org.inNewMeat()) && !(org instanceof Headline || org instanceof ListItem)
+
 eatListItem = (org)->
-  if org.next instanceof Meat && org.next.text[0] == '\n' then ''
-  else
-    item = org
-    result = ''
-    while ((org = org.next) instanceof Meat) && !(org instanceof ListItem)
-      result += markupNode org
-      lastOrgOffset = Math.max(lastOrgOffset, org.offset)
-    result
+  item = org
+  result = ''
+  while legalListContent org = org.next
+    result += markupNode org
+    lastOrgOffset = Math.max(lastOrgOffset, org.offset)
+  result
 
 unwrap = (node)->
   parent = node.parentNode

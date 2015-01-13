@@ -1,4 +1,11 @@
 * Short list -- announcement
+** TODO make macro substitution monadic                             :leisure:
+   :PROPERTIES:
+   :ID:       f1fc0131-cd1b-4776-84de-f6f2f69dc465
+   :END:
+Filters are monadic, but macros are not
+macros should also be able to return errors
+** TODO defer initial record processing until after Leisure finishes initializing
 ** TODO data observers
 - fire when data changes
 - API
@@ -790,11 +797,6 @@ move typecheck wrappers into a correctness.lsr file
    :PROPERTIES:
    :ID:       049a4a83-7ac8-4dbd-84a3-fa289285ce70
    :END:
-** TODO make macro substitution monadic                             :leisure:
-   :PROPERTIES:
-   :ID:       f1fc0131-cd1b-4776-84de-f6f2f69dc465
-   :END:
-   Filters are monadic, but macros are not
 ** TODO withProperties func props                                   :leisure:
   :PROPERTIES:
   :ID:       8c066b67-4038-420d-81f9-b735d0fe2ef3

@@ -223,7 +223,7 @@ genUniq = (ast, names, uniq, count)->
             #console.log "DEFINE #{getAnnoData ast} = #{getApplyArg getAnnoBody ast}"
             genned
           else genned
-    else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
+    else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
 # this is a no-op, now
 define 'newGen', (lz makeSyncMonad (env, cont)->

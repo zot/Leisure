@@ -125,6 +125,21 @@ class Node
     for c in @children
       c.scan func
   linkNodes: -> this
+  linkChild: (child)->
+    child.linkNodes()
+    child.linkTo this
+  linkChildren: ->
+    prev = null
+    for c in @children
+      if prev then prev.next = c
+      prev = c
+      @linkChild c
+    this
+  contains: (node)->
+    while node
+      if node == this then return true
+      node = node.fragment ? node.parent
+    false
   next: null
   prev: null
   top: -> if !@parent then this else @parent.top()
@@ -141,6 +156,27 @@ class Node
     for child in @children
       offset = child.fixOffsets offset
     offset
+  inNewMeat: -> false
+  getRightmostDescendent: ->
+    child = this
+    while child.children?.length
+      child = child.children[child.children.length - 1]
+    child
+  getLeftmostDescendent: ->
+    child = this
+    while child.children?.length
+      child = child.children[0]
+    child
+  getPrecedingNode: ->
+    if @prev then @prev.getRightmostDescendent()
+    else if parent = @fragment ? @parent
+      if parent.children[0] == this then return parent
+      parent.children[parent.children.indexOf(this) - 1].getRightmostDescendent()
+  getFollowingNode: ->
+    if @next then @next.getLeftmostDescendent()
+    else if parent = @fragment ? @parent
+      if parent.children[parent.children.length - 1] == this then return parent
+      parent.children[parent.children.indexOf(this) + 1].getLeftmostDescendent()
 
 class Headline extends Node
   constructor: (@text, @level, @todo, @priority, @tags, @children, @offset)->
@@ -180,15 +216,7 @@ class Headline extends Node
         if res = child.findNodeAt pos then return res
       null
   scan: Node.prototype.scanWithChildren
-  linkNodes: ->
-    prev = null
-    for c in @children
-      c.linkNodes()
-      c.prev = prev
-      if prev then prev.next = c
-      prev = c
-      c.linkTo this
-    this
+  linkNodes: -> @linkChildren()
   addTags: (set)->
     for tag in parseTags @tags
       set[tag] = true
@@ -229,15 +257,10 @@ class Fragment extends Node
       for child in @children
         if res = child.findNodeAt pos then return res
       null
-  linkNodes: ->
-    prev = null
-    for c in @children
-      c.linkNodes()
-      c.fragment = @
-      c.prev = prev
-      if prev then prev.next = c
-      prev = c
-    this
+  linkNodes: -> @linkChildren()
+  linkChild: (child)->
+    child.fragment = @
+    super child
   linkTo: (parent)->
     if @children.length
       @children[0].prev = @prev
@@ -253,6 +276,22 @@ class Meat extends Node
     type: @type
     text: @text
     offset: @offset
+  inNewMeat: ->
+    meat = []
+    cur = this
+    while cur && !(cur instanceof Headline || inListItem cur)
+      meat.push cur
+      cur = cur.getPrecedingNode()
+    meat.reverse()
+    t = ''
+    for m in meat
+      t += m.allText()
+    t.match meatStart
+
+inListItem = (org)->
+  org && (org instanceof ListItem || inListItem org.fragment ? org.parent)
+
+meatStart = /^\S|\n\n\S/
 
 markupTypes =
   "*": 'bold'
@@ -271,6 +310,7 @@ class SimpleMarkup extends Meat
       count += node.count()
     count
   type: 'simple'
+  linkNodes: -> @linkChildren()
   jsonDef: ->
     type: @type
     text: @text
@@ -306,6 +346,7 @@ class ListItem extends Meat
       count += node.count()
     count
   type: 'list'
+  linkNodes: -> @linkChildren()
   jsonDef: ->
     obj =
       type: @type
@@ -318,20 +359,24 @@ class ListItem extends Meat
     obj
   getParent: ->
     if @level == 0 then null
-    li = @
     while li = li.getPreviousListItem()
       if li.level < @level then return li
   getPreviousListItem: ->
-    prev = @prev
-    while prev && !(prev instanceof Headline) && !(prev instanceof ListItem)
-      prev = prev.prev
-    if prev instanceof ListItem then prev else null
+    parent = @fragment || @parent
+    cur = this
+    while cur = cur.getPrecedingNode()
+      if !(parent.contains cur) || cur.inNewMeat() then return null
+      if (cur.fragment ? cur.parent) == parent && cur instanceof ListItem then return cur
+    null
   getNextListItem: ->
-    next = @next
-    while next && !(next instanceof Headline) && !(next instanceof ListItem)
-      next = next.next
-    if next instanceof ListItem then next else null
+    parent = @fragment || @parent
+    cur = this
+    while cur = cur.getFollowingNode()
+      if !(parent.contains cur) || cur.inNewMeat() then return null
+      if (cur.fragment ? cur.parent) == parent && cur instanceof ListItem then return cur
+    null
   scan: Node.prototype.scanWithChildren
+  inNewMeat: -> true
 
 class Drawer extends Meat
   constructor: (@text, @offset, @name, @contentPos, @endPos)-> super @text, @offset
@@ -533,8 +578,15 @@ class MeatParser
             child = child.next
         new Link link[0], offset, link[LINK_INFO], children
       if !@result
-        @result = new Meat(meat.substring(0, @minLen), offset)
+        if newline = meat.substring(0, 2) == '\n\n' then meatText = meat.substring 2
+        meatText = meat.substring 0, @minLen
+        if m = meatText.match lineBreakPat
+          meatText = meat.substring 0, m.index
+        if newline then meatText = '\n\n' + meatText
+        @result = new Meat meatText, offset
       parseRestOfMeat @result, meat.substring(@result.text.length), rest
+
+lineBreakPat = /\n\n/
 
 parseMeat = (meat, offset, rest, singleLine)->
   new MeatParser().parse(meat, offset, rest, singleLine)

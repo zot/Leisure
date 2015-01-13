@@ -832,7 +832,6 @@ isBlockStart tok = and
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
-# macros can use the IO monad
 macroSub macs expr = postProcessMacro (emptyFor expr) (emptyFor expr) (baseMacroSub macs expr)
 
 consifyMacroValue value = isCons value value (cons value nil)
