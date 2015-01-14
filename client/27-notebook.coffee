@@ -1586,7 +1586,8 @@ define 'alert', lz (str)->
     window.alert(rz str)
     cont rz L_false
 
-define 'bindEvent', lz (selector)->(eventName)->(func)->
+define 'bindEvent', lz (selector, eventName, func, more)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     node = env.box.querySelector rz selector
     if !node then node = document.body.querySelector rz selector
@@ -1642,8 +1643,12 @@ autoRun = (el, state)->
   el.autorunState = state
   el.autorun?.checked = state
 
-head = (l)->l lz (hh)->(tt)->rz hh
-tail = (l)->l lz (hh)->(tt)->rz tt
+head = (l)->l lz (hh, tt, more)->
+  if Leisure_shouldDispatch(tt, more) then return Leisure.dispatch arguments
+  rz hh
+tail = (l)->l lz (hh, tt, more)->
+  if Leisure_shouldDispatch(tt, more) then return Leisure.dispatch arguments
+  rz tt
 id = (v)->rz v
 
 primconcatNodes = (nodes)->

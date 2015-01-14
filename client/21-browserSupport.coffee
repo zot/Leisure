@@ -30,7 +30,8 @@ getSvgElement = (id)->
     document.body.appendChild(svg)
     document.getElementById id
 
-svgMeasureText = (text)->(style)->(f)->
+svgMeasureText = (text, style, f, more)->
+  if Leisure_shouldDispatch(f, more) then return Leisure.dispatch arguments
   txt = getSvgElement('HIDDEN_TEXT')
   if rz style then txt.setAttribute 'style', rz style
   txt.lastChild.textContent = rz text
