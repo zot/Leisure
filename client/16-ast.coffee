@@ -324,6 +324,9 @@ define = (name, func, arity, src, method, namespace, isNew) ->
 
 # lit, ref, lambda, let each need a range
 L_lit = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
+#L_lit = setDataType ((_x, _r, more)->
+#  if Leisure_shouldDispatch(_r, more) then Leisure.dispatch arguments
+#  else setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
 L_ref = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'ref'), 'ref'
 L_lambda = setDataType ((_v)-> (_f)-> (_r)-> setType ((_g)-> rz(_g)(_v)(_f)(_r)), 'lambda'), 'lambda'
 L_let = setDataType ((_n)-> (_v)-> (_b)-> (_r)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)(_r)), 'let'), 'let'

@@ -267,28 +267,13 @@ genArifiedLambda = (ast, names, uniq, arity)->
     #console.log "FUNCTION ARITY #{arity} [#{args.join ', '}] #{ast}"
     argList = _.map(args, ((x)-> 'L_' + x)).join ', '
     mainFunc = """
-      function(#{argList}, more) {
-          if (L_#{_.last args} && (typeof more == "undefined" || more == null)) {
-            return full(#{argList});
-          } else if (typeof L_#{args[1]} == "undefined" || L_#{args[1]} == null) {
-            return partial(L_#{args[0]});
-          } else {
-            return Leisure.curryCall(arguments, partial);
-          }
-        }"""
-    result = """
-      (function () {
-        var main;
-        var full = function (#{argList}) {
-          return #{genUniq getNthLambdaBody(ast, arity), names, uniq};
-        };
-        var partial = function(L_#{args[0]}) {
-          #{genPartialCalls args, argList, 1}
-        };
-        main = #{addLambdaProperties ast, (sn ast, mainFunc)};
-        return main;
-      })()
+      (function(#{argList}, more) {
+        return (Leisure_shouldDispatch(L_#{_.last args}, more))
+          ? Leisure_dispatch(arguments)
+          : #{genUniq getNthLambdaBody(ast, arity), names, uniq};
+       })
       """
+    result = addLambdaProperties ast, (sn ast, mainFunc)
     annoAst = ast
     while annoAst instanceof Leisure_anno
       name = getAnnoName annoAst

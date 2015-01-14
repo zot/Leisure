@@ -1,4 +1,9 @@
 * Short list -- announcement
+** TODO "immediate" macro/function
+** TODO work on optimizing compiler
+- remove fancy generated stuff from compiler code
+- make sure calls are generated with proper arity
+- add arity to function name list
 ** TODO make macro substitution monadic                             :leisure:
    :PROPERTIES:
    :ID:       f1fc0131-cd1b-4776-84de-f6f2f69dc465

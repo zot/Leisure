@@ -1,78 +1,20 @@
 module.exports = L_runMonads([
-  function(){return resolve(L_newDefine)("assocGetWithDefault")(3)("assocGetWithDefault key defaultValue map = assoc key map id defaultValue")(lazy((function () {
-  var main;
-  var full = function (L_key, L_defaultValue, L_map) {
-    return resolve(L_assoc)(L_key, L_map)(L_id)(L_defaultValue);
-  };
-  var partial = function(L_key) {
-    var _1 = function(L_defaultValue) {
-            var _2 = function(L_map) {
-              return full(L_key, L_defaultValue, L_map);
-            };
-            _2.leisureInfo = {arg: L_defaultValue, parent: _1.leisureInfo};
-            return _2;
-          };
-          _1.leisureInfo = {arg: L_key, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_key, L_defaultValue, L_map, more) {
-    if (L_map && (typeof more == "undefined" || more == null)) {
-      return full(L_key, L_defaultValue, L_map);
-    } else if (typeof L_defaultValue == "undefined" || L_defaultValue == null) {
-      return partial(L_key);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))},
+  function(){return resolve(L_newDefine)("assocGetWithDefault")(3)("assocGetWithDefault key defaultValue map = assoc key map id defaultValue")(lazy((function(L_key, L_defaultValue, L_map, more) {
+  return (Leisure_shouldDispatch(L_map, more))
+    ? Leisure_dispatch(arguments)
+    : resolve(L_assoc)(L_key, L_map)(L_id)(L_defaultValue);
+ })))},
  function(){return resolve(L_newDefine)("insertFields")(1)("insertFields map = (isNil map) ''\n  concat[(field (head map)) (insertFields (tail map))]")(lazy(function(L_map){return resolve(L_isNil)(L_map)("")(function(){return resolve(L_strCat)(function(){return resolve(L_cons)(function(){return resolve(L_field)(function(){return resolve(L_head)(L_map)})}, function(){return resolve(L_cons)(function(){return resolve(L_insertFields)(function(){return resolve(L_tail)(L_map)})}, L_nil)})})})}))},
- function(){return resolve(L_newDefine)("svgTemplate")(2)("svgTemplate attrs contents = html concat['<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" ' attrs '>' contents '</svg>']")(lazy((function () {
-  var main;
-  var full = function (L_attrs, L_contents) {
-    return resolve(L_html)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" ", function(){return resolve(L_cons)(L_attrs, function(){return resolve(L_cons)(">", function(){return resolve(L_cons)(L_contents, function(){return resolve(L_cons)("</svg>", L_nil)})})})})})});
-  };
-  var partial = function(L_attrs) {
-    var _1 = function(L_contents) {
-            return full(L_attrs, L_contents);
-          };
-          _1.leisureInfo = {arg: L_attrs, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_attrs, L_contents, more) {
-    if (L_contents && (typeof more == "undefined" || more == null)) {
-      return full(L_attrs, L_contents);
-    } else if (typeof L_contents == "undefined" || L_contents == null) {
-      return partial(L_attrs);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))},
- function(){return resolve(L_newDefine)("svg")(2)("svg o map = svgTemplate concat['style=\"width: ' (assocGetWithDefault 'width' 100 map) 'px; height: '  (assocGetWithDefault 'height' 100 map) 'px\"'] (o id)")(lazy((function () {
-  var main;
-  var full = function (L_o, L_map) {
-    return resolve(L_svgTemplate)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("style=\"width: ", function(){return resolve(L_cons)(function(){return resolve(L_assocGetWithDefault)("width", 100, L_map)}, function(){return resolve(L_cons)("px; height: ", function(){return resolve(L_cons)(function(){return resolve(L_assocGetWithDefault)("height", 100, L_map)}, function(){return resolve(L_cons)("px\"", L_nil)})})})})})}, function(){return resolve(L_o)(L_id)});
-  };
-  var partial = function(L_o) {
-    var _1 = function(L_map) {
-            return full(L_o, L_map);
-          };
-          _1.leisureInfo = {arg: L_o, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_o, L_map, more) {
-    if (L_map && (typeof more == "undefined" || more == null)) {
-      return full(L_o, L_map);
-    } else if (typeof L_map == "undefined" || L_map == null) {
-      return partial(L_o);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))},
+ function(){return resolve(L_newDefine)("svgTemplate")(2)("svgTemplate attrs contents = html concat['<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" ' attrs '>' contents '</svg>']")(lazy((function(L_attrs, L_contents, more) {
+  return (Leisure_shouldDispatch(L_contents, more))
+    ? Leisure_dispatch(arguments)
+    : resolve(L_html)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" ", function(){return resolve(L_cons)(L_attrs, function(){return resolve(L_cons)(">", function(){return resolve(L_cons)(L_contents, function(){return resolve(L_cons)("</svg>", L_nil)})})})})})});
+ })))},
+ function(){return resolve(L_newDefine)("svg")(2)("svg o map = svgTemplate concat['style=\"width: ' (assocGetWithDefault 'width' 100 map) 'px; height: '  (assocGetWithDefault 'height' 100 map) 'px\"'] (o id)")(lazy((function(L_o, L_map, more) {
+  return (Leisure_shouldDispatch(L_map, more))
+    ? Leisure_dispatch(arguments)
+    : resolve(L_svgTemplate)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("style=\"width: ", function(){return resolve(L_cons)(function(){return resolve(L_assocGetWithDefault)("width", 100, L_map)}, function(){return resolve(L_cons)("px; height: ", function(){return resolve(L_cons)(function(){return resolve(L_assocGetWithDefault)("height", 100, L_map)}, function(){return resolve(L_cons)("px\"", L_nil)})})})})})}, function(){return resolve(L_o)(L_id)});
+ })))},
  function(){return resolve(L_newDefine)("svgFile")(1)("svgFile map = html concat['<object xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" ' (insertFields map) '</object>']")(lazy(function(L_map){return resolve(L_html)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<object xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" ", function(){return resolve(L_cons)(function(){return resolve(L_insertFields)(L_map)}, function(){return resolve(L_cons)("</object>", L_nil)})})})})}))},
  function(){return resolve(L_newDefine)("field")(1)("field cell = cell \\key value . concat[key '=\"' value '\" ']")(lazy(function(L_cell){return resolve(L_cell)(lazy(function(L_key){return $F(arguments, function(L_value){return resolve(L_strCat)(function(){return resolve(L_cons)(L_key, function(){return resolve(L_cons)("=\"", function(){return resolve(L_cons)(L_value, function(){return resolve(L_cons)("\" ", L_nil)})})})})})}))}))},
  function(){return resolve(L_newDefine)("defaultCircleMap")(0)("defaultCircleMap = ['cx':50 'cy':50 'r':40 'stroke':'black' 'stroke-width':2 'fill':'red']")(function(){return resolve(L_cons)(function(){return resolve(L_cons)("cx", 50)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("cy", 50)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("r", 40)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("stroke", "black")}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("stroke-width", 2)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("fill", "red")}, L_nil)})})})})})})},
@@ -84,109 +26,33 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("svgNode")(1)("svgNode contents = \\f . f contents")(lazy(setDataType(function(L_contents){return setType(function(L_f){return resolve(L_f)(L_contents)}, 'svgNode')}, 'svgNode')))},
  function(){return resolve(L_newDefine)("svgNodes")(1)("svgNodes nodeList = nodeList (\\h t D . cons (h id) (svgNodes t)) nil")(lazy(function(L_nodeList){return resolve(L_nodeList)(lazy(function(L_h){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_cons)(function(){return resolve(L_h)(L_id)}, function(){return resolve(L_svgNodes)(L_t)})})})}))(L_nil)}))},
  function(){return resolve(L_newDefine)("svgConcat")(1)("svgConcat nodeList = svgNode (strCat (svgNodes nodeList))")(lazy(function(L_nodeList){return resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_svgNodes)(L_nodeList)})})}))},
- function(){return resolve(L_newDefine)("svgElement")(2)("svgElement name map = svgNode concat['<' name ' ' (insertFields map) '/>']")(lazy((function () {
-  var main;
-  var full = function (L_name, L_map) {
-    return resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<", function(){return resolve(L_cons)(L_name, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(function(){return resolve(L_insertFields)(L_map)}, function(){return resolve(L_cons)("/>", L_nil)})})})})})});
-  };
-  var partial = function(L_name) {
-    var _1 = function(L_map) {
-            return full(L_name, L_map);
-          };
-          _1.leisureInfo = {arg: L_name, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_name, L_map, more) {
-    if (L_map && (typeof more == "undefined" || more == null)) {
-      return full(L_name, L_map);
-    } else if (typeof L_map == "undefined" || L_map == null) {
-      return partial(L_name);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))},
+ function(){return resolve(L_newDefine)("svgElement")(2)("svgElement name map = svgNode concat['<' name ' ' (insertFields map) '/>']")(lazy((function(L_name, L_map, more) {
+  return (Leisure_shouldDispatch(L_map, more))
+    ? Leisure_dispatch(arguments)
+    : resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<", function(){return resolve(L_cons)(L_name, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(function(){return resolve(L_insertFields)(L_map)}, function(){return resolve(L_cons)("/>", L_nil)})})})})})});
+ })))},
  function(){return resolve(L_newDefine)("svgPresent")(1)("svgPresent content = svgMeasure content \\x y w h .\n  svgTemplate concat[\"width='\" w \"' height='\" h \"' viewbox='\" x ' ' y ' ' w ' ' h \"'\"] content")(lazy(function(L_content){return resolve(L_svgMeasure)(L_content)(lazy(function(L_x){return $F(arguments, function(L_y){return $F(arguments, function(L_w){return $F(arguments, function(L_h){return resolve(L_svgTemplate)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("width='", function(){return resolve(L_cons)(L_w, function(){return resolve(L_cons)("' height='", function(){return resolve(L_cons)(L_h, function(){return resolve(L_cons)("' viewbox='", function(){return resolve(L_cons)(L_x, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_y, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_w, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_h, function(){return resolve(L_cons)("'", L_nil)})})})})})})})})})})})})})}, L_content)})})})}))}))},
  function(){return resolve(L_advise)("presentHtml")("svgNode")(1)(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_svgNode)(function(){return resolve(L_some)(function(){return resolve(L_svgPresent)(function(){return resolve(L_obj)(L_id)})(L_id)})})(L_none)}))},
  function(){return resolve(L_newDefine)("circle")(1)("circle map = svgElement 'circle' ((isNil map) defaultCircleMap map)")(lazy(function(L_map){return resolve(L_svgElement)("circle", function(){return resolve(L_isNil)(L_map)(L_defaultCircleMap)(L_map)})}))},
  function(){return resolve(L_newDefine)("rect")(1)("rect map = svgElement 'rect' ((isNil map) defaultRectMap map)")(lazy(function(L_map){return resolve(L_svgElement)("rect", function(){return resolve(L_isNil)(L_map)(L_defaultRectMap)(L_map)})}))},
  function(){return resolve(L_newDefine)("ellipse")(1)("ellipse map = svgElement 'ellipse' ((isNil map) defaultEllipseMap map)")(lazy(function(L_map){return resolve(L_svgElement)("ellipse", function(){return resolve(L_isNil)(L_map)(L_defaultEllipseMap)(L_map)})}))},
  function(){return resolve(L_newDefine)("line")(1)("line map = svgElement 'line' ((isNil map) defaultLineMap map)")(lazy(function(L_map){return resolve(L_svgElement)("line", function(){return resolve(L_isNil)(L_map)(L_defaultLineMap)(L_map)})}))},
- function(){return resolve(L_newDefine)("text")(2)("text t map = svgNode concat['<text ' (insertFields ((isNil map) defaultTextMap map)) '>' ((isNil t) 'undefined' t) '</text>']")(lazy((function () {
-  var main;
-  var full = function (L_t, L_map) {
-    return resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<text ", function(){return resolve(L_cons)(function(){return resolve(L_insertFields)(function(){return resolve(L_isNil)(L_map)(L_defaultTextMap)(L_map)})}, function(){return resolve(L_cons)(">", function(){return resolve(L_cons)(function(){return resolve(L_isNil)(L_t)("undefined")(L_t)}, function(){return resolve(L_cons)("</text>", L_nil)})})})})})});
-  };
-  var partial = function(L_t) {
-    var _1 = function(L_map) {
-            return full(L_t, L_map);
-          };
-          _1.leisureInfo = {arg: L_t, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_t, L_map, more) {
-    if (L_map && (typeof more == "undefined" || more == null)) {
-      return full(L_t, L_map);
-    } else if (typeof L_map == "undefined" || L_map == null) {
-      return partial(L_t);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))},
+ function(){return resolve(L_newDefine)("text")(2)("text t map = svgNode concat['<text ' (insertFields ((isNil map) defaultTextMap map)) '>' ((isNil t) 'undefined' t) '</text>']")(lazy((function(L_t, L_map, more) {
+  return (Leisure_shouldDispatch(L_map, more))
+    ? Leisure_dispatch(arguments)
+    : resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<text ", function(){return resolve(L_cons)(function(){return resolve(L_insertFields)(function(){return resolve(L_isNil)(L_map)(L_defaultTextMap)(L_map)})}, function(){return resolve(L_cons)(">", function(){return resolve(L_cons)(function(){return resolve(L_isNil)(L_t)("undefined")(L_t)}, function(){return resolve(L_cons)("</text>", L_nil)})})})})})});
+ })))},
  function(){return resolve(L_newDefine)("polygon")(1)("polygon map = svgElement 'polygon' ((isNil map) defaultPolygonMap map)")(lazy(function(L_map){return resolve(L_svgElement)("polygon", function(){return resolve(L_isNil)(L_map)(L_defaultPolygonMap)(L_map)})}))},
  function(){return resolve(L_newDefine)("group")(1)("group elem = svgNode concat['<g>' (elem id) '</g>']")(lazy(function(L_elem){return resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<g>", function(){return resolve(L_cons)(function(){return resolve(L_elem)(L_id)}, function(){return resolve(L_cons)("</g>", L_nil)})})})})}))},
- function(){return resolve(L_newDefine)("translate")(3)("translate elem x y = svgNode concat['<g transform=\"translate(' x ' ' y ')\">' (elem id) '</g>']")(lazy((function () {
-  var main;
-  var full = function (L_elem, L_x, L_y) {
-    return resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<g transform=\"translate(", function(){return resolve(L_cons)(L_x, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_y, function(){return resolve(L_cons)(")\">", function(){return resolve(L_cons)(function(){return resolve(L_elem)(L_id)}, function(){return resolve(L_cons)("</g>", L_nil)})})})})})})})});
-  };
-  var partial = function(L_elem) {
-    var _1 = function(L_x) {
-            var _2 = function(L_y) {
-              return full(L_elem, L_x, L_y);
-            };
-            _2.leisureInfo = {arg: L_x, parent: _1.leisureInfo};
-            return _2;
-          };
-          _1.leisureInfo = {arg: L_elem, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_elem, L_x, L_y, more) {
-    if (L_y && (typeof more == "undefined" || more == null)) {
-      return full(L_elem, L_x, L_y);
-    } else if (typeof L_x == "undefined" || L_x == null) {
-      return partial(L_elem);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))},
- function(){return resolve(L_newDefine)("rotate")(2)("rotate elem r = svgNode concat['<g transform=\"rotate(' r ')\">' (elem id) '</g>']")(lazy((function () {
-  var main;
-  var full = function (L_elem, L_r) {
-    return resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<g transform=\"rotate(", function(){return resolve(L_cons)(L_r, function(){return resolve(L_cons)(")\">", function(){return resolve(L_cons)(function(){return resolve(L_elem)(L_id)}, function(){return resolve(L_cons)("</g>", L_nil)})})})})})});
-  };
-  var partial = function(L_elem) {
-    var _1 = function(L_r) {
-            return full(L_elem, L_r);
-          };
-          _1.leisureInfo = {arg: L_elem, name: main.leisureName};
-          return _1;
-  };
-  main = function(L_elem, L_r, more) {
-    if (L_r && (typeof more == "undefined" || more == null)) {
-      return full(L_elem, L_r);
-    } else if (typeof L_r == "undefined" || L_r == null) {
-      return partial(L_elem);
-    } else {
-      return Leisure.curryCall(arguments, partial);
-    }
-  };
-  return main;
-})()))}]);
+ function(){return resolve(L_newDefine)("translate")(3)("translate elem x y = svgNode concat['<g transform=\"translate(' x ' ' y ')\">' (elem id) '</g>']")(lazy((function(L_elem, L_x, L_y, more) {
+  return (Leisure_shouldDispatch(L_y, more))
+    ? Leisure_dispatch(arguments)
+    : resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<g transform=\"translate(", function(){return resolve(L_cons)(L_x, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_y, function(){return resolve(L_cons)(")\">", function(){return resolve(L_cons)(function(){return resolve(L_elem)(L_id)}, function(){return resolve(L_cons)("</g>", L_nil)})})})})})})})});
+ })))},
+ function(){return resolve(L_newDefine)("rotate")(2)("rotate elem r = svgNode concat['<g transform=\"rotate(' r ')\">' (elem id) '</g>']")(lazy((function(L_elem, L_r, more) {
+  return (Leisure_shouldDispatch(L_r, more))
+    ? Leisure_dispatch(arguments)
+    : resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<g transform=\"rotate(", function(){return resolve(L_cons)(L_r, function(){return resolve(L_cons)(")\">", function(){return resolve(L_cons)(function(){return resolve(L_elem)(L_id)}, function(){return resolve(L_cons)("</g>", L_nil)})})})})})});
+ })))}]);
 
 //# sourceMappingURL=svg.map

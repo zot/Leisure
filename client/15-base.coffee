@@ -119,6 +119,36 @@ class SimpyCons
       @_array = array)
 simpyCons = (a, b)-> new SimpyCons a, b
 
+(window ? global).Leisure_shouldDispatch = shouldDispatch = (last, extra)-> typeof last == 'undefined' || typeof extra != 'undefined'
+
+makeArgChain = (name, args)->
+  chain = {name: name, arg: args[0]}
+  prev = chain
+
+  for i in [1..args.length]
+    prev = {arg: args[i], parent: prev}
+  chain
+
+slice = (args, start, end)->
+  Array.prototype.slice.call args, start, end
+
+(window ? global).Leisure_dispatch = dispatch = (args)->
+  #use args.callee.length and args.length to determine what to do
+  targetLen = args.callee.length - 1
+  #console.log("DISPATCHING, target length: " + targetLen + ", actual length: " + args.length);
+  if targetLen == args.length then args.callee.apply null, args
+  else if targetLen < args.length
+    args.callee.apply(null, slice(args, 0, targetLen)).apply(null, slice(args, targetLen))
+  else
+    partialArgs = slice(args)
+    callee = args.callee
+    partial = ->
+      #console.log("PARTIAL CALL, num args: " + arguments.length + ", previous args: " + arguments.length);
+      #console.log("PARTIAL CALL with: " + partialArgs.concat(slice(arguments)));
+      callee.apply null, partialArgs.concat slice arguments
+    partial.leisureInfo = makeArgChain args.callee.leisureName, partialArgs
+    partial;
+
 root.defaultEnv = defaultEnv
 root.readFile = readFile
 root.readDir = readDir
@@ -132,3 +162,5 @@ root.verboseMsg = verboseMsg
 root.maxInt = 9007199254740992
 root.minInt = -root.maxInt
 root.funcInfo = funcInfo
+root.shouldDispatch = shouldDispatch
+root.dispatch = dispatch

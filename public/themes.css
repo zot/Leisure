@@ -1561,6 +1561,9 @@ button:hover {
 [data-edit-mode='fancy'][data-org-headline='1'] > .maincontent > [data-org-type='text'] {
     display: block;
 }
+[data-edit-mode='fancy'] [data-org-headline] > [data-org-type='text'] {
+    display: block;
+}
 body.loading, body.slides {
     position: absolute;
     border: none;
