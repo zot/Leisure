@@ -40,22 +40,22 @@ Leisure integration for environment
           cont res?.error ? res
     ), 2
 
-    define 'addDataAfter', lz (id)->(value)->(attrLine)->
+    define 'addDataAfter', (id)->(value)->(attrLine)->
       makeMonad (env, cont)->
         cont addDataAfter (rz id), (rz value), (rz attrLine)
 
-    define 'addNamedDataAfter', lz (name)->(id)->(value)-> (attrLine)->
+    define 'addNamedDataAfter', (name)->(id)->(value)-> (attrLine)->
       makeMonad (env, cont)->
         cont addDataAfter (rz id), (rz value), (rz attrLine), null, rz name
 
-    define 'getBaseDataNamed', lz (name)->
+    define 'getBaseDataNamed', (name)->
       makeMonad (env, cont)-> cont getDataNamed rz name
 
-    define 'setBaseDataNamed', lz (name)->(value)->
+    define 'setBaseDataNamed', (name)->(value)->
       makeMonad (env, cont)->
         setDataNamed rz(name), rz(value)
         cont _true
 
-    define 'toggleLeisureBar', lz (makeMonad (env, cont)->
+    define 'toggleLeisureBar', (makeMonad (env, cont)->
       toggleLeisureBar()
       cont _true)

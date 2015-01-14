@@ -32,7 +32,6 @@ _ = require('lodash.min')
 rz = resolve
 lz = lazy
 
-
 ######
 ###### naming
 ######
@@ -288,6 +287,8 @@ global.LeisureNameSpaces =
 
 # use AST, instead of arity?
 define = (name, func, arity, src, method, namespace, isNew) ->
+  nakedDefine name, lz(func), arity, src, method, namespace, isNew
+nakedDefine = (name, func, arity, src, method, namespace, isNew) ->
   #can't use func(), because it might do something or might fail
   #if typeof func() == 'function'
   #  func().src = src
@@ -533,6 +534,7 @@ root.Nil = Nil
 root.cons = cons
 root.primCons = primCons
 root.define = define
+root.nakedDefine = nakedDefine
 root.getType = getType
 root.getDataType = getDataType
 root.lit = lit
