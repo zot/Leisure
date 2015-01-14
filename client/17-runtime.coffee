@@ -85,12 +85,24 @@ consFrom = (array, i)->
 identity = (x)-> x
 _identity = (x)-> rz x
 _unit = setType ((x)->rz x), 'unit'
-_true = setType ((a)->(b)->rz a), 'true'
-_false = setType ((a)->(b)->rz b), 'false'
-left = (x)-> setType ((lCase)->(rCase)-> rz(lCase)(lz x)), 'left'
-right = (x)-> setType ((lCase)->(rCase)-> rz(rCase)(lz x)), 'right'
-some = (x)-> setType ((someCase)->(noneCase)-> rz(someCase)(lz x)), 'some'
-none = setType ((someCase)->(noneCase)-> rz(noneCase)), 'none'
+_true = setType ((a, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else rz a), 'true'
+_false = setType ((a, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else rz b), 'false'
+left = (x)-> setType ((lCase, rCase, more)->
+  if Leisure_shouldDispatch(rCase, more) then Leisure.dispatch arguments
+  else rz(lCase)(lz x)), 'left'
+right = (x)-> setType ((lCase, rCase, more)->
+  if Leisure_shouldDispatch(rCase, more) then Leisure.dispatch arguments
+  else rz(rCase)(lz x)), 'right'
+some = (x)-> setType ((someCase, noneCase, more)->
+  if Leisure_shouldDispatch(noneCase, more) then Leisure.dispatch arguments
+  else rz(someCase)(lz x)), 'some'
+none = setType ((someCase, noneCase, more)->
+  if Leisure_shouldDispatch(noneCase, more) then Leisure.dispatch arguments
+  else rz(noneCase)), 'none'
 booleanFor = (bool)-> if bool then rz L_true else rz L_false
 define 'eq', lz (a)->$F(arguments, (b)-> booleanFor rz(a) == rz(b))
 define '==', lz (a)->$F(arguments, (b)-> booleanFor rz(a) == rz(b))
@@ -133,7 +145,9 @@ define 'sqrt', lz (x)-> Math.sqrt(rz x)
 define 'acos', lz (x)-> Math.acos(rz x)
 define 'asin', lz (x)-> Math.asin(rz x)
 define 'atan', lz (x)-> Math.atan(rz x)
-define 'atan2', lz (x)->(y)-> Math.atan2(rz(x), rz(y))
+define 'atan2', lz (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then Leisure.dispatch arguments
+  else Math.atan2(rz(x), rz(y))
 define 'cos', lz (x)-> Math.cos(rz x)
 #define 'log', lz (x)-> Math.log(rz x)
 define 'sin', lz (x)-> Math.sin(rz x)
@@ -164,7 +178,8 @@ define '_strToLowerCase', lz (str)-> rz(str).toLowerCase()
 define '_strToUpperCase', lz (str)-> rz(str).toUpperCase()
 define '_strReplace', lz (str)->$F(arguments, (pat)->$F(arguments, (repl)-> rz(str).replace rz(pat), rz(repl)))
 strCoord = (str, coord)-> if coord < 0 then str.length + coord else coord
-define '_strSubstring', lz (str)->(start)->(end)->
+define '_strSubstring', lz (str, start, end, more)->
+  if Leisure_shouldDispatch(end, more) then return Leisure.dispatch arguments
   a = strCoord(rz(str), rz(start))
   b = strCoord(rz(str), rz(end))
   if b < a && rz(end) == 0 then b = rz(str).length
@@ -218,11 +233,13 @@ define 'setProperty', lz (func)-> $F(arguments, lz (name)-> $F(arguments, lz (va
 # Diagnostics
 ############
 
-define 'log', lz (str)->(res)->
+define 'log', lz (str, res, more)->
+  if Leisure_shouldDispatch(res, more) then return Leisure.dispatch arguments
   console.log String rz str
   rz res
 
-define 'logStack', lz (str)->(res)->
+define 'logStack', lz (str, res, more)->
+  if Leisure_shouldDispatch(res, more) then return Leisure.dispatch arguments
   console.log new Error(rz str).stack
   rz res
 
@@ -357,13 +374,15 @@ class Leisure_unit extends LeisureObject
 
 _unit = mkProto Leisure_unit, setType ((_x)-> rz(_x)), 'unit'
 
-define 'define', lz (name)->(arity)->(src)->(def)->
+define 'define', lz (name, arity, src, def, more)->
+  if Leisure_shouldDispatch(def, more) then return Leisure.dispatch arguments
   #console.log "DEFINE: #{name}"
   makeSyncMonad (env, cont)->
     define rz(name), def, rz(arity), rz(src)
     cont _unit
 
-define 'newDefine', lz (name)->(arity)->(src)->(def)->
+define 'newDefine', lz (name, arity, src, def, more)->
+  if Leisure_shouldDispatch(def, more) then return Leisure.dispatch arguments
   #console.log "NEW DEFINE: #{name}"
   makeSyncMonad (env, cont)->
     define rz(name), def, rz(arity), rz(src), null, null, true
@@ -403,7 +422,8 @@ class Monad2 extends Monad
 define 'defer', lz (v)-> new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1), ->
   "defer #{rz v}"
 
-define 'bind2', bind2 = lz (m)->(binding)->
+define 'bind2', bind2 = lz (m, binding, more)->
+  if Leisure_shouldDispatch(binding, more) then return Leisure.dispatch arguments
   newM = rz m
   if (newM instanceof Monad2) || (isMonad newM)
     new Monad2 'bind', ((env, cont)->
@@ -418,7 +438,8 @@ newbind = false
 
 if newbind then define 'bind', bind2
 else
-  define 'bind', lz (m)->(binding)->
+  define 'bind', lz (m, binding, more)->
+    if Leisure_shouldDispatch(binding, more) then return Leisure.dispatch arguments
     if isMonad rz m
       bindMonad = makeMonad (env, cont)->
       bindMonad.monad = m
@@ -460,18 +481,22 @@ define 'protect', lz (value)->
 #
 actors = {}
 
-define 'actor', lz (name)->(func)->
+define 'actor', lz (name, func, more)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
   actors[name] = func
   func.env = values: {}
   func.env.__proto__ = defaultEnv
 
-define 'send', lz (name)->(msg)-> setTimeout (-> runMonad (rz(actors[name])(msg)), rz(actors[name]).env), 1
+define 'send', lz (name, msg, more)->
+  if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
+  setTimeout (-> runMonad (rz(actors[name])(msg)), rz(actors[name]).env), 1
 
 define 'hasValue', lz (name)->
   makeSyncMonad (env, cont)->
     cont booleanFor values[rz name]?
 
-define 'getValueOr', lz (name)->(defaultValue)->
+define 'getValueOr', lz (name, defaultValue, more)->
+  if Leisure_shouldDispatch(defaultValue, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     cont(values[rz name] ? rz(defaultValue))
 
@@ -485,7 +510,8 @@ define 'getValue', lz (name)->
 #  makeSyncMonad (env, cont)->
 #    cont (if !(rz(name) of values) then none else some values[rz name])
 
-define 'setValue', lz (name)->(value)->
+define 'setValue', lz (name, value, more)->
+  if Leisure_shouldDispatch(value, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     values[rz name] = rz value
     cont _unit
@@ -503,7 +529,8 @@ define 'envHas', lz (name)->
   makeSyncMonad (env, cont)->
     cont booleanFor env.values[rz name]?
 
-define 'envGetOr', lz (name)->(defaultValue)->
+define 'envGetOr', lz (name, defaultValue, more)->
+  if Leisure_shouldDispatch(defaultValue, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     cont(env.values[rz name] ? rz(defaultValue))
 
@@ -512,7 +539,8 @@ define 'envGet', lz (name)->
     if !(rz(name) of env.values) then throw new Error "No value named '#{rz name}'"
     cont env.values[rz name]
 
-define 'envSet', lz (name)->(value)->
+define 'envSet', lz (name, value, more)->
+  if Leisure_shouldDispatch(value, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     env.values[rz name] = rz(value)
     cont _unit
@@ -524,7 +552,8 @@ define 'envDelete', lz (name)->
 
 setValue 'macros', Nil
 
-define 'defMacro', lz (name)->(def)->
+define 'defMacro', lz (name, def, more)->
+  if Leisure_shouldDispatch(def, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     values.macros = cons cons(rz(name), rz(def)), values.macros
     cont _unit
@@ -543,7 +572,8 @@ define 'funcSrc', lz (func)->
 
 define 'ast2Json', lz (ast)-> JSON.stringify ast2Json rz ast
 
-define 'override', lz (name)->(newFunc)->
+define 'override', lz (name, newFunc, more)->
+  if Leisure_shouldDispatch(newFunc, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     n = "L_#{nameSub rz name}"
     oldDef = global[n]
@@ -596,7 +626,8 @@ define 'readDir', lz (dir)->
     env.readDir rz(dir), (err, files)->
       cont (if err then left err.stack ? err else right files)
 
-define 'writeFile', lz (name)->(data)->
+define 'writeFile', lz (name, data, more)->
+  if Leisure_shouldDispatch(data, more) then return Leisure.dispatch arguments
   makeMonad (env, cont)->
     env.writeFile rz(name), rz(data), (err, contents)->
       cont (if err then left err.stack ? err else right contents)
@@ -725,7 +756,9 @@ define 'hamtGet', lz (key)->$F(arguments, (hamt)->
   v = amt.get rz(hamt).hamt, rz(key)
   if v != undefined then some v else none)
 
-define 'hamtWithout', lz (key)->(hamt)-> makeHamt amt.dissoc rz(hamt).hamt, rz(key)
+define 'hamtWithout', lz (key, hamt, more)->
+  if Leisure_shouldDispatch(hamt, more) then return Leisure.dispatch arguments
+  makeHamt amt.dissoc rz(hamt).hamt, rz(key)
 
 #define 'hamtOpts', lz (eq)->(hash)->
 #
@@ -867,19 +900,31 @@ define 'setNameSpaceInfo', lz (info)->
 ensureLeisureClass 'token'
 Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{posString tokenPos(@)})"
 
-tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
-tokenPos = (t)-> t(lz (txt)->(pos)-> rz pos)
+tokenString = (t)-> t(lz (txt, pos, more)->
+  if Leisure_shouldDispatch(pos, more) then return Leisure.dispatch arguments
+  rz txt)
+tokenPos = (t)-> t(lz (txt, pos, more)->
+  if Leisure_shouldDispatch(pos, more) then return Leisure.dispatch arguments
+  rz pos)
 ensureLeisureClass 'filepos'
 posString = (p)->
-  if p instanceof Leisure_filepos then p(lz (file)->(line)->(offset)-> "#{rz file}:#{rz line}.#{rz offset}")
+  if p instanceof Leisure_filepos then p(lz (file, line, offset, more)->
+    if Leisure_shouldDispatch(offset, more) then return Leisure.dispatch arguments
+    "#{rz file}:#{rz line}.#{rz offset}")
   else p
 
 ensureLeisureClass 'parens'
 Leisure_parens.prototype.toString = -> "Parens(#{posString parensStart @}, #{posString parensEnd @}, #{parensContent @})"
 
-parensStart = (p)-> p(lz (s)->(e)->(l)-> rz s)
-parensEnd = (p)-> p(lz (s)->(e)->(l)-> rz e)
-parensContent = (p)-> p(lz (s)->(e)->(l)-> rz l)
+parensStart = (p)-> p(lz (s, e, l, more)->
+  if Leisure_shouldDispatch(l, more) then return Leisure.dispatch arguments
+  rz s)
+parensEnd = (p)-> p(lz (s, e, l, more)->
+  if Leisure_shouldDispatch(l, more) then return Leisure.dispatch arguments
+  rz e)
+parensContent = (p)-> p(lz (s, e, l, more)->
+  if Leisure_shouldDispatch(l, more) then return Leisure.dispatch arguments
+  rz l)
 
 ensureLeisureClass 'true'
 Leisure_true.prototype.toString = -> "true"

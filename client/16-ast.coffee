@@ -204,8 +204,6 @@ consEq = (a, b)-> a == b or (a instanceof Leisure_BaseCons and a.equals(b))
 # cons and Nil are Leisure-based so that Leisure code can work with it transparently
 # they look like ordinary JS classes, but the "instances" are actually functions
 class Leisure_cons extends Leisure_BaseCons
-  #head: -> @ ->(a)->(b)->rz a
-  #tail: -> @ ->(a)->(b)->rz b
   head: -> this ->(a, b, more)->
     if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
     else rz a
@@ -333,12 +331,6 @@ define = (name, func, arity, src, method, namespace, isNew) ->
 #  You can nest them, so body could be another annotation
 
 # lit, ref, lambda, let each need a range
-#L_lit = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
-#L_ref = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'ref'), 'ref'
-#L_lambda = setDataType ((_v)-> (_f)-> (_r)-> setType ((_g)-> rz(_g)(_v)(_f)(_r)), 'lambda'), 'lambda'
-#L_let = setDataType ((_n)-> (_v)-> (_b)-> (_r)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)(_r)), 'let'), 'let'
-#L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> rz(_f)(_func)(_arg)), 'apply'), 'apply'
-#L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> rz(_f)(_name)(_data)(_body)), 'anno'), 'anno'
 L_lit = setDataType ((_x, _r, more)->
   if Leisure_shouldDispatch(_r, more) then Leisure.dispatch arguments
   else setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
