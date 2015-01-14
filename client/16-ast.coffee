@@ -204,8 +204,14 @@ consEq = (a, b)-> a == b or (a instanceof Leisure_BaseCons and a.equals(b))
 # cons and Nil are Leisure-based so that Leisure code can work with it transparently
 # they look like ordinary JS classes, but the "instances" are actually functions
 class Leisure_cons extends Leisure_BaseCons
-  head: -> @ ->(a)->(b)->rz a
-  tail: -> @ ->(a)->(b)->rz b
+  #head: -> @ ->(a)->(b)->rz a
+  #tail: -> @ ->(a)->(b)->rz b
+  head: -> this ->(a, b, more)->
+    if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+    else rz a
+  tail: -> this ->(a, b, more)->
+    if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+    else rz b
   stringName: -> "Cons"
 
 global.Leisure_cons = Leisure_cons
@@ -243,8 +249,12 @@ throwError = (msg)->
 
 checkType = (value, type)-> if !(value instanceof type) then throwError("Type error: expected type: #{type}, but got: #{jsType value}")
 
-primCons = setDataType(((a)->(b)-> mkProto Leisure_cons, setType ((f)-> rz(f)(a)(b)), 'cons'), 'cons')
-Nil = mkProto Leisure_nil, setDataType(setType(((a)->(b)->rz b), 'nil'), 'nil')
+primCons = setDataType(((a, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else mkProto Leisure_cons, setType ((f)-> rz(f)(a)(b)), 'cons'), 'cons')
+Nil = mkProto Leisure_nil, setDataType(setType(((a, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else rz b), 'nil'), 'nil')
 cons = (a, b)-> primCons(lz a)(lz b)
 
 foldLeft = (func, val, thing)->
@@ -323,15 +333,30 @@ define = (name, func, arity, src, method, namespace, isNew) ->
 #  You can nest them, so body could be another annotation
 
 # lit, ref, lambda, let each need a range
-L_lit = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
-#L_lit = setDataType ((_x, _r, more)->
-#  if Leisure_shouldDispatch(_r, more) then Leisure.dispatch arguments
-#  else setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
-L_ref = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'ref'), 'ref'
-L_lambda = setDataType ((_v)-> (_f)-> (_r)-> setType ((_g)-> rz(_g)(_v)(_f)(_r)), 'lambda'), 'lambda'
-L_let = setDataType ((_n)-> (_v)-> (_b)-> (_r)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)(_r)), 'let'), 'let'
-L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> rz(_f)(_func)(_arg)), 'apply'), 'apply'
-L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> rz(_f)(_name)(_data)(_body)), 'anno'), 'anno'
+#L_lit = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
+#L_ref = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'ref'), 'ref'
+#L_lambda = setDataType ((_v)-> (_f)-> (_r)-> setType ((_g)-> rz(_g)(_v)(_f)(_r)), 'lambda'), 'lambda'
+#L_let = setDataType ((_n)-> (_v)-> (_b)-> (_r)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)(_r)), 'let'), 'let'
+#L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> rz(_f)(_func)(_arg)), 'apply'), 'apply'
+#L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> rz(_f)(_name)(_data)(_body)), 'anno'), 'anno'
+L_lit = setDataType ((_x, _r, more)->
+  if Leisure_shouldDispatch(_r, more) then Leisure.dispatch arguments
+  else setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
+L_ref = setDataType ((_x, _r, more)->
+  if Leisure_shouldDispatch(_r, more) then Leisure.dispatch arguments
+  else setType ((_f)-> rz(_f)(_x)(_r)), 'ref'), 'ref'
+L_lambda = setDataType ((_v, _f, _r, more)->
+  if Leisure_shouldDispatch(_r, more) then Leisure.dispatch arguments
+  else setType ((_g)-> rz(_g)(_v)(_f)(_r)), 'lambda'), 'lambda'
+L_let = setDataType ((_n, _v, _b, _r, more)->
+  if Leisure_shouldDispatch(_r, more) then Leisure.dispatch arguments
+  else setType ((_f)-> rz(_f)(_n)(_v)(_b)(_r)), 'let'), 'let'
+L_apply = setDataType ((_func, _arg, more)->
+  if Leisure_shouldDispatch(_arg, more) then Leisure.dispatch arguments
+  else setType ((_f)-> rz(_f)(_func)(_arg)), 'apply'), 'apply'
+L_anno = setDataType ((_name, _data, _body, more)->
+  if Leisure_shouldDispatch(_body, more) then Leisure.dispatch arguments
+  else setType ((_f)-> rz(_f)(_name)(_data)(_body)), 'anno'), 'anno'
 
 getType = (f)->
   t = typeof f
@@ -373,23 +398,55 @@ firstRange = (a, b)->
     if lineA < lineB || (lineA == lineB && colA < colB) then a else b
   else if lineA then a else b
 
-getLitVal = (lt)-> lt lz (v)-> (r)-> rz v
-getLitRange = (lt)-> lt lz (v)-> (r)-> rz r
-getRefName = (rf)-> rf lz (v)-> (r)-> rz v
-getRefRange = (rf)-> rf lz (v)-> (r)-> rz r
-getLambdaVar = (lam)-> lam lz (v)->(b)-> (r)->  rz v
-getLambdaBody = (lam)-> lam lz (v)->(b)-> (r)->  rz b
-getLambdaRange = (lam)-> lam lz (v)->(b)-> (r)->  rz r
-getLetName = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz n
-getLetValue = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz v
-getLetBody = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz b
-getLetRange = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz r
-getApplyFunc = (apl)-> apl lz (a)->(b)-> rz a
-getApplyArg = (apl)-> apl lz (a)->(b)-> rz b
+getLitVal = (lt)-> lt lz (v, r, more)->
+  if Leisure_shouldDispatch(r, more) then Leisure.dispatch arguments
+  else rz v
+getLitRange = (lt)-> lt lz (v, r, more)->
+  if Leisure_shouldDispatch(r, more) then Leisure.dispatch arguments
+  else rz r
+getRefName = (rf)-> rf lz (v, r, more)->
+  if Leisure_shouldDispatch(r, more) then Leisure.dispatch arguments
+  else rz v
+getRefRange = (rf)-> rf lz (v, r, more)->
+  if Leisure_shouldDispatch(r, more) then Leisure.dispatch arguments
+  else rz r
+getLambdaVar = (lam)-> lam lz (v, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else (r)->  rz v
+getLambdaBody = (lam)-> lam lz (v, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else (r)->  rz b
+getLambdaRange = (lam)-> lam lz (v, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else (r)->  rz r
+getLetName = (lt)-> lt lz (n, v, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else (r)->  rz n
+getLetValue = (lt)-> lt lz (n, v, b, r, more)->
+  if Leisure_shouldDispatch(r, more) then Leisure.dispatch arguments
+  else rz v
+getLetBody = (lt)-> lt lz (n, v, b, r, more)->
+  if Leisure_shouldDispatch(r, more) then Leisure.dispatch arguments
+  else rz b
+getLetRange = (lt)-> lt lz (n, v, b, r, more)->
+  if Leisure_shouldDispatch(r, more) then Leisure.dispatch arguments
+  else rz r
+getApplyFunc = (apl)-> apl lz (a, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else rz a
+getApplyArg = (apl)-> apl lz (a, b, more)->
+  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
+  else rz b
 getApplyRange = (apl) -> firstRange (getPos getApplyFunc apl), (getPos getApplyArg apl)
-getAnnoName = (anno)-> anno lz (name)->(data)->(body)-> rz name
-getAnnoData = (anno)-> anno lz (name)->(data)->(body)-> rz data
-getAnnoBody = (anno)-> anno lz (name)->(data)->(body)-> rz body
+getAnnoName = (anno)-> anno lz (name, data, body, more)->
+  if Leisure_shouldDispatch(body, more) then Leisure.dispatch arguments
+  else rz name
+getAnnoData = (anno)-> anno lz (name, data, body, more)->
+  if Leisure_shouldDispatch(body, more) then Leisure.dispatch arguments
+  else rz data
+getAnnoBody = (anno)-> anno lz (name, data, body, more)->
+  if Leisure_shouldDispatch(body, more) then Leisure.dispatch arguments
+  else rz body
 getAnnoRange = (anno)-> getPos getAnnoBody anno
 
 ######
