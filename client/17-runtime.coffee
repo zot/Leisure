@@ -810,36 +810,37 @@ define 'once', makeSyncMonad (->
 ##################
 
 # later advice overrides earlier advice
+# TODO change to throw error if no functionInfo
 define 'advise', (name, alt, arity, def, more)->
   if Leisure_shouldDispatch(def, more) then return Leisure.dispatch arguments
   makeMonad (env, cont)->
     info = functionInfo[rz name]
-    if !info then info = functionInfo[rz name] =
-      src: ''
-      arity: -1
-      alts: {}
-      altList: []
+    #if !info then info = functionInfo[rz name] =
+    #  src: ''
+    #  arity: -1
+    #  alts: {}
+    #  altList: []
+    if !info then throw new Error "No default definition for #{rz name}"
+    mainDef = rz info.mainDef
+    if mainDef.length != rz(def).length
+      throw new Error "Advice for #{rz name} has wrong arity.  Expected #{mainDef.length - 1} but got #{Math.max 0, rz(def).length - 1}"
     if !info.alts[rz alt] then info.altList.push rz alt
     info.alts[rz alt] = rz def
     alts = (info.alts[i] for i in info.altList)
     alts.reverse()
-    newDef = curry rz(arity), (args)->
+    newDef = ->
+      args = arguments
+      if args.length != args.callee.length - 1 then return Leisure_manualDispatch args, newDef, mainDef.length - 1
       for alt in alts
-        opt = alt
-        for arg in args
-          opt = opt arg
+        opt = alt.apply null, args
         if getType(opt) == 'some' then return opt(lz (x, more)->
           if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
           rz x)(lz _false)
-      if info.mainDef
-        res = rz info.mainDef
-        for arg in args
-          res = res arg
-        return res
-      throw new Error "No default definition for #{rz name}"
+      return mainDef.apply null, args
     nm = "L_#{nameSub rz name}"
     global[nm] = global.leisureFuncNames[nm] = newDef
-    functionInfo[name].newArity = false
+    newDef.leisureName = mainDef.leisureName
+    functionInfo[name].newArity = true
     cont def
 
 curry = (arity, func)-> -> lz (arg)-> lz (subcurry arity, func, null) arg

@@ -120,20 +120,19 @@ slice = (args, start, end)->
   Array.prototype.slice.call args, start, end
 
 (window ? global).Leisure_dispatch = dispatch = (args)->
-  #use args.callee.length and args.length to determine what to do
-  targetLen = args.callee.length - 1
-  #console.log("DISPATCHING, target length: " + targetLen + ", actual length: " + args.length);
-  if targetLen == args.length then args.callee.apply null, args
+  manualDispatch args, args.callee, args.callee.length - 1
+
+(window ? global).Leisure_manualDispatch = manualDispatch = (args, callee, targetLen)->
+  if targetLen == args.length then callee.apply null, args
   else if targetLen < args.length
-    args.callee.apply(null, slice(args, 0, targetLen)).apply(null, slice(args, targetLen))
+    callee.apply(null, slice(args, 0, targetLen)).apply(null, slice(args, targetLen))
   else
     partialArgs = slice(args)
-    callee = args.callee
     partial = ->
       #console.log("PARTIAL CALL, num args: " + arguments.length + ", previous args: " + arguments.length);
       #console.log("PARTIAL CALL with: " + partialArgs.concat(slice(arguments)));
       callee.apply null, partialArgs.concat slice arguments
-    partial.leisureInfo = makeArgChain args.callee.leisureName, partialArgs
+    partial.leisureInfo = makeArgChain callee.leisureName, partialArgs
     partial;
 
 root.defaultEnv = defaultEnv
