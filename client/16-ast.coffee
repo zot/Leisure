@@ -355,11 +355,11 @@ getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{(f == null && 'null') || ((t == 'object') && f.constructor?.name) || t}"
 
-define 'getType', (lz (value)-> getType rz value), 1
+define 'getType', ((value)-> getType rz value), 1
 
 getDataType = (f)-> (typeof f == 'function' && f.dataType) || ''
 
-define 'getDataType', (lz (value)-> getDataType rz value), 1
+define 'getDataType', ((value)-> getDataType rz value), 1
 
 save = {}
 
@@ -512,8 +512,12 @@ ast2Json = (ast)->
   if ast2JsonEncodings[ast.constructor?.name] then ast2JsonEncodings[ast.constructor.name] ast else ast
 
 # Leisure interface to the JSON AST codec
-define 'json2Ast', (lz (json)-> json2Ast JSON.parse rz json), null, null, null, 'parser'
-define 'ast2Json', (lz (ast)-> JSON.stringify ast2Json rz ast), null, null, null, 'parser'
+define 'json2Ast', ((json, more)->
+  if Leisure_shouldDispatch(json, more) then return Leisure.dispatch arguments
+  json2Ast JSON.parse rz json), null, null, null, 'parser'
+define 'ast2Json', ((ast, more)->
+  if Leisure_shouldDispatch(ast, more) then return Leisure.dispatch arguments
+  JSON.stringify ast2Json rz ast), null, null, null, 'parser'
 
 consFrom = (array, i)->
   i = i || 0

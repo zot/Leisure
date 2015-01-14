@@ -84,100 +84,195 @@ consFrom = (array, i)->
 ############
 
 identity = (x)-> x
-_identity = (x)-> rz x
-_unit = setType ((x)->rz x), 'unit'
+_identity = (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  rz x
+_unit = setType ((x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  rz x), 'unit'
 _true = setType ((a, b, more)->
-  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
-  else rz a), 'true'
+  if Leisure_shouldDispatch(b, more) then return Leisure.dispatch arguments
+  rz a), 'true'
 _false = setType ((a, b, more)->
-  if Leisure_shouldDispatch(b, more) then Leisure.dispatch arguments
-  else rz b), 'false'
-left = (x)-> setType ((lCase, rCase, more)->
-  if Leisure_shouldDispatch(rCase, more) then Leisure.dispatch arguments
-  else rz(lCase)(lz x)), 'left'
-right = (x)-> setType ((lCase, rCase, more)->
-  if Leisure_shouldDispatch(rCase, more) then Leisure.dispatch arguments
-  else rz(rCase)(lz x)), 'right'
-some = (x)-> setType ((someCase, noneCase, more)->
-  if Leisure_shouldDispatch(noneCase, more) then Leisure.dispatch arguments
-  else rz(someCase)(lz x)), 'some'
+  if Leisure_shouldDispatch(b, more) then return Leisure.dispatch arguments
+  rz b), 'false'
+left = (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  setType ((lCase, rCase, more)->
+    if Leisure_shouldDispatch(rCase, more) then return Leisure.dispatch arguments
+    rz(lCase)(lz x)), 'left'
+right = (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  setType ((lCase, rCase, more)->
+    if Leisure_shouldDispatch(rCase, more) then return Leisure.dispatch arguments
+    rz(rCase)(lz x)), 'right'
+some = (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  setType ((someCase, noneCase, more)->
+    if Leisure_shouldDispatch(noneCase, more) then return Leisure.dispatch arguments
+    rz(someCase)(lz x)), 'some'
 none = setType ((someCase, noneCase, more)->
-  if Leisure_shouldDispatch(noneCase, more) then Leisure.dispatch arguments
-  else rz(noneCase)), 'none'
+  if Leisure_shouldDispatch(noneCase, more) then return Leisure.dispatch arguments
+  rz(noneCase)), 'none'
 booleanFor = (bool)-> if bool then rz L_true else rz L_false
-define 'eq', (a)->(b)-> booleanFor rz(a) == rz(b)
-define '==', (a)->(b)-> booleanFor rz(a) == rz(b)
-define 'hasType', (data)->(func)->
+define 'eq', (a, b, more)->
+  if Leisure_shouldDispatch(b, more) then return Leisure.dispatch arguments
+  booleanFor rz(a) == rz(b)
+define '==', (a, b, more)->
+  if Leisure_shouldDispatch(b, more) then return Leisure.dispatch arguments
+  booleanFor rz(a) == rz(b)
+define 'hasType', (data, func, more)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
   if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
   else booleanFor getType(rz data) == getDataType(rz func)
-define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
-define 'assert', (bool)->(msg)-> (expr)-> rz(bool)(expr)(-> throw new Error(rz msg))
-define 'assertLog', (bool)->(msg)-> (expr)-> rz(bool)(expr)(->
+define 'getDataType', (func, more)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
+  if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
+define 'assert', (bool, msg, expr, more)->
+  if Leisure_shouldDispatch(expr, more) then return Leisure.dispatch arguments
+  rz(bool)(expr)(-> throw new Error(rz msg))
+define 'assertLog', (bool, msg, expr, more)->
+  if Leisure_shouldDispatch(expr, more) then return Leisure.dispatch arguments
+  rz(bool)(expr)(->
   console.log new Error(rz msg).stack
   console.log "LOGGED ERROR -- RESUMING EXECUTION..."
   rz expr)
-define 'trace', (msg)->
+define 'trace', (msg, more)->
+  if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
   console.log "STACKTRACE: ", new Error(rz msg).stack
   msg
-define 'jsTrue', (x)-> if rz(x) then _true else _false
-define 'error', (msg)-> throw new Error rz msg
+define 'jsTrue', (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  if rz(x) then _true else _false
+define 'error', (msg, more)->
+  if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
+  throw new Error rz msg
 
 ############
 # MATH
 ############
 
-define '+', (x)->(y)->rz(x) + rz(y)
-define '-', (x)->(y)->rz(x) - rz(y)
-define '*', (x)->(y)->rz(x) * rz(y)
-define '/', (x)->(y)->rz(x) / rz(y)
-define '%', (x)->(y)->rz(x) % rz(y)
-define '<', (x)->(y)->booleanFor rz(x) < rz(y)
-define '<=', (x)->(y)->booleanFor rz(x) <= rz(y)
-define '>', (x)->(y)->booleanFor rz(x) > rz(y)
-define '>=', (x)->(y)->booleanFor rz(x) >= rz(y)
-define 'floor', (x)-> Math.floor(rz x)
-define 'ceil', (x)-> Math.ceil(rz x)
-define 'min', (x)->(y)-> Math.min rz(x), rz(y)
-define 'max', (x)->(y)-> Math.max rz(x), rz(y)
-define 'round', (x)-> Math.round(rz x)
-define 'abs', (x)-> Math.abs(rz x)
-define 'sqrt', (x)-> Math.sqrt(rz x)
-
-define 'acos', (x)-> Math.acos(rz x)
-define 'asin', (x)-> Math.asin(rz x)
-define 'atan', (x)-> Math.atan(rz x)
+define '+',     (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  rz(x) + rz(y)
+define '-',     (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  rz(x) - rz(y)
+define '*',     (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  rz(x) * rz(y)
+define '/',     (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  rz(x) / rz(y)
+define '%',     (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  rz(x) % rz(y)
+define '<',     (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  booleanFor rz(x) < rz(y)
+define '<=',    (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  booleanFor rz(x) <= rz(y)
+define '>',     (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  booleanFor rz(x) > rz(y)
+define '>=',    (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  booleanFor rz(x) >= rz(y)
+define 'floor', (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.floor(rz x)
+define 'ceil',  (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.ceil(rz x)
+define 'min',   (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  Math.min rz(x), rz(y)
+define 'max',   (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  Math.max rz(x), rz(y)
+define 'round', (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.round(rz x)
+define 'abs',   (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.abs(rz x)
+define 'sqrt',  (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.sqrt(rz x)
+define 'acos',  (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.acos(rz x)
+define 'asin',  (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.asin(rz x)
+define 'atan',  (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.atan(rz x)
 define 'atan2', (x, y, more)->
   if Leisure_shouldDispatch(y, more) then Leisure.dispatch arguments
   else Math.atan2(rz(x), rz(y))
-define 'cos', (x)-> Math.cos(rz x)
+define 'cos', (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.cos(rz x)
 #define 'log', (x)-> Math.log(rz x)
-define 'sin', (x)-> Math.sin(rz x)
-define 'tan', (x)-> Math.tan(rz x)
+define 'sin', (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.sin(rz x)
+define 'tan', (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+  Math.tan(rz x)
 
-define 'rand', -> makeSyncMonad (env, cont)->
+define 'rand', -> makeSyncMonad (env, cont, more)->
+  if Leisure_shouldDispatch(cont, more) then return Leisure.dispatch arguments
   cont (Math.random())
-define 'randInt', (low)->(high)->makeSyncMonad (env, cont)->
+define 'randInt', (low, high, more)->
+  if Leisure_shouldDispatch(high, more) then return Leisure.dispatch arguments
+  makeSyncMonad (env, cont)->
   cont (Math.floor(rz(low) + Math.random() * rz(high)))
-define '^', (x)->(y)->Math.pow(rz(x), rz(y))
-define 'number', (n)-> Number n
+define '^', (x, y, more)->
+  if Leisure_shouldDispatch(y, more) then return Leisure.dispatch arguments
+  Math.pow(rz(x), rz(y))
+define 'number', (n, more)->
+  if Leisure_shouldDispatch(n, more) then return Leisure.dispatch arguments
+  Number n
 
 ############
 # STRINGS
 ############
 
-define '_show', (data)->
+define '_show', (data, more)->
+  if Leisure_shouldDispatch(data, more) then return Leisure.dispatch arguments
   if typeof rz(data) in ['string', 'number', 'boolean'] then JSON.stringify rz data
   else if getType(rz data) == 'err' then rz(L_errMsg)(data)
   else String rz data
-define 'strString', (data)-> String rz data
-define '_strAsc', (str)-> rz(str).charCodeAt(0)
-define '_strChr', (i)-> String.fromCharCode(rz i)
-define '_strAt', (str)->(index)-> rz(str)[strCoord(rz(str), rz(index))]
-define '_strStartsWith', (str)->(prefix)-> booleanFor rz(str).substring(0, rz(prefix).length) == rz(prefix)
-define '_strLen', (str)-> rz(str).length
-define '_strToLowerCase', (str)-> rz(str).toLowerCase()
-define '_strToUpperCase', (str)-> rz(str).toUpperCase()
-define '_strReplace', (str)->(pat)->(repl)-> rz(str).replace rz(pat), rz(repl)
+define 'strString', (data, more)->
+  if Leisure_shouldDispatch(data, more) then return Leisure.dispatch arguments
+  String rz data
+define '_strAsc', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
+  rz(str).charCodeAt(0)
+define '_strChr', (i, more)->
+  if Leisure_shouldDispatch(i, more) then return Leisure.dispatch arguments
+  String.fromCharCode(rz i)
+define '_strAt', (str, index, more)->
+  if Leisure_shouldDispatch(index, more) then return Leisure.dispatch arguments
+  rz(str)[strCoord(rz(str), rz(index))]
+define '_strStartsWith', (str, prefix, more)->
+  if Leisure_shouldDispatch(prefix, more) then return Leisure.dispatch arguments
+  booleanFor rz(str).substring(0, rz(prefix).length) == rz(prefix)
+define '_strLen', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
+  rz(str).length
+define '_strToLowerCase', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
+  rz(str).toLowerCase()
+define '_strToUpperCase', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
+  rz(str).toUpperCase()
+define '_strReplace', (str, pat, repl, more)->
+  if Leisure_shouldDispatch(repl, more) then return Leisure.dispatch arguments
+  rz(str).replace rz(pat), rz(repl)
 strCoord = (str, coord)-> if coord < 0 then str.length + coord else coord
 define '_strSubstring', (str, start, end, more)->
   if Leisure_shouldDispatch(end, more) then return Leisure.dispatch arguments
@@ -185,10 +280,17 @@ define '_strSubstring', (str, start, end, more)->
   b = strCoord(rz(str), rz(end))
   if b < a && rz(end) == 0 then b = rz(str).length
   rz(str).substring a, b
-define '_strSplit', (str)->(pat)-> consFrom rz(str).split if rz(pat) instanceof RegExp then rz(pat) else new RegExp rz(pat)
-define '_strCat', (list)-> _.map(rz(list).toArray(), (el)-> if typeof el == 'string' then el else rz(L_show)(lz el)).join('')
-define '_strAdd', (s1)->(s2)-> rz(s1) + rz(s2)
-define '_strMatch', (str)->(pat)->
+define '_strSplit', (str, pat, more)->
+  if Leisure_shouldDispatch(pat, more) then return Leisure.dispatch arguments
+  consFrom rz(str).split if rz(pat) instanceof RegExp then rz(pat) else new RegExp rz(pat)
+define '_strCat', (list, more)->
+  if Leisure_shouldDispatch(list, more) then return Leisure.dispatch arguments
+  _.map(rz(list).toArray(), (el)-> if typeof el == 'string' then el else rz(L_show)(lz el)).join('')
+define '_strAdd', (s1, s2, more)->
+  if Leisure_shouldDispatch(s2, more) then return Leisure.dispatch arguments
+  rz(s1) + rz(s2)
+define '_strMatch', (str, pat, more)->
+  if Leisure_shouldDispatch(pat, more) then return Leisure.dispatch arguments
   m = rz(str).match (if rz(pat) instanceof RegExp then rz pat else new RegExp rz pat)
   if m
     groups = []
@@ -199,19 +301,29 @@ define '_strMatch', (str)->(pat)->
     else consFrom [m[0], consFrom(groups)]
   else if L_nil then rz L_nil
   else Nil
-define '_strToList', (str)-> strToList rz str
+define '_strToList', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
+  strToList rz str
 strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
-define '_strFromList', (list)-> strFromList rz list
+define '_strFromList', (list, more)->
+  if Leisure_shouldDispatch(list, more) then return Leisure.dispatch arguments
+  strFromList rz list
 strFromList = (list)-> if list instanceof Leisure_nil then '' else head(list) + strFromList(tail list)
-define '_regexp', (str)-> new RegExp rz str
-define '_regexpFlags', (str)->(flags)-> new RegExp rz(str), rz(flags)
-define '_jsonParse', (str)->(failCont)->(successCont)->
+define '_regexp', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
+  new RegExp rz str
+define '_regexpFlags', (str, flags, more)->
+  if Leisure_shouldDispatch(flags, more) then return Leisure.dispatch arguments
+  new RegExp rz(str), rz(flags)
+define '_jsonParse', (str, failCont, successCont, more)->
+  if Leisure_shouldDispatch(successCont, more) then return Leisure.dispatch arguments
   try
     p = JSON.parse rz str
     rz(successCont) lz p
   catch err
     rz(failCont) lz err
-define 'jsonStringify', (obj)->(failCont)->(successCont)->
+define 'jsonStringify', (obj, failCont, successCont, more)->
+  if Leisure_shouldDispatch(successCont, more) then return Leisure.dispatch arguments
   try
     s = JSON.stringify rz obj
     rz(successCont) lz s
@@ -222,9 +334,12 @@ define 'jsonStringify', (obj)->(failCont)->(successCont)->
 # properties
 ############
 
-define 'getProperties', (func)-> if rz(func)?.properties then rz(func).properties else rz L_nil
+define 'getProperties', (func, more)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
+  if rz(func)?.properties then rz(func).properties else rz L_nil
 
-define 'setProperty', (func)->(name)->(value)->
+define 'setProperty', (func, name, value, more)->
+  if Leisure_shouldDispatch(value, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     f = rz func
     f.properties = rz(L_aconsf)(name)(value)(lz f.properties ? rz(L_nil))
@@ -245,7 +360,8 @@ define 'logStack', (str, res, more)->
   rz res
 
 # an identity function you can put a breakpoint on
-define 'breakpoint', (x)->
+define 'breakpoint', (x, more)->
+  if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
   console.log 'Break point ', rz x
   rz x
 
@@ -420,10 +536,12 @@ class Monad2 extends Monad
 
 #define 'return', (v)-> new Monad2 ((env, cont)-> cont rz v), -> "return #{rz v}"
 
-define 'defer', (v)-> new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1), ->
-  "defer #{rz v}"
+define 'defer', (v, more)->
+  if Leisure_shouldDispatch(v, more) then return Leisure.dispatch arguments
+  new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1), ->
+    "defer #{rz v}"
 
-define 'bind2', bind2 = lz (m, binding, more)->
+define 'bind2', bind2 = (m, binding, more)->
   if Leisure_shouldDispatch(binding, more) then return Leisure.dispatch arguments
   newM = rz m
   if (newM instanceof Monad2) || (isMonad newM)
@@ -453,7 +571,8 @@ values = {}
 #
 # Error handling
 #
-define 'protect', (value)->
+define 'protect', (value, more)->
+  if Leisure_shouldDispatch(value, more) then return Leisure.dispatch arguments
   makeMonad (env, cont)->
     hnd = (err)->
       console.log "PROTECTED ERROR: #{err.stack ? err}"
@@ -492,7 +611,8 @@ define 'send', (name, msg, more)->
   if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
   setTimeout (-> runMonad (rz(actors[name])(msg)), rz(actors[name]).env), 1
 
-define 'hasValue', (name)->
+define 'hasValue', (name, more)->
+  if Leisure_shouldDispatch(name, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     cont booleanFor values[rz name]?
 
@@ -501,7 +621,8 @@ define 'getValueOr', (name, defaultValue, more)->
   makeSyncMonad (env, cont)->
     cont(values[rz name] ? rz(defaultValue))
 
-define 'getValue', (name)->
+define 'getValue', (name, more)->
+  if Leisure_shouldDispatch(name, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     if !(rz(name) of values) then throw new Error "No value named '#{rz name}'"
     cont values[rz name]
@@ -517,7 +638,8 @@ define 'setValue', (name, value, more)->
     values[rz name] = rz value
     cont _unit
 
-define 'deleteValue', (name)->
+define 'deleteValue', (name, more)->
+  if Leisure_shouldDispatch(name, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     delete values[rz name]
     cont _unit
@@ -526,7 +648,8 @@ setValue = (key, value)-> values[key] = value
 
 getValue = (key)-> values[key]
 
-define 'envHas', (name)->
+define 'envHas', (name, more)->
+  if Leisure_shouldDispatch(name, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     cont booleanFor env.values[rz name]?
 
@@ -535,7 +658,8 @@ define 'envGetOr', (name, defaultValue, more)->
   makeSyncMonad (env, cont)->
     cont(env.values[rz name] ? rz(defaultValue))
 
-define 'envGet', (name)->
+define 'envGet', (name, more)->
+  if Leisure_shouldDispatch(name, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     if !(rz(name) of env.values) then throw new Error "No value named '#{rz name}'"
     cont env.values[rz name]
@@ -546,7 +670,8 @@ define 'envSet', (name, value, more)->
     env.values[rz name] = rz(value)
     cont _unit
 
-define 'envDelete', (name)->
+define 'envDelete', (name, more)->
+  if Leisure_shouldDispatch(name, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     delete env.values[rz name]
     cont _unit
@@ -566,12 +691,15 @@ define 'funcs', makeSyncMonad (env, cont)->
   console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
   cont _unit
 
-define 'funcSrc', (func)->
+define 'funcSrc', (func, name)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
   if typeof rz(func) == 'function'
     info = functionInfo[rz(func).leisureName]
     if info?.src then some info.src else none
 
-define 'ast2Json', (ast)-> JSON.stringify ast2Json rz ast
+define 'ast2Json', (ast, more)->
+  if Leisure_shouldDispatch(ast, more) then return Leisure.dispatch arguments
+  JSON.stringify ast2Json rz ast
 
 define 'override', (name, newFunc, more)->
   if Leisure_shouldDispatch(newFunc, more) then return Leisure.dispatch arguments
@@ -592,37 +720,44 @@ define 'override', (name, newFunc, more)->
 
 define 'gensym', makeSyncMonad (env, cont)-> cont "G#{gensymCounter++}"
 
-define 'print', (msg)->
+define 'print', (msg, more)->
+  if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     env.write env.presentValue rz msg
     cont _unit
 
-define 'print2', (msg)->
+define 'print2', (msg, more)->
+  if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
   new Monad2 'print2', ((env, cont)->
     env.write env.presentValue rz msg
     cont _unit), -> "print2 #{rz msg}"
 
-define 'write', (msg)->
+define 'write', (msg, more)->
+  if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
   new Monad2 'write', ((env, cont)->
     env.write String(rz msg)
     cont _unit), -> "write #{rz msg}"
 
-define 'prompt2', (msg)->
+define 'prompt2', (msg, more)->
+  if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
   new Monad2 ((env, cont)->
     env.prompt(String(rz msg), (input)-> cont input)), ->
     "prompt2 #{rz msg}"
 
-define 'oldWrite', (msg)->
+define 'oldWrite', (msg, more)->
+  if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     env.write String(rz msg)
     cont _unit
 
-define 'readFile', (name)->
+define 'readFile', (name, more)->
+  if Leisure_shouldDispatch(name, more) then return Leisure.dispatch arguments
   makeMonad (env, cont)->
     env.readFile rz(name), (err, contents)->
       cont (if err then left err.stack ? err else right contents)
 
-define 'readDir', (dir)->
+define 'readDir', (dir, more)->
+  if Leisure_shouldDispatch(dir, more) then return Leisure.dispatch arguments
   makeMonad (env, cont)->
     env.readDir rz(dir), (err, files)->
       cont (if err then left err.stack ? err else right files)
@@ -633,19 +768,22 @@ define 'writeFile', (name, data, more)->
     env.writeFile rz(name), rz(data), (err, contents)->
       cont (if err then left err.stack ? err else right contents)
 
-define 'statFile', (file)->
+define 'statFile', (file, more)->
+  if Leisure_shouldDispatch(file, more) then return Leisure.dispatch arguments
   makeMonad (env, cont)->
     env.statFile rz(file), (err, stats)->
       cont (if err then left err.stack ? err else right stats)
 
-define 'prompt', (msg)->
+define 'prompt', (msg, more)->
+  if Leisure_shouldDispatch(msg, more) then return Leisure.dispatch arguments
   makeMonad (env, cont)->
     env.prompt(String(rz msg), (input)-> cont(input))
 
 define 'rand', makeSyncMonad (env, cont)->
   cont(Math.random())
 
-define 'js', (str)->
+define 'js', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     try
       result = eval rz str
@@ -653,7 +791,8 @@ define 'js', (str)->
     catch err
       cont left err
 
-define 'delay', (timeout)->
+define 'delay', (timeout, more)->
+  if Leisure_shouldDispatch(timeout, more) then return Leisure.dispatch arguments
   makeMonad (env, cont)->
     setTimeout (-> cont _unit), rz(timeout)
 
@@ -671,7 +810,8 @@ define 'once', makeSyncMonad (->
 ##################
 
 # later advice overrides earlier advice
-define 'advise', (name)->(alt)->(arity)->(def)->
+define 'advise', (name, alt, arity, def, more)->
+  if Leisure_shouldDispatch(def, more) then return Leisure.dispatch arguments
   makeMonad (env, cont)->
     info = functionInfo[rz name]
     if !info then info = functionInfo[rz name] =
@@ -732,8 +872,12 @@ presentationToHtmlReplacements =
 
 unescapePresentationHtml = (str)-> str.replace /&lt;|&gt;|&amp;|\\n|\\/g, (c)-> presentationToHtmlReplacements[c]
 
-define 'escapeHtml', (h)-> escapePresentationHtml rz(h)
-define 'unescapeHtml', (h)-> unescapePresentationHtml rz(h)
+define 'escapeHtml', (h, more)->
+  if Leisure_shouldDispatch(h, more) then return Leisure.dispatch arguments
+  escapePresentationHtml rz(h)
+define 'unescapeHtml', (h, more)->
+  if Leisure_shouldDispatch(h, more) then return Leisure.dispatch arguments
+  unescapePresentationHtml rz(h)
 
 #######################
 # AMTs
@@ -749,11 +893,16 @@ hamt = makeHamt amt.Trie()
 
 define 'hamt',  hamt
 
-define 'hamtWith', (key)->(value)->(hamt)-> makeHamt amt.assoc rz(hamt).hamt, rz(key), rz(value)
+define 'hamtWith', (key, value, hamt, more)->
+  if Leisure_shouldDispatch(hamt, more) then return Leisure.dispatch arguments
+  makeHamt amt.assoc rz(hamt).hamt, rz(key), rz(value)
 
-define 'hamtFetch', (key)->(hamt)-> amt.get rz(hamt).hamt, rz(key)
+define 'hamtFetch', (key, hamt, more)->
+  if Leisure_shouldDispatch(hamt, more) then return Leisure.dispatch arguments
+  amt.get rz(hamt).hamt, rz(key)
 
-define 'hamtGet', (key)->(hamt)->
+define 'hamtGet', (key, hamt, more)->
+  if Leisure_shouldDispatch(hamt, more) then return Leisure.dispatch arguments
   v = amt.get rz(hamt).hamt, rz(key)
   if v != undefined then some v else none
 
@@ -773,7 +922,9 @@ define 'hamtWithout', (key, hamt, more)->
 #
 #define 'hamtDissocOpts', (hamt)->(key)->(opts)-> amt.dissoc(rz(hamt), rz(key), rz(opts))
 
-define 'hamtPairs', (hamt)-> nextNode simpyCons rz(hamt).hamt, null
+define 'hamtPairs', (hamt, more)->
+  if Leisure_shouldDispatch(hamt, more) then return Leisure.dispatch arguments
+  nextNode simpyCons rz(hamt).hamt, null
 
 nextNode = (stack)->
   if stack == null then return rz L_nil
@@ -807,11 +958,16 @@ jsonConvert = (obj)->
     t
   else obj
 
-define 'fromJson', (obj)-> jsonConvert rz obj
+define 'fromJson', (obj, more)->
+  if Leisure_shouldDispatch(obj, more) then return Leisure.dispatch arguments
+  jsonConvert rz obj
 
-define 'parseYaml', (obj)-> safeLoad rz obj
+define 'parseYaml', (obj, more)->
+  if Leisure_shouldDispatch(obj, more) then return Leisure.dispatch arguments
+  safeLoad rz obj
 
-define 'toJsonArray', (list)->
+define 'toJsonArray', (list, more)->
+  if Leisure_shouldDispatch(list, more) then return Leisure.dispatch arguments
   list = rz list
   array = []
   while !list.isNil()
@@ -819,7 +975,8 @@ define 'toJsonArray', (list)->
     list = list.tail()
   array
 
-define 'toJsonObject', (list)->
+define 'toJsonObject', (list, more)->
+  if Leisure_shouldDispatch(list, more) then return Leisure.dispatch arguments
   list = rz list
   obj = {}
   while !list.isNil()
@@ -828,7 +985,8 @@ define 'toJsonObject', (list)->
     list = list.tail()
   obj
 
-define 'jsonToYaml', (json)->
+define 'jsonToYaml', (json, more)->
+  if Leisure_shouldDispatch(json, more) then return Leisure.dispatch arguments
   try
     right dump rz json
   catch err
@@ -838,12 +996,14 @@ define 'jsonToYaml', (json)->
 # Trampolines
 #######################
 
-define 'trampolineCall', (func)->
+define 'trampolineCall', (func, more)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
   ret = rz func
   while true
     if typeof ret == 'function' && ret.trampoline then ret = ret() else return ret
 
-define 'trampoline', (func)->
+define 'trampoline', (func, more)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
   f = rz func
   arity = functionInfo[f.leisureName].arity
   trampCurry f, arity
@@ -880,14 +1040,15 @@ define 'clearNameSpacePath', makeSyncMonad (env, cont)->
   root.nameSpacePath = []
   cont _unit
 
-define 'resetNameSpaceInfo', makeSyncMonad (enf, cont)->
+define 'resetNameSpaceInfo', makeSyncMonad (env, cont)->
   old = [root.nameSpacePath, root.currentNameSpace]
   root.nameSpacePath = ['core']
   root.currentNameSpace = null
   nsLog "SETTING NAME SPACE: null"
   cont old
 
-define 'setNameSpaceInfo', (info)->
+define 'setNameSpaceInfo', (info, more)->
+  if Leisure_shouldDispatch(info, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     #console.log "RESTORING NAME SPACE INFO: #{require('util').inspect rz info}"
     [root.nameSpacePath, root.currentNameSpace] = rz info
@@ -957,21 +1118,28 @@ requireFiles = (req, cont, verbose)->
 # Func info
 #######################
 
-define 'funcInfo', (f)-> funcInfo rz f
+define 'funcInfo', (f, more)->
+  if Leisure_shouldDispatch(f, more) then return Leisure.dispatch arguments
+  funcInfo rz f
 
-define 'funcName', (f)-> if rz(f).leisureName then some rz(f).leisureName else none
+define 'funcName', (f, more)->
+  if Leisure_shouldDispatch(f, more) then return Leisure.dispatch arguments
+  if rz(f).leisureName then some rz(f).leisureName else none
 
-define 'trackCreation', (flag)->
+define 'trackCreation', (flag, more)->
+  if Leisure_shouldDispatch(flag, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     root.trackCreation = rz(flag)(lz true)(lz false)
     cont _unit
 
-define 'trackVars', (flag)->
+define 'trackVars', (flag, more)->
+  if Leisure_shouldDispatch(info, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     root.trackVars = rz(flag)(lz true)(lz false)
     cont _unit
 
-define 'getFunction', (name)->
+define 'getFunction', (name, more)->
+  if Leisure_shouldDispatch(name, more) then return Leisure.dispatch arguments
   f = rz global['L_' + (nameSub rz name)]
   if f then some f else none
 

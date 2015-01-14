@@ -1550,7 +1550,8 @@ define 'getLink', ->
   # makeSyncMonad (env, cont)-> cont Prim.linkFor filename
   0
 
-define 'replaceDocument', (str)->
+define 'replaceDocument', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     replaceContents rz str
     cont rz L_true
@@ -1563,7 +1564,8 @@ define 'gdriveOpen', makeMonad (env, cont)->
 
 define 'getFilename', makeSyncMonad (env, cont)-> cont filename?.pathName() ? ''
 
-define 'setURI', (uri)->
+define 'setURI', (uri, more)->
+  if Leisure_shouldDispatch(uri, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     setFilename rz uri
     cont rz L_true
@@ -1581,7 +1583,8 @@ define 'markupButtons', makeSyncMonad (env, cont)->
   if env.box then markupButtons env.box
   cont rz L_false
 
-define 'alert', (str)->
+define 'alert', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     window.alert(rz str)
     cont rz L_false
@@ -1599,13 +1602,15 @@ define 'bindEvent', (selector, eventName, func, more)->
 
 define 'quit', -> window.close()
 
-define 'config', (expr)->
+define 'config', (expr, more)->
+  if Leisure_shouldDispatch(expr, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     switch rz expr
       when 'autoTest' then autoRun(env.owner, true)
     cont(rz L_false)
 
-define 'notebookSelection', (func)->
+define 'notebookSelection', (func, more)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     sel = window.getSelection()
     bx = getBox sel.focusNode
@@ -1628,7 +1633,8 @@ hasFunc = (bx, func)->
   ast = getAst(bx)
   ast == func().ast || ast == func.ast
 
-define 'notebookAst', (func)->
+define 'notebookAst', (func, more)->
+  if Leisure_shouldDispatch(func, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     # MARK CHECK
     if func.leisureName?

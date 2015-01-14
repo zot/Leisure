@@ -950,7 +950,8 @@ newCodeContent = (name, content)->
     recreateAstButtons node
     createValueSliders node, leisureNumberSlider
 
-define 'newCodeContent', (name)->(content)->
+define 'newCodeContent', (name, content, more)->
+  if Leisure_shouldDispatch(content, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     newCodeContent rz(name), rz(content)
     cont rz L_true
@@ -1611,7 +1612,8 @@ setTheme = (str)->
   dd = $("#themeSelect")
   if dd then dd.val theme
 
-define 'setTheme', (str)->
+define 'setTheme', (str, more)->
+  if Leisure_shouldDispatch(str, more) then return Leisure.dispatch arguments
   makeSyncMonad (env, cont)->
     if str != theme then setTheme rz str
     cont rz L_true

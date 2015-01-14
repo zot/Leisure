@@ -226,7 +226,7 @@ genUniq = (ast, names, uniq, count)->
     else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
 # this is a no-op, now
-define 'newGen', (lz makeSyncMonad (env, cont)->
+define 'newGen', (makeSyncMonad (env, cont)->
   console.log "CALL TO OBSOLETE NEWGEN"
   cont _true), null, null, null, 'parser'
 
@@ -424,7 +424,8 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', (lz (code)->(ast)->
+define 'runAst', ((code, ast, more)->
+  if Leisure_shouldDispatch(ast, more) then return Leisure.dispatch arguments
   jsCode = null
   try
     jsCode = gen rz ast
@@ -435,7 +436,8 @@ define 'runAst', (lz (code)->(ast)->
     console.log msg + ast() + "\n" + err.stack
     rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast)), null, null, null, 'parser'
 
-define 'genAst', (lz (ast)->
+define 'genAst', ((ast, more)->
+  if Leisure_shouldDispatch(ast, more) then return Leisure.dispatch arguments
   jsCode = null
   try
     gen rz ast
