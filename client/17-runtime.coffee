@@ -828,7 +828,9 @@ define 'advise', (name, alt, arity, def, more)->
         opt = alt
         for arg in args
           opt = opt arg
-        if getType(opt) == 'some' then return opt(lz (x)->rz x)(lz _false)
+        if getType(opt) == 'some' then return opt(lz (x, more)->
+          if Leisure_shouldDispatch(x, more) then return Leisure.dispatch arguments
+          rz x)(lz _false)
       if info.mainDef
         res = rz info.mainDef
         for arg in args
