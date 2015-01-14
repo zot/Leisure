@@ -75,19 +75,6 @@ root.trackCreation = false
 #root.trackCreation = true
 root.trackVars = true
 
-(window ? global).$F = (args, func)->
-  if root.trackCreation then func.creationStack = new Error()
-  if root.trackVars
-    info = func.leisureInfo = arg: args[0]
-    parent = args.callee
-    if parent.leisureInfo then info.parent = parent.leisureInfo
-    else if parent.leisureName? then info.name = parent.leisureName
-  func
-
-(window ? global).$G = (info, func)->
-  func.leisureInfoNew = info
-  func
-
 funcInfo = (func)->
   if func.leisureInfoNew then primConsFrom func.leisureInfoNew, 0
   else if func.leisureInfo

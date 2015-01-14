@@ -254,11 +254,14 @@ genArifiedApply = (ast, names, uniq)->
     ast = dumpAnno ast
     sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
 
+
+# TODO no longer using count -- remove from callers
 genLambda = (ast, names, uniq, count)->
   name = getLambdaVar ast
   u = addUniq name, names, uniq
   n = cons name, names
-  addLambdaProperties ast, sn ast, (if count then "$F(arguments, " else ""), "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}", (if count then ")" else "")
+  #addLambdaProperties ast, sn ast, (if count then "$F(arguments, " else ""), "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}", (if count then ")" else "")
+  addLambdaProperties ast, sn ast, "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}"
 
 genArifiedLambda = (ast, names, uniq, arity)->
   if arity < 2 then genLambda ast, names, uniq, 0
@@ -421,7 +424,7 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', (lz (code)->$F(arguments, (ast)->
+define 'runAst', (lz (code)->(ast)->
   jsCode = null
   try
     jsCode = gen rz ast
@@ -430,7 +433,7 @@ define 'runAst', (lz (code)->$F(arguments, (ast)->
     codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
     msg = "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "
     console.log msg + ast() + "\n" + err.stack
-    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast))), null, null, null, 'parser'
+    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast)), null, null, null, 'parser'
 
 define 'genAst', (lz (ast)->
   jsCode = null

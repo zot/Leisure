@@ -950,10 +950,10 @@ newCodeContent = (name, content)->
     recreateAstButtons node
     createValueSliders node, leisureNumberSlider
 
-define 'newCodeContent', lz (name)->$F(arguments, (content)->
+define 'newCodeContent', lz (name)->(content)->
   makeSyncMonad (env, cont)->
     newCodeContent rz(name), rz(content)
-    cont rz L_true)
+    cont rz L_true
 
 isOrContains = (parent, node)->
   n = parent.compareDocumentPosition(node)
