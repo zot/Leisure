@@ -280,6 +280,10 @@ global.LeisureNameSpaces =
 
 # use AST, instead of arity?
 define = (name, func, arity, src, method, namespace, isNew) ->
+  func.leisureName = name
+  nakedDefine name, lz(func), arity, src, method, namespace, isNew
+
+nakedDefine = (name, func, arity, src, method, namespace, isNew) ->
   #can't use func(), because it might do something or might fail
   #if typeof func() == 'function'
   #  func().src = src
@@ -295,7 +299,11 @@ define = (name, func, arity, src, method, namespace, isNew) ->
   if isNew then functionInfo[name].newArity = true
   nm = 'L_' + nameSub(name)
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
-  namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
+  #namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
+  namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = if typeof func == 'function' && func.memo
+    func.leisureName = name
+    func
+  else nameFunc(func, name)
   if root.currentNameSpace
     LeisureNameSpaces[namespace ? root.currentNameSpace][nameSub(name)] = namedFunc
     nsLog "DEFINING #{name} FOR #{root.currentNameSpace}"
@@ -334,11 +342,11 @@ getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{(f == null && 'null') || ((t == 'object') && f.constructor?.name) || t}"
 
-define 'getType', (lz (value)-> getType rz value), 1
+define 'getType', ((value)-> getType rz value), 1
 
 getDataType = (f)-> (typeof f == 'function' && f.dataType) || ''
 
-define 'getDataType', (lz (value)-> getDataType rz value), 1
+define 'getDataType', ((value)-> getDataType rz value), 1
 
 save = {}
 
@@ -459,8 +467,8 @@ ast2Json = (ast)->
   if ast2JsonEncodings[ast.constructor?.name] then ast2JsonEncodings[ast.constructor.name] ast else ast
 
 # Leisure interface to the JSON AST codec
-define 'json2Ast', (lz (json)-> json2Ast JSON.parse rz json), null, null, null, 'parser'
-define 'ast2Json', (lz (ast)-> JSON.stringify ast2Json rz ast), null, null, null, 'parser'
+define 'json2Ast', ((json)-> json2Ast JSON.parse rz json), null, null, null, 'parser'
+define 'ast2Json', ((ast)-> JSON.stringify ast2Json rz ast), null, null, null, 'parser'
 
 consFrom = (array, i)->
   i = i || 0
@@ -481,6 +489,7 @@ root.Nil = Nil
 root.cons = cons
 root.primCons = primCons
 root.define = define
+root.nakedDefine = nakedDefine
 root.getType = getType
 root.getDataType = getDataType
 root.lit = lit

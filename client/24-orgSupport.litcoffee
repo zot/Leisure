@@ -1149,10 +1149,10 @@ Code
             cont? env, results
     
     runNextResult = (results, env, cont)->
-      while results != L_nil() && getType(results.head().tail()) == 'left'
+      while results != rz(L_nil) && getType(results.head().tail()) == 'left'
         env.write "PARSE ERROR: #{getLeft results.head().tail()}"
         results = results.tail()
-      if results != L_nil()
+      if results != rz(L_nil)
         runMonad2 getRight(results.head().tail()), env, (res2)->
           if getType(res2) != 'unit' then env.write String(env.presentValue res2)
           runNextResult results.tail(), env, cont

@@ -28,34 +28,34 @@ Leisure integration for environment
     lz = lazy
     rz = resolve
 
-    define 'serverIncrement', (lz (path)->$F(arguments, lz (amount)->
+    define 'serverIncrement', ((path)->(amount)->
       makeMonad (env, cont)->
         Meteor.call 'incrementField', root.currentDocument.leisure.name, rz(path), rz(amount), (err, res)->
           cont res?.error ? res
-    )), 2
+    ), 2
 
-    define 'serverAppend', (lz (path)->$F(arguments, lz (item)->
+    define 'serverAppend', ((path)->(item)->
       makeMonad (env, cont)->
         Meteor.call 'appendToField', root.currentDocument.leisure.name, rz(path), rz(item), (err, res)->
           cont res?.error ? res
-    )), 2
+    ), 2
 
-    define 'addDataAfter', lz (id)->$F(arguments, lz (value)-> $F(arguments, lz (attrLine)->
+    define 'addDataAfter', (id)->(value)->(attrLine)->
       makeMonad (env, cont)->
-        cont addDataAfter (rz id), (rz value), (rz attrLine)))
+        cont addDataAfter (rz id), (rz value), (rz attrLine)
 
-    define 'addNamedDataAfter', lz (name)->$F(arguments, lz (id)->$F(arguments, lz (value)-> $F(arguments, lz (attrLine)->
+    define 'addNamedDataAfter', (name)->(id)->(value)->(attrLine)->
       makeMonad (env, cont)->
-        cont addDataAfter (rz id), (rz value), (rz attrLine), null, rz name)))
+        cont addDataAfter (rz id), (rz value), (rz attrLine), null, rz name
 
-    define 'getBaseDataNamed', lz (name)->
+    define 'getBaseDataNamed', (name)->
       makeMonad (env, cont)-> cont getDataNamed rz name
 
-    define 'setBaseDataNamed', lz (name)-> $F(arguments, lz (value)->
+    define 'setBaseDataNamed', (name)->(value)->
       makeMonad (env, cont)->
         setDataNamed rz(name), rz(value)
-        cont _true)
+        cont _true
 
-    define 'toggleLeisureBar', lz (makeMonad (env, cont)->
+    define 'toggleLeisureBar', makeMonad (env, cont)->
       toggleLeisureBar()
-      cont _true)
+      cont _true

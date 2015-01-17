@@ -84,6 +84,8 @@ varNameSub = (n)-> "L_#{nameSub n}"
 
 useArity = true
 #useArity = false
+#newCall = true
+newCall = false
 
 collectArgs = (args, result)->
   for i in args
@@ -202,7 +204,8 @@ genUniq = (ast, names, uniq, count)->
     when Leisure_ref then sn ast, "resolve(", (genRefName ast, uniq, names), ")"
     when Leisure_lambda then genLambda ast, names, uniq, count ? 0
     when Leisure_apply
-      if useArity then genArifiedApply ast, names, uniq, arity
+      if newCall then genNewApply ast, names, uniq, arity
+      else if useArity then genArifiedApply ast, names, uniq, arity
       else sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
     when Leisure_let then sn ast, "(function(){\n", (genLets ast, names, uniq), "})()"
     when Leisure_anno
@@ -226,7 +229,7 @@ genUniq = (ast, names, uniq, count)->
     else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
 # this is a no-op, now
-define 'newGen', (lz makeSyncMonad (env, cont)->
+define 'newGen', (makeSyncMonad (env, cont)->
   console.log "CALL TO OBSOLETE NEWGEN"
   cont _true), null, null, null, 'parser'
 
@@ -254,11 +257,35 @@ genArifiedApply = (ast, names, uniq)->
     ast = dumpAnno ast
     sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
 
+genNewApply = (ast, names, uniq)->
+  args = []
+  func = ast
+  while dumpAnno(func) instanceof Leisure_apply
+    args.push getApplyArg dumpAnno func
+    func = getApplyFunc dumpAnno func
+  if args.length == 2
+    ast = dumpAnno ast
+    sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
+  else
+    args.reverse()
+    info = functionInfo[getRefName func]
+    argCode = []
+    argCode.push ast
+    argCode.push genUniq func, names, uniq
+    argCode.push 'Leisure_call('
+    for i in [0...args.length]
+      if i > 0 then argCode.push ', '
+      argCode.push sn args[i], genApplyArg args[i], names, uniq
+    argCode.push ')'
+    for i in [arity...args.length] by 1
+      argCode.push '(', (sn args[i], genApplyArg args[i], names, uniq), ')'
+    sn argCode...
+
 genLambda = (ast, names, uniq, count)->
   name = getLambdaVar ast
   u = addUniq name, names, uniq
   n = cons name, names
-  addLambdaProperties ast, sn ast, (if count then "$F(arguments, " else ""), "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}", (if count then ")" else "")
+  addLambdaProperties ast, sn ast, "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}"
 
 genArifiedLambda = (ast, names, uniq, arity)->
   if arity < 2 then genLambda ast, names, uniq, 0
@@ -436,7 +463,7 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', (lz (code)->$F(arguments, (ast)->
+define 'runAst', ((code)->(ast)->
   jsCode = null
   try
     jsCode = gen rz ast
@@ -445,9 +472,9 @@ define 'runAst', (lz (code)->$F(arguments, (ast)->
     codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
     msg = "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "
     console.log msg + ast() + "\n" + err.stack
-    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast))), null, null, null, 'parser'
+    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast)), null, null, null, 'parser'
 
-define 'genAst', (lz (ast)->
+define 'genAst', ((ast)->
   jsCode = null
   try
     gen rz ast

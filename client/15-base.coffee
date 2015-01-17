@@ -75,19 +75,6 @@ root.trackCreation = false
 #root.trackCreation = true
 root.trackVars = true
 
-(window ? global).$F = (args, func)->
-  if root.trackCreation then func.creationStack = new Error()
-  if root.trackVars
-    info = func.leisureInfo = arg: args[0]
-    parent = args.callee
-    if parent.leisureInfo then info.parent = parent.leisureInfo
-    else if parent.leisureName? then info.name = parent.leisureName
-  func
-
-(window ? global).$G = (info, func)->
-  func.leisureInfoNew = info
-  func
-
 funcInfo = (func)->
   if func.leisureInfoNew then primConsFrom func.leisureInfoNew, 0
   else if func.leisureInfo
@@ -118,6 +105,36 @@ class SimpyCons
         h = h.tail
       @_array = array)
 simpyCons = (a, b)-> new SimpyCons a, b
+
+
+slice = Array.prototype.slice
+
+(window ? global).Leisure_call = leisureCall = (func, args...)->
+  f = rz func
+  while args.length
+    if f.length == args.length then return f.apply null, args
+    if f.length > args.length
+      console.log "CALLING PARTIAL BECAUSE #{f.length} > #{args.length}"
+      pre = slice.call args
+      switch f.length - pre.length
+        when 1 then -> console.log '1'; leisureCall f, pre.concat slice.call arguments
+        when 2 then (a)->-> console.log '2'; leisureCall f, pre.concat [a], slice.call arguments
+        when 3 then (a)->(b)->-> console.log '3'; leisureCall f, pre.concat [a, b], slice.call arguments
+        when 4 then (a)->(b)->(c)->-> console.log '4'; leisureCall f, pre.concat [a, b, c], slice.call arguments
+        when 5 then (a)->(b)->(c)->(d)->-> console.log '5'; leisureCall f, pre.concat [a, b, c, d], slice.call arguments
+        when 6 then (a)->(b)->(c)->(d)->(e)->-> console.log '6'; leisureCall f, pre.concat [a, b, c, d, e], slice.call arguments
+        else
+          console.log "PARTIAL"
+          partial = (args)-> ->
+            newArgs = args.concat slice.call arguments
+            if newArgs.length == f.length then f.apply null, newArgs
+            else if newArgs.length > f.length then leisureCall f, newArgs
+            else partial newArgs
+      return partial args
+    newF = f.apply(null, slice.call(args, 0, f.length))
+    args = slice.call(args, f.length)
+    f = newF
+  f
 
 root.defaultEnv = defaultEnv
 root.readFile = readFile

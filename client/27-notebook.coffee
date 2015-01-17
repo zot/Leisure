@@ -1543,50 +1543,50 @@ evalDocCode = (el, pgm)->
     for node in el.querySelectorAll '[codeMain]'
       getAst node
 
-define 'getDocument', lz makeSyncMonad (env, cont)-> cont peerGetDocument()
+define 'getDocument', makeSyncMonad (env, cont)-> cont peerGetDocument()
 
 # MARK TODO
 define 'getLink', ->
   # makeSyncMonad (env, cont)-> cont Prim.linkFor filename
   0
 
-define 'replaceDocument', lz (str)->
+define 'replaceDocument', (str)->
   makeSyncMonad (env, cont)->
     replaceContents rz str
     cont rz L_true
 
-define 'gdriveOpen', lz makeMonad (env, cont)->
+define 'gdriveOpen', makeMonad (env, cont)->
   GdriveStorage.runOpen (json)->
     if json?.action == 'picked' and json.docs?.length > 0
       GdriveStorage.loadFile json.docs[0].id, -> cont rz(_some)(lz json.docs[0].title)
     else cont rz _none
 
-define 'getFilename', lz makeSyncMonad (env, cont)-> cont filename?.pathName() ? ''
+define 'getFilename', makeSyncMonad (env, cont)-> cont filename?.pathName() ? ''
 
-define 'setURI', lz (uri)->
+define 'setURI', (uri)->
   makeSyncMonad (env, cont)->
     setFilename rz uri
     cont rz L_true
 
-define 'getURI', lz makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
+define 'getURI', makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
 
-define 'finishLoading', lz makeMonad (env, cont)->
+define 'finishLoading', makeMonad (env, cont)->
   loaded = true
   for i in postLoadQueue
     rz i
   postLoadQueue = []
   cont rz L_false
 
-define 'markupButtons', lz makeSyncMonad (env, cont)->
+define 'markupButtons', makeSyncMonad (env, cont)->
   if env.box then markupButtons env.box
   cont rz L_false
 
-define 'alert', lz (str)->
+define 'alert', (str)->
   makeSyncMonad (env, cont)->
     window.alert(rz str)
     cont rz L_false
 
-define 'bindEvent', lz (selector)->(eventName)->(func)->
+define 'bindEvent', (selector)->(eventName)->(func)->
   makeSyncMonad (env, cont)->
     node = env.box.querySelector rz selector
     if !node then node = document.body.querySelector rz selector
@@ -1596,15 +1596,15 @@ define 'bindEvent', lz (selector)->(eventName)->(func)->
       runMonad rz(func)(lz e), envFor(e.target), ->
     cont rz L_false
 
-define 'quit', lz -> window.close()
+nakedDefine 'quit', -> window.close()
 
-define 'config', lz (expr)->
+define 'config', (expr)->
   makeSyncMonad (env, cont)->
     switch rz expr
       when 'autoTest' then autoRun(env.owner, true)
     cont(rz L_false)
 
-define 'notebookSelection', lz (func)->
+define 'notebookSelection', (func)->
   makeSyncMonad (env, cont)->
     sel = window.getSelection()
     bx = getBox sel.focusNode
@@ -1627,7 +1627,7 @@ hasFunc = (bx, func)->
   ast = getAst(bx)
   ast == func().ast || ast == func.ast
 
-define 'notebookAst', lz (func)->
+define 'notebookAst', (func)->
   makeSyncMonad (env, cont)->
     # MARK CHECK
     if func.leisureName?
@@ -1753,7 +1753,7 @@ emptyFile
 # Notebook prims
 #
 
-define 'printValue', lz (value)->
+define 'printValue', (value)->
   makeMonad (env, cont)->
     if rz(value) != rz(L_nil) then env.write("#{env.presentValue rz value}\n")
     cont L_false()

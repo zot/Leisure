@@ -95,9 +95,9 @@ createNode = (txt)->
   scratch.innerHTML = txt
   scratch.firstChild
 
-define 'svgMeasure', (lz (content)->svgMeasure(rz content)), 1
+define 'svgMeasure', ((content)->svgMeasure(rz content)), 1
 
-define 'svgMeasureText', (lz (text)->svgMeasureText(rz text)), 1
+define 'svgMeasureText', ((text)->svgMeasureText(rz text)), 1
 
 root.svgMeasure = svgMeasure
 root.svgMeasureText = svgMeasureText

@@ -950,10 +950,10 @@ newCodeContent = (name, content)->
     recreateAstButtons node
     createValueSliders node, leisureNumberSlider
 
-define 'newCodeContent', lz (name)->$F(arguments, (content)->
+define 'newCodeContent', (name)->(content)->
   makeSyncMonad (env, cont)->
     newCodeContent rz(name), rz(content)
-    cont rz L_true)
+    cont rz L_true
 
 isOrContains = (parent, node)->
   n = parent.compareDocumentPosition(node)
@@ -1611,17 +1611,17 @@ setTheme = (str)->
   dd = $("#themeSelect")
   if dd then dd.val theme
 
-define 'setTheme', lz (str)->
+define 'setTheme', (str)->
   makeSyncMonad (env, cont)->
     if str != theme then setTheme rz str
     cont rz L_true
 
-define 'toggleLeisureBar', lz makeSyncMonad (env, cont)->
+define 'toggleLeisureBar', makeSyncMonad (env, cont)->
   console.log new Error "TOGGLE LEISURE BAR"
   root.toggleLeisureBar()
   cont rz L_true
 
-define 'toggleSlides', lz makeSyncMonad (env, cont)->
+define 'toggleSlides', makeSyncMonad (env, cont)->
   toggleSlides()
   cont rz L_true
 
