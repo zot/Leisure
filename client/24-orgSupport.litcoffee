@@ -50,6 +50,7 @@ Code
     } = root = module.exports = require '15-base'
     rz = resolve
     lz = lazy
+    lc = Leisure_call
     {
       runMonad,
       runMonad2,
@@ -1137,16 +1138,28 @@ Code
           when '&' then '&amp;'
       else str
     
-    leisureEnv = (env)->
-      env.presentValue = (v)-> rz(L_showHtml) lz v
-      env.executeText = (text, props, cont)->
-        old = getValue 'parser_funcProps'
-        setValue 'parser_funcProps', props
-        result = rz(L_baseLoadString)('notebook')(text)
-        runMonad2 result, env, (results)->
-          runNextResult results, env, ->
-            setValue 'parser_funcProps', old
-            cont? env, results
+    if newCall
+      leisureEnv = (env)->
+        env.presentValue = (v)-> rz(L_showHtml) lz v
+        env.executeText = (text, props, cont)->
+          old = getValue 'parser_funcProps'
+          setValue 'parser_funcProps', props
+          result = lc rz(L_baseLoadString), 'notebook', text
+          runMonad2 result, env, (results)->
+            runNextResult results, env, ->
+              setValue 'parser_funcProps', old
+              cont? env, results
+    else
+      leisureEnv = (env)->
+        env.presentValue = (v)-> rz(L_showHtml) lz v
+        env.executeText = (text, props, cont)->
+          old = getValue 'parser_funcProps'
+          setValue 'parser_funcProps', props
+          result = rz(L_baseLoadString)('notebook')(text)
+          runMonad2 result, env, (results)->
+            runNextResult results, env, ->
+              setValue 'parser_funcProps', old
+              cont? env, results
     
     runNextResult = (results, env, cont)->
       while results != rz(L_nil) && getType(results.head().tail()) == 'left'

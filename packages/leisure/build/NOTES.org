@@ -1,0 +1,14 @@
+* Debugging notes
+Run simpleParse.lsr like this:
+- repl -1 -i
+- node-debugger: repl -D -1 -i
+  - this is very slow
+
+* working on simple HTML evaluator
+- allows easy use of chrome debugger
+  - much faster than node-debugger
+- run with runEvaluator
+- allow selection of evaluation level
+  - simple: simpleParse.lsr
+  - full: generatedPrelude.lsr
+  - deluxe: std.lsr

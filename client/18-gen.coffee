@@ -23,14 +23,16 @@ misrepresented as being the original software.
 ###
 
 {
+  newCall,
   simpyCons,
   resolve,
   lazy,
   verboseMsg,
   nsLog,
-} = root = module.exports = require '15-base'
+} = root = (module ? {}).exports = require '15-base'
 rz = resolve
 lz = lazy
+lc = Leisure_call
 {
   nameSub,
   getLitVal,
@@ -84,8 +86,6 @@ varNameSub = (n)-> "L_#{nameSub n}"
 
 useArity = true
 #useArity = false
-#newCall = true
-newCall = false
 
 collectArgs = (args, result)->
   for i in args
@@ -202,16 +202,18 @@ genUniq = (ast, names, uniq, count)->
   switch ast.constructor
     when Leisure_lit then sn ast, JSON.stringify getLitVal ast
     when Leisure_ref then sn ast, "resolve(", (genRefName ast, uniq, names), ")"
-    when Leisure_lambda then genLambda ast, names, uniq, count ? 0
+    when Leisure_lambda
+      if newCall then newGenLambda ast, names, uniq, count ? 0
+      else genLambda ast, names, uniq, count ? 0
     when Leisure_apply
-      if newCall then genNewApply ast, names, uniq, arity
+      if newCall then newGenApply ast, names, uniq, arity
       else if useArity then genArifiedApply ast, names, uniq, arity
       else sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
     when Leisure_let then sn ast, "(function(){\n", (genLets ast, names, uniq), "})()"
     when Leisure_anno
       name = getAnnoName ast
       data = getAnnoData ast
-      if name == 'arity' && useArity && data > 1
+      if !newCall && name == 'arity' && useArity && data > 1
         #if !(typeof data in ['number', 'string']) then throw new Error "Annotation value is not numeric (#{typeof data}) in AST #{ast}: #{data}"
         genArifiedLambda (getAnnoBody ast), names, uniq, data
       else
@@ -257,13 +259,13 @@ genArifiedApply = (ast, names, uniq)->
     ast = dumpAnno ast
     sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
 
-genNewApply = (ast, names, uniq)->
+newGenApply = (ast, names, uniq)->
   args = []
   func = ast
   while dumpAnno(func) instanceof Leisure_apply
     args.push getApplyArg dumpAnno func
     func = getApplyFunc dumpAnno func
-  if args.length == 2
+  if args.length == 1
     ast = dumpAnno ast
     sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
   else
@@ -271,14 +273,12 @@ genNewApply = (ast, names, uniq)->
     info = functionInfo[getRefName func]
     argCode = []
     argCode.push ast
+    argCode.push '(\n  Leisure_call('
     argCode.push genUniq func, names, uniq
-    argCode.push 'Leisure_call('
     for i in [0...args.length]
-      if i > 0 then argCode.push ', '
+      argCode.push ', '
       argCode.push sn args[i], genApplyArg args[i], names, uniq
-    argCode.push ')'
-    for i in [arity...args.length] by 1
-      argCode.push '(', (sn args[i], genApplyArg args[i], names, uniq), ')'
+    argCode.push '))'
     sn argCode...
 
 genLambda = (ast, names, uniq, count)->
@@ -286,6 +286,29 @@ genLambda = (ast, names, uniq, count)->
   u = addUniq name, names, uniq
   n = cons name, names
   addLambdaProperties ast, sn ast, "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}"
+
+newGenLambda = (ast, names, uniq, count)->
+  [args, body] = getLambdaArgs ast
+  if args.length == 1 then return genLambda ast, names, uniq, count
+  argList = _.map(args, ((x)-> 'L_' + x)).join ', '
+  mainFunc = "function(#{argList}) {return #{genUniq body, names, uniq};}"
+  result = addLambdaProperties ast, (sn ast, mainFunc)
+  annoAst = ast
+  while annoAst instanceof Leisure_anno
+    name = getAnnoName annoAst
+    data = getAnnoData annoAst
+    switch name
+      when 'type' then result = "setType(#{result}, '#{data}')"
+      when 'dataType' then result = "setDataType(#{result}, '#{data}')"
+    annoAst = getAnnoBody annoAst
+  sn ast, result
+
+getLambdaArgs = (ast)->
+  args = []
+  while ast instanceof Leisure_lambda
+    args.push getLambdaVar ast
+    ast = getLambdaBody ast
+  [args, ast]
 
 genArifiedLambda = (ast, names, uniq, arity)->
   if arity < 2 then genLambda ast, names, uniq, 0
@@ -385,7 +408,12 @@ addLambdaProperties = (ast, def, extras)->
     sn ast, "setLambdaProperties(", def, ", ", (JSON.stringify p), ")"
   else def
 
-lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
+if newCall
+  lcons = (a, b)-> lc rz(L_cons), (lz a), (lz b)
+  parseErr = (a, b)-> lc rz(L_parseErr), a, b
+else
+  lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
+  parseErr = (a, b)-> rz(L_parseErr)(a)(b)
 
 lconsFrom = (array)->
   if array instanceof Array
@@ -472,7 +500,7 @@ define 'runAst', ((code)->(ast)->
     codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
     msg = "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "
     console.log msg + ast() + "\n" + err.stack
-    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast)), null, null, null, 'parser'
+    parseErr (lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
 
 define 'genAst', ((ast)->
   jsCode = null
@@ -480,7 +508,7 @@ define 'genAst', ((ast)->
     gen rz ast
   catch err
     codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
-    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast)), null, null, null, 'parser'
+    parseErr (lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
 
 root.gen = gen
 root.genMap = genMap

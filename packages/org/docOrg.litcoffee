@@ -198,4 +198,4 @@
     root.crnl = crnl
     root.lineCodeBlockType = lineCodeBlockType
 
-    if require? then module.exports = root
+    module?.exports = root

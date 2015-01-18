@@ -30,7 +30,7 @@ misrepresented as being the original software.
 # alText() gets its text, plus its childrens'
 #
 
-root = require?('./preamble') ? Org
+(window ? global).Org = root = require?('./preamble') ? Org
 
 _ = require?('./lazy') ? Lazy
 
@@ -687,4 +687,4 @@ root.SRC_INFO = SRC_INFO
 root.nextOrgNode = nextOrgNode
 root.AttrHtml = AttrHtml
 
-if require? then module.exports = root
+module?.exports = root

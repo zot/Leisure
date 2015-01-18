@@ -23,6 +23,9 @@ misrepresented as being the original software.
 ###
 
 {
+  newCall
+} = require '15-base'
+{
   cons,
   Nil,
   consFrom,
@@ -46,6 +49,7 @@ misrepresented as being the original software.
 
 rz = resolve
 lz = lazy
+lc = Leisure_call
 {
   runMonad,
   defaultEnv,
@@ -98,34 +102,59 @@ makeDelimterPat()
 # TOKENS
 ############
 
-L_token = setDataType ((txt)->(pos)-> setType ((f)-> rz(f)(txt)(pos)), 'token'), 'token'
+if newCall
+  L_token = setDataType ((txt, pos)-> setType ((f)-> lc rz(f), txt, pos), 'token'), 'token'
+  tokenPos = (t)-> t(lz (txt, pos)-> lz pos)
+  token = (str, pos)-> L_token (lz str), (lz pos)
+  tokenString = (t)-> t(lz (txt, pos)-> rz txt)
+else
+  L_token = setDataType ((txt)->(pos)-> setType ((f)-> rz(f)(txt)(pos)), 'token'), 'token'
+  tokenPos = (t)-> t(lz (txt)->(pos)-> lz pos)
+  token = (str, pos)-> L_token(lz str)(lz pos)
+  tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
+
 #ensureLeisureClass 'token'
 #Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
 
-tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
-tokenPos = (t)-> t(lz (txt)->(pos)-> lz pos)
-token = (str, pos)-> L_token(lz str)(lz pos)
 isToken = (t)-> t instanceof Leisure_token
 
-L_parens = setDataType ((left)->(right)->(content)-> setType ((f)-> rz(f)(left)(right)(content)), 'parens'), 'parens'
+if newCall
+  L_parens = setDataType ((left, right, content)-> setType ((f)-> lc rz(f), left, right, content), 'parens'), 'parens'
+  parens = (start, end, content)->
+    if content instanceof Leisure_cons && tail(content) == Nil then parens start, end, head(content)
+    else if isToken content then content
+    else
+      lc L_parens, (lz start), (lz end), (lz content)
+  parensFromToks = (left, right, content)->
+    start = tokenPos left
+    end = tokenPos(right) + tokenString(right).length
+    lc L_parens, (lz start), (lz end), (lz content)
+  parensStart = (p)-> p(lz (s, e, l)-> rz s)
+  parensEnd = (p)-> p(lz (s, e, l)-> e)
+  parensContent = (p)-> p(lz (s, e, l)-> rz l)
+  isParens = (p)-> p instanceof Leisure_parens
+  stripParens = (p)-> if isParens p then parensContent p else p
+else
+  L_parens = setDataType ((left)->(right)->(content)-> setType ((f)-> rz(f)(left)(right)(content)), 'parens'), 'parens'
+  parens = (start, end, content)->
+    if content instanceof Leisure_cons && tail(content) == Nil then parens start, end, head(content)
+    else if isToken content then content
+    else
+      L_parens(lz start)(lz end)(lz content)
+  parensFromToks = (left, right, content)->
+    start = tokenPos left
+    end = tokenPos(right) + tokenString(right).length
+    L_parens(lz start)(lz end)(lz content)
+  parensStart = (p)-> p(lz (s)->(e)->(l)-> rz s)
+  parensEnd = (p)-> p(lz (s)->(e)->(l)-> e)
+  parensContent = (p)-> p(lz (s)->(e)->(l)-> rz l)
+  isParens = (p)-> p instanceof Leisure_parens
+  stripParens = (p)-> if isParens p then parensContent p else p
+
+
 #ensureLeisureClass 'parens'
 #Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensContent @})"
 
-parens = (start, end, content)->
-  if content instanceof Leisure_cons && tail(content) == Nil then parens start, end, head(content)
-  else if isToken content then content
-  else L_parens(lz start)(lz end)(lz content)
-
-parensFromToks = (left, right, content)->
-  start = tokenPos left
-  end = tokenPos(right) + tokenString(right).length
-  L_parens(lz start)(lz end)(lz content)
-
-parensStart = (p)-> p(lz (s)->(e)->(l)-> rz s)
-parensEnd = (p)-> p(lz (s)->(e)->(l)-> e)
-parensContent = (p)-> p(lz (s)->(e)->(l)-> rz l)
-isParens = (p)-> p instanceof Leisure_parens
-stripParens = (p)-> if isParens p then parensContent p else p
 
 L_parseErr = setDataType ((msg)-> setType ((f)-> rz(f)(msg)), 'parseErr'), 'parseErr'
 ensureLeisureClass 'parseErr'

@@ -23,6 +23,7 @@ misrepresented as being the original software.
 ###
 
 {
+  newCall,
   readFile,
   statFile,
   readDir,
@@ -34,7 +35,7 @@ misrepresented as being the original software.
   lazy,
   nsLog,
   funcInfo,
-} = root = module.exports = require '15-base'
+} = root = (module ? {}).exports = require '15-base'
 {
   define,
   nakedDefine,
@@ -54,7 +55,7 @@ misrepresented as being the original software.
   nameSub,
 } = require '16-ast'
 _ = require 'lodash.min'
-amt = require('persistent-hash-trie')
+amt = Leisure.require('persistent-hash-trie')
 yaml = require 'yaml'
 {
   safeLoad,
@@ -63,6 +64,7 @@ yaml = require 'yaml'
 
 rz = resolve
 lz = lazy
+lc = Leisure_call
 gensymCounter = 0
 
 call = (args...)-> basicCall(args, defaultEnv, identity)
@@ -86,24 +88,42 @@ consFrom = (array, i)->
 identity = (x)-> x
 _identity = (x)-> rz x
 _unit = setType ((x)->rz x), 'unit'
-_true = setType ((a)->(b)->rz a), 'true'
-_false = setType ((a)->(b)->rz b), 'false'
-left = (x)-> setType ((lCase)->(rCase)-> rz(lCase)(lz x)), 'left'
-right = (x)-> setType ((lCase)->(rCase)-> rz(rCase)(lz x)), 'right'
-some = (x)-> setType ((someCase)->(noneCase)-> rz(someCase)(lz x)), 'some'
-none = setType ((someCase)->(noneCase)-> rz(noneCase)), 'none'
+if newCall
+  _true = setType ((a, b)-> rz a), 'true'
+  _false = setType ((a, b)-> rz b), 'false'
+  left = (x)-> setType ((lCase, rCase)-> rz(lCase)(lz x)), 'left'
+  right = (x)-> setType ((lCase, rCase)-> rz(rCase)(lz x)), 'right'
+  some = (x)-> setType ((someCase, noneCase)-> rz(someCase)(lz x)), 'some'
+  none = setType ((someCase, noneCase)-> rz(noneCase)), 'none'
+  define 'eq', (a, b)-> booleanFor rz(a) == rz(b)
+  define '==', (a, b)-> booleanFor rz(a) == rz(b)
+else
+  _true = setType ((a)->(b)->rz a), 'true'
+  _false = setType ((a)->(b)->rz b), 'false'
+  left = (x)-> setType ((lCase)->(rCase)-> rz(lCase)(lz x)), 'left'
+  right = (x)-> setType ((lCase)->(rCase)-> rz(rCase)(lz x)), 'right'
+  some = (x)-> setType ((someCase)->(noneCase)-> rz(someCase)(lz x)), 'some'
+  none = setType ((someCase)->(noneCase)-> rz(noneCase)), 'none'
+  define 'eq', (a)->(b)-> booleanFor rz(a) == rz(b)
+  define '==', (a)->(b)-> booleanFor rz(a) == rz(b)
 booleanFor = (bool)-> if bool then rz L_true else rz L_false
-define 'eq', (a)->(b)-> booleanFor rz(a) == rz(b)
-define '==', (a)->(b)-> booleanFor rz(a) == rz(b)
 define 'hasType', (data)->(func)->
   if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
   else booleanFor getType(rz data) == getDataType(rz func)
 define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
-define 'assert', (bool)->(msg)-> (expr)-> rz(bool)(expr)(-> throw new Error(rz msg))
-define 'assertLog', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
-  console.log new Error(rz msg).stack
-  console.log "LOGGED ERROR -- RESUMING EXECUTION..."
-  rz expr)
+if newCall
+  define 'assert', (bool, msg, expr)-> lc rz(bool), expr, (-> throw new Error(rz msg))
+  define 'assertLog', (bool, msg, expr)-> lc rz(bool), expr, (->
+    console.log new Error(rz msg).stack
+    console.log "LOGGED ERROR -- RESUMING EXECUTION..."
+    rz expr)
+else
+  define 'assert', (bool)->(msg)-> (expr)-> rz(bool)(expr)(-> throw new Error(rz msg))
+  define 'assertLog', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
+    console.log new Error(rz msg).stack
+    console.log "LOGGED ERROR -- RESUMING EXECUTION..."
+    rz expr)
+
 define 'trace', (msg)->
   console.log "STACKTRACE: ", new Error(rz msg).stack
   msg
@@ -209,11 +229,18 @@ define 'jsonStringify', (obj)->(failCont)->(successCont)->
 
 define 'getProperties', (func)-> if rz(func)?.properties then rz(func).properties else rz L_nil
 
-define 'setProperty', (func)->(name)->(value)->
-  makeSyncMonad (env, cont)->
-    f = rz func
-    f.properties = rz(L_aconsf)(name)(value)(lz f.properties ? rz(L_nil))
-    cont f.properties
+if newCall
+  define 'setProperty', (func, name, value)->
+    makeSyncMonad (env, cont)->
+      f = rz func
+      f.properties = lc rz(L_aconsf), name, value, (lz f.properties ? rz(L_nil))
+      cont f.properties
+else
+  define 'setProperty', (func)->(name)->(value)->
+    makeSyncMonad (env, cont)->
+      f = rz func
+      f.properties = rz(L_aconsf)(name)(value)(lz f.properties ? rz(L_nil))
+      cont f.properties
 
 ############
 # Diagnostics
@@ -240,7 +267,7 @@ define 'breakpoint', (x)->
 # making them inaccessible to pure Leisure code
 # so people won't accidentally fire off side effects
 makeMonad = (guts)->
-  m = ->
+  m = -> throw new Error "ILLEGAL CALL TO MONAD FUNCTION!"
   m.__proto__ = Monad.prototype
   m.cmd = guts
   m.type = 'monad'
@@ -323,20 +350,31 @@ newRunMonad = (monad, env, cont, contStack)->
     console.log err.stack ? err
     if env.errorHandlers.length then env.errorHandlers.pop() err
 
-callBind = (value, contStack)->
-  func = contStack.pop()
-  val = lz value
-  tmp = L_bind()(val)(lz func)
-  if isMonad(tmp) && (tmp.monad == val || tmp.monad == value)
-    console.log "peeling bind"
-    func value
-  else tmp
-  #if isMonad(tmp) && tmp?.binding? then func value else tmp
+if newCall
+  callBind = (value, contStack)->
+    func = contStack.pop()
+    val = lz value
+    tmp = lc rz(L_bind), val, (lz func)
+    if isMonad(tmp) && (tmp.monad == val || tmp.monad == value)
+      console.log "peeling bind"
+      func value
+    else tmp
+    #if isMonad(tmp) && tmp?.binding? then func value else tmp
+else
+  callBind = (value, contStack)->
+    func = contStack.pop()
+    val = lz value
+    tmp = L_bind()(val)(lz func)
+    if isMonad(tmp) && (tmp.monad == val || tmp.monad == value)
+      console.log "peeling bind"
+      func value
+    else tmp
+    #if isMonad(tmp) && tmp?.binding? then func value else tmp
 
 class Monad
   toString: -> "Monad: #{@cmd.toString()}"
 
-global.L_runMonads = (monadArray, env)->
+(global ? window).L_runMonads = (monadArray, env)->
   #console.log "RUNNING MONADS"
   monadArray.reverse()
   newRunMonad 0, (env ? defaultEnv), null, monadArray
@@ -486,10 +524,16 @@ define 'getValue', (name)->
 #  makeSyncMonad (env, cont)->
 #    cont (if !(rz(name) of values) then none else some values[rz name])
 
-define 'setValue', (name)->(value)->
-  makeSyncMonad (env, cont)->
-    values[rz name] = rz value
-    cont _unit
+if newCall
+  define 'setValue', (name, value)->
+    makeSyncMonad (env, cont)->
+      values[rz name] = rz value
+      cont _unit
+else
+  define 'setValue', (name)->(value)->
+    makeSyncMonad (env, cont)->
+      values[rz name] = rz value
+      cont _unit
 
 define 'deleteValue', (name)->
   makeSyncMonad (env, cont)->
@@ -742,27 +786,47 @@ define 'hamtWithout', (key)->(hamt)-> makeHamt amt.dissoc rz(hamt).hamt, rz(key)
 
 define 'hamtPairs', (hamt)-> nextNode simpyCons rz(hamt).hamt, null
 
-nextNode = (stack)->
-  if stack == null then return rz L_nil
-  node = stack.head
-  stack = stack.tail
-  switch node.type
-    when 'trie'
-      for k, child of node.children
-        stack = simpyCons child, stack
-      return nextNode stack
-    when 'value' then return rz(L_acons)(lz node.key)(lz node.value)(->nextNode stack)
-    when 'hashmap'
-      for key, value of node.values
-        stack = simpyCons value, stack
-      return nextNode stack
-    else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
+if newCall
+  nextNode = (stack)->
+    if stack == null then return rz L_nil
+    node = stack.head
+    stack = stack.tail
+    switch node.type
+      when 'trie'
+        for k, child of node.children
+          stack = simpyCons child, stack
+        return nextNode stack
+      when 'value' then return lc rz(L_acons), (lz node.key), (lz node.value), (->nextNode stack)
+      when 'hashmap'
+        for key, value of node.values
+          stack = simpyCons value, stack
+        return nextNode stack
+      else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
+else
+  nextNode = (stack)->
+    if stack == null then return rz L_nil
+    node = stack.head
+    stack = stack.tail
+    switch node.type
+      when 'trie'
+        for k, child of node.children
+          stack = simpyCons child, stack
+        return nextNode stack
+      when 'value' then return rz(L_acons)(lz node.key)(lz node.value)(->nextNode stack)
+      when 'hashmap'
+        for key, value of node.values
+          stack = simpyCons value, stack
+        return nextNode stack
+      else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
 
 #################
 # YAML and JSON
 #################
 
-lacons = (k, v, list)-> rz(L_acons)(lz k)(lz v)(lz list)
+if newCall
+  lacons = (k, v, list)-> lc rz(L_acons), (lz k), (lz v), (lz list)
+else
+  lacons = (k, v, list)-> rz(L_acons)(lz k)(lz v)(lz list)
 
 jsonConvert = (obj)->
   if obj instanceof Array
@@ -916,15 +980,24 @@ define 'funcInfo', (f)-> funcInfo rz f
 
 define 'funcName', (f)-> if rz(f).leisureName then some rz(f).leisureName else none
 
-define 'trackCreation', (flag)->
-  makeSyncMonad (env, cont)->
-    root.trackCreation = rz(flag)(lz true)(lz false)
-    cont _unit
-
-define 'trackVars', (flag)->
-  makeSyncMonad (env, cont)->
-    root.trackVars = rz(flag)(lz true)(lz false)
-    cont _unit
+if newCall
+  define 'trackCreation', (flag)->
+    makeSyncMonad (env, cont)->
+      root.trackCreation = lc rz(flag), true, false
+      cont _unit
+  define 'trackVars', (flag)->
+    makeSyncMonad (env, cont)->
+      root.trackVars = lc rz(flag), true, false
+      cont _unit
+else
+  define 'trackCreation', (flag)->
+    makeSyncMonad (env, cont)->
+      root.trackCreation = rz(flag)(lz true)(lz false)
+      cont _unit
+  define 'trackVars', (flag)->
+    makeSyncMonad (env, cont)->
+      root.trackVars = rz(flag)(lz true)(lz false)
+      cont _unit
 
 define 'getFunction', (name)->
   f = rz global['L_' + (nameSub rz name)]

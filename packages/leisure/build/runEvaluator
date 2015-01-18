@@ -1,0 +1,2 @@
+#!/bin/sh
+exec 'c:/Program Files (x86)/Google/Chrome/Application/chrome.exe' --allow-file-access-from-files '--user-data-dir=c:\tmp\test' file:///C:/Users/bill/work/lc/floo/Leisure/packages/leisure/build/evaluator.html

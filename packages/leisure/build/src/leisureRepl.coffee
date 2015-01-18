@@ -29,11 +29,13 @@ require '10-namespace'
 Error.stackTraceLimit = Infinity
 #Error.stackTraceLimit = 50
 {
+  newCall,
   resolve,
   lazy,
 } = root = module.exports = require '15-base'
 rz = resolve
 lz = lazy
+lc = Leisure_call
 _ = require 'lodash.min'
 path = require 'path'
 fs = require 'fs'
@@ -110,7 +112,10 @@ getParseErr = (x)-> x lz (value)->rz value
 evalInput = (text, cont)->
   if text
     try
-      result = rz(L_newParseLine)(0)(lz Nil)(lz text)
+      if newCall
+        result = lc L_newParseLine, 0, Nil, text
+      else
+        result = rz(L_newParseLine)(0)(lz Nil)(lz text)
       runMonad result, replEnv, (ast)->
         try
           if getType(ast) == 'err'
@@ -162,7 +167,10 @@ tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
 rl = null
 
 leisureCompleter = (line)->
-  tokens = rz(L_tokens)(lz line)(lz root.getValue 'tokenPat').toArray()
+  if newCall
+    tokens = lc(L_tokens, line, root.getValue 'tokenPat').toArray()
+  else
+    tokens = rz(L_tokens)(lz line)(lz root.getValue 'tokenPat').toArray()
   if tokens.length > 0
     origLast = tokenString(tokens[tokens.length - 1])
     last = origLast.toLowerCase()
@@ -298,7 +306,10 @@ compile = (file, cont)->
     if verbose then console.log "Preparing to write code for #{file}"
     errors = []
     asts = _.map result.toArray(), (lineData)->
-      result = lineData.tail()(lz (x)->rz x)(lz (x)-> rz x)
+      if newCall
+        result = lc lineData.tail(), (lz (x)->rz x), (lz (x)-> rz x)
+      else
+        result = lineData.tail()(lz (x)->rz x)(lz (x)-> rz x)
       if result instanceof Error
         result = replaceErr result, "Error compiling line: #{lines.head()}...\n#{ast.message}"
         errors.push[result]

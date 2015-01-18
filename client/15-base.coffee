@@ -22,10 +22,12 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-(window ? global).Leisure = root = (module ? {}).exports = (global.Leisure ? module.exports)
+(window ? global).Leisure = root = (module ? {}).exports = (global?.Leisure ? module?.exports ? window?.Leisure)
 
 root.currentNameSpace = 'core'
 root.nameSpacePath = ['core']
+#root.newCall = true
+root.newCall = false
 
 #root.shouldNsLog = true
 root.shouldNsLog = false
@@ -107,34 +109,92 @@ class SimpyCons
 simpyCons = (a, b)-> new SimpyCons a, b
 
 
-slice = Array.prototype.slice
+debugged = false
+debugOnce = ->
+  if !debugged
+    debugged = true
+    debugger
 
-(window ? global).Leisure_call = leisureCall = (func, args...)->
-  f = rz func
-  while args.length
-    if f.length == args.length then return f.apply null, args
-    if f.length > args.length
-      console.log "CALLING PARTIAL BECAUSE #{f.length} > #{args.length}"
-      pre = slice.call args
-      switch f.length - pre.length
-        when 1 then -> console.log '1'; leisureCall f, pre.concat slice.call arguments
-        when 2 then (a)->-> console.log '2'; leisureCall f, pre.concat [a], slice.call arguments
-        when 3 then (a)->(b)->-> console.log '3'; leisureCall f, pre.concat [a, b], slice.call arguments
-        when 4 then (a)->(b)->(c)->-> console.log '4'; leisureCall f, pre.concat [a, b, c], slice.call arguments
-        when 5 then (a)->(b)->(c)->(d)->-> console.log '5'; leisureCall f, pre.concat [a, b, c, d], slice.call arguments
-        when 6 then (a)->(b)->(c)->(d)->(e)->-> console.log '6'; leisureCall f, pre.concat [a, b, c, d, e], slice.call arguments
+burp = ->
+
+concatArgs = (a, b, c)->
+  args = Array.prototype.slice.call a
+  Array.prototype.push.apply args, b
+  if c then Array.prototype.push.apply args, c
+  args
+
+#(window ? global).Leisure_call = leisureCall = (func, args...)->
+#  #debugOnce()
+#  #f = rz func
+#  f = func
+#  while args.length
+#    if !f then debugger
+#    if f.length == args.length then return f.apply null, args
+#    if f.length > args.length
+#      burp "CALLING PARTIAL BECAUSE #{f.length} > #{args.length}"
+#      return -> burp '1'; leisureCall f, concatArgs args, arguments
+#    if f.length == 1
+#      pos = 0
+#      while pos < args.length && f.length == 1
+#        f = f.call null, args[pos]
+#        pos++
+#      if pos == args.length then return f
+#      args = slice.call args, pos
+#    else
+#      newF = f.apply(null, slice.call(args, 0, f.length))
+#      args = slice.call args, f.length
+#      f = newF
+#  if !f then debugger
+#  f
+
+slice = Array.prototype.slice
+concat = Array.prototype.concat
+
+(window ? global).Leisure_call = leisureCall = (f)-> baseLeisureCall f, 1, arguments
+
+baseLeisureCall = (f, pos, args)->
+  while pos < args.length
+    if f.length <= args.length - pos
+      oldF = f
+      switch f.length
+        when 1 then f = f args[pos]
+        when 2 then f = f args[pos], args[pos + 1]
+        when 3 then f = f args[pos], args[pos + 1], args[pos + 2]
+        when 4 then f = f args[pos], args[pos + 1], args[pos + 2], args[pos + 3]
         else
-          console.log "PARTIAL"
-          partial = (args)-> ->
-            newArgs = args.concat slice.call arguments
-            if newArgs.length == f.length then f.apply null, newArgs
-            else if newArgs.length > f.length then leisureCall f, newArgs
-            else partial newArgs
-      return partial args
-    newF = f.apply(null, slice.call(args, 0, f.length))
-    args = slice.call(args, f.length)
-    f = newF
+          if f.leisurePartial then return f.apply(null, slice.call(args, pos))
+          f = f.apply(null, slice.call(args, pos, pos + f.length))
+      pos += oldF.length
+    else
+      prev = if pos == 0 then args else slice.call args, pos
+      partial = ->
+        if prev.length + arguments.length == f.length
+          f.apply null, concat.call prev, slice.call arguments
+        else
+          baseLeisureCall f, 0, concat.call prev, slice.call arguments
+      partial.leisurePartial = true
+      return partial
   f
+
+testCount = 0
+errors = ''
+test = (expected, actual)->
+  if JSON.stringify(expected) != JSON.stringify(actual)
+    if errors.length then errors += '\n'
+    errors += "TEST #{testCount} FAILED, EXPECTED #{JSON.stringify(expected)} BUT GOT #{JSON.stringify(actual)}"
+  testCount++
+
+(window ? global).Leisure_test_call = ->
+  test [1, 2, 3], Leisure_call ((a, b)->(c)-> [a, b, c]), 1, 2, 3
+  test [1, 2, 3], Leisure_call ((a, b, c)-> [a, b, c]), 1, 2, 3
+  test [1, 2, 3], Leisure_call ((a)->(b, c)-> [a, b, c]), 1, 2, 3
+  test [1, 2, 3, 4], Leisure_call ((a)->(b, c)->(d)-> [a, b, c, d]), 1, 2, 3, 4
+  test [1, 2, 3, 4], Leisure_call ((a, b, c)->(d)-> [a, b, c, d]), 1, 2, 3, 4
+  test [1, 2, 3, 4], Leisure_call ((a, b)->(c)->(d)-> [a, b, c, d]), 1, 2, 3, 4
+  test [1, 2, 3, 4], Leisure_call ((a, b)->(c, d)-> [a, b, c, d]), 1, 2, 3, 4
+  test [1, 2, 3, 4], Leisure_call ((a, b, c, d)-> [a, b, c, d]), 1, 2, 3, 4
+  test [1, 2, 3, 4], Leisure_call (Leisure_call ((a, b, c, d)-> [a, b, c, d]), 1, 2), 3, 4
+  if errors.length then errors else null
 
 root.defaultEnv = defaultEnv
 root.readFile = readFile

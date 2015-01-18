@@ -7380,4 +7380,4 @@ YAML = yaml;
 if (typeof module != 'undefined') module.exports = YAML;
 else if (typeof window != 'undefined') window.Yaml = YAML;
 else global.Yaml = YAML;
-return YAML;
+//return YAML;
