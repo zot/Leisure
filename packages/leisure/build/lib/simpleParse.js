@@ -1,4 +1,4 @@
-require('source-map-support').install();
+if (typeof module != 'undefined') require('source-map-support').install();
 runMonad(resolve(L_setNameSpace)("core"));
 runMonad(resolve(L_define)("asIO")(1)("asIO x = x")(lazy(function(L_x){return resolve(L_x)})));
 runMonad(resolve(L_define)("fakereturn")(1)("fakereturn x = x")(lazy(function(L_x){return resolve(L_x)})));

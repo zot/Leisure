@@ -2,7 +2,30 @@
   <head>
     <script src='coffee-script.js'></script>
     <script src='evaluator.js'></script>
+    <script src='../../../client/10-jquery-1-8-2.min.js'></script>
+    <style>
+      #output {
+        border: solid black 1px;
+        border-radius: 10px;
+        height: 100%;
+      }
+      #input {
+        width: 100%;
+        height: 10em;
+      }
+      .expr {
+        white-space: pre;
+        border: solid black 2px;
+        background: light-gray;
+        border-radius: 10px;
+        padding: 5px;
+        margin: 5px;
+      }
+    </style>
   </head>
   <body onload='Evaluator.init()'>
+    <table style='height: 100%; width: 100%'>
+      <tr style='height: 100%'><td><div id='output'></div></td></tr>
+      <tr style='height: 1px'><td><textarea id='input'></textarea></td></tr>
   </body>
 </html>

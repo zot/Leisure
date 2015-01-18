@@ -458,7 +458,7 @@ compileFile = (text, filename)->
   id = (x)-> x
   lines = linesForFile text
   names = namesForLines lines
-  "require('source-map-support').install();\n" +
+  "if (typeof module != 'undefined') require('source-map-support').install();\n" +
      _.map(lines, (line)-> "runMonad(#{genLine line.trim(), names, id, id});\n").join('') +
     (if filename then "\n//@ sourceURL=#{filename}\n" else "")
 

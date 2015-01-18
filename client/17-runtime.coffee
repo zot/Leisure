@@ -54,8 +54,8 @@ misrepresented as being the original software.
   functionInfo,
   nameSub,
 } = require '16-ast'
-_ = require 'lodash.min'
-amt = Leisure.require('persistent-hash-trie')
+_ = (Leisure.require ? require) 'lodash.min'
+amt = (Leisure.require ? require)('persistent-hash-trie')
 yaml = require 'yaml'
 {
   safeLoad,

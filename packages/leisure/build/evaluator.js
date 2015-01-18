@@ -1,6 +1,30 @@
 Evaluator = {};
 
 (function(root) {
+    var pending = {};
+    var pendingCount = 0;
+
+    function loadScript(filename, configure) {
+        if (pending[filename]) return Promise.resolve(0);
+        var s1 = document.createElement('script');
+        
+        var promise = new Promise(function(resolve, reject) {
+            pending[filename] = resolve;
+        });
+
+        configure(s1, "Evaluator.continueLoading(" + JSON.stringify(filename) + ");");
+        document.head.appendChild(s1);
+        return promise;
+    }
+
+    function continueLoading(filename, script) {
+        console.log("Continuing after loading " + filename);
+        if (pending[filename]) {
+            pending[filename](0);
+            delete pending[filename];
+        }
+    }
+    
     function loadCoffee(file) {
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest;
@@ -20,25 +44,9 @@ Evaluator = {};
 
             //console.log("COMPILED: \n" + comp.js);
             return loadScript(file, function(script, trigger) {
-                script.textContent = comp.js + "\n" + trigger + "\n//# sourceMappingURL=data:application/json;" + encodeURIComponent(comp.v3SourceMap) + '\n';
+                script.textContent = comp.js + "\n" + trigger + "\n//# sourceMappingURL=data:application/json," + encodeURIComponent(comp.v3SourceMap) + '\n';
             });
         });
-    }
-
-    var pending = {};
-    var pendingCount = 0;
-
-    function loadScript(filename, configure) {
-        if (pending[filename]) return Promise.resolve(0);
-        var s1 = document.createElement('script');
-        
-        var promise = new Promise(function(resolve, reject) {
-            pending[filename] = resolve;
-        });
-
-        configure(s1, "Evaluator.continueLoading(" + JSON.stringify(filename) + ");");
-        document.head.appendChild(s1);
-        return promise;
     }
 
     function loadJS(file) {
@@ -48,14 +56,6 @@ Evaluator = {};
         });
     }
 
-    function continueLoading(filename, script) {
-        console.log("Continuing after loading " + filename);
-        if (pending[filename]) {
-            pending[filename](0);
-            delete pending[filename];
-        }
-    }
-    
     function loadFiles(fileArray) {
         var p = Promise.resolve(0);
 

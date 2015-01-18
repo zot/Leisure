@@ -1,5 +1,5 @@
 Org = {};
-Leisure = window.Leisure || {};
+Leisure = (typeof window != 'undefined' ? window.Leisure : {});
 
 if (typeof require != 'undefined') {
     //console.log("require defined");
@@ -14,4 +14,3 @@ if (typeof require != 'undefined') {
     window.Leisure = Leisure;
     window.require = function(){return Leisure;};
 }
-console.log("DONE WITH PREAMBLE");

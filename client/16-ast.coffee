@@ -1,3 +1,4 @@
+
 ###
 Copyright (C) 2012, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
 
@@ -93,7 +94,7 @@ class LeisureObject
 LeisureObject.prototype.__proto__ = Function.prototype
 LeisureObject.prototype.className = 'LeisureObject'
 
-if !global? then global = window
+if !global? && (typeof window != 'undefined') then window.global = window
 
 global.Leisure_Object = LeisureObject
 

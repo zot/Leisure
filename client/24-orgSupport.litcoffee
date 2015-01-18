@@ -1362,10 +1362,16 @@ Code
       reparse parent, text.substring(0, srcEnd) + "#+RESULTS:\n: \n" + text.substring(srcEnd)
       findOrgNode parent, srcEnd + 1
     
-    id = lz (x)-> rz x
-    getLeft = (x)-> x(id)(id)
-    getRight = (x)-> x(id)(id)
-    show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
+    if newCall
+      id = lz (x)-> rz x
+      getLeft = (x)-> lc x, (id), (id)
+      getRight = (x)-> lc x, (id), (id)
+      show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
+    else
+      id = lz (x)-> rz x
+      getLeft = (x)-> x(id)(id)
+      getRight = (x)-> x(id)(id)
+      show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
     
     propsFor = (node)->
       props = Nil

@@ -76,7 +76,7 @@ _ = require 'lodash.min'
 
 consFrom = newConsFrom
 
-sm = require("source-map")
+sm = (if module? then require else Leisure.require)("source-map")
 {
   SourceNode,
   SourceMapConsumer,
