@@ -27,7 +27,6 @@ misrepresented as being the original software.
   resolve,
   lazy,
   nsLog,
-  newCall,
 } = root = (module ? {}).exports = require '15-base'
 _ = require('lodash.min')
 
@@ -249,14 +248,9 @@ throwError = (msg)->
 
 checkType = (value, type)-> if !(value instanceof type) then throwError("Type error: expected type: #{type}, but got: #{jsType value}")
 
-if newCall
-  primCons = setDataType(((a, b)-> mkProto Leisure_cons, setType ((f)-> lc rz(f), a, b), 'cons'), 'cons')
-  Nil = mkProto Leisure_nil, setDataType(setType(((a, b)->rz b), 'nil'), 'nil')
-  cons = (a, b)-> primCons (lz a), (lz b)
-else
-  primCons = setDataType(((a)->(b)-> mkProto Leisure_cons, setType ((f)-> rz(f)(a)(b)), 'cons'), 'cons')
-  Nil = mkProto Leisure_nil, setDataType(setType(((a)->(b)->rz b), 'nil'), 'nil')
-  cons = (a, b)-> primCons(lz a)(lz b)
+primCons = setDataType(((a)->(b)-> mkProto Leisure_cons, setType ((f)-> rz(f)(a)(b)), 'cons'), 'cons')
+Nil = mkProto Leisure_nil, setDataType(setType(((a)->(b)->rz b), 'nil'), 'nil')
+cons = (a, b)-> primCons(lz a)(lz b)
 
 foldLeft = (func, val, thing)->
   if thing instanceof Leisure_cons then thing.foldl func, val
@@ -342,20 +336,12 @@ nakedDefine = (name, func, arity, src, method, namespace, isNew) ->
 #  You can nest them, so body could be another annotation
 
 # lit, ref, lambda, let each need a range
-if newCall
-  L_lit = setDataType ((_x, _r)-> setType ((_f)-> lc rz(_f), _x, _r), 'lit'), 'lit'
-  L_ref = setDataType ((_x, _r)-> setType ((_f)-> lc rz(_f), _x, _r), 'ref'), 'ref'
-  L_lambda = setDataType ((_v, _f, _r)-> setType ((_g)-> lc rz(_g), _v, _f, _r), 'lambda'), 'lambda'
-  L_let = setDataType ((_n, _v, _b, _r)-> setType ((_f)-> lc rz(_f), _n, _v, _b, _r), 'let'), 'let'
-  L_apply = setDataType ((_func, _arg)-> setType ((_f)-> lc rz(_f), _func, _arg), 'apply'), 'apply'
-  L_anno = setDataType ((_name, _data, _body)-> setType ((_f)-> lc rz(_f), _name, _data, _body), 'anno'), 'anno'
-else
-  L_lit = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
-  L_ref = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'ref'), 'ref'
-  L_lambda = setDataType ((_v)-> (_f)-> (_r)-> setType ((_g)-> rz(_g)(_v)(_f)(_r)), 'lambda'), 'lambda'
-  L_let = setDataType ((_n)-> (_v)-> (_b)-> (_r)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)(_r)), 'let'), 'let'
-  L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> rz(_f)(_func)(_arg)), 'apply'), 'apply'
-  L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> rz(_f)(_name)(_data)(_body)), 'anno'), 'anno'
+L_lit = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
+L_ref = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'ref'), 'ref'
+L_lambda = setDataType ((_v)-> (_f)-> (_r)-> setType ((_g)-> rz(_g)(_v)(_f)(_r)), 'lambda'), 'lambda'
+L_let = setDataType ((_n)-> (_v)-> (_b)-> (_r)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)(_r)), 'let'), 'let'
+L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> rz(_f)(_func)(_arg)), 'apply'), 'apply'
+L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> rz(_f)(_name)(_data)(_body)), 'anno'), 'anno'
 
 getType = (f)->
   t = typeof f
@@ -373,22 +359,13 @@ define 'getDataType', ((value)-> getDataType rz value), 1
 save = {}
 
 # lit, ref, lambda, let each need a range
-if newCall
-  save.lit = lit = (l, range)-> L_lit (lz l), (lz range)
-  save.ref = ref = (r, range)-> L_ref (lz r), (lz range)
-  save.lambda = lambda = (v, body, range)-> L_lambda (lz v), (lz body), (lz range)
-  save.llet = llet = (n, v, b, range)-> L_let (lz n), (lz v), (lz b), (lz range)
-  save.apply = apply = (f, a)-> L_apply (lz f), (lz a)
-  save.anno = anno = (name, data, body)-> L_anno (lz name), (lz data), (lz body)
-  save.cons = cons
-else
-  save.lit = lit = (l, range)-> L_lit(lz l)(lz range)
-  save.ref = ref = (r, range)-> L_ref(lz r)(lz range)
-  save.lambda = lambda = (v, body, range)->L_lambda(lz v)(lz body)(lz range)
-  save.llet = llet = (n, v, b, range)->L_let(lz n)(lz v)(lz b)(lz range)
-  save.apply = apply = (f, a)->L_apply(lz f)(lz a)
-  save.anno = anno = (name, data, body)-> L_anno(lz name)(lz data)(lz body)
-  save.cons = cons
+save.lit = lit = (l, range)-> L_lit(lz l)(lz range)
+save.ref = ref = (r, range)-> L_ref(lz r)(lz range)
+save.lambda = lambda = (v, body, range)->L_lambda(lz v)(lz body)(lz range)
+save.llet = llet = (n, v, b, range)->L_let(lz n)(lz v)(lz b)(lz range)
+save.apply = apply = (f, a)->L_apply(lz f)(lz a)
+save.anno = anno = (name, data, body)-> L_anno(lz name)(lz data)(lz body)
+save.cons = cons
 
 dummyPosition = cons 1, cons 0, Nil
 
@@ -437,26 +414,15 @@ getAnnoRange = (anno)-> getPos getAnnoBody anno
 jsonToRange = (json)-> lz consFrom(json)
 rangeToJson = (range)-> range.toArray()
 
-if newCall
-  json2AstEncodings =
-    lit: (json)-> L_lit (lz json.value), (jsonToRange json.range)
-    ref: (json)-> L_ref (lz json.varName), (jsonToRange json.range)
-    lambda: (json)-> L_lambda (lz json.varName), (lz json2Ast json.body), (jsonToRange json.range)
-    let: (json)-> L_let (lz json.varName), (lz json2Ast(json.value)), (lz json2Ast(json.body)), (jsonToRange json.range)
-    apply: (json)-> L_apply (lz json2Ast(json.func)), (lz json2Ast json.arg)
-    anno: (json)-> L_anno (lz json.name), (lz json2Ast json.data), (lz json2Ast json.body)
-    cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
-    nil: (json)-> Nil
-else
-  json2AstEncodings =
-    lit: (json)-> L_lit(lz json.value)(jsonToRange json.range)
-    ref: (json)-> L_ref(lz json.varName)(jsonToRange json.range)
-    lambda: (json)-> L_lambda(lz json.varName)(lz json2Ast json.body)(jsonToRange json.range)
-    let: (json)-> L_let(lz json.varName)(lz json2Ast(json.value))(lz json2Ast(json.body))(jsonToRange json.range)
-    apply: (json)-> L_apply(lz json2Ast(json.func))(lz json2Ast json.arg)
-    anno: (json)-> L_anno(lz json.name)(lz json2Ast json.data)(lz json2Ast json.body)
-    cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
-    nil: (json)-> Nil
+json2AstEncodings =
+  lit: (json)-> L_lit(lz json.value)(jsonToRange json.range)
+  ref: (json)-> L_ref(lz json.varName)(jsonToRange json.range)
+  lambda: (json)-> L_lambda(lz json.varName)(lz json2Ast json.body)(jsonToRange json.range)
+  let: (json)-> L_let(lz json.varName)(lz json2Ast(json.value))(lz json2Ast(json.body))(jsonToRange json.range)
+  apply: (json)-> L_apply(lz json2Ast(json.func))(lz json2Ast json.arg)
+  anno: (json)-> L_anno(lz json.name)(lz json2Ast json.data)(lz json2Ast json.body)
+  cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
+  nil: (json)-> Nil
 
 # need these because my CS mod names the above functions with the field names :-/
 lit = save.lit

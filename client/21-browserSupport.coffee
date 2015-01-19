@@ -1,5 +1,4 @@
 {
-  newCall,
   resolve,
   lazy,
 } = root = module.exports = require '15-base'
@@ -31,20 +30,12 @@ getSvgElement = (id)->
     document.body.appendChild(svg)
     document.getElementById id
 
-if newCall
-  svgMeasureText = (text, style, f)->
-    txt = getSvgElement('HIDDEN_TEXT')
-    if rz style then txt.setAttribute 'style', rz style
-    txt.lastChild.textContent = rz text
-    bx = txt.getBBox()
-    lc rz(f), (lz bx.width), (lz bx.height)
-else
-  svgMeasureText = (text)->(style)->(f)->
-    txt = getSvgElement('HIDDEN_TEXT')
-    if rz style then txt.setAttribute 'style', rz style
-    txt.lastChild.textContent = rz text
-    bx = txt.getBBox()
-    rz(f)(lz bx.width)(lz bx.height)
+svgMeasureText = (text)->(style)->(f)->
+  txt = getSvgElement('HIDDEN_TEXT')
+  if rz style then txt.setAttribute 'style', rz style
+  txt.lastChild.textContent = rz text
+  bx = txt.getBBox()
+  rz(f)(lz bx.width)(lz bx.height)
 
 transformedPoint = (pt, x, y, ctm, ictm)->
   pt.x = x
@@ -57,26 +48,15 @@ svgMeasure = (content)-> primSvgMeasure content, baseStrokeWidth
 # try to take strokeWidth into account
 svgBetterMeasure = (content)-> primSvgMeasure content, transformStrokeWidth
 
-if newCall
-  # try to take strokeWidth into account
-  primSvgMeasure = (content, transformFunc)->(f)->
-    svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000'><g>#{content}</g></svg>"
-    document.body.appendChild(svg)
-    g = svg.firstChild
-    bbox = g.getBBox()
-    pad = getMaxStrokeWidth g, g, svg, transformFunc
-    document.body.removeChild(svg)
-    lc rz(f), (lz bbox.x - Math.ceil(pad/2)), (lz bbox.y - Math.ceil(pad/2)), (lz bbox.width + pad), (lz bbox.height + pad)
-else
-  # try to take strokeWidth into account
-  primSvgMeasure = (content, transformFunc)->(f)->
-    svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000'><g>#{content}</g></svg>"
-    document.body.appendChild(svg)
-    g = svg.firstChild
-    bbox = g.getBBox()
-    pad = getMaxStrokeWidth g, g, svg, transformFunc
-    document.body.removeChild(svg)
-    rz(f)(lz bbox.x - Math.ceil(pad/2))(lz bbox.y - Math.ceil(pad/2))(lz bbox.width + pad)(lz bbox.height + pad)
+# try to take strokeWidth into account
+primSvgMeasure = (content, transformFunc)->(f)->
+  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000'><g>#{content}</g></svg>"
+  document.body.appendChild(svg)
+  g = svg.firstChild
+  bbox = g.getBBox()
+  pad = getMaxStrokeWidth g, g, svg, transformFunc
+  document.body.removeChild(svg)
+  rz(f)(lz bbox.x - Math.ceil(pad/2))(lz bbox.y - Math.ceil(pad/2))(lz bbox.width + pad)(lz bbox.height + pad)
 
 baseElements = ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']
 

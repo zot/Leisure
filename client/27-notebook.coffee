@@ -13,7 +13,6 @@ console.log "LOADING NOTEBOOK"
   delay,
 } = root = module.exports = require '10-namespace'
 {
-  newCall,
   resolve,
   lazy,
 } = require '15-base'
@@ -108,22 +107,13 @@ escapeHtml = (str)->
       when '>' then '&gt;'
   else str
 
-if newCall
-  presentValue = (v)->
-    if (getType v) == 'svgNode'
-      content = v(-> id)
-      lc rz(_svgPresent), lz(-> content), lz(-> id)
-    else if (getType v) == 'html' then getHtml v
-    else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
-    else escapeHtml String(v)
-else
-  presentValue = (v)->
-    if (getType v) == 'svgNode'
-      content = v(-> id)
-      _svgPresent()(-> content)(-> id)
-    else if (getType v) == 'html' then getHtml v
-    else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
-    else escapeHtml String(v)
+presentValue = (v)->
+  if (getType v) == 'svgNode'
+    content = v(-> id)
+    _svgPresent()(-> content)(-> id)
+  else if (getType v) == 'html' then getHtml v
+  else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
+  else escapeHtml String(v)
 
 bootNotebook = (el)->
   if !(document.getElementById 'channelList')?
@@ -899,10 +889,7 @@ getAst = (bx, def)->
     def = def || getOrgText(bx)
     # MARK CHECK
     # setAst bx, (Leisure.compileNext def, Parse.Nil, true, null)[0]
-    if newCall
-      defName = getDefName runMonad lc rz(L_newParseLine), (lz Nil), (lz def)
-    else
-      defName = getDefName runMonad rz(L_newParseLine)(lz Nil)(lz def)
+    defName = getDefName runMonad rz(L_newParseLine)(lz Nil)(lz def)
     setAst bx, (if defName then {leisureName: defName, leisureSource: def} else {})
     bx.ast
 

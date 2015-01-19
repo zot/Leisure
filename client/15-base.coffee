@@ -26,8 +26,6 @@ misrepresented as being the original software.
 
 root.currentNameSpace = 'core'
 root.nameSpacePath = ['core']
-#root.newCall = true
-root.newCall = false
 
 #root.shouldNsLog = true
 root.shouldNsLog = false
@@ -125,7 +123,7 @@ concat = Array.prototype.concat
         when 3 then f = f args[pos], args[pos + 1], args[pos + 2]
         when 4 then f = f args[pos], args[pos + 1], args[pos + 2], args[pos + 3]
         else
-          if f.leisurePartial || (pos == 0 && f.length == args.length)
+          if f.leisureInfo || (pos == 0 && f.length == args.length)
             return f.apply null, (if pos == 0 then args else slice.call(args, pos))
           f = f.apply null, slice.call(args, pos, pos + f.length)
       pos += oldF.length
@@ -136,9 +134,16 @@ concat = Array.prototype.concat
         if newArgs.length == f.length then f.apply null, newArgs
         else baseLeisureCall f, 0, newArgs
       partial.leisurePartial = true
+      partial.leisureInfo = genInfo f, args, f.leisureInfo
       return lazy partial
   if pos != args.length then console.log "BAD FINAL POSITION IN LEISURE CALL, ARG LENGTH IS #{args.length} BUT POSITION IS #{pos}"
   f
+
+genInfo = (func, args, oldInfo)->
+  for arg in args
+    if !oldInfo then oldInfo = {name: func.leisureName, arg}
+    else oldInfo = {arg: arg, parent: oldInfo}
+  oldInfo
 
 testCount = 0
 errors = ''

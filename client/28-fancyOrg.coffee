@@ -1,6 +1,5 @@
 {
   Node,
-  newCall,
   resolve,
   lazy,
   defaultEnv,
@@ -969,54 +968,29 @@ redrawAst = (code, pos)->
 
 linePat = /\r?\n(?=[^ ]|$)/
 
-if newCall
-  showAst = (astButton, force)->
-    offset = Number(astButton.getAttribute 'data-ast-offset')
-    #if force || !replaceRelatedPresenter presenter.button, emptyPresenter
-    if force || !replaceRelatedPresenter astButton, emptyPresenter
-      $(astButton).children().remove()
-      text = getOrgText(astButton.parentNode).substring offset
-      text = text.substring 0, (if m = text.match linePat then m.index else text.length)
-      result = lc rz(L_newParseLine), (lz 0), L_nil, text
-      runMonad result, baseEnv, (ast)->
-        if getType(ast) != 'parseErr'
-          console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
-          try
-            astContent = nonOrg "<div class='#{theme ? ''} ast'>#{lc rz(L_wrappedTreeFor), (lz ast), (L_id)}</div>"
-            if theme then astContent.addClass theme
-            $(astButton).append astContent
-            replacePresenter
-              hide: -> astButton.firstChild?.remove()
-              isRelated: (node)-> isOrContains astButton, node
-              button: astButton
-              astCodeContains: (pos)-> 0 <= pos - offset < text.length
-              astCode: getCodeContainer astButton
-          catch err
-            console.log "Error showing AST: #{err.stack}"
-else
-  showAst = (astButton, force)->
-    offset = Number(astButton.getAttribute 'data-ast-offset')
-    #if force || !replaceRelatedPresenter presenter.button, emptyPresenter
-    if force || !replaceRelatedPresenter astButton, emptyPresenter
-      $(astButton).children().remove()
-      text = getOrgText(astButton.parentNode).substring offset
-      text = text.substring 0, (if m = text.match linePat then m.index else text.length)
-      result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
-      runMonad result, baseEnv, (ast)->
-        if getType(ast) != 'parseErr'
-          console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
-          try
-            astContent = nonOrg "<div class='#{theme ? ''} ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
-            if theme then astContent.addClass theme
-            $(astButton).append astContent
-            replacePresenter
-              hide: -> astButton.firstChild?.remove()
-              isRelated: (node)-> isOrContains astButton, node
-              button: astButton
-              astCodeContains: (pos)-> 0 <= pos - offset < text.length
-              astCode: getCodeContainer astButton
-          catch err
-            console.log "Error showing AST: #{err.stack}"
+showAst = (astButton, force)->
+  offset = Number(astButton.getAttribute 'data-ast-offset')
+  #if force || !replaceRelatedPresenter presenter.button, emptyPresenter
+  if force || !replaceRelatedPresenter astButton, emptyPresenter
+    $(astButton).children().remove()
+    text = getOrgText(astButton.parentNode).substring offset
+    text = text.substring 0, (if m = text.match linePat then m.index else text.length)
+    result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
+    runMonad result, baseEnv, (ast)->
+      if getType(ast) != 'parseErr'
+        console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
+        try
+          astContent = nonOrg "<div class='#{theme ? ''} ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
+          if theme then astContent.addClass theme
+          $(astButton).append astContent
+          replacePresenter
+            hide: -> astButton.firstChild?.remove()
+            isRelated: (node)-> isOrContains astButton, node
+            button: astButton
+            astCodeContains: (pos)-> 0 <= pos - offset < text.length
+            astCode: getCodeContainer astButton
+        catch err
+          console.log "Error showing AST: #{err.stack}"
 
 show = (obj)-> rz(L_show)(lz obj)
 

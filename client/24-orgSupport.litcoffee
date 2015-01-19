@@ -45,7 +45,6 @@ Code
     } = require '16-ast'
     {
       Node,
-      newCall,
       resolve,
       lazy,
       defaultEnv,
@@ -1140,28 +1139,16 @@ Code
           when '&' then '&amp;'
       else str
     
-    if newCall
-      leisureEnv = (env)->
-        env.presentValue = (v)-> rz(L_showHtml) lz v
-        env.executeText = (text, props, cont)->
-          old = getValue 'parser_funcProps'
-          setValue 'parser_funcProps', props
-          result = lc rz(L_baseLoadString), 'notebook', text
-          runMonad2 result, env, (results)->
-            runNextResult results, env, ->
-              setValue 'parser_funcProps', old
-              cont? env, results
-    else
-      leisureEnv = (env)->
-        env.presentValue = (v)-> rz(L_showHtml) lz v
-        env.executeText = (text, props, cont)->
-          old = getValue 'parser_funcProps'
-          setValue 'parser_funcProps', props
-          result = rz(L_baseLoadString)('notebook')(text)
-          runMonad2 result, env, (results)->
-            runNextResult results, env, ->
-              setValue 'parser_funcProps', old
-              cont? env, results
+    leisureEnv = (env)->
+      env.presentValue = (v)-> rz(L_showHtml) lz v
+      env.executeText = (text, props, cont)->
+        old = getValue 'parser_funcProps'
+        setValue 'parser_funcProps', props
+        result = rz(L_baseLoadString)('notebook')(text)
+        runMonad2 result, env, (results)->
+          runNextResult results, env, ->
+            setValue 'parser_funcProps', old
+            cont? env, results
     
     runNextResult = (results, env, cont)->
       while results != rz(L_nil) && getType(results.head().tail()) == 'left'
@@ -1364,16 +1351,10 @@ Code
       reparse parent, text.substring(0, srcEnd) + "#+RESULTS:\n: \n" + text.substring(srcEnd)
       findOrgNode parent, srcEnd + 1
     
-    if newCall
-      id = lz (x)-> rz x
-      getLeft = (x)-> lc x, (id), (id)
-      getRight = (x)-> lc x, (id), (id)
-      show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
-    else
-      id = lz (x)-> rz x
-      getLeft = (x)-> x(id)(id)
-      getRight = (x)-> x(id)(id)
-      show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
+    id = lz (x)-> rz x
+    getLeft = (x)-> x(id)(id)
+    getRight = (x)-> x(id)(id)
+    show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
     
     propsFor = (node)->
       props = Nil

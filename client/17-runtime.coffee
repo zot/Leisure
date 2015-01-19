@@ -23,7 +23,6 @@ misrepresented as being the original software.
 ###
 
 {
-  newCall,
   readFile,
   statFile,
   readDir,
@@ -90,41 +89,24 @@ consFrom = (array, i)->
 identity = (x)-> x
 _identity = (x)-> rz x
 _unit = setType ((x)->rz x), 'unit'
-if newCall
-  _true = setType ((a, b)-> rz a), 'true'
-  _false = setType ((a, b)-> rz b), 'false'
-  left = (x)-> setType ((lCase, rCase)-> rz(lCase)(lz x)), 'left'
-  right = (x)-> setType ((lCase, rCase)-> rz(rCase)(lz x)), 'right'
-  some = (x)-> setType ((someCase, noneCase)-> rz(someCase)(lz x)), 'some'
-  none = setType ((someCase, noneCase)-> rz(noneCase)), 'none'
-  define 'eq', (a, b)-> booleanFor rz(a) == rz(b)
-  define '==', (a, b)-> booleanFor rz(a) == rz(b)
-else
-  _true = setType ((a)->(b)->rz a), 'true'
-  _false = setType ((a)->(b)->rz b), 'false'
-  left = (x)-> setType ((lCase)->(rCase)-> rz(lCase)(lz x)), 'left'
-  right = (x)-> setType ((lCase)->(rCase)-> rz(rCase)(lz x)), 'right'
-  some = (x)-> setType ((someCase)->(noneCase)-> rz(someCase)(lz x)), 'some'
-  none = setType ((someCase)->(noneCase)-> rz(noneCase)), 'none'
-  define 'eq', (a)->(b)-> booleanFor rz(a) == rz(b)
-  define '==', (a)->(b)-> booleanFor rz(a) == rz(b)
+_true = setType ((a)->(b)->rz a), 'true'
+_false = setType ((a)->(b)->rz b), 'false'
+left = (x)-> setType ((lCase)->(rCase)-> rz(lCase)(lz x)), 'left'
+right = (x)-> setType ((lCase)->(rCase)-> rz(rCase)(lz x)), 'right'
+some = (x)-> setType ((someCase)->(noneCase)-> rz(someCase)(lz x)), 'some'
+none = setType ((someCase)->(noneCase)-> rz(noneCase)), 'none'
+define 'eq', (a)->(b)-> booleanFor rz(a) == rz(b)
+define '==', (a)->(b)-> booleanFor rz(a) == rz(b)
 booleanFor = (bool)-> if bool then rz L_true else rz L_false
 define 'hasType', (data)->(func)->
   if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
   else booleanFor getType(rz data) == getDataType(rz func)
 define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
-if newCall
-  define 'assert', (bool, msg, expr)-> lc rz(bool), expr, (-> throw new Error(rz msg))
-  define 'assertLog', (bool, msg, expr)-> lc rz(bool), expr, (->
-    console.log new Error(rz msg).stack
-    console.log "LOGGED ERROR -- RESUMING EXECUTION..."
-    rz expr)
-else
-  define 'assert', (bool)->(msg)-> (expr)-> rz(bool)(expr)(-> throw new Error(rz msg))
-  define 'assertLog', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
-    console.log new Error(rz msg).stack
-    console.log "LOGGED ERROR -- RESUMING EXECUTION..."
-    rz expr)
+define 'assert', (bool)->(msg)-> (expr)-> rz(bool)(expr)(-> throw new Error(rz msg))
+define 'assertLog', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
+  console.log new Error(rz msg).stack
+  console.log "LOGGED ERROR -- RESUMING EXECUTION..."
+  rz expr)
 
 define 'trace', (msg)->
   console.log "STACKTRACE: ", new Error(rz msg).stack
@@ -231,18 +213,11 @@ define 'jsonStringify', (obj)->(failCont)->(successCont)->
 
 define 'getProperties', (func)-> if rz(func)?.properties then rz(func).properties else rz L_nil
 
-if newCall
-  define 'setProperty', (func, name, value)->
-    makeSyncMonad (env, cont)->
-      f = rz func
-      f.properties = lc rz(L_aconsf), name, value, (lz f.properties ? rz(L_nil))
-      cont f.properties
-else
-  define 'setProperty', (func)->(name)->(value)->
-    makeSyncMonad (env, cont)->
-      f = rz func
-      f.properties = rz(L_aconsf)(name)(value)(lz f.properties ? rz(L_nil))
-      cont f.properties
+define 'setProperty', (func)->(name)->(value)->
+  makeSyncMonad (env, cont)->
+    f = rz func
+    f.properties = rz(L_aconsf)(name)(value)(lz f.properties ? rz(L_nil))
+    cont f.properties
 
 ############
 # Diagnostics
@@ -352,26 +327,15 @@ newRunMonad = (monad, env, cont, contStack)->
     console.log err.stack ? err
     if env.errorHandlers.length then env.errorHandlers.pop() err
 
-if newCall
-  callBind = (value, contStack)->
-    func = contStack.pop()
-    val = lz value
-    tmp = lc rz(L_bind), val, (lz func)
-    if isMonad(tmp) && (tmp.monad == val || tmp.monad == value)
-      console.log "peeling bind"
-      func value
-    else tmp
-    #if isMonad(tmp) && tmp?.binding? then func value else tmp
-else
-  callBind = (value, contStack)->
-    func = contStack.pop()
-    val = lz value
-    tmp = L_bind()(val)(lz func)
-    if isMonad(tmp) && (tmp.monad == val || tmp.monad == value)
-      console.log "peeling bind"
-      func value
-    else tmp
-    #if isMonad(tmp) && tmp?.binding? then func value else tmp
+callBind = (value, contStack)->
+  func = contStack.pop()
+  val = lz value
+  tmp = L_bind()(val)(lz func)
+  if isMonad(tmp) && (tmp.monad == val || tmp.monad == value)
+    console.log "peeling bind"
+    func value
+  else tmp
+  #if isMonad(tmp) && tmp?.binding? then func value else tmp
 
 class Monad
   toString: -> "Monad: #{@cmd.toString()}"
@@ -526,16 +490,10 @@ define 'getValue', (name)->
 #  makeSyncMonad (env, cont)->
 #    cont (if !(rz(name) of values) then none else some values[rz name])
 
-if newCall
-  define 'setValue', (name, value)->
-    makeSyncMonad (env, cont)->
-      values[rz name] = rz value
-      cont _unit
-else
-  define 'setValue', (name)->(value)->
-    makeSyncMonad (env, cont)->
-      values[rz name] = rz value
-      cont _unit
+define 'setValue', (name)->(value)->
+  makeSyncMonad (env, cont)->
+    values[rz name] = rz value
+    cont _unit
 
 define 'deleteValue', (name)->
   makeSyncMonad (env, cont)->
@@ -788,27 +746,17 @@ define 'hamtWithout', (key)->(hamt)-> makeHamt rz(hamt).remove rz(key)
 
 define 'hamtPairs', (hamt)-> nextHamtPair rz(hamt).entries()
 
-if newCall
-  nextHamtPair = (entries)->
-    if entries.size == 0 then rz L_nil
-    else
-      f = entries.first()
-      lc rz(L_acons), f[0], f[1], (-> nextHamtPair entries.rest)
-else
-  nextHamtPair = (entries)->
-    if entries.size == 0 then rz L_nil
-    else
-      f = entries.first()
-      rz(L_acons)(f[0])(f[1])(-> nextHamtPair entries.rest)
+nextHamtPair = (entries)->
+  if entries.size == 0 then rz L_nil
+  else
+    f = entries.first()
+    rz(L_acons)(f[0])(f[1])(-> nextHamtPair entries.rest)
 
 #################
 # YAML and JSON
 #################
 
-if newCall
-  lacons = (k, v, list)-> lc rz(L_acons), (lz k), (lz v), (lz list)
-else
-  lacons = (k, v, list)-> rz(L_acons)(lz k)(lz v)(lz list)
+lacons = (k, v, list)-> rz(L_acons)(lz k)(lz v)(lz list)
 
 jsonConvert = (obj)->
   if obj instanceof Array
@@ -962,24 +910,14 @@ define 'funcInfo', (f)-> funcInfo rz f
 
 define 'funcName', (f)-> if rz(f).leisureName then some rz(f).leisureName else none
 
-if newCall
-  define 'trackCreation', (flag)->
-    makeSyncMonad (env, cont)->
-      root.trackCreation = lc rz(flag), true, false
-      cont _unit
-  define 'trackVars', (flag)->
-    makeSyncMonad (env, cont)->
-      root.trackVars = lc rz(flag), true, false
-      cont _unit
-else
-  define 'trackCreation', (flag)->
-    makeSyncMonad (env, cont)->
-      root.trackCreation = rz(flag)(lz true)(lz false)
-      cont _unit
-  define 'trackVars', (flag)->
-    makeSyncMonad (env, cont)->
-      root.trackVars = rz(flag)(lz true)(lz false)
-      cont _unit
+define 'trackCreation', (flag)->
+  makeSyncMonad (env, cont)->
+    root.trackCreation = rz(flag)(lz true)(lz false)
+    cont _unit
+define 'trackVars', (flag)->
+  makeSyncMonad (env, cont)->
+    root.trackVars = rz(flag)(lz true)(lz false)
+    cont _unit
 
 define 'getFunction', (name)->
   f = rz global['L_' + (nameSub rz name)]

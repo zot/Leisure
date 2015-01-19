@@ -23,7 +23,6 @@ misrepresented as being the original software.
 ###
 
 {
-  newCall,
   simpyCons,
   resolve,
   lazy,
@@ -95,9 +94,6 @@ collectArgs = (args, result)->
 
 locateAst = (ast)->
   [line, col] = pos = getPos(ast).toArray()
-  #console.log "AST: #{ast}, POS: #{pos}"
-  #[pos.head(), pos.tail().head(), pos.tail().tail().head()]
-  #[file, (if line > 0 then line else 1), col]
   [line,col]
 
 check = (bool, arg)->
@@ -107,7 +103,6 @@ checkChild = (child)->
   if Array.isArray child
     for c in child
       checkChild c
-  #else check (typeof child == 'string') || (child instanceof SourceNode), 'child'
   else check (typeof child == 'string') || (child instanceof SourceNode), c
 
 currentFile = 'NEVERGIVENFILE.lsr'
@@ -118,11 +113,9 @@ withFile = (file, name, block)->
   oldFuncName = currentFuncName
   currentFile = file
   currentFuncName = name
-  #console.log "FILE: #{file}"
   try
     block()
   finally
-    #console.log "FILE: #{oldFileName}"
     currentFile = oldFileName
     currentFuncName = oldFuncName
 
@@ -203,19 +196,15 @@ genUniq = (ast, names, uniq, count)->
   switch ast.constructor
     when Leisure_lit then sn ast, JSON.stringify getLitVal ast
     when Leisure_ref then sn ast, "resolve(", (genRefName ast, uniq, names), ")"
-    when Leisure_lambda
-      if newCall then newGenLambda ast, names, uniq, count ? 0
-      else genLambda ast, names, uniq, count ? 0
+    when Leisure_lambda then genLambda ast, names, uniq, count ? 0
     when Leisure_apply
-      if newCall then newGenApply ast, names, uniq, arity
-      else if useArity then genArifiedApply ast, names, uniq, arity
+      if useArity then genArifiedApply ast, names, uniq, arity
       else sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
     when Leisure_let then sn ast, "(function(){\n", (genLets ast, names, uniq), "})()"
     when Leisure_anno
       name = getAnnoName ast
       data = getAnnoData ast
-      if !newCall && name == 'arity' && useArity && data > 1
-        #if !(typeof data in ['number', 'string']) then throw new Error "Annotation value is not numeric (#{typeof data}) in AST #{ast}: #{data}"
+      if name == 'arity' && useArity && data > 1
         genArifiedLambda (getAnnoBody ast), names, uniq, data
       else
         genned = genUniq (getAnnoBody ast), names, uniq
@@ -260,49 +249,11 @@ genArifiedApply = (ast, names, uniq)->
     ast = dumpAnno ast
     sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
 
-newGenApply = (ast, names, uniq)->
-  args = []
-  func = ast
-  while dumpAnno(func) instanceof Leisure_apply
-    args.push getApplyArg dumpAnno func
-    func = getApplyFunc dumpAnno func
-  if args.length == 1
-    ast = dumpAnno ast
-    sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
-  else
-    args.reverse()
-    info = functionInfo[getRefName func]
-    argCode = []
-    argCode.push ast
-    argCode.push '(\n  Leisure_call('
-    argCode.push genUniq func, names, uniq
-    for i in [0...args.length]
-      argCode.push ', '
-      argCode.push sn args[i], genApplyArg args[i], names, uniq
-    argCode.push '))'
-    sn argCode...
-
 genLambda = (ast, names, uniq, count)->
   name = getLambdaVar ast
   u = addUniq name, names, uniq
   n = cons name, names
   addLambdaProperties ast, sn ast, "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}"
-
-newGenLambda = (ast, names, uniq, count)->
-  [args, body] = getLambdaArgs ast
-  if args.length == 1 then return genLambda ast, names, uniq, count
-  argList = _.map(args, ((x)-> 'L_' + x)).join ', '
-  mainFunc = "function(#{argList}) {return #{genUniq body, names, uniq};}"
-  result = addLambdaProperties ast, (sn ast, mainFunc)
-  annoAst = ast
-  while annoAst instanceof Leisure_anno
-    name = getAnnoName annoAst
-    data = getAnnoData annoAst
-    switch name
-      when 'type' then result = "setType(#{result}, '#{data}')"
-      when 'dataType' then result = "setDataType(#{result}, '#{data}')"
-    annoAst = getAnnoBody annoAst
-  sn ast, result
 
 getLambdaArgs = (ast)->
   args = []
@@ -311,55 +262,10 @@ getLambdaArgs = (ast)->
     ast = getLambdaBody ast
   [args, ast]
 
-XgenArifiedLambda = (ast, names, uniq, arity)->
-  if arity < 2 then genLambda ast, names, uniq, 0
-  else
-    args = getNArgs(arity, ast).toArray()
-    #console.log "FUNCTION ARITY #{arity} [#{args.join ', '}] #{ast}"
-    argList = _.map(args, ((x)-> 'L_' + x)).join ', '
-    mainFunc = """
-      function(#{argList}, more) {
-          if (L_#{_.last args} && (typeof more == "undefined" || more == null)) {
-            return full(#{argList});
-          } else if (typeof L_#{args[1]} == "undefined" || L_#{args[1]} == null) {
-            return partial(L_#{args[0]});
-          } else {
-            return Leisure.curryCall(arguments, partial);
-          }
-        }"""
-    result = """
-      (function () {
-        var main;
-        var full = function (#{argList}) {
-          return #{genUniq getNthLambdaBody(ast, arity), names, uniq};
-        };
-        var partial = function(L_#{args[0]}) {
-          #{genPartialCalls args, argList, 1}
-        };
-        main = #{addLambdaProperties ast, (sn ast, mainFunc)};
-        return main;
-      })()
-      """
-    annoAst = ast
-    while annoAst instanceof Leisure_anno
-      name = getAnnoName annoAst
-      data = getAnnoData annoAst
-      switch name
-        when 'type' then result = "setType(#{result}, '#{data}')"
-        when 'dataType' then result = "setDataType(#{result}, '#{data}')"
-      annoAst = getAnnoBody annoAst
-    sn ast, result
-
 genArifiedLambda = (ast, names, uniq, arity)->
   if arity < 2 then genLambda ast, names, uniq, 0
   else
     args = getNArgs(arity, ast).toArray()
-    #args = []
-    #for arg in getNArgs(arity, ast).toArray()
-    #  uniq = addUniq arg, names, uniq
-    #  names = cons arg, names
-    #  args.push uniqName arg, uniq
-    #console.log "FUNCTION ARITY #{arity} [#{args.join ', '}] #{ast}"
     argList = _.map(args, ((x)-> 'L_' + x)).join ', '
     mainFunc = sn ast, """
       (function(#{argList}) {
@@ -381,20 +287,6 @@ getNthLambdaBody = (ast, n)->
   if n == 0 then ast
   else if (d = dumpAnno ast) instanceof Leisure_lambda then getNthLambdaBody getLambdaBody(d), n - 1
   else throw new Error "Expected lambda but got #{ast}"
-
-genPartialCalls = (args, argList, n)->
-  if n == args.length then "return full(#{argList});"
-  else
-    pad = strRepeat '  ', 4 + n
-    #"""return $F(arguments, function(L_#{args[n]}){
-    ##{pad + '  '}#{genPartialCalls args, argList, n + 1}
-    ##{pad}});"""
-    """
-var _#{n} = function(L_#{args[n]}) {
-#{pad + '  '}#{genPartialCalls args, argList, n + 1}
-#{pad}};
-#{pad}_#{n}.leisureInfo = {arg: L_#{args[n - 1]}, #{if n == 1 then "name: main.leisureName" else "parent: _#{n - 1}.leisureInfo"}};
-#{pad}return _#{n};"""
 
 strRepeat = (string, n)->
   result = string
@@ -436,12 +328,8 @@ addLambdaProperties = (ast, def, extras)->
     sn ast, "setLambdaProperties(", def, ", ", (JSON.stringify p), ")"
   else def
 
-if newCall
-  lcons = (a, b)-> lc rz(L_cons), (lz a), (lz b)
-  parseErr = (a, b)-> lc rz(L_parseErr), a, b
-else
-  lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
-  parseErr = (a, b)-> rz(L_parseErr)(a)(b)
+lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
+parseErr = (a, b)-> rz(L_parseErr)(a)(b)
 
 lconsFrom = (array)->
   if array instanceof Array
@@ -471,13 +359,13 @@ lacons = (key, value, list)->
   def.properties = p
   def
 
-memoize = (ast, func)-> sn ast, "function(){return ", func, "}"
+lazify = (ast, func)-> sn ast, "function(){return ", func, "}"
 
 dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
 
 genApplyArg = (arg, names, uniq)->
   d = dumpAnno arg
-  if d instanceof Leisure_apply then memoize d, genUniq arg, names, uniq
+  if d instanceof Leisure_apply then lazify d, genUniq arg, names, uniq
   else if d instanceof Leisure_ref then genRefName d, uniq, names
   else if d instanceof Leisure_lit then sn arg, JSON.stringify getLitVal d
   else if d instanceof Leisure_let then sn arg, "function(){return", (genUniq arg, names, uniq), ";}"
