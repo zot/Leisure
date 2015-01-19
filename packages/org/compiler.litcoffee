@@ -18,6 +18,10 @@ Sourcemap is [here](https://github.com/mozilla/source-map/blob/master/lib/source
 
     {sourceMap:{SourceNode, SourceMapGenerator, SourceMapConsumer}} = sourceMap ? require?('./source-map.js')
 
+    root.SourceNode = SourceNode
+    root.SourceMapGenerator = SourceMapGenerator
+    root.SourceMapConsumer = SourceMapConsumer
+
     # source map lines are 1-based, columns are 0-based
     compile = (txt, inputFile, outputFile)->
       global.C = c = new Compiler txt.replace(/\r\n/g, '\n'), inputFile, outputFile

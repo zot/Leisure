@@ -2,10 +2,6 @@
 (function() {
   Leisure.require = require;
 
-  require('persistent-hash-trie');
-
-  require('source-map');
-
   require('utf8');
 
   require('lodash.min');

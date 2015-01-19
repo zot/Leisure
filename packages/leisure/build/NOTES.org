@@ -1,7 +1,7 @@
 * Debugging notes
 Run simpleParse.lsr like this:
-- repl -1 -i
-- node-debugger: repl -D -1 -i
+- repl -1
+- node-debugger: repl -D -1
   - this is very slow
 
 * working on simple HTML evaluator

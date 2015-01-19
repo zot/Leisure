@@ -5,7 +5,7 @@
  * http://opensource.org/licenses/BSD-3-Clause
  */
 
-var manualExport = typeof global != 'undefined' && global && typeof require == 'undefined';
+var manualExport = typeof global != 'undefined' && global && typeof module == 'undefined';
 
 /**
  * Define a module along with a payload.

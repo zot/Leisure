@@ -671,7 +671,37 @@ getLetLambda pos def args names =
 ## Compiling
 #################
 
-scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
+#scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
+
+############################
+#
+# TODO: THIS IS TOO BIG TO PARSE WITH ARIFIED LAMBDA
+# TRY IT AGAIN AFTER CHANGES
+#
+#countedScanLineG lineStarts str pat groups props onDef onExpr = \\
+#  toks = countedTokens lineStarts str pat
+#  groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
+#  .
+#  # check if it's a definition
+#  find (\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
+#    toks \name rest . \\
+#      parseIt func = \\
+#        parsed = parseToks (checkSetDataType func rest name) groups
+#        .
+#        onDef (ifNotErr parsed \list . createDef list name (arity rest 0) str props)
+#      .
+#      isTokenString (head rest) '='
+#        isTokenString (head (tail rest)) '\\'
+#          parseIt (setTypeAnno (tail rest) (tokenString name))
+#          parseIt (tail rest)
+#        ifNotErr (transformDef name rest) \def .
+#          parseIt (cons (token '\\' (addFilepos (position (head rest)) -1)) def)
+#    ifNotErr (parseToks toks groups) \list . onExpr list
+
+countedParseIt func name rest groups str props onDef = \\
+  parsed = parseToks (checkSetDataType func rest name) groups
+  .
+  onDef (ifNotErr parsed \list . createDef list name (arity rest 0) str props)
 
 countedScanLineG lineStarts str pat groups props onDef onExpr = \\
   toks = countedTokens lineStarts str pat
@@ -680,10 +710,7 @@ countedScanLineG lineStarts str pat groups props onDef onExpr = \\
   # check if it's a definition
   find (\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
     toks \name rest . \\
-      parseIt func = \\
-        parsed = parseToks (checkSetDataType func rest name) groups
-        .
-        onDef (ifNotErr parsed \list . createDef list name (arity rest 0) str props)
+      parseIt func = countedParseIt func name rest groups str props onDef
       .
       isTokenString (head rest) '='
         isTokenString (head (tail rest)) '\\'
@@ -692,6 +719,8 @@ countedScanLineG lineStarts str pat groups props onDef onExpr = \\
         ifNotErr (transformDef name rest) \def .
           parseIt (cons (token '\\' (addFilepos (position (head rest)) -1)) def)
     ifNotErr (parseToks toks groups) \list . onExpr list
+
+scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
 
 parseLineG str pat names groups onDef onExpr = \\
   astCallback cb = \list . ifNotErr (createAst nil list names) \ast . cb ast
@@ -1051,6 +1080,8 @@ countedRunLine file names countedLine = bind2 (countedParseLine names countedLin
     not (== (getType value) 'monad')
       resultOfRun wrapped value
       bind2 (runAst (tail countedLine) wrapped)
+        #\result . bind2 (resultOfRun wrapped result)
+        #  \r . d "ran line: " (tail countedLine) r
         \result . resultOfRun wrapped result
 
 resultOfRun wrapped result =

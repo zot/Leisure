@@ -68,6 +68,8 @@ charCodes =
   '%': '$A'
   '.': '$B'
   '#': '$C'
+  # ' ' is used for syntactically impossible characters, like gensyms
+  ' ': '$S'
 
 nameSub = (name)->
   s = ''
@@ -357,11 +359,14 @@ else
 
 getType = (f)->
   t = typeof f
-  (t == 'function' and f?.type) or "*#{(f == null && 'null') || ((t == 'object') && f.constructor?.name) || t}"
+  if t == 'null' then "*null"
+  else if t == 'undefined' then "*undefined"
+  else if f.leisureType then f.leisureType
+  else (t == 'function' and f?.type) or "*#{((t == 'object') && f.constructor?.name) || t}"
 
 define 'getType', ((value)-> getType rz value), 1
 
-getDataType = (f)-> (typeof f == 'function' && f.dataType) || ''
+getDataType = (f)-> (typeof f == 'function' && f.dataType) || f?.leisureDataType || ''
 
 define 'getDataType', ((value)-> getDataType rz value), 1
 

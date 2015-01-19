@@ -27,7 +27,8 @@ blorfl
           '../../../client/16-ast.coffee',
           '../../../client/17-runtime.coffee',
           '../../../client/18-gen.coffee',
-          'lib/simpleParse.js',
+          #'lib/simpleParse.js',
+          'lib/generatedPrelude.js',
           'evaluatorCode.litcoffee',
         ]
 

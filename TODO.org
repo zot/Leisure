@@ -1,10 +1,5 @@
 * Short list -- announcement
-** TODO make macro substitution monadic                             :leisure:
-   :PROPERTIES:
-   :ID:       f1fc0131-cd1b-4776-84de-f6f2f69dc465
-   :END:
-Filters are monadic, but macros are not
-macros should also be able to return errors
+** TODO rewrite compiler to use a HAMT and remove monads from the whole thing
 ** TODO defer initial record processing until after Leisure finishes initializing
 ** TODO data observers
 - fire when data changes

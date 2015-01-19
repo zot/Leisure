@@ -106,54 +106,17 @@ class SimpyCons
         array.push h.head
         h = h.tail
       @_array = array)
+
 simpyCons = (a, b)-> new SimpyCons a, b
-
-
-debugged = false
-debugOnce = ->
-  if !debugged
-    debugged = true
-    debugger
-
-burp = ->
-
-concatArgs = (a, b, c)->
-  args = Array.prototype.slice.call a
-  Array.prototype.push.apply args, b
-  if c then Array.prototype.push.apply args, c
-  args
-
-#(window ? global).Leisure_call = leisureCall = (func, args...)->
-#  #debugOnce()
-#  #f = rz func
-#  f = func
-#  while args.length
-#    if !f then debugger
-#    if f.length == args.length then return f.apply null, args
-#    if f.length > args.length
-#      burp "CALLING PARTIAL BECAUSE #{f.length} > #{args.length}"
-#      return -> burp '1'; leisureCall f, concatArgs args, arguments
-#    if f.length == 1
-#      pos = 0
-#      while pos < args.length && f.length == 1
-#        f = f.call null, args[pos]
-#        pos++
-#      if pos == args.length then return f
-#      args = slice.call args, pos
-#    else
-#      newF = f.apply(null, slice.call(args, 0, f.length))
-#      args = slice.call args, f.length
-#      f = newF
-#  if !f then debugger
-#  f
 
 slice = Array.prototype.slice
 concat = Array.prototype.concat
 
 (window ? global).Leisure_call = leisureCall = (f)-> baseLeisureCall f, 1, arguments
 
-baseLeisureCall = (f, pos, args)->
+(window ? global).Leisure_primCall = baseLeisureCall = (f, pos, args)->
   while pos < args.length
+    if typeof f != 'function' then throw new Error "TypeError: #{typeof f} is not a function: #{f}"
     if f.length <= args.length - pos
       oldF = f
       switch f.length
@@ -162,18 +125,19 @@ baseLeisureCall = (f, pos, args)->
         when 3 then f = f args[pos], args[pos + 1], args[pos + 2]
         when 4 then f = f args[pos], args[pos + 1], args[pos + 2], args[pos + 3]
         else
-          if f.leisurePartial then return f.apply(null, slice.call(args, pos))
-          f = f.apply(null, slice.call(args, pos, pos + f.length))
+          if f.leisurePartial || (pos == 0 && f.length == args.length)
+            return f.apply null, (if pos == 0 then args else slice.call(args, pos))
+          f = f.apply null, slice.call(args, pos, pos + f.length)
       pos += oldF.length
     else
-      prev = if pos == 0 then args else slice.call args, pos
+      prev = slice.call args, pos
       partial = ->
-        if prev.length + arguments.length == f.length
-          f.apply null, concat.call prev, slice.call arguments
-        else
-          baseLeisureCall f, 0, concat.call prev, slice.call arguments
+        newArgs = concat.call prev, slice.call arguments
+        if newArgs.length == f.length then f.apply null, newArgs
+        else baseLeisureCall f, 0, newArgs
       partial.leisurePartial = true
-      return partial
+      return lazy partial
+  if pos != args.length then console.log "BAD FINAL POSITION IN LEISURE CALL, ARG LENGTH IS #{args.length} BUT POSITION IS #{pos}"
   f
 
 testCount = 0

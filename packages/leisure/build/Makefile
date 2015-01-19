@@ -11,6 +11,7 @@ CLIENT_GENERATED_PRELUDE=$(CLIENT_DIR)/19-generatedPrelude.js
 CLIENT_STD=$(CLIENT_DIR)/20-std.js
 CLIENT_SVG=$(CLIENT_DIR)/22-svg.js
 CLIENT_PARSE_AST=$(CLIENT_DIR)/29-parseAst.js
+CLIENT_BROWSER=$(CLIENT_DIR)/12-browser.js
 
 all: lib/generatedPrelude.js $(LEISURE_FILES) lib/browser.js
 
@@ -24,6 +25,7 @@ FRC:
 
 lib/browser.js: node_modules $(BROWSERIFY_SRC:%=lib/%.js)
 	$(NODE) node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@ -d
+	cp $(@) $(CLIENT_BROWSER)
 
 #	$(NODE) node_modules/browserify/bin/cmd.js src/yamlBundle.js --bare -o $@ -u buffer
 lib/yaml.js: node_modules $(YAML_SRC)

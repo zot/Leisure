@@ -55,7 +55,9 @@ misrepresented as being the original software.
   nameSub,
 } = require '16-ast'
 _ = (Leisure.require ? require) 'lodash.min'
-amt = (Leisure.require ? require)('persistent-hash-trie')
+{
+  Map,
+} = Immutable ? require '05-immutable'
 yaml = require 'yaml'
 {
   safeLoad,
@@ -753,24 +755,24 @@ define 'unescapeHtml', (h)-> unescapePresentationHtml rz(h)
 #######################
 
 makeHamt = (hamt)->
-  t = setDataType (->), 'hamt'
-  t.hamt = hamt
-  t.type = 'hamt'
-  t
+  hamt.leisureType = 'hamt'
+  hamt
 
-hamt = makeHamt amt.Trie()
+hamt = makeHamt Map()
+hamt.leisureDataType = 'hamt'
 
 define 'hamt', hamt
 
-define 'hamtWith', (key)->(value)->(hamt)-> makeHamt amt.assoc rz(hamt).hamt, rz(key), rz(value)
+define 'hamtWith', (key)->(value)->(hamt)-> makeHamt rz(hamt).set rz(key), rz(value)
+define 'hamtSet', (key)->(value)->(hamt)-> makeHamt rz(hamt).set rz(key), rz(value)
 
-define 'hamtFetch', (key)->(hamt)-> amt.get rz(hamt).hamt, rz(key)
+define 'hamtFetch', (key)->(hamt)-> rz(hamt).get rz(key)
 
 define 'hamtGet', (key)->(hamt)->
-  v = amt.get rz(hamt).hamt, rz(key)
+  v = rz(hamt).get rz(key)
   if v != undefined then some v else none
 
-define 'hamtWithout', (key)->(hamt)-> makeHamt amt.dissoc rz(hamt).hamt, rz(key)
+define 'hamtWithout', (key)->(hamt)-> makeHamt rz(hamt).remove rz(key)
 
 #define 'hamtOpts', (eq)->(hash)->
 #
@@ -784,40 +786,20 @@ define 'hamtWithout', (key)->(hamt)-> makeHamt amt.dissoc rz(hamt).hamt, rz(key)
 #
 #define 'hamtDissocOpts', (hamt)->(key)->(opts)-> amt.dissoc(rz(hamt), rz(key), rz(opts))
 
-define 'hamtPairs', (hamt)-> nextNode simpyCons rz(hamt).hamt, null
+define 'hamtPairs', (hamt)-> nextHamtPair rz(hamt).entries()
 
 if newCall
-  nextNode = (stack)->
-    if stack == null then return rz L_nil
-    node = stack.head
-    stack = stack.tail
-    switch node.type
-      when 'trie'
-        for k, child of node.children
-          stack = simpyCons child, stack
-        return nextNode stack
-      when 'value' then return lc rz(L_acons), (lz node.key), (lz node.value), (->nextNode stack)
-      when 'hashmap'
-        for key, value of node.values
-          stack = simpyCons value, stack
-        return nextNode stack
-      else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
+  nextHamtPair = (entries)->
+    if entries.size == 0 then rz L_nil
+    else
+      f = entries.first()
+      lc rz(L_acons), f[0], f[1], (-> nextHamtPair entries.rest)
 else
-  nextNode = (stack)->
-    if stack == null then return rz L_nil
-    node = stack.head
-    stack = stack.tail
-    switch node.type
-      when 'trie'
-        for k, child of node.children
-          stack = simpyCons child, stack
-        return nextNode stack
-      when 'value' then return rz(L_acons)(lz node.key)(lz node.value)(->nextNode stack)
-      when 'hashmap'
-        for key, value of node.values
-          stack = simpyCons value, stack
-        return nextNode stack
-      else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
+  nextHamtPair = (entries)->
+    if entries.size == 0 then rz L_nil
+    else
+      f = entries.first()
+      rz(L_acons)(f[0])(f[1])(-> nextHamtPair entries.rest)
 
 #################
 # YAML and JSON

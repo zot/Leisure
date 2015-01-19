@@ -72,11 +72,12 @@ lc = Leisure_call
   booleanFor,
   newConsFrom,
 } = require '17-runtime'
-_ = require 'lodash.min'
+_ = (Leisure.require ? require) 'lodash.min'
 
 consFrom = newConsFrom
 
-sm = (if module? then require else Leisure.require)("source-map")
+sm = if sourceMap? then sourceMap
+else (if module? then require else Leisure.require)("source-map")
 {
   SourceNode,
   SourceMapConsumer,
@@ -84,8 +85,8 @@ sm = (if module? then require else Leisure.require)("source-map")
 
 varNameSub = (n)-> "L_#{nameSub n}"
 
-#useArity = true
-useArity = false
+useArity = true
+#useArity = false
 
 collectArgs = (args, result)->
   for i in args
@@ -310,7 +311,7 @@ getLambdaArgs = (ast)->
     ast = getLambdaBody ast
   [args, ast]
 
-genArifiedLambda = (ast, names, uniq, arity)->
+XgenArifiedLambda = (ast, names, uniq, arity)->
   if arity < 2 then genLambda ast, names, uniq, 0
   else
     args = getNArgs(arity, ast).toArray()
@@ -348,6 +349,33 @@ genArifiedLambda = (ast, names, uniq, arity)->
         when 'dataType' then result = "setDataType(#{result}, '#{data}')"
       annoAst = getAnnoBody annoAst
     sn ast, result
+
+genArifiedLambda = (ast, names, uniq, arity)->
+  if arity < 2 then genLambda ast, names, uniq, 0
+  else
+    args = getNArgs(arity, ast).toArray()
+    #args = []
+    #for arg in getNArgs(arity, ast).toArray()
+    #  uniq = addUniq arg, names, uniq
+    #  names = cons arg, names
+    #  args.push uniqName arg, uniq
+    #console.log "FUNCTION ARITY #{arity} [#{args.join ', '}] #{ast}"
+    argList = _.map(args, ((x)-> 'L_' + x)).join ', '
+    mainFunc = sn ast, """
+      (function(#{argList}) {
+          return arguments.callee.length != arguments.length
+              ? Leisure_primCall(arguments.callee, 0, arguments)
+              : """, genUniq(getNthLambdaBody(ast, arity), names, uniq), ";\n})"
+    result = addLambdaProperties ast, (sn ast, mainFunc)
+    annoAst = ast
+    while annoAst instanceof Leisure_anno
+      name = getAnnoName annoAst
+      data = getAnnoData annoAst
+      switch name
+        when 'type' then result = sn ast, "setType(", result, ", '", data, "')"
+        when 'dataType' then result = sn ast, "setDataType(", result, ", '", data, "')"
+      annoAst = getAnnoBody annoAst
+    result
 
 getNthLambdaBody = (ast, n)->
   if n == 0 then ast

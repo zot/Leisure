@@ -343,7 +343,8 @@ compile = (file, cont)->
       try
         lastArgs = null
         result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
-          "module.exports = L_runMonads([\n  ",
+          #"module.exports = L_runMonads([\n  ",
+          "L_runMonads([\n  ",
           intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
           "]);\n"
         ]).toStringWithSourceMap(file: path.basename(bareJs))
