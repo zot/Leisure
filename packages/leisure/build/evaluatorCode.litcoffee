@@ -32,7 +32,6 @@
       output: ''
       write: (txt)-> @output += txt + '\n'
       presentValue: (v)-> String(v)
-      
 
     if Leisure.newCall
       executeText = (txt)->

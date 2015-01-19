@@ -44,6 +44,8 @@ Code
       unescapePresentationHtml,
     } = require '16-ast'
     {
+      Node,
+      newCall,
       resolve,
       lazy,
       defaultEnv,
@@ -556,7 +558,7 @@ Code
         # ensure trailing newline -- contenteditable doesn't like it, otherwise
         if text[text.length - 1] != '\n' then text = text + '\n'
         org = parseOrgMode text
-      else if text instanceof Org.Node then org = text
+      else if text instanceof Node then org = text
       if org
         markup = markupNode(org, true)
         [org, markup]

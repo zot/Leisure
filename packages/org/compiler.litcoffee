@@ -16,7 +16,7 @@ require './compiler'
 
 Sourcemap is [here](https://github.com/mozilla/source-map/blob/master/lib/source-map/source-node.js):
 
-    {sourceMap:{SourceNode, SourceMapGenerator, SourceMapConsumer}} = require?('./source-map.js') ? sourceMap
+    {sourceMap:{SourceNode, SourceMapGenerator, SourceMapConsumer}} = sourceMap ? require?('./source-map.js')
 
     # source map lines are 1-based, columns are 0-based
     compile = (txt, inputFile, outputFile)->
@@ -240,7 +240,7 @@ Sourcemap is [here](https://github.com/mozilla/source-map/blob/master/lib/source
     root.reload = reload
     root.Compiler = Compiler
 
-    if require? then module.exports = root
+    module?.exports = root
 
     #console.log 'compiler'
     #if require? then setTimeout (->test()), 1

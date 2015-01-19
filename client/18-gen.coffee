@@ -84,8 +84,8 @@ sm = (if module? then require else Leisure.require)("source-map")
 
 varNameSub = (n)-> "L_#{nameSub n}"
 
-useArity = true
-#useArity = false
+#useArity = true
+useArity = false
 
 collectArgs = (args, result)->
   for i in args
@@ -374,7 +374,7 @@ strRepeat = (string, n)->
     result += string
   result
 
-curryCall = (args, func)->
+(window ? global ? {}).curryCall = curryCall = (args, func)->
   f = func args[0]
   for i in [1...args.length]
     f = f args[i]

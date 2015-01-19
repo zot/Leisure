@@ -1196,6 +1196,12 @@ d label value expr = log (strCat (cons label (cons value nil))) expr
 dd label arg = d label arg arg
 
 ############
+## TESTING
+############
+
+testParse str = countedParseLine nil (head (countedLinesForFile 'parse' str))
+
+############
 ## SETTINGS
 ############
 

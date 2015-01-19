@@ -428,6 +428,7 @@ runMonad(resolve(L_define)("addStdTokenPacks")(1)("addStdTokenPacks morePacks = 
 runMonad(resolve(L_define)("addParseFilter")(1)("addParseFilter filt = bind (getValue 'parseFilters')\n  \\filters . setValue 'parseFilters' (append filters (cons filt nil))")(lazy(function(L_filt){return resolve(L_bind)(function(){return resolve(L_getValue)("parseFilters")})(lazy(function(L_filters){return resolve(L_setValue)("parseFilters")(function(){return resolve(L_append)(L_filters)(function(){return resolve(L_cons)(L_filt)(L_nil)})})}))})));
 runMonad(resolve(L_define)("d")(3)("d label value expr = log (strCat (cons label (cons value nil))) expr")(lazy(function(L_label){return function(L_value){return function(L_expr){return resolve(L_log)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)(L_label)(function(){return resolve(L_cons)(L_value)(L_nil)})})})(L_expr)}}})));
 runMonad(resolve(L_define)("dd")(2)("dd label arg = d label arg arg")(lazy(function(L_label){return function(L_arg){return resolve(L_d)(L_label)(L_arg)(L_arg)}})));
+runMonad(resolve(L_define)("testParse")(1)("testParse str = countedParseLine nil (head (countedLinesForFile 'parse' str))")(lazy(function(L_str){return resolve(L_countedParseLine)(L_nil)(function(){return resolve(L_head)(function(){return resolve(L_countedLinesForFile)("parse")(L_str)})})})));
 runMonad(resolve(L_setValue)("macroDefs")(L_nil));
 runMonad(resolve(L_setValue)("requiredFiles")(L_nil));
 runMonad(resolve(L_setValue)("tokenPacks")(L_nil));

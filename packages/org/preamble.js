@@ -1,5 +1,5 @@
 Org = {};
-Leisure = (typeof window != 'undefined' ? window.Leisure : {});
+Leisure = ((typeof window != 'undefined') && window.Leisure) || {};
 
 if (typeof require != 'undefined') {
     //console.log("require defined");

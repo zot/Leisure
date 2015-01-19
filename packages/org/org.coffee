@@ -32,7 +32,7 @@ misrepresented as being the original software.
 
 (window ? global).Org = root = require?('./preamble') ? Org
 
-_ = require?('./lazy') ? Lazy
+_ = Lazy ? require?('./lazy')
 
 todoKeywords = ['TODO', 'DONE']
 

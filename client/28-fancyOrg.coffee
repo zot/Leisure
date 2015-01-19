@@ -1,4 +1,5 @@
 {
+  Node,
   newCall,
   resolve,
   lazy,
@@ -326,7 +327,7 @@ markupOrgWithNode = (text, note, replace)->
     # ensure trailing newline -- contenteditable doesn't like it, otherwise
     if text[text.length - 1] != '\n' then text = text + '\n'
     org = parseOrgMode text
-  if text instanceof Org.Node then org = text
+  if text instanceof Node then org = text
   if org
     [org, markupNewNode org, null, null, note, replace]
   else
