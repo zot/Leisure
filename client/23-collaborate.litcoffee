@@ -388,7 +388,7 @@ Handle changes to the doc nodes
                 for c in conts
                   c?()
         if data.js
-          eval(data.js) resolve, (new Monad2 (env, c)->
+          eval(data.js) resolve, (-> new Monad2 (env, c)->
             c()
             finished()), env
         else
