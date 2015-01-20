@@ -1,4 +1,4 @@
-module.exports = L_runMonads([
+L_runMonads([
   function(){return resolve(L_newDefine)("afetch")(2)("afetch k alist  = alist (\\h t D . h \\key value . eq key k value (afetch k t)) nil")(lazy((function(L_k, L_alist) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)

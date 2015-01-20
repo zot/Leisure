@@ -1,4 +1,4 @@
-module.exports = L_runMonads([
+L_runMonads([
   function(){return resolve(L_newDefine)("assocGetWithDefault")(3)("assocGetWithDefault key defaultValue map = assoc key map id defaultValue")(lazy((function(L_key, L_defaultValue, L_map) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)

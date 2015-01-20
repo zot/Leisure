@@ -1,4 +1,4 @@
-module.exports = L_runMonads([
+L_runMonads([
   function(){return resolve(L_newDefine)("makeNode")(5)("makeNode svg width height rootX rootY = \\f . f svg width height rootX rootY")(lazy(setDataType((function(L_svg, L_width, L_height, L_rootX, L_rootY) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)

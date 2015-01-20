@@ -627,8 +627,10 @@ define 'js', (str)->
       cont left err
 
 define 'delay', (timeout)->
-  makeMonad (env, cont)->
+  new Monad2 (env, cont)->
     setTimeout (-> cont _unit), rz(timeout)
+
+define 'currentTime', new Monad2 (env, cont)-> cont Date.now
 
 define 'once', makeSyncMonad (->
   ran = false
@@ -785,7 +787,7 @@ define 'toJsonObject', (list)->
   obj = {}
   while !list.isNil()
     head = list.head()
-    obj[head.head()] = head.tail()
+    if !obj[head.head()]? then obj[head.head()] = head.tail()
     list = list.tail()
   obj
 
@@ -794,6 +796,7 @@ define 'jsonToYaml', (json)->
     right dump rz json
   catch err
     left err.stack
+
 
 #######################
 # Trampolines
@@ -930,6 +933,7 @@ define 'getFunction', (name)->
 root.requireFiles = requireFiles
 root._true = _true
 root._false = _false
+root._unit = _unit
 root.stateValues = values
 root.runMonad = runMonad
 root.runMonad2 = runMonad2

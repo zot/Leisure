@@ -14,9 +14,9 @@
     {
       safeLoad,
       dump,
-    } = require?('./yaml') ? Yaml
+    } = Yaml ? require?('./yaml')
 
-    _L = require?('./lazy') ? Lazy
+    _L = Lazy ? require?('./lazy')
 
     getCodeItems = (org)->
       if !getSourceNodeType org then {}

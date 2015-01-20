@@ -1,5 +1,7 @@
 * Short list -- announcement
-** TODO rewrite compiler to use a HAMT and remove monads from the whole thing
+** TODO make Leisure value sliders use the AST to handle nonnumeric data
+- notes should increment properly
+** TODO rewrite compiler to use a HAMT and remove monads from as much as possible
 ** TODO defer initial record processing until after Leisure finishes initializing
 ** TODO data observers
 - fire when data changes
