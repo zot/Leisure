@@ -1,4 +1,15 @@
 * Short list -- announcement
+** TODO probably too many calls to render and restorePosition during event processing
+- processChanges calls render (which saves the position)
+- changeStructure indirectly calls processChanges
+  - calls render at the end
+- editBlock calls changeStructure
+  - restores dom position manually
+** TODO Special feel: working in Leisure should feel special
+- Music and sounds for different themes
+- cartoon boinging sounds for errors
+- different sounds for changing different types of blocks
+** TODO isometric tile game doc
 ** TODO make Leisure value sliders use the AST to handle nonnumeric data
 - notes should increment properly
 ** TODO rewrite compiler to use a HAMT and remove monads from as much as possible

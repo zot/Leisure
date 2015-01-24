@@ -172,9 +172,8 @@ Code
     keyCombos = []
     prevKeybinding = curKeyBinding = null
     root.modCancelled = false
-    keyCommands = []
     root.ignoreModCheck = 0
-    
+
     breakPoint = ->
       console.log "break"
     
@@ -551,13 +550,15 @@ Code
       [node, result] = markupOrgWithNode text
       result
     
+    isNode = (n)-> n instanceof Node || n instanceof Text
+
     markupOrgWithNode = (text, note, replace)->
       nodes = {}
       if typeof text == 'string'
         # ensure trailing newline -- contenteditable doesn't like it, otherwise
         if text[text.length - 1] != '\n' then text = text + '\n'
         org = parseOrgMode text
-      else if text instanceof Node then org = text
+      else if isNode text then org = text
       if org
         markup = markupNode(org, true)
         [org, markup]
@@ -725,15 +726,13 @@ Code
         s = getSelection()
         r = s.rangeCount > 0 && s.getRangeAt(0)
         root.currentBlockIds = blockIdsForSelection s, r
-        el = r.startContainer
-        par = el.parentNode
         [bound, checkMod] = findKeyBinding e, div, r
         if bound then root.modCancelled = !checkMod
         else
           root.modCancelled = false
           if c == ENTER then handleInsert e, s, '\n'
-          else if c == BS then backspace div, e, s, r, true
-          else if c == DEL then del div, e, s, r, true
+          else if c == BS then backspace div, e, s, r
+          else if c == DEL then del div, e, s, r
           else if modifyingKey c, e then handleInsert e, s
     
     ###
@@ -897,12 +896,12 @@ Code
       selectRange r
       actualSelectionUpdate()
     
-    backspace = (parent, event, sel, r, allowBlockCrossing)->
+    backspace = (parent, event, sel, r)->
       holder = $(sel.anchorNode).closest('[data-shared]')[0]
       root.currentBlockIds = [(getBlock holder.id)._id]
       handleDelete event, sel, false, (text, pos)-> true
     
-    del = (parent, event, sel, r, allowBlockCrossing)->
+    del = (parent, event, sel, r)->
       holder = $(sel.anchorNode).closest('[data-shared]')[0]
       root.currentBlockIds = [(getBlock holder.id)._id]
       handleDelete event, sel, true, (text, pos)-> true
@@ -956,14 +955,6 @@ Code
       if clipboardKey || (!e.leisureShiftkey && !root.modCancelled && modifyingKey((e.charCode || e.keyCode || e.which), e))
         root.orgApi.checkSourceMod div, ignoreModCheck
         clipboardKey = null
-      runKeyCommands()
-    
-    runKeyCommands = ->
-      for cmd in keyCommands
-        cmd()
-      keyCommands = []
-    
-    queueKeyCommand = (cmd)-> keyCommands.push cmd
     
     noFollowingText = (t)->
       next = t.nextSibling
@@ -1236,10 +1227,10 @@ Code
       if r instanceof Range then r
       else
         r2 = document.createRange()
-        container = if r instanceof Node then r else if r instanceof Array then r[0] else r.startContainer
+        container = if isNode r then r else if r instanceof Array then r[0] else r.startContainer
         if !container then null
         else
-          offset = if r instanceof Node then startOffset else if r instanceof Array then r[1] else r.startOffset
+          offset = if isNode r then startOffset else if r instanceof Array then r[1] else r.startOffset
           r2.setStart container, offset
           if endNode then r2.setEnd endNode, endOffset
           else r2.collapse true
@@ -1762,7 +1753,6 @@ Code
     root.SelectionDescriptor = SelectionDescriptor
     root.currentSelectionDescriptor = currentSelectionDescriptor
     root.changeSavedSelectionOffset = changeSavedSelectionOffset
-    root.queueKeyCommand = queueKeyCommand
     root.updateSelection = updateSelection
     root.breakPoint = breakPoint
     root.textPositionForDomCursor = textPositionForDomCursor

@@ -65,8 +65,6 @@ yaml = root.yaml
   handleInsert,
   domCursorForCaret,
   textPositionForDomCursor,
-  updateSelection,
-  queueKeyCommand,
   SelectionDescriptor,
   checkLast,
   changeSavedSelectionOffset,
@@ -178,7 +176,6 @@ emptyPresenter =
   isRelated: -> false
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
-keyupSelectionDescriptor = null
 
 class FancySelectionDescriptor
   constructor: (parent)->
@@ -891,7 +888,7 @@ createNextValueSlider = (node, slideFunc, cur)->
     createNextValueSliders node, slideFunc, cur), 1
 
 leisureNumberSlider = (numberSpan)->
-  orgParent = getOrgParent numberSpan
+  orgParent = $(numberSpan).closest('[data-org-results]')[0]
   orgType = orgParent.getAttribute 'data-org-results'
   computing = false
   pending = false
@@ -1220,34 +1217,25 @@ bindContent = (div)->
       setCurKeyBinding null
   div.addEventListener 'mouseup', (e)-> adjustSelection e
   div.addEventListener 'keydown', handleKey div
-  div.addEventListener 'keypress', (e)-> updateSelection()
-  oldKeyup = handleKeyup div
-  div.addEventListener 'keyup', (e)->
-    keyupSelectionDescriptor?.restore()
-    keyupSelectionDescriptor = null
-    oldKeyup e
+  div.addEventListener 'keyup', handleKeyup div
 
 handleKey = (div)->(e)->
-  if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
-    return
-  root.modCancelled = false
-  curPos = -1
-  c = (e.charCode || e.keyCode || e.which)
-  if !addKeyPress e, c then return
-  s = getSelection()
-  r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
-  root.currentBlockIds = blockIdsForSelection s, r
-  [bound, checkMod] = findKeyBinding e, div, r
-  if bound then root.modCancelled = !checkMod
-  else
+  if !(e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id')
     root.modCancelled = false
-    n = s.focusNode
-    offset = s.anchorOffset
-    el = r.startContainer
-    if c == ENTER then handleInsert e, s, newLinesForNode el
-    else if c == BS then fancyBackspace div, e, s, r
-    else if c == DEL then fancyDel div, e, s, r
-    else if modifyingKey c, e then handleInsert e, s
+    curPos = -1
+    c = (e.charCode || e.keyCode || e.which)
+    if !addKeyPress e, c then return
+    s = getSelection()
+    r = s.rangeCount > 0 && s.getRangeAt(0)
+    root.currentBlockIds = blockIdsForSelection s, r
+    [bound, checkMod] = findKeyBinding e, div, r
+    if bound then root.modCancelled = !checkMod
+    else
+      root.modCancelled = false
+      if c == ENTER then handleInsert e, s, newLinesForNode r.startContainer
+      else if c == BS then fancyBackspace div, e, s, r
+      else if c == DEL then fancyDel div, e, s, r
+      else if modifyingKey c, e then handleInsert e, s
 
 childIndex = (el)->
   count = 0
@@ -2004,8 +1992,9 @@ createEditToggleButton = (doc)->
   for node in getMainContent $(doc)
     id = if $(node).is '.maincontent' then node.parentElement.id else node.id
     button = $("<button class='toggle_edit' contenteditable='false' onclick='Leisure.toggleEdit(\"#{id}\")'><i class='fa fa-glass'></i></button>")
-    if $(node).is '.maincontent' then button.insertBefore(node)
-    else $(node).prepend button
+    if $(node).is '.maincontent'
+      if !$(node).prev().is('.toggle_edit') then button.insertBefore(node)
+    else if !$(node).children().first().is('.toggle_edit') then $(node).prepend button
 
 isPlainEditing = (node)-> $(slideParent(node)).is "[data-edit-mode='plain']"
 
