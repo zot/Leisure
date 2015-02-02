@@ -1,4 +1,5 @@
 * Short list -- announcement
+** TODO make appendData autoappend slide if it doesn't exist
 ** TODO add ids to data blocks so they are preserved on checkpoint and links continue to work
 ** TODO - code scope -- set of code boxes retrieved from doc
 Need this for the game so you can see things as you play

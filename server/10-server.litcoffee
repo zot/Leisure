@@ -56,14 +56,14 @@ Meteor-based collaboration -- server side
       edit: (name, contents)-> loadDoc name, true, contents
       incrementField: (docId, path, amount)->
         components = path.split /\./
-        r = if components.length < 2 then error: "No fields in path"
-        else if !(doc = docs[docId]) then error: "No document named #{docId}"
-        else if isNaN(Number(amount)) then error: "Increment is not a number: #{amount}"
-        else if !(dataId = doc.namedBlocks[components[0]]) then error: "No data named #{components[0]}"
+        r = if components.length < 2 then error: "No fields in path", type: "no fields"
+        else if !(doc = docs[docId]) then error: "No document named #{docId}", type: "bad document"
+        else if isNaN(Number(amount)) then error: "Increment is not a number: #{amount}", type: "bad increment"
+        else if !(dataId = doc.namedBlocks[components[0]]) then error: "No data named #{components[0]}", type: "bad name"
         else
           orig = doc.findOne dataId
-          if !orig then error: "Block does not exist: #{dataId}"
-          else if !orig.yaml? then error: "Block is not yaml data: #{dataId}"
+          if !orig then error: "Block does not exist: #{dataId}", type: "bad id"
+          else if !orig.yaml? then error: "Block is not yaml data: #{dataId}", type: "bad block"
           else
             data = orig.yaml
             i = 1
@@ -75,7 +75,7 @@ Meteor-based collaboration -- server side
               data = null
             if !data
               console.log "Path not found: #{components[0...i].join '.'}\n#{dump orig}"
-              error: "Path not found: #{components[0...i].join '.'}"
+              error: "Path not found: #{components[0...i].join '.'}", type: "bad path"
             else
               data[components[i]] = result = (data[components[i]] ? 0) + amount
               orig.text = orig.text.substring(0, orig.codePrelen) + dump(orig.yaml, orig.codeAttributes ? {}) + orig.text.substring orig.text.length - orig.codePostlen
@@ -84,13 +84,13 @@ Meteor-based collaboration -- server side
         r
       appendToField: (docId, path, item)->
         components = path.split /\./
-        r = if components.length < 2 then error: "No fields in path"
-        else if !(doc = docs[docId]) then error: "No document named #{docId}"
-        else if !(dataId = doc.namedBlocks[components[0]]) then error: "No data named #{components[0]}"
+        r = if components.length < 2 then error: "No fields in path", type: "bad fields"
+        else if !(doc = docs[docId]) then error: "No document named #{docId}", type: "bad document"
+        else if !(dataId = doc.namedBlocks[components[0]]) then error: "No data named #{components[0]}", type: ""
         else
           orig = doc.findOne dataId
-          if !orig then error: "Block does not exist: #{dataId}"
-          else if !orig.yaml? then error: "Block is not yaml data: #{dataId}"
+          if !orig then error: "Block does not exist: #{dataId}", type: "bad id"
+          else if !orig.yaml? then error: "Block is not yaml data: #{dataId}", type: "bad block"
           else
             data = orig.yaml
             i = 1
@@ -102,7 +102,7 @@ Meteor-based collaboration -- server side
               data = null
             if !data
               console.log "Path not found: #{components[0...i].join '.'}\n#{dump orig}"
-              error: "Path not found: #{components[0...i].join '.'}"
+              error: "Path not found: #{components[0...i].join '.'}", type: "bad path"
             else
               data[components[i]].push item
               orig.text = orig.text.substring(0, orig.codePrelen) + dump(orig.yaml, orig.codeAttributes ? {}) + orig.text.substring orig.text.length - orig.codePostlen
@@ -110,8 +110,8 @@ Meteor-based collaboration -- server side
               data[components[i]]
         r
       addBlockAfter: (docId, id, block)->
-        if !(doc = docs[docId]) then error: "No document named #{docId}"
-        else if !(before = doc.findOne id) then error: "No block: #{id}"
+        if !(doc = docs[docId]) then error: "No document named #{docId}", type: "bad document"
+        else if !(before = doc.findOne id) then error: "No block: #{id}", type: "bad id"
         else
           if !block._id then block._id = new Meteor.Collection.ObjectID().toJSONValue()
           after = if before.next then doc.findOne before.next

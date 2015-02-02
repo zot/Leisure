@@ -166,6 +166,9 @@ test = (expected, actual)->
   if errors.length then errors else null
 
 serverIncrement = (path, amount, cont)->
+  block = root.getBlockNamed path.split(/\./)[0]
+  if block.origin != root.currentDocument._name
+    return root.storeBlock block, -> serverIncrement path, amount, cont
   if typeof path == 'function' then cont "Error, no path given to serverIncrement"
   else if typeof amount == 'function' then cont "Error, no amount given to serverIncrement"
   else Meteor.call 'incrementField', root.currentDocument.leisure.name, path, amount, cont

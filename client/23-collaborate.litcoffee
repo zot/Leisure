@@ -137,7 +137,7 @@ Handle changes to the doc nodes
                   oldCont?()
           else if doc == root.currentDocument then valid = false
           continue
-        if item.type != 'removed' && !isCurrent item.data then continue
+        if !ignoreLocal && item.type != 'removed' && !isCurrent item.data then continue
         if ignoreLocal || !!item.data.local == !!local
           root.changeContext = item.context ? {}
           if !ignoreLocal && item.data.local && item.type == 'added' && (old = doc.leisure.master.findOne item.data._id)
@@ -161,7 +161,7 @@ Handle changes to the doc nodes
       for item in batch
         if item.data.info? && !item.removed
           doc.leisure.info = item.data
-        else if isCurrent item.data
+        else if ignoreLocal || isCurrent item.data
           work = do (item)-> ->
             if ignoreLocal || !!item.data.local == !!local
               if !item.editing && !norender
@@ -629,14 +629,15 @@ data.
         cur.yaml = value
         storeBlock cur
 
-    storeBlock = (block)->
+    storeBlock = (block, cont)->
       if !block.local && block.origin? && block.origin != root.currentDocument._name && !(root.currentDocument.findOne block._id)
         if slide = findImportSlide block.origin
           block.origin = root.currentDocument._name
-          addBlockAfter lastBlockForSlide(slide), block
+          addBlockAfter lastBlockForSlide(slide), block, cont
       else
         updateItem overrides = new Overrides(), block
         commitOverrides overrides
+        cont?()
 
     findImportSlide = (docName)->
       if node = $("[data-property-import='#{docName}']")[0] then node.id
@@ -1261,13 +1262,15 @@ You can also mark any piece of data as local.
             if block.prev && !checkedNext[block.prev]
               checkedNext[block.prev] = true
               assert prev = (getItem overrides, block.prev), "Missing prev for", id
-              assert prev.next == id, "Bad prev/next for", id, ' / ', block.prev
+              if block.origin == prev.origin
+                assert prev.next == id, "Bad prev/next for", id, ' / ', block.prev
           if !checkedNext[id]
             checkedNext[id] = true
             if block.next && !checkedNext[block.next]
               checkedNext[block.next] = true
               assert next = (getItem overrides, block.next), "Missing next for", id
-              assert next.prev == id, "Bad prev/next for", block.next, " / ", id
+              if block.origin == next.origin
+                assert next.prev == id, "Bad prev/next for", block.next, " / ", id
       assert getItem(overrides, overrides.head), "Missing head: ", overrides.head
 
     commitOverrides = (overrides, verbose)->
@@ -1287,25 +1290,14 @@ You can also mark any piece of data as local.
       for id, item of overrides.updates
         removes = {}
         removed = false
-        modDoc = doc
-        if !(item.local && !doc.findOne(id)?.local) # item is not newly local
-          if item.local
-            modDoc = localDoc
-            putToLocalStore doc, item, nullHandlers, trans
-          else expungeLocalData doc, id # remove extraneous local data
-        old = modDoc.findOne id
-        if !old then modDoc.insert item
+        old = getBlock id
+        if item.local
+          root.currentDocument.leisure.localCollection.upsert id, item
+          putToLocalStore doc, item, nullHandlers, trans
         else
-          for k of old
-            if !item[k]?
-              removes[k] = ''
-              removed = true
-          if removed
-            i = {}
-            for k, v of item
-              if k != '_id' && !removes[k]? then i[k] = v
-            modDoc.update id, $set: i, $unset: removes
-          else modDoc.update id, item
+          if old?.local
+            expungeLocalData doc, id # remove extraneous local data
+          doc.upsert id, item
       committing = false
 
     expungeLocalData = (doc, id)->
@@ -1477,6 +1469,7 @@ You can also mark any piece of data as local.
     root.mapDocumentBlocks = mapDocumentBlocks
     root.isCurrent = isCurrent
     root.appendData = appendData
+    root.storeBlock = storeBlock
     root.stdCompare = stdCompare
     root.docOrg = docOrg
     root.dataTypeIds = dataTypeIds

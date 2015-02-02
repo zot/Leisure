@@ -364,7 +364,7 @@ clearCodeAttributes = (node, attrs...)->
       edited top[0], true
 
 markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
-  if (org.nodeId && isHidden org.nodeId) || org.offset <= lastOrgOffset then ''
+  if (org.shared && isHidden org.nodeId) || org.offset <= lastOrgOffset then ''
   else if org instanceof Results
     pos = org.contentPos
     text = org.text.substring pos
