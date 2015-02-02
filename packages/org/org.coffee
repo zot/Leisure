@@ -359,6 +359,7 @@ class ListItem extends Meat
     obj
   getParent: ->
     if @level == 0 then null
+    li = this
     while li = li.getPreviousListItem()
       if li.level < @level then return li
   getPreviousListItem: ->

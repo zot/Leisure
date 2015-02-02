@@ -165,6 +165,12 @@ test = (expected, actual)->
   test [1, 2, 3, 4], Leisure_call (Leisure_call ((a, b, c, d)-> [a, b, c, d]), 1, 2), 3, 4
   if errors.length then errors else null
 
+serverIncrement = (path, amount, cont)->
+  if typeof path == 'function' then cont "Error, no path given to serverIncrement"
+  else if typeof amount == 'function' then cont "Error, no amount given to serverIncrement"
+  else Meteor.call 'incrementField', root.currentDocument.leisure.name, path, amount, cont
+
+root.serverIncrement = serverIncrement
 root.defaultEnv = defaultEnv
 root.readFile = readFile
 root.readDir = readDir

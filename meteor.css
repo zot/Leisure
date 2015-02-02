@@ -1,1 +1,4 @@
 /* CSS declarations go here */
+.hidden {
+        display: none;
+}

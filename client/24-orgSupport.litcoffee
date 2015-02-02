@@ -350,6 +350,7 @@ Code
     toggleShowHidden = ->
       body = $(document.body)
       body.toggleClass 'show-hidden'
+      if $(document.body).hasClass 'show-hidden' then redrawDoc()
       applyShowHidden()
     
     applyLeisureTooltips = ->
@@ -546,11 +547,15 @@ Code
         if root.currentDocument then root.currentMode.useNode $(parentSpec)[0], sourceSpec, docOrg()
         else root.currentMode.useNode $(parentSpec)[0], sourceSpec
     
+    redrawDoc = ->
+      root.restorePosition parentSpec, ->
+        root.currentMode.useNode $(parentSpec)[0], sourceSpec, docOrg()
+
     markupOrg = (text)->
       [node, result] = markupOrgWithNode text
       result
     
-    isNode = (n)-> n instanceof Node || n instanceof Text
+    isNode = (n)-> n instanceof Node || n instanceof Text || n instanceof Element
 
     markupOrgWithNode = (text, note, replace)->
       nodes = {}
@@ -573,7 +578,7 @@ Code
       else ''
       if noResults org then extra += " data-no-results"
       if org.shared then extra += " data-shared='#{org.shared}' data-nodecount='#{org.nodeCount}'"
-      if org.local then extra += " data-local=true"
+      if org.local then extra += " data-local='true'"
       t = org.allTags()
       if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
       if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{escapeAttr org.info}'"
@@ -1328,9 +1333,9 @@ Code
       else
         parent.innerHTML = ''
         parent.appendChild createNode orgText
-        inserted = result = parent.firstElementChild
+        inserted = parent.firstElementChild
       activateScripts inserted
-      result
+      inserted
     
     checkEnterReparse = (parent, r)->
       if (result = getCollapsible r.startContainer) then reparse parent
@@ -1555,6 +1560,7 @@ Code
     root.orgApi = null
     
     orgNotebook =
+      isHiddenBlock: -> false
       useNode: (node, source, content)->
         sourceDiv = source
         root.orgApi = @
@@ -1762,6 +1768,8 @@ Code
     root.editBlock = editBlock
     root.getEventChar = getEventChar
     root.templateExpansions = templateExpansions
+    root.redrawDoc = redrawDoc
+    root.isNode = isNode
     
     # evil mod of Templating
     Templating.nonOrg = nonOrg

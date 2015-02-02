@@ -1,4 +1,3 @@
-@import "jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css";
 @import "http://netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.css";
 body.leisureError > #login,
 body.leisureError > #leisure_bar,
@@ -938,7 +937,12 @@ body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
 }
 .org-fancy body,
 body {
-    position: relative;
+    /*position: relative;*/
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
     margin: 0;
     font-family: Inconsolata;
     /*font-size: large;*/
@@ -1040,6 +1044,7 @@ body {
 }
 [data-edit-mode='fancy'] [data-shared='code'] {
     display: inline-block;
+    vertical-align: top;
 }
 [data-edit-mode='fancy'] [data-lang='yaml'] {
     border: 0px;
@@ -1213,7 +1218,7 @@ button#team_cthulhu:hover {
 #panel {
     padding-top: 2px;
     /* top: 45px; */
-    position: relative;
+    /*position: relative;*/
 }
 #nextSlide, #prevSlide {
     top: 80px;

@@ -128,6 +128,8 @@ yaml = root.yaml
   plainOrg,
   blockElementForNode,
   executeSource,
+  redrawDoc,
+  isNode,
 } = require '24-orgSupport'
 {
   redrawAllIssues,
@@ -153,6 +155,9 @@ yaml = root.yaml
   incRenderCount,
   viewTypeData,
   viewIdTypes,
+  mapDocumentBlocks,
+  importedDocs,
+  isCurrent,
 } = require '23-collaborate'
 {
   nodeText,
@@ -323,7 +328,7 @@ markupOrgWithNode = (text, note, replace)->
     # ensure trailing newline -- contenteditable doesn't like it, otherwise
     if text[text.length - 1] != '\n' then text = text + '\n'
     org = parseOrgMode text
-  if text instanceof Node then org = text
+  if isNode text then org = text
   if org
     [org, markupNewNode org, null, null, note, replace]
   else
@@ -359,7 +364,7 @@ clearCodeAttributes = (node, attrs...)->
       edited top[0], true
 
 markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
-  if org.offset <= lastOrgOffset then ''
+  if (org.nodeId && isHidden org.nodeId) || org.offset <= lastOrgOffset then ''
   else if org instanceof Results
     pos = org.contentPos
     text = org.text.substring pos
@@ -490,7 +495,7 @@ markupHeadline = (org, delay, note, replace)->
   editMode = if org.level == 1 then " data-edit-mode='fancy'" else ""
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='headline-content'><div class='textborder' contenteditable='false'></div><div class='headline-content'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span></div></div><span class='meat-break'>\n</span></span>#{optImport}#{markupGuts org, checkStart start, org.text}</span></div>"
+      "#{startNewSlide replace, org}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='headline-content'><div class='textborder' contenteditable='false'></div><div class='headline-content'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span></div></div><span class='meat-break'>\n</span></span>#{optImport}#{markupGuts org, checkStart start, org.text}</span></div>"
     else "#{startNewSlide()}<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='headline-content'><span class='hidden'>#{org.text}</span></span></span>#{optImport}#{markupGuts org, checkStart start, org.text}</div>"
   else
     slide = if org.text.trim() != ''
@@ -1151,18 +1156,25 @@ matchLineAt = (parent, pos)->
   if end == -1 then end = text.length
   matchLine text.substring start + 1, end
 
-slideStart = -> "<div class='slideholder'>"
+slideStart = (headline)-> "<div class='slideholder'#{headlineSlideProperties headline}>"
+
+headlineSlideProperties = (headline)->
+  props = ''
+  if headline.level == 1
+    for k of headline?.properties ? {}
+      props += "data-slide-property-#{k}='#{headline.properties[k]}'"
+  if props then " " + props else ''
 
 slideEnd = -> "</div>"
 
 firstSlideFlag = false
 
-startNewSlide = (replace)->
+startNewSlide = (replace, headline)->
   if replace then ''
   else if firstSlideFlag
     firstSlideFlag = false
     ''
-  else "#{slideEnd()}#{slideStart()}"
+  else "#{slideEnd()}#{slideStart headline}"
 
 createNoteShadows = ->
   for node in $('.slideholder')
@@ -1195,7 +1207,7 @@ markupGuts = (org, start)->
       if c instanceof Headline then hline = 'inner'
       (hlineFor c, h) + markupNode(c, s)).join "") + (if org.level == 0 then "<hr class='last'>" else '')
     if org.level == 0
-      "#{slideStart()}#{guts}#{slideEnd()}"
+      "#{slideStart org.children[0]}#{guts}#{slideEnd()}"
     else guts
 
 hlineFor = (headline, hline)->
@@ -1215,7 +1227,6 @@ bindContent = (div)->
   div.addEventListener 'mousedown', (e)->
     if replaceUnrelatedPresenter e.target, emptyPresenter
       setCurKeyBinding null
-  div.addEventListener 'mouseup', (e)-> adjustSelection e
   div.addEventListener 'keydown', handleKey div
   div.addEventListener 'keyup', handleKeyup div
 
@@ -1703,19 +1714,30 @@ renderLink = (node, data)->
     .attr 'data-view-id', data._id
 
 updateIndexViews = (index)->
-  for link in $("[data-view-indexes='#{index}']")
-    renderLink link, getBlock link.getAttribute "data-view-id"
+  for view in $("[data-org-index~='#{index}']").closest("[data-view]")
+    type = $(view).attr 'data-view-type'
+    if block = getBlock $(view).attr 'data-view-block'
+      viewMarkup[type] block.yaml, $(view), false, block, true, $(view).closest("[data-view-link]")
 
-updateViews = (id)->
+
+updateViews = (id, allowInplaceUpdate)->
   if block = getBlock id
-    for link in $("[data-view-ids~='#{id}']")
-      if !root.changeContext.blockViews?.is(link)
-        for view in $(link).find("[data-view-block='#{id}']")
-          if !root.changeContext.blockViews?.is(view)
-            type = $(view).attr 'data-view-type'
-            viewMarkup[type] block.yaml, $(view), false, block, true, link
     if block.language?.toLowerCase() == 'css'
-      $("##{id} [name=css]").html codeString block
+      $("##{id} style").html codeString block
+    else if allowInplaceUpdate
+      updateViewsInPlace block
+    else
+      for link in $("[data-view-ids~='#{id}']")
+        if !root.changeContext.blockViews?.is(link)
+          for view in $(link).find("[data-view-block='#{id}']")
+            if !root.changeContext.blockViews?.is(view)
+              type = $(view).attr 'data-view-type'
+              viewMarkup[type] block.yaml, $(view), false, block, true, link
+
+updateViewsInPlace = (block)->
+  for view in $("[data-view-block='#{block._id}']")
+    type = $(view).attr 'data-view-type'
+    viewMarkup[type] block.yaml, $(view), false, block, true, $(view).closest("[data-view-link]")
 
 viewBlock = (el)->
   if id = $(el).closest('[data-view-block]').attr('data-view-block')
@@ -1754,7 +1776,7 @@ Handlebars.registerHelper 'view', (item, name, options)->
     options = name
     name = null
   data = if typeof item == 'string'
-    block = getBlockNamed item
+    block = getBlock(item) || getBlockNamed(item)
     block?.yaml
   else if item?.yaml && item._id
     block = item
@@ -1797,6 +1819,15 @@ addViewId = ->
 changeInputText = (field, id)->
   console.log "CHANGE DATA"
 
+isHidden = (target)->
+  if target && !$(document.body).hasClass('show-hidden')
+    data = if isNode target then target.id else target
+    root.currentDocument.leisure.parentCache.isHidden data
+
+isHiddenBlock = (block)->
+  if !$(document.body).hasClass('show-hidden')
+    root.currentDocument.leisure.parentCache.isHidden block
+
 fancyOrg =
   __proto__: orgNotebook
   name: 'fancy'
@@ -1804,7 +1835,9 @@ fancyOrg =
   markupOrg: markupOrg
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
+  isHiddenBlock: isHiddenBlock
   reparse: (parent, text, target)->
+    if isHidden target then return
     if isPlainEditing target
       t = $(plainOrg.reparse parent, text, target)
       if t.is("[data-org-headline='1']")
@@ -1889,8 +1922,9 @@ fancyOrg =
         bindAllWidgets el
         for view in el.add el.find '[data-view-type]'
           type = view.getAttribute 'data-view-type'
-          for id in controllerDescriptorIds[type] ? []
-            codeContexts[id]?.initializeView? view, data, block._id
+          block = getBlock view.getAttribute 'data-view-block'
+          for cid in controllerDescriptorIds[type] ? []
+            codeContexts[cid]?.initializeView? view, block.yaml, block._id
       dataType = type.match /([^/]*)\/?(.*)?/
       restorePosition null, ->
         vBlock = getBlock id
@@ -1910,13 +1944,14 @@ fancyOrg =
         $(node).addClass('hidden-slide')
     applySlides()
   checkSourceMod: checkSourceMod
-  updateBlock: (block)->
+  updateBlock: (block, allowInplaceUpdate)->
     lang = block.language?.toLowerCase()
     attr = block.codeAttributes
     restorePosition null, ->
       if lang in ['css', 'yaml']
-        updateViews block._id
-        if index = block.codeAttributes?.index then updateIndexViews index.split(' ')[0]
+        updateViews block._id, allowInplaceUpdate
+        if !allowInplaceUpdate && index = block.codeAttributes?.index
+          updateIndexViews index.split(' ')[0]
       else if lang == 'html' && attr?.defview
         incRenderCount()
         root.orgApi.defineView block._id
@@ -1971,6 +2006,35 @@ fixupHtml = (parent, note)->
     displayCodeView node
   for node in findOrIs $(parent), '[data-org-comments]'
     setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
+  if parent.getAttribute('data-org-headline') == '0' then processHiddenNodes()
+
+processHiddenNodes = ->
+  for name, doc of importedDocs
+    mapDocumentBlocks doc, (block)->
+      if block.language?.toLowerCase() == 'css' && isCurrent block
+        id = block._id
+        if !$("##{id}").length
+          $("[maindoc]").append $("<div id='#{id}'><style name='css'></style></div>")
+        updateViews id
+  if !(document.body.classList.contains 'show-hidden') && (parentCache = root.currentDocument?.leisure.parentCache)
+    mapDocumentBlocks root.currentDocument, (block)->
+      if parentCache.isHidden block
+        if block.language?.toLowerCase() == 'css'
+          id = block._id
+          if !$("##{id}").length
+            $("[maindoc]").append $("<div id='#{id}'><style name='css'></style></div>")
+          updateViews id
+
+findSlideId = (name)->
+  if sl = $('[data-org-headline-text="Chats"]').prop 'id' then sl
+  else
+    for slide of root.currentDocument.leisure.parentCache.hidden
+      block = getBlock slide
+      if block.text.substring(1).trim() == name then return block
+    slide = null
+    mapDocumentBlocks root.currentDocument, (block)->
+      if !slide && block.type == 'headline' && block.level == 1 && block.text.substring(1).trim() == name then slide = block
+    slide
 
 displayCodeView = (node)->
   if node
@@ -2055,3 +2119,4 @@ root.addStyles = addStyles
 root.noRenderWhile = noRenderWhile
 root.fancyEnv = orgEnv
 root.unescapeString = unescapeString
+root.findSlideId = findSlideId

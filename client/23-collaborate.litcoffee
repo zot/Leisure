@@ -45,11 +45,6 @@ Meteor-based collaboration -- client side
     root = require '15-base'
     _ = require 'lodash.min'
     Nil = resolve L_nil
-    viewTypeData = {}
-    viewIdTypes = {}
-    dataTypeIds = {}
-    controllerIdDescriptor = {}
-    controllerDescriptorIds = {}
     committing = false
     editing = false
     ignore = ->
@@ -61,10 +56,14 @@ Meteor-based collaboration -- client side
     observingDoc = {}
     importedDocs = {}
     universalObservers = {}
-    namedBlocks = {}
     context = L()
-    allIndexes = {}
     indexes = {}
+    namedBlocks = {}
+    controllerIdDescriptor = {}
+    controllerDescriptorIds = {}
+    viewTypeData = {}
+    viewIdTypes = {}
+    dataTypeIds = {}
     updateAll = false
     scriptCounter = 0
     valid = true
@@ -120,13 +119,15 @@ Handle changes to the doc nodes
 
     textLevel = Number.MAX_SAFE_INTEGER
 
-    processChanges = (doc, batch, local, norender, initial, cont)->
+    processChanges = (doc, batch, local, norender, initial, cont, ignoreLocal)->
       incRenderCount()
       if !norender then rc = createRenderingComputer()
       updated = {}
       for item in batch
+        doc.leisure.parentCache?.update item.type, item.data, item.oldData
         if item.data.info?
           if item.type != 'removed'
+            if doc.leisure.info?._id != item.data._id then return setTimeout (->newDoc()), 100
             doc.leisure.info = item.data
             if !valid && doc == root.currentDocument
               do (oldCont = cont)->
@@ -137,12 +138,12 @@ Handle changes to the doc nodes
           else if doc == root.currentDocument then valid = false
           continue
         if item.type != 'removed' && !isCurrent item.data then continue
-        if !!item.data.local == !!local
+        if ignoreLocal || !!item.data.local == !!local
           root.changeContext = item.context ? {}
-          if item.data.local && item.type == 'added' && (old = doc.leisure.master.findOne item.data._id)
+          if !ignoreLocal && item.data.local && item.type == 'added' && (old = doc.leisure.master.findOne item.data._id)
             item.type = 'changed'
             item.oldData = old
-          if !item.data.local then expungeLocalData doc.leisure.master, item.data._id
+          if !ignoreLocal && !item.data.local then expungeLocalData doc.leisure.master, item.data._id
           if item.type == 'added' && oldData = overridingIndexedItem doc, item.data
             changeIndex doc, item.data, oldData
           else if item.type == 'removed' && oldData = overridingIndexedItem doc, item.data
@@ -153,16 +154,16 @@ Handle changes to the doc nodes
             when 'removed' then removeIndex doc, item.data
           if item.type in ['changed', 'removed']
             d = if item.type == 'changed' then item.oldData else item.data
-            if d.codeName? && (item.type == 'removed' || d.codeName != item.data.codeName)
+            if d.codeName? && (item.type == 'removed' || d.codeName != item.data.codeName) && namedBlocks[d.codeName] == d._id
               delete namedBlocks[d.codeName]
-        if item.type in ['changed', 'added']
-          if item.data.codeName? then namedBlocks[item.data.codeName] = item.data._id
+        if item.type in ['changed', 'added'] && item.data.codeName? && overridesName(item.data)
+          namedBlocks[item.data.codeName] = item.data._id
       for item in batch
         if item.data.info? && !item.removed
           doc.leisure.info = item.data
         else if isCurrent item.data
           work = do (item)-> ->
-            if !!item.data.local == !!local
+            if ignoreLocal || !!item.data.local == !!local
               if !item.editing && !norender
                 switch item.type
                   when 'added' then rc.add item.data
@@ -183,6 +184,9 @@ Handle changes to the doc nodes
       changePromise = if changePromise.isFulfilled() then Promise.method(work)()
       else changePromise.then work
 
+    overridesName = (data)->
+      !namedBlocks[data.codeName] || data.origin == Leisure.currentDocument._name
+
     getRenderCount = -> renderCount
     incRenderCount = -> renderCount++
 
@@ -192,16 +196,19 @@ Handle changes to the doc nodes
       changedStructure: false
       rerender: {}
       add: (data)->
+        if root.orgApi.isHiddenBlock data then return
         @changedStructure = true
         @rerender[data._id] = data
         if data.type == 'headline' && data.level == 1 && prev = getItem overrides, data.prev
           @rerender[prev._id] = prev
       remove: (data)->
+        if root.orgApi.isHiddenBlock data then return
         @changedStructure = true
         @removeElement data._id
         if data.type == 'headline' && data.level == 1 && prev = getItem overrides, data.prev
           @rerender[prev._id] = prev
       change: (oldData, newData)->
+        if root.orgApi.isHiddenBlock newData then return
         change = classifyChange oldData, newData
         if oldData.type != newData.type || (oldData.type == 'headline' && oldData.level != newData.level)
           @changedStructure = true
@@ -223,23 +230,27 @@ Handle changes to the doc nodes
         if el.is "[data-org-headline='1']" then root.orgApi.removeSlide id
         else if el.length then root.restorePosition el[0].parentNode, => el.remove()
       render: ->
-        root.restorePosition '[maindoc]', =>
-          if @changedStructure
-            slides = findSlides overrides, @rerender
-            #console.log "RENDER SLIDES: #{(slide for slide of slides).join ', '}"
-            for id, block of slides
-              el = $("##{block._id}")
-              if block.type == 'headline' && block.level == 1
-                if !el.is("[data-org-headline='1']")
-                  if (parent = el.closest("[data-org-headline='1']")[0]) && !slides[parent.id]
-                     renderBlock getBlock parent.id
-                  removeNewChildren block.next
-              else if el.is("[data-org-headline='1']")
-                if block = getBlock block.prev && !slides[block.prev]
-                  renderBlock block
+        # only one pass through loop here
+        # using it to test if there is anything to rerender
+        for i of @rerender
+          root.restorePosition '[maindoc]', =>
+            if @changedStructure
+              slides = findSlides overrides, @rerender
+              #console.log "RENDER SLIDES: #{(slide for slide of slides).join ', '}"
+              for id, block of slides
+                el = $("##{block._id}")
+                if block.type == 'headline' && block.level == 1
+                  if !el.is("[data-org-headline='1']")
+                    if (parent = el.closest("[data-org-headline='1']")[0]) && !slides[parent.id]
+                       renderBlock getBlock parent.id
+                    removeNewChildren block.next
+                else if el.is("[data-org-headline='1']")
+                  if block = getBlock block.prev && !slides[block.prev]
+                    renderBlock block
+                renderBlock block
+            else for id, block of @rerender
               renderBlock block
-          else for id, block of @rerender
-            renderBlock block
+          break
 
     removeNewChildren = (id)->
       root.restorePosition "[maindoc]", =>
@@ -319,7 +330,7 @@ Handle changes to the doc nodes
           if def = data.codeAttributes?.defview
             viewTypeData[def] = codeString(data).trim()
             viewIdTypes[data._id] = def
-          root.orgApi.updateBlock data
+          root.orgApi.updateBlock data, allowInplaceUpdate(type, data, oldData)
         else
           if lang == 'leisure' && needsContext data
             codeContexts[data._id] =
@@ -332,6 +343,56 @@ Handle changes to the doc nodes
               cont?()
         updateObservers data, type, updated
       cont?()
+
+    isSlide = (data)-> data && data.type == 'headline' && data.level == 1
+
+    class ParentCache
+      constructor: -> @clear()
+      clear: ->
+        @next = {}
+        @prev = {}
+        @slide = {}
+        @hidden = {}
+      update: (type, data, oldData)->
+        if data.info == true then return
+        id = data._id
+        if isSlide(data) || isSlide(oldData)
+          if type in ['removed', 'added'] || @next[id] != data.next || @prev[id] != data.prev
+            @clear()
+            if type != 'removed' then @addData data
+        else if type == 'removed'
+          @next[id] = null
+          @prev[id] = null
+          @slide[id] = null
+        else if !@slide[id] || @next[id] != data.next || @prev[id] != data.prev then @addData data
+      addData: (data)->
+        id = data._id
+        slide = data
+        slideId = data._id
+        while slide.type != 'headline' || slide.level > 1
+          [found, slideId, slide] = getParent null, slide
+        @next[id] = data.next
+        @prev[id] = data.prev
+        if found then @slide[id] = slideId
+        if isSlide(data)
+          @hidden[id] = data.properties?.hidden || (data.origin && data.origin != root.currentDocument._name)
+          @slide[slideId] = slideId
+        else if !@slide[slideId] then @addData slide
+      getSlide: (data)->
+        id = if typeof data == 'string' then data else data._id
+        @slide[id] || (
+          @addData (if id == data then getBlock id else data)
+          @slide[id])
+      isHidden: (data)-> @hidden[@getSlide data]
+
+    allowInplaceUpdate = (type, data, oldData)->
+      type == 'changed' && sameIndex(data, oldData) && sameName(data, oldData)
+
+    sameIndex = (data, oldData)->
+      data.codeAttributes?.index == oldData.codeAttributes?.index &&
+      (!data.codeAttributes?.index || data.yaml[data.codeAttributes.index] == oldData.yaml[data.codeAttributes.index])
+
+    sameName = (data, oldData)-> data.codeName == oldData.codeName
 
     runBlock = (doc, data, env, cont)->
       lang = data.language?.toLowerCase()
@@ -451,11 +512,9 @@ Handle changes to the doc nodes
         docCol.find().observe observer docCol, false, true, name
         docCol.leisure.localCollection = new Meteor.Collection null
         importedDocs[name] = docCol
-        b = mapDocumentBlocks docCol, (block)->
-          type: 'added', data: block, editing: false, context: null
         oldPromise = changePromise
         changePromise = Promise.resolve 0
-        processChanges docCol, b, false, true, true, ->
+        processDocumentChanges docCol, ->
           changePromise = changePromise.then oldPromise
           cont()
 
@@ -518,6 +577,8 @@ Handle changes to the doc nodes
 
     setDataNamed = (name, value)-> if id = namedBlocks[name] then setData id, value
 
+    getIndexedBlocks = (index, value)-> getBlock id for id in indexes[index].get(value) ? []
+
     getParent = (overrides, data)->
       prev = data.prev
       dataLevel = if data.type == 'headline' then data.level else textLevel
@@ -569,39 +630,80 @@ data.
         storeBlock cur
 
     storeBlock = (block)->
-      id = block._id
-      updateItem overrides = new Overrides(), block
-      if block.origin? && !(root.currentDocument.findOne id)
-        node = $("[data-property-import='#{block.origin}']")
-        last = node.find('[data-shared]').last()
-        prevNode = getBlock (if last.length then last else node)[0].id
-        block.prev = prevNode._id
-        block.next = prevNode.next
-        prevNode.next = block._id
-        updateItem overrides, prevNode
-        if nextNode = getBlock block.next
-          nextNode.prev = block._id
-          updateItem overrides, nextNode
-      commitOverrides overrides
+      if !block.local && block.origin? && block.origin != root.currentDocument._name && !(root.currentDocument.findOne block._id)
+        if slide = findImportSlide block.origin
+          block.origin = root.currentDocument._name
+          addBlockAfter lastBlockForSlide(slide), block
+      else
+        updateItem overrides = new Overrides(), block
+        commitOverrides overrides
 
-Add some data to the document -- for now, it is unnamed
+    findImportSlide = (docName)->
+      if node = $("[data-property-import='#{docName}']")[0] then node.id
+      else
+        for slide of root.currentDocument.leisure.parentCache.hidden
+          block = getBlock slide
+          if block.properties?.import == docName then return block
+        slide = null
+        mapDocumentBlocks root.currentDocument, (block)->
+          if !slide && block.type == 'headline' && block.level == 1 && block.properties?.import == docName then slide = block
+        slide
 
-doc and attrLine are optional
+Add some data to the document
 
-    addDataAfter = (id, value, attrLine, doc, name)->
-      if !doc
-        if !attrLine || typeof attrLine == 'string' then doc = root.currentDocument
-        else
-          doc = attrLine
-          attrLine = null
+appendData adds data to the end of a given headline section (but before any subheadlines)
+and returns the id of the block for the new data
+
+attrLine, doc, and name are optional (if there are 4 args and only one string, it will
+be assumed to be attrLine)
+
+    appendData = (headline, value, attrLine, doc, name, cont)->
+      addDataAfter lastBlockForSlide(headline), value, attrLine, doc, name, cont
+
+    lastBlockForSlide = (slide)->
+      prev = if typeof slide == 'string' then getBlock slide else slide
+      next = getBlock prev.next
+      while next && next.type != 'headline'
+        prev = next
+        next = getBlock prev.next
+      prev
+
+addDataAfter adds data after a block and returns the id of the block for the new data
+
+attrLine, doc, and name are optional (if there are 4 args and only one string, it will
+be assumed to be attrLine)
+
+    addDataAfter = (id, value, attrLine, doc, name, cont)->
+      if !(notStringOrFunc doc) || typeof attrLine != 'string'
+        opts = [attrLine, doc, name, cont]
+        attrLine = nextIfString opts
+        doc = nextIf opts, notStringOrFunc
+        name = nextIfString opts
+        cont = nextIf opts, (v)-> typeof v == 'function'
+      if typeof id != 'string' then id = id._id
       src = """
       #{if name? then "#+NAME: #{name}\n" else ""}#+BEGIN_SRC yaml#{if attrLine then ' ' + attrLine else ''}
       #{dump value}
       #+END_SRC
       """
       block = (curOrgDoc src)[0]
-      Meteor.call 'addBlockAfter', root.currentDocument.leisure.name, id, block
+      addBlockAfter id, block, cont
+
+    addBlockAfter = (id, block, cont)->
+      Meteor.call 'addBlockAfter', root.currentDocument.leisure.name, id, block, (err, res)->
+        if err then console.log "ERROR ADDING DATA: #{err}"
+        cont? err, res
       block._id
+
+    nextIf = (args, comp)->
+      if args.length > 0 && comp(args[0]) then args.shift()
+
+    nextIfString = (args)-> nextIf args, isStringOrEmpty
+
+    notStringOrFunc = (value)->
+      !(typeof value in ['string', 'null', 'undefined', 'function'])
+
+    isStringOrEmpty = (value)-> typeof value in ['string', 'null', 'undefined']
 
     curOrgDoc = (text)->
       blocks = orgDoc parseOrgMode text
@@ -626,44 +728,82 @@ doc and attrLine are optional
 
     root.currentDocument = null
 
+    clearObject = (obj)->
+      for k in _.keys(obj)
+        delete obj[k]
+
+    #TODO put these into a document class
+    newDoc = ->
+      docCol = root.currentDocument
+      docCol.leisure.parentCache.clear()
+      docCol.leisure.localCollection = new Meteor.Collection null
+      universalObservers = {}
+      namedBlocks = {}
+      observers = {}
+      controllerIdDescriptor = {}
+      # clear exported objects in case of aliasing
+      clearObject importedDocs
+      clearObject indexes
+      clearObject codeContexts
+      clearObject observing
+      clearObject controllerDescriptorIds
+      clearObject viewTypeData
+      clearObject viewIdTypes
+      clearObject dataTypeIds
+      observingDoc = {}
+      observingDoc[docCol._id] = docCol
+      docCol.leisure.info = docCol.findOne info: true
+      processDocumentChanges docCol
+      org = docOrg root.currentDocument
+      root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, root.currentDocument._name
+
 Private function to observe a document
+
+    processDocumentChanges = (doc, cont)->
+      b = mapDocumentBlocks doc, (block)->
+        type: 'added', data: documentOrLocalBlockFor(block), editing: false, context: context
+      processChanges doc, b, false, true, true, cont, true
+
+    documentOrLocalBlockFor = (block)->
+      if block.local
+        root.currentDocument.leisure.localCollection.findOne(block._id) ? block
+      else block
 
     observeDocument = (name, cont)->
       basicObserveDocument name, (result, docCol, downloadPath)->
         root.currentDocument = docCol
+        docCol.leisure.parentCache = new ParentCache()
         if name.match /^demo\/(.*)$/
           document.location.hash = "#load=/tmp/#{docCol.leisure.name}"
           docCol.demo = true
         else docCol.demo = (name.match(/^tmp\//) || name.match(/^local\//))
         initLocal root.currentDocument, ->
           docCol.find().observe observer docCol, false
-          b = mapDocumentBlocks docCol, (block)->
-            type: 'added', data: block, editing: false, context: context
-          processChanges docCol, b, false, true, true
-          org = docOrg root.currentDocument
-          root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, downloadPath
-          if name.match /^demo\/(.*)$/
-            $("#hide-show-button")
-              .tooltip()
-              .tooltip('option', 'content', 'Give the temporary URL in the location bar to other people to collaborate')
-              .tooltip('open')
-            setTimeout (->
-              $('#hide-show-button').tooltip 'close'
-              setTimeout (->Leisure.applyShowHidden()), 2000), 3000
-            setTimeout (->
-              if document.location.hash.match /^#load=\/tmp\//
-                $('#hide-show-button')
-                  .tooltip('option', 'content', 'Restored URL; press the forward history buttom to see the collaboration URL, again')
-                  .tooltip('open')
-                history.back()
-                setTimeout (->
-                  $('#hide-show-button').tooltip 'close'
-                  setTimeout (->Leisure.applyShowHidden()), 2000), 3000
-              ), 10000
+          processDocumentChanges docCol, ->
+            org = docOrg root.currentDocument
+            root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, downloadPath
+            if name.match /^demo\/(.*)$/
+              $("#hide-show-button")
+                .tooltip()
+                .tooltip('option', 'content', 'Give the temporary URL in the location bar to other people to collaborate')
+                .tooltip('open')
+              setTimeout (->
+                $('#hide-show-button').tooltip 'close'
+                setTimeout (->Leisure.applyShowHidden()), 2000), 3000
+              setTimeout (->
+                if document.location.hash.match /^#load=\/tmp\//
+                  $('#hide-show-button')
+                    .tooltip('option', 'content', 'Restored URL; press the forward history buttom to see the collaboration URL, again')
+                    .tooltip('open')
+                  history.back()
+                  setTimeout (->
+                    $('#hide-show-button').tooltip 'close'
+                    setTimeout (->Leisure.applyShowHidden()), 2000), 3000
+                ), 10000
 
     mapDocumentBlocks = (docCol, each)->
-      blockId = getBlock docCol.leisure.info.head
-      b = while blockId && block = getBlock blockId
+      blockId = docCol.findOne getBlock docCol.leisure.info.head
+      b = while blockId && block = docCol.findOne blockId
         blockId = block.next
         each block
       b
@@ -708,16 +848,17 @@ Data index attributes specify an indexer and have the form
     overridingIndexedItem = (doc, data)->
       doc == root.currentDocument && data.origin != doc.leisure.name && data.codeAttributes?.index && findImportedBlock(data._id)
 
-    addIndex = (doc, data, info)->
+    addIndex = (doc, data, info, oldData)->
       if key = data.codeAttributes?.index
         ind = new Indexer(doc, key)
         ind.add data._id, data.yaml
-        for i in ind.indexes
-          root.orgApi.updateIndexViews i
+        if !allowInplaceUpdate (if oldData then 'changed' else 'added'), data, oldData
+          for i in ind.indexes
+            root.orgApi.updateIndexViews i
       else if data.language?.toLowerCase() == 'index'
         try
           info = info ? safeLoad codeString data
-          compare = if info.order.toLowerCase() == 'desc' then (a, b)-> -Object.compare(a,b)
+          compare = if info.order.toLowerCase() == 'desc' then flip stdCompare else stdCompare
           replaceIndexDef doc, info.name, compare
           root.orgApi.updateIndexViews info.name
         catch err then
@@ -726,7 +867,7 @@ Data index attributes specify an indexer and have the form
       oldIndexDef = oldData.language?.toLowerCase() == 'index' && safeLoad codeString oldData
       newIndexDef = data.language?.toLowerCase() == 'index' && safeLoad codeString data
       removeIndex doc, oldData, oldIndexDef?.name == newIndexDef?.name
-      addIndex doc, data, newIndexDef
+      addIndex doc, data, newIndexDef, oldData
 
     removeIndex = (doc, data, replaceIndex)->
       if key = data.codeAttributes?.index
@@ -737,11 +878,45 @@ Data index attributes specify an indexer and have the form
           replaceIndexDef doc, info.name
         catch err then
 
+    typeRank = (o)->
+      switch typeof o
+        when 'undefined' then 0
+        when 'null' then 1
+        when 'number' then 2
+        when 'string' then 4
+        when 'object'
+          if o instanceof Date then 3
+          else if o instanceof Array then 5
+          else 6
+
+    flip = (f)-> (a, b)-> f b, a
+
+    # Lexical object comparison, based on IndexedDB's ordering
+    stdCompare = (a, b)->
+      rankA = typeRank a
+      rankB = typeRank b
+      if rankA < rankB then -1
+      else if rankB < rankA then 1
+      else if typeof a in ['undefined', 'null'] then 0
+      else if typeof a in ['string', 'number']
+        if a < b then -1
+        else if a == b then 0
+        else 1
+      else if a instanceof Array then arrayCompare a, b
+      else a.compare b
+
+    arrayCompare = (a, b)->
+      for i in [0...Math.min a.length, b.length]
+        cmp = stdCompare a[i], b[i]
+        if cmp != 0 then return cmp
+      stdCompare a.length, b.length
+
     replaceIndexDef = (doc, name, compare)->
       if name
         #console.log "Redefining index '#{name}' #{if compare then 'desc' else 'asc'}"
         oldIndex = indexes[name]
-        newIndex = indexes[name] = new SortedMap null, null, compare
+        compare = compare ? stdCompare
+        newIndex = indexes[name] = new SortedMap null, ((a, b)-> compare(a, b) == 0), compare
         newIndex._leisure_intentional = true
         oldIndex?.forEach (value, key)-> newIndex.set key, value
         updateAll = true
@@ -772,7 +947,7 @@ Data index attributes specify an indexer and have the form
             v = v && v[desc[i]]
           if v?
             if !indexes[desc[0]] then console.log "No index '#{desc[0]}'"
-            index = (indexes[desc[0]] ? (console.log("Defining default index '#{desc[0]}'"); indexes[desc[0]] = new SortedMap()))
+            index = (indexes[desc[0]] ? (console.log("Defining default index '#{desc[0]}'"); indexes[desc[0]] = new SortedMap null, ((a, b)-> stdCompare(a, b) == 0), stdCompare))
             if !(a = index.get v) then index.set v, a = []
             a.push id
       remove: (id, data)->
@@ -794,8 +969,7 @@ Data index attributes specify an indexer and have the form
           if node then @node = node else @rewind()
           @limit = limit ? -> true
         else
-          @forEach = ->
-          @rewind = ->
+          @forEach = @rewind = @greaterThan = @greaterThanOrEqual = @lessThan = @lessThanOrEqual = -> this
       forEach: (f)->
         while @node && @limit @node.value.key
           for id in @node.value.value
@@ -818,21 +992,19 @@ Data index attributes specify an indexer and have the form
         @node = oldNode
         tot
       greaterThan: (key)->
-        getFirst = @index.store.findLeastGreaterThanOrEqual key: key
-        node = if @node.value.compare(@node.value, key: key) > 0 then @node else getFirst()
+        getFirst = => @index.store.findLeastGreaterThanOrEqual key: key
+        node = if @index.contentCompare(@node.value.key, key) > 0 then @node else getFirst()
         new IndexedCursor @doc, @name, node, getFirst, @limit
       greaterThanOrEqual: (key)->
-        getFirst = @index.store.findLeastGreaterThanOrEqual key: key
-        node = if @node.value.compare(@node.value, key: key) > -1 then @node else getFirst()
+        getFirst = => @index.store.findLeastGreaterThanOrEqual key: key
+        node = if @index.contentCompare(@node.value.key, key) > -1 then @node else getFirst()
         new IndexedCursor @doc, @name, node, getFirst, @limit
       lessThan: (key)->
-        ind = null
-        cmp = (k)-> ind.node.value.compare((key: k), (key: key)) < 0
-        ind = new IndexedCursor @doc, @name, @node, @_getFirst, cmp
+        cmp = (k)=> @index.contentCompare(k, key) < 0
+        new IndexedCursor @doc, @name, @node, @_getFirst, cmp
       lessThanOrEqual: (key)->
-        ind = null
-        cmp = (k)-> ind.node.value.compare((key: k), (key: key)) < 1
-        ind = new IndexedCursor @doc, @name, @node, @_getFirst, cmp
+        cmp = (k)=> @index.contentCompare(k, key) < 1
+        new IndexedCursor @doc, @name, @node, @_getFirst, cmp
 
     indexedCursor = (doc, name)-> new IndexedCursor doc, name
 
@@ -1028,7 +1200,7 @@ You can also mark any piece of data as local.
 
     isRemoved = (overrides, id)-> overrides.removes[id]
 
-    getItem = (overrides, id)-> id && !overrides?.removes[id] && (overrides?.adds[id] || overrides?.updates[id] || getBlock id)
+    getItem = (overrides, id)-> id && (!overrides || !overrides.removes[id]) && ((overrides && (overrides.adds[id] || overrides.updates[id])) || getBlock id)
 
     addItem = (overrides, item, prevId)->
       if !item._id then item._id = new Meteor.Collection.ObjectID().toJSONValue()
@@ -1263,7 +1435,6 @@ You can also mark any piece of data as local.
     textForId = (id)-> root.blockText $("##{id}")[0]
 
     root.observeDocument = observeDocument
-    root.docOrg = docOrg
     root.subDoc = subDoc
     root.docJson = docJson
     root.observing = observing
@@ -1273,9 +1444,6 @@ You can also mark any piece of data as local.
     root.getData = getData
     root.setData = setData
     root.pretty = pretty
-    root.viewTypeData = viewTypeData
-    root.viewIdTypes = viewIdTypes
-    root.controllerDescriptorIds = controllerDescriptorIds
     root.codeString = codeString
     root.getBlock = getBlock
     root.Overrides = Overrides
@@ -1294,6 +1462,7 @@ You can also mark any piece of data as local.
     root.getBlockNamed = getBlockNamed
     root.getDataNamed = getDataNamed
     root.setDataNamed = setDataNamed
+    root.getIndexedBlocks = getIndexedBlocks
     root.getSourceAttribute = getSourceAttribute
     root.setSourceAttribute = setSourceAttribute
     root.snapshot = snapshot
@@ -1303,7 +1472,16 @@ You can also mark any piece of data as local.
     root.getRenderCount = getRenderCount
     root.incRenderCount = incRenderCount
     root.addDataAfter = addDataAfter
-    root.dataTypeIds = dataTypeIds
     root.curOrgDoc = curOrgDoc
-    root.indexes = indexes
     root.runBlock = runBlock
+    root.mapDocumentBlocks = mapDocumentBlocks
+    root.isCurrent = isCurrent
+    root.appendData = appendData
+    root.stdCompare = stdCompare
+    root.docOrg = docOrg
+    root.dataTypeIds = dataTypeIds
+    root.viewTypeData = viewTypeData
+    root.viewIdTypes = viewIdTypes
+    root.controllerDescriptorIds = controllerDescriptorIds
+    root.indexes = indexes
+    root.importedDocs = importedDocs

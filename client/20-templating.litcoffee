@@ -156,7 +156,10 @@ nodeText uses innerHTML to validate HTML text
       holder.append n
       activateScripts n
 
-    clearView = (holder)-> viewRoots(holder).remove()
+    clearView = (holder)->
+      for child in Array.prototype.slice.call holder.childNodes
+        if child.nodeType == Node.ELEMENT_NODE && child.hasAttribute 'data-view'
+          child.remove()
 
     getDeepestActiveElement = ->
       el = document.activeElement

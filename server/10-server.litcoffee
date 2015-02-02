@@ -77,7 +77,7 @@ Meteor-based collaboration -- server side
               console.log "Path not found: #{components[0...i].join '.'}\n#{dump orig}"
               error: "Path not found: #{components[0...i].join '.'}"
             else
-              result = data[components[i]] += amount
+              data[components[i]] = result = (data[components[i]] ? 0) + amount
               orig.text = orig.text.substring(0, orig.codePrelen) + dump(orig.yaml, orig.codeAttributes ? {}) + orig.text.substring orig.text.length - orig.codePostlen
               doc.update dataId, orig
               result
@@ -113,16 +113,16 @@ Meteor-based collaboration -- server side
         if !(doc = docs[docId]) then error: "No document named #{docId}"
         else if !(before = doc.findOne id) then error: "No block: #{id}"
         else
-          block._id = new Meteor.Collection.ObjectID().toJSONValue()
-          after = doc.findOne before.next
+          if !block._id then block._id = new Meteor.Collection.ObjectID().toJSONValue()
+          after = if before.next then doc.findOne before.next
           before.next = block._id
           block.prev = before._id
-          doc.update before._id, before
           if after
-            block.next = after?._id
-            after?.prev = before._id
-            doc.update after._id, after
+            block.next = after._id
+            after.prev = block._id
           doc.insert block
+          doc.update before._id, before
+          if after then doc.update after._id, after
           #console.log "INSERTING: #{dump block}"
 
     connectedToTemp = (id, connection)->

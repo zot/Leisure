@@ -1,14 +1,35 @@
 * Short list -- announcement
+** TODO add ids to data blocks so they are preserved on checkpoint and links continue to work
+** TODO - code scope -- set of code boxes retrieved from doc
+Need this for the game so you can see things as you play
+  - code scope should update even if the data's slide is hidden (modify parent cache?)
+  - as many code scopes as you want
+  - block/function search
+  - filter by tag -- useful for DSL help, etc
+  - list of blocks/functions
+  - caller/callee functions
+    - hovering over a function should pop up a panel with a button for callers/callees
+  - block edit history (list of function names which can expand to editable contents)
+    - sort history chronologically or alphabetically
+    - expand this to a search box, callers, callees
+  - contents should be editable
+  - attach to
+    - document
+    - slide
+** TODO Special feel: working in Leisure should feel special
+- Music and sounds for different themes
+- cartoon boinging sounds for errors
+- different sounds for changing different types of blocks
+** TODO Balkan theme
+- Music such as Borino (try to get permission from Beats Antique, Balkan Beat Box)
+- Dracula
+- dark castles
 ** TODO probably too many calls to render and restorePosition during event processing
 - processChanges calls render (which saves the position)
 - changeStructure indirectly calls processChanges
   - calls render at the end
 - editBlock calls changeStructure
   - restores dom position manually
-** TODO Special feel: working in Leisure should feel special
-- Music and sounds for different themes
-- cartoon boinging sounds for errors
-- different sounds for changing different types of blocks
 ** TODO isometric tile game doc
 ** TODO make Leisure value sliders use the AST to handle nonnumeric data
 - notes should increment properly
@@ -170,6 +191,10 @@ base it on org text, not DOM text
 - hooks for programs to react to data changes (subscriptions)
 ** TODO JavaScript/CoffeeScript source blocks
 ** TODO fix floaty notes
+** DONE get importing working with solomon
+   CLOSED: [2015-02-02 Mon 14:11]
+** DONE named blocks in doc should override those in imported docs
+   CLOSED: [2015-02-01 Sun 22:40]
 ** DONE fix imported indexed data
    CLOSED: [2015-01-02 Fri 01:06]
 ** DONE value slider final value isn't always used
