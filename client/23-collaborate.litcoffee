@@ -1297,7 +1297,8 @@ You can also mark any piece of data as local.
         else
           if old?.local
             expungeLocalData doc, id # remove extraneous local data
-          doc.upsert id, item
+          if doc.findOne id then doc.update id, item
+          else doc.insert item
       committing = false
 
     expungeLocalData = (doc, id)->

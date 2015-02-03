@@ -171,7 +171,7 @@ Document model that ties orgmode parse trees to HTML DOM
         added: (data)-> indexData doc, data
         removed: (data)-> removeDataIndex doc, data
         changed: (data, oldData)->
-          if !(data.codeName? && doc.namedBlocks[data.codeName] == data._id)
+          if !((!data.codeName? && !doc.namedBlocks[data.codeName]) || (data.codeName? && doc.namedBlocks[data.codeName] == data._id))
             removeDataIndex doc, oldData
             indexData doc, data
       if !reload then Meteor.publish id, -> doc.find()
