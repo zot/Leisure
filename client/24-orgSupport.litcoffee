@@ -853,7 +853,7 @@ Code
         save = getTextPosition(shared, saveC.node, saveC.pos) + caret
       editingWhile -> changeStructure blocks, newText
       if caret?
-        if shared.ownerDocument.compareDocumentPosition(shared) & Node.DOCUMENT_POSITION_DISCONNECTED
+        if shared.ownerDocument.compareDocumentPosition(shared) & Element.DOCUMENT_POSITION_DISCONNECTED
           shared = $("##{prev._id}")[0]
         return domCursorForTextPosition(shared, save).moveCaret()
     
@@ -1452,6 +1452,7 @@ Code
     getTextPosition = (parent, target, pos)->
       if parent
         targ = domCursorForText target, pos
+        if !$(targ.node).closest('[data-shared]').length then targ = targ.prev()
         domCursorForText parent, 0, parent
           .mutable()
           .countChars targ.node, targ.pos

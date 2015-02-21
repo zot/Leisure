@@ -32,6 +32,19 @@ initStorage = ->
     $('#user').val localStorage.getItem 'githubUser'
     $('#repository').val localStorage.getItem 'githubRepository'
     $('#file').val localStorage.getItem 'githubFile'
+  Meteor.call 'systemConnect', (err, resultDocName)->
+    if err then console.log "ERROR: #{err}"
+    else
+      console.log "CONNECTION: #{resultDocName}"
+      root.systemCallId = 0
+      Meteor.subscribe resultDocName, ->
+        doc = new Meteor.Collection resultDocName
+        doc.find().observe
+          _suppress_initial: true
+          added: (item)->
+          removed: (item)->
+          changed: (item)->
+      
   Leisure.setTheme 'flat'
 
 currentFile = null

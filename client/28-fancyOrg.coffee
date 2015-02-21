@@ -180,7 +180,6 @@ emptyPresenter =
   hide: ->
   isRelated: -> false
 presenter = emptyPresenter
-DOCUMENT_POSITION_CONTAINED_BY = 16
 
 class FancySelectionDescriptor
   constructor: (parent)->
@@ -613,7 +612,7 @@ markupHtml = (org)->
   if v = org.attributes()?.view
     pre = org.text.substring 0, org.contentPos
     post = org.text.substring org.contentPos + org.contentLength
-    "<span #{orgAttrs org} data-html-view='#{v}'><span data-org-html='true'></span><span class='hidden'>#{escapeHtml pre}</span><span class='hidden' data-content>#{escapeHtml org.content()}</span><span class='hidden'>#{escapeHtml post}</span></span>"
+    "<span #{orgAttrs org} data-html-view='#{v}'><span contenteditable='false' data-org-html='true'></span><span class='hidden'>#{escapeHtml pre}</span><span class='hidden' data-content>#{escapeHtml org.content()}</span><span class='hidden'>#{escapeHtml post}</span></span>"
   else
     "<span #{orgAttrs org}><span contenteditable='false' data-nonorg='true' data-org-html='true'>#{nodeText(org.content())}</span><span class='hidden'>#{escapeHtml org.text}</span></span>"
 
@@ -960,7 +959,7 @@ define 'newCodeContent', (name)->(content)->
 
 isOrContains = (parent, node)->
   n = parent.compareDocumentPosition(node)
-  (n & DOCUMENT_POSITION_CONTAINED_BY) || n == 0
+  (n & Element.DOCUMENT_POSITION_CONTAINED_BY) || n == 0
 
 redrawAst = (code, pos)->
   [button] = findDomPosition code, pos

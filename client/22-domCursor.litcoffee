@@ -274,10 +274,10 @@ the previous text node (node, node.length)
         @addFilter (n)->
           startPos = startContainer.compareDocumentPosition n.node
           (if startPos == 0 then startOffset <= n.pos <= endOffset
-          else if startPos & Node.DOCUMENT_POSITION_FOLLOWING
+          else if startPos & Element.DOCUMENT_POSITION_FOLLOWING
             endPos = endContainer.compareDocumentPosition n.node
             if endPos == 0 then n.pos <= endOffset
-            else endPos & Node.DOCUMENT_POSITION_PRECEDING) || 'quit'
+            else endPos & Element.DOCUMENT_POSITION_PRECEDING) || 'quit'
 
 **getText** gets all of the text at or after the cursor (useful with filtering; see above)
 

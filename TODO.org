@@ -1,4 +1,6 @@
 * Short list -- announcement
+** BUG inserting char at start of doc in plain mode makes cursor disappear
+** BUG appended slide in plain mode disappears
 ** TODO make appendData autoappend slide if it doesn't exist
 ** TODO add ids to data blocks so they are preserved on checkpoint and links continue to work
 ** TODO - code scope -- set of code boxes retrieved from doc
@@ -939,7 +941,7 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   - detect where changes are, to avoid rerendering/recomputing data
   - use a switchboard web service, like from p2pmud, with file-patching commands
    CLOSED: [2014-04-14 Mon 09:26]
-** DONE bug: this TODO.org should be moved to Leisure Project
+** DONE this TODO.org should be moved to Leisure Project
 ** DONE categories                                              :leisure:org:
    CLOSED: [2014-01-23 Thu 00:08]
    :PROPERTIES:
@@ -1122,7 +1124,7 @@ handle monads (bind the post condition check)
 
 for the funciton wrapper, set the memo to the lambda and stick a console.log in there to see if something's still calling the func
 
-** DONE BUG: reverse order of generated let assignments so that this works: :leisure:
+** DONE reverse order of generated let assignments so that this works: :leisure:
    CLOSED: [2013-10-21 Mon 15:09]
 
 do (x = 1) (y = x) (print concat[x y])
@@ -1186,3 +1188,5 @@ if node.previousSibling/node.nextSibling exists and is visible, then backspace/d
 ** DONE make results HTML-friendly                              :leisure:org:
    CLOSED: [2013-12-15 Sun 23:03]
 output should be HTML-escaped
+* Defs
+#+TODO: TODO BUG | DONE
