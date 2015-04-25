@@ -22,16 +22,6 @@ appreciated but is not required.
 misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
-Intro
-=====
-
-Welcome to the Decent Editor.  This is a tiny library for HTML5 that
-tries to help make building editors easier.
-
-Here's an editing principle we use:
------------------------------------
-You should only be able to edit text you can see
-i.e. backspace/delete/cut/replace should not delete any hidden text
 
 Code
 ====

@@ -395,9 +395,13 @@ markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
     "<#{tag} #{orgAttrs org}>#{meatText org.text}</#{tag}>"
 
 meatText = (meat)->
+  result = if meat.match /^\n/
+    meat = meat.substring 1
+    "<span class='meat-break'>\n</span>"
+  else ""
   paras = escapeHtml(meat).split /\n\n/
   last = paras.pop()
-  result = _(paras).map((i)-> "<span class='meat-text#{checkBlankMeat i}'>#{i}\n</span>").join "<span class='meat-break'>\n</span>"
+  result += _(paras).map((i)-> "<span class='meat-text#{checkBlankMeat i}'>#{i}\n</span>").join "<span class='meat-break'>\n</span>"
   if result then result += "<span class='meat-break'>\n</span>"
   if last
     if last[last.length - 1] == '\n'
@@ -488,7 +492,8 @@ markupHeadline = (org, delay, note, replace)->
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}' data-nonorg='true'><i class='fa fa-wrench'></i></span>" else ''
   optImport = if org.properties.import
-    imp = new URI("x://h/#{root.currentDocument.leisure.name}", org.properties.import).path.substring 1
+    imp = if root.currentDocument.demo then "tmp/#{importedDocs['demo/' + org.properties.import]._name}"
+    else new URI("x://h/#{root.currentDocument.leisure.name}", org.properties.import).path.substring 1
     "<div class='import' data-nonorg='true' contenteditable='false'><span><a href='#load=/#{imp}' target='_blank'>#{org.properties.import}</a></span></div>"
   else ''
   editMode = if org.level == 1 then " data-edit-mode='fancy'" else ""
@@ -612,9 +617,9 @@ markupHtml = (org)->
   if v = org.attributes()?.view
     pre = org.text.substring 0, org.contentPos
     post = org.text.substring org.contentPos + org.contentLength
-    "<span #{orgAttrs org} data-html-view='#{v}'><span contenteditable='false' data-org-html='true'></span><span class='hidden'>#{escapeHtml pre}</span><span class='hidden' data-content>#{escapeHtml org.content()}</span><span class='hidden'>#{escapeHtml post}</span></span>"
+    "<span #{orgAttrs org} data-html-view='#{v}'><span contenteditable='false' data-org-html='true'></span><span class='hidden'>#{escapeHtml pre}</span><span class='hidden' data-content>#{escapeHtml org.content()}</span><span class='hidden'>#{escapeHtml post}</span><span></span></span>"
   else
-    "<span #{orgAttrs org}><span contenteditable='false' data-nonorg='true' data-org-html='true'>#{nodeText(org.content())}</span><span class='hidden'>#{escapeHtml org.text}</span></span>"
+    "<span #{orgAttrs org}><span contenteditable='false' data-nonorg='true' data-org-html='true'>#{nodeText(org.content())}</span><span class='hidden'>#{escapeHtml org.text}</span><span></span></span>"
 
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
