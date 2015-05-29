@@ -1,4 +1,0 @@
-Test
-#+BEGIN_SRC coffee
-console.log "16-TEST.LORG"
-#+END_SRC

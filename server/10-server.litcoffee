@@ -45,7 +45,7 @@ Meteor-based collaboration -- server side
         else
           try
             if docs[name] then console.log "#{name} exists" else loadDoc name
-            id: name, hasGit: Leisure.git.currentIndex?
+            id: name, hasGit: Leisure.git.hasGit?
           catch err
             console.log "EXCEPTION CHECKING #{name}: #{err.stack}"
             erorr: "Error retrieving #{name}"
