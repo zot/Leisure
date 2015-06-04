@@ -30,7 +30,7 @@ misrepresented as being the original software.
 # alText() gets its text, plus its childrens'
 #
 
-(window ? global).Org = root = require?('./preamble') ? Org
+(window ? global).Org = root = require?('./preamble') ? (if Org? then Org else {})
 
 _ = Lazy ? require?('./lazy')
 
@@ -525,8 +525,12 @@ parseOrgChunk = (text, offset, level)->
         line = fullLine m, text
         parseHeadline line, offset, m[HL_LEVEL].length, m[HL_TODO], m[HL_PRIORITY], m[HL_TAGS], text.substring(line.length), offset + text.length
     else
-      meat = text.substring 0, if m && !simple then m.index else text.length
-      parseMeat meat, offset, text.substring meat.length
+      if m?.index == 0 && simple && (l = text.indexOf '\n') > -1 && (m = text.substring(l).match headlineRE)
+        meatLen = m.index + l
+      else
+        meatLen = if m && (m.index > 0 || !simple) then m.index else text.length
+      meat = text.substring 0, meatLen
+      parseMeat meat, offset, text.substring(meatLen), false
 
 class MeatParser
   constructor: ->
