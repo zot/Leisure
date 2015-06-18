@@ -5,11 +5,11 @@ start = ->
   else
     $("#load_file").click -> $("#internal_load_file").click()
     div = $('[maindoc]')
-    window.ORG_TEXT = div.html().replace(/^\s*<!--+/, '').replace(new RegExp('-->\s*\n*','m'), '').trim()
     $('#loading').remove()
     $('body').removeClass 'loading'
     $('#panel').css 'display', ''
-    Leisure.initOrg '[maindoc]', '#source'
+    #Leisure.initOrg '[maindoc]', '#source'
+    Leisure.initEditor '[maindoc]'
     $('#name').focus()
     $('#loginForm').submit (e)->
       e.preventDefault()

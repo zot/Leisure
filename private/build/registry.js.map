@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "registry.js",
+  "sourceRoot": "..\\..",
+  "sources": [
+    "private\\build\\registry.litcoffee"
+  ],
+  "names": [],
+  "mappings": ";AAEI;AAAA,MAAA;;;IAAA,QAAS;;;EACT,IAAA,GAAO;;EAEP,QAAA,GAAW;;EAEX,YAAA,GAAe,SAAC,IAAD;IACb,IAAG,CAAC,QAAS,CAAA,IAAA,CAAb;MAAwB,QAAS,CAAA,IAAA,CAAT,GACtB;QAAA,OAAA,EAAS,EAAT;QACA,QAAA,EAAU,EADV;QAEA,KAAA,EAAO,EAFP;QAGA,GAAA,EAAK,EAHL;QAIA,IAAA,EAAM,EAJN;QADF;;WAMA,QAAS,CAAA,IAAA;EAPI;;EASf,IAAI,CAAC,YAAL,GAAoB;AAdpB"
+}

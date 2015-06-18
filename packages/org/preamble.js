@@ -13,4 +13,7 @@ if (typeof require != 'undefined') {
     window.Org = Org;
     window.Leisure = Leisure;
     window.require = function(){return Leisure;};
+    if (!window.module) {
+        window.module = {};
+    }
 }

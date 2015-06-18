@@ -1,3 +1,23 @@
+* Code Scopes
+** TODO select text and create a floating code scope using cursor menu
+* Make Leisure run serverless (alternate HTML file that loads meteor client files)
+** TODO make Cakefile create local-mode HTML file
+** TODO use GitHub for storage
+** TODO configure DataStore to run serverless (initialized from document)
+** TODO generate monolithic, minified JS file
+** TODO Look at WebRTC for peer-to-peer
+- WebRTC for notification
+  - initiating browser connects to each peer
+  - not super scalable but works and handles conflicts (otherwise use something like Gun)
+- checkpointing and loading
+  - Github: make a branch for each session?
+  - webtorrent: [[https://github.com/feross/webtorrent]]
+* TODO EditCore: put plain editor options in 24-editorSupport.litcoffee
+** TODO make server parse into new block format (sibling links)
+** TODO configure DataStore to use meteor
+* TODO EditCore: factor Leisure connection (eval, etc.) into separate file
+* TODO EditCore: put fancy editor options in 24-editorSupport.litcoffee
+* TODO Support [[http://sweetjs.org/][sweetjs]]
 * Short list -- announcement
 ** BUG inserting char at start of doc in plain mode makes cursor disappear
 ** BUG appended slide in plain mode disappears

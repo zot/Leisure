@@ -1,0 +1,12 @@
+.plain {
+    border: solid blue 2px;
+    white-space: pre;
+}
+.plain * {
+    white-space: pre;
+}
+.structure {
+    margin-top: 5px;
+    border: solid orange 2px;
+    white-space: pre;
+}
