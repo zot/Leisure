@@ -1,16 +1,22 @@
 Code for local-mode.  This will not be loaded under meteor.
 
     {
-      OrgData,
-      bindDisplayStructure,
-      installSelectionMenu,
+      OrgData
+      createStructureDisplay
+      createEditorDisplay
+      installSelectionMenu
     } = Leisure
 
     $(document).ready ->
       installSelectionMenu()
       window.DATA = data = new OrgData()
-      structure = $("<div class='structure'></div>")
-      $(document.body).append structure
-      bindDisplayStructure data, structure
+      createStructureDisplay data
       window.ED = Leisure.plainEditDiv $("[maindoc]"), data
-      ED.options.load 'fred\n'
+      createEditorDisplay ED
+      ED.options.load """
+      #+BEGIN_SRC js :results dynamic
+      3+4
+      #+END_SRC
+      #+RESULTS:
+      : 7
+      """ + '\n'

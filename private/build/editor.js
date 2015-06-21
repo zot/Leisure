@@ -413,7 +413,7 @@
         } else {
           startBlock = newBlocks[0];
           offset += start;
-          if (oldFirst !== ((ref2 = oldBlocks[0]) != null ? ref2._id : void 0)) {
+          if (oldFirst && oldFirst !== ((ref2 = oldBlocks[0]) != null ? ref2._id : void 0)) {
             offset += oldBlocks[0].text.length;
           }
           while (offset < 0) {
@@ -1080,7 +1080,7 @@
           }
         }
         if (prev) {
-          if (!first && (!oldBlocks.length || !this.getFirst() || removes[this.getFirst()])) {
+          if (!first && ((newBlocks.length && !newBlocks[0].prev) || !oldBlocks.length || !this.getFirst() || removes[this.getFirst()])) {
             changes.first = newBlocks[0]._id;
           }
           return prev.next = next != null ? next._id : void 0;
@@ -1604,7 +1604,7 @@
     var ref, target;
     target = $(node);
     while (target.length && !($(target).data().editor instanceof LeisureEditCore)) {
-      target = $(target).parent().closest('[contenteditable=true]');
+      target = $(target).parent();
     }
     return (ref = target.data()) != null ? ref.editor : void 0;
   };

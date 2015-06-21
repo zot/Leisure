@@ -43,31 +43,32 @@ fileTree = [
   ['lib',
     '05-immutable.js',
     '10-namespace.litcoffee',
-    #'11-l.litcoffee',
-    #'15-libs.coffee',
+    '11-l.litcoffee',
+    '15-libs.coffee',
     ],
   ['client',
     '10-bluebird.min.js',
     '10-jquery-1-8-2.min.js',
     #'11-adiff.js',
-    #'11-start.js',
-    #'12-browser.js',
+    '11-start.js',
+    '12-browser.js',
     #'12-coffee-script.js',
     #'13-uri.coffee',
     #'14-shim.coffee',
-    #'15-base.coffee',
-    #'16-ast.coffee',
-    #'17-runtime.coffee',
-    #'18-gen.coffee',
-    #'19-generatedPrelude.js',
-    #'19-generatedPrelude.js.map',
-    #'19-generatedPrelude.lsr',
+    '15-base.coffee',
+    '16-ast.coffee',
+    '17-runtime.coffee',
+    '18-gen.coffee',
+    '19-generatedPrelude.js',
+    '19-generatedPrelude.js.map',
+    '19-generatedPrelude.lsr',
     #'20-handlebars-v1.3.0.js',
     #'20-std.js',
     #'20-templating.litcoffee',
     #'21-browserSupport.coffee',
     #'22-svg.js',
     '22-domCursor.litcoffee',
+    '22-eval.litcoffee',
     #'23-collaborate.litcoffee',
     '23-editor.litcoffee',
     '23-1-editorSupport.litcoffee',
@@ -102,7 +103,7 @@ for f in fileTree
         changed = true
         console.log "building #{file}"
     else
-      allFiles.push destFile file, true
+      if file.match /\.js$/ then allFiles.push destFile file, true
       if isNewer file, destFile file, true
         copyFiles[file] = destFile file, true
         changed = true
@@ -187,7 +188,7 @@ path.posify = (n)->
   p
 
 makeHtml = (filename, files)->
-  if changed
+  if changed || !fs.existsSync filename
     console.log "making html"
     fs.writeFileSync filename, """
       <html>

@@ -77,7 +77,7 @@ Here are the hook methods you need to provide:
   * each block's DOM should have the same id as the block and have a data-block attribute
   * non-editable parts of the DOM should have contenteditable=false
   * completely skipped parts should be non-editable and have a data-noncontent attribute
-* `edit(oldBlocks, newBlocks) -> any`: The editor calls this after the user has attempted an edit.  It should make the requested change (probably by calling `replaceBlocks`) and rerender the appropriate DOM.
+* `edit(prev, oldBlocks, newBlocks) -> any`: The editor calls this after the user has attempted an edit.  It should make the requested change (probably by calling `replaceBlocks`) and rerender the appropriate DOM.
 
 After that, you must render the changes into HTML and replace them into the element.
 
@@ -329,7 +329,7 @@ Events:
           while tot > 0 && cur
             blocks.push cur = @options.getBlock cur.next
             if cur then tot -= cur.text.length
-        @editBlocks blocks, br.offset, br.length, (text ? getEventChar e), select
+        @options.editBlocks blocks, br.offset, br.length, (text ? getEventChar e), select
       backspace: (event, sel, r)->
         if sel.type == 'Range' then return @cutText event
         holderId = @idAtCaret sel
@@ -371,7 +371,7 @@ Events:
                 pos += bl.text.length
               else return
             else blocks.push block
-            @editBlocks blocks, pos, 1, ''
+            @options.editBlocks blocks, pos, 1, ''
 
 editBlocks: at this point, just place the cursor after the newContent, later
 on it can select if start and end are different
@@ -391,7 +391,7 @@ on it can select if start and end are different
           else
             startBlock = newBlocks[0]
             offset += start
-            if oldFirst != oldBlocks[0]?._id then offset += oldBlocks[0].text.length
+            if oldFirst && oldFirst != oldBlocks[0]?._id then offset += oldBlocks[0].text.length
             while offset < 0
               if !(block = @options.getBlock startBlock.prev)
                 offset = 0
@@ -408,7 +408,9 @@ on it can select if start and end are different
           startBlock = blocks[0]
           offset = start
         startPos = @domCursor @options.nodeForId(startBlock._id), 0
-        if select
+        if typeof select == 'number'
+          startPos.forwardChars(offset + select, true).moveCaret()
+        else if select
           r = document.createRange()
           startPos = startPos.forwardChars offset, true
           r.setStart startPos.node, startPos.pos
@@ -736,6 +738,12 @@ instance, call event.preventDefault() and set the dropEffect to 'none'
           event.preventDefault()
           event.dropEffect = 'none'
 
+`editBlocks(blocks, start, length, newContent, select)`: edit some blocks (just calls the editor's
+editBlocks by default).
+
+      editBlocks: (blocks, start, length, newContent, select)->
+        @editor.editBlocks blocks, start, length, newContent, select
+
 Main code
 ---------
 
@@ -819,7 +827,7 @@ Main code
             newBlockMap[next._id] = next
             if !(next.prev = prev?._id) then changes.first = next._id
           if prev
-            if !first && (!oldBlocks.length || !@getFirst() || removes[@getFirst()])
+            if !first && ((newBlocks.length && !newBlocks[0].prev) || !oldBlocks.length || !@getFirst() || removes[@getFirst()])
               changes.first = newBlocks[0]._id
             prev.next = next?._id
 
@@ -1157,7 +1165,7 @@ adapted from Vega on [StackOverflow](http://stackoverflow.com/a/13127566/1026782
     findEditor = (node)->
       target = $(node)
       while target.length && !($(target).data().editor instanceof LeisureEditCore)
-        target = $(target).parent().closest('[contenteditable=true]')
+        target = $(target).parent()
       target.data()?.editor
 
 Exports

@@ -1,7 +1,7 @@
 Lorg file registry
 
     require?('./preamble')
-    root = Leisure
+    root = Leisure = ((typeof window != 'undefined') && window.Leisure) || {};
 
     registry = {}
 

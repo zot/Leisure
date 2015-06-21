@@ -8,6 +8,11 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
     {
       orgDoc
       parseOrgMode
+      Fragment
+      getCodeItems
+      languageEnvMaker
+      defaultEnv
+      Nil
     } = Leisure
     {
       last
@@ -25,6 +30,13 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
 
 OrgData is the basic data storage class.  Subclasses can change how the
 editor accesses blocks of text (local, meteor, etc.)
+
+    blockOrg = (blockOrText)->
+      text = if typeof blockOrText == 'string' then blockOrText else blockOrText.text
+      org = parseOrgMode text
+      if org.children.length > 1 then org = new Fragment org.offset, org.children
+      org.linkNodes()
+      org
 
     class OrgData extends DataStore
       getBlock: (thing)-> if typeof thing == 'string' then super thing else thing
@@ -114,37 +126,48 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
         lines = text.split('\n')
         line: lines.length
         col: last(lines).length
-      lineInfo: (block, offset)->
-        if block
-          {line, col} = @blockLine block, offset
-          startBlock = block
-          docLine = line
-          while block.prev
-            block = @getBlock block.prev
-            docLine += block.text.split('\n').length - 1
-          holder = @nodeForId startBlock._id
-          p = posFor @editor.domCursorForTextPosition(holder, offset)
-          line: docLine
-          col: col
-          blockLine: line
-          top: Math.round(p.top)
-          left: Math.round(p.left)
-        else {}
-      setEditor: (@editor)->
-        @editor.on 'moved', =>
-          {block, offset} = @editor.getSelectedBlockRange()
-          if block
-            {line, col, blockLine, top, left} = @lineInfo block, offset
-            if line
-              return @updateStatus "line: #{numSpan line} col: #{numSpan col} block: #{block._id}:#{numSpan blockLine} top: #{numSpan top} left: #{numSpan left}"
-          @updateStatus "No selection"
+      change: (changes)->
+        for id, change of changes.sets
+          if change.type == 'code' && isDynamic(change) && envM = blockEnvMaker(change)
+            {source: newSource, results: newResults} = blockCodeItems change
+            oldBlock = @getBlock change._id
+            hasChange = !oldBlock || oldBlock.type != 'code' || oldBlock.codeAttributes.results != 'dynamic' || if oldBlock
+              {source: oldSource} = blockCodeItems oldBlock
+              newSource.content != oldSource.content
+            if hasChange
+              if !newResults then console.log "insert new result for #{newSource.content}"
+              else
+                console.log "update result for #{newSource.content}"
+              result = ''
+              sync = true
+              env = envM __proto__: defaultEnv
+              env.write = (str)->
+                if sync then result += str + '\n'
+                else
+                  console.log "NEW ASYNC RESULT: #{str}"
+              env.executeText newSource.content, Nil, ->
+              console.log "CODE RESULTS: #{result}"
+              sync = false
+        super changes
+
+    isDynamic = (block)-> block.codeAttributes?.results == 'dynamic'
+
+    blockEnvMaker = (block)-> languageEnvMaker block.language
+
+    createBlockEnv = (block, envMaker)->
+      
+
+    blockCodeItems = (block)->
+      if block
+        org = blockOrg block
+        if org instanceof Fragment then org = org.children[0]
+        getCodeItems org
 
     class PlainEditing extends OrgEditing
       nodeForId: (id)-> $("#plain-#{id}")
       idForNode: (node)-> node.id.match(/^plain-(.*)$/)?[1]
       parseBlocks: (text)-> @data.parseBlocks text
-      renderBlock: (block)-> ["<span id='plain-#{block._id}' data-block>#{escapeHtml block.text}</span>", block.next]
-      updateStatus: (line)-> $("#plainStatus").html line
+      renderBlock: (block)-> ["<span id='plain-#{block._id}' data-block='#{block.type}'>#{escapeHtml block.text}</span>", block.next]
 
     class FancyEditing extends OrgEditing
       changed: (changes)->
@@ -200,9 +223,6 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
           "<span #{blockAttrs block}>#{blockLabel block}#{escapeHtml block.text}</span>"
         else "<span #{blockAttrs block}>#{blockLabel block}#{escapeHtml block.text}</span>"
         [html, @data.nextSibling(block)?._id || !@data.firstChild(block) && block.next]
-      updateStatus: (line)-> $("#orgStatus").html line
-
-    numSpan = (n)-> "<span class='status-num'>#{n}</span>"
 
     blockLabel = (block)->
       "<span class='blockLabel' contenteditable='false' data-noncontent>[#{block.type} #{block._id}]</span>"
@@ -302,3 +322,4 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
     Leisure.plainEditDiv = plainEditDiv
     Leisure.OrgData = OrgData
     Leisure.installSelectionMenu = installSelectionMenu
+    Leisure.blockOrg = blockOrg

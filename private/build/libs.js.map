@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "libs.js",
+  "sourceRoot": "..\\..",
+  "sources": [
+    "private\\build\\libs.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;AAAA,MAAA;;EAAA,IAAA,GAAO,oDAAC,SAAS,MAAV,CAAiB,CAAC;;AAEzB,OAAA,QAAA;;IACE,IAAK,CAAA,CAAA,CAAL,GAAU;AADZ;;EAGA,IAAI,CAAC,IAAL,GAAY;AALZ"
+}
