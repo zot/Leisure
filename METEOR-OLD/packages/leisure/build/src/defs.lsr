@@ -1,0 +1,104 @@
+moveTok tok offset = do
+  p = tokenFilepos tok
+  token (tokenString tok)
+    filepos (fileposFile p) (fileposLine p) ((fileposOffset p) + offset)
+
+substParens toks = map
+  \x . isParens x
+    [(token '(' (parensStart x)) (substParens (parensContent x)) (moveTok (token ')' (parensEnd x)) -1)]
+    x
+  toks
+
+mapList func list = isNil list list
+  [(func list) | mapList func (tail list)]
+
+findLast func list = foldr
+  \el r . (func el) (some el) r
+  none
+  list
+
+makeToks toks = do
+  last = (findLast isToken toks) tokenFilepos (filepos nil 0 0)
+  mapList
+    \l. l
+      \h t D. isToken h
+        h
+        token h ((find isToken t) tokenFilepos last)
+      l
+    toks
+
+tokenBefore t1 t2 = do
+  line1 = fileposLine (tokenFilepos t1)
+  offset1 = fileposOffset (tokenFilepos t1)
+  line2 = fileposLine (tokenFilepos t2)
+  offset2 = fileposOffset (tokenFilepos t2)
+  or (line1 < line2)
+    and (line1 == line2) (offset1 < offset2)
+
+tokenSource toks = tail
+  foldl
+    \res tok . do
+      line = head res
+      str = tail res
+      tokStr = tokenString tok
+      amount = (tokenPos tok) - (strLen str)
+      lines = max 0 (fileposLine (tokenFilepos tok)) - line
+      newStr = strCat (flatten [str (do (repeat (max lines 0)) '\n') (do (repeat (max amount 0)) ' ') tokStr])
+      [line + lines | newStr]
+    [1 | '']
+    sortBy
+      tokenBefore
+      makeToks (flatten (substParens toks))
+
+defMacro 'testTokSrc' \list . stringify (tokenSource list)
+
+tokenEnd tok = (tokenPos tok) + (strLen (tokenString tok))
+
+XoptDefSpace name args = ' '
+
+optDefSpace name args = (tokenEnd name) == ((find isToken args) tokenPos (tokenEnd name))
+  ' '
+  ''
+
+stringify str = concat['"' (toJson str) '"']
+
+frontSpace = regexp '^\\s+'
+endSpace = regexp '\\s+$'
+
+strTrim str = do
+  frontM = strMatch str frontSpace
+  endM = strMatch str endSpace
+  start = isNil frontM 0 (strLen (head frontM))
+  end = isNil endM 0 (strLen (head endM))
+  strSubstring str start (strLen str) - end
+
+checkFlatArgs name args cont = (find
+  \x . or (isCons x) (isParens x)
+  args) (\x . ['err' (stringify concat['Arguments to def "' (strTokenString name) '" should be flat: (' (strTrim (tokenSource args)) ')'])]) cont
+
+makeDef name args def = do
+  arity = length args
+  checkFlatArgs name args
+    ['\\@' 'leisureName' name '.' 'newDefine' (stringify (strTokenString name)) arity (stringify concat[(strTrim (tokenSource [name args])) ' = ' (strTrim (tokenSource def))]) ['\\@' 'arity' arity '.' ((arity == 0) def ['\\' | (append args ['.' | def])])]]
+
+parseToList str = d 'parseToList ' str
+  do
+    line = head (countedLinesForFile 'parse' str)
+    countedScanLineM (head line) (tail line)
+
+#compileDef won't work until macros are monadic
+#defMacro 'compileDef' \list . log (show list) parseToList (strTokenString (head list))
+
+defMacro 'def' \list . makeDef (head list) (stripParens (at list 1)) (drop 2 list)
+
+makeDefs l = foldr1
+  \expr res . ['bind2' expr ['\\' '_' '.' res]]
+  map
+    \num . do
+      name = concat['A' num]
+      makeDef name [] [(string num)]
+    l
+
+#defMacro 'defs' \list . makeDefs [1 2 3]
+defMacro 'defs' \list . dd 'def'
+  makeDefs (map tokenString list)

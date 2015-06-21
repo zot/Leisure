@@ -5,7 +5,15 @@
 /private/test
 /test
 /local
+/METEOR-OLD/packages/leisure/build/node_modules
+/METEOR-OLD/packages/leisure/build/tmp
+/METEOR-OLD/packages/npm
+/METEOR-OLD/private/test
+/METEOR-OLD/test
+/METEOR-OLD/local
 Thumbs.db
 /.sourcecodex
 /public/dice
 /public/tmp
+/METEOR-OLD/public/dice
+/METEOR-OLD/public/tmp
