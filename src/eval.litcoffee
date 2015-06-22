@@ -58,7 +58,7 @@ Evaulation support for Leisure
             #@write @presentValue eval text
             console.log eval text
           catch err
-            @write errorDiv err.stack
+            @write html errorDiv err.stack
           finally
             cont? env
         env
@@ -68,7 +68,7 @@ Evaulation support for Leisure
       
       html = (content)-> new Html content
       
-      errorDiv = (err, orgText)-> "<div class='error' contenteditable='false'><span class='hidden'>#{orgText || ''}</span><span data-nonorg='true'>#{escapeHtml err}</span></div>"
+      errorDiv = (err, orgText)-> "<span class='error' contenteditable='false'><span class='hidden'>#{orgText || ''}</span><span data-nonorg='true'>#{escapeHtml err}</span></span>"
       
       replacements =
         '<': '&lt;'
@@ -88,3 +88,5 @@ Evaulation support for Leisure
 
       languageEnvMaker: languageEnvMaker
       html: html
+      Html: Html
+      escapeHtml: escapeHtml

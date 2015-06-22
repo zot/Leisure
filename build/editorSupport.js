@@ -4,17 +4,17 @@
     hasProp = {}.hasOwnProperty;
 
   define(['cs!base', 'cs!org', 'cs!docOrg.litcoffee', 'cs!ast', 'cs!eval.litcoffee', 'cs!editor.litcoffee', 'lib/lodash.min', 'jquery'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $) {
-    var DataStore, DataStoreEditingOptions, FancyEditing, Fragment, Nil, OrgData, OrgEditing, PlainEditing, actualSelectionUpdate, blockAttrs, blockCodeItems, blockEnvMaker, blockLabel, blockOrg, blockText, configureMenu, contentSpan, copy, createBlockEnv, createLocalData, defaultEnv, escapeAttr, escapeHtml, findEditor, getCodeItems, getId, greduce, installSelectionMenu, isContentEditable, isDynamic, languageEnvMaker, last, linkAllSiblings, monitorSelectionChange, orgDoc, parseOrgMode, plainEditDiv, posFor, selectionActive, selectionMenu, setHtml, throttledUpdateSelection, updateSelection;
+    var DataStore, DataStoreEditingOptions, FancyEditing, Fragment, Html, LeisureEditCore, Nil, OrgData, OrgEditing, PlainEditing, actualSelectionUpdate, blockAttrs, blockCodeItems, blockEnvMaker, blockLabel, blockOrg, blockText, configureMenu, contentSpan, copy, createBlockEnv, createLocalData, defaultEnv, escapeAttr, escapeHtml, findEditor, getCodeItems, getId, greduce, installSelectionMenu, isContentEditable, isDynamic, languageEnvMaker, last, linkAllSiblings, monitorSelectionChange, orgDoc, parseOrgMode, plainEditDiv, posFor, selectionActive, selectionMenu, setHtml, throttledUpdateSelection, updateSelection;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Nil = Org.Nil;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems;
     Nil = Ast.Nil;
-    languageEnvMaker = Eval.languageEnvMaker;
-    last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor;
+    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml;
+    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor;
     selectionActive = true;
-    blockOrg = function(blockOrText) {
-      var org, text;
-      text = typeof blockOrText === 'string' ? blockOrText : blockOrText.text;
+    blockOrg = function(data, blockOrText) {
+      var org, ref, text;
+      text = typeof blockOrText === 'string' ? (ref = data.getBlock(blockOrText)) != null ? ref : blockOrText : blockOrText.text;
       org = parseOrgMode(text);
       if (org.children.length > 1) {
         org = new Fragment(org.offset, org.children);
@@ -144,7 +144,7 @@
       }
     };
     linkAllSiblings = function(first, blocks, changes) {
-      var block, change, cur, curParent, emptyNexts, id, parentStack, prev, previousSibling, results, siblingStack;
+      var block, change, cur, curParent, emptyNexts, id, parentStack, prev, previousSibling, results1, siblingStack;
       change = function(block) {
         if (!changes.old[block._id]) {
           changes.old[block._id] = copy(block);
@@ -185,12 +185,12 @@
         }
         cur = blocks[cur.next];
       }
-      results = [];
+      results1 = [];
       for (id in emptyNexts) {
         block = emptyNexts[id];
-        results.push(delete change(block).nextSibling);
+        results1.push(delete change(block).nextSibling);
       }
-      return results;
+      return results1;
     };
     OrgEditing = (function(superClass) {
       extend(OrgEditing, superClass);
@@ -221,39 +221,62 @@
       };
 
       OrgEditing.prototype.change = function(changes) {
-        var change, env, envM, hasChange, id, newResults, newSource, oldBlock, oldSource, ref, ref1, ref2, result, sync;
+        var block, change, env, envM, hasChange, i, id, j, len, newBlock, newResults, newSource, oldBlock, oldSource, ref, ref1, ref2, ref3, result, sync;
         ref = changes.sets;
         for (id in ref) {
           change = ref[id];
           if (change.type === 'code' && isDynamic(change) && (envM = blockEnvMaker(change))) {
-            ref1 = blockCodeItems(change), newSource = ref1.source, newResults = ref1.results;
+            ref1 = blockCodeItems(this, change), newSource = ref1.source, newResults = ref1.results;
             oldBlock = this.getBlock(change._id);
-            hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? ((ref2 = blockCodeItems(oldBlock), oldSource = ref2.source, ref2), newSource.content !== oldSource.content) : void 0);
+            hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? ((ref2 = blockCodeItems(this, oldBlock), oldSource = ref2.source, ref2), newSource.content !== oldSource.content) : void 0);
             if (hasChange) {
-              if (!newResults) {
-                console.log("insert new result for " + newSource.content);
-              } else {
-                console.log("update result for " + newSource.content);
-              }
               result = '';
               sync = true;
               env = envM({
                 __proto__: defaultEnv
               });
-              env.write = function(str) {
-                if (sync) {
-                  return result += str + '\n';
-                } else {
-                  return console.log("NEW ASYNC RESULT: " + str);
-                }
-              };
+              (function(change) {
+                return env.write = function(str) {
+                  var newBlock;
+                  result += ': ' + (str instanceof Html ? str.content : escapeHtml(String(str).replace(/\r?\n/g, '\n: ') + '\n'));
+                  if (!sync) {
+                    newBlock = this.setResult(change, str);
+                    return this.change({
+                      first: this.data.getFirst(),
+                      removes: {},
+                      sets: change._id
+                    }, newBlock);
+                  }
+                };
+              })(change);
               env.executeText(newSource.content, Nil, function() {});
-              console.log("CODE RESULTS: " + result);
+              newBlock = this.setResult(change, result);
+              changes.sets[newBlock._id] = newBlock;
+              ref3 = changes.newBlocks;
+              for (i = j = 0, len = ref3.length; j < len; i = ++j) {
+                block = ref3[i];
+                if (block._id === newBlock._id) {
+                  changes.newBlocks[i] = newBlock;
+                }
+              }
               sync = false;
             }
           }
         }
         return OrgEditing.__super__.change.call(this, changes);
+      };
+
+      OrgEditing.prototype.setResult = function(block, result) {
+        var newBlock, prop, results, text, tmp, value;
+        newBlock = this.copyBlock(block);
+        results = blockCodeItems(this, block).results;
+        text = results ? block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length) : block.text + ("#+RESULTS:\n" + result);
+        tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
+        for (prop in tmp) {
+          value = tmp[prop];
+          newBlock[prop] = value;
+        }
+        return newBlock;
       };
 
       return OrgEditing;
@@ -267,14 +290,16 @@
       return languageEnvMaker(block.language);
     };
     createBlockEnv = function(block, envMaker) {};
-    blockCodeItems = function(block) {
+    blockCodeItems = function(data, block) {
       var org;
       if (block) {
-        org = blockOrg(block);
+        org = blockOrg(data, block);
         if (org instanceof Fragment) {
           org = org.children[0];
         }
         return getCodeItems(org);
+      } else {
+        return {};
       }
     };
     PlainEditing = (function(superClass) {
@@ -298,7 +323,25 @@
       };
 
       PlainEditing.prototype.renderBlock = function(block) {
+        if (block.type === 'code') {
+          return this.renderCode(block);
+        } else {
+          return this.renderMisc(block);
+        }
+      };
+
+      PlainEditing.prototype.renderMisc = function(block) {
         return ["<span id='plain-" + block._id + "' data-block='" + block.type + "'>" + (escapeHtml(block.text)) + "</span>", block.next];
+      };
+
+      PlainEditing.prototype.renderCode = function(block) {
+        var results;
+        results = blockCodeItems(this, block).results;
+        if (!results) {
+          return this.renderMisc(block);
+        } else {
+          return ["<span id='plain-" + block._id + "' data-block='" + block.type + "'>" + (escapeHtml(block.text.substring(0, results.offset))) + results.text + (escapeHtml(block.text.substring(results.offset + results.text.length))) + "</span>", block.next];
+        }
       };
 
       return PlainEditing;
@@ -312,7 +355,7 @@
       }
 
       FancyEditing.prototype.changed = function(changes) {
-        var block, i, id, len, ref, ref1, ref2, rendered, results;
+        var block, id, j, len, ref, ref1, ref2, rendered, results1;
         rendered = {};
         ref = changes.removes;
         for (id in ref) {
@@ -320,22 +363,22 @@
           this.removeBlock(block);
         }
         ref1 = changes.newBlocks;
-        for (i = 0, len = ref1.length; i < len; i++) {
-          block = ref1[i];
+        for (j = 0, len = ref1.length; j < len; j++) {
+          block = ref1[j];
           rendered[block._id] = true;
           this.updateBlock(block, changes.old[block._id]);
         }
         ref2 = changes.sets;
-        results = [];
+        results1 = [];
         for (id in ref2) {
           block = ref2[id];
           if (!rendered[id]) {
-            results.push(this.updateBlock(block, changes.old[block._id]));
+            results1.push(this.updateBlock(block, changes.old[block._id]));
           } else {
-            results.push(void 0);
+            results1.push(void 0);
           }
         }
-        return results;
+        return results1;
       };
 
       FancyEditing.prototype.nodeForId = function(id) {
@@ -363,7 +406,7 @@
       };
 
       FancyEditing.prototype.updateBlock = function(block, old) {
-        var child, content, html, i, len, node, ref, results;
+        var child, content, html, j, len, node, ref, results1;
         if ((node = this.nodeForId(block._id)).length) {
           content = node.children().filter('[data-content]');
           if (block.type !== (old != null ? old.type : void 0) || block.nextSibling !== (old != null ? old.nextSibling : void 0) || block.previousSibling !== (old != null ? old.previousSibling : void 0) || block.prev !== (old != null ? old.prev : void 0)) {
@@ -381,12 +424,12 @@
             content = node.children().filter('[data-content]');
             if (block.type === 'headline') {
               ref = this.data.children(block);
-              results = [];
-              for (i = 0, len = ref.length; i < len; i++) {
-                child = ref[i];
-                results.push(content.append(this.nodeForId(child._id)));
+              results1 = [];
+              for (j = 0, len = ref.length; j < len; j++) {
+                child = ref[j];
+                results1.push(content.append(this.nodeForId(child._id)));
               }
-              return results;
+              return results1;
             }
           }
         } else {
@@ -415,14 +458,14 @@
       FancyEditing.prototype.renderBlock = function(block, skipChildren) {
         var child, html, ref;
         html = block.type === 'headline' ? "<div " + (blockAttrs(block)) + " contenteditable='false'>" + (blockLabel(block)) + "<div contenteditable='true' data-content>" + (contentSpan(block.text, 'text')) + (!skipChildren ? ((function() {
-          var i, len, ref, ref1, results;
+          var j, len, ref, ref1, results1;
           ref1 = (ref = this.data.children(block)) != null ? ref : [];
-          results = [];
-          for (i = 0, len = ref1.length; i < len; i++) {
-            child = ref1[i];
-            results.push(this.renderBlock(child)[0]);
+          results1 = [];
+          for (j = 0, len = ref1.length; j < len; j++) {
+            child = ref1[j];
+            results1.push(this.renderBlock(child)[0]);
           }
-          return results;
+          return results1;
         }).call(this)).join('') : '') + "</div></div>" : block.type === 'code' ? "<span " + (blockAttrs(block)) + ">" + (blockLabel(block)) + (escapeHtml(block.text)) + "</span>" : "<span " + (blockAttrs(block)) + ">" + (blockLabel(block)) + (escapeHtml(block.text)) + "</span>";
         return [html, ((ref = this.data.nextSibling(block)) != null ? ref._id : void 0) || !this.data.firstChild(block) && block.next];
       };
@@ -537,3 +580,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=editorSupport.js.map

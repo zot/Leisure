@@ -3,11 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    console.log "defining editor support"
-
     define ['cs!base', 'cs!org', 'cs!docOrg.litcoffee', 'cs!ast', 'cs!eval.litcoffee', 'cs!editor.litcoffee', 'lib/lodash.min', 'jquery'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $)->
-
-      console.log "loading editor support"
 
       {
         defaultEnv
@@ -26,6 +22,8 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       } = Ast
       {
         languageEnvMaker
+        Html
+        escapeHtml
       } = Eval
       {
         LeisureEditCore
@@ -45,8 +43,8 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
 OrgData is the basic data storage class.  Subclasses can change how the
 editor accesses blocks of text (local, meteor, etc.)
 
-      blockOrg = (blockOrText)->
-        text = if typeof blockOrText == 'string' then blockOrText else blockOrText.text
+      blockOrg = (data, blockOrText)->
+        text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
         org = parseOrgMode text
         if org.children.length > 1 then org = new Fragment org.offset, org.children
         org.linkNodes()
@@ -143,26 +141,41 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
         change: (changes)->
           for id, change of changes.sets
             if change.type == 'code' && isDynamic(change) && envM = blockEnvMaker(change)
-              {source: newSource, results: newResults} = blockCodeItems change
+              {source: newSource, results: newResults} = blockCodeItems this, change
               oldBlock = @getBlock change._id
               hasChange = !oldBlock || oldBlock.type != 'code' || oldBlock.codeAttributes.results != 'dynamic' || if oldBlock
-                {source: oldSource} = blockCodeItems oldBlock
+                {source: oldSource} = blockCodeItems this, oldBlock
                 newSource.content != oldSource.content
               if hasChange
-                if !newResults then console.log "insert new result for #{newSource.content}"
-                else
-                  console.log "update result for #{newSource.content}"
                 result = ''
                 sync = true
                 env = envM __proto__: defaultEnv
-                env.write = (str)->
-                  if sync then result += str + '\n'
-                  else
-                    console.log "NEW ASYNC RESULT: #{str}"
+                do (change)->
+                  env.write = (str)->
+                    result += ': ' + (if str instanceof Html then str.content else escapeHtml String(str).replace(/\r?\n/g, '\n: ') + '\n')
+                    if !sync
+                      newBlock = @setResult change, str
+                      @change
+                        first: @data.getFirst()
+                        removes: {}
+                        sets: change._id, newBlock
                 env.executeText newSource.content, Nil, ->
-                console.log "CODE RESULTS: #{result}"
+                newBlock = @setResult change, result
+                changes.sets[newBlock._id] = newBlock
+                for block, i in changes.newBlocks
+                  if block._id == newBlock._id then changes.newBlocks[i] = newBlock
                 sync = false
           super changes
+        setResult: (block, result)->
+          newBlock = @copyBlock block
+          {results} = blockCodeItems this, block
+          text = if results
+            block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length)
+          else block.text + "#+RESULTS:\n#{result}"
+          [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
+          for prop, value of tmp
+            newBlock[prop] = value
+          newBlock
 
       isDynamic = (block)-> block.codeAttributes?.results == 'dynamic'
 
@@ -171,17 +184,26 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
       createBlockEnv = (block, envMaker)->
       
 
-      blockCodeItems = (block)->
+      blockCodeItems = (data, block)->
         if block
-          org = blockOrg block
+          org = blockOrg data, block
           if org instanceof Fragment then org = org.children[0]
           getCodeItems org
+        else {}
 
       class PlainEditing extends OrgEditing
         nodeForId: (id)-> $("#plain-#{id}")
         idForNode: (node)-> node.id.match(/^plain-(.*)$/)?[1]
         parseBlocks: (text)-> @data.parseBlocks text
-        renderBlock: (block)-> ["<span id='plain-#{block._id}' data-block='#{block.type}'>#{escapeHtml block.text}</span>", block.next]
+        renderBlock: (block)->
+          if block.type == 'code' then @renderCode block
+          else @renderMisc block
+        renderMisc: (block)-> ["<span id='plain-#{block._id}' data-block='#{block.type}'>#{escapeHtml block.text}</span>", block.next]
+        renderCode: (block)->
+          {results} = blockCodeItems this, block
+          if !results then @renderMisc block
+          else
+            ["<span id='plain-#{block._id}' data-block='#{block.type}'>#{escapeHtml block.text.substring(0, results.offset)}#{results.text}#{escapeHtml block.text.substring(results.offset + results.text.length)}</span>", block.next]
 
       class FancyEditing extends OrgEditing
         changed: (changes)->

@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "compiled.js",
+  "sourceRoot": "..",
+  "sources": [
+    "src\\compiled.litcoffee"
+  ],
+  "names": [],
+  "mappings": ";AAEI;EAAA,SAAS,CAAC,eAAV,GAA4B;;EAE5B,OAAA,CAAQ,CAAC,MAAD,CAAR;AAFA"
+}

@@ -1,7 +1,21 @@
+* TODO port back over the UI stuff
+- handlebars
+- view system
+* TODO separate project: UI system
+* TODO separate project: Leisure evaluator
+* TODO separate project: scope chains
+* TODO scope chains
+- make evalScope(str) -> [result, newEval]
+- use this for dynamic edits
+- keep a currentScope variable for the current evalScope function
+- keep the old one around to reuse when people make successive edits to the same block
+* TODO check whether we should use browserify instead of requirejs
+we'll keep requirejs for now, but browserify looks to be much simpler and friendlier to use
+* TODO Look at supporting [[http://sweetjs.org/][sweetjs]]
 * TODO verify whether @ needs a fat arrow in runtime.coffee:Leisure_token.prototype.toString()
 * TODO repatch autoeval
-* TODO Document comments and metadocuments
-- comments in the metadocument?
+* TODO block comments and metadocuments
+- keep comments in the metadocument?
 - secure comment edit/insert using OAuth?
 * TODO make editor support hidden blocks
 a newline after a block preceding a hidden block should insert a block
@@ -35,7 +49,6 @@ Works from file or static website
 ** TODO configure DataStore to use meteor
 * TODO EditCore: factor Leisure connection (eval, etc.) into separate file
 * TODO EditCore: put fancy editor options in 24-editorSupport.litcoffee
-* TODO Support [[http://sweetjs.org/][sweetjs]]
 * Short list -- announcement
 ** BUG inserting char at start of doc in plain mode makes cursor disappear
 ** BUG appended slide in plain mode disappears
