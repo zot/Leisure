@@ -1,3 +1,5 @@
+* TODO make a shell service
+- Leisure should ask for confirmation from user before connecting to local/nonpublic services
 * TODO port back over the UI stuff
 - handlebars
 - view system

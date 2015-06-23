@@ -1,6 +1,9 @@
 Evaulation support for Leisure
 
-    define ['cs!base', 'cs!ast', 'cs!runtime'], (Base, Ast, Runtime)->
+    define ['cs!base', 'cs!ast', 'cs!runtime', './lib/sweetjs/sweet.js'], (Base, Ast, Runtime, Sweet)->
+
+      console.log "Sweet:", Sweet
+      window.Sweet = Sweet
       {
         getType,
         cons,
@@ -55,8 +58,8 @@ Evaulation support for Leisure
         env.executeText = (text, props, cont)->
           console = log: (str)=> @write @presentValue str
           try
-            #@write @presentValue eval text
-            console.log eval text
+            value = eval text
+            if typeof value != 'undefined' then console.log value
           catch err
             @write html errorDiv err.stack
           finally
