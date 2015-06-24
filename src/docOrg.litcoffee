@@ -44,6 +44,7 @@
         else if org instanceof Results then 'results'
         else if org instanceof Drawer && org.name.toLowerCase() == 'expected' then 'expected'
         else if org instanceof Keyword && org.name.match /^name$/i then 'name'
+        else if org instanceof Keyword && org.name.match /^error$/i then 'error'
         else false
 
       isSourceEnd = (org)-> !org || org instanceof Headline

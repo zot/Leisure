@@ -28,6 +28,9 @@ requirejs.config({
         scopedEval: 'lib/sweetjs/scopedEval',
         patterns: 'lib/sweetjs/patterns',
         stxcase: 'lib/sweetjs/stxcase',
+        acorn: 'lib/acorn-2.0.5',
+        acorn_loose: 'lib/acorn_loose-2.0.5',
+        acorn_walk: 'lib/acorn_walk-2.0.5'
     }});
 
 require(['lib/bluebird.min'], function(bluebird) {

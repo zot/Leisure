@@ -221,7 +221,7 @@
       };
 
       OrgEditing.prototype.change = function(changes) {
-        var block, change, env, envM, hasChange, i, id, j, len, newBlock, newResults, newSource, oldBlock, oldSource, ref, ref1, ref2, ref3, result, sync;
+        var block, change, env, envM, hasChange, i, id, j, len, newBlock, newResults, newSource, oldBlock, oldSource, opts, ref, ref1, ref2, ref3, result, sync;
         ref = changes.sets;
         for (id in ref) {
           change = ref[id];
@@ -231,18 +231,29 @@
             hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? ((ref2 = blockCodeItems(this, oldBlock), oldSource = ref2.source, ref2), newSource.content !== oldSource.content) : void 0);
             if (hasChange) {
               result = '';
+              newBlock = this.setError(change);
               sync = true;
               env = envM({
                 __proto__: defaultEnv
               });
+              opts = this;
               (function(change) {
+                env.errorAt = function(offset, msg) {
+                  newBlock = opts.setError(change, offset, msg);
+                  if (newBlock !== change && !sync) {
+                    return opts.change({
+                      first: opts.data.getFirst(),
+                      removes: {},
+                      sets: change._id
+                    }, newBlock);
+                  }
+                };
                 return env.write = function(str) {
-                  var newBlock;
                   result += ': ' + (str instanceof Html ? str.content : escapeHtml(String(str).replace(/\r?\n/g, '\n: ') + '\n'));
                   if (!sync) {
-                    newBlock = this.setResult(change, str);
-                    return this.change({
-                      first: this.data.getFirst(),
+                    newBlock = opts.setResult(change, str);
+                    return opts.change({
+                      first: opts.data.getFirst(),
                       removes: {},
                       sets: change._id
                     }, newBlock);
@@ -250,7 +261,7 @@
                 };
               })(change);
               env.executeText(newSource.content, Nil, function() {});
-              newBlock = this.setResult(change, result);
+              newBlock = this.setResult(newBlock, result);
               changes.sets[newBlock._id] = newBlock;
               ref3 = changes.newBlocks;
               for (i = j = 0, len = ref3.length; j < len; i = ++j) {
@@ -268,15 +279,38 @@
 
       OrgEditing.prototype.setResult = function(block, result) {
         var newBlock, prop, results, text, tmp, value;
-        newBlock = this.copyBlock(block);
         results = blockCodeItems(this, block).results;
-        text = results ? block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length) : block.text + ("#+RESULTS:\n" + result);
-        tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
-        for (prop in tmp) {
-          value = tmp[prop];
-          newBlock[prop] = value;
+        if (!results && ((result == null) || result === '')) {
+          return block;
+        } else {
+          newBlock = this.copyBlock(block);
+          text = (result == null) || result === '' ? block.text.substring(0, results.offset) + block.text.substring(results.offset + results.text.length) : results ? block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length) : block.text + ("#+RESULTS:\n" + result);
+          tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
+          for (prop in tmp) {
+            value = tmp[prop];
+            newBlock[prop] = value;
+          }
+          return newBlock;
         }
-        return newBlock;
+      };
+
+      OrgEditing.prototype.setError = function(block, offset, msg) {
+        var err, error, newBlock, prop, ref, results, text, tmp, value;
+        ref = blockCodeItems(this, block), error = ref.error, results = ref.results;
+        if ((offset == null) && !error) {
+          return block;
+        } else {
+          newBlock = this.copyBlock(block);
+          msg = msg ? msg.trim() + "\n" : void 0;
+          err = "#+ERROR: " + offset + ", " + msg;
+          text = error ? offset == null ? block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length) : block.text.substring(0, error.offset) + err + block.text.substring(error.offset + error.text.length) : results ? block.text.substring(0, results.offset) + err + block.text.substring(results.offset) : block.text + err;
+          tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
+          for (prop in tmp) {
+            value = tmp[prop];
+            newBlock[prop] = value;
+          }
+          return newBlock;
+        }
       };
 
       return OrgEditing;
@@ -335,12 +369,34 @@
       };
 
       PlainEditing.prototype.renderCode = function(block) {
-        var results;
-        results = blockCodeItems(this, block).results;
-        if (!results) {
+        var error, ref, ref1, results, source, text;
+        ref = blockCodeItems(this, block), source = ref.source, error = ref.error, results = ref.results;
+        if (!results && !error) {
           return this.renderMisc(block);
         } else {
-          return ["<span id='plain-" + block._id + "' data-block='" + block.type + "'>" + (escapeHtml(block.text.substring(0, results.offset))) + results.text + (escapeHtml(block.text.substring(results.offset + results.text.length))) + "</span>", block.next];
+          text = "<span id='plain-" + block._id + "' data-block='" + block.type + "'>" + (this.renderError(block, source, error, results));
+          if (results != null) {
+            text += "" + ((ref1 = results != null ? results.text : void 0) != null ? ref1 : '') + (block.text.substring(results.offset + results.text.length));
+          }
+          return [text, block.next];
+        }
+      };
+
+      PlainEditing.prototype.interstitial = function(block, a, b) {
+        if (a && b) {
+          return block.text.substring(a.offset + a.text.length, b.offset);
+        } else {
+          return '';
+        }
+      };
+
+      PlainEditing.prototype.renderError = function(block, source, error, results) {
+        var pos, ref, ref1;
+        if (!error) {
+          return block.text.substring(0, (ref = results != null ? results.offset : void 0) != null ? ref : block.text.length);
+        } else {
+          pos = source.offset + source.contentPos + Number(error.info.match(/([^,]*),/)[1]) - 1;
+          return escapeHtml(block.text.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, (ref1 = results != null ? results.offset : void 0) != null ? ref1 : block.text.length));
         }
       };
 

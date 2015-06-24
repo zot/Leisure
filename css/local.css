@@ -14,3 +14,9 @@
     border: solid orange 2px;
     white-space: pre;
 }
+.errorMark {
+    color: red;
+    position: absolute;
+    opacity: 0.3;
+    z-index: -1;
+}

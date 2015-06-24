@@ -55,6 +55,8 @@
         return 'expected';
       } else if (org instanceof Keyword && org.name.match(/^name$/i)) {
         return 'name';
+      } else if (org instanceof Keyword && org.name.match(/^error$/i)) {
+        return 'error';
       } else {
         return false;
       }

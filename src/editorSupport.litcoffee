@@ -148,34 +148,66 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
                 newSource.content != oldSource.content
               if hasChange
                 result = ''
+                newBlock = @setError change
                 sync = true
                 env = envM __proto__: defaultEnv
+                opts = this
                 do (change)->
+                  env.errorAt = (offset, msg)->
+                    newBlock = opts.setError change, offset, msg
+                    if newBlock != change && !sync
+                      opts.change
+                        first: opts.data.getFirst()
+                        removes: {}
+                        sets: change._id, newBlock
                   env.write = (str)->
                     result += ': ' + (if str instanceof Html then str.content else escapeHtml String(str).replace(/\r?\n/g, '\n: ') + '\n')
                     if !sync
-                      newBlock = @setResult change, str
-                      @change
-                        first: @data.getFirst()
+                      newBlock = opts.setResult change, str
+                      opts.change
+                        first: opts.data.getFirst()
                         removes: {}
                         sets: change._id, newBlock
                 env.executeText newSource.content, Nil, ->
-                newBlock = @setResult change, result
+                newBlock = @setResult newBlock, result
                 changes.sets[newBlock._id] = newBlock
                 for block, i in changes.newBlocks
                   if block._id == newBlock._id then changes.newBlocks[i] = newBlock
                 sync = false
           super changes
         setResult: (block, result)->
-          newBlock = @copyBlock block
           {results} = blockCodeItems this, block
-          text = if results
-            block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length)
-          else block.text + "#+RESULTS:\n#{result}"
-          [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
-          for prop, value of tmp
-            newBlock[prop] = value
-          newBlock
+          if !results && (!result? || result == '') then block
+          else
+            newBlock = @copyBlock block
+            text = if !result? || result == ''
+              block.text.substring(0, results.offset) + block.text.substring(results.offset + results.text.length)
+            else if results
+              block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length)
+            else block.text + "#+RESULTS:\n#{result}"
+            [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
+            for prop, value of tmp
+              newBlock[prop] = value
+            newBlock
+        setError: (block, offset, msg)->
+          {error, results} = blockCodeItems this, block
+          if !offset? && !error then block
+          else
+            newBlock = @copyBlock block
+            msg = if msg then msg.trim() + "\n"
+            err = "#+ERROR: #{offset}, #{msg}"
+            text = if error
+              if !offset?
+                block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length)
+              else
+                block.text.substring(0, error.offset) + err + block.text.substring(error.offset + error.text.length)
+            else if results
+              block.text.substring(0, results.offset) + err + block.text.substring(results.offset)
+            else block.text + err
+            [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
+            for prop, value of tmp
+              newBlock[prop] = value
+            newBlock
 
       isDynamic = (block)-> block.codeAttributes?.results == 'dynamic'
 
@@ -200,10 +232,20 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
           else @renderMisc block
         renderMisc: (block)-> ["<span id='plain-#{block._id}' data-block='#{block.type}'>#{escapeHtml block.text}</span>", block.next]
         renderCode: (block)->
-          {results} = blockCodeItems this, block
-          if !results then @renderMisc block
+          {source, error, results} = blockCodeItems this, block
+          if !results && !error then @renderMisc block
           else
-            ["<span id='plain-#{block._id}' data-block='#{block.type}'>#{escapeHtml block.text.substring(0, results.offset)}#{results.text}#{escapeHtml block.text.substring(results.offset + results.text.length)}</span>", block.next]
+            text = "<span id='plain-#{block._id}' data-block='#{block.type}'>#{@renderError block, source, error, results}"
+            if results? then text += "#{results?.text ? ''}#{block.text.substring(results.offset + results.text.length)}"
+            [text, block.next]
+        interstitial: (block, a, b)->
+          if a && b then block.text.substring a.offset + a.text.length, b.offset
+          else ''
+        renderError: (block, source, error, results)->
+          if !error then block.text.substring(0, results?.offset ? block.text.length)
+          else
+            pos = source.offset + source.contentPos + Number(error.info.match(/([^,]*),/)[1]) - 1
+            escapeHtml(block.text.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, results?.offset ? block.text.length))
 
       class FancyEditing extends OrgEditing
         changed: (changes)->
