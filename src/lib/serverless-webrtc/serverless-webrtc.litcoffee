@@ -61,6 +61,8 @@ Converted to AMD and CoffeeScript and sorely hacked based on Chris Ball's exampl
 
       class SlavePeer extends Peer
         constructor: (offerJson)->
+          super()
+          useOffer offerJson
         desc: 'Slave'
         prepareSlave: (offerJson)->
           @con.ondatachannel = (e)->
@@ -75,3 +77,6 @@ Converted to AMD and CoffeeScript and sorely hacked based on Chris Ball's exampl
         slaveAnswerReady: (desc)->
           console.log "Answer ready: #{JSON.stringify offer}"
           # send answer JSON to master using server
+        offerReady: (offer)-> # finished generating the offer, now send it
+          @log "offer ready offer: #{JSON.stringify offer}"
+          # send offer to master using server

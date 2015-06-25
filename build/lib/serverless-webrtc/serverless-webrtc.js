@@ -117,7 +117,10 @@
     return SlavePeer = (function(superClass) {
       extend(SlavePeer, superClass);
 
-      function SlavePeer(offerJson) {}
+      function SlavePeer(offerJson) {
+        SlavePeer.__super__.constructor.call(this);
+        useOffer(offerJson);
+      }
 
       SlavePeer.prototype.desc = 'Slave';
 
@@ -138,6 +141,10 @@
 
       SlavePeer.prototype.slaveAnswerReady = function(desc) {
         return console.log("Answer ready: " + (JSON.stringify(offer)));
+      };
+
+      SlavePeer.prototype.offerReady = function(offer) {
+        return this.log("offer ready offer: " + (JSON.stringify(offer)));
       };
 
       return SlavePeer;
