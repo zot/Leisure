@@ -44,7 +44,6 @@ handlers.
         sendMessage: (msg)-> @chan.send msg
         close: -> @con.close()
 
-
 `MasterConnection` starts by creating a connection and an offer.
 
 The developer needs to make sure @offerReady() sends this offer to the slave connection,
