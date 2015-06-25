@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['adapter'], function() {
-    var Master, Peer, SlavePeer, cfg, con;
+    var MasterConnection, PeerConnection, SlaveConnection, cfg, con;
     cfg = {
       iceServers: [
         {
@@ -20,8 +20,13 @@
         }
       ]
     };
-    Peer = (function() {
-      function Peer() {
+    PeerConnection = (function() {
+      function PeerConnection() {}
+
+      PeerConnection.prototype.start = function() {
+        if (!this.offerReady || !handleMessage) {
+          throw new Error("Unconfigured " + this.desc);
+        }
         this.con = new RTCPeerConnection(cfg, con);
         this.con.onsignalingstatechange = function(s) {
           return this.log('signaling state change: ', s);
@@ -32,7 +37,7 @@
         this.con.onicegatheringstatechange = function(s) {
           return this.log('ice gathering state change: ', s);
         };
-        this.con.onicecandidate = (function(_this) {
+        return this.con.onicecandidate = (function(_this) {
           return function(e) {
             _this.log("candidate", e);
             if (e.candidate === null) {
@@ -40,20 +45,20 @@
             }
           };
         })(this);
-      }
+      };
 
-      Peer.prototype.log = function() {
+      PeerConnection.prototype.log = function() {
         var args, msg;
         msg = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
         return console.log.apply(console, [this.desc + ": " + msg].concat(slice.call(args)));
       };
 
-      Peer.prototype.useOffer = function(offerJson) {
+      PeerConnection.prototype.useOffer = function(offerJson) {
         this.log("using offer", offerJson);
         return this.con.setRemoteDescription(new RTCSessionDescription(JSON.parse(offerJson)));
       };
 
-      Peer.prototype.configChannel = function(chan) {
+      PeerConnection.prototype.useChannel = function(chan) {
         this.chan = chan;
         this.chan.onmessage = function(e) {
           if (e.data.charCodeAt(0) === 2) {
@@ -61,72 +66,62 @@
             return;
           }
           this.log("got message", e.data);
-          return this.handleMessage(JSON.parse(e.data).message);
+          return this.handleMessage(e.data);
         };
         return this.chan.onopen = function(e) {
           return this.log('data channel connect');
         };
       };
 
-      Peer.prototype.handleMessage = function(message) {
-        return this.log("received message: " + message);
+      PeerConnection.prototype.sendMessage = function(msg) {
+        return this.chan.send(msg);
       };
 
-      return Peer;
+      PeerConnection.prototype.close = function() {
+        return this.con.close();
+      };
+
+      return PeerConnection;
 
     })();
-    Master = (function(superClass) {
-      extend(Master, superClass);
+    MasterConnection = (function(superClass) {
+      extend(MasterConnection, superClass);
 
-      function Master() {
-        return Master.__super__.constructor.apply(this, arguments);
+      function MasterConnection() {
+        return MasterConnection.__super__.constructor.apply(this, arguments);
       }
 
-      Master.prototype.desc = 'Master';
+      MasterConnection.prototype.desc = 'Master';
 
-      Master.prototype.createOffer = function(cont, err) {
-        this.setupDataChannel();
+      MasterConnection.prototype.start = function(errFunc) {
+        MasterConnection.__super__.start.call(this);
+        this.useChannel(this.con.createDataChannel('test', {
+          reliable: true
+        }));
+        this.log("created datachannel");
         return this.con.createOffer(((function(_this) {
           return function(desc) {
-            _this.con.setLocalDescription(desc, (function() {}), (function() {}));
-            return cont(desc);
+            return _this.con.setLocalDescription(desc, (function() {}), (function() {}));
           };
-        })(this)), err);
+        })(this)), errFunc);
       };
 
-      Master.prototype.offerReady = function(offer) {
-        return this.log("offer ready offer: " + (JSON.stringify(offer)));
-      };
+      return MasterConnection;
 
-      Master.prototype.setupDataChannel = function() {
-        var e;
-        try {
-          this.configChannel(this.con.createDataChannel('test', {
-            reliable: true
-          }));
-          return this.log("created datachannel");
-        } catch (_error) {
-          e = _error;
-          return console.warn(this.desc + ": couldn't create data channel", e);
-        }
-      };
+    })(PeerConnection);
+    SlaveConnection = (function(superClass) {
+      extend(SlaveConnection, superClass);
 
-      return Master;
-
-    })(Peer);
-    return SlavePeer = (function(superClass) {
-      extend(SlavePeer, superClass);
-
-      function SlavePeer(offerJson) {
-        SlavePeer.__super__.constructor.call(this);
-        useOffer(offerJson);
+      function SlaveConnection() {
+        return SlaveConnection.__super__.constructor.apply(this, arguments);
       }
 
-      SlavePeer.prototype.desc = 'Slave';
+      SlaveConnection.prototype.desc = 'Slave';
 
-      SlavePeer.prototype.prepareSlave = function(offerJson) {
+      SlaveConnection.prototype.start = function(offerJson, errFunc) {
+        SlaveConnection.__super__.start.call(this);
         this.con.ondatachannel = function(e) {
-          this.configChannel(e.channel || Math.floor(e / Chrome(sends(event, FF(sends(raw(channel)))))));
+          this.useChannel(e.channel || Math.floor(e / Chrome(sends(event, FF(sends(raw(channel)))))));
           return this.log("received datachannel", arguments);
         };
         this.useOffer(offerJson);
@@ -134,22 +129,17 @@
           writeToChatLog("Created local answer", "text-success");
           console.log("Created local answer: ", answerDesc);
           return this.con.setLocalDescription(answerDesc);
-        }), (function() {
-          return console.warn("No answer created");
-        }));
+        }), errFunc);
       };
 
-      SlavePeer.prototype.slaveAnswerReady = function(desc) {
-        return console.log("Answer ready: " + (JSON.stringify(offer)));
-      };
+      return SlaveConnection;
 
-      SlavePeer.prototype.offerReady = function(offer) {
-        return this.log("offer ready offer: " + (JSON.stringify(offer)));
-      };
-
-      return SlavePeer;
-
-    })(Peer);
+    })(PeerConnection);
+    return {
+      PeerConnection: PeerConnection,
+      MasterConnection: MasterConnection,
+      SlaveConnection: SlaveConnection
+    };
   });
 
 }).call(this);

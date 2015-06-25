@@ -4,7 +4,6 @@ Converted to AMD and CoffeeScript and sorely hacked based on Chris Ball's exampl
 -- Bill Burdick 2015
 
     define ['adapter'], ->
-
       # See also:
       # http://www.html5rocks.com/en/tutorials/webrtc/basics/
       # https://code.google.com/p/webrtc-samples/source/browse/trunk/apprtc/index.html
@@ -13,8 +12,12 @@ Converted to AMD and CoffeeScript and sorely hacked based on Chris Ball's exampl
       cfg = iceServers: [url: "stun:23.21.150.121"]
       con = optional: [DtlsSrtpKeyAgreement: true]
 
-      class Peer
-        constructor: ->
+`PeerConnection` starts by creating an ordered connection and configuring its event
+handlers.
+
+      class PeerConnection
+        start: ->
+          if !@offerReady || !handleMessage then throw new Error "Unconfigured #{@desc}"
           @con = new RTCPeerConnection cfg, con
           @con.onsignalingstatechange = (s)-> @log 'signaling state change: ', s
           @con.oniceconnectionstatechange = (s)-> @log 'ice connection state change: ', s
@@ -27,7 +30,7 @@ Converted to AMD and CoffeeScript and sorely hacked based on Chris Ball's exampl
         useOffer: (offerJson)->
           @log "using offer", offerJson
           @con.setRemoteDescription new RTCSessionDescription JSON.parse offerJson
-        configChannel: (@chan)->
+        useChannel: (@chan)->
           @chan.onmessage = (e)->
             if e.data.charCodeAt(0) == 2
               # The first message we get from Firefox (but not Chrome)
@@ -36,47 +39,80 @@ Converted to AMD and CoffeeScript and sorely hacked based on Chris Ball's exampl
               @log "ignoring message '2'"
               return
             @log "got message", e.data
-            @handleMessage JSON.parse(e.data).message
+            @handleMessage e.data
           @chan.onopen = (e)-> @log 'data channel connect'
-        handleMessage: (message)->
-          @log "received message: #{message}"
+        sendMessage: (msg)-> @chan.send msg
+        close: -> @con.close()
 
-      class Master extends Peer
+
+`MasterConnection` starts by creating a connection and an offer.
+
+The developer needs to make sure @offerReady() sends this offer to the slave connection,
+perhaps by using a common server or by presenting it to the user so they can send it to
+another user.
+
+**API**
+
+**You must set handleMessage and offerReady before calling start() (see below)**
+
+- `handleMessage(msg)`: **override** this to handle incoming messages
+- `offerReady(offer)`: **override** this to handle when the offer is ready
+- `start(errFunc)`: start
+- `sendMessage(msg)`: use this to send a message
+- `close()`: close the connection
+- `con`: the RTCPeerConnection
+
+      class MasterConnection extends PeerConnection
         desc: 'Master'
-        createOffer: (cont, err)-> # create the offer
+        start: (errFunc)->
+          super()
+          @useChannel @con.createDataChannel 'test', reliable:true
+          @log "created datachannel"
           # this will trigger @con.onicecandidate when it is ready
-          @setupDataChannel()
           @con.createOffer ((desc)=>
             @con.setLocalDescription desc, (->), (->)
-            cont desc
-          ), err
-        offerReady: (offer)-> # finished generating the offer, now send it
-          @log "offer ready offer: #{JSON.stringify offer}"
-          # send offer to slave using server
-        setupDataChannel: ->
-          try
-            @configChannel @con.createDataChannel 'test', reliable:true
-            @log "created datachannel"
-          catch e then console.warn "#{@desc}: couldn't create data channel", e
+          ), errFunc
+        #offerReady: (offer)-> # finished generating the offer, now send it
+        #  @log "offer ready offer: #{JSON.stringify offer}"
+        #  # send offer to slave using server
+        #handleMessage: (message)-> @log "received message: #{message}"
 
-      class SlavePeer extends Peer
-        constructor: (offerJson)->
-          super()
-          useOffer offerJson
+`SlaveConnection` starts with an existing offer from a master connection on another
+peer.  It then creates a counter offer (answer).
+
+The developer needs to make sure @offerReady() sends this counter offer to back to the
+master connection, perhaps by using a common server or by presenting it to the user so
+they can send it to the master connection's user.
+
+**API**
+
+**You must set handleMessage and offerReady before calling start() (see below)**
+
+- `handleMessage(msg)`: **override** this to handle incoming messages
+- `offerReady(offer)`: **override** this to handle when the offer is ready
+- `start(offerJson, errFunc)`: start the connection using an offer from a master
+- `sendMessage(msg)`: use this to send a message
+- `close()`: close the connection
+- `con`: the RTCPeerConnection
+
+      class SlaveConnection extends PeerConnection
         desc: 'Slave'
-        prepareSlave: (offerJson)->
+        start: (offerJson, errFunc)->
+          super()
           @con.ondatachannel = (e)->
-            @configChannel e.channel || e // Chrome sends event, FF sends raw channel
+            @useChannel e.channel || e // Chrome sends event, FF sends raw channel
             @log "received datachannel", arguments
           @useOffer offerJson
           @con.createAnswer ((answerDesc)->
             writeToChatLog("Created local answer", "text-success")
             console.log("Created local answer: ", answerDesc)
             @con.setLocalDescription(answerDesc)
-          ), (-> console.warn("No answer created"))
-        slaveAnswerReady: (desc)->
-          console.log "Answer ready: #{JSON.stringify offer}"
-          # send answer JSON to master using server
-        offerReady: (offer)-> # finished generating the offer, now send it
-          @log "offer ready offer: #{JSON.stringify offer}"
-          # send offer to master using server
+          ), errFunc
+        #offerReady: (offer)-> # finished generating the offer, now send it
+        #  @log "offer ready offer: #{JSON.stringify offer}"
+        #  # send offer to master using server
+        #handleMessage: (message)-> @log "received message: #{message}"
+
+      PeerConnection: PeerConnection
+      MasterConnection: MasterConnection
+      SlaveConnection: SlaveConnection
