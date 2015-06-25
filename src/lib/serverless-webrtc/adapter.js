@@ -1,7 +1,6 @@
 // converted code to use AMD -- Bill Burdick, June 2015
 
 define(function() {
-    var RTCPeerConnection = null;
     var getUserMedia = null;
     var attachMediaStream = null;
     var reattachMediaStream = null;
@@ -13,7 +12,7 @@ define(function() {
         webrtcDetectedBrowser = "firefox";
 
         // The RTCPeerConnection object.
-        RTCPeerConnection = mozRTCPeerConnection;
+        window.RTCPeerConnection = mozRTCPeerConnection;
 
         // The RTCSessionDescription object.
         window.RTCSessionDescription = mozRTCSessionDescription;
@@ -52,7 +51,7 @@ define(function() {
         webrtcDetectedBrowser = "chrome";
 
         // The RTCPeerConnection object.
-        RTCPeerConnection = webkitRTCPeerConnection;
+        window.RTCPeerConnection = webkitRTCPeerConnection;
         
         // Get UserMedia (only difference is the prefix).
         // Code from Adam Barth.

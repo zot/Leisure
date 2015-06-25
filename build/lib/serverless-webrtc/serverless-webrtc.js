@@ -4,7 +4,7 @@
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['adapter'], function() {
+  define(['./adapter'], function() {
     var MasterConnection, PeerConnection, SlaveConnection, cfg, con;
     cfg = {
       iceServers: [
@@ -24,20 +24,26 @@
       function PeerConnection() {}
 
       PeerConnection.prototype.start = function() {
-        if (!this.offerReady || !handleMessage) {
+        if (!this.offerReady || !this.handleMessage) {
           throw new Error("Unconfigured " + this.desc);
         }
         this.con = new RTCPeerConnection(cfg, con);
-        this.con.onsignalingstatechange = function(s) {
-          return this.log('signaling state change: ', s);
-        };
-        this.con.oniceconnectionstatechange = function(s) {
-          return this.log('ice connection state change: ', s);
-        };
-        this.con.onicegatheringstatechange = function(s) {
-          return this.log('ice gathering state change: ', s);
-        };
-        return this.con.onicecandidate = (function(_this) {
+        this.con.onsignalingstatechange = (function(_this) {
+          return function(s) {
+            return _this.log('signaling state change: ', s);
+          };
+        })(this);
+        this.con.oniceconnectionstatechange = (function(_this) {
+          return function(s) {
+            return _this.log('ice connection state change: ', s);
+          };
+        })(this);
+        this.con.onicegatheringstatechange = (function(_this) {
+          return function(s) {
+            return _this.log('ice gathering state change: ', s);
+          };
+        })(this);
+        this.con.onicecandidate = (function(_this) {
           return function(e) {
             _this.log("candidate", e);
             if (e.candidate === null) {
@@ -45,6 +51,7 @@
             }
           };
         })(this);
+        return this.first = true;
       };
 
       PeerConnection.prototype.log = function() {
@@ -60,17 +67,28 @@
 
       PeerConnection.prototype.useChannel = function(chan) {
         this.chan = chan;
-        this.chan.onmessage = function(e) {
-          if (e.data.charCodeAt(0) === 2) {
-            this.log("ignoring message '2'");
-            return;
-          }
-          this.log("got message", e.data);
-          return this.handleMessage(e.data);
-        };
-        return this.chan.onopen = function(e) {
-          return this.log('data channel connect');
-        };
+        this.chan.onmessage = (function(_this) {
+          return function(e) {
+            if (_this.first) {
+              _this.first = false;
+              if (e.data.charCodeAt(0) === 2) {
+                _this.log("ignoring message '2'");
+                return;
+              }
+            }
+            _this.log("got message", e.data);
+            return _this.handleMessage(e.data);
+          };
+        })(this);
+        return this.chan.onopen = (function(_this) {
+          return function(e) {
+            return _this.connected();
+          };
+        })(this);
+      };
+
+      PeerConnection.prototype.connected = function(e) {
+        return this.log('data channel connect');
       };
 
       PeerConnection.prototype.sendMessage = function(msg) {
@@ -106,6 +124,10 @@
         })(this)), errFunc);
       };
 
+      MasterConnection.prototype.establishConnection = function(slaveAnswerJSON) {
+        return this.con.setRemoteDescription(new RTCSessionDescription(JSON.parse(slaveAnswerJSON)));
+      };
+
       return MasterConnection;
 
     })(PeerConnection);
@@ -120,16 +142,18 @@
 
       SlaveConnection.prototype.start = function(offerJson, errFunc) {
         SlaveConnection.__super__.start.call(this);
-        this.con.ondatachannel = function(e) {
-          this.useChannel(e.channel || Math.floor(e / Chrome(sends(event, FF(sends(raw(channel)))))));
-          return this.log("received datachannel", arguments);
-        };
+        this.con.ondatachannel = (function(_this) {
+          return function(e) {
+            _this.useChannel(e.channel || Math.floor(e / Chrome(sends(event, FF(sends(raw(channel)))))));
+            return _this.connected(e);
+          };
+        })(this);
         this.useOffer(offerJson);
-        return this.con.createAnswer((function(answerDesc) {
-          writeToChatLog("Created local answer", "text-success");
-          console.log("Created local answer: ", answerDesc);
-          return this.con.setLocalDescription(answerDesc);
-        }), errFunc);
+        return this.con.createAnswer(((function(_this) {
+          return function(answerDesc) {
+            return _this.con.setLocalDescription(answerDesc, (function() {}), (function() {}));
+          };
+        })(this)), errFunc);
       };
 
       return SlaveConnection;
