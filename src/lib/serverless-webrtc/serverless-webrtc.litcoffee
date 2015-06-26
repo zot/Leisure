@@ -67,6 +67,8 @@ another user.
 - `close()`: close the connection
 - `con`: the RTCPeerConnection
 
+<!-- comment so Github can render correctly -->
+
       class MasterConnection extends PeerConnection
         desc: 'Master'
         start: (errFunc)->
@@ -98,6 +100,8 @@ they can send it to the master connection's user.
 - `sendMessage(msg)`: use this to send a message
 - `close()`: close the connection
 - `con`: the RTCPeerConnection
+
+<!-- comment so Github can render correctly -->
 
       class SlaveConnection extends PeerConnection
         desc: 'Slave'
