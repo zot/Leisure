@@ -4,7 +4,7 @@
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['cs!domCursor.litcoffee'], function(DOMCursor) {
+  define(['jquery', 'cs!./domCursor.litcoffee'], function(jq, DOMCursor) {
     var BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, TAB, UP, _to_ascii, activateScripts, activating, blockText, copy, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys;
     selectRange = DOMCursor.selectRange;
     maxLastKeys = 4;
@@ -125,6 +125,7 @@
         this.node = node1;
         this.options = options;
         LeisureEditCore.__super__.constructor.call(this);
+        this.editing = false;
         this.node.attr('contenteditable', 'true').attr('spellcheck', 'false');
         this.node.data().editor = this;
         this.curKeyBinding = this.prevKeybinding = null;
@@ -137,6 +138,29 @@
         this.options.setEditor(this);
         this.currentSelectedBlock = null;
       }
+
+      LeisureEditCore.prototype.editWith = function(func) {
+        this.editing = true;
+        try {
+          return func();
+        } finally {
+          this.editing = false;
+        }
+      };
+
+      LeisureEditCore.prototype.savePosition = function(func) {
+        var pos;
+        if (this.editing) {
+          return func();
+        } else {
+          pos = this.getSelectedBlockRange();
+          try {
+            return func();
+          } catch (_error) {
+            return this.selectBlockRange(pos);
+          }
+        }
+      };
 
       LeisureEditCore.prototype.getCopy = function(id) {
         return copy(this.options.getBlock(id));
@@ -258,20 +282,24 @@
       };
 
       LeisureEditCore.prototype.replace = function(e, br, text, select) {
-        var blocks, cur, endOffset, tot;
-        blocks = [br.block];
-        endOffset = br.offset;
-        if (br.type === 'Range') {
-          cur = br.block;
-          tot = br.length - br.offset - cur.text.length;
-          while (tot > 0 && cur) {
-            blocks.push(cur = this.options.getBlock(cur.next));
-            if (cur) {
-              tot -= cur.text.length;
+        return this.editWith((function(_this) {
+          return function() {
+            var blocks, cur, endOffset, tot;
+            blocks = [br.block];
+            endOffset = br.offset;
+            if (br.type === 'Range') {
+              cur = br.block;
+              tot = br.length - br.offset - cur.text.length;
+              while (tot > 0 && cur) {
+                blocks.push(cur = _this.options.getBlock(cur.next));
+                if (cur) {
+                  tot -= cur.text.length;
+                }
+              }
             }
-          }
-        }
-        return this.options.editBlocks(blocks, br.offset, br.length, text != null ? text : getEventChar(e), select);
+            return _this.options.editBlocks(blocks, br.offset, br.length, text != null ? text : getEventChar(e), select);
+          };
+        })(this));
       };
 
       LeisureEditCore.prototype.backspace = function(event, sel, r) {
@@ -373,12 +401,13 @@
         ref = this.changeStructure(blocks, newText), oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks, offset = ref.offset, prev = ref.prev;
         if (oldBlocks.length || newBlocks.length) {
           oldFirst = (ref1 = oldBlocks[0]) != null ? ref1._id : void 0;
-          this.options.edit(prev, oldBlocks, newBlocks);
+          this.options.edit(prev, oldBlocks.slice(), newBlocks.slice());
           if (!newBlocks.length) {
-            offset = 0;
-            if (!(startBlock = this.options.getBlock(this.options.getBlock(oldBlocks[0].prev).next))) {
-              return;
-            }
+            startBlock = blocks[0];
+            offset += start + startBlock.text.length;
+          } else if (!oldBlocks.length) {
+            startBlock = newBlocks[0];
+            offset = start + offset;
           } else {
             startBlock = newBlocks[0];
             offset += start;
@@ -938,9 +967,13 @@
 
       function BasicEditingOptions() {
         BasicEditingOptions.__super__.constructor.call(this);
-        this.blocks = {};
-        this.first = null;
+        this.initData();
       }
+
+      BasicEditingOptions.prototype.initData = function() {
+        this.blocks = {};
+        return this.first = null;
+      };
 
       BasicEditingOptions.prototype.getFirst = function() {
         return this.first;
@@ -1241,8 +1274,39 @@
         this.blocks = {};
       }
 
+      DataStore.prototype.getFirst = function() {
+        return this.first;
+      };
+
+      DataStore.prototype.setFirst = function(firstId) {
+        return this.first = firstId;
+      };
+
       DataStore.prototype.getBlock = function(id) {
         return this.blocks[id];
+      };
+
+      DataStore.prototype.setBlock = function(id, block) {
+        return this.blocks[id] = block;
+      };
+
+      DataStore.prototype.deleteBlock = function(id) {
+        return delete this.blocks[id];
+      };
+
+      DataStore.prototype.eachBlock = function(func) {
+        var block, i, ref, results;
+        ref = this.blocks;
+        results = [];
+        for (block in ref) {
+          i = ref[block];
+          if (func(block, i) === false) {
+            break;
+          } else {
+            results.push(void 0);
+          }
+        }
+        return results;
       };
 
       DataStore.prototype.load = function(first1, blocks1) {
@@ -1252,9 +1316,9 @@
       };
 
       DataStore.prototype.check = function() {
-        var bl, k, next, oldBl, prev, seen;
+        var bl, next, oldBl, prev, seen;
         seen = {};
-        next = this.first;
+        next = this.getFirst();
         prev = null;
         while (next) {
           prev = next;
@@ -1263,17 +1327,17 @@
           }
           seen[next] = true;
           oldBl = bl;
-          bl = this.blocks[next];
+          bl = this.getBlock(next);
           if (!bl) {
             throw new Error("Next of " + oldBl.id + " doesn't exist");
           }
           next = bl.next;
         }
-        for (k in this.blocks) {
+        this.eachBlock(function(k) {
           if (!seen[k]) {
             throw new Error(k + " not in next chain");
           }
-        }
+        });
         seen = {};
         while (prev) {
           if (seen[prev]) {
@@ -1281,26 +1345,26 @@
           }
           seen[prev] = true;
           oldBl = bl;
-          bl = this.blocks[prev];
+          bl = this.getBlock(prev);
           if (!bl) {
             throw new Error("Prev of " + oldBl.id + " doesn't exist");
           }
           prev = bl.prev;
         }
-        for (k in this.blocks) {
+        this.eachBlock(function(k) {
           if (!seen[k]) {
             throw new Error(k + " not in prev chain");
           }
-        }
+        });
         return null;
       };
 
       DataStore.prototype.blockList = function() {
         var bl, next, results;
-        next = this.first;
+        next = this.geFirst();
         results = [];
         while (next) {
-          bl = this.blocks[next];
+          bl = this.getBlock(next);
           next = bl.next;
           results.push(bl);
         }
@@ -1311,39 +1375,33 @@
         return this.trigger('change', this.makeChange(changes));
       };
 
-      DataStore.prototype.makeChange = function(changes) {
-        var adds, bl, block, err, id, newBlocks, old, oldBlocks, ref, removes, result, sets, updates;
-        updates = {};
-        adds = {};
-        old = {};
-        oldBlocks = changes.oldBlocks, newBlocks = changes.newBlocks, sets = changes.sets, removes = changes.removes;
-        result = {
-          adds: adds,
-          updates: updates,
+      DataStore.prototype.makeChange = function(arg) {
+        var adds, bl, block, err, first, id, old, ref, removes, result, sets, updates;
+        first = arg.first, sets = arg.sets, removes = arg.removes;
+        ref = result = {
+          adds: {},
+          updates: {},
           removes: removes,
-          old: old,
-          oldBlocks: oldBlocks,
-          newBlocks: newBlocks,
+          old: {},
           sets: sets,
-          oldFirst: this.first
-        };
-        this.first = changes.first;
-        for (id in changes.removes) {
-          if (bl = this.blocks[id]) {
+          oldFirst: this.getFirst()
+        }, adds = ref.adds, updates = ref.updates, old = ref.old;
+        this.setFirst(first);
+        for (id in removes) {
+          if (bl = this.getBlock(id)) {
             old[id] = bl;
-            delete this.blocks[id];
+            this.deleteBlock(id);
           }
         }
-        ref = changes.sets;
-        for (id in ref) {
-          block = ref[id];
-          if (this.blocks[id]) {
-            old[id] = this.blocks[id];
+        for (id in sets) {
+          block = sets[id];
+          if (bl = this.getBlock(id)) {
+            old[id] = bl;
             updates[id] = block;
           } else {
             adds[id] = block;
           }
-          this.blocks[id] = block;
+          this.setBlock(id, block);
         }
         try {
           this.check();
@@ -1367,7 +1425,14 @@
             return _this.changed(changes);
           };
         })(this));
+        this.data.on('load', (function(_this) {
+          return function() {
+            return _this.trigger('load');
+          };
+        })(this));
       }
+
+      DataStoreEditingOptions.prototype.initData = function() {};
 
       DataStoreEditingOptions.prototype.load = function(text) {
         var block, blockMap, i, j, len, newBlocks, prev, ref;
@@ -1382,8 +1447,7 @@
             block.prev = prev._id;
           }
         }
-        this.data.load((ref = newBlocks[0]) != null ? ref._id : void 0, blockMap);
-        return this.trigger('load');
+        return this.data.load((ref = newBlocks[0]) != null ? ref._id : void 0, blockMap);
       };
 
       DataStoreEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks) {
@@ -1395,7 +1459,7 @@
       };
 
       DataStoreEditingOptions.prototype.getFirst = function(first) {
-        return this.data.first;
+        return this.data.getFirst();
       };
 
       DataStoreEditingOptions.prototype.change = function(changes) {
@@ -1403,7 +1467,11 @@
       };
 
       DataStoreEditingOptions.prototype.changed = function(changes) {
-        return setHtml(this.editor.node[0], this.renderBlocks());
+        return this.editor.savePosition((function(_this) {
+          return function() {
+            return setHtml(_this.editor.node[0], _this.renderBlocks());
+          };
+        })(this));
       };
 
       return DataStoreEditingOptions;

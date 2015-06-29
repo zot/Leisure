@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['cs!base', 'cs!ast', 'lib/lodash.min', 'lib/immutable', 'lib/yaml'], (Base, Ast, _, Immutable, Yaml)->
+define ['cs!./base', 'cs!./ast', 'lib/lodash.min', 'immutable', 'lib/yaml'], (Base, Ast, _, Immutable, Yaml)->
 
   {
     readFile,
@@ -937,33 +937,35 @@ define ['cs!base', 'cs!ast', 'lib/lodash.min', 'lib/immutable', 'lib/yaml'], (Ba
     window.defaultEnv = defaultEnv
     window.identity = identity
 
-  requireFiles: requireFiles
-  _true: _true
-  _false: _false
-  _unit: _unit
-  stateValues: values
-  runMonad: runMonad
-  runMonad2: runMonad2
-  newRunMonad: newRunMonad
-  isMonad: isMonad
-  Monad2: Monad2
-  identity: identity
-  setValue: setValue
-  getValue: getValue
-  makeMonad: makeMonad
-  makeSyncMonad: makeSyncMonad
-  replaceErr: replaceErr
-  left: left
-  right: right
-  getMonadSyncMode: getMonadSyncMode
-  asyncMonad: asyncMonad
-  setWarnAsync: setWarnAsync
-  call: call
-  callMonad: callMonad
-  basicCall: basicCall
-  booleanFor: booleanFor
-  newConsFrom: consFrom
-  escapePresentationHtml: escapePresentationHtml
-  unescapePresentationHtml: unescapePresentationHtml
-  makeHamt: makeHamt
-  jsonConvert: jsonConvert
+  {
+    requireFiles
+    _true
+    _false
+    _unit
+    stateValues: values
+    runMonad
+    runMonad2
+    newRunMonad
+    isMonad
+    Monad2
+    identity
+    setValue
+    getValue
+    makeMonad
+    makeSyncMonad
+    replaceErr
+    left
+    right
+    getMonadSyncMode
+    asyncMonad
+    setWarnAsync
+    call
+    callMonad
+    basicCall
+    booleanFor
+    newConsFrom: consFrom
+    escapePresentationHtml
+    unescapePresentationHtml
+    makeHamt
+    jsonConvert
+  }

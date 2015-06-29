@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!base', 'cs!org', 'cs!docOrg.litcoffee', 'cs!ast', 'cs!eval.litcoffee', 'cs!editor.litcoffee', 'lib/lodash.min', 'jquery'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $)->
+    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $)->
 
       {
         defaultEnv
@@ -11,6 +11,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       {
         parseOrgMode
         Fragment
+        Headline
         Nil
       } = Org
       {
@@ -46,15 +47,21 @@ editor accesses blocks of text (local, meteor, etc.)
       blockOrg = (data, blockOrText)->
         text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
         org = parseOrgMode text
-        if org.children.length > 1 then org = new Fragment org.offset, org.children
+        org = if org.children.length == 1 then org.children[0]
+        else
+          frag = new Fragment org.offset, org.children
+          frag
+        if typeof blockOrText == 'object'
+          org.nodeId = blockOrText._id
+          org.shared = blockOrText.type
         org.linkNodes()
         org
 
       class OrgData extends DataStore
         getBlock: (thing)-> if typeof thing == 'string' then super thing else thing
         load: (first, blocks)->
-          if first then linkAllSiblings first, blocks, sets: {}, old: {}
           super first, blocks
+          if first then @linkAllSiblings sets: {}, old: {}
         parseBlocks: (text)->
           if text == '' then []
           else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
@@ -80,8 +87,40 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
 
         makeChange: (changes)->
           changes = super changes
-          linkAllSiblings @first, @blocks, changes
+          @linkAllSiblings changes
           changes
+        linkAllSiblings: (changes)->
+          change = (block)->
+            if !changes.old[block._id] then changes.old[block._id] = copy block
+            changes.sets[block._id] = block
+          parentStack = ['TOP']
+          siblingStack = [null]
+          emptyNexts = {}
+          cur = @getBlock @getFirst()
+          while cur
+            if cur.nextSibling then emptyNexts[cur._id] = cur
+            curParent = @getBlock last parentStack
+            if cur.type == 'headline'
+              while curParent && cur.level <= curParent.level
+                parentStack.pop()
+                siblingStack.pop()
+                curParent = @getBlock last parentStack
+            if previousSibling = last siblingStack
+              delete emptyNexts[previousSibling]
+              if (prev = @getBlock previousSibling).nextSibling != cur._id
+                change(prev).nextSibling = cur._id
+              if cur.previousSibling != previousSibling
+                change(cur).previousSibling = previousSibling
+            else if cur.previousSibling
+              delete change(cur).previousSibling
+            siblingStack[siblingStack.length - 1] = cur._id
+            if cur.type == 'headline'
+              parentStack.push cur._id
+              siblingStack.push null
+            cur = @getBlock cur.next
+          for id, block of emptyNexts
+            delete change(block).nextSibling
+
 
       greduce = (thing, func, arg, next)->
         if thing && typeof arg == 'undefined'
@@ -93,38 +132,6 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
         arg
 
       getId = (thing)-> if typeof thing == 'string' then thing else thing._id
-
-      linkAllSiblings = (first, blocks, changes)->
-        change = (block)->
-          if !changes.old[block._id] then changes.old[block._id] = copy block
-          changes.sets[block._id] = block
-        parentStack = ['TOP']
-        siblingStack = [null]
-        emptyNexts = {}
-        cur = blocks[first]
-        while cur
-          if cur.nextSibling then emptyNexts[cur._id] = cur
-          curParent = blocks[last parentStack]
-          if cur.type == 'headline'
-            while curParent && cur.level <= curParent.level
-              parentStack.pop()
-              siblingStack.pop()
-              curParent = blocks[last parentStack]
-          if previousSibling = last siblingStack
-            delete emptyNexts[previousSibling]
-            if (prev = blocks[previousSibling]).nextSibling != cur._id
-              change(prev).nextSibling = cur._id
-            if cur.previousSibling != previousSibling
-              change(cur).previousSibling = previousSibling
-          else if cur.previousSibling
-            delete change(cur).previousSibling
-          siblingStack[siblingStack.length - 1] = cur._id
-          if cur.type == 'headline'
-            parentStack.push cur._id
-            siblingStack.push null
-          cur = blocks[cur.next]
-        for id, block of emptyNexts
-          delete change(block).nextSibling
 
       class OrgEditing extends DataStoreEditingOptions
         constructor: (data)->
@@ -219,7 +226,7 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
       blockCodeItems = (data, block)->
         if block
           org = blockOrg data, block
-          if org instanceof Fragment then org = org.children[0]
+          if org instanceof Fragment || org instanceof Headline then org = org.children[0]
           getCodeItems org
         else {}
 
@@ -237,7 +244,7 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
           else
             text = "<span id='plain-#{block._id}' data-block='#{block.type}'>#{@renderError block, source, error, results}"
             if results? then text += "#{results?.text ? ''}#{block.text.substring(results.offset + results.text.length)}"
-            [text, block.next]
+            [text + "</span>", block.next]
         interstitial: (block, a, b)->
           if a && b then block.text.substring a.offset + a.text.length, b.offset
           else ''
@@ -396,8 +403,10 @@ makeChange({removes, sets, first, oldBlocks, newBlocks}): at this point, brute-f
       isContentEditable = (node)->
         (if node instanceof Element then node else node.parentElement).isContentEditable
 
-      createLocalData: createLocalData
-      plainEditDiv: plainEditDiv
-      OrgData: OrgData
-      installSelectionMenu: installSelectionMenu
-      blockOrg: blockOrg
+      {
+        createLocalData
+        plainEditDiv
+        OrgData
+        installSelectionMenu
+        blockOrg
+      }

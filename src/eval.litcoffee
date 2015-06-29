@@ -1,38 +1,35 @@
 Evaulation support for Leisure
 
-
-    define ['cs!base', 'cs!ast', 'cs!runtime', 'acorn', 'acorn_walk'], (Base, Ast, Runtime, Acorn, AcornWalk)->
-      acorn = window.Acorn = Acorn
-      acornWalk = window.AcornWalk = AcornWalk
-      acornLoose = null
-      # loose doesn't seem to play well with others, so load it separately
-      setTimeout (->require ['acorn_loose'], (AcornLoose)->
-        acornLoose = window.AcornLoose = AcornLoose), 1
+    define ['cs!./base', 'cs!./ast', 'cs!./runtime', 'acorn', 'acorn_walk', 'acorn_loose', './lib/lispyscript/browser-bundle'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript)->
+      acorn = Acorn
+      acornWalk = AcornWalk
+      acornLoose = AcornLoose
+      lispyScript = lsrequire("lispyscript")
       {
-        getType,
-        cons,
-        define,
-        unescapePresentationHtml,
+        getType
+        cons
+        define
+        unescapePresentationHtml
       } = Ast
       {
-        Node,
-        resolve,
-        lazy,
-        defaultEnv,
+        Node
+        resolve
+        lazy
+        defaultEnv
       } = Base
       rz = resolve
       lz = lazy
       lc = Leisure_call
       {
-        runMonad,
-        runMonad2,
-        newConsFrom,
-        setValue,
-        getValue,
-        makeSyncMonad,
-        makeHamt,
-        _true,
-        jsonConvert,
+        runMonad
+        runMonad2
+        newConsFrom
+        setValue
+        getValue
+        makeSyncMonad
+        makeHamt
+        _true
+        jsonConvert
       } = Runtime
 
       leisureEnv = (env)->
@@ -115,6 +112,19 @@ Evaulation support for Leisure
 
       handleErrors = (ast, func)-> walk ast, (node)-> if isError node then func node
 
+      lsEnv = (env)->
+        env.presentValue = (v)-> if v instanceof Html then v.content else escapeHtml v
+        env.executeText = (text, props, cont)->
+          try
+            console = log: (str)=> env.write env.presentValue str
+            value = eval(lispyScript._compile(text));
+            if typeof value != 'undefined' then @write @presentValue value
+          catch err
+            @errorAt 0, err.message
+          finally
+            cont? env
+        env
+
       class Html
         constructor: (@content)->
       
@@ -135,10 +145,13 @@ Evaulation support for Leisure
         leisure: leisureEnv
         javascript: jsEnv
         js: jsEnv
+        lisp: lsEnv
 
-      languageEnvMaker = (name)-> knownLanguages[name.toLowerCase()]
+      languageEnvMaker = (name)-> knownLanguages[name?.toLowerCase()]
 
-      languageEnvMaker: languageEnvMaker
-      html: html
-      Html: Html
-      escapeHtml: escapeHtml
+      {
+        languageEnvMaker
+        html
+        Html
+        escapeHtml
+      }

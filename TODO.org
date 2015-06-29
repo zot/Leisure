@@ -2,6 +2,7 @@
 * TODO display symantic errors properly (deal with stack trace and sourcemap)
 * TODO Fancy: place results after expressions?
 use Acorn to find ends of exprs
+* TODO integrate lispyscript into Leisure
 * TODO make a shell service
 - Leisure should ask for confirmation from user before connecting to local/nonpublic services
 * TODO port back over the UI stuff

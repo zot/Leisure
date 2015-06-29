@@ -1,4 +1,4 @@
-    define ['cs!org', 'lib/yaml', 'lib/lazy'], (Org, Yaml, Lazy)->
+    define ['cs!./org', 'lib/yaml', 'lib/lazy'], (Org, Yaml, Lazy)->
 
       {
         Headline,
@@ -188,13 +188,15 @@
           data
         else data
 
-      getCodeItems: getCodeItems
-      isCodeBlock: isCodeBlock
-      createDocFromOrg: createDocFromOrg
-      checkSingleNode: checkSingleNode
-      orgDoc: orgDoc
-      docRoot: docRoot
-      linkDocs: linkDocs
-      isYaml: isYaml
-      crnl: crnl
-      lineCodeBlockType: lineCodeBlockType
+      {
+        getCodeItems
+        isCodeBlock
+        createDocFromOrg
+        checkSingleNode
+        orgDoc
+        docRoot
+        linkDocs
+        isYaml
+        crnl
+        lineCodeBlockType
+      }

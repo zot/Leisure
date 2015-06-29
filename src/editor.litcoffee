@@ -135,8 +135,7 @@ Code
 ====
 Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEditCore).
 
-    define ['cs!domCursor.litcoffee'], (DOMCursor)->
-
+    define ['jquery', 'cs!./domCursor.litcoffee'], (jq, DOMCursor)->
       {
         selectRange,
       } = DOMCursor
@@ -245,6 +244,7 @@ Events:
       class LeisureEditCore extends Observable
         constructor: (@node, @options)->
           super()
+          @editing = false
           @node
             .attr 'contenteditable', 'true'
             .attr 'spellcheck', 'false'
@@ -258,6 +258,20 @@ Events:
           @movementGoal = null
           @options.setEditor this
           @currentSelectedBlock = null
+        editWith: (func)->
+          @editing = true
+          try
+            func()
+          finally
+            @editing = false
+        savePosition: (func)->
+          if @editing then func()
+          else
+            pos = @getSelectedBlockRange()
+            try
+              func()
+            catch
+              @selectBlockRange pos
         getCopy: (id)-> copy @options.getBlock id
         domCursor: (node, pos)->
           if node instanceof jQuery
@@ -323,15 +337,16 @@ Events:
           {block, offset} = @options.getBlockOffsetForPosition start
           {block, offset, length, type: if length == 0 then 'Caret' else 'Range'}
         replace: (e, br, text, select)->
-          blocks = [br.block]
-          endOffset = br.offset
-          if br.type == 'Range'
-            cur = br.block
-            tot = br.length - br.offset - cur.text.length
-            while tot > 0 && cur
-              blocks.push cur = @options.getBlock cur.next
-              if cur then tot -= cur.text.length
-          @options.editBlocks blocks, br.offset, br.length, (text ? getEventChar e), select
+          @editWith =>
+            blocks = [br.block]
+            endOffset = br.offset
+            if br.type == 'Range'
+              cur = br.block
+              tot = br.length - br.offset - cur.text.length
+              while tot > 0 && cur
+                blocks.push cur = @options.getBlock cur.next
+                if cur then tot -= cur.text.length
+            @options.editBlocks blocks, br.offset, br.length, (text ? getEventChar e), select
         backspace: (event, sel, r)->
           if sel.type == 'Range' then return @cutText event
           holderId = @idAtCaret sel
@@ -382,14 +397,19 @@ on it can select if start and end are different
           caret = start + newContent.length
           oldText = blockText blocks
           newText = oldText.substring(0, start) + newContent + oldText.substring start + length
+
+This code is hairy and unintuitive and needs to be cleaned up!
+
           {oldBlocks, newBlocks, offset, prev} = @changeStructure blocks, newText
           if oldBlocks.length || newBlocks.length
             oldFirst = oldBlocks[0]?._id
-            @options.edit prev, oldBlocks, newBlocks
+            @options.edit prev, oldBlocks.slice(), newBlocks.slice()
             if !newBlocks.length
-              offset = 0
-              if !(startBlock = @options.getBlock @options.getBlock(oldBlocks[0].prev).next)
-                return
+              startBlock = blocks[0]
+              offset += start + startBlock.text.length
+            else if !oldBlocks.length # just inserting
+              startBlock = newBlocks[0]
+              offset = start + offset
             else
               startBlock = newBlocks[0]
               offset += start
@@ -751,6 +771,9 @@ Main code
 
         constructor: ->
           super()
+          @initData()
+
+        initData: ->
 
 `blocks {id -> block}`: block table
 
@@ -957,67 +980,83 @@ DataStore
 Events:
   `change {adds, updates, removes, oldFirst, old}`: data changed
 
+API methods
+
   * `oldFirst id`: the previous first (might be the same as the current)
   * `adds {id->true}`: added items
   * `updates {id->true}`: updated items
   * `removes {id->true}`: removed items
   * `old {id->old block}`: the old items from updates and removes
 
+Data model -- override/reset these if you want to change how the store accesses data
+
+  * `blocks` - currently holds the block object
+  * `getFirst()`
+  * `setFirst(firstId)`
+  * `getBlock(id)`
+  * `setBlock(id, block)`
+  * `deleteBlock(id)`
+  * `eachBlock(func(block [, id]))` -- iterate with func (exit if func returns false)
+  * `load(first, blocks)` -- should trigger 'load'
+
       class DataStore extends Observable
         constructor: ->
           super()
           @blocks = {}
+        getFirst: -> @first
+        setFirst: (firstId)-> @first = firstId
         getBlock: (id)-> @blocks[id]
+        setBlock: (id, block)-> @blocks[id] = block
+        deleteBlock: (id)-> delete @blocks[id]
+        eachBlock: (func)->
+          for block, i of @blocks
+            if func(block, i) == false then break
         load: (@first, @blocks)-> @trigger 'load'
         check: ->
           seen = {}
-          next = @first
+          next = @getFirst()
           prev = null
           while next
             prev = next
             if seen[next] then throw new Error "cycle in next links"
             seen[next] = true
             oldBl = bl
-            bl = @blocks[next]
+            bl = @getBlock next
             if !bl then throw new Error "Next of #{oldBl.id} doesn't exist"
             next = bl.next
-          for k of @blocks
+          @eachBlock (k)->
             if !seen[k] then throw new Error "#{k} not in next chain"
           seen = {}
           while prev
             if seen[prev] then throw new Error "cycle in prev links"
             seen[prev] = true
             oldBl = bl
-            bl = @blocks[prev]
+            bl = @getBlock prev
             if !bl then throw new Error "Prev of #{oldBl.id} doesn't exist"
             prev = bl.prev
-          for k of @blocks
+          @eachBlock (k)->
             if !seen[k] then throw new Error "#{k} not in prev chain"
           null
         blockList: ->
-          next = @first
+          next = @geFirst()
           while next
-            bl = @blocks[next]
+            bl = @getBlock next
             next = bl.next
             bl
         change: (changes)-> @trigger 'change', @makeChange changes
-        makeChange: (changes)->
-          updates = {}
-          adds = {}
-          old = {}
-          {oldBlocks, newBlocks, sets, removes} = changes
-          result = {adds, updates, removes, old, oldBlocks, newBlocks, sets, oldFirst: @first}
-          @first = changes.first
-          for id of changes.removes
-            if bl = @blocks[id]
+        makeChange: ({first, sets, removes})->
+          {adds, updates, old} = result = {adds: {}, updates: {}, removes, old: {}, sets, oldFirst: @getFirst()}
+          @setFirst first
+          for id of removes
+            if bl = @getBlock id
               old[id] = bl
-              delete @blocks[id]
-          for id, block of changes.sets
-            if @blocks[id]
-              old[id] = @blocks[id]
+              @deleteBlock id
+          for id, block of sets
+            if bl = @getBlock id
+              old[id] = bl
               updates[id] = block
             else adds[id] = block
-            @blocks[id] = block
+            @setBlock id, block
           try
             @check()
           catch err
@@ -1030,6 +1069,8 @@ DataStoreEditingOptions
         constructor: (@data)->
           super()
           @data.on 'change', (changes)=> @changed changes
+          @data.on 'load', => @trigger 'load'
+        initData: ->
         load: (text)->
           blockMap = {}
           newBlocks = @parseBlocks text
@@ -1040,12 +1081,11 @@ DataStoreEditingOptions
               prev.next = block._id
               block.prev = prev._id
           @data.load newBlocks[0]?._id, blockMap
-          @trigger 'load'
         edit: (prev, oldBlocks, newBlocks)-> @replaceBlocks prev, oldBlocks, newBlocks
         getBlock: (id)-> @data.getBlock id
-        getFirst: (first)-> @data.first
+        getFirst: (first)-> @data.getFirst()
         change: (changes)-> @data.change changes
-        changed: (changes)-> setHtml @editor.node[0], @renderBlocks()
+        changed: (changes)-> @editor.savePosition => setHtml @editor.node[0], @renderBlocks()
 
 Utilities
 =========
@@ -1172,18 +1212,20 @@ adapted from Vega on [StackOverflow](http://stackoverflow.com/a/13127566/1026782
 Exports
 =======
 
-      LeisureEditCore: LeisureEditCore
-      Observable: Observable
-      BasicEditingOptions: BasicEditingOptions
-      DataStore: DataStore
-      DataStoreEditingOptions: DataStoreEditingOptions
-      defaultBindings: defaultBindings
-      last: last
-      link: link
-      blockText: blockText
-      posFor: posFor
-      escapeHtml: escapeHtml
-      copy: copy
-      activateScripts: activateScripts
-      setHtml: setHtml
-      findEditor: findEditor
+      {
+        LeisureEditCore
+        Observable
+        BasicEditingOptions
+        DataStore
+        DataStoreEditingOptions
+        defaultBindings
+        last
+        link
+        blockText
+        posFor
+        escapeHtml
+        copy
+        activateScripts
+        setHtml
+        findEditor
+      }

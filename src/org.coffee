@@ -665,31 +665,33 @@ define ['lib/lazy'], (Lazy)->
     match[LIST_LEVEL].length + match[LIST_BOILERPLATE].length + (match[LIST_CHECK]?.length ? 0)
   
   markupText = (text)->
-  
-  parseOrgMode: parseOrgMode
-  Node: Node
-  Headline: Headline
-  Fragment: Fragment
-  Meat: Meat
-  Keyword: Keyword
-  Source: Source
-  HTML: HTML
-  Results: Results
-  resultsRE: resultsRE
-  ListItem: ListItem
-  SimpleMarkup: SimpleMarkup
-  Link: Link
-  Drawer: Drawer
-  drawerRE: drawerRE
-  headlineRE: headlineRE
-  HL_TAGS: HL_TAGS
-  parseTags: parseTags
-  matchLine: matchLine
-  keywordRE: keywordRE
-  KW_BOILERPLATE: KW_BOILERPLATE
-  KW_NAME: KW_NAME
-  srcStartRE: srcStartRE
-  SRC_BOILERPLATE: SRC_BOILERPLATE
-  SRC_INFO: SRC_INFO
-  nextOrgNode: nextOrgNode
-  AttrHtml: AttrHtml
+
+  {
+    parseOrgMode
+    Node
+    Headline
+    Fragment
+    Meat
+    Keyword
+    Source
+    HTML
+    Results
+    resultsRE
+    ListItem
+    SimpleMarkup
+    Link
+    Drawer
+    drawerRE
+    headlineRE
+    HL_TAGS
+    parseTags
+    matchLine
+    keywordRE
+    KW_BOILERPLATE
+    KW_NAME
+    srcStartRE
+    SRC_BOILERPLATE
+    SRC_INFO
+    nextOrgNode
+    AttrHtml
+  }

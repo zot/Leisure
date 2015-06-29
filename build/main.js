@@ -2,10 +2,11 @@
 
 requirejs.config({
     //baseUrl: (new URL(requirejs.leisureCompiled ? 'build' : 'src', document.location)).pathname.replace(/\/.*:/, ''),
-    baseUrl: requirejs.leisureCompiled ? 'build' : 'src',
+    //baseUrl: requirejs.leisureCompiled ? 'build' : 'src',
     // disable coffeescript if this is true
     // this will load *.js files instead of *.coffee or *.litcoffee
     disableCoffeeScript: requirejs.leisureCompiled,
+    
     paths: {
         // the left side is the module ID,
         // the right side is the path to
@@ -19,19 +20,13 @@ requirejs.config({
         jqueryui: 'lib/jquery-ui-1.9.1.custom.min',
         
         underscore: 'lib/underscore-min',
-        text: 'lib/sweetjs/text',
-        parser: 'lib/sweetjs/parser',
-        expander: 'lib/sweetjs/expander',
-        syntax: 'lib/sweetjs/syntax',
-        escope: 'lib/sweetjs/escope',
-        estraverse: 'lib/sweetjs/estraverse',
-        scopedEval: 'lib/sweetjs/scopedEval',
-        patterns: 'lib/sweetjs/patterns',
-        stxcase: 'lib/sweetjs/stxcase',
         acorn: 'lib/acorn-2.0.5',
+        //"lib/acorn": 'lib/acorn-2.0.5',
         acorn_loose: 'lib/acorn_loose-2.0.5',
-        acorn_walk: 'lib/acorn_walk-2.0.5'
-    }});
+        acorn_walk: 'lib/acorn_walk-2.0.5',
+        immutable: 'lib/immutable-3.7.4.min'
+    }
+});
 
 require(['lib/bluebird.min'], function(bluebird) {
     require.promise = function(names) {
@@ -50,7 +45,7 @@ require(['lib/bluebird.min'], function(bluebird) {
             });
         });
     };
-    require(['jquery', 'jqueryui', 'lib/lodash.min', 'cs!base', 'cs!ast', 'cs!domCursor.litcoffee', 'cs!editor.litcoffee', 'cs!diag.litcoffee', 'cs!org', 'lib/yaml', 'lib/lazy', 'cs!docOrg.litcoffee', 'cs!runtime', 'cs!eval.litcoffee', 'cs!editorSupport.litcoffee', 'cs!local.litcoffee'], function(){
+    require(['jquery', 'jqueryui', 'lib/lodash.min', 'cs!base', 'cs!ast', 'cs!domCursor.litcoffee', 'cs!editor.litcoffee', 'cs!diag.litcoffee', 'cs!org', 'lib/yaml', 'lib/lazy', 'cs!docOrg.litcoffee', 'cs!runtime', 'cs!eval.litcoffee', 'cs!editorSupport.litcoffee', 'cs!local.litcoffee'], function(jq, jqui, lodash){
         setTimeout(function(){$('body').attr('class', "loading not-logged-in");}, 1);
     });
 });

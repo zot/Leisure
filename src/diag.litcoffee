@@ -1,4 +1,4 @@
-    define ['cs!editor.litcoffee'], (Editor)->
+    define ['cs!./editor.litcoffee'], (Editor)->
 
       bindCount = 0
 
@@ -48,7 +48,7 @@
         parentStack = []
         info = ""
         level = 0
-        cur = data.getBlock data.first
+        cur = data.getBlock data.getFirst()
         prevParent = null
         checks = nextSibling: {}, previousSibling: {}, prev: {}
         check = cur
@@ -78,5 +78,7 @@
           ' <span class="err">[' + ("#{err}: #{block[err]}" for err in bad).join(', ') + ']</span>'
         else ''
 
-      createStructureDisplay: createStructureDisplay
-      createEditorDisplay: createEditorDisplay
+      {
+        createStructureDisplay
+        createEditorDisplay
+      }

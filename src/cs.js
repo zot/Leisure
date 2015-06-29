@@ -267,7 +267,8 @@ define(['coffee-script'], function (CoffeeScript) {
         load: function (name, parentRequire, load, config) {
             // skip if disabled
             if (config && config.disableCoffeeScript) {
-                return parentRequire([(config.baseUrl ? config.baseUrl : '') + name.replace(/\.(lit)coffee|$/, '.js')], load, config);
+                //return parentRequire([(config.baseUrl ? config.baseUrl : '') + name.replace(/\.(lit)coffee|$/, '.js')], load, config);
+                return parentRequire([name.replace(/\.(lit)coffee/, '')], load);
             }
             // preserve existing logic with new literate coffeescript extensions (*.litcoffee or *.coffee.md).
             // if name passes check, use it, as-is. otherwise, behave as before, appending .coffee to the

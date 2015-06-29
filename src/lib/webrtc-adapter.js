@@ -1,6 +1,6 @@
 // converted code to use AMD -- Bill Burdick, June 2015
 
-define(function() {
+define([], function() {
     var getUserMedia = null;
     var attachMediaStream = null;
     var reattachMediaStream = null;

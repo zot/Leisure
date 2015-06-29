@@ -3,7 +3,7 @@ Converted to AMD and CoffeeScript and sorely hacked based on Chris Ball's exampl
 
 -- Bill Burdick 2015
 
-    define ['./adapter'], ->
+    define ['./webrtc-adapter'], ->
       # See also:
       # http://www.html5rocks.com/en/tutorials/webrtc/basics/
       # https://code.google.com/p/webrtc-samples/source/browse/trunk/apprtc/index.html
@@ -16,8 +16,8 @@ Converted to AMD and CoffeeScript and sorely hacked based on Chris Ball's exampl
 handlers.
 
       class PeerConnection
-        start: ->
-          if !@offerReady || !@handleMessage then throw new Error "Unconfigured #{@desc}"
+        constructor: ({connected, handleMessage, offerReady})->
+          if !offerReady || !handleMessage then throw new Error "Missing handlers #{@desc}"
           @con = new RTCPeerConnection cfg, con
           @con.onsignalingstatechange = (s)=> @log 'signaling state change: ', s
           @con.oniceconnectionstatechange = (s)=> @log 'ice connection state change: ', s
@@ -26,21 +26,21 @@ handlers.
             @log "candidate", e
             if e.candidate == null
               @offerReady @con.localDescription
-          @first = true
+          @connected = connected
+          @handleMessage = handleMessage
+          @offerReady = offerReady
         log: (msg, args...)-> console.log "#{@desc}: #{msg}", args...
         useOffer: (offerJson)->
           @log "using offer", offerJson
           @con.setRemoteDescription new RTCSessionDescription JSON.parse offerJson
         useChannel: (@chan)->
           @chan.onmessage = (e)=>
-            if @first
-              @first = false
-              if e.data.charCodeAt(0) == 2
-                # The first message we get from Firefox (but not Chrome)
-                # is literal ASCII 2 and I don't understand why -- if we
-                # leave it in, JSON.parse() will barf.
-                @log "ignoring message '2'"
-                return
+            if e.data.charCodeAt(0) == 2
+              # The first message we get from Firefox (but not Chrome)
+              # is literal ASCII 2 and I don't understand why -- if we
+              # leave it in, JSON.parse() will barf.
+              @log "ignoring message '2'"
+              return
             @log "got message", e.data
             @handleMessage e.data
           @chan.onopen = (e)=> @connected()
@@ -72,13 +72,13 @@ another user.
       class MasterConnection extends PeerConnection
         desc: 'Master'
         start: (errFunc)->
-          super()
           @useChannel @con.createDataChannel 'test', reliable:true
           @log "created datachannel"
           # this will trigger @con.onicecandidate when it is ready
           @con.createOffer ((desc)=>
             @con.setLocalDescription desc, (->), (->)
           ), errFunc
+          this
         establishConnection: (slaveAnswerJSON)->
           @con.setRemoteDescription new RTCSessionDescription JSON.parse slaveAnswerJSON
 
@@ -106,7 +106,6 @@ they can send it to the master connection's user.
       class SlaveConnection extends PeerConnection
         desc: 'Slave'
         start: (offerJson, errFunc)->
-          super()
           @con.ondatachannel = (e)=>
             @useChannel e.channel || e // Chrome sends event, FF sends raw channel
             @connected e
@@ -115,6 +114,7 @@ they can send it to the master connection's user.
           @con.createAnswer ((answerDesc)=>
             @con.setLocalDescription answerDesc, (->), (->)
           ), errFunc
+          this
 
       PeerConnection: PeerConnection
       MasterConnection: MasterConnection
