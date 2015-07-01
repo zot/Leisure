@@ -63,8 +63,16 @@
       };
 
       PeerConnection.prototype.useOffer = function(offerJson) {
+        var err, offer;
         this.log("using offer", offerJson);
-        return this.con.setRemoteDescription(new RTCSessionDescription(JSON.parse(offerJson)));
+        offer = null;
+        try {
+          offer = JSON.parse(offerJson);
+        } catch (_error) {
+          err = _error;
+          throw new Error("Could not parse offer: " + offerJson);
+        }
+        return this.con.setRemoteDescription(new RTCSessionDescription(offer));
       };
 
       PeerConnection.prototype.useChannel = function(chan) {
@@ -111,20 +119,35 @@
       MasterConnection.prototype.desc = 'Master';
 
       MasterConnection.prototype.start = function(errFunc) {
-        this.useChannel(this.con.createDataChannel('test', {
-          reliable: true
-        }));
-        this.log("created datachannel");
-        this.con.createOffer(((function(_this) {
-          return function(desc) {
-            return _this.con.setLocalDescription(desc, (function() {}), (function() {}));
-          };
-        })(this)), errFunc);
-        return this;
+        var err;
+        try {
+          this.useChannel(this.con.createDataChannel('test', {
+            reliable: true
+          }));
+          this.log("created datachannel");
+          this.con.createOffer(((function(_this) {
+            return function(desc) {
+              return _this.con.setLocalDescription(desc, (function() {}), (function() {}));
+            };
+          })(this)), errFunc);
+          return this;
+        } catch (_error) {
+          err = _error;
+          err.message = "Could not start connection: " + err.message;
+          return errFunc(err);
+        }
       };
 
       MasterConnection.prototype.establishConnection = function(slaveAnswerJSON) {
-        return this.con.setRemoteDescription(new RTCSessionDescription(JSON.parse(slaveAnswerJSON)));
+        var answer, err;
+        answer = null;
+        try {
+          answer = JSON.parse(slaveAnswerJSON);
+        } catch (_error) {
+          err = _error;
+          throw new Error("Could not parse answer: " + slaveAnswerJSON);
+        }
+        return this.con.setRemoteDescription(new RTCSessionDescription(answer));
       };
 
       return MasterConnection;
@@ -140,19 +163,26 @@
       SlaveConnection.prototype.desc = 'Slave';
 
       SlaveConnection.prototype.start = function(offerJson, errFunc) {
-        this.con.ondatachannel = (function(_this) {
-          return function(e) {
-            _this.useChannel(e.channel || Math.floor(e / Chrome(sends(event, FF(sends(raw(channel)))))));
-            return _this.connected(e);
-          };
-        })(this);
-        this.useOffer(offerJson);
-        this.con.createAnswer(((function(_this) {
-          return function(answerDesc) {
-            return _this.con.setLocalDescription(answerDesc, (function() {}), (function() {}));
-          };
-        })(this)), errFunc);
-        return this;
+        var err;
+        try {
+          this.con.ondatachannel = (function(_this) {
+            return function(e) {
+              _this.useChannel(e.channel || Math.floor(e / Chrome(sends(event, FF(sends(raw(channel)))))));
+              return _this.connected(e);
+            };
+          })(this);
+          this.useOffer(offerJson);
+          this.con.createAnswer(((function(_this) {
+            return function(answerDesc) {
+              return _this.con.setLocalDescription(answerDesc, (function() {}), (function() {}));
+            };
+          })(this)), errFunc);
+          return this;
+        } catch (_error) {
+          err = _error;
+          err.message = "Could not start connection: " + err.message;
+          return errFunc(err);
+        }
       };
 
       return SlaveConnection;

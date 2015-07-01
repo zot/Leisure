@@ -66,11 +66,14 @@ Peer-to-peer connection
                 origin: change.origin
               for id, con of @connections
                 con.pushChange ch
+            @removeConnection = (con)->
+              delete @connections[con.id]
+              delete @pending[con.id]
             true
           else false
-        createConnectionForSlave: ({offerReady, connected})->
+        createConnectionForSlave: ({offerReady, connected, error})->
           id = "master-#{@connectionNumber++}"
-          @pending[id] = new MC this, id, offerReady, connected
+          @pending[id] = new MC this, id, offerReady, connected, error
         becomeSlave: ->
           if !@mode
             @mode = 'slave'
@@ -95,13 +98,14 @@ Peer-to-peer connection
                 removes: change.removes
                 origin: change.origin
               @connection.pushChange ch
+            @removeConnection = (con)-> @connection = null
             true
           else false
-        createConnectionToMaster: ({offer, answerReady, connected})->
-          @connection = new SC this, offer, answerReady, connected
+        createConnectionToMaster: ({offer, answerReady, connected, error})->
+          @connection = new SC this, offer, answerReady, connected, error
 
       class Connection
-        constructor: (@peer)->
+        constructor: (@peer, @errorFunc)->
         sendMessage: (type, msg)->
           msg.type = type
           console.log "SENDING", msg
@@ -109,10 +113,11 @@ Peer-to-peer connection
         error: (err)->
           console.log "Error: #{err.message}", err
           @peer.removeConnection this
+          @errorFunc this, err
 
       class MC extends Connection
-        constructor: (peer, @id, offerReadyFunc, connectedFunc)->
-          super peer
+        constructor: (peer, @id, offerReadyFunc, connectedFunc, errorFunc)->
+          super peer, errorFunc
           @trees = {}
           @minCount = -1
           @lastUpdate = peer.currentUpdate
@@ -125,7 +130,7 @@ Peer-to-peer connection
               @sendMessage 'document', id: @id, document: @document()
               connectedFunc?()
             handleMessage: (msg)=> @peer.receiveMessage _this, JSON.retrocycle JSON.parse msg
-           @connection.start (err)-> @error err
+           @connection.start (err)=> @error err
         ack: (count)->
           if @minCount >= 0
             for c in [@minCount..count]
@@ -148,8 +153,8 @@ Peer-to-peer connection
           else @sendMessage 'changeAck', count: @peer.changeCount
 
       class SC extends Connection
-        constructor: (peer, masterOffer, answerReadyFunc, connectedFunc)->
-          super peer
+        constructor: (peer, masterOffer, answerReadyFunc, connectedFunc, errorFunc)->
+          super peer, errorFunc
           @connection = new SlaveConnection
             offerReady: (offer)-> answerReadyFunc offer
             connected: ->
@@ -157,7 +162,7 @@ Peer-to-peer connection
               #@sendMessage 'change', change: @document()
               connectedFunc?()
             handleMessage: (msg)=> @peer.receiveMessage _this, JSON.retrocycle JSON.parse msg
-          @connection.start masterOffer, (err)-> @error err
+          @connection.start masterOffer, (err)=> @error err
         pushChange: (change)-> @sendMessage 'change', change: change
 
       {

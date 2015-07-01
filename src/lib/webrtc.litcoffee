@@ -32,7 +32,12 @@ handlers.
         log: (msg, args...)-> console.log "#{@desc}: #{msg}", args...
         useOffer: (offerJson)->
           @log "using offer", offerJson
-          @con.setRemoteDescription new RTCSessionDescription JSON.parse offerJson
+          offer = null
+          try
+            offer = JSON.parse offerJson
+          catch err
+            throw new Error "Could not parse offer: #{offerJson}"
+          @con.setRemoteDescription new RTCSessionDescription offer
         useChannel: (@chan)->
           @chan.onmessage = (e)=>
             if e.data.charCodeAt(0) == 2
@@ -72,15 +77,24 @@ another user.
       class MasterConnection extends PeerConnection
         desc: 'Master'
         start: (errFunc)->
-          @useChannel @con.createDataChannel 'test', reliable:true
-          @log "created datachannel"
-          # this will trigger @con.onicecandidate when it is ready
-          @con.createOffer ((desc)=>
-            @con.setLocalDescription desc, (->), (->)
-          ), errFunc
-          this
+          try
+            @useChannel @con.createDataChannel 'test', reliable:true
+            @log "created datachannel"
+            # this will trigger @con.onicecandidate when it is ready
+            @con.createOffer ((desc)=>
+              @con.setLocalDescription desc, (->), (->)
+            ), errFunc
+            this
+          catch err
+            err.message = "Could not start connection: #{err.message}"
+            errFunc err
         establishConnection: (slaveAnswerJSON)->
-          @con.setRemoteDescription new RTCSessionDescription JSON.parse slaveAnswerJSON
+          answer = null
+          try
+            answer = JSON.parse slaveAnswerJSON
+          catch err
+            throw new Error "Could not parse answer: #{slaveAnswerJSON}"
+          @con.setRemoteDescription new RTCSessionDescription answer
 
 `SlaveConnection` starts with an existing offer from a master connection on another
 peer.  It then creates a counter offer (answer).
@@ -106,15 +120,19 @@ they can send it to the master connection's user.
       class SlaveConnection extends PeerConnection
         desc: 'Slave'
         start: (offerJson, errFunc)->
-          @con.ondatachannel = (e)=>
-            @useChannel e.channel || e // Chrome sends event, FF sends raw channel
-            @connected e
-          @useOffer offerJson
-          # this will trigger @con.onicecandidate when it is ready
-          @con.createAnswer ((answerDesc)=>
-            @con.setLocalDescription answerDesc, (->), (->)
-          ), errFunc
-          this
+          try
+            @con.ondatachannel = (e)=>
+              @useChannel e.channel || e // Chrome sends event, FF sends raw channel
+              @connected e
+            @useOffer offerJson
+            # this will trigger @con.onicecandidate when it is ready
+            @con.createAnswer ((answerDesc)=>
+              @con.setLocalDescription answerDesc, (->), (->)
+            ), errFunc
+            this
+          catch err
+            err.message = "Could not start connection: #{err.message}"
+            errFunc err
 
       PeerConnection: PeerConnection
       MasterConnection: MasterConnection

@@ -1,9 +1,10 @@
 Evaulation support for Leisure
 
-    define ['cs!./base', 'cs!./ast', 'cs!./runtime', 'acorn', 'acorn_walk', 'acorn_loose', './lib/lispyscript/browser-bundle'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript)->
+    define ['cs!./base', 'cs!./ast', 'cs!./runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript)->
       acorn = Acorn
       acornWalk = AcornWalk
-      acornLoose = AcornLoose
+      acornLoose = null
+      setTimeout (-> require ['acorn_loose'], (AcornLoose)-> acornLoose = AcornLoose), 1
       lispyScript = lsrequire("lispyscript")
       {
         getType
@@ -68,10 +69,10 @@ Evaulation support for Leisure
 
       jsEval = (env, text)->
         try
-          parsed = Acorn.parse text
+          parsed = acorn.parse text
         catch err
           errNode = null
-          handleErrors AcornLoose.parse_dammit(text), (node)-> errNode = node
+          handleErrors acornLoose.parse_dammit(text), (node)-> errNode = node
           try
             eval text
           catch err2

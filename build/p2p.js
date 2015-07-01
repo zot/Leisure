@@ -115,6 +115,10 @@
             }
             return results;
           };
+          this.removeConnection = function(con) {
+            delete this.connections[con.id];
+            return delete this.pending[con.id];
+          };
           return true;
         } else {
           return false;
@@ -122,10 +126,10 @@
       };
 
       Peer.prototype.createConnectionForSlave = function(arg) {
-        var connected, id, offerReady;
-        offerReady = arg.offerReady, connected = arg.connected;
+        var connected, error, id, offerReady;
+        offerReady = arg.offerReady, connected = arg.connected, error = arg.error;
         id = "master-" + (this.connectionNumber++);
-        return this.pending[id] = new MC(this, id, offerReady, connected);
+        return this.pending[id] = new MC(this, id, offerReady, connected, error);
       };
 
       Peer.prototype.becomeSlave = function() {
@@ -179,6 +183,9 @@
             };
             return this.connection.pushChange(ch);
           };
+          this.removeConnection = function(con) {
+            return this.connection = null;
+          };
           return true;
         } else {
           return false;
@@ -186,17 +193,18 @@
       };
 
       Peer.prototype.createConnectionToMaster = function(arg) {
-        var answerReady, connected, offer;
-        offer = arg.offer, answerReady = arg.answerReady, connected = arg.connected;
-        return this.connection = new SC(this, offer, answerReady, connected);
+        var answerReady, connected, error, offer;
+        offer = arg.offer, answerReady = arg.answerReady, connected = arg.connected, error = arg.error;
+        return this.connection = new SC(this, offer, answerReady, connected, error);
       };
 
       return Peer;
 
     })();
     Connection = (function() {
-      function Connection(peer1) {
+      function Connection(peer1, errorFunc1) {
         this.peer = peer1;
+        this.errorFunc = errorFunc1;
       }
 
       Connection.prototype.sendMessage = function(type, msg) {
@@ -207,7 +215,8 @@
 
       Connection.prototype.error = function(err) {
         console.log("Error: " + err.message, err);
-        return this.peer.removeConnection(this);
+        this.peer.removeConnection(this);
+        return this.errorFunc(this, err);
       };
 
       return Connection;
@@ -216,9 +225,9 @@
     MC = (function(superClass) {
       extend(MC, superClass);
 
-      function MC(peer, id1, offerReadyFunc, connectedFunc) {
+      function MC(peer, id1, offerReadyFunc, connectedFunc, errorFunc) {
         this.id = id1;
-        MC.__super__.constructor.call(this, peer);
+        MC.__super__.constructor.call(this, peer, errorFunc);
         this.trees = {};
         this.minCount = -1;
         this.lastUpdate = peer.currentUpdate;
@@ -246,9 +255,11 @@
             };
           })(this)
         });
-        this.connection.start(function(err) {
-          return this.error(err);
-        });
+        this.connection.start((function(_this) {
+          return function(err) {
+            return _this.error(err);
+          };
+        })(this));
       }
 
       MC.prototype.ack = function(count) {
@@ -303,8 +314,8 @@
     SC = (function(superClass) {
       extend(SC, superClass);
 
-      function SC(peer, masterOffer, answerReadyFunc, connectedFunc) {
-        SC.__super__.constructor.call(this, peer);
+      function SC(peer, masterOffer, answerReadyFunc, connectedFunc, errorFunc) {
+        SC.__super__.constructor.call(this, peer, errorFunc);
         this.connection = new SlaveConnection({
           offerReady: function(offer) {
             return answerReadyFunc(offer);
@@ -319,9 +330,11 @@
             };
           })(this)
         });
-        this.connection.start(masterOffer, function(err) {
-          return this.error(err);
-        });
+        this.connection.start(masterOffer, (function(_this) {
+          return function(err) {
+            return _this.error(err);
+          };
+        })(this));
       }
 
       SC.prototype.pushChange = function(change) {

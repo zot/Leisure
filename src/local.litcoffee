@@ -1,6 +1,8 @@
 Code for local-mode.  This will not be loaded under meteor.
 
-    require ['cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee'], (EditorSupport, Diag, P2P)->
+    #require ['cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee'], (EditorSupport, Diag, P2P)->
+
+    init = (EditorSupport, Diag, P2P)->
 
       {
         OrgData
@@ -42,7 +44,7 @@ Code for local-mode.  This will not be loaded under meteor.
           <div title="Connect">
             <div>
               <div id="loaderContainer" style="position: relative; height: 100%">
-                <div style='text-align: center'>Generating offer</div>
+                <div id="loaderText" style='text-align: center'>Discovering Connection Information</div>
                 <div class="loader">
                   <span></span>
                   <span></span>
@@ -90,6 +92,7 @@ Code for local-mode.  This will not be loaded under meteor.
                     connectDialog.dialog 'close'
               message[0].select()
             connected: (connection)-> connectDialog.dialog 'close'
+            error: (err)-> $('#loaderText').html err
 
         connectToMaster = ->
           console.log 'CLICK'
@@ -108,6 +111,7 @@ Code for local-mode.  This will not be loaded under meteor.
               connected: ->
                 connectDialog.dialog 'close'
                 console.log 'connected'
+              error: (con, err)-> $('#loaderText').html err.message
           offerButton.button 'disable'
           connectDialog.dialog 'open'
           message
@@ -145,3 +149,9 @@ Code for local-mode.  This will not be loaded under meteor.
         #+RESULTS:
         : 7
         """ + '\n'
+        $('#globalLoad').remove()
+
+    require ['jquery'], ->
+      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee'], (jqui, EditorSupport, Diag, P2P)->
+        init EditorSupport, Diag, P2P
+
