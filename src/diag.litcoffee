@@ -4,6 +4,7 @@
 
       {
         posFor
+        last
       } = Editor
 
       createEditorDisplay = (editor)->
@@ -21,7 +22,7 @@
 
       lineInfo = (options, block, offset)->
         if block
-          {line, col} = options.blockLine block, offset
+          {line, col} = getBlockLine block, offset
           startBlock = block
           docLine = line
           while block.prev
@@ -35,6 +36,12 @@
           top: Math.round(p.top)
           left: Math.round(p.left)
         else {}
+
+      getBlockLine = (block, offset)->
+        text = block.text.substring(0, offset)
+        lines = text.split('\n')
+        line: lines.length
+        col: last(lines).length
 
       createStructureDisplay = (data, stop)->
         if !$(".structure").length

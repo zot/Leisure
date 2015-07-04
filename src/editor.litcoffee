@@ -791,14 +791,6 @@ Main code
         setEditor: (@editor)->
         newId: -> "block#{idCounter++}"
 
-        copyBlock: (block)->
-          if !block then null
-          else
-            bl = {}
-            for k,v of block
-              bl[k] = v
-            bl
-
 `replaceBlocks(oldBlocks, newBlocks) -> removedBlocks`: override this if you need to link up the blocks, etc., like so that `renderBlock()` can return the proper next id, for instance.
 
         replaceBlocks: (prev, oldBlocks, newBlocks)-> @change @changesFor prev, oldBlocks, newBlocks
@@ -831,21 +823,21 @@ Main code
           if !oldBlocks.length && first = @getBlock first
             oldNext = @getBlock first.next
             oldBlocks.unshift first
-            first = newBlockMap[first._id] = @copyBlock first
+            first = newBlockMap[first._id] = copyBlock first
             link first, newBlocks[0]
             newBlocks.unshift first
             if oldNext
               oldBlocks.push oldNext
-              oldNext = newBlockMap[oldNext._id] = @copyBlock oldNext
+              oldNext = newBlockMap[oldNext._id] = copyBlock oldNext
               link last(newBlocks), oldNext
               newBlocks.push oldNext
           else if oldBlocks.length != newBlocks.length
-            if !prev && prev = @copyBlock oldPrev = @getBlock oldBlocks[0].prev
+            if !prev && prev = copyBlock oldPrev = @getBlock oldBlocks[0].prev
               oldBlocks.unshift oldPrev
               newBlocks.unshift prev
               newBlockMap[prev._id] = prev
             lastBlock = last oldBlocks
-            if next = @copyBlock oldNext = @getBlock (if lastBlock then lastBlock.next else @getFirst())
+            if next = copyBlock oldNext = @getBlock (if lastBlock then lastBlock.next else @getFirst())
               oldBlocks.push oldNext
               newBlocks.push next
               newBlockMap[next._id] = next
@@ -938,6 +930,14 @@ Main code
           while next && [html, next] = @renderBlock @getBlock next
             result += html
           result
+
+      copyBlock = (block)->
+        if !block then null
+        else
+          bl = {}
+          for k,v of block
+            bl[k] = v
+          bl
 
       activating = false
 
@@ -1228,4 +1228,5 @@ Exports
         activateScripts
         setHtml
         findEditor
+        copyBlock
       }

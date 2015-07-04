@@ -4,13 +4,13 @@
     hasProp = {}.hasOwnProperty;
 
   define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'handlebars'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, Handlebars) {
-    var DataStore, DataStoreEditingOptions, Fragment, HandlebarsEnvironment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, blockCodeItems, blockEnvMaker, blockOrg, blockText, configureMenu, copy, createBlockEnv, createLocalData, defaultEnv, escapeExpression, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, getId, greduce, installSelectionMenu, isContentEditable, isDynamic, languageEnvMaker, last, monitorSelectionChange, orgDoc, parseOrgMode, plainEditDiv, plainMode, posFor, selectionActive, selectionMenu, setHtml, throttledUpdateSelection, updateSelection;
+    var DataStore, DataStoreEditingOptions, Fragment, HandlebarsEnvironment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, blockCodeItems, blockEnvMaker, blockOrg, blockText, configureMenu, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, escapeExpression, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, getId, greduce, installSelectionMenu, isContentEditable, isDynamic, languageEnvMaker, last, monitorSelectionChange, orgDoc, parseOrgMode, plainEditDiv, plainMode, posFor, selectionActive, selectionMenu, setError, setHtml, setResult, throttledUpdateSelection, updateSelection;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, Nil = Org.Nil;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml;
-    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor;
+    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock;
     HandlebarsEnvironment = Handlebars.HandlebarsEnvironment, escapeExpression = Handlebars.escapeExpression;
     selectionActive = true;
     blockOrg = function(data, blockOrText) {
@@ -219,8 +219,13 @@
           };
         })(this));
         this.setPrefix('leisureBlock-');
-        this.plain();
+        this.setMode(plainMode);
       }
+
+      OrgEditing.prototype.setMode = function(mode) {
+        this.mode = mode;
+        return this;
+      };
 
       OrgEditing.prototype.setPrefix = function(prefix) {
         this.idPrefix = prefix;
@@ -242,32 +247,6 @@
 
       OrgEditing.prototype.renderBlock = function(block) {
         return this.mode.render(block, this.idPrefix);
-      };
-
-      OrgEditing.prototype.plain = function() {
-        this.mode = plainMode;
-        return this;
-      };
-
-      OrgEditing.prototype.fancy = function() {
-        this.mode = fancyMode;
-        return this;
-      };
-
-      OrgEditing.prototype.blockLineFor = function(node, offset) {
-        var block, ref;
-        ref = this.editor.blockOffset(node, offset), block = ref.block, offset = ref.offset;
-        return this.blockLine(block, offset);
-      };
-
-      OrgEditing.prototype.blockLine = function(block, offset) {
-        var lines, text;
-        text = block.text.substring(0, offset);
-        lines = text.split('\n');
-        return {
-          line: lines.length,
-          col: last(lines).length
-        };
       };
 
       OrgEditing.prototype.change = function(changes) {
@@ -314,7 +293,7 @@
           hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? ((ref1 = blockCodeItems(this, oldBlock), oldSource = ref1.source, ref1), newSource.content !== oldSource.content) : void 0);
           if (hasChange) {
             result = '';
-            newBlock = this.setError(change);
+            newBlock = setError(change);
             sync = true;
             env = envM({
               __proto__: defaultEnv
@@ -322,7 +301,7 @@
             opts = this;
             (function(change) {
               env.errorAt = function(offset, msg) {
-                newBlock = opts.setError(change, offset, msg);
+                newBlock = setError(change, offset, msg);
                 if (newBlock !== change && !sync) {
                   return opts.change({
                     first: opts.data.getFirst(),
@@ -334,7 +313,7 @@
               return env.write = function(str) {
                 result += ': ' + (str instanceof Html ? str.content : escapeHtml(String(str).replace(/\r?\n/g, '\n: ') + '\n'));
                 if (!sync) {
-                  newBlock = opts.setResult(change, str);
+                  newBlock = setResult(change, str);
                   return opts.change({
                     first: opts.data.getFirst(),
                     removes: {},
@@ -344,7 +323,7 @@
               };
             })(change);
             env.executeText(newSource.content, Nil, function() {});
-            newBlock = this.setResult(newBlock, result);
+            newBlock = setResult(newBlock, result);
             changes.sets[newBlock._id] = newBlock;
             ref2 = changes.newBlocks;
             for (i = j = 0, len = ref2.length; j < len; i = ++j) {
@@ -358,45 +337,43 @@
         }
       };
 
-      OrgEditing.prototype.setResult = function(block, result) {
-        var newBlock, prop, results, text, tmp, value;
-        results = blockCodeItems(this, block).results;
-        if (!results && ((result == null) || result === '')) {
-          return block;
-        } else {
-          newBlock = this.copyBlock(block);
-          text = (result == null) || result === '' ? block.text.substring(0, results.offset) + block.text.substring(results.offset + results.text.length) : results ? block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length) : block.text + ("#+RESULTS:\n" + result);
-          tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
-          for (prop in tmp) {
-            value = tmp[prop];
-            newBlock[prop] = value;
-          }
-          return newBlock;
-        }
-      };
-
-      OrgEditing.prototype.setError = function(block, offset, msg) {
-        var err, error, newBlock, prop, ref, results, text, tmp, value;
-        ref = blockCodeItems(this, block), error = ref.error, results = ref.results;
-        if ((offset == null) && !error) {
-          return block;
-        } else {
-          newBlock = this.copyBlock(block);
-          msg = msg ? msg.trim() + "\n" : void 0;
-          err = "#+ERROR: " + offset + ", " + msg;
-          text = error ? offset == null ? block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length) : block.text.substring(0, error.offset) + err + block.text.substring(error.offset + error.text.length) : results ? block.text.substring(0, results.offset) + err + block.text.substring(results.offset) : block.text + err;
-          tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
-          for (prop in tmp) {
-            value = tmp[prop];
-            newBlock[prop] = value;
-          }
-          return newBlock;
-        }
-      };
-
       return OrgEditing;
 
     })(DataStoreEditingOptions);
+    setResult = function(block, result) {
+      var newBlock, prop, results, text, tmp, value;
+      results = blockCodeItems(this, block).results;
+      if (!results && ((result == null) || result === '')) {
+        return block;
+      } else {
+        newBlock = copyBlock(block);
+        text = (result == null) || result === '' ? block.text.substring(0, results.offset) + block.text.substring(results.offset + results.text.length) : results ? block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length) : block.text + ("#+RESULTS:\n" + result);
+        tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
+        for (prop in tmp) {
+          value = tmp[prop];
+          newBlock[prop] = value;
+        }
+        return newBlock;
+      }
+    };
+    setError = function(block, offset, msg) {
+      var err, error, newBlock, prop, ref, results, text, tmp, value;
+      ref = blockCodeItems(this, block), error = ref.error, results = ref.results;
+      if ((offset == null) && !error) {
+        return block;
+      } else {
+        newBlock = copyBlock(block);
+        msg = msg ? msg.trim() + "\n" : void 0;
+        err = "#+ERROR: " + offset + ", " + msg;
+        text = error ? offset == null ? block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length) : block.text.substring(0, error.offset) + err + block.text.substring(error.offset + error.text.length) : results ? block.text.substring(0, results.offset) + err + block.text.substring(results.offset) : block.text + err;
+        tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
+        for (prop in tmp) {
+          value = tmp[prop];
+          newBlock[prop] = value;
+        }
+        return newBlock;
+      }
+    };
     isDynamic = function(block) {
       var ref;
       return ((ref = block.codeAttributes) != null ? ref.results : void 0) === 'dynamic';
@@ -517,7 +494,9 @@
       fancyEditDiv: fancyEditDiv,
       OrgData: OrgData,
       installSelectionMenu: installSelectionMenu,
-      blockOrg: blockOrg
+      blockOrg: blockOrg,
+      setResult: setResult,
+      setError: setError
     };
   });
 

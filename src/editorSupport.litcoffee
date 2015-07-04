@@ -37,6 +37,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         copy
         setHtml
         findEditor
+        copyBlock
       } = Editor
       {
         HandlebarsEnvironment
@@ -44,9 +45,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       } = Handlebars
 
       selectionActive = true
-
-OrgData is the basic data storage class.  Subclasses can change how the
-editor accesses blocks of text (local, meteor, etc.)
 
       blockOrg = (data, blockOrText)->
         text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
@@ -60,6 +58,8 @@ editor accesses blocks of text (local, meteor, etc.)
           org.shared = blockOrText.type
         org.linkNodes()
         org
+
+`OrgData` -- a DataStore that supports block-structured org file data.  Each block has type 'headline', 'code', or 'chunk'.  Blocks use nextSibling and previousSibling ids to indicate the tree structure of the org document (there are no direct parent/child links).
 
       class OrgData extends DataStore
         getBlock: (thing, changes)->
@@ -91,7 +91,7 @@ editor accesses blocks of text (local, meteor, etc.)
           @reduceNextSiblings @firstChild(thing, changes), changes, ((x, y)-> c.push y), null
           c
 
-Modify changes so that the sibling links are correct
+`linkAllSiblings` -- modify changes so that the sibling links will be correct when the changes are applied.
 
         linkAllSiblings: (changes)->
           parentStack = ['TOP']
@@ -147,12 +147,15 @@ Modify changes so that the sibling links are correct
 
       getId = (thing)-> if typeof thing == 'string' then thing else thing._id
 
+`OrgEditing` -- editing options for the org editor.
+
       class OrgEditing extends DataStoreEditingOptions
         constructor: (data)->
           super data
           data.on 'load', => setHtml @editor.node[0], @renderBlocks()
           @setPrefix 'leisureBlock-'
-          @plain()
+          @setMode plainMode
+        setMode: (@mode)-> this
         setPrefix: (prefix)->
           @idPrefix = prefix
           @idPattern = new RegExp "^#{prefix}(.*)$"
@@ -160,20 +163,9 @@ Modify changes so that the sibling links are correct
         idForNode: (node)-> node.id.match(@idPattern)?[1]
         parseBlocks: (text)-> @data.parseBlocks text
         renderBlock: (block)-> @mode.render block, @idPrefix
-        plain: ->
-          @mode = plainMode
-          this
-        fancy: ->
-          @mode = fancyMode
-          this
-        blockLineFor: (node, offset)->
-          {block, offset} = @editor.blockOffset node, offset
-          @blockLine block, offset
-        blockLine: (block, offset)->
-          text = block.text.substring(0, offset)
-          lines = text.split('\n')
-          line: lines.length
-          col: last(lines).length
+
+`change(changes)` -- about to change the data; compute some effects immediately.
+
         change: (changes)->
           computedProperties = {}
           changedProperties = []
@@ -201,13 +193,13 @@ Modify changes so that the sibling links are correct
               newSource.content != oldSource.content
             if hasChange
               result = ''
-              newBlock = @setError change
+              newBlock = setError change
               sync = true
               env = envM __proto__: defaultEnv
               opts = this
               do (change)->
                 env.errorAt = (offset, msg)->
-                  newBlock = opts.setError change, offset, msg
+                  newBlock = setError change, offset, msg
                   if newBlock != change && !sync
                     opts.change
                       first: opts.data.getFirst()
@@ -216,57 +208,58 @@ Modify changes so that the sibling links are correct
                 env.write = (str)->
                   result += ': ' + (if str instanceof Html then str.content else escapeHtml String(str).replace(/\r?\n/g, '\n: ') + '\n')
                   if !sync
-                    newBlock = opts.setResult change, str
+                    newBlock = setResult change, str
                     opts.change
                       first: opts.data.getFirst()
                       removes: {}
                       sets: change._id, newBlock
               env.executeText newSource.content, Nil, ->
-              newBlock = @setResult newBlock, result
+              newBlock = setResult newBlock, result
               changes.sets[newBlock._id] = newBlock
               for block, i in changes.newBlocks
                 if block._id == newBlock._id then changes.newBlocks[i] = newBlock
               sync = false
-        setResult: (block, result)->
-          {results} = blockCodeItems this, block
-          if !results && (!result? || result == '') then block
-          else
-            newBlock = @copyBlock block
-            text = if !result? || result == ''
-              block.text.substring(0, results.offset) + block.text.substring(results.offset + results.text.length)
-            else if results
-              block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length)
-            else block.text + "#+RESULTS:\n#{result}"
-            [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
-            for prop, value of tmp
-              newBlock[prop] = value
-            newBlock
-        setError: (block, offset, msg)->
-          {error, results} = blockCodeItems this, block
-          if !offset? && !error then block
-          else
-            newBlock = @copyBlock block
-            msg = if msg then msg.trim() + "\n"
-            err = "#+ERROR: #{offset}, #{msg}"
-            text = if error
-              if !offset?
-                block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length)
-              else
-                block.text.substring(0, error.offset) + err + block.text.substring(error.offset + error.text.length)
-            else if results
-              block.text.substring(0, results.offset) + err + block.text.substring(results.offset)
-            else block.text + err
-            [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
-            for prop, value of tmp
-              newBlock[prop] = value
-            newBlock
+
+      setResult = (block, result)->
+        {results} = blockCodeItems this, block
+        if !results && (!result? || result == '') then block
+        else
+          newBlock = copyBlock block
+          text = if !result? || result == ''
+            block.text.substring(0, results.offset) + block.text.substring(results.offset + results.text.length)
+          else if results
+            block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length)
+          else block.text + "#+RESULTS:\n#{result}"
+          [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
+          for prop, value of tmp
+            newBlock[prop] = value
+          newBlock
+
+      setError = (block, offset, msg)->
+        {error, results} = blockCodeItems this, block
+        if !offset? && !error then block
+        else
+          newBlock = copyBlock block
+          msg = if msg then msg.trim() + "\n"
+          err = "#+ERROR: #{offset}, #{msg}"
+          text = if error
+            if !offset?
+              block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length)
+            else
+              block.text.substring(0, error.offset) + err + block.text.substring(error.offset + error.text.length)
+          else if results
+            block.text.substring(0, results.offset) + err + block.text.substring(results.offset)
+          else block.text + err
+          [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
+          for prop, value of tmp
+            newBlock[prop] = value
+          newBlock
 
       isDynamic = (block)-> block.codeAttributes?.results == 'dynamic'
 
       blockEnvMaker = (block)-> languageEnvMaker block.language
 
       createBlockEnv = (block, envMaker)->
-      
 
       blockCodeItems = (data, block)->
         if block?.type == 'code'
@@ -370,6 +363,8 @@ Modify changes so that the sibling links are correct
       isContentEditable = (node)->
         (if node instanceof Element then node else node.parentElement).isContentEditable
 
+Exports
+
       {
         createLocalData
         plainEditDiv
@@ -377,4 +372,6 @@ Modify changes so that the sibling links are correct
         OrgData
         installSelectionMenu
         blockOrg
+        setResult
+        setError
       }

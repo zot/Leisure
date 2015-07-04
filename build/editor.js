@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'cs!./domCursor.litcoffee'], function(jq, DOMCursor) {
-    var BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, TAB, UP, _to_ascii, activateScripts, activating, blockText, copy, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys;
+    var BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, TAB, UP, _to_ascii, activateScripts, activating, blockText, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys;
     selectRange = DOMCursor.selectRange;
     maxLastKeys = 4;
     BS = 8;
@@ -995,20 +995,6 @@
         return "block" + (idCounter++);
       };
 
-      BasicEditingOptions.prototype.copyBlock = function(block) {
-        var bl, k, v;
-        if (!block) {
-          return null;
-        } else {
-          bl = {};
-          for (k in block) {
-            v = block[k];
-            bl[k] = v;
-          }
-          return bl;
-        }
-      };
-
       BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks) {
         return this.change(this.changesFor(prev, oldBlocks, newBlocks));
       };
@@ -1060,23 +1046,23 @@
         if (!oldBlocks.length && (first = this.getBlock(first))) {
           oldNext = this.getBlock(first.next);
           oldBlocks.unshift(first);
-          first = newBlockMap[first._id] = this.copyBlock(first);
+          first = newBlockMap[first._id] = copyBlock(first);
           link(first, newBlocks[0]);
           newBlocks.unshift(first);
           if (oldNext) {
             oldBlocks.push(oldNext);
-            oldNext = newBlockMap[oldNext._id] = this.copyBlock(oldNext);
+            oldNext = newBlockMap[oldNext._id] = copyBlock(oldNext);
             link(last(newBlocks), oldNext);
             return newBlocks.push(oldNext);
           }
         } else if (oldBlocks.length !== newBlocks.length) {
-          if (!prev && (prev = this.copyBlock(oldPrev = this.getBlock(oldBlocks[0].prev)))) {
+          if (!prev && (prev = copyBlock(oldPrev = this.getBlock(oldBlocks[0].prev)))) {
             oldBlocks.unshift(oldPrev);
             newBlocks.unshift(prev);
             newBlockMap[prev._id] = prev;
           }
           lastBlock = last(oldBlocks);
-          if (next = this.copyBlock(oldNext = this.getBlock((lastBlock ? lastBlock.next : this.getFirst())))) {
+          if (next = copyBlock(oldNext = this.getBlock((lastBlock ? lastBlock.next : this.getFirst())))) {
             oldBlocks.push(oldNext);
             newBlocks.push(next);
             newBlockMap[next._id] = next;
@@ -1217,6 +1203,19 @@
       return BasicEditingOptions;
 
     })(Observable);
+    copyBlock = function(block) {
+      var bl, k, v;
+      if (!block) {
+        return null;
+      } else {
+        bl = {};
+        for (k in block) {
+          v = block[k];
+          bl[k] = v;
+        }
+        return bl;
+      }
+    };
     activating = false;
     setHtml = function(el, html, outer) {
       var next, par, prev, ref, ref1;
@@ -1642,7 +1641,8 @@
       copy: copy,
       activateScripts: activateScripts,
       setHtml: setHtml,
-      findEditor: findEditor
+      findEditor: findEditor,
+      copyBlock: copyBlock
     };
   });
 
