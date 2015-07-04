@@ -1,13 +1,17 @@
-* TODO fix AMD library mapping issues
-* TODO display symantic errors properly (deal with stack trace and sourcemap)
-* TODO Fancy: place results after expressions?
-use Acorn to find ends of exprs
-* TODO integrate lispyscript into Leisure
-* TODO make a shell service
-- Leisure should ask for confirmation from user before connecting to local/nonpublic services
+* TODO merge PlainEditing into OrgEditing
+- add id-prefix
+- make default mode (plain/fancy)
+- make per-node mode (for martini glass toggle)
 * TODO port back over the UI stuff
 - handlebars
 - view system
+- data blocks
+* TODO display symantic errors properly (deal with stack trace and sourcemap)
+* TODO Fancy: place results after expressions?
+use Acorn to find ends of exprs
+* TODO make a host service (ssh, shell, python, Java, etc.)
+Basically tramp for Leisure
+- Leisure should ask for confirmation from user before connecting to local/nonpublic services
 * TODO separate project: UI system
 * TODO separate project: Leisure evaluator
 * TODO separate project: scope chains
@@ -915,6 +919,10 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE integrate lispyscript into Leisure
+  CLOSED: [2015-07-03 Fri 19:23]
+** DONE fix AMD library mapping issues
+  CLOSED: [2015-07-03 Fri 19:22]
 ** DONE error inserting a newline at the top of a doc that starts with a headline
   CLOSED: [2015-06-20 Sat 19:28]
 ** DONE server-based data add -- returns new value

@@ -4,7 +4,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle'], function(jq, immutable, Peer) {
-    var Connection, MC, Map, MasterConnection, PeerConnection, SC, SlaveConnection;
+    var Connection, MC, Map, MasterConnection, PeerConnection, SC, SlaveConnection, getFirst, setFirst;
     Map = (window.Immutable = immutable).Map;
     PeerConnection = Peer.PeerConnection, MasterConnection = Peer.MasterConnection, SlaveConnection = Peer.SlaveConnection;
     Peer = (function() {
@@ -30,16 +30,17 @@
           blocks: new Map(data.blocks),
           first: null,
           getFirst: function() {
-            return this.blocks.get('FIRST');
+            return getFirst(this.blocks);
           },
           setFirst: function(firstId) {
-            return this.blocks = this.blocks.set('FIRST', firstId);
+            return this.blocks = setFirst(this.blocks, firstId);
           },
-          getBlock: function(id) {
+          getBlock: function(id, changes) {
+            var ref;
             if (typeof id !== 'string') {
               return id;
             } else {
-              return this.blocks.get(id);
+              return (ref = changes != null ? changes.sets[id] : void 0) != null ? ref : this.blocks.get(id);
             }
           },
           setBlock: function(id, block) {
@@ -52,9 +53,7 @@
             return this.blocks.forEach(func);
           },
           load: function(first, newBlocks) {
-            this.blocks = new Map(newBlocks);
-            this.setFirst(first);
-            return this.trigger('load');
+            return data.load.call(this, first, setFirst(new Map(newBlocks), first));
           },
           makeChange: function(change) {
             data.makeChange.call(this, change);
@@ -201,6 +200,12 @@
       return Peer;
 
     })();
+    getFirst = function(blocks) {
+      return blocks.get('FIRST');
+    };
+    setFirst = function(blocks, firstId) {
+      return blocks.set('FIRST', firstId);
+    };
     Connection = (function() {
       function Connection(peer1, errorFunc1) {
         this.peer = peer1;

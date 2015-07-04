@@ -1361,7 +1361,7 @@
 
       DataStore.prototype.blockList = function() {
         var bl, next, results;
-        next = this.geFirst();
+        next = this.getFirst();
         results = [];
         while (next) {
           bl = this.getBlock(next);

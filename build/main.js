@@ -21,10 +21,10 @@ requirejs.config({
         
         underscore: 'lib/underscore-min',
         acorn: 'lib/acorn-2.0.5',
-        //"lib/acorn": 'lib/acorn-2.0.5',
         acorn_loose: 'lib/acorn_loose-2.0.5',
         acorn_walk: 'lib/acorn_walk-2.0.5',
-        immutable: 'lib/immutable-3.7.4.min'
+        immutable: 'lib/immutable-3.7.4.min',
+        handlebars: 'lib/handlebars-v3.0.3'
     }
 });
 
@@ -45,7 +45,8 @@ require(['lib/bluebird.min'], function(bluebird) {
             });
         });
     };
-    require(['jquery', 'jqueryui', 'lib/lodash.min', 'cs!base', 'cs!ast', 'cs!domCursor.litcoffee', 'cs!editor.litcoffee', 'cs!diag.litcoffee', 'cs!org', 'lib/yaml', 'lib/lazy', 'cs!docOrg.litcoffee', 'cs!runtime', 'cs!eval.litcoffee', 'cs!editorSupport.litcoffee', 'cs!local.litcoffee'], function(jq, jqui, lodash){
-        setTimeout(function(){$('body').attr('class', "loading not-logged-in");}, 1);
-    });
+    //require(['jquery', 'jqueryui', 'lib/lodash.min', 'cs!base', 'cs!ast', 'cs!domCursor.litcoffee', 'cs!editor.litcoffee', 'cs!diag.litcoffee', 'cs!org', 'lib/yaml', 'lib/lazy', 'cs!docOrg.litcoffee', 'cs!runtime', 'cs!eval.litcoffee', 'cs!editorSupport.litcoffee', 'cs!local.litcoffee'], function(jq, jqui, lodash){
+    //    setTimeout(function(){$('body').attr('class', "loading not-logged-in");}, 1);
+    //});
+    require(['cs!local.litcoffee'])
 });

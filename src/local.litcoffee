@@ -8,6 +8,7 @@ Code for local-mode.  This will not be loaded under meteor.
         OrgData
         installSelectionMenu
         plainEditDiv
+        fancyEditDiv
       } = EditorSupport
       {
         createStructureDisplay
@@ -135,19 +136,28 @@ Code for local-mode.  This will not be loaded under meteor.
         else window.DATA = data = new OrgData()
         createStructureDisplay data
         window.ED = plainEditDiv $("[maindoc]"), data
+        #window.ED = fancyEditDiv $("[maindoc]"), data
         createEditorDisplay ED
         ED.options.load """
-        hit enter at the bottom
+        * Test properties
         #+BEGIN_SRC lisp :results dynamic
         (+ 3 4)
         #+END_SRC
         #+RESULTS:
         : 7
+        duh
+        :properties:
+        :a: 1
+        :end:
         #+BEGIN_SRC js :results dynamic
         3 + 4
         #+END_SRC
         #+RESULTS:
         : 7
+        peep
+        :properties:
+        :b: 2
+        :end:
         """ + '\n'
         $('#globalLoad').remove()
 

@@ -886,17 +886,36 @@ misrepresented as being the original software.
         return this.text.substring(this.endPos);
       };
 
+      Drawer.prototype.isProperties = function() {
+        return this.name.toLowerCase() === 'properties';
+      };
+
+      Drawer.prototype.properties = function() {
+        var m, props, ref;
+        props = {};
+        if (this.isProperties()) {
+          while (m = propertyRE.exec(this.text.substring(this.contentPos, this.endPos))) {
+            props[m[PROPERTY_KEY]] = ((ref = m[PROPERTY_VALUE]) != null ? ref : '').trim();
+          }
+        }
+        return props;
+      };
+
       Drawer.prototype.linkTo = function(node) {
-        var m, ref, results, t;
+        var k, ref, results, v;
         Drawer.__super__.linkTo.call(this, node);
-        if (this.name.toLowerCase() === 'properties') {
-          if (!(node instanceof Headline)) {
+        if (this.isProperties()) {
+          if (!(node instanceof Headline) && !(node instanceof Fragment)) {
             return console.log("WARNING: Drawer's parent is not a Headline'");
           } else {
-            t = this.text.substring(this.contentPos, this.endPos);
+            if (!node.properties) {
+              node.properties = {};
+            }
+            ref = this.properties();
             results = [];
-            while (m = propertyRE.exec(t)) {
-              results.push(node.properties[m[PROPERTY_KEY]] = ((ref = m[PROPERTY_VALUE]) != null ? ref : '').trim());
+            for (k in ref) {
+              v = ref[k];
+              results.push(node.properties[k] = v);
             }
             return results;
           }

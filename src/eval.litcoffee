@@ -137,9 +137,11 @@ Evaulation support for Leisure
         '<': '&lt;'
         '>': '&gt;'
         '&': '&amp;'
+        '"': '&quot;'
+        "'": '&#39;'
 
       escapeHtml = (str)->
-        if typeof str == 'string' then str.replace /[<>&]/g, (c)-> replacements[c]
+        if typeof str == 'string' then str.replace /[<>&'"]/g, (c)-> replacements[c]
         else str
 
       knownLanguages =

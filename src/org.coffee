@@ -394,17 +394,24 @@ define ['lib/lazy'], (Lazy)->
     leading: -> @text.substring 0, @contentPos
     content: -> @text.substring @contentPos, @endPos
     trailing: -> @text.substring @endPos
+    isProperties: -> @name.toLowerCase() == 'properties'
+    properties: ->
+      props = {}
+      if @isProperties()
+        while m = propertyRE.exec @text.substring @contentPos, @endPos
+          props[m[PROPERTY_KEY]] = (m[PROPERTY_VALUE] ? '').trim()
+      props
     #name: ->
     #  n = @leading().trim()
     #  n.substring 1, n.length - 1
     linkTo: (node)->
       super node
-      if @name.toLowerCase() == 'properties'
-        if !(node instanceof Headline) then console.log "WARNING: Drawer's parent is not a Headline'"
+      if @isProperties()
+        if !(node instanceof Headline) && !(node instanceof Fragment) then console.log "WARNING: Drawer's parent is not a Headline'"
         else
-          t = @text.substring @contentPos, @endPos
-          while m = propertyRE.exec t
-            node.properties[m[PROPERTY_KEY]] = (m[PROPERTY_VALUE] ? '').trim()
+          if !node.properties then node.properties = {}
+          for k, v of @properties()
+            node.properties[k] = v
   
   class Keyword extends Meat
     constructor: (@text, @offset, @name, @info)-> super @text, @offset

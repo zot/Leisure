@@ -1038,7 +1038,7 @@ Data model -- override/reset these if you want to change how the store accesses 
             if !seen[k] then throw new Error "#{k} not in prev chain"
           null
         blockList: ->
-          next = @geFirst()
+          next = @getFirst()
           while next
             bl = @getBlock next
             next = bl.next

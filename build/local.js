@@ -3,8 +3,8 @@
   var init;
 
   init = function(EditorSupport, Diag, P2P) {
-    var OrgData, Peer, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, installSelectionMenu, message, mode, offerAction, offerButton, peer, plainEditDiv, showMessage, showSpinner, spinner, useP2P;
-    OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, plainEditDiv = EditorSupport.plainEditDiv;
+    var OrgData, Peer, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, fancyEditDiv, installSelectionMenu, message, mode, offerAction, offerButton, peer, plainEditDiv, showMessage, showSpinner, spinner, useP2P;
+    OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, plainEditDiv = EditorSupport.plainEditDiv, fancyEditDiv = EditorSupport.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
     Peer = P2P.Peer;
     useP2P = true;
@@ -126,7 +126,7 @@
       createStructureDisplay(data);
       window.ED = plainEditDiv($("[maindoc]"), data);
       createEditorDisplay(ED);
-      ED.options.load("hit enter at the bottom\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7" + '\n');
+      ED.options.load("* Test properties\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\nduh\n:properties:\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\npeep\n:properties:\n:b: 2\n:end:" + '\n');
       return $('#globalLoad').remove();
     });
   };

@@ -208,11 +208,13 @@
     replacements = {
       '<': '&lt;',
       '>': '&gt;',
-      '&': '&amp;'
+      '&': '&amp;',
+      '"': '&quot;',
+      "'": '&#39;'
     };
     escapeHtml = function(str) {
       if (typeof str === 'string') {
-        return str.replace(/[<>&]/g, function(c) {
+        return str.replace(/[<>&'"]/g, function(c) {
           return replacements[c];
         });
       } else {

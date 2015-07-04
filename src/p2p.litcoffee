@@ -25,16 +25,15 @@ Peer-to-peer connection
             __proto__: data
             blocks: new Map data.blocks
             first: null
-            getFirst: -> @blocks.get 'FIRST'
-            setFirst: (firstId)-> @blocks = @blocks.set 'FIRST', firstId
-            getBlock: (id)-> if typeof id != 'string' then id else @blocks.get id
+            getFirst: -> getFirst @blocks
+            setFirst: (firstId)-> @blocks = setFirst @blocks, firstId
+            getBlock: (id, changes)->
+              if typeof id != 'string' then id else changes?.sets[id] ? @blocks.get id
             setBlock: (id, block)-> @blocks = @blocks.set id, block
             deleteBlock: (id)-> @blocks = @blocks.delete id
             eachBlock: (func)-> @blocks.forEach func
             load: (first, newBlocks)->
-              @blocks = new Map newBlocks
-              @setFirst first
-              @trigger 'load'
+              data.load.call this, first, setFirst (new Map newBlocks), first
             makeChange: (change)->
               data.makeChange.call this, change
               if !peer.protecting then peer.changed change
@@ -103,6 +102,9 @@ Peer-to-peer connection
           else false
         createConnectionToMaster: ({offer, answerReady, connected, error})->
           @connection = new SC this, offer, answerReady, connected, error
+
+      getFirst = (blocks)-> blocks.get 'FIRST'
+      setFirst = (blocks, firstId)-> blocks.set 'FIRST', firstId
 
       class Connection
         constructor: (@peer, @errorFunc)->

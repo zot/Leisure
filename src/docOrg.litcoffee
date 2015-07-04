@@ -104,33 +104,42 @@
             _L([text: org.text, type: 'headline', level: org.level, offset: org.offset, properties: org.properties]).concat children
         else if org instanceof HTML then [result, next] = createHtmlBlockDoc org
         else if isCodeBlock org then [result, next] = createCodeBlockDoc org
-        else result = _L([text: org.allText(), type: 'chunk', offset: org.offset])
+        else result = _L(checkProps org, [text: org.allText(), type: 'chunk', offset: org.offset])
         if local then result.each (item)-> item.local = true
         [result, next]
+
+      checkProps = (org, block)->
+        if org.isProperties?()
+          block.properties = org.properties()
 
       createChildrenDocs = (org, local)->
         children = _L()
         child = org.children[0]
         if child
           mergedText = ''
+          properties = _L()
           offset = org.children[0].offset
           while child
             if isMergeable child
               mergedText += child.allText()
+              if child.properties?() then properties = properties.merge child.properties?()
               child = child.next
             else
-              [mergedText, children] = checkMerged mergedText, children, offset
+              [mergedText, properties, children] = checkMerged mergedText, properties, children, offset
               [childDoc, child] = createOrgDoc child, local
               children = children.concat [childDoc]
               offset = child?.offset
-          [mergedText, children] = checkMerged mergedText, children, offset
+          [mergedText, properties, children] = checkMerged mergedText, properties, children, offset
         children
 
       isMergeable = (org)-> !(org instanceof Headline || org instanceof HTML || isCodeBlock org)
 
-      checkMerged = (mergedText, children, offset)->
-        if mergedText != '' then children = children.concat [text: mergedText, type: 'chunk', offset: offset]
-        ['', children]
+      checkMerged = (mergedText, properties, children, offset)->
+        if mergedText != ''
+          child = text: mergedText, type: 'chunk', offset: offset
+          if !properties.isEmpty() then child.properties = properties.toObject()
+          children = children.concat [child]
+        ['', _L(), children]
 
       createCodeBlockDoc = (org)->
         text = ''
