@@ -228,10 +228,15 @@
             type: 'None'
           };
         } else {
-          p = this.blockOffset(s.getRangeAt(0));
-          p.type = s.type;
-          p.length = this.selectedText(s).length;
-          return p;
+          if (p = this.blockOffset(s.getRangeAt(0))) {
+            p.type = s.type;
+            p.length = this.selectedText(s).length;
+            return p;
+          } else {
+            return {
+              type: 'None'
+            };
+          }
         }
       };
 
@@ -263,11 +268,12 @@
           offset = node.pos;
           node = node.node;
         }
-        startHolder = this.options.getContainer(node);
-        return {
-          block: this.options.getBlock(this.options.idForNode(startHolder)),
-          offset: this.getTextPosition(startHolder, node, offset)
-        };
+        if (startHolder = this.options.getContainer(node)) {
+          return {
+            block: this.options.getBlock(this.options.idForNode(startHolder)),
+            offset: this.getTextPosition(startHolder, node, offset)
+          };
+        }
       };
 
       LeisureEditCore.prototype.blockRangeForOffsets = function(start, length) {
@@ -1636,6 +1642,8 @@
         } finally {
           editor.selectBlockRange(range);
         }
+      } else {
+        return func();
       }
     };
     return {

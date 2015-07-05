@@ -30,24 +30,30 @@
       return spinner.removeClass('hidden');
     };
     configurePeerButttons = function() {
-      var connect, connectToMaster, connectToSlave, create;
+      var connect, connectToMaster, connectToSlave, connectionDisplay, create, p2pControls, updateConnections;
       connectDialog = $("<div title=\"Connect\">\n  <div>\n    <div id=\"loaderContainer\" style=\"position: relative; height: 100%\">\n      <div id=\"loaderText\" style='text-align: center'>Discovering Connection Information</div>\n      <div class=\"loader\">\n        <span></span>\n        <span></span>\n        <span></span>\n      </div>\n    </div>\n    <textarea class='hidden' readonly=\"true\" style=\"width: 100%; height: calc(100% - 2.5em - 5px)\">Hello</textarea>\n    <button style=\"height: 2.5em; margin-top: 5px\" class='hidden'></button>\n  </div>\n</div>");
       message = connectDialog.find('textarea');
       spinner = connectDialog.find('#loaderContainer');
       offerButton = connectDialog.find('button').button().on('click', function() {
         return offerAction();
       });
-      connect = $("<button>Connect to Master</button>").prependTo('body').button().on('click', function() {
-        return connectToMaster();
-      });
-      create = $("<button>Connect to Slave</button>").prependTo('body').button().on('click', function() {
+      p2pControls = $("<div></div>").prependTo('body');
+      create = $("<button>Connect to Slave</button>").appendTo(p2pControls).button().on('click', function() {
         return connectToSlave();
       });
+      connect = $("<button>Connect to Master</button>").appendTo(p2pControls).button().on('click', function() {
+        return connectToMaster();
+      });
+      $(" <span><b>Connections: </b></span>").appendTo(p2pControls);
+      connectionDisplay = $("<span>0</span>").appendTo(p2pControls);
       connectDialog.appendTo('body').dialog().dialog('option', 'width', 700).dialog('option', 'height', 400).dialog('option', 'position', {
         my: "center",
         at: "top",
         of: window
       }).dialog('close');
+      updateConnections = function(newTotal) {
+        return connectionDisplay.html(newTotal);
+      };
       connectToSlave = function() {
         if (peer.becomeMaster()) {
           connect.button('disable');
@@ -68,6 +74,15 @@
             return message[0].select();
           },
           connected: function(connection) {
+            var con;
+            updateConnections(((function() {
+              var results;
+              results = [];
+              for (con in peer.connections) {
+                results.push(con);
+              }
+              return results;
+            })()).length);
             return connectDialog.dialog('close');
           },
           error: function(err) {
@@ -77,7 +92,9 @@
       };
       return connectToMaster = function() {
         console.log('CLICK');
-        if (peer.becomeSlave()) {
+        if (peer.becomeSlave(function(info) {
+          return updateConnections(info.total);
+        })) {
           create.button('disable');
         }
         showMessage('Press to generate answer from master offer', function() {

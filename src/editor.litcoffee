@@ -309,10 +309,11 @@ Events:
           s = getSelection()
           if s.type == 'None' then type: 'None'
           else
-            p = @blockOffset s.getRangeAt(0)
-            p.type = s.type
-            p.length = @selectedText(s).length
-            p
+            if p = @blockOffset s.getRangeAt(0)
+              p.type = s.type
+              p.length = @selectedText(s).length
+              p
+            else type: 'None'
         selectBlockRange: (blockRange)->
           if blockRange.type == 'None' then getSelection().removeAllRanges()
           else selectRange @rangeForBlockRange blockRange
@@ -330,9 +331,9 @@ Events:
           else if node instanceof DOMCursor
             offset = node.pos
             node = node.node
-          startHolder = @options.getContainer(node)
-          block: @options.getBlock @options.idForNode startHolder
-          offset: @getTextPosition startHolder, node, offset
+          if startHolder = @options.getContainer(node)
+            block: @options.getBlock @options.idForNode startHolder
+            offset: @getTextPosition startHolder, node, offset
         blockRangeForOffsets: (start, length)->
           {block, offset} = @options.getBlockOffsetForPosition start
           {block, offset, length, type: if length == 0 then 'Caret' else 'Range'}
@@ -1209,6 +1210,10 @@ adapted from Vega on [StackOverflow](http://stackoverflow.com/a/13127566/1026782
           target = $(target).parent()
         target.data()?.editor
 
+`preserveSelection` -- restore the current selection after func() completes.  This may
+work better for you than LeisureEditCore.savePosition because it always preserves the
+selection, regardless of the current value of LeisureEditCore.editing.
+
       preserveSelection = (func)->
         if editor = findEditor getSelection().anchorNode
           range = editor.getSelectedBlockRange()
@@ -1216,6 +1221,7 @@ adapted from Vega on [StackOverflow](http://stackoverflow.com/a/13127566/1026782
             func()
           finally
             editor.selectBlockRange range
+        else func()
 
 Exports
 =======

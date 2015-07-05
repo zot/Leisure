@@ -64,14 +64,17 @@ Code for local-mode.  This will not be loaded under meteor.
         message = connectDialog.find 'textarea'
         spinner = connectDialog.find '#loaderContainer'
         offerButton = connectDialog.find('button').button().on 'click', -> offerAction()
-        connect = $("<button>Connect to Master</button>")
-          .prependTo('body')
-          .button()
-          .on 'click', -> connectToMaster()
+        p2pControls = $("<div></div>").prependTo 'body'
         create = $("<button>Connect to Slave</button>")
-          .prependTo('body')
+          .appendTo(p2pControls)
           .button()
           .on 'click', -> connectToSlave()
+        connect = $("<button>Connect to Master</button>")
+          .appendTo(p2pControls)
+          .button()
+          .on 'click', -> connectToMaster()
+        $(" <span><b>Connections: </b></span>").appendTo p2pControls
+        connectionDisplay = $("<span>0</span>").appendTo p2pControls
         connectDialog
           .appendTo('body')
           .dialog()
@@ -79,6 +82,8 @@ Code for local-mode.  This will not be loaded under meteor.
           .dialog 'option', 'height', 400
           .dialog 'option', 'position',  { my: "center", at: "top", of: window }
           .dialog 'close'
+
+        updateConnections = (newTotal)-> connectionDisplay.html newTotal
 
         connectToSlave = ->
           if peer.becomeMaster() then connect.button('disable')
@@ -96,12 +101,15 @@ Code for local-mode.  This will not be loaded under meteor.
                     connection.establishConnection message.val()
                     connectDialog.dialog 'close'
               message[0].select()
-            connected: (connection)-> connectDialog.dialog 'close'
+            connected: (connection)->
+              updateConnections (con for con of peer.connections).length
+              connectDialog.dialog 'close'
             error: (err)-> $('#loaderText').html err
 
         connectToMaster = ->
           console.log 'CLICK'
-          if peer.becomeSlave() then create.button 'disable'
+          if peer.becomeSlave((info)-> updateConnections info.total)
+            create.button 'disable'
           showMessage 'Press to generate answer from master offer', ->
             console.log "GENERATE ANSWER"
             showSpinner()

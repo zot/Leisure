@@ -77,12 +77,21 @@ call this poetic license for the time being...
             @removeConnection = (con)->
               delete @connections[con.id]
               delete @pending[con.id]
+              @updateConnections()
+            @addConnection = (con)->
+              @connections[con.id] = con
+              delete @pending[con.id]
+              @updateConnections()
+            @updateConnections = ->
+              tot = _.size @connections
+              for id, con of @connections
+                con.updateConnections tot
             true
           else false
         createConnectionForSlave: ({offerReady, connected, error})->
           id = "master-#{@connectionNumber++}"
           @pending[id] = new MC this, id, offerReady, connected, error
-        becomeSlave: ->
+        becomeSlave: (updateConnections)->
           if !@mode
             @mode = 'slave'
             @changing = false
@@ -94,11 +103,12 @@ call this poetic license for the time being...
                 @data.load document[0]._id, blocks
               change: (connection, {count, change})=>
                 @remoteChangeCount = count
-                @protectChange => @data.change change
+                @protectChange => preserveSelection => @data.change change
                 connection.sendMessage 'ack', count: count
               changeAck: (connection, {count})=>
                 @remoteChangeCount = count
                 connection.sendMessage 'ack', count: count
+              connections: (connection, info)-> updateConnections info
             @protectChange = (func)->
               oldChanging = @changing
               @changing = true
@@ -144,8 +154,7 @@ call this poetic license for the time being...
           @connection = new MasterConnection
             offerReady: (offer)=> offerReadyFunc offer, _this
             connected: =>
-              peer.connections[@id] = _this
-              delete peer.pending[@id]
+              peer.addConnection this
               console.log "connected"
               @sendMessage 'document', id: @id, document: @document()
               connectedFunc?()
@@ -171,6 +180,7 @@ call this poetic license for the time being...
           if @minCount < 0 then @minCount = @peer.changeCount
           if change.origin != @id then @sendMessage 'change', count: @peer.changeCount, change: change
           else @sendMessage 'changeAck', count: @peer.changeCount
+        updateConnections: (tot)-> @sendMessage 'connections', total: tot
 
       class SC extends Connection
         constructor: (peer, masterOffer, answerReadyFunc, connectedFunc, errorFunc)->

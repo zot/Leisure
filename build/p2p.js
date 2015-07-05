@@ -131,7 +131,24 @@
           };
           this.removeConnection = function(con) {
             delete this.connections[con.id];
-            return delete this.pending[con.id];
+            delete this.pending[con.id];
+            return this.updateConnections();
+          };
+          this.addConnection = function(con) {
+            this.connections[con.id] = con;
+            delete this.pending[con.id];
+            return this.updateConnections();
+          };
+          this.updateConnections = function() {
+            var con, id, ref, results, tot;
+            tot = _.size(this.connections);
+            ref = this.connections;
+            results = [];
+            for (id in ref) {
+              con = ref[id];
+              results.push(con.updateConnections(tot));
+            }
+            return results;
           };
           return true;
         } else {
@@ -146,7 +163,7 @@
         return this.pending[id] = new MC(this, id, offerReady, connected, error);
       };
 
-      Peer.prototype.becomeSlave = function() {
+      Peer.prototype.becomeSlave = function(updateConnections) {
         if (!this.mode) {
           this.mode = 'slave';
           this.changing = false;
@@ -169,7 +186,9 @@
                 count = arg.count, change = arg.change;
                 _this.remoteChangeCount = count;
                 _this.protectChange(function() {
-                  return _this.data.change(change);
+                  return preserveSelection(function() {
+                    return _this.data.change(change);
+                  });
                 });
                 return connection.sendMessage('ack', {
                   count: count
@@ -185,7 +204,10 @@
                   count: count
                 });
               };
-            })(this)
+            })(this),
+            connections: function(connection, info) {
+              return updateConnections(info);
+            }
           };
           this.protectChange = function(func) {
             var oldChanging;
@@ -272,8 +294,7 @@
           })(this),
           connected: (function(_this) {
             return function() {
-              peer.connections[_this.id] = _this;
-              delete peer.pending[_this.id];
+              peer.addConnection(_this);
               console.log("connected");
               _this.sendMessage('document', {
                 id: _this.id,
@@ -339,6 +360,12 @@
             count: this.peer.changeCount
           });
         }
+      };
+
+      MC.prototype.updateConnections = function(tot) {
+        return this.sendMessage('connections', {
+          total: tot
+        });
       };
 
       return MC;
