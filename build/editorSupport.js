@@ -43,15 +43,16 @@
 
       OrgData.prototype.load = function(first, blocks) {
         var changes;
-        OrgData.__super__.load.call(this, first, blocks);
-        if (first) {
+        if (!first) {
+          return OrgData.__super__.load.call(this, first, blocks);
+        } else {
           changes = {
-            sets: {},
+            sets: blocks,
             oldBlocks: {},
-            first: this.getFirst()
+            first: first
           };
           this.linkAllSiblings(changes);
-          return this.change(changes);
+          return OrgData.__super__.load.call(this, first, blocks);
         }
       };
 
@@ -64,7 +65,8 @@
       };
 
       OrgData.prototype.nextSibling = function(thing, changes) {
-        return this.getBlock(this.getBlock(thing, changes).nextSibling, changes);
+        var ref;
+        return this.getBlock((ref = this.getBlock(thing, changes)) != null ? ref.nextSibling : void 0, changes);
       };
 
       OrgData.prototype.previousSibling = function(thing, changes) {
@@ -124,47 +126,54 @@
         return c;
       };
 
+      OrgData.prototype.nextRight = function(thing, changes) {
+        var sib;
+        while (thing) {
+          if (sib = this.nextSibling(thing, changes)) {
+            return sib;
+          }
+          thing = this.parent(thing, changes);
+        }
+        return null;
+      };
+
       OrgData.prototype.linkAllSiblings = function(changes) {
-        var block, cur, curParent, emptyNexts, id, par, parentStack, prev, previousSibling, results1, siblingStack;
-        parentStack = ['TOP'];
-        siblingStack = [null];
+        var block, cur, emptyNexts, id, parent, ref, results1, sibling, stack;
+        stack = [];
+        parent = null;
+        sibling = null;
         emptyNexts = {};
         cur = this.getBlock(changes.first, changes);
         while (cur) {
           if (cur.nextSibling) {
             emptyNexts[cur._id] = cur;
           }
-          curParent = this.getBlock(last(parentStack), changes);
           if (cur.type === 'headline') {
-            while (curParent && cur.level <= curParent.level) {
-              parentStack.pop();
-              siblingStack.pop();
-              curParent = this.getBlock(last(parentStack), changes);
+            while (parent && cur.level <= parent.level) {
+              ref = stack.pop(), parent = ref[0], sibling = ref[1];
             }
-          } else if (cur.type === 'chunk' && (cur.properties != null)) {
-            par = this.getBlock(last(parentStack), changes);
-            if (!_(par.propertiesBlocks).contains(cur._id)) {
-              if (!par.propertiesBlocks) {
-                par.propertiesBlocks = [];
-              }
-              par.propertiesBlocks.push(cur._id);
+          } else if (cur.type === 'chunk' && (cur.properties != null) && parent && !_(parent.propertiesBlocks).contains(cur._id)) {
+            if (!parent.propertiesBlocks) {
+              parent.propertiesBlocks = [];
             }
+            parent.propertiesBlocks.push(cur._id);
           }
-          if (previousSibling = last(siblingStack)) {
-            delete emptyNexts[previousSibling];
-            if ((prev = this.getBlock(previousSibling, changes)).nextSibling !== cur._id) {
-              addChange(prev, changes).nextSibling = cur._id;
+          if (sibling) {
+            delete emptyNexts[sibling._id];
+            if (sibling.nextSibling !== cur._id) {
+              addChange(sibling, changes).nextSibling = cur._id;
             }
-            if (cur.previousSibling !== previousSibling) {
-              addChange(cur, changes).previousSibling = previousSibling;
+            if (cur.previousSibling !== sibling._id) {
+              addChange(cur, changes).previousSibling = sibling._id;
             }
           } else if (cur.previousSibling) {
             delete addChange(cur, changes).previousSibling;
           }
-          siblingStack[siblingStack.length - 1] = cur._id;
+          sibling = cur;
           if (cur.type === 'headline') {
-            parentStack.push(cur._id);
-            siblingStack.push(null);
+            stack.push([parent, sibling]);
+            parent = cur;
+            sibling = null;
           }
           cur = this.getBlock(cur.next, changes);
         }
@@ -246,7 +255,7 @@
       };
 
       OrgEditing.prototype.renderBlock = function(block) {
-        return this.mode.render(block, this.idPrefix);
+        return this.mode.render(this.data, block, this.idPrefix);
       };
 
       OrgEditing.prototype.change = function(changes) {
@@ -396,7 +405,7 @@
     };
     plainMode = {
       name: 'plain',
-      render: function(block, prefix) {
+      render: function(data, block, prefix) {
         var error, pos, ref, ref1, ref2, ref3, results, source, text;
         ref = blockCodeItems(this, block), source = ref.source, error = ref.error, results = ref.results;
         text = "<span id='" + prefix + block._id + "' data-block='" + block.type + "'>";
@@ -417,9 +426,21 @@
       }
     };
     fancyMode = {
-      render: function(block, prefix) {
-        if (!block || (block.shared && isHidden(block._id))) {
-          return '';
+      render: function(data, block, prefix) {
+        var id, next, nextText, ref, ref1, ref2, text;
+        if (!block || ((ref = block.properties) != null ? ref.hidden : void 0)) {
+          return ['', data.nextRight(block)];
+        } else if (block.type === 'headline') {
+          text = "<div class='headline'>" + (plainMode.render(data, block, prefix)[0]);
+          next = (ref1 = data.nextRight(block)) != null ? ref1._id : void 0;
+          id = block.next;
+          while (id && id !== next) {
+            ref2 = this.render(data, data.getBlock(id), prefix), nextText = ref2[0], id = ref2[1];
+            text += nextText;
+          }
+          return [text + "</div>", next];
+        } else {
+          return plainMode.render(data, block, prefix);
         }
       }
     };
@@ -431,7 +452,7 @@
       return new LeisureEditCore($(div), new OrgEditing(data));
     };
     fancyEditDiv = function(div, data) {
-      return new LeisureEditCore($(div), new OrgEditing(data).fancy());
+      return new LeisureEditCore($(div), new OrgEditing(data).setMode(fancyMode));
     };
     monitorSelectionChange = function() {
       $(document).on('selectionchange', updateSelection);

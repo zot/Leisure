@@ -51,9 +51,12 @@
             .on 'change', (changes)-> displayStructure data, div
             .on 'load', -> displayStructure data, div
 
-      displayStructure = (data, div)->
+      displayStructure = (data, div)-> $(div).html structureInfo(data).description
+
+      structureInfo = (data)->
         parentStack = []
-        info = ""
+        levels = {}
+        desc = ""
         level = 0
         cur = data.getBlock data.getFirst()
         prevParent = null
@@ -71,14 +74,16 @@
           if cur.nextSibling != checks.nextSibling[cur._id] then bad.push 'nextSibling'
           if cur.previousSibling != checks.previousSibling[cur._id] then bad.push 'previousSibling'
           if cur.prev != checks.prev[cur._id] then bad.push 'prev'
-          if !cur.previousSibling
+          if cur.previousSibling != cur.prev
             p = cur
+            level = 0
             while p = data.parent p
               level++
-          info += "#{('   ' for i in [0...level]).join ''}#{cur._id} #{cur.type}#{checkStructure cur, bad}: #{JSON.stringify cur.text}\n"
+          levels[cur._id] = level
+          desc += "#{('   ' for i in [0...level]).join ''}#{cur._id} #{cur.type}#{checkStructure cur, bad}: #{JSON.stringify cur.text}\n"
           if !cur.nextSibling then level = 0
           cur = data.getBlock cur.next
-        $(div).html info
+        levels: levels, description: desc
 
       checkStructure = (block, bad)->
         if bad.length
@@ -88,4 +93,5 @@
       {
         createStructureDisplay
         createEditorDisplay
+        structureInfo
       }

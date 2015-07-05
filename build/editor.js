@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'cs!./domCursor.litcoffee'], function(jq, DOMCursor) {
-    var BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, TAB, UP, _to_ascii, activateScripts, activating, blockText, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys;
+    var BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, TAB, UP, _to_ascii, activateScripts, activating, blockText, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys;
     selectRange = DOMCursor.selectRange;
     maxLastKeys = 4;
     BS = 8;
@@ -1383,7 +1383,8 @@
           removes: removes,
           old: {},
           sets: sets,
-          oldFirst: this.getFirst()
+          oldFirst: this.getFirst(),
+          first: first
         }, adds = ref.adds, updates = ref.updates, old = ref.old;
         this.setFirst(first);
         for (id in removes) {
@@ -1626,6 +1627,17 @@
       }
       return (ref = target.data()) != null ? ref.editor : void 0;
     };
+    preserveSelection = function(func) {
+      var editor, range;
+      if (editor = findEditor(getSelection().anchorNode)) {
+        range = editor.getSelectedBlockRange();
+        try {
+          return func();
+        } finally {
+          editor.selectBlockRange(range);
+        }
+      }
+    };
     return {
       LeisureEditCore: LeisureEditCore,
       Observable: Observable,
@@ -1642,7 +1654,8 @@
       activateScripts: activateScripts,
       setHtml: setHtml,
       findEditor: findEditor,
-      copyBlock: copyBlock
+      copyBlock: copyBlock,
+      preserveSelection: preserveSelection
     };
   });
 

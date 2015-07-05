@@ -3,14 +3,80 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle'], function(jq, immutable, Peer) {
-    var Connection, MC, Map, MasterConnection, PeerConnection, SC, SlaveConnection, getFirst, setFirst;
+  define(['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], function(jq, immutable, Peer, cycle, Editor, Support) {
+    var Connection, DataStore, MC, Map, MasterConnection, OrgData, P2POrgData, PeerConnection, SC, SlaveConnection, getFirst, preserveSelection, setFirst;
     Map = (window.Immutable = immutable).Map;
     PeerConnection = Peer.PeerConnection, MasterConnection = Peer.MasterConnection, SlaveConnection = Peer.SlaveConnection;
+    DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection;
+    OrgData = Support.OrgData;
+    P2POrgData = (function(superClass) {
+      extend(P2POrgData, superClass);
+
+      function P2POrgData(peer1) {
+        this.peer = peer1;
+        P2POrgData.__super__.constructor.call(this);
+      }
+
+      P2POrgData.prototype.getFirst = function() {
+        return getFirst(this.blocks);
+      };
+
+      P2POrgData.prototype.setFirst = function(firstId) {
+        return this.blocks = setFirst(this.blocks, firstId);
+      };
+
+      P2POrgData.prototype.getBlock = function(id, changes) {
+        var ref;
+        if (typeof id !== 'string') {
+          return id;
+        } else {
+          return (ref = changes != null ? changes.sets[id] : void 0) != null ? ref : this.blocks.get(id);
+        }
+      };
+
+      P2POrgData.prototype.setBlock = function(id, block) {
+        return this.blocks = this.blocks.set(id, block);
+      };
+
+      P2POrgData.prototype.deleteBlock = function(id) {
+        return this.blocks = this.blocks["delete"](id);
+      };
+
+      P2POrgData.prototype.eachBlock = function(func) {
+        return this.blocks.forEach(func);
+      };
+
+      P2POrgData.prototype.load = function(first, newBlocks) {
+        var changes;
+        changes = {
+          sets: newBlocks,
+          oldBlocks: {},
+          first: first
+        };
+        this.linkAllSiblings(changes);
+        return DataStore.prototype.load.call(this, first, setFirst(new Map(newBlocks), first));
+      };
+
+      P2POrgData.prototype.makeChange = function(change) {
+        var ch;
+        ch = P2POrgData.__super__.makeChange.call(this, change);
+        ch.origin = change.origin;
+        return ch;
+      };
+
+      return P2POrgData;
+
+    })(OrgData);
     Peer = (function() {
       function Peer() {
         this.changeCount = 0;
         this.connectionNumber = 0;
+        this.data = new P2POrgData(this);
+        this.data.on('change', (function(_this) {
+          return function(change) {
+            return _this.changed(change);
+          };
+        })(this));
       }
 
       Peer.prototype.receiveMessage = function(connection, msg) {
@@ -19,59 +85,6 @@
           return this.messageHandler[msg.type](connection, msg);
         } else {
           return connection.error("Unknown message type: " + msg.type);
-        }
-      };
-
-      Peer.prototype.adaptData = function(data) {
-        var peer;
-        peer = this;
-        this.data = {
-          __proto__: data,
-          blocks: new Map(data.blocks),
-          first: null,
-          getFirst: function() {
-            return getFirst(this.blocks);
-          },
-          setFirst: function(firstId) {
-            return this.blocks = setFirst(this.blocks, firstId);
-          },
-          getBlock: function(id, changes) {
-            var ref;
-            if (typeof id !== 'string') {
-              return id;
-            } else {
-              return (ref = changes != null ? changes.sets[id] : void 0) != null ? ref : this.blocks.get(id);
-            }
-          },
-          setBlock: function(id, block) {
-            return this.blocks = this.blocks.set(id, block);
-          },
-          deleteBlock: function(id) {
-            return this.blocks = this.blocks["delete"](id);
-          },
-          eachBlock: function(func) {
-            return this.blocks.forEach(func);
-          },
-          load: function(first, newBlocks) {
-            return data.load.call(this, first, setFirst(new Map(newBlocks), first));
-          },
-          makeChange: function(change) {
-            data.makeChange.call(this, change);
-            if (!peer.protecting) {
-              return peer.changed(change);
-            }
-          }
-        };
-        this.data.blocks.set('FIRST', data.first);
-        return this.data;
-      };
-
-      Peer.prototype.protectChange = function(func) {
-        this.protecting = true;
-        try {
-          return func();
-        } finally {
-          this.protecting = false;
         }
       };
 
@@ -88,7 +101,9 @@
                 var change;
                 change = arg.change;
                 change.origin = connection.id;
-                return _this.data.change(change);
+                return preserveSelection(function() {
+                  return _this.data.change(change);
+                });
               };
             })(this),
             ack: function(connection, arg) {
@@ -134,6 +149,7 @@
       Peer.prototype.becomeSlave = function() {
         if (!this.mode) {
           this.mode = 'slave';
+          this.changing = false;
           this.messageHandler = {
             document: (function(_this) {
               return function(connection, arg) {
@@ -171,16 +187,28 @@
               };
             })(this)
           };
+          this.protectChange = function(func) {
+            var oldChanging;
+            oldChanging = this.changing;
+            this.changing = true;
+            try {
+              return func();
+            } finally {
+              this.changing = oldChanging;
+            }
+          };
           this.changed = function(change) {
             var ch;
-            this.changeCount++;
-            ch = {
-              first: change.first,
-              sets: change.sets,
-              removes: change.removes,
-              origin: change.origin
-            };
-            return this.connection.pushChange(ch);
+            if (!this.changing) {
+              this.changeCount++;
+              ch = {
+                first: change.first,
+                sets: change.sets,
+                removes: change.removes,
+                origin: change.origin
+              };
+              return this.connection.pushChange(ch);
+            }
           };
           this.removeConnection = function(con) {
             return this.connection = null;

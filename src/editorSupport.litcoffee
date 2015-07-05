@@ -65,15 +65,16 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         getBlock: (thing, changes)->
           if typeof thing == 'string' then changes?.sets[thing] ? super(thing) else thing
         load: (first, blocks)->
-          super first, blocks
-          if first
-            changes = sets: {}, oldBlocks: {}, first: @getFirst()
+          if !first then super first, blocks
+          else
+            changes = sets: blocks, oldBlocks: {}, first: first
             @linkAllSiblings changes
-            @change changes
+            super first, blocks
+
         parseBlocks: (text)->
           if text == '' then []
           else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
-        nextSibling: (thing, changes)-> @getBlock @getBlock(thing, changes).nextSibling, changes
+        nextSibling: (thing, changes)-> @getBlock @getBlock(thing, changes)?.nextSibling, changes
         previousSibling: (thing, changes)-> @getBlock @getBlock(thing, changes).previousSibling, changes
         reducePreviousSiblings: (thing, changes, func, arg)->
           greduce @getBlock(thing, changes), changes, func, arg, (b)=> @getBlock b.previousSibling, changes
@@ -91,39 +92,45 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
           @reduceNextSiblings @firstChild(thing, changes), changes, ((x, y)-> c.push y), null
           c
 
+`nextRight` returns the next thing in the tree after this subtree, which is just the
+next sibling if there is one, otherwise it's the closest "right uncle" of this node
+
+        nextRight: (thing, changes)->
+          while thing
+            if sib = @nextSibling thing, changes then return sib
+            thing = @parent thing, changes
+          null
+
 `linkAllSiblings` -- modify changes so that the sibling links will be correct when the changes are applied.
 
         linkAllSiblings: (changes)->
-          parentStack = ['TOP']
-          siblingStack = [null]
+          stack = []
+          parent = null
+          sibling = null
           emptyNexts = {}
           cur = @getBlock changes.first, changes
           while cur
             if cur.nextSibling then emptyNexts[cur._id] = cur
-            curParent = @getBlock last(parentStack), changes
             if cur.type == 'headline'
-              while curParent && cur.level <= curParent.level
-                parentStack.pop()
-                siblingStack.pop()
-                curParent = @getBlock last(parentStack), changes
-            else if cur.type == 'chunk' && cur.properties?
-              par = @getBlock last(parentStack), changes
-              if !_(par.propertiesBlocks).contains cur._id
-                if !par.propertiesBlocks
-                  par.propertiesBlocks = []
-                par.propertiesBlocks.push cur._id
-            if previousSibling = last siblingStack
-              delete emptyNexts[previousSibling]
-              if (prev = @getBlock previousSibling, changes).nextSibling != cur._id
-                addChange(prev, changes).nextSibling = cur._id
-              if cur.previousSibling != previousSibling
-                addChange(cur, changes).previousSibling = previousSibling
+              while parent && cur.level <= parent.level
+                [parent, sibling] = stack.pop()
+            else if cur.type == 'chunk' && cur.properties? && parent && !_(parent.propertiesBlocks).contains cur._id
+              if !parent.propertiesBlocks
+                parent.propertiesBlocks = []
+              parent.propertiesBlocks.push cur._id
+            if sibling
+              delete emptyNexts[sibling._id]
+              if sibling.nextSibling != cur._id
+                addChange(sibling, changes).nextSibling = cur._id
+              if cur.previousSibling != sibling._id
+                addChange(cur, changes).previousSibling = sibling._id
             else if cur.previousSibling
               delete addChange(cur, changes).previousSibling
-            siblingStack[siblingStack.length - 1] = cur._id
+            sibling = cur
             if cur.type == 'headline'
-              parentStack.push cur._id
-              siblingStack.push null
+              stack.push [parent, sibling]
+              parent = cur
+              sibling = null
             cur = @getBlock cur.next, changes
           for id, block of emptyNexts
             delete addChange(block, changes).nextSibling
@@ -162,7 +169,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         nodeForId: (id)-> $("##{@idPrefix}#{id}")
         idForNode: (node)-> node.id.match(@idPattern)?[1]
         parseBlocks: (text)-> @data.parseBlocks text
-        renderBlock: (block)-> @mode.render block, @idPrefix
+        renderBlock: (block)-> @mode.render @data, block, @idPrefix
 
 `change(changes)` -- about to change the data; compute some effects immediately.
 
@@ -270,7 +277,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
 
       plainMode =
         name: 'plain'
-        render: (block, prefix)->
+        render: (data, block, prefix)->
           {source, error, results} = blockCodeItems this, block
           text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
           if !results && !error then text += "#{escapeHtml block.text}"
@@ -283,8 +290,17 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
           [text + "</span>", block.next]
 
       fancyMode =
-        render: (block, prefix)->
-          if !block || (block.shared && isHidden block._id) then ''
+        render: (data, block, prefix)->
+          if !block || block.properties?.hidden then ['', data.nextRight block]
+          else if block.type == 'headline'
+            text = "<div class='headline'>#{plainMode.render(data, block, prefix)[0]}"
+            next = data.nextRight(block)?._id
+            id = block.next
+            while id && id != next
+              [nextText, id] = @render data, data.getBlock(id), prefix
+              text += nextText
+            [text + "</div>", next]
+          else plainMode.render data, block, prefix
 
       createLocalData = -> new OrgData()
 
@@ -293,7 +309,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         new LeisureEditCore $(div), new OrgEditing data
 
       fancyEditDiv = (div, data)->
-        new LeisureEditCore $(div), new OrgEditing(data).fancy()
+        new LeisureEditCore $(div), new OrgEditing(data).setMode fancyMode
 
       monitorSelectionChange = ->
         $(document).on 'selectionchange', updateSelection

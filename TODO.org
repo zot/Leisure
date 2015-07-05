@@ -1,7 +1,4 @@
-* TODO merge PlainEditing into OrgEditing
-- add id-prefix
-- make default mode (plain/fancy)
-- make per-node mode (for martini glass toggle)
+* TODO keep cursor at EOL if collaborative change deletes rest of line
 * TODO port back over the UI stuff
 - handlebars
 - view system
@@ -919,6 +916,11 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE merge PlainEditing into OrgEditing
+  CLOSED: [2015-07-05 Sun 19:09]
+- add id-prefix
+- make default mode (plain/fancy)
+- make per-node mode (for martini glass toggle)
 ** DONE integrate lispyscript into Leisure
   CLOSED: [2015-07-03 Fri 19:23]
 ** DONE fix AMD library mapping issues

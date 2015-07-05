@@ -1045,7 +1045,7 @@ Data model -- override/reset these if you want to change how the store accesses 
             bl
         change: (changes)-> @trigger 'change', @makeChange changes
         makeChange: ({first, sets, removes})->
-          {adds, updates, old} = result = {adds: {}, updates: {}, removes, old: {}, sets, oldFirst: @getFirst()}
+          {adds, updates, old} = result = {adds: {}, updates: {}, removes, old: {}, sets, oldFirst: @getFirst(), first: first}
           @setFirst first
           for id of removes
             if bl = @getBlock id
@@ -1209,6 +1209,14 @@ adapted from Vega on [StackOverflow](http://stackoverflow.com/a/13127566/1026782
           target = $(target).parent()
         target.data()?.editor
 
+      preserveSelection = (func)->
+        if editor = findEditor getSelection().anchorNode
+          range = editor.getSelectedBlockRange()
+          try
+            func()
+          finally
+            editor.selectBlockRange range
+
 Exports
 =======
 
@@ -1229,4 +1237,5 @@ Exports
         setHtml
         findEditor
         copyBlock
+        preserveSelection
       }

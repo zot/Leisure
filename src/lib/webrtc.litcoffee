@@ -23,9 +23,9 @@ handlers.
           @con.oniceconnectionstatechange = (s)=> @log 'ice connection state change: ', s
           @con.onicegatheringstatechange = (s)=> @log 'ice gathering state change: ', s
           @con.onicecandidate = (e)=>
-            @log "candidate", e
-            if e.candidate == null
+            if e.candidate == null || e.candidate.candidate.match /typ srflx/
               @offerReady @con.localDescription
+            else @log "candidate", e
           @connected = connected
           @handleMessage = handleMessage
           @offerReady = offerReady
@@ -134,6 +134,8 @@ they can send it to the master connection's user.
             err.message = "Could not start connection: #{err.message}"
             errFunc err
 
-      PeerConnection: PeerConnection
-      MasterConnection: MasterConnection
-      SlaveConnection: SlaveConnection
+      {
+        PeerConnection
+        MasterConnection
+        SlaveConnection
+      }

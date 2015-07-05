@@ -1,8 +1,6 @@
 Code for local-mode.  This will not be loaded under meteor.
 
-    #require ['cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee'], (EditorSupport, Diag, P2P)->
-
-    init = (EditorSupport, Diag, P2P)->
+    init = (EditorSupport, Diag, P2P, Tests, Webrtc)->
 
       {
         OrgData
@@ -17,6 +15,12 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         Peer
       } = P2P
+      {
+        findPeer
+      } = Webrtc
+      {
+        runTests
+      } = Tests
 
       useP2P = true
       #useP2P = false
@@ -128,15 +132,16 @@ Code for local-mode.  This will not be loaded under meteor.
                   offerButton.button 'option', 'disabled', empty), 1
 
       $(document).ready ->
+        runTests()
         installSelectionMenu()
         if useP2P
           configurePeerButttons()
           window.PEER = peer = new Peer
-          window.DATA = data = peer.adaptData new OrgData()
+          window.DATA = data = peer.data
         else window.DATA = data = new OrgData()
         createStructureDisplay data
-        window.ED = plainEditDiv $("[maindoc]"), data
-        #window.ED = fancyEditDiv $("[maindoc]"), data
+        #window.ED = plainEditDiv $("[maindoc]"), data
+        window.ED = fancyEditDiv $("[maindoc]"), data
         createEditorDisplay ED
         ED.options.load """
         * Test properties
@@ -145,6 +150,7 @@ Code for local-mode.  This will not be loaded under meteor.
         #+END_SRC
         #+RESULTS:
         : 7
+        ** sub 1
         duh
         :properties:
         :a: 1
@@ -158,10 +164,14 @@ Code for local-mode.  This will not be loaded under meteor.
         :properties:
         :b: 2
         :end:
+        ** sub 2
+        asdf
+        * top 2
+        bubba
         """ + '\n'
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee'], (jqui, EditorSupport, Diag, P2P)->
-        init EditorSupport, Diag, P2P
+      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee'], (jqui, EditorSupport, Diag, P2P, tests, Webrtc)->
+        init EditorSupport, Diag, P2P, tests, Webrtc
 

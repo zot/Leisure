@@ -1,6 +1,6 @@
 Peer-to-peer connection
 
-    define ['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle'], (jq, immutable, Peer)->
+    define ['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], (jq, immutable, Peer, cycle, Editor, Support)->
       {
         Map
       } = window.Immutable = immutable
@@ -9,42 +9,51 @@ Peer-to-peer connection
         MasterConnection
         SlaveConnection
       } = Peer
+      {
+        DataStore
+        preserveSelection
+      } = Editor
+      {
+        OrgData
+      } = Support
+
+`P2POrgData` uses a HAMT for blocks instead of a regular JS object.  This is to make
+it easier to handle merges.
+
+      class P2POrgData extends OrgData
+        constructor: (@peer)->
+          super()
+        getFirst: -> getFirst @blocks
+        setFirst: (firstId)-> @blocks = setFirst @blocks, firstId
+        getBlock: (id, changes)->
+          if typeof id != 'string' then id else changes?.sets[id] ? @blocks.get id
+        setBlock: (id, block)-> @blocks = @blocks.set id, block
+        deleteBlock: (id)-> @blocks = @blocks.delete id
+        eachBlock: (func)-> @blocks.forEach func
+
+`load` -- not the best use of inheritance here, skipping the parent :).  Let's just
+call this poetic license for the time being...
+
+        load: (first, newBlocks)->
+          changes = sets: newBlocks, oldBlocks: {}, first: first
+          @linkAllSiblings changes
+          DataStore.prototype.load.call this, first, setFirst (new Map newBlocks), first
+        makeChange: (change)->
+          ch = super change
+          ch.origin = change.origin
+          ch
 
       class Peer
         constructor: ->
           @changeCount = 0
           @connectionNumber = 0
+          @data = new P2POrgData this
+          @data.on 'change', (change)=> @changed change
         receiveMessage: (connection, msg)->
           if msg.type of @messageHandler
             console.log "receiving", msg
             @messageHandler[msg.type] connection, msg
           else connection.error "Unknown message type: #{msg.type}"
-        adaptData: (data)->
-          peer = this
-          @data =
-            __proto__: data
-            blocks: new Map data.blocks
-            first: null
-            getFirst: -> getFirst @blocks
-            setFirst: (firstId)-> @blocks = setFirst @blocks, firstId
-            getBlock: (id, changes)->
-              if typeof id != 'string' then id else changes?.sets[id] ? @blocks.get id
-            setBlock: (id, block)-> @blocks = @blocks.set id, block
-            deleteBlock: (id)-> @blocks = @blocks.delete id
-            eachBlock: (func)-> @blocks.forEach func
-            load: (first, newBlocks)->
-              data.load.call this, first, setFirst (new Map newBlocks), first
-            makeChange: (change)->
-              data.makeChange.call this, change
-              if !peer.protecting then peer.changed change
-          @data.blocks.set 'FIRST', data.first
-          @data
-        protectChange: (func)->
-          @protecting = true
-          try
-            func()
-          finally
-            @protecting = false
         changed: (change)->
         becomeMaster: ->
           if !@mode
@@ -54,7 +63,7 @@ Peer-to-peer connection
             @messageHandler =
               change: (connection, {change})=>
                 change.origin = connection.id
-                @data.change change
+                preserveSelection => @data.change change
               ack: (connection, {count})-> connection.ack count
             @changed = (change)->
               @changeCount++
@@ -76,6 +85,7 @@ Peer-to-peer connection
         becomeSlave: ->
           if !@mode
             @mode = 'slave'
+            @changing = false
             @messageHandler =
               document: (connection, {@id, document})=>
                 blocks = {}
@@ -89,14 +99,22 @@ Peer-to-peer connection
               changeAck: (connection, {count})=>
                 @remoteChangeCount = count
                 connection.sendMessage 'ack', count: count
+            @protectChange = (func)->
+              oldChanging = @changing
+              @changing = true
+              try
+                func()
+              finally
+                @changing = oldChanging
             @changed = (change)->
-              @changeCount++
-              ch =
-                first: change.first
-                sets: change.sets
-                removes: change.removes
-                origin: change.origin
-              @connection.pushChange ch
+              if !@changing
+                @changeCount++
+                ch =
+                  first: change.first
+                  sets: change.sets
+                  removes: change.removes
+                  origin: change.origin
+                @connection.pushChange ch
             @removeConnection = (con)-> @connection = null
             true
           else false

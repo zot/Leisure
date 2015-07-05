@@ -2,11 +2,13 @@
 (function() {
   var init;
 
-  init = function(EditorSupport, Diag, P2P) {
-    var OrgData, Peer, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, fancyEditDiv, installSelectionMenu, message, mode, offerAction, offerButton, peer, plainEditDiv, showMessage, showSpinner, spinner, useP2P;
+  init = function(EditorSupport, Diag, P2P, Tests, Webrtc) {
+    var OrgData, Peer, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, installSelectionMenu, message, mode, offerAction, offerButton, peer, plainEditDiv, runTests, showMessage, showSpinner, spinner, useP2P;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, plainEditDiv = EditorSupport.plainEditDiv, fancyEditDiv = EditorSupport.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
     Peer = P2P.Peer;
+    findPeer = Webrtc.findPeer;
+    runTests = Tests.runTests;
     useP2P = true;
     peer = null;
     mode = null;
@@ -115,25 +117,26 @@
     };
     return $(document).ready(function() {
       var data;
+      runTests();
       installSelectionMenu();
       if (useP2P) {
         configurePeerButttons();
         window.PEER = peer = new Peer;
-        window.DATA = data = peer.adaptData(new OrgData());
+        window.DATA = data = peer.data;
       } else {
         window.DATA = data = new OrgData();
       }
       createStructureDisplay(data);
-      window.ED = plainEditDiv($("[maindoc]"), data);
+      window.ED = fancyEditDiv($("[maindoc]"), data);
       createEditorDisplay(ED);
-      ED.options.load("* Test properties\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\nduh\n:properties:\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\npeep\n:properties:\n:b: 2\n:end:" + '\n');
+      ED.options.load("* Test properties\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\n** sub 1\nduh\n:properties:\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\npeep\n:properties:\n:b: 2\n:end:\n** sub 2\nasdf\n* top 2\nbubba" + '\n');
       return $('#globalLoad').remove();
     });
   };
 
   require(['jquery'], function() {
-    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee'], function(jqui, EditorSupport, Diag, P2P) {
-      return init(EditorSupport, Diag, P2P);
+    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee'], function(jqui, EditorSupport, Diag, P2P, tests, Webrtc) {
+      return init(EditorSupport, Diag, P2P, tests, Webrtc);
     });
   });
 
