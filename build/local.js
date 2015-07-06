@@ -2,7 +2,7 @@
 (function() {
   var init;
 
-  init = function(EditorSupport, Diag, P2P, Tests, Webrtc) {
+  init = function(EditorSupport, Diag, P2P, Tests, Webrtc, Defaults) {
     var OrgData, Peer, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, installSelectionMenu, message, mode, offerAction, offerButton, peer, plainEditDiv, runTests, showMessage, showSpinner, spinner, useP2P;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, plainEditDiv = EditorSupport.plainEditDiv, fancyEditDiv = EditorSupport.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
@@ -143,17 +143,18 @@
       } else {
         window.DATA = data = new OrgData();
       }
+      data.processDefaults(Defaults);
       createStructureDisplay(data);
       window.ED = fancyEditDiv($("[maindoc]"), data);
       createEditorDisplay(ED);
-      ED.options.load("* Test properties\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\n** sub 1\nduh\n:properties:\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\npeep\n:properties:\n:b: 2\n:end:\n** sub 2\nasdf\n* top 2\nbubba" + '\n');
+      ED.options.load("* Test properties > splunge\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\n** sub 1\n/duh/\n:properties:\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\npeep\n:properties:\n:b: 2\n:end:\n** sub 2\nasdf\n* top 2\nbubba\n#+BEGIN_SRC html :defview leisure-headlineX\n<span class='hidden'>{{stars}}</span><span class='custom-headline'>{{maintext}}</span>{{EOL}}\n#+END_SRC\n#+BEGIN_SRC css\n.headline {\n  font-weight: bold;\n  color: blue;\n}\n.custom-headline {\n  font-weight: bold;\n  color: green;\n}\n[data-block='headline'] {\n  color: orangeX;\n}\n#+END_SRC" + '\n');
       return $('#globalLoad').remove();
     });
   };
 
   require(['jquery'], function() {
-    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee'], function(jqui, EditorSupport, Diag, P2P, tests, Webrtc) {
-      return init(EditorSupport, Diag, P2P, tests, Webrtc);
+    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!./defaults.lorg'], function(jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults) {
+      return init(EditorSupport, Diag, P2P, tests, Webrtc, Defaults);
     });
   });
 

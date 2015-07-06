@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'handlebars'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, Handlebars)->
+    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI)->
 
       {
         defaultEnv
@@ -12,11 +12,14 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         parseOrgMode
         Fragment
         Headline
+        SimpleMarkup
+        Link
         Nil
       } = Org
       {
         orgDoc
         getCodeItems
+        blockSource
       } = DocOrg
       {
         Nil
@@ -40,11 +43,20 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         copyBlock
       } = Editor
       {
-        HandlebarsEnvironment
-        escapeExpression
-      } = Handlebars
+        addView
+        removeView
+        renderView
+        hasView
+        withContext
+      } = UI
 
       selectionActive = true
+      headlineRE = /^(\*+ *)(.*)(\n)$/
+      HEADLINE_STARS = 1
+      HEADLINE_MAINTEXT = 2
+      defaults =
+        views: {}
+        controls: {}
 
       blockOrg = (data, blockOrText)->
         text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
@@ -64,13 +76,20 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       class OrgData extends DataStore
         getBlock: (thing, changes)->
           if typeof thing == 'string' then changes?.sets[thing] ? super(thing) else thing
-        load: (first, blocks)->
+
+`load` -- not the best use of inheritance here, changes is specifically for P2POrgData :).
+Let's just call this poetic license for the time being...
+
+        load: (first, blocks, changes)->
           if !first then super first, blocks
           else
-            changes = sets: blocks, oldBlocks: {}, first: first
+            if !changes then changes = sets: blocks, oldBlocks: {}, first: first
             @linkAllSiblings changes
+            for block of @blockList()
+              @checkChange block, null
+            for id, block of changes.sets
+              @checkChange null, block
             super first, blocks
-
         parseBlocks: (text)->
           if text == '' then []
           else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
@@ -135,6 +154,45 @@ next sibling if there is one, otherwise it's the closest "right uncle" of this n
           for id, block of emptyNexts
             delete addChange(block, changes).nextSibling
 
+`makeChange` -- handle incoming changes (local or remote).  This is for computations
+that must be done regardless of the source of changes
+
+        makeChange: (changes)->
+          {sets, removes} = changes
+          for id of removes
+            @checkChange @getBlock(id), null
+          for id, block of sets
+            @checkChange @getBlock(id), block
+          super changes
+        processDefaults: (lorgText)->
+          viewBlocks = orgDoc parseOrgMode lorgText.replace /\r\n?/g, '\n'
+          for block in viewBlocks
+            @checkChange null, block, true
+        checkChange: (oldBlock, newBlock, isDefault)->
+          @checkCssChange oldBlock, newBlock, isDefault
+          @checkCodeChange oldBlock, newBlock, isDefault
+          @checkViewChange oldBlock, newBlock, isDefault
+          @checkControlChange oldBlock, newBlock, isDefault
+        checkCssChange: (oldBlock, newBlock, isDefault)->
+          if isCss(oldBlock) || isCss(newBlock)
+            $("#css-#{oldBlock?._id || newBlock?._id}").filter('style').remove()
+          if isCss newBlock
+            $('head').append "<style id='css-#{newBlock._id}'>#{blockSource newBlock}</style>"
+        checkCodeChange: (oldBlock, newBlock, isDefault)->
+        checkViewChange: (oldBlock, newBlock, isDefault)->
+          removeView ov = blockViewType oldBlock
+          if vt = blockViewType newBlock
+            source = blockSource newBlock
+            addView vt, null, source.substring 0, source.length - 1
+            if isDefault then defaults.views[vt] = source.substring 0, source.length - 1
+          if ov && ov != vt && view = defaults.views[ov] then addView ov, null, view
+        checkControlChange: (oldBlock, newBlock, isDefault)->
+
+      isCss = (block)-> block?.language == 'css'
+
+      blockViewType = (block)->
+        (block?.language == 'html' && block.codeAttributes.defview) || null
+
       addChange = (block, changes)->
         if !changes.oldBlocks[block._id] then changes.oldBlocks[block._id] = copy block
         changes.sets[block._id] = block
@@ -177,8 +235,10 @@ next sibling if there is one, otherwise it's the closest "right uncle" of this n
           computedProperties = {}
           changedProperties = []
           for id, change of changes.sets
-            if @checkPropertyChange changes, change then changedProperties.push change._id
-            else @checkCodeChange changes, change
+            oldBlock = @getBlock change._id
+            if @checkPropertyChange changes, change, oldBlock
+              changedProperties.push change._id
+            @checkCodeChange changes, change, oldBlock
           @data.linkAllSiblings changes
           for change in changedProperties
             parent = @data.parent(change, changes)._id
@@ -189,12 +249,11 @@ next sibling if there is one, otherwise it's the closest "right uncle" of this n
                 props = _.merge props, child.properties
               addChange(@data.getBlock(parent, changes), changes).properties = props
           super changes
-        checkPropertyChange: (changes, change)->
+        checkPropertyChange: (changes, change, oldBlock)->
           change.type == 'chunk' && !_.isEqual change.properties, @getBlock(change._id)?.properties
-        checkCodeChange: (changes, change)->
+        checkCodeChange: (changes, change, oldBlock)->
           if change.type == 'code' && isDynamic(change) && envM = blockEnvMaker(change)
             {source: newSource, results: newResults} = blockCodeItems this, change
-            oldBlock = @getBlock change._id
             hasChange = !oldBlock || oldBlock.type != 'code' || oldBlock.codeAttributes.results != 'dynamic' || if oldBlock
               {source: oldSource} = blockCodeItems this, oldBlock
               newSource.content != oldSource.content
@@ -292,15 +351,48 @@ next sibling if there is one, otherwise it's the closest "right uncle" of this n
       fancyMode =
         render: (data, block, prefix)->
           if !block || block.properties?.hidden then ['', data.nextRight block]
-          else if block.type == 'headline'
-            text = "<div class='headline'>#{plainMode.render(data, block, prefix)[0]}"
-            next = data.nextRight(block)?._id
-            id = block.next
-            while id && id != next
-              [nextText, id] = @render data, data.getBlock(id), prefix
-              text += nextText
-            [text + "</div>", next]
+          else if block.type == 'headline' then @renderHeadline data, block, prefix
+          else if block.type == 'chunk' then @renderOrgBlock data, block, prefix
           else plainMode.render data, block, prefix
+        renderHeadline: (data, block, prefix)->
+          text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
+          if hasView 'leisure-headline'
+            m = block.text.match headlineRE
+            text += renderView 'leisure-headline', null,
+              stars: m[HEADLINE_STARS]
+              maintext: m[HEADLINE_MAINTEXT]
+              EOL: '\n'
+          else text += escapeHtml block.text
+          next = data.nextRight(block)?._id
+          id = block.next
+          while id && id != next
+            [nextText, id] = @render data, data.getBlock(id), prefix
+            text += nextText
+          [text + "</span>", next]
+        renderOrgBlock: (data, block, prefix)->
+          text = @renderOrg blockOrg data, block
+          ["<span id='#{block._id}'>#{text}</span>", block.next]
+        renderOrg: (org)->
+          if org instanceof SimpleMarkup then @renderSimple org
+          else if org instanceof Link then @renderLink org
+          else if org instanceof Fragment
+            (@renderOrg child for child in org.children).join ''
+          else org.allText()
+        renderSimple: (org)->
+          guts = ''
+          for c in org.children
+            guts += @renderOrg c, true
+          text = switch org.markupType
+            when 'bold' then "<b>#{guts}</b>"
+            when 'italic' then "<i>#{guts}</i>"
+            when 'underline' then "<span style='text-decoration: underline'>#{guts}</span>"
+            when 'strikethrough' then "<span style='text-decoration: line-through'>#{guts}</span>"
+            when 'code' then "<code>#{guts}</code>"
+            when 'verbatim' then "<code>#{guts}</code>"
+            else guts
+          "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{org.text[0]}</span>"
+
+          
 
       createLocalData = -> new OrgData()
 
@@ -373,8 +465,10 @@ next sibling if there is one, otherwise it's the closest "right uncle" of this n
               bubble.style.left = "#{left}px"
               bubble.style.top = "#{top - bubble.offsetHeight}px"
               $(document.body).addClass 'selection'
+              editor.trigger 'selection'
               return
         $(document.body).removeClass 'selection'
+        editor?.trigger 'selection'
 
       isContentEditable = (node)->
         (if node instanceof Element then node else node.parentElement).isContentEditable

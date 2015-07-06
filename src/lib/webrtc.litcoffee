@@ -24,6 +24,7 @@ handlers.
           @con.onicegatheringstatechange = (s)=> @log 'ice gathering state change: ', s
           @con.onicecandidate = (e)=>
             if e.candidate == null || e.candidate.candidate.match /typ srflx/
+            #if e.candidate == null
               @offerReady @con.localDescription
             else @log "candidate", e
           @connected = connected

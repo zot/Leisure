@@ -10,13 +10,15 @@
       createEditorDisplay = (editor)->
         status = $("<div class='selectionInfo'>No selection</div>")
         editor.node.after(status)
-        editor.on 'moved', =>
+        statusUpdate = =>
           {block, offset} = editor.getSelectedBlockRange()
           if block
             {line, col, blockLine, top, left} = lineInfo editor.options, block, offset
             if line
               return status.html "line: #{numSpan line} col: #{numSpan col} block: #{block._id}:#{numSpan blockLine} top: #{numSpan top} left: #{numSpan left}"
           status.html "No selection"
+        editor.on 'moved', statusUpdate
+        editor.on 'selection', statusUpdate
 
       numSpan = (n)-> "<span class='status-num'>#{n}</span>"
 

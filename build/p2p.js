@@ -15,6 +15,7 @@
       function P2POrgData(peer1) {
         this.peer = peer1;
         P2POrgData.__super__.constructor.call(this);
+        this.blocks = new Map();
       }
 
       P2POrgData.prototype.getFirst = function() {
@@ -47,14 +48,11 @@
       };
 
       P2POrgData.prototype.load = function(first, newBlocks) {
-        var changes;
-        changes = {
+        return P2POrgData.__super__.load.call(this, first, setFirst(new Map(newBlocks), first), {
           sets: newBlocks,
           oldBlocks: {},
           first: first
-        };
-        this.linkAllSiblings(changes);
-        return DataStore.prototype.load.call(this, first, setFirst(new Map(newBlocks), first));
+        });
       };
 
       P2POrgData.prototype.makeChange = function(change) {

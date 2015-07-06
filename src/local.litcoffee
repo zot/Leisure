@@ -1,6 +1,6 @@
 Code for local-mode.  This will not be loaded under meteor.
 
-    init = (EditorSupport, Diag, P2P, Tests, Webrtc)->
+    init = (EditorSupport, Diag, P2P, Tests, Webrtc, Defaults)->
 
       {
         OrgData
@@ -147,19 +147,20 @@ Code for local-mode.  This will not be loaded under meteor.
           window.PEER = peer = new Peer
           window.DATA = data = peer.data
         else window.DATA = data = new OrgData()
+        data.processDefaults Defaults
         createStructureDisplay data
         #window.ED = plainEditDiv $("[maindoc]"), data
         window.ED = fancyEditDiv $("[maindoc]"), data
         createEditorDisplay ED
         ED.options.load """
-        * Test properties
+        * Test properties > splunge
         #+BEGIN_SRC lisp :results dynamic
         (+ 3 4)
         #+END_SRC
         #+RESULTS:
         : 7
         ** sub 1
-        duh
+        /duh/
         :properties:
         :a: 1
         :end:
@@ -176,10 +177,26 @@ Code for local-mode.  This will not be loaded under meteor.
         asdf
         * top 2
         bubba
+        #+BEGIN_SRC html :defview leisure-headlineX
+        <span class='hidden'>{{stars}}</span><span class='custom-headline'>{{maintext}}</span>{{EOL}}
+        #+END_SRC
+        #+BEGIN_SRC css
+        .headline {
+          font-weight: bold;
+          color: blue;
+        }
+        .custom-headline {
+          font-weight: bold;
+          color: green;
+        }
+        [data-block='headline'] {
+          color: orangeX;
+        }
+        #+END_SRC
         """ + '\n'
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee'], (jqui, EditorSupport, Diag, P2P, tests, Webrtc)->
-        init EditorSupport, Diag, P2P, tests, Webrtc
+      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!./defaults.lorg'], (jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults)->
+        init EditorSupport, Diag, P2P, tests, Webrtc, Defaults
 

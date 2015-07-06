@@ -23,6 +23,7 @@ it easier to handle merges.
       class P2POrgData extends OrgData
         constructor: (@peer)->
           super()
+          @blocks = new Map()
         getFirst: -> getFirst @blocks
         setFirst: (firstId)-> @blocks = setFirst @blocks, firstId
         getBlock: (id, changes)->
@@ -30,14 +31,11 @@ it easier to handle merges.
         setBlock: (id, block)-> @blocks = @blocks.set id, block
         deleteBlock: (id)-> @blocks = @blocks.delete id
         eachBlock: (func)-> @blocks.forEach func
-
-`load` -- not the best use of inheritance here, skipping the parent :).  Let's just
-call this poetic license for the time being...
-
         load: (first, newBlocks)->
-          changes = sets: newBlocks, oldBlocks: {}, first: first
-          @linkAllSiblings changes
-          DataStore.prototype.load.call this, first, setFirst (new Map newBlocks), first
+          super first, setFirst((new Map newBlocks), first),
+            sets: newBlocks
+            oldBlocks: {}
+            first: first
         makeChange: (change)->
           ch = super change
           ch.origin = change.origin

@@ -197,6 +197,9 @@
           data
         else data
 
+      blockSource = (block)->
+        block.text.substring block.codePrelen, block.text.length - block.codePostlen
+
       {
         getCodeItems
         isCodeBlock
@@ -208,4 +211,5 @@
         isYaml
         crnl
         lineCodeBlockType
+        blockSource
       }

@@ -1,0 +1,4 @@
+These are Leisure's default views
+#+BEGIN_SRC html :defview leisure-headline
+<span class='hidden'>{{stars}}</span><span class='headline'>{{maintext}}</span>{{EOL}}
+#+END_SRC

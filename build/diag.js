@@ -5,10 +5,10 @@
     bindCount = 0;
     posFor = Editor.posFor, last = Editor.last;
     createEditorDisplay = function(editor) {
-      var status;
+      var status, statusUpdate;
       status = $("<div class='selectionInfo'>No selection</div>");
       editor.node.after(status);
-      return editor.on('moved', (function(_this) {
+      statusUpdate = (function(_this) {
         return function() {
           var block, blockLine, col, left, line, offset, ref, ref1, top;
           ref = editor.getSelectedBlockRange(), block = ref.block, offset = ref.offset;
@@ -20,7 +20,9 @@
           }
           return status.html("No selection");
         };
-      })(this));
+      })(this);
+      editor.on('moved', statusUpdate);
+      return editor.on('selection', statusUpdate);
     };
     numSpan = function(n) {
       return "<span class='status-num'>" + n + "</span>";

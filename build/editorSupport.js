@@ -3,16 +3,23 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'handlebars'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, Handlebars) {
-    var DataStore, DataStoreEditingOptions, Fragment, HandlebarsEnvironment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, blockCodeItems, blockEnvMaker, blockOrg, blockText, configureMenu, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, escapeExpression, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, getId, greduce, installSelectionMenu, isContentEditable, isDynamic, languageEnvMaker, last, monitorSelectionChange, orgDoc, parseOrgMode, plainEditDiv, plainMode, posFor, selectionActive, selectionMenu, setError, setHtml, setResult, throttledUpdateSelection, updateSelection;
+  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI) {
+    var DataStore, DataStoreEditingOptions, Fragment, HEADLINE_MAINTEXT, HEADLINE_STARS, Headline, Html, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, actualSelectionUpdate, addChange, addView, blockCodeItems, blockEnvMaker, blockOrg, blockSource, blockText, blockViewType, configureMenu, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, getId, greduce, hasView, headlineRE, installSelectionMenu, isContentEditable, isCss, isDynamic, languageEnvMaker, last, monitorSelectionChange, orgDoc, parseOrgMode, plainEditDiv, plainMode, posFor, removeView, renderView, selectionActive, selectionMenu, setError, setHtml, setResult, throttledUpdateSelection, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
-    parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, Nil = Org.Nil;
-    orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems;
+    parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Nil = Org.Nil;
+    orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock;
-    HandlebarsEnvironment = Handlebars.HandlebarsEnvironment, escapeExpression = Handlebars.escapeExpression;
+    addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, withContext = UI.withContext;
     selectionActive = true;
+    headlineRE = /^(\*+ *)(.*)(\n)$/;
+    HEADLINE_STARS = 1;
+    HEADLINE_MAINTEXT = 2;
+    defaults = {
+      views: {},
+      controls: {}
+    };
     blockOrg = function(data, blockOrText) {
       var frag, org, ref, text;
       text = typeof blockOrText === 'string' ? (ref = data.getBlock(blockOrText)) != null ? ref : blockOrText : blockOrText.text;
@@ -41,17 +48,27 @@
         }
       };
 
-      OrgData.prototype.load = function(first, blocks) {
-        var changes;
+      OrgData.prototype.load = function(first, blocks, changes) {
+        var block, id, ref;
         if (!first) {
           return OrgData.__super__.load.call(this, first, blocks);
         } else {
-          changes = {
-            sets: blocks,
-            oldBlocks: {},
-            first: first
-          };
+          if (!changes) {
+            changes = {
+              sets: blocks,
+              oldBlocks: {},
+              first: first
+            };
+          }
           this.linkAllSiblings(changes);
+          for (block in this.blockList()) {
+            this.checkChange(block, null);
+          }
+          ref = changes.sets;
+          for (id in ref) {
+            block = ref[id];
+            this.checkChange(null, block);
+          }
           return OrgData.__super__.load.call(this, first, blocks);
         }
       };
@@ -185,9 +202,74 @@
         return results1;
       };
 
+      OrgData.prototype.makeChange = function(changes) {
+        var block, id, removes, sets;
+        sets = changes.sets, removes = changes.removes;
+        for (id in removes) {
+          this.checkChange(this.getBlock(id), null);
+        }
+        for (id in sets) {
+          block = sets[id];
+          this.checkChange(this.getBlock(id), block);
+        }
+        return OrgData.__super__.makeChange.call(this, changes);
+      };
+
+      OrgData.prototype.processDefaults = function(lorgText) {
+        var block, j, len, results1, viewBlocks;
+        viewBlocks = orgDoc(parseOrgMode(lorgText.replace(/\r\n?/g, '\n')));
+        results1 = [];
+        for (j = 0, len = viewBlocks.length; j < len; j++) {
+          block = viewBlocks[j];
+          results1.push(this.checkChange(null, block, true));
+        }
+        return results1;
+      };
+
+      OrgData.prototype.checkChange = function(oldBlock, newBlock, isDefault) {
+        this.checkCssChange(oldBlock, newBlock, isDefault);
+        this.checkCodeChange(oldBlock, newBlock, isDefault);
+        this.checkViewChange(oldBlock, newBlock, isDefault);
+        return this.checkControlChange(oldBlock, newBlock, isDefault);
+      };
+
+      OrgData.prototype.checkCssChange = function(oldBlock, newBlock, isDefault) {
+        if (isCss(oldBlock) || isCss(newBlock)) {
+          $("#css-" + ((oldBlock != null ? oldBlock._id : void 0) || (newBlock != null ? newBlock._id : void 0))).filter('style').remove();
+        }
+        if (isCss(newBlock)) {
+          return $('head').append("<style id='css-" + newBlock._id + "'>" + (blockSource(newBlock)) + "</style>");
+        }
+      };
+
+      OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {};
+
+      OrgData.prototype.checkViewChange = function(oldBlock, newBlock, isDefault) {
+        var ov, source, view, vt;
+        removeView(ov = blockViewType(oldBlock));
+        if (vt = blockViewType(newBlock)) {
+          source = blockSource(newBlock);
+          addView(vt, null, source.substring(0, source.length - 1));
+          if (isDefault) {
+            defaults.views[vt] = source.substring(0, source.length - 1);
+          }
+        }
+        if (ov && ov !== vt && (view = defaults.views[ov])) {
+          return addView(ov, null, view);
+        }
+      };
+
+      OrgData.prototype.checkControlChange = function(oldBlock, newBlock, isDefault) {};
+
       return OrgData;
 
     })(DataStore);
+    isCss = function(block) {
+      return (block != null ? block.language : void 0) === 'css';
+    };
+    blockViewType = function(block) {
+      return ((block != null ? block.language : void 0) === 'html' && block.codeAttributes.defview) || null;
+    };
     addChange = function(block, changes) {
       if (!changes.oldBlocks[block._id]) {
         changes.oldBlocks[block._id] = copy(block);
@@ -259,17 +341,17 @@
       };
 
       OrgEditing.prototype.change = function(changes) {
-        var change, changedProperties, child, computedProperties, id, j, k, len, len1, parent, props, ref, ref1;
+        var change, changedProperties, child, computedProperties, id, j, k, len, len1, oldBlock, parent, props, ref, ref1;
         computedProperties = {};
         changedProperties = [];
         ref = changes.sets;
         for (id in ref) {
           change = ref[id];
-          if (this.checkPropertyChange(changes, change)) {
+          oldBlock = this.getBlock(change._id);
+          if (this.checkPropertyChange(changes, change, oldBlock)) {
             changedProperties.push(change._id);
-          } else {
-            this.checkCodeChange(changes, change);
           }
+          this.checkCodeChange(changes, change, oldBlock);
         }
         this.data.linkAllSiblings(changes);
         for (j = 0, len = changedProperties.length; j < len; j++) {
@@ -289,16 +371,15 @@
         return OrgEditing.__super__.change.call(this, changes);
       };
 
-      OrgEditing.prototype.checkPropertyChange = function(changes, change) {
+      OrgEditing.prototype.checkPropertyChange = function(changes, change, oldBlock) {
         var ref;
         return change.type === 'chunk' && !_.isEqual(change.properties, (ref = this.getBlock(change._id)) != null ? ref.properties : void 0);
       };
 
-      OrgEditing.prototype.checkCodeChange = function(changes, change) {
-        var block, env, envM, hasChange, i, j, len, newBlock, newResults, newSource, oldBlock, oldSource, opts, ref, ref1, ref2, result, sync;
+      OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock) {
+        var block, env, envM, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, ref2, result, sync;
         if (change.type === 'code' && isDynamic(change) && (envM = blockEnvMaker(change))) {
           ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
-          oldBlock = this.getBlock(change._id);
           hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? ((ref1 = blockCodeItems(this, oldBlock), oldSource = ref1.source, ref1), newSource.content !== oldSource.content) : void 0);
           if (hasChange) {
             result = '';
@@ -427,21 +508,91 @@
     };
     fancyMode = {
       render: function(data, block, prefix) {
-        var id, next, nextText, ref, ref1, ref2, text;
+        var ref;
         if (!block || ((ref = block.properties) != null ? ref.hidden : void 0)) {
           return ['', data.nextRight(block)];
         } else if (block.type === 'headline') {
-          text = "<div class='headline'>" + (plainMode.render(data, block, prefix)[0]);
-          next = (ref1 = data.nextRight(block)) != null ? ref1._id : void 0;
-          id = block.next;
-          while (id && id !== next) {
-            ref2 = this.render(data, data.getBlock(id), prefix), nextText = ref2[0], id = ref2[1];
-            text += nextText;
-          }
-          return [text + "</div>", next];
+          return this.renderHeadline(data, block, prefix);
+        } else if (block.type === 'chunk') {
+          return this.renderOrgBlock(data, block, prefix);
         } else {
           return plainMode.render(data, block, prefix);
         }
+      },
+      renderHeadline: function(data, block, prefix) {
+        var id, m, next, nextText, ref, ref1, text;
+        text = "<span id='" + prefix + block._id + "' data-block='" + block.type + "'>";
+        if (hasView('leisure-headline')) {
+          m = block.text.match(headlineRE);
+          text += renderView('leisure-headline', null, {
+            stars: m[HEADLINE_STARS],
+            maintext: m[HEADLINE_MAINTEXT],
+            EOL: '\n'
+          });
+        } else {
+          text += escapeHtml(block.text);
+        }
+        next = (ref = data.nextRight(block)) != null ? ref._id : void 0;
+        id = block.next;
+        while (id && id !== next) {
+          ref1 = this.render(data, data.getBlock(id), prefix), nextText = ref1[0], id = ref1[1];
+          text += nextText;
+        }
+        return [text + "</span>", next];
+      },
+      renderOrgBlock: function(data, block, prefix) {
+        var text;
+        text = this.renderOrg(blockOrg(data, block));
+        return ["<span id='" + block._id + "'>" + text + "</span>", block.next];
+      },
+      renderOrg: function(org) {
+        var child;
+        if (org instanceof SimpleMarkup) {
+          return this.renderSimple(org);
+        } else if (org instanceof Link) {
+          return this.renderLink(org);
+        } else if (org instanceof Fragment) {
+          return ((function() {
+            var j, len, ref, results1;
+            ref = org.children;
+            results1 = [];
+            for (j = 0, len = ref.length; j < len; j++) {
+              child = ref[j];
+              results1.push(this.renderOrg(child));
+            }
+            return results1;
+          }).call(this)).join('');
+        } else {
+          return org.allText();
+        }
+      },
+      renderSimple: function(org) {
+        var c, guts, j, len, ref, text;
+        guts = '';
+        ref = org.children;
+        for (j = 0, len = ref.length; j < len; j++) {
+          c = ref[j];
+          guts += this.renderOrg(c, true);
+        }
+        text = (function() {
+          switch (org.markupType) {
+            case 'bold':
+              return "<b>" + guts + "</b>";
+            case 'italic':
+              return "<i>" + guts + "</i>";
+            case 'underline':
+              return "<span style='text-decoration: underline'>" + guts + "</span>";
+            case 'strikethrough':
+              return "<span style='text-decoration: line-through'>" + guts + "</span>";
+            case 'code':
+              return "<code>" + guts + "</code>";
+            case 'verbatim':
+              return "<code>" + guts + "</code>";
+            default:
+              return guts;
+          }
+        })();
+        return "<span class='hidden'>" + org.text[0] + "</span>" + text + "<span class='hidden'>" + org.text[0] + "</span>";
       }
     };
     createLocalData = function() {
@@ -500,11 +651,13 @@
             bubble.style.left = left + "px";
             bubble.style.top = (top - bubble.offsetHeight) + "px";
             $(document.body).addClass('selection');
+            editor.trigger('selection');
             return;
           }
         }
       }
-      return $(document.body).removeClass('selection');
+      $(document.body).removeClass('selection');
+      return editor != null ? editor.trigger('selection') : void 0;
     };
     isContentEditable = function(node) {
       return (node instanceof Element ? node : node.parentElement).isContentEditable;
