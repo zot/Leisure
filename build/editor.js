@@ -1596,9 +1596,10 @@
     };
     posFor = function(pos) {
       var p, result;
-      result = (pos.pos === pos.node.length && pos.node.data[pos.pos - 1] === '\n' && !(p = pos.save().next()).isEmpty() ? p : pos).textPosition();
-      result.pos = p != null ? p : pos;
-      return result;
+      if (result = (pos.pos === pos.node.length && pos.node.data[pos.pos - 1] === '\n' && !(p = pos.save().next()).isEmpty() ? p : pos).textPosition()) {
+        result.pos = p != null ? p : pos;
+        return result;
+      }
     };
     replacements = {
       '<': "&lt;",

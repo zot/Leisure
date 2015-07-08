@@ -5,6 +5,7 @@
       {
         posFor
         last
+        escapeHtml
       } = Editor
 
       createEditorDisplay = (editor)->
@@ -31,12 +32,13 @@
             block = options.getBlock block.prev
             docLine += block.text.split('\n').length - 1
           holder = options.nodeForId startBlock._id
-          p = posFor options.editor.domCursorForTextPosition(holder, offset)
-          line: docLine
-          col: col
-          blockLine: line
-          top: Math.round(p.top)
-          left: Math.round(p.left)
+          if p = posFor options.editor.domCursorForTextPosition(holder, offset)
+            line: docLine
+            col: col
+            blockLine: line
+            top: Math.round(p.top)
+            left: Math.round(p.left)
+          else {}
         else {}
 
       getBlockLine = (block, offset)->
@@ -53,7 +55,7 @@
             .on 'change', (changes)-> displayStructure data, div
             .on 'load', -> displayStructure data, div
 
-      displayStructure = (data, div)-> $(div).html structureInfo(data).description
+      displayStructure = (data, div)-> $(div).html escapeHtml structureInfo(data).description
 
       structureInfo = (data)->
         parentStack = []

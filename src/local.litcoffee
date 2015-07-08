@@ -151,6 +151,7 @@ Code for local-mode.  This will not be loaded under meteor.
         createStructureDisplay data
         #window.ED = plainEditDiv $("[maindoc]"), data
         window.ED = fancyEditDiv $("[maindoc]"), data
+        ED.node.addClass 'flat'
         createEditorDisplay ED
         ED.options.load """
         * Test properties > splunge
@@ -169,6 +170,19 @@ Code for local-mode.  This will not be loaded under meteor.
         #+END_SRC
         #+RESULTS:
         : 7
+
+        #+BEGIN_SRC cs :results dynamic
+        '<b>duh</b>'
+        html '<b>duh</b>'
+        37/3333
+        html '<img src="https://imgs.xkcd.com/comics/lisp_cycles.png">'
+        #+END_SRC
+        #+RESULTS:
+        : &lt;b&gt;duh&lt;/b&gt;
+        : <b>duh</b>
+        : 0.0111011101110111
+        : <img src="https://imgs.xkcd.com/comics/lisp_cycles.png">
+
         peep
         :properties:
         :b: 2
@@ -177,11 +191,14 @@ Code for local-mode.  This will not be loaded under meteor.
         asdf
         * top 2
         bubba
+
         #+BEGIN_SRC html :defview leisure-headlineX
-        <span class='hidden'>{{stars}}</span><span class='custom-headline'>{{maintext}}</span>{{EOL}}
+        <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
+        }}</span>{{#each children}}{{{render this}}}{{/each}}</span>
         #+END_SRC
+        
         #+BEGIN_SRC css
-        .headline {
+        [data-block='headline'] .maintext {
           font-weight: bold;
           color: blue;
         }

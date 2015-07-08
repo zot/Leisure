@@ -146,8 +146,9 @@
       data.processDefaults(Defaults);
       createStructureDisplay(data);
       window.ED = fancyEditDiv($("[maindoc]"), data);
+      ED.node.addClass('flat');
       createEditorDisplay(ED);
-      ED.options.load("* Test properties > splunge\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\n** sub 1\n/duh/\n:properties:\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\npeep\n:properties:\n:b: 2\n:end:\n** sub 2\nasdf\n* top 2\nbubba\n#+BEGIN_SRC html :defview leisure-headlineX\n<span class='hidden'>{{stars}}</span><span class='custom-headline'>{{maintext}}</span>{{EOL}}\n#+END_SRC\n#+BEGIN_SRC css\n.headline {\n  font-weight: bold;\n  color: blue;\n}\n.custom-headline {\n  font-weight: bold;\n  color: green;\n}\n[data-block='headline'] {\n  color: orangeX;\n}\n#+END_SRC" + '\n');
+      ED.options.load("* Test properties > splunge\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\n** sub 1\n/duh/\n:properties:\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\n\n#+BEGIN_SRC cs :results dynamic\n'<b>duh</b>'\nhtml '<b>duh</b>'\n37/3333\nhtml '<img src=\"https://imgs.xkcd.com/comics/lisp_cycles.png\">'\n#+END_SRC\n#+RESULTS:\n: &lt;b&gt;duh&lt;/b&gt;\n: <b>duh</b>\n: 0.0111011101110111\n: <img src=\"https://imgs.xkcd.com/comics/lisp_cycles.png\">\n\npeep\n:properties:\n:b: 2\n:end:\n** sub 2\nasdf\n* top 2\nbubba\n\n#+BEGIN_SRC html :defview leisure-headlineX\n<span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop\n}}</span>{{#each children}}{{{render this}}}{{/each}}</span>\n#+END_SRC\n\n#+BEGIN_SRC css\n[data-block='headline'] .maintext {\n  font-weight: bold;\n  color: blue;\n}\n.custom-headline {\n  font-weight: bold;\n  color: green;\n}\n[data-block='headline'] {\n  color: orangeX;\n}\n#+END_SRC" + '\n');
       return $('#globalLoad').remove();
     });
   };

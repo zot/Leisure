@@ -1184,9 +1184,9 @@ adapted from Vega on [StackOverflow](http://stackoverflow.com/a/13127566/1026782
       last = (array)-> array.length && array[array.length - 1]
 
       posFor = (pos)->
-        result = (if pos.pos == pos.node.length && pos.node.data[pos.pos - 1] == '\n' && !(p = pos.save().next()).isEmpty() then p else pos).textPosition()
-        result.pos = p ? pos
-        result
+        if result = (if pos.pos == pos.node.length && pos.node.data[pos.pos - 1] == '\n' && !(p = pos.save().next()).isEmpty() then p else pos).textPosition()
+          result.pos = p ? pos
+          result
 
       replacements =
         '<': "&lt;"

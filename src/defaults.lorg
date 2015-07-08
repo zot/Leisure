@@ -1,4 +1,98 @@
 These are Leisure's default views
+
 #+BEGIN_SRC html :defview leisure-headline
-<span class='hidden'>{{stars}}</span><span class='headline'>{{maintext}}</span>{{EOL}}
+<div id='{{id}}' class='fancy'
+data-edit-mode='fancy'
+data-block='headline'><span class='hidden'>{{stars}}</span><div class='maintext'>{{maintext}}{{
+EOL}}</div>{{#each children}}{{{
+render this
+}}}{{/each}}</div>
+#+END_SRC
+#+BEGIN_SRC html :defview leisure-chunk
+<span id='{{id}}' class='fancy' data-block='chunk'>{{{text}}}</span>
+#+END_SRC
+#+BEGIN_SRC html :defview leisure-code
+<span
+  id='{{id}}'
+  class='fancy default-lang'
+  data-block='code'
+  contenteditable='false'
+  data-org-type='source'
+  data-shared='code'
+  data-lang='{{language}}'
+  ><div
+    class='codeHeading'
+    contenteditable='true'><span class='hidden'>{{sourceBoiler sourceOrg}}</span>{{sourceInfo sourceOrg}}</div><div
+    class='code-text'
+    data-org-src
+    data-contain
+    contenteditable='true'>{{source}}</div><span
+class='hidden'>{{footer}}</span>{{#if
+inter}}<div>{{inter}}</div>{{/if}}{{#if
+resultsContent}}<div
+class='code-results' data-org-src>{{{resultsContent}}}</div>{{/if}}</span>
+#+END_SRC
+#+BEGIN_SRC html :defview leisure-code/js
+<span
+id='{{id}}'
+class='fancy codeblock'
+data-block='code'
+contenteditable='false'
+data-lang='{{language}}'><table><tr><td class='code-controls' data-noncontent>
+CONTROLS
+</td><td class='code-text'>{{{text}}}</td></tr></table></span>
+#+END_SRC
+#+BEGIN_SRC html :defview leisure-code-source/js
+<span
+class='source'
+data-org-src='{{block.codeAttributes.results}}'
+contenteditable='true'><span class='hidden'>{{sourceHeader this}}</span>{{content}}<span class='hidden'>{{sourceFooter this}}</span></span>
+#+END_SRC
+#+BEGIN_SRC html :defview leisure-code-results/js
+<span class='results coderesults'
+data-org-results='{{block.codeAttributes.results}}'
+data-org-type='results'
+><span class='hidden'>{{resultsHeader this}}</span>{{{resultsContents this}}}</span>
+#+END_SRC
+#+BEGIN_SRC cs :control leisure-code-results/js
+@initializeView = (view)->
+  console.log "initailizing leisure-code-results/js view", view
+#+END_SRC
+#+BEGIN_SRC css
+.view[data-view='leisure-headline'] {
+  display: block;
+}
+.view [data-block],
+.view [data-block] * {
+  white-space: pre-line;
+}
+span[data-block='code'].fancy {
+  border: solid 3px black;
+  margin: 2px;
+  vertical-align: middle;
+  position: relative;
+  display: inline-block;
+}
+.code-controls {
+  vertical-align: middle;
+  background: lightgray;
+}
+.source {
+  display: block;
+  border: solid 3px blue;
+}
+.results {
+  display: block;
+  border: solid 3px green;
+}
+
+/* patches for theme problems */
+[data-org-src].code-results,
+[data-org-src].code-text {
+  height: auto;
+}
+.code-results {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
 #+END_SRC

@@ -1,6 +1,6 @@
 Evaulation support for Leisure
 
-    define ['cs!./base', 'cs!./ast', 'cs!./runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript)->
+    define ['cs!./base', 'cs!./ast', 'cs!./runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = null
@@ -33,6 +33,8 @@ Evaulation support for Leisure
         jsonConvert
       } = Runtime
 
+      console.log CS
+
       leisureEnv = (env)->
         env.presentValue = (v)-> rz(L_showHtml) lz v
         env.executeText = (text, props, cont)->
@@ -55,16 +57,19 @@ Evaulation support for Leisure
             runNextResult results.tail(), env, cont
         else cont()
 
+      presentHtml = (v)-> if v instanceof Html then v.content else escapeHtml v
+      writeValues = (env, values)->
+        for v in values ? []
+          env.write ": #{presentHtml v}\n"
+
       jsEnv = (env)->
-        env.presentValue = (v)-> if v instanceof Html then v.content else escapeHtml v
         env.executeText = (text, props, cont)->
           try
-            value = jsEval(env, text)
-            if value.length then @write @presentValue value.join '\n'
+            writeValues env, value = jsEval(env, text)
           catch err
             @errorAt 0, err.message
           finally
-            cont? env
+            cont? value
         env
 
       jsEval = (env, text)->
@@ -92,7 +97,7 @@ Evaulation support for Leisure
           else newText += text.substring expr.start, expr.end
         newText += ";leisure_results;"
         console = log: (str)=> env.write env.presentValue str
-        eval newText
+        (env.eval ? localEval) newText
 
       findError = (err, text)->
         [x, line, col] = err.match(/\(([0-9]*):([0-9]*)\)/)
@@ -114,16 +119,25 @@ Evaulation support for Leisure
       handleErrors = (ast, func)-> walk ast, (node)-> if isError node then func node
 
       lsEnv = (env)->
-        env.presentValue = (v)-> if v instanceof Html then v.content else escapeHtml v
         env.executeText = (text, props, cont)->
           try
             console = log: (str)=> env.write env.presentValue str
             value = eval(lispyScript._compile(text));
-            if typeof value != 'undefined' then @write @presentValue value
+            if typeof value != 'undefined' then writeValues env, [value]
           catch err
             @errorAt 0, err.message
           finally
             cont? env
+        env
+
+      csEnv = (env)->
+        env.executeText = (text, props, cont)->
+          try
+            writeValues env, values = jsEval env, CS.compile text, bare: true
+          catch err
+            @errorAt 0, err.message
+          finally
+            cont? values
         env
 
       class Html
@@ -149,6 +163,10 @@ Evaulation support for Leisure
         javascript: jsEnv
         js: jsEnv
         lisp: lsEnv
+        cs: csEnv
+        coffeescript: csEnv
+
+      localEval = do (html)-> (x)-> eval x
 
       languageEnvMaker = (name)-> knownLanguages[name?.toLowerCase()]
 

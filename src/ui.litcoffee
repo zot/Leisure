@@ -12,6 +12,8 @@ choose a handlebars template.
       controllers = {}
       root = null
       activating = false
+      viewIdCounter = 0
+      pendingViews = []
 
       viewKey = (type, context)->
         if context then "#{type.trim()}/#{context.trim()}" else type?.trim()
@@ -22,7 +24,7 @@ choose a handlebars template.
       removeView = (type, context, template)->
         delete templates[viewKey type, context]
 
-      hasView = (type, context)-> templates[viewKey type, context]
+      getView = hasView = (type, context)-> templates[viewKey type, context] || templates[type]
 
       withContext = (context, func)->
         oldContext = root.context
@@ -55,7 +57,10 @@ choose a handlebars template.
       renderView = (type, contextName, data, targets, block)->
         isTop = !root.context?.topView
         key = viewKey type, contextName
-        template = templates[key]
+        if !(template = templates[key])
+          key = type
+          contextName = null
+          if !(template = templates[key]) then return
         settings =
           type: type
           contextName: contextName
@@ -76,10 +81,19 @@ choose a handlebars template.
               if isTop then attrs += " data-ids='#{settings.subviews.join ' '}'"
               html = "<span #{attrs}>'#{html}</span>"
             activateScripts node
-        else if block
-          root.context.subviews[block._id] = true
-          "<span#{attrs}>#{template data, data: root.context}</span>"
-        else template data, data: root.context
+        else
+          id = "view-#{viewIdCounter++}"
+          pendingViews.push id
+          attrs += " id='#{id}'"
+          if block then root.context.subviews[block._id] = true
+          "<span #{attrs}>#{template data, data: root.context}</span>"
+
+      initializePendingViews = ->
+        p = pendingViews
+        pendingViews = []
+        for viewId in p
+          view = $("##{viewId}")
+          activateScripts view
 
       activateScripts = (el)->
         if !activating
@@ -97,18 +111,25 @@ choose a handlebars template.
             for script in $(el).find('script[type="text/coffeescript"]').add($(el).find 'script[type="text/literate-coffeescript"]')
               root.currentScript = script
               CoffeeScript.run script.innerHTML
+            controllers[el.attr 'data-view']?.initializeView(el)
           finally
             root.currentScript = null
             activating = false
 
       addController = (type, name, func)-> controllers[viewKey type, name] = func
 
+      removeController = (type, name, func)-> delete controllers[viewKey type, name]
+
       root = {
         withContext
+        mergeContext
         renderView
         addView
         removeView
         hasView
+        getView
         addController
+        removeController
+        initializePendingViews
         context: null
       }

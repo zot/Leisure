@@ -3,15 +3,15 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI) {
-    var DataStore, DataStoreEditingOptions, Fragment, HEADLINE_MAINTEXT, HEADLINE_STARS, Headline, Html, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, actualSelectionUpdate, addChange, addView, blockCodeItems, blockEnvMaker, blockOrg, blockSource, blockText, blockViewType, configureMenu, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, getId, greduce, hasView, headlineRE, installSelectionMenu, isContentEditable, isCss, isDynamic, languageEnvMaker, last, monitorSelectionChange, orgDoc, parseOrgMode, plainEditDiv, plainMode, posFor, removeView, renderView, selectionActive, selectionMenu, setError, setHtml, setResult, throttledUpdateSelection, updateSelection, withContext;
+  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars) {
+    var DataStore, DataStoreEditingOptions, Fragment, HEADLINE_MAINTEXT, HEADLINE_STARS, Headline, Html, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockEnvMaker, blockOrg, blockSource, blockText, blockViewType, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, monitorSelectionChange, orgDoc, parseOrgMode, plainEditDiv, plainMode, posFor, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, throttledUpdateSelection, updateSelection, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Nil = Org.Nil;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
-    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml;
+    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock;
-    addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, withContext = UI.withContext;
+    addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
     selectionActive = true;
     headlineRE = /^(\*+ *)(.*)(\n)$/;
     HEADLINE_STARS = 1;
@@ -259,16 +259,46 @@
         }
       };
 
-      OrgData.prototype.checkControlChange = function(oldBlock, newBlock, isDefault) {};
+      OrgData.prototype.checkControlChange = function(oldBlock, newBlock, isDefault) {
+        var controller, env, ov, vt;
+        if ((oldBlock != null ? oldBlock.type : void 0) !== 'code' || blockSource(oldBlock) !== blockSource(newBlock) || isControl(oldBlock) !== isControl(newBlock)) {
+          removeController(ov = blockViewType(oldBlock, 'control'));
+          if (vt = blockViewType(newBlock, 'control')) {
+            env = blockEnvMaker(newBlock)({
+              __proto__: defaultEnv
+            });
+            controller = {};
+            addController(vt, null, controller);
+            env["eval"] = function(text) {
+              return controllerEval.call(controller, text);
+            };
+            env.errorAt = function(offset, msg) {
+              return console.log(msg);
+            };
+            return env.executeText(blockSource(newBlock), Nil, (function() {}));
+          }
+        }
+      };
 
       return OrgData;
 
     })(DataStore);
+    controllerEval = function(txt) {
+      return eval(txt);
+    };
     isCss = function(block) {
       return (block != null ? block.language : void 0) === 'css';
     };
-    blockViewType = function(block) {
-      return ((block != null ? block.language : void 0) === 'html' && block.codeAttributes.defview) || null;
+    isControl = function(block) {
+      var ref;
+      return (block != null ? block.type : void 0) === 'code' && ((ref = block.codeAttributes) != null ? ref.control : void 0);
+    };
+    blockViewType = function(block, attr) {
+      var ref;
+      if (attr == null) {
+        attr = 'defview';
+      }
+      return ((block != null ? block.type : void 0) === 'code' && ((ref = block.codeAttributes) != null ? ref[attr] : void 0)) || null;
     };
     addChange = function(block, changes) {
       if (!changes.oldBlocks[block._id]) {
@@ -306,15 +336,28 @@
         OrgEditing.__super__.constructor.call(this, data);
         data.on('load', (function(_this) {
           return function() {
-            return setHtml(_this.editor.node[0], _this.renderBlocks());
+            setHtml(_this.editor.node[0], _this.renderBlocks());
+            return initializePendingViews();
           };
         })(this));
+        data.on('change', function() {
+          return initializePendingViews();
+        });
         this.setPrefix('leisureBlock-');
         this.setMode(plainMode);
       }
 
+      OrgEditing.prototype.setEditor = function(ed) {
+        OrgEditing.__super__.setEditor.call(this, ed);
+        return this.setMode(this.mode);
+      };
+
       OrgEditing.prototype.setMode = function(mode) {
+        var ref;
         this.mode = mode;
+        if ((ref = this.editor) != null) {
+          ref.node.attr('data-edit-mode', this.mode.name);
+        }
         return this;
       };
 
@@ -377,10 +420,10 @@
       };
 
       OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock) {
-        var block, env, envM, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, ref2, result, sync;
+        var block, env, envM, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, result, sync;
         if (change.type === 'code' && isDynamic(change) && (envM = blockEnvMaker(change))) {
           ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
-          hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? ((ref1 = blockCodeItems(this, oldBlock), oldSource = ref1.source, ref1), newSource.content !== oldSource.content) : void 0);
+          hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? (oldSource = blockSource(oldBlock), newSource.content !== oldSource.content) : void 0);
           if (hasChange) {
             result = '';
             newBlock = setError(change);
@@ -401,7 +444,7 @@
                 }
               };
               return env.write = function(str) {
-                result += ': ' + (str instanceof Html ? str.content : escapeHtml(String(str).replace(/\r?\n/g, '\n: ') + '\n'));
+                result += str;
                 if (!sync) {
                   newBlock = setResult(change, str);
                   return opts.change({
@@ -415,9 +458,9 @@
             env.executeText(newSource.content, Nil, function() {});
             newBlock = setResult(newBlock, result);
             changes.sets[newBlock._id] = newBlock;
-            ref2 = changes.newBlocks;
-            for (i = j = 0, len = ref2.length; j < len; i = ++j) {
-              block = ref2[i];
+            ref1 = changes.newBlocks;
+            for (i = j = 0, len = ref1.length; j < len; i = ++j) {
+              block = ref1[i];
               if (block._id === newBlock._id) {
                 changes.newBlocks[i] = newBlock;
               }
@@ -506,44 +549,152 @@
         return [text + "</span>", block.next];
       }
     };
+    Handlebars.registerHelper('render', function(block) {
+      return fancyMode.render(UI.context.data, block, UI.context.prefix)[0];
+    });
+    Handlebars.registerHelper('sourceHeader', function(src) {
+      return src.text.substring(0, src.contentPos);
+    });
+    Handlebars.registerHelper('sourceBoiler', function(src) {
+      return src.text.substring(0, src.infoPos);
+    });
+    Handlebars.registerHelper('sourceInfo', function(src) {
+      return src.text.substring(src.infoPos, src.contentPos);
+    });
+    Handlebars.registerHelper('sourceFooter', function(src) {
+      return src.text.substring(src.contentPos + src.content.length);
+    });
+    Handlebars.registerHelper('resultsHeader', function(res) {
+      return res.text.substring(0, res.contentPos);
+    });
+    Handlebars.registerHelper('resultsContents', function(res) {
+      return resultsArea(res.text.substring(res.contentPos));
+    });
     fancyMode = {
+      name: 'fancy',
       render: function(data, block, prefix) {
-        var ref;
-        if (!block || ((ref = block.properties) != null ? ref.hidden : void 0)) {
-          return ['', data.nextRight(block)];
-        } else if (block.type === 'headline') {
-          return this.renderHeadline(data, block, prefix);
-        } else if (block.type === 'chunk') {
-          return this.renderOrgBlock(data, block, prefix);
-        } else {
-          return plainMode.render(data, block, prefix);
-        }
+        return mergeContext({}, (function(_this) {
+          return function() {
+            var ref;
+            UI.context.data = data;
+            UI.context.prefix = prefix;
+            if (!block || ((ref = block.properties) != null ? ref.hidden : void 0)) {
+              return ['', data.nextRight(block)];
+            } else if (block.type === 'headline') {
+              return _this.renderHeadline(data, block, prefix);
+            } else if (block.type === 'chunk') {
+              return _this.renderChunk(data, block, prefix);
+            } else if (block.type === 'code') {
+              return _this.renderCode(data, block, prefix);
+            } else {
+              return plainMode.render(data, block, prefix);
+            }
+          };
+        })(this));
+      },
+      renderView: function(type, ctx, next, data) {
+        return [renderView(type, ctx, data), next];
       },
       renderHeadline: function(data, block, prefix) {
         var id, m, next, nextText, ref, ref1, text;
-        text = "<span id='" + prefix + block._id + "' data-block='" + block.type + "'>";
+        next = (ref = data.nextRight(block)) != null ? ref._id : void 0;
         if (hasView('leisure-headline')) {
           m = block.text.match(headlineRE);
-          text += renderView('leisure-headline', null, {
+          console.log("headline view: " + block.text);
+          return this.renderView('leisure-headline', null, next, {
+            id: prefix + block._id,
+            EOL: '\n',
             stars: m[HEADLINE_STARS],
             maintext: m[HEADLINE_MAINTEXT],
+            children: data.children(block)
+          });
+        } else {
+          text = "<span id='" + prefix + block._id + "' data-block='" + block.type + "'>";
+          text += escapeHtml(block.text);
+          id = block.next;
+          while (id && id !== next) {
+            ref1 = this.render(data, data.getBlock(id), prefix), nextText = ref1[0], id = ref1[1];
+            text += nextText;
+          }
+          return [text + "</span>", next];
+        }
+      },
+      renderChunk: function(data, block, prefix) {
+        if (hasView('leisure-chunk')) {
+          return this.renderView('leisure-chunk', null, block.next, {
+            id: prefix + block._id,
+            text: this.renderOrg(blockOrg(data, block)),
             EOL: '\n'
           });
         } else {
-          text += escapeHtml(block.text);
+          return this.renderOrgBlock(data, block, prefix);
         }
-        next = (ref = data.nextRight(block)) != null ? ref._id : void 0;
-        id = block.next;
-        while (id && id !== next) {
-          ref1 = this.render(data, data.getBlock(id), prefix), nextText = ref1[0], id = ref1[1];
-          text += nextText;
+      },
+      renderCode: function(data, block, prefix) {
+        var org, ref, ref1, ref2, results, source, viewKey;
+        viewKey = "leisure-code";
+        if (hasView(viewKey, block.language)) {
+          org = blockOrg(data, block);
+          ref2 = getCodeItems((ref = (ref1 = org.children) != null ? ref1[0] : void 0) != null ? ref : org), source = ref2.source, results = ref2.results;
+          return this.renderView(viewKey, block.language, block.next, {
+            id: prefix + block._id,
+            language: block.language,
+            text: this.renderCodeOrg(block.language, org, block),
+            header: block.text.substring(0, block.codePrelen),
+            source: blockSource(block),
+            sourceOrg: source,
+            footer: block.text.substring(block.text.length - block.codePostlen, source.end()),
+            inter: results ? block.text.substring(source.end(), results != null ? results.offset : void 0) : block.text.substring(source.end()),
+            results: results ? resultsArea(block.text.substring(results.offset, results.end())) : '',
+            resultsContent: results ? resultsArea(results.text.substring(results.contentPos)) : ''
+          });
+        } else {
+          return plainMode.render(data, block, prefix);
         }
-        return [text + "</span>", next];
       },
       renderOrgBlock: function(data, block, prefix) {
         var text;
         text = this.renderOrg(blockOrg(data, block));
         return ["<span id='" + block._id + "'>" + text + "</span>", block.next];
+      },
+      renderCodeOrg: function(language, org, block) {
+        var allText, ctx, error, name, pos, ref, ref1, ref2, ref3, ref4, ref5, ref6, results, source, text;
+        ref2 = getCodeItems((ref = (ref1 = org.children) != null ? ref1[0] : void 0) != null ? ref : org), name = ref2.name, source = ref2.source, error = ref2.error, results = ref2.results;
+        allText = org.allText();
+        text = '';
+        pos = 0;
+        ctx = {
+          allText: allText,
+          language: language
+        };
+        ref3 = this.renderCodeSegment('name', name, allText, language, pos, text, block), pos = ref3[0], text = ref3[1];
+        ref4 = this.renderCodeSegment('source', source, allText, language, pos, text, block), pos = ref4[0], text = ref4[1];
+        ref5 = this.renderCodeSegment('error', error, allText, language, pos, text, block), pos = ref5[0], text = ref5[1];
+        ref6 = this.renderCodeSegment('results', results, allText, language, pos, text, block), pos = ref6[0], text = ref6[1];
+        if (pos < allText.length) {
+          text += escapeHtml(allText.substring(pos));
+        }
+        return text;
+      },
+      renderCodeSegment: function(name, org, allText, language, pos, text, block) {
+        var key;
+        if (org) {
+          if (hasView(key = "leisure-code-" + name, language)) {
+            if (org.offset > pos) {
+              text += escapeHtml(allText.substring(pos, org.offset));
+            }
+            text += (this.renderView(key, language, null, _.merge({
+              block: block
+            }, org)))[0];
+            return [org.end(), text];
+          } else if (name === 'results') {
+            return [org.end(), resultsArea(org.allText())];
+          } else {
+            return [pos, text];
+          }
+        } else {
+          return [pos, text];
+        }
       },
       renderOrg: function(org) {
         var child;
@@ -592,8 +743,28 @@
               return guts;
           }
         })();
-        return "<span class='hidden'>" + org.text[0] + "</span>" + text + "<span class='hidden'>" + org.text[0] + "</span>";
+        return "<span class='hidden'>" + org.text[0] + "</span>" + text + "<span class='hidden'>" + (goodText(org.text[0])) + "</span>";
       }
+    };
+    _workSpan = null;
+    workSpan = function() {
+      return _workSpan || createWorkSpan();
+    };
+    createWorkSpan = function() {
+      return _workSpan = $("<span></span>");
+    };
+    goodHtml = function(text) {
+      var ref;
+      return (ref = workSpan().html(text).html()) != null ? ref : '';
+    };
+    goodText = function(text) {
+      var ref;
+      return (ref = workSpan().text(text).html()) != null ? ref : '';
+    };
+    resultsArea = function(results) {
+      return "<span class='hidden'>" + (goodText(results)) + "</span><span data-noncontent>" + (results.replace(/^(: )(.*\n)/gm, function(m, g1, g2) {
+        return goodHtml(g2);
+      })) + "</span>";
     };
     createLocalData = function() {
       return new OrgData();

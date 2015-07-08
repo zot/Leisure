@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI)->
+    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars)->
 
       {
         defaultEnv
@@ -28,6 +28,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         languageEnvMaker
         Html
         escapeHtml
+        html
       } = Eval
       {
         LeisureEditCore
@@ -47,7 +48,11 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         removeView
         renderView
         hasView
+        addController
+        removeController
         withContext
+        mergeContext
+        initializePendingViews
       } = UI
 
       selectionActive = true
@@ -187,11 +192,27 @@ that must be done regardless of the source of changes
             if isDefault then defaults.views[vt] = source.substring 0, source.length - 1
           if ov && ov != vt && view = defaults.views[ov] then addView ov, null, view
         checkControlChange: (oldBlock, newBlock, isDefault)->
+          if oldBlock?.type != 'code' || blockSource(oldBlock) != blockSource(newBlock) || isControl(oldBlock) != isControl(newBlock)
+            removeController ov = blockViewType oldBlock, 'control'
+            if vt = blockViewType newBlock, 'control'
+              env = blockEnvMaker(newBlock) __proto__: defaultEnv
+              controller = {}
+              addController vt, null, controller
+              env.eval = (text)-> controllerEval.call controller, text
+              env.errorAt = (offset, msg)-> console.log msg
+              env.executeText blockSource(newBlock), Nil, (->)
+
+`controllerEval` looks like a useless wrapper for eval, but you can use `apply()`
+and `call` to set "this" for the code, which you can't do with the primitive `eval()`
+
+      controllerEval = (txt)-> eval txt
 
       isCss = (block)-> block?.language == 'css'
 
-      blockViewType = (block)->
-        (block?.language == 'html' && block.codeAttributes.defview) || null
+      isControl = (block)-> block?.type == 'code' && block.codeAttributes?.control
+
+      blockViewType = (block, attr = 'defview')->
+        (block?.type == 'code' && block.codeAttributes?[attr]) || null
 
       addChange = (block, changes)->
         if !changes.oldBlocks[block._id] then changes.oldBlocks[block._id] = copy block
@@ -217,10 +238,18 @@ that must be done regardless of the source of changes
       class OrgEditing extends DataStoreEditingOptions
         constructor: (data)->
           super data
-          data.on 'load', => setHtml @editor.node[0], @renderBlocks()
+          data.on 'load', =>
+            setHtml @editor.node[0], @renderBlocks()
+            initializePendingViews()
+          data.on 'change', -> initializePendingViews()
           @setPrefix 'leisureBlock-'
           @setMode plainMode
-        setMode: (@mode)-> this
+        setEditor: (ed)->
+          super ed
+          @setMode @mode
+        setMode: (@mode)->
+          @editor?.node.attr 'data-edit-mode', @mode.name
+          this
         setPrefix: (prefix)->
           @idPrefix = prefix
           @idPattern = new RegExp "^#{prefix}(.*)$"
@@ -255,7 +284,7 @@ that must be done regardless of the source of changes
           if change.type == 'code' && isDynamic(change) && envM = blockEnvMaker(change)
             {source: newSource, results: newResults} = blockCodeItems this, change
             hasChange = !oldBlock || oldBlock.type != 'code' || oldBlock.codeAttributes.results != 'dynamic' || if oldBlock
-              {source: oldSource} = blockCodeItems this, oldBlock
+              oldSource = blockSource oldBlock
               newSource.content != oldSource.content
             if hasChange
               result = ''
@@ -272,7 +301,8 @@ that must be done regardless of the source of changes
                       removes: {}
                       sets: change._id, newBlock
                 env.write = (str)->
-                  result += ': ' + (if str instanceof Html then str.content else escapeHtml String(str).replace(/\r?\n/g, '\n: ') + '\n')
+                  #result += ': ' + (if str instanceof Html then str.content else escapeHtml String(str).replace(/\r?\n/g, '\n: ')) + '\n'
+                  result += str
                   if !sync
                     newBlock = setResult change, str
                     opts.change
@@ -348,30 +378,108 @@ that must be done regardless of the source of changes
             if results? then text += "#{results?.text ? ''}#{escapeHtml block.text.substring(results.offset + results.text.length)}"
           [text + "</span>", block.next]
 
+      Handlebars.registerHelper 'render', (block)->
+        fancyMode.render(UI.context.data, block, UI.context.prefix)[0]
+
+      Handlebars.registerHelper 'sourceHeader', (src)->
+        src.text.substring 0, src.contentPos
+
+      Handlebars.registerHelper 'sourceBoiler', (src)->
+        src.text.substring 0, src.infoPos
+
+      Handlebars.registerHelper 'sourceInfo', (src)->
+        src.text.substring(src.infoPos, src.contentPos)
+
+      Handlebars.registerHelper 'sourceFooter', (src)->
+        src.text.substring(src.contentPos + src.content.length)
+
+      Handlebars.registerHelper 'resultsHeader', (res)->
+        res.text.substring(0, res.contentPos)
+
+      Handlebars.registerHelper 'resultsContents', (res)->
+        resultsArea res.text.substring res.contentPos
+
       fancyMode =
+        name: 'fancy'
         render: (data, block, prefix)->
-          if !block || block.properties?.hidden then ['', data.nextRight block]
-          else if block.type == 'headline' then @renderHeadline data, block, prefix
-          else if block.type == 'chunk' then @renderOrgBlock data, block, prefix
-          else plainMode.render data, block, prefix
+          mergeContext {}, =>
+            UI.context.data = data
+            UI.context.prefix = prefix
+            if !block || block.properties?.hidden then ['', data.nextRight block]
+            else if block.type == 'headline' then @renderHeadline data, block, prefix
+            else if block.type == 'chunk' then @renderChunk data, block, prefix
+            else if block.type == 'code' then @renderCode data, block, prefix
+            else plainMode.render data, block, prefix
+        renderView: (type, ctx, next, data)-> [renderView(type, ctx, data), next]
         renderHeadline: (data, block, prefix)->
-          text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
+          next = data.nextRight(block)?._id
           if hasView 'leisure-headline'
             m = block.text.match headlineRE
-            text += renderView 'leisure-headline', null,
+            console.log "headline view: #{block.text}"
+            @renderView 'leisure-headline', null, next,
+              id: prefix + block._id
+              EOL: '\n'
               stars: m[HEADLINE_STARS]
               maintext: m[HEADLINE_MAINTEXT]
+              children: data.children block
+          else
+            text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
+            text += escapeHtml block.text
+            id = block.next
+            while id && id != next
+              [nextText, id] = @render data, data.getBlock(id), prefix
+              text += nextText
+            [text + "</span>", next]
+        renderChunk: (data, block, prefix)->
+          if hasView 'leisure-chunk'
+            @renderView 'leisure-chunk', null, block.next,
+              id: prefix + block._id
+              text: @renderOrg blockOrg data, block
               EOL: '\n'
-          else text += escapeHtml block.text
-          next = data.nextRight(block)?._id
-          id = block.next
-          while id && id != next
-            [nextText, id] = @render data, data.getBlock(id), prefix
-            text += nextText
-          [text + "</span>", next]
+          else @renderOrgBlock data, block, prefix
+        renderCode: (data, block, prefix)->
+          viewKey = "leisure-code"
+          if hasView viewKey, block.language
+            org = blockOrg data, block
+            {source, results} = getCodeItems org.children?[0] ? org
+            @renderView viewKey, block.language, block.next,
+              id: prefix + block._id
+              language: block.language
+              text: @renderCodeOrg block.language, org, block
+              header: block.text.substring 0, block.codePrelen
+              source: blockSource block
+              sourceOrg: source
+              footer: block.text.substring block.text.length - block.codePostlen, source.end()
+              inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
+              results: if results then resultsArea block.text.substring results.offset, results.end() else ''
+              resultsContent: if results then resultsArea results.text.substring results.contentPos else ''
+          else plainMode.render data, block, prefix
         renderOrgBlock: (data, block, prefix)->
           text = @renderOrg blockOrg data, block
           ["<span id='#{block._id}'>#{text}</span>", block.next]
+        renderCodeOrg: (language, org, block)->
+          {name, source, error, results} = getCodeItems org.children?[0] ? org
+          allText = org.allText()
+          text = ''
+          pos = 0
+          ctx = allText: allText, language: language
+          [pos, text] = @renderCodeSegment 'name', name, allText, language, pos, text, block
+          [pos, text] = @renderCodeSegment 'source', source, allText, language, pos, text, block
+          [pos, text] = @renderCodeSegment 'error', error, allText, language, pos, text, block
+          [pos, text] = @renderCodeSegment 'results', results, allText, language, pos, text, block
+          if pos < allText.length then text += escapeHtml allText.substring pos
+          text
+        renderCodeSegment: (name, org, allText, language, pos, text, block)->
+          if org
+            if hasView key = "leisure-code-#{name}", language
+              if org.offset > pos
+                text += escapeHtml allText.substring pos, org.offset
+              text += (@renderView key, language, null, _.merge {block: block}, org)[0]
+              [org.end(), text]
+            else if name == 'results'
+              [org.end(), resultsArea org.allText()]
+            else [pos, text]
+          else [pos, text]
         renderOrg: (org)->
           if org instanceof SimpleMarkup then @renderSimple org
           else if org instanceof Link then @renderLink org
@@ -390,9 +498,20 @@ that must be done regardless of the source of changes
             when 'code' then "<code>#{guts}</code>"
             when 'verbatim' then "<code>#{guts}</code>"
             else guts
-          "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{org.text[0]}</span>"
+          "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{goodText org.text[0]}</span>"
 
-          
+      _workSpan = null
+
+      workSpan = -> _workSpan || createWorkSpan()
+
+      createWorkSpan = -> _workSpan = $("<span></span>")
+
+      goodHtml = (text)-> workSpan().html(text).html() ? ''
+
+      goodText = (text)-> workSpan().text(text).html() ? ''
+
+      resultsArea = (results)->
+        "<span class='hidden'>#{goodText results}</span><span data-noncontent>#{results.replace /^(: )(.*\n)/gm, (m, g1, g2)-> goodHtml(g2)}</span>"
 
       createLocalData = -> new OrgData()
 
