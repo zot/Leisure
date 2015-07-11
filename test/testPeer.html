@@ -1,0 +1,80 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="../css/loader.css"></link>
+        <style>
+         #chatLog {
+             height: 15em;
+             border: solid black 1px;
+         }
+         #chatInput {
+             width: calc(100% - 12ex);
+         }
+         #chatButton {
+             width: 12ex;
+         }
+         #peerAreas {
+             margin-top: 0.5em;
+             height: 15em;
+             position: relative;
+         }
+         #masterArea, #slaveArea {
+             width: calc(50% - 4px);
+             height: 100%;
+             display: inline-block;
+             border: solid green 1px;
+             position: absolute;
+         }
+         .loading {
+             background-color: lightblue;
+         }
+         .loader {
+             display: none;
+         }
+         .loading .loader {
+             display: block;
+         }
+         #masterArea {
+             left: 0;
+         }
+         #slaveArea {
+             left: 50%;
+         }
+         #masterOfferButton, #slaveOfferButton {
+             height: 1.5em;
+         }
+         #masterOffer, #slaveOffer {
+             width: 100%;
+             height: calc(100% - 1.5em);
+         }
+         .hidden {
+             display: none;
+         }
+         #chatLog {
+             white-space: pre-line;
+         }
+         .me {
+             color: blue;
+         }
+         .them {
+             color: red;
+         }
+        </style>
+        <script data-main="testPeer" src="../build/lib/require-2.1.18-src.js"></script>
+    </head>
+    <body>
+        <div id="chatLog"></div>
+        <div><input id="chatInput" type="text"></input><button id="chatButton">Send</button></div>
+        <div id="peerAreas">
+            <div id="masterArea">
+                <button id="masterOfferButton">Create Master Offer</button><br>
+                <div id="masterSpinner"></div>
+                <textarea id="masterOffer" readonly="true"></textarea>
+            </div>
+            <div id="slaveArea">
+                <button id="slaveOfferButton">Accept Master Offer</button><br>
+                <div id="slaveSpinner"></div>
+                <textarea id="slaveOffer" placeholder="Paste Master Offer Here"></textarea>
+            </div>
+        </div>
+    </body>
+</html>
