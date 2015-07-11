@@ -21,7 +21,13 @@
       ]
     };
     PeerConnection = (function() {
-      function PeerConnection() {}
+      function PeerConnection(opts) {
+        var k, v;
+        for (k in opts) {
+          v = opts[k];
+          this[k] = v;
+        }
+      }
 
       PeerConnection.prototype.start = function() {
         if (!this.offerReady || !this.handleMessage) {

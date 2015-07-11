@@ -16,6 +16,9 @@ Converted to AMD and CoffeeScript and sorely hacked based on Chris Ball's exampl
 handlers.
 
       class PeerConnection
+        constructor: (opts)->
+          for k, v of opts
+            this[k] = v
         start: ->
           if !@offerReady || !@handleMessage then throw new Error "Unconfigured #{@desc}"
           @con = new RTCPeerConnection cfg, con
