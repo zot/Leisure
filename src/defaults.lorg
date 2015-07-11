@@ -70,6 +70,10 @@ data-org-type='results'
 .view[data-view='leisure-headline'] {
   display: block;
 }
+.plain.view [data-block],
+.plain.view [data-block] * {
+  white-space: pre;
+}
 .view [data-block],
 .view [data-block] * {
   white-space: pre-line;

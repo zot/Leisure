@@ -244,8 +244,8 @@
 
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
         var differentName;
-        differentName = (oldBlock != null) !== (newBlock != null) || oldBlock.type !== newBlock.type || oldBlock.codeName !== newBlock.codeName;
-        if (oldBlock) {
+        differentName = (oldBlock != null) !== (newBlock != null) || oldBlock.type !== newBlock.type || (oldBlock != null ? oldBlock.codeName : void 0) !== (newBlock != null ? newBlock.codeName : void 0);
+        if (oldBlock != null ? oldBlock.codeName : void 0) {
           delete this.namedBlocks[newBlock.codeName];
         }
         if (newBlock != null ? newBlock.codeName : void 0) {
@@ -617,34 +617,42 @@
         var result;
         result = '';
         while (org) {
-          result += (function() {
-            switch (org) {
-              case org instanceof SimpleMarkup:
-                return this.renderSimple(org);
-              default:
-                return org.allText();
-            }
-          }).call(this);
+          result += org instanceof SimpleMarkup ? this.renderSimple(org) : escapeHtml(org.allText());
           org = org.next;
         }
         return result;
       },
       renderSimple: function(org) {
+        var c, guts, j, len, ref;
+        guts = '';
+        ref = org.children;
+        for (j = 0, len = ref.length; j < len; j++) {
+          c = ref[j];
+          guts += this.renderMeat(c, true);
+        }
+        guts = "" + org.text[0] + guts + org.text[org.text.length - 1];
         switch (org.type === 'simple' && org.markupType) {
           case 'bold':
-            return "<b>" + (escapeHtml(org.text)) + "</b>";
+            return "<b>" + guts + "</b>";
           case 'italic':
-            return "<i>" + (escapeHtml(org.text)) + "</i>";
+            return "<i>" + guts + "</i>";
           case 'underline':
-            return "<span style='text-decoration: underline'>" + (escapeHtml(org.text)) + "</span>";
+            return "<span style='text-decoration: underline'>" + guts + "</span>";
           case 'strikethrough':
-            return "<span style='text-decoration: line-through'>" + (escapeHtml(org.text)) + "</span>";
+            return "<span style='text-decoration: line-through'>" + guts + "</span>";
           case 'code':
-            return "<code>" + (escapeHtml(org.text)) + "</code>";
+            return "<code>" + guts + "</code>";
           case 'verbatim':
-            return "<code>" + (escapeHtml(org.text)) + "</code>";
+            return "<code>" + guts + "</code>";
           default:
-            return org.allText();
+            return escapeHtml(org.allText());
+        }
+      },
+      renderSimpleChild: function(org) {
+        if (!org.children) {
+          return escapeHtml(org.text);
+        } else {
+          return this.renderSimple(org.children[0]);
         }
       }
     };
@@ -726,9 +734,11 @@
         return [renderView(type, ctx, data), next];
       },
       renderHeadline: function(opts, block, prefix) {
-        var id, m, next, nextText, ref, ref1, text, viewName;
+        var id, m, next, nextText, ref, ref1, ref2, text, viewName;
         next = (ref = opts.data.nextRight(block)) != null ? ref._id : void 0;
-        viewName = block.type === 'headline' && block.level === 1 && opts.isToggled(block) ? 'leisure-headline-plain' : 'leisure-headline';
+        viewName = block.type === 'headline' && block.level === 1 && opts.isToggled(block) ? (UI.context.viewAttrs = _.merge({
+          "class": 'plain'
+        }, (ref1 = UI.context.viewAttrs) != null ? ref1 : {}), 'leisure-headline-plain') : 'leisure-headline';
         if (hasView(viewName)) {
           m = block.text.match(headlineRE);
           return this.renderView(viewName, null, next, {
@@ -746,7 +756,7 @@
           text += escapeHtml(block.text);
           id = block.next;
           while (id && id !== next) {
-            ref1 = this.render(opts, opts.data.getBlock(id), prefix), nextText = ref1[0], id = ref1[1];
+            ref2 = this.render(opts, opts.data.getBlock(id), prefix), nextText = ref2[0], id = ref2[1];
             text += nextText;
           }
           return [text + "</span>", next];

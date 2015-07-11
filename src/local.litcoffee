@@ -161,7 +161,7 @@ Code for local-mode.  This will not be loaded under meteor.
         #+RESULTS:
         : 7
         ** sub 1
-        /duh/
+        */duh/*
         :properties:
         :a: 1
         :end:

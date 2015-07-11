@@ -55,10 +55,10 @@
       }
     });
     Handlebars.registerHelper('viewWrapper', function(name, data, opts) {
-      return simpleRenderView(name, opts.fn, this);
+      return simpleRenderView("data-view='" + name + "' class='view'", name, opts.fn, this);
     });
     renderView = function(type, contextName, data, targets, block) {
-      var attrs, i, isTop, key, len, node, ref, results, settings, template;
+      var attr, attrs, classAttr, i, isTop, key, len, node, ref, ref1, ref2, results, settings, template, value;
       isTop = !((ref = root.context) != null ? ref.topView : void 0);
       key = viewKey(type, contextName);
       if (!(template = templates[key])) {
@@ -78,7 +78,18 @@
           settings.subviews[block._id] = true;
         }
       }
-      attrs = "class='view' data-view='" + key + "'";
+      attrs = "data-view='" + key + "'";
+      classAttr = 'view';
+      ref2 = (ref1 = root.context.viewAttrs) != null ? ref1 : {};
+      for (attr in ref2) {
+        value = ref2[attr];
+        if (attr === 'class') {
+          classAttr += " " + value;
+        } else {
+          attrs += " " + attr + "='" + value + "'";
+        }
+      }
+      attrs += " class='" + classAttr + "'";
       if (block) {
         attrs += " data-view-block='" + block._id + "'";
       }
@@ -111,12 +122,11 @@
         }
         return results;
       } else {
-        return simpleRenderView(key, template, data, block);
+        return simpleRenderView(attrs, key, template, data, block);
       }
     };
-    simpleRenderView = function(key, template, data, block) {
-      var attrs, id;
-      attrs = "class='view' data-view='" + key + "'";
+    simpleRenderView = function(attrs, key, template, data, block) {
+      var id;
       id = "view-" + (viewIdCounter++);
       pendingViews.push(id);
       attrs += " id='" + id + "'";

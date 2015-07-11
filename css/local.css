@@ -3,7 +3,6 @@ body {
     min-height: 25em;
 }
 .plain {
-    border: solid blue 2px;
     white-space: pre;
 }
 .plain * {

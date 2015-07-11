@@ -57,7 +57,7 @@ choose a handlebars template.
           renderView data.type, contextName, data, null, false, block
 
       Handlebars.registerHelper 'viewWrapper', (name, data, opts)->
-        simpleRenderView name, opts.fn, this
+        simpleRenderView "data-view='#{name}' class='view'", name, opts.fn, this
 
       renderView = (type, contextName, data, targets, block)->
         isTop = !root.context?.topView
@@ -72,7 +72,12 @@ choose a handlebars template.
         if isTop
           settings.subviews = {}
           if block then settings.subviews[block._id] = true
-        attrs = "class='view' data-view='#{key}'"
+        attrs = "data-view='#{key}'"
+        classAttr = 'view'
+        for attr, value of root.context.viewAttrs ? {}
+          if attr == 'class' then classAttr += " #{value}"
+          else attrs += " #{attr}='#{value}'"
+        attrs += " class='#{classAttr}'"
         if block then attrs += " data-view-block='#{block._id}'"
         if targets
           if !isTop && block then root.context.subviews[block._id] = true
@@ -86,10 +91,9 @@ choose a handlebars template.
               if isTop then attrs += " data-ids='#{settings.subviews.join ' '}'"
               html = "<span #{attrs}>'#{html}</span>"
             activateScripts node
-        else simpleRenderView key, template, data, block
+        else simpleRenderView attrs, key, template, data, block
 
-      simpleRenderView = (key, template, data, block)->
-        attrs = "class='view' data-view='#{key}'"
+      simpleRenderView = (attrs, key, template, data, block)->
         id = "view-#{viewIdCounter++}"
         pendingViews.push id
         attrs += " id='#{id}'"

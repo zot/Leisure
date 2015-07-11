@@ -196,8 +196,8 @@ that must be done regardless of the source of changes
           if isCss newBlock
             $('head').append "<style id='css-#{newBlock._id}'>#{blockSource newBlock}</style>"
         checkCodeChange: (oldBlock, newBlock, isDefault)->
-          differentName = oldBlock? != newBlock? || oldBlock.type != newBlock.type || oldBlock.codeName != newBlock.codeName
-          if oldBlock then delete @namedBlocks[newBlock.codeName]
+          differentName = oldBlock? != newBlock? || oldBlock.type != newBlock.type || oldBlock?.codeName != newBlock?.codeName
+          if oldBlock?.codeName then delete @namedBlocks[newBlock.codeName]
           if newBlock?.codeName then @namedBlocks[newBlock.codeName] = newBlock._id
         checkViewChange: (oldBlock, newBlock, isDefault)->
           removeView ov = blockViewType oldBlock
@@ -421,20 +421,25 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         renderMeat: (org)->
           result = ''
           while org
-            result += switch org
-              when org instanceof SimpleMarkup then @renderSimple org
-              else org.allText()
+            result += if org instanceof SimpleMarkup then @renderSimple org
+            else escapeHtml org.allText()
             org = org.next
           result
         renderSimple: (org)->
+          guts = ''
+          for c in org.children
+            guts += @renderMeat c, true
+          guts = "#{org.text[0]}#{guts}#{org.text[org.text.length - 1]}"
           switch org.type == 'simple' && org.markupType
-            when 'bold' then "<b>#{escapeHtml org.text}</b>"
-            when 'italic' then "<i>#{escapeHtml org.text}</i>"
-            when 'underline' then "<span style='text-decoration: underline'>#{escapeHtml org.text}</span>"
-            when 'strikethrough' then "<span style='text-decoration: line-through'>#{escapeHtml org.text}</span>"
-            when 'code' then "<code>#{escapeHtml org.text}</code>"
-            when 'verbatim' then "<code>#{escapeHtml org.text}</code>"
-            else org.allText()
+            when 'bold' then "<b>#{guts}</b>"
+            when 'italic' then "<i>#{guts}</i>"
+            when 'underline' then "<span style='text-decoration: underline'>#{guts}</span>"
+            when 'strikethrough' then "<span style='text-decoration: line-through'>#{guts}</span>"
+            when 'code' then "<code>#{guts}</code>"
+            when 'verbatim' then "<code>#{guts}</code>"
+            else escapeHtml org.allText()
+        renderSimpleChild: (org)->
+          if !org.children then escapeHtml org.text else @renderSimple org.children[0]
 
       hideSlide = (slideDom)->
         if editor = findEditor slideDom
@@ -495,6 +500,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         renderHeadline: (opts, block, prefix)->
           next = opts.data.nextRight(block)?._id
           viewName = if block.type == 'headline' && block.level == 1 && opts.isToggled block
+            UI.context.viewAttrs = _.merge {class: 'plain'}, UI.context.viewAttrs ? {}
             'leisure-headline-plain'
           else 'leisure-headline'
           if hasView viewName

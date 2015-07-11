@@ -1,7 +1,7 @@
 These are Leisure's default views
 
 #+BEGIN_SRC html :defview leisure-headline-plain
-{{> leisure-source-toggle}}{{{renderPlain this}}}
+{{> leisure-source-toggle}}{{{renderPlain this}}}</span>
 #+END_SRC
 #+BEGIN_SRC html :defview leisure-headline
 <div id='{{id}}' class='fancy'
@@ -69,6 +69,10 @@ data-org-type='results'
 #+BEGIN_SRC css
 .view[data-view='leisure-headline'] {
   display: block;
+}
+.plain.view [data-block],
+.plain.view [data-block] * {
+  white-space: pre;
 }
 .view [data-block],
 .view [data-block] * {
