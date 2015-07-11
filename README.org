@@ -1,5 +1,24 @@
 # Leisure
 
+* Getting started with changing the Leisure codebase
+** Fetch the repo
+** Make sure you have coffeescript installed
+- make sure node is installed
+- make sure coffeescript is installed
+  - npm install -g coffee-script
+** Have coffeescript compile in the background as you edit files
+- open a command prompt/terminal
+- change directories to the Leisure project
+- make coffeescript compile the files in src into build and watch them
+  - coffee -cmw -o build src
+** test using a chrome profile that allows local file access
+- put this into a shortcut/alias
+- run chrome with special chrome arguments
+   - --allow-file-access-from-files --user-data-dir=CHROME_DEVELOPMENT_DIR
+   - CHROME_DEVELOPMENT_DIR should start as an empty directory
+     - it will contain the settings, bookmarks, etc. for your Chrome Leisure development
+** Open the index.html file in the Leisure project in your special chrome instance
+* BELOW HERE IS THE OLD README, PRESERVED UNTIL WE GET THE NEW ONE FINISHED
 * Welcome to Leisure,
 
 Leisure is a purely functional, lazy, dynamically typed homoiconic

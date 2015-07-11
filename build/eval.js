@@ -18,6 +18,9 @@
     lc = Leisure_call;
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert;
     console.log(CS);
+    defaultEnv.write = function(str) {
+      return console.log(str);
+    };
     leisureEnv = function(env) {
       env.presentValue = function(v) {
         return rz(L_showHtml)(lz(v));

@@ -29,16 +29,17 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['lib/lazy'], function(Lazy) {
-    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseDrawer, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
+    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseDrawer, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
     _ = Lazy._;
     todoKeywords = ['TODO', 'DONE'];
     buildHeadlineRE = function() {
-      return new RegExp('^(\\*+) *(' + todoKeywords.join('|') + ')?(?: *(?:\\[#(A|B|C)\\]))?[^\\n]*?((?:[\\w@%#]*:[\\w@%#:]*)? *)$', 'm');
+      return new RegExp("^(\\*+ *)((?:" + (todoKeywords.join('|')) + ") *)?(\\[#(A|B|C)\\] *)?([^\\n]*?)(:[\\w@%#:]*: *)?$", 'm');
     };
     HL_LEVEL = 1;
     HL_TODO = 2;
-    HL_PRIORITY = 3;
-    HL_TAGS = 4;
+    HL_PRIORITY = 4;
+    HL_TEXT = 5;
+    HL_TAGS = 6;
     headlineRE = buildHeadlineRE();
     todoRE = /^(\*+) *(TODO|DONE)/;
     tagsRE = /:[^:]*/;
@@ -88,7 +89,7 @@ misrepresented as being the original software.
         return false;
       } else {
         return checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, attrHtmlRE, 'attr') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
-          return "headline-" + m[HL_LEVEL].length;
+          return "headline-" + (m[HL_LEVEL].trim().length);
         }) || checkMatch(txt, listRE, 'list') || checkMatch(txt, htmlStartRE, 'htmlStart') || checkMatch(txt, htmlEndRE, 'htmlEnd');
       }
     };
@@ -444,6 +445,39 @@ misrepresented as being the original software.
           results.push(k);
         }
         return results;
+      };
+
+      Headline.prototype.parts = function() {
+        var m, ref, ref1, ref2, ref3, ref4;
+        m = this.text.match(headlineRE);
+        return {
+          level: ((ref = m[HL_LEVEL]) != null ? ref : '').trim().length,
+          stars: (ref1 = m[HL_LEVEL]) != null ? ref1 : '',
+          todo: (ref2 = m[HL_TODO]) != null ? ref2 : '',
+          priority: (ref3 = m[HL_PRIORITY]) != null ? ref3 : '',
+          text: m[HL_TEXT],
+          tags: (ref4 = m[HL_TAGS]) != null ? ref4 : ''
+        };
+      };
+
+      Headline.prototype.partOffsets = function() {
+        var addPart, m, pos, ref, ref1, ref2, ref3, ret;
+        m = this.text.match(headlineRE);
+        pos = 0;
+        ret = {};
+        addPart = function(name, text) {
+          ret[name] = {
+            start: pos,
+            end: pos + text.length
+          };
+          return pos += text.length;
+        };
+        addPart('stars', (ref = m[HL_LEVEL]) != null ? ref : '');
+        addPart('todo', (ref1 = m[HL_TODO]) != null ? ref1 : '');
+        addPart('priority', (ref2 = m[HL_PRIORITY]) != null ? ref2 : '');
+        addPart('text', m[HL_TEXT]);
+        addPart('tags', (ref3 = m[HL_TAGS]) != null ? ref3 : '');
+        return ret;
       };
 
       return Headline;
@@ -1182,11 +1216,11 @@ misrepresented as being the original software.
         m = text.match(headlineRE);
         simple = ((ref = text.match(simpleRE)) != null ? ref.index : void 0) === 0;
         if ((m != null ? m.index : void 0) === 0 && !simple) {
-          if (m[HL_LEVEL].length <= level) {
+          if (m[HL_LEVEL].trim().length <= level) {
             return [null, text];
           } else {
             line = fullLine(m, text);
-            return parseHeadline(line, offset, m[HL_LEVEL].length, m[HL_TODO], m[HL_PRIORITY], m[HL_TAGS], text.substring(line.length), offset + text.length);
+            return parseHeadline(line, offset, m[HL_LEVEL].trim().length, m[HL_TODO], m[HL_PRIORITY], m[HL_TAGS], text.substring(line.length), offset + text.length);
           }
         } else {
           if ((m != null ? m.index : void 0) === 0 && simple && (l = text.indexOf('\n')) > -1 && (m = text.substring(l).match(headlineRE))) {
@@ -1393,6 +1427,7 @@ misrepresented as being the original software.
     markupText = function(text) {};
     return {
       parseOrgMode: parseOrgMode,
+      parseMeat: parseMeat,
       Node: Node,
       Headline: Headline,
       Fragment: Fragment,
@@ -1408,6 +1443,10 @@ misrepresented as being the original software.
       Drawer: Drawer,
       drawerRE: drawerRE,
       headlineRE: headlineRE,
+      HL_LEVEL: HL_LEVEL,
+      HL_TODO: HL_TODO,
+      HL_PRIORITY: HL_PRIORITY,
+      HL_TEXT: HL_TEXT,
       HL_TAGS: HL_TAGS,
       parseTags: parseTags,
       matchLine: matchLine,

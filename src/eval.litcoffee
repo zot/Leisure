@@ -35,6 +35,8 @@ Evaulation support for Leisure
 
       console.log CS
 
+      defaultEnv.write = (str)-> console.log str
+
       leisureEnv = (env)->
         env.presentValue = (v)-> rz(L_showHtml) lz v
         env.executeText = (text, props, cont)->

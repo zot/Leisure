@@ -39,11 +39,12 @@ define ['lib/lazy'], (Lazy)->
   todoKeywords = ['TODO', 'DONE']
   
   buildHeadlineRE = ->
-    new RegExp '^(\\*+) *(' + todoKeywords.join('|') + ')?(?: *(?:\\[#(A|B|C)\\]))?[^\\n]*?((?:[\\w@%#]*:[\\w@%#:]*)? *)$', 'm'
+    new RegExp "^(\\*+ *)((?:#{todoKeywords.join('|')}) *)?(\\[#(A|B|C)\\] *)?([^\\n]*?)(:[\\w@%#:]*: *)?$", 'm'
   HL_LEVEL = 1
   HL_TODO = 2
-  HL_PRIORITY = 3
-  HL_TAGS = 4
+  HL_PRIORITY = 4
+  HL_TEXT = 5
+  HL_TAGS = 6
   headlineRE = buildHeadlineRE()
   todoRE = /^(\*+) *(TODO|DONE)/
   tagsRE = /:[^:]*/
@@ -86,7 +87,7 @@ define ['lib/lazy'], (Lazy)->
   attrHtmlRE = /^#\+(ATTR_HTML): *$/im
   attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i
   imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i
-  leisurePathRE = /^leisure:([^/]*)\/?(.*)$/
+  leisurePathRE = /^leisure:([^\/]*)\/?(.*)$/
   keywordPropertyRE = /:([^ ]+)/
   
   matchLine = (txt)->
@@ -97,7 +98,7 @@ define ['lib/lazy'], (Lazy)->
       checkMatch(txt, resultsRE, 'results') ||
       checkMatch(txt, attrHtmlRE, 'attr') ||
       checkMatch(txt, keywordRE, 'keyword') ||
-      checkMatch(txt, headlineRE, (m)-> "headline-#{m[HL_LEVEL].length}") ||
+      checkMatch(txt, headlineRE, (m)-> "headline-#{m[HL_LEVEL].trim().length}") ||
       checkMatch(txt, listRE, 'list') ||
       checkMatch(txt, htmlStartRE, 'htmlStart') ||
       checkMatch(txt, htmlEndRE, 'htmlEnd')
@@ -230,7 +231,28 @@ define ['lib/lazy'], (Lazy)->
     addAllTags: -> @addTags @parent?.addAllTags() || {}
     allProperties: -> @addProperties @parent?.allProperties() || {}
     allTags: -> k for k of @addAllTags()
-  
+    parts: ->
+      m = @text.match headlineRE
+      level: (m[HL_LEVEL] ? '').trim().length
+      stars: m[HL_LEVEL] ? ''
+      todo: m[HL_TODO] ? ''
+      priority: m[HL_PRIORITY] ? ''
+      text: m[HL_TEXT]
+      tags: m[HL_TAGS] ? ''
+    partOffsets: ->
+      m = @text.match headlineRE
+      pos = 0
+      ret = {}
+      addPart = (name, text)->
+        ret[name] = start: pos, end: pos + text.length
+        pos += text.length
+      addPart 'stars', m[HL_LEVEL] ? ''
+      addPart 'todo', m[HL_TODO] ? ''
+      addPart 'priority', m[HL_PRIORITY] ? ''
+      addPart 'text', m[HL_TEXT]
+      addPart 'tags', m[HL_TAGS] ? ''
+      ret
+
   class Fragment extends Node
     constructor: (@offset, @children)-> @text = ''
     count: ->
@@ -529,10 +551,10 @@ define ['lib/lazy'], (Lazy)->
       m = text.match headlineRE
       simple = text.match(simpleRE)?.index == 0
       if m?.index == 0 && !simple
-        if m[HL_LEVEL].length <= level then [null, text]
+        if m[HL_LEVEL].trim().length <= level then [null, text]
         else
           line = fullLine m, text
-          parseHeadline line, offset, m[HL_LEVEL].length, m[HL_TODO], m[HL_PRIORITY], m[HL_TAGS], text.substring(line.length), offset + text.length
+          parseHeadline line, offset, m[HL_LEVEL].trim().length, m[HL_TODO], m[HL_PRIORITY], m[HL_TAGS], text.substring(line.length), offset + text.length
       else
         if m?.index == 0 && simple && (l = text.indexOf '\n') > -1 && (m = text.substring(l).match headlineRE)
           meatLen = m.index + l
@@ -675,6 +697,7 @@ define ['lib/lazy'], (Lazy)->
 
   {
     parseOrgMode
+    parseMeat
     Node
     Headline
     Fragment
@@ -690,6 +713,10 @@ define ['lib/lazy'], (Lazy)->
     Drawer
     drawerRE
     headlineRE
+    HL_LEVEL
+    HL_TODO
+    HL_PRIORITY
+    HL_TEXT
     HL_TAGS
     parseTags
     matchLine

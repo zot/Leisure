@@ -1,12 +1,24 @@
 These are Leisure's default views
 
+#+BEGIN_SRC html :defview leisure-headline-plain
+{{> leisure-source-toggle}}{{{renderPlain this}}}
+#+END_SRC
 #+BEGIN_SRC html :defview leisure-headline
 <div id='{{id}}' class='fancy'
 data-edit-mode='fancy'
-data-block='headline'><span class='hidden'>{{stars}}</span><div class='maintext'>{{maintext}}{{
+data-block='headline'
+data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{maintext}}{{
 EOL}}</div>{{#each children}}{{{
 render this
 }}}{{/each}}</div>
+#+END_SRC
+#+BEGIN_SRC html :defview leisure-source-toggle
+{{#if topLevel}}<button class='toggle_edit' contenteditable='false'><i class="fa fa-glass"></i></button>{{/if}}
+#+END_SRC
+#+BEGIN_SRC cs :control leisure-source-toggle
+@initializeView = (view)->
+  if (slide = view.closest('[data-headline]')).is('[data-headline="1"]') || (slide = view.parent().filter("[data-view='leisure-headline-plain']").find('[data-headline="1"]')).length
+    view.find('button.toggle_edit').on 'click', -> Leisure.toggleSlideMode slide
 #+END_SRC
 #+BEGIN_SRC html :defview leisure-chunk
 <span id='{{id}}' class='fancy' data-block='chunk'>{{{text}}}</span>
@@ -53,10 +65,6 @@ contenteditable='true'><span class='hidden'>{{sourceHeader this}}</span>{{conten
 data-org-results='{{block.codeAttributes.results}}'
 data-org-type='results'
 ><span class='hidden'>{{resultsHeader this}}</span>{{{resultsContents this}}}</span>
-#+END_SRC
-#+BEGIN_SRC cs :control leisure-code-results/js
-@initializeView = (view)->
-  console.log "initailizing leisure-code-results/js view", view
 #+END_SRC
 #+BEGIN_SRC css
 .view[data-view='leisure-headline'] {

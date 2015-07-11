@@ -3,19 +3,18 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars) {
-    var DataStore, DataStoreEditingOptions, Fragment, HEADLINE_MAINTEXT, HEADLINE_STARS, Headline, Html, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockEnvMaker, blockOrg, blockSource, blockText, blockViewType, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, monitorSelectionChange, orgDoc, parseOrgMode, plainEditDiv, plainMode, posFor, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, throttledUpdateSelection, updateSelection, withContext, workSpan;
+  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports) {
+    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockEnvMaker, blockOrg, blockSource, blockText, blockViewType, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, hideSlide, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, throttledUpdateSelection, toggleSlideMode, updateSelection, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
-    parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Nil = Org.Nil;
+    parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html;
-    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock;
+    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
+    mergeExports = BrowserExports.mergeExports;
     selectionActive = true;
     headlineRE = /^(\*+ *)(.*)(\n)$/;
-    HEADLINE_STARS = 1;
-    HEADLINE_MAINTEXT = 2;
     defaults = {
       views: {},
       controls: {}
@@ -36,7 +35,8 @@
       extend(OrgData, superClass);
 
       function OrgData() {
-        return OrgData.__super__.constructor.apply(this, arguments);
+        DataStore.apply(this, arguments);
+        this.namedBlocks = {};
       }
 
       OrgData.prototype.getBlock = function(thing, changes) {
@@ -242,7 +242,16 @@
         }
       };
 
-      OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {};
+      OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
+        var differentName;
+        differentName = (oldBlock != null) !== (newBlock != null) || oldBlock.type !== newBlock.type || oldBlock.codeName !== newBlock.codeName;
+        if (oldBlock) {
+          delete this.namedBlocks[newBlock.codeName];
+        }
+        if (newBlock != null ? newBlock.codeName : void 0) {
+          return this.namedBlocks[newBlock.codeName] = newBlock._id;
+        }
+      };
 
       OrgData.prototype.checkViewChange = function(oldBlock, newBlock, isDefault) {
         var ov, source, view, vt;
@@ -272,6 +281,7 @@
             env["eval"] = function(text) {
               return controllerEval.call(controller, text);
             };
+            env.write = function(str) {};
             env.errorAt = function(offset, msg) {
               return console.log(msg);
             };
@@ -345,7 +355,41 @@
         });
         this.setPrefix('leisureBlock-');
         this.setMode(plainMode);
+        this.hiddenSlides = {};
+        this.toggledSlides = {};
       }
+
+      OrgEditing.prototype.toggleSlide = function(id) {
+        if (this.toggledSlides[id]) {
+          return delete this.toggledSlides[id];
+        } else {
+          return this.toggledSlides[id] = true;
+        }
+      };
+
+      OrgEditing.prototype.isToggled = function(thing) {
+        return thing && (this.toggledSlides[typeof thing === 'string' ? thing : thing._id] || this.isToggled(this.data.parent(thing)));
+      };
+
+      OrgEditing.prototype.removeToggles = function() {
+        return this.toggledSlides = {};
+      };
+
+      OrgEditing.prototype.hideSlide = function(id) {
+        return this.hiddenSlides[id] = true;
+      };
+
+      OrgEditing.prototype.showSlide = function(id) {
+        return delete this.hiddenSlides[id];
+      };
+
+      OrgEditing.prototype.showAllSlides = function() {
+        return this.hiddenSlides = {};
+      };
+
+      OrgEditing.prototype.isHidden = function(thing) {
+        return thing && (this.hiddenSlides[typeof thing === 'string' ? thing : thing._id] || this.isHidden(this.data.parent(thing)));
+      };
 
       OrgEditing.prototype.setEditor = function(ed) {
         OrgEditing.__super__.setEditor.call(this, ed);
@@ -380,7 +424,11 @@
       };
 
       OrgEditing.prototype.renderBlock = function(block) {
-        return this.mode.render(this.data, block, this.idPrefix);
+        if (!(this.isHidden(block))) {
+          return this.mode.render(this, block, this.idPrefix);
+        } else {
+          return ['', block.next];
+        }
       };
 
       OrgEditing.prototype.change = function(changes) {
@@ -529,28 +577,110 @@
     };
     plainMode = {
       name: 'plain',
-      render: function(data, block, prefix) {
-        var error, pos, ref, ref1, ref2, ref3, results, source, text;
+      render: function(opts, block, prefix) {
+        var attrs, error, pos, ref, ref1, ref2, ref3, results, source, text;
         ref = blockCodeItems(this, block), source = ref.source, error = ref.error, results = ref.results;
-        text = "<span id='" + prefix + block._id + "' data-block='" + block.type + "'>";
+        attrs = "id='" + prefix + block._id + "' data-block='" + block.type + "'";
+        if (block.type === 'headline') {
+          attrs += " data-headline='" + block.level + "'";
+        }
+        text = "<span " + attrs + ">";
         if (!results && !error) {
-          text += "" + (escapeHtml(block.text));
+          text += this.renderMainBlock(block);
         } else {
           if (!error) {
-            text += block.text.substring(0, (ref1 = results != null ? results.offset : void 0) != null ? ref1 : block.text.length);
+            text += this.renderMainText(block.text.substring(0, (ref1 = results != null ? results.offset : void 0) != null ? ref1 : block.text.length));
           } else {
             pos = source.offset + source.contentPos + Number(error.info.match(/([^,]*),/)[1]) - 1;
             text += escapeHtml(block.text.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, (ref2 = results != null ? results.offset : void 0) != null ? ref2 : block.text.length));
           }
           if (results != null) {
-            text += "" + ((ref3 = results != null ? results.text : void 0) != null ? ref3 : '') + (escapeHtml(block.text.substring(results.offset + results.text.length)));
+            text += "" + (escapeHtml((ref3 = results != null ? results.text : void 0) != null ? ref3 : '')) + (escapeHtml(block.text.substring(results.offset + results.text.length)));
           }
         }
         return [text + "</span>", block.next];
+      },
+      renderMainBlock: function(block) {
+        var text, txt;
+        txt = block.text;
+        if (block.type === 'headline') {
+          text = parseOrgMode(block.text).children[0].partOffsets().text;
+          return "<span class='plain-headline'>" + (escapeHtml(txt.substring(0, text.start))) + (this.renderMainText(txt.substring(text.start, text.end))) + (escapeHtml(txt.substring(text.end))) + "</span>";
+        } else {
+          return this.renderMainText(block.text);
+        }
+      },
+      renderMainText: function(txt) {
+        return this.renderMeat(parseMeat(txt, 0, '', true)[0]);
+      },
+      renderMeat: function(org) {
+        var result;
+        result = '';
+        while (org) {
+          result += (function() {
+            switch (org) {
+              case org instanceof SimpleMarkup:
+                return this.renderSimple(org);
+              default:
+                return org.allText();
+            }
+          }).call(this);
+          org = org.next;
+        }
+        return result;
+      },
+      renderSimple: function(org) {
+        switch (org.type === 'simple' && org.markupType) {
+          case 'bold':
+            return "<b>" + org.text + "</b>";
+          case 'italic':
+            return "<i>" + org.text + "</i>";
+          case 'underline':
+            return "<span style='text-decoration: underline'>" + org.text + "</span>";
+          case 'strikethrough':
+            return "<span style='text-decoration: line-through'>" + org.text + "</span>";
+          case 'code':
+            return "<code>" + org.text + "</code>";
+          case 'verbatim':
+            return "<code>" + org.text + "</code>";
+          default:
+            return org.allText();
+        }
+      }
+    };
+    hideSlide = function(slideDom) {
+      var editor;
+      if (editor = findEditor(slideDom)) {
+        editor.options.hideSlide(slideDom[0].id);
+        return slideDom.remove();
+      }
+    };
+    toggleSlideMode = function(slideDom) {
+      var block, blockHtml, opts, ref;
+      if (opts = (ref = findEditor(slideDom)) != null ? ref.options : void 0) {
+        block = opts.getBlock(opts.idForNode(slideDom[0]));
+        opts.toggleSlide(block._id);
+        blockHtml = opts.renderBlock(opts.getBlock(block))[0];
+        preserveSelection(function() {
+          return slideDom.closest('[data-view]').replaceWith($(blockHtml));
+        });
+        return initializePendingViews();
       }
     };
     Handlebars.registerHelper('render', function(block) {
-      return fancyMode.render(UI.context.data, block, UI.context.prefix)[0];
+      return fancyMode.render(UI.context.opts, block, UI.context.prefix)[0];
+    });
+    Handlebars.registerHelper('renderPlain', function(data) {
+      var block, end, next, plainText, ref, text;
+      text = '';
+      block = UI.context.opts.data.getBlock(data.blockId);
+      end = UI.context.opts.data.nextRight(block);
+      while (block && block._id !== end) {
+        ref = plainMode.render(UI.context.opts, block, UI.context.prefix), plainText = ref[0], next = ref[1];
+        text += plainText;
+        block = UI.context.opts.data.getBlock(next);
+      }
+      return text;
     });
     Handlebars.registerHelper('sourceHeader', function(src) {
       return src.text.substring(0, src.contentPos);
@@ -572,22 +702,22 @@
     });
     fancyMode = {
       name: 'fancy',
-      render: function(data, block, prefix) {
+      render: function(opts, block, prefix) {
         return mergeContext({}, (function(_this) {
           return function() {
             var ref;
-            UI.context.data = data;
+            UI.context.opts = opts;
             UI.context.prefix = prefix;
             if (!block || ((ref = block.properties) != null ? ref.hidden : void 0)) {
-              return ['', data.nextRight(block)];
+              return ['', opts.data.nextRight(block)];
             } else if (block.type === 'headline') {
-              return _this.renderHeadline(data, block, prefix);
+              return _this.renderHeadline(opts, block, prefix);
             } else if (block.type === 'chunk') {
-              return _this.renderChunk(data, block, prefix);
+              return _this.renderChunk(opts, block, prefix);
             } else if (block.type === 'code') {
-              return _this.renderCode(data, block, prefix);
+              return _this.renderCode(opts, block, prefix);
             } else {
-              return plainMode.render(data, block, prefix);
+              return plainMode.render(opts, block, prefix);
             }
           };
         })(this));
@@ -595,46 +725,49 @@
       renderView: function(type, ctx, next, data) {
         return [renderView(type, ctx, data), next];
       },
-      renderHeadline: function(data, block, prefix) {
-        var id, m, next, nextText, ref, ref1, text;
-        next = (ref = data.nextRight(block)) != null ? ref._id : void 0;
-        if (hasView('leisure-headline')) {
+      renderHeadline: function(opts, block, prefix) {
+        var id, m, next, nextText, ref, ref1, text, viewName;
+        next = (ref = opts.data.nextRight(block)) != null ? ref._id : void 0;
+        viewName = block.type === 'headline' && block.level === 1 && opts.isToggled(block) ? 'leisure-headline-plain' : 'leisure-headline';
+        if (hasView(viewName)) {
           m = block.text.match(headlineRE);
-          console.log("headline view: " + block.text);
-          return this.renderView('leisure-headline', null, next, {
+          return this.renderView(viewName, null, next, {
             id: prefix + block._id,
+            blockId: block._id,
             EOL: '\n',
-            stars: m[HEADLINE_STARS],
-            maintext: m[HEADLINE_MAINTEXT],
-            children: data.children(block)
+            topLevel: block.level === 1,
+            level: block.level,
+            stars: m[HL_LEVEL].trim(),
+            maintext: block.text.substring(m[HL_LEVEL].length),
+            children: opts.data.children(block)
           });
         } else {
           text = "<span id='" + prefix + block._id + "' data-block='" + block.type + "'>";
           text += escapeHtml(block.text);
           id = block.next;
           while (id && id !== next) {
-            ref1 = this.render(data, data.getBlock(id), prefix), nextText = ref1[0], id = ref1[1];
+            ref1 = this.render(opts, opts.data.getBlock(id), prefix), nextText = ref1[0], id = ref1[1];
             text += nextText;
           }
           return [text + "</span>", next];
         }
       },
-      renderChunk: function(data, block, prefix) {
+      renderChunk: function(opts, block, prefix) {
         if (hasView('leisure-chunk')) {
           return this.renderView('leisure-chunk', null, block.next, {
             id: prefix + block._id,
-            text: this.renderOrg(blockOrg(data, block)),
+            text: this.renderOrg(blockOrg(opts.data, block)),
             EOL: '\n'
           });
         } else {
-          return this.renderOrgBlock(data, block, prefix);
+          return this.renderOrgBlock(opts, block, prefix);
         }
       },
-      renderCode: function(data, block, prefix) {
+      renderCode: function(opts, block, prefix) {
         var org, ref, ref1, ref2, results, source, viewKey;
         viewKey = "leisure-code";
         if (hasView(viewKey, block.language)) {
-          org = blockOrg(data, block);
+          org = blockOrg(opts.data, block);
           ref2 = getCodeItems((ref = (ref1 = org.children) != null ? ref1[0] : void 0) != null ? ref : org), source = ref2.source, results = ref2.results;
           return this.renderView(viewKey, block.language, block.next, {
             id: prefix + block._id,
@@ -649,12 +782,12 @@
             resultsContent: results ? resultsArea(results.text.substring(results.contentPos)) : ''
           });
         } else {
-          return plainMode.render(data, block, prefix);
+          return plainMode.render(opts, block, prefix);
         }
       },
-      renderOrgBlock: function(data, block, prefix) {
+      renderOrgBlock: function(opts, block, prefix) {
         var text;
-        text = this.renderOrg(blockOrg(data, block));
+        text = this.renderOrg(blockOrg(opts.data, block));
         return ["<span id='" + block._id + "'>" + text + "</span>", block.next];
       },
       renderCodeOrg: function(language, org, block) {
@@ -715,6 +848,27 @@
           }).call(this)).join('');
         } else {
           return org.allText();
+        }
+      },
+      renderLink: function(org) {
+        var c, desc, guts, j, leisureMatch, len, ref, title;
+        if (false && (leisureMatch = org.isLeisure())) {
+
+        } else if (org.isImage()) {
+          title = ((desc = org.descriptionText()) ? " title='" + (escapeHtml(desc)) + "'" : "");
+          return "<img src='" + (escapeHtml(org.path)) + "'" + title + "><span class='hidden'>" + (escapeHtml(org.allText())) + "</span>";
+        } else {
+          guts = this.renderMeat;
+          ref = org.children;
+          for (j = 0, len = ref.length; j < len; j++) {
+            c = ref[j];
+            guts += this.renderMeat(c, true);
+          }
+          if (!guts) {
+            return "<span class='hidden'>[[</span><a onclick='Leisure.followLink(event)' href='" + org.path + "'>" + org.path + "</a><span class='hidden'>]]</span>";
+          } else {
+            return "<span class='hidden'>[[" + org.path + "][</span><a onclick='Leisure.followLink(event)' href='" + org.path + "'>" + guts + "</a><span class='hidden'>]]</span>";
+          }
         }
       },
       renderSimple: function(org) {
@@ -833,6 +987,15 @@
     isContentEditable = function(node) {
       return (node instanceof Element ? node : node.parentElement).isContentEditable;
     };
+    followLink = function(e) {
+      return console.log("Click link", e);
+    };
+    mergeExports({
+      findEditor: findEditor,
+      hideSlide: hideSlide,
+      toggleSlideMode: toggleSlideMode,
+      followLink: followLink
+    });
     return {
       createLocalData: createLocalData,
       plainEditDiv: plainEditDiv,

@@ -3,18 +3,25 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars)->
+    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports)->
 
       {
         defaultEnv
       } = Base
       {
         parseOrgMode
+        parseMeat
         Fragment
         Headline
         SimpleMarkup
         Link
         Nil
+        headlineRE
+        HL_LEVEL
+        HL_TODO
+        HL_PRIORITY
+        HL_TEXT
+        HL_TAGS
       } = Org
       {
         orgDoc
@@ -42,6 +49,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         setHtml
         findEditor
         copyBlock
+        preserveSelection
       } = Editor
       {
         addView
@@ -54,11 +62,12 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         mergeContext
         initializePendingViews
       } = UI
+      {
+        mergeExports
+      } = BrowserExports
 
       selectionActive = true
       headlineRE = /^(\*+ *)(.*)(\n)$/
-      HEADLINE_STARS = 1
-      HEADLINE_MAINTEXT = 2
       defaults =
         views: {}
         controls: {}
@@ -79,6 +88,9 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
 `OrgData` -- a DataStore that supports block-structured org file data.  Each block has type 'headline', 'code', or 'chunk'.  Blocks use nextSibling and previousSibling ids to indicate the tree structure of the org document (there are no direct parent/child links).
 
       class OrgData extends DataStore
+        constructor: ->
+          DataStore.apply this, arguments
+          @namedBlocks = {}
         getBlock: (thing, changes)->
           if typeof thing == 'string' then changes?.sets[thing] ? super(thing) else thing
 
@@ -184,6 +196,9 @@ that must be done regardless of the source of changes
           if isCss newBlock
             $('head').append "<style id='css-#{newBlock._id}'>#{blockSource newBlock}</style>"
         checkCodeChange: (oldBlock, newBlock, isDefault)->
+          differentName = oldBlock? != newBlock? || oldBlock.type != newBlock.type || oldBlock.codeName != newBlock.codeName
+          if oldBlock then delete @namedBlocks[newBlock.codeName]
+          if newBlock?.codeName then @namedBlocks[newBlock.codeName] = newBlock._id
         checkViewChange: (oldBlock, newBlock, isDefault)->
           removeView ov = blockViewType oldBlock
           if vt = blockViewType newBlock
@@ -199,6 +214,7 @@ that must be done regardless of the source of changes
               controller = {}
               addController vt, null, controller
               env.eval = (text)-> controllerEval.call controller, text
+              env.write = (str)->
               env.errorAt = (offset, msg)-> console.log msg
               env.executeText blockSource(newBlock), Nil, (->)
 
@@ -244,6 +260,19 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           data.on 'change', -> initializePendingViews()
           @setPrefix 'leisureBlock-'
           @setMode plainMode
+          @hiddenSlides = {}
+          @toggledSlides = {}
+        toggleSlide: (id)->
+          if @toggledSlides[id] then delete @toggledSlides[id]
+          else @toggledSlides[id] = true
+        isToggled: (thing)->
+          thing && (@toggledSlides[if typeof thing == 'string' then thing else thing._id] || @isToggled @data.parent thing)
+        removeToggles: -> @toggledSlides = {}
+        hideSlide: (id)-> @hiddenSlides[id] = true
+        showSlide: (id)-> delete @hiddenSlides[id]
+        showAllSlides: -> @hiddenSlides = {}
+        isHidden: (thing)->
+          thing && (@hiddenSlides[if typeof thing == 'string' then thing else thing._id] || @isHidden @data.parent thing)
         setEditor: (ed)->
           super ed
           @setMode @mode
@@ -256,7 +285,9 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         nodeForId: (id)-> $("##{@idPrefix}#{id}")
         idForNode: (node)-> node.id.match(@idPattern)?[1]
         parseBlocks: (text)-> @data.parseBlocks text
-        renderBlock: (block)-> @mode.render @data, block, @idPrefix
+        renderBlock: (block)->
+          if !(@isHidden block) then @mode.render this, block, @idPrefix
+          else ['', block.next]
 
 `change(changes)` -- about to change the data; compute some effects immediately.
 
@@ -366,20 +397,70 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
 
       plainMode =
         name: 'plain'
-        render: (data, block, prefix)->
+        render: (opts, block, prefix)->
           {source, error, results} = blockCodeItems this, block
-          text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
-          if !results && !error then text += "#{escapeHtml block.text}"
+          attrs = "id='#{prefix}#{block._id}' data-block='#{block.type}'"
+          if block.type == 'headline' then attrs += " data-headline='#{block.level}'"
+          text = "<span #{attrs}>"
+          #if !results && !error then text += "#{escapeHtml block.text}"
+          if !results && !error then text += @renderMainBlock block
           else
-            if !error then text += block.text.substring(0, results?.offset ? block.text.length)
+            if !error then text += @renderMainText block.text.substring(0, results?.offset ? block.text.length)
             else
               pos = source.offset + source.contentPos + Number(error.info.match(/([^,]*),/)[1]) - 1
               text += escapeHtml(block.text.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, results?.offset ? block.text.length))
-            if results? then text += "#{results?.text ? ''}#{escapeHtml block.text.substring(results.offset + results.text.length)}"
+            if results? then text += "#{escapeHtml results?.text ? ''}#{escapeHtml block.text.substring(results.offset + results.text.length)}"
           [text + "</span>", block.next]
+        renderMainBlock: (block)->
+          txt = block.text
+          if block.type == 'headline'
+            {text} = parseOrgMode(block.text).children[0].partOffsets()
+            "<span class='plain-headline'>#{escapeHtml txt.substring 0, text.start}#{@renderMainText txt.substring(text.start, text.end)}#{escapeHtml txt.substring text.end}</span>"
+          else @renderMainText block.text
+        renderMainText: (txt)-> @renderMeat parseMeat(txt, 0, '', true)[0]
+        renderMeat: (org)->
+          result = ''
+          while org
+            result += switch org
+              when org instanceof SimpleMarkup then @renderSimple org
+              else org.allText()
+            org = org.next
+          result
+        renderSimple: (org)->
+          switch org.type == 'simple' && org.markupType
+            when 'bold' then "<b>#{org.text}</b>"
+            when 'italic' then "<i>#{org.text}</i>"
+            when 'underline' then "<span style='text-decoration: underline'>#{org.text}</span>"
+            when 'strikethrough' then "<span style='text-decoration: line-through'>#{org.text}</span>"
+            when 'code' then "<code>#{org.text}</code>"
+            when 'verbatim' then "<code>#{org.text}</code>"
+            else org.allText()
+
+      hideSlide = (slideDom)->
+        if editor = findEditor slideDom
+          editor.options.hideSlide slideDom[0].id
+          slideDom.remove()
+
+      toggleSlideMode = (slideDom)->
+        if opts = findEditor(slideDom)?.options
+          block = opts.getBlock opts.idForNode slideDom[0]
+          opts.toggleSlide block._id
+          blockHtml = opts.renderBlock(opts.getBlock block)[0]
+          preserveSelection -> slideDom.closest('[data-view]').replaceWith $(blockHtml)
+          initializePendingViews()
 
       Handlebars.registerHelper 'render', (block)->
-        fancyMode.render(UI.context.data, block, UI.context.prefix)[0]
+        fancyMode.render(UI.context.opts, block, UI.context.prefix)[0]
+
+      Handlebars.registerHelper 'renderPlain', (data)->
+        text = ''
+        block = UI.context.opts.data.getBlock data.blockId
+        end = UI.context.opts.data.nextRight block
+        while block && block._id != end
+          [plainText, next] = plainMode.render UI.context.opts, block, UI.context.prefix
+          text += plainText
+          block = UI.context.opts.data.getBlock next
+        text
 
       Handlebars.registerHelper 'sourceHeader', (src)->
         src.text.substring 0, src.contentPos
@@ -401,47 +482,54 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
 
       fancyMode =
         name: 'fancy'
-        render: (data, block, prefix)->
+        render: (opts, block, prefix)->
           mergeContext {}, =>
-            UI.context.data = data
+            UI.context.opts = opts
             UI.context.prefix = prefix
-            if !block || block.properties?.hidden then ['', data.nextRight block]
-            else if block.type == 'headline' then @renderHeadline data, block, prefix
-            else if block.type == 'chunk' then @renderChunk data, block, prefix
-            else if block.type == 'code' then @renderCode data, block, prefix
-            else plainMode.render data, block, prefix
+            if !block || block.properties?.hidden then ['', opts.data.nextRight block]
+            else if block.type == 'headline' then @renderHeadline opts, block, prefix
+            else if block.type == 'chunk' then @renderChunk opts, block, prefix
+            else if block.type == 'code' then @renderCode opts, block, prefix
+            else plainMode.render opts, block, prefix
         renderView: (type, ctx, next, data)-> [renderView(type, ctx, data), next]
-        renderHeadline: (data, block, prefix)->
-          next = data.nextRight(block)?._id
-          if hasView 'leisure-headline'
+        renderHeadline: (opts, block, prefix)->
+          next = opts.data.nextRight(block)?._id
+          viewName = if block.type == 'headline' && block.level == 1 && opts.isToggled block
+            'leisure-headline-plain'
+          else 'leisure-headline'
+          if hasView viewName
             m = block.text.match headlineRE
-            console.log "headline view: #{block.text}"
-            @renderView 'leisure-headline', null, next,
+            #console.log "headline view: #{block.text}"
+            @renderView viewName, null, next,
               id: prefix + block._id
+              blockId: block._id
               EOL: '\n'
-              stars: m[HEADLINE_STARS]
-              maintext: m[HEADLINE_MAINTEXT]
-              children: data.children block
+              topLevel: block.level == 1
+              level: block.level
+              stars: m[HL_LEVEL].trim()
+              maintext: block.text.substring m[HL_LEVEL].length
+              children: opts.data.children block
           else
             text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
             text += escapeHtml block.text
             id = block.next
             while id && id != next
-              [nextText, id] = @render data, data.getBlock(id), prefix
+              [nextText, id] = @render opts, opts.data.getBlock(id), prefix
               text += nextText
             [text + "</span>", next]
-        renderChunk: (data, block, prefix)->
+        renderChunk: (opts, block, prefix)->
           if hasView 'leisure-chunk'
             @renderView 'leisure-chunk', null, block.next,
               id: prefix + block._id
-              text: @renderOrg blockOrg data, block
+              text: @renderOrg blockOrg opts.data, block
               EOL: '\n'
-          else @renderOrgBlock data, block, prefix
-        renderCode: (data, block, prefix)->
+          else @renderOrgBlock opts, block, prefix
+        renderCode: (opts, block, prefix)->
           viewKey = "leisure-code"
           if hasView viewKey, block.language
-            org = blockOrg data, block
+            org = blockOrg opts.data, block
             {source, results} = getCodeItems org.children?[0] ? org
+            # this argument object to renderView is total overkill
             @renderView viewKey, block.language, block.next,
               id: prefix + block._id
               language: block.language
@@ -453,9 +541,9 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
               results: if results then resultsArea block.text.substring results.offset, results.end() else ''
               resultsContent: if results then resultsArea results.text.substring results.contentPos else ''
-          else plainMode.render data, block, prefix
-        renderOrgBlock: (data, block, prefix)->
-          text = @renderOrg blockOrg data, block
+          else plainMode.render opts, block, prefix
+        renderOrgBlock: (opts, block, prefix)->
+          text = @renderOrg blockOrg opts.data, block
           ["<span id='#{block._id}'>#{text}</span>", block.next]
         renderCodeOrg: (language, org, block)->
           {name, source, error, results} = getCodeItems org.children?[0] ? org
@@ -486,6 +574,19 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           else if org instanceof Fragment
             (@renderOrg child for child in org.children).join ''
           else org.allText()
+        renderLink: (org)->
+          if false && leisureMatch = org.isLeisure()
+            #viewName = if leisureMatch[2] then " data-view-name='#{leisureMatch[2]}'" else ''
+            #"<span data-view-link='#{leisureMatch[1]}'#{viewName}><span class='hidden'>#{org.allText()}</span></span>"
+          else if org.isImage()
+            title = (if desc = org.descriptionText() then " title='#{escapeHtml desc}'" else "")
+            "<img src='#{escapeHtml org.path}'#{title}><span class='hidden'>#{escapeHtml org.allText()}</span>"
+          else
+            guts = @renderMeat
+            for c in org.children
+              guts += @renderMeat c, true
+            if !guts then "<span class='hidden'>[[</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{org.path}</a><span class='hidden'>]]</span>"
+            else "<span class='hidden'>[[#{org.path}][</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{guts}</a><span class='hidden'>]]</span>"
         renderSimple: (org)->
           guts = ''
           for c in org.children
@@ -592,7 +693,16 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       isContentEditable = (node)->
         (if node instanceof Element then node else node.parentElement).isContentEditable
 
+      followLink = (e)-> console.log "Click link", e
+
 Exports
+
+      mergeExports {
+        findEditor
+        hideSlide
+        toggleSlideMode
+        followLink
+      }
 
       {
         createLocalData

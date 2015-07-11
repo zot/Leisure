@@ -19,10 +19,12 @@ choose a handlebars template.
         if context then "#{type.trim()}/#{context.trim()}" else type?.trim()
 
       addView = (type, context, template)->
-        templates[viewKey type, context] = compile template
+        templates[name = viewKey type, context] = compile template
+        Handlebars.registerPartial name, "{{#viewWrapper '#{name}' this}}#{template}{{/viewWrapper}}"
 
       removeView = (type, context, template)->
-        delete templates[viewKey type, context]
+        delete templates[name = viewKey type, context]
+        Handlebars.unregisterPartial name
 
       getView = hasView = (type, context)-> templates[viewKey type, context] || templates[type]
 
@@ -54,6 +56,9 @@ choose a handlebars template.
         if data?.type
           renderView data.type, contextName, data, null, false, block
 
+      Handlebars.registerHelper 'viewWrapper', (name, data, opts)->
+        simpleRenderView name, opts.fn, this
+
       renderView = (type, contextName, data, targets, block)->
         isTop = !root.context?.topView
         key = viewKey type, contextName
@@ -81,12 +86,15 @@ choose a handlebars template.
               if isTop then attrs += " data-ids='#{settings.subviews.join ' '}'"
               html = "<span #{attrs}>'#{html}</span>"
             activateScripts node
-        else
-          id = "view-#{viewIdCounter++}"
-          pendingViews.push id
-          attrs += " id='#{id}'"
-          if block then root.context.subviews[block._id] = true
-          "<span #{attrs}>#{template data, data: root.context}</span>"
+        else simpleRenderView key, template, data, block
+
+      simpleRenderView = (key, template, data, block)->
+        attrs = "class='view' data-view='#{key}'"
+        id = "view-#{viewIdCounter++}"
+        pendingViews.push id
+        attrs += " id='#{id}'"
+        if block then root.context.subviews[block._id] = true
+        "<span #{attrs}>#{template data, data: root.context}</span>"
 
       initializePendingViews = ->
         p = pendingViews

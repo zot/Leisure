@@ -32,3 +32,7 @@ body {
     background: lightblue;
     text-align: center;
 }
+.plain-headline {
+    font-weight: bold;
+    color: green;
+}

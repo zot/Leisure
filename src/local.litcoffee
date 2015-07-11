@@ -192,6 +192,14 @@ Code for local-mode.  This will not be loaded under meteor.
         * top 2
         bubba
 
+        #+NAME: bubba
+        #+BEGIN_SRC yaml
+        type: fred
+        value: 37
+        #+END_SRC
+        #+BEGIN_SRC html :defview fred
+        Value: {{value}}
+        #+END_SRC
         #+BEGIN_SRC html :defview leisure-headlineX
         <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
         }}</span>{{#each children}}{{{render this}}}{{/each}}</span>
