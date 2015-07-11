@@ -584,7 +584,7 @@
         if (block.type === 'headline') {
           attrs += " data-headline='" + block.level + "'";
         }
-        text = "<span " + attrs + ">";
+        text = '';
         if (!results && !error) {
           text += this.renderMainBlock(block);
         } else {
@@ -598,7 +598,7 @@
             text += "" + (escapeHtml((ref3 = results != null ? results.text : void 0) != null ? ref3 : '')) + (escapeHtml(block.text.substring(results.offset + results.text.length)));
           }
         }
-        return [text + "</span>", block.next];
+        return ["<span " + attrs + ">" + text + "</span>", block.next];
       },
       renderMainBlock: function(block) {
         var text, txt;
@@ -632,17 +632,17 @@
       renderSimple: function(org) {
         switch (org.type === 'simple' && org.markupType) {
           case 'bold':
-            return "<b>" + org.text + "</b>";
+            return "<b>" + (escapeHtml(org.text)) + "</b>";
           case 'italic':
-            return "<i>" + org.text + "</i>";
+            return "<i>" + (escapeHtml(org.text)) + "</i>";
           case 'underline':
-            return "<span style='text-decoration: underline'>" + org.text + "</span>";
+            return "<span style='text-decoration: underline'>" + (escapeHtml(org.text)) + "</span>";
           case 'strikethrough':
-            return "<span style='text-decoration: line-through'>" + org.text + "</span>";
+            return "<span style='text-decoration: line-through'>" + (escapeHtml(org.text)) + "</span>";
           case 'code':
-            return "<code>" + org.text + "</code>";
+            return "<code>" + (escapeHtml(org.text)) + "</code>";
           case 'verbatim':
-            return "<code>" + org.text + "</code>";
+            return "<code>" + (escapeHtml(org.text)) + "</code>";
           default:
             return org.allText();
         }

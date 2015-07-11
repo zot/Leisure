@@ -45,7 +45,7 @@
         })(this);
         this.con.onicecandidate = (function(_this) {
           return function(e) {
-            if (e.candidate === null || e.candidate.candidate.match(/typ srflx/)) {
+            if (e.candidate === null) {
               return _this.offerReady(_this.con.localDescription);
             } else {
               return _this.log("candidate", e);

@@ -10,14 +10,14 @@
 - open a command prompt/terminal
 - change directories to the Leisure project
 - make coffeescript compile the files in src into build and watch them
-  - src_sh{coffee -cmw -o build src}
+  - coffee -cmw -o build src
   - this is a very quick command but it won't return because of the -w
   - the -w puts coffee in 'watch' mode, so it will sit there
   - it will sit there and wait for you to change files, comipling them as you do
 ** test using a chrome profile that allows local file access
 - put this into a shortcut/alias
 - run chrome with special chrome arguments
-   - src_sh{--allow-file-access-from-files --user-data-dir=CHROME_DEVELOPMENT_DIR}
+   - --allow-file-access-from-files --user-data-dir=CHROME_DEVELOPMENT_DIR
    - CHROME_DEVELOPMENT_DIR should start as an empty directory
      - it will contain the settings, bookmarks, etc. for your Chrome Leisure development
    - use slashes in CHROME_DEVELOPMENT_DIR, NOT BACKSLASHES

@@ -401,7 +401,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           {source, error, results} = blockCodeItems this, block
           attrs = "id='#{prefix}#{block._id}' data-block='#{block.type}'"
           if block.type == 'headline' then attrs += " data-headline='#{block.level}'"
-          text = "<span #{attrs}>"
+          text = ''
           #if !results && !error then text += "#{escapeHtml block.text}"
           if !results && !error then text += @renderMainBlock block
           else
@@ -410,7 +410,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               pos = source.offset + source.contentPos + Number(error.info.match(/([^,]*),/)[1]) - 1
               text += escapeHtml(block.text.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, results?.offset ? block.text.length))
             if results? then text += "#{escapeHtml results?.text ? ''}#{escapeHtml block.text.substring(results.offset + results.text.length)}"
-          [text + "</span>", block.next]
+          ["<span #{attrs}>#{text}</span>", block.next]
         renderMainBlock: (block)->
           txt = block.text
           if block.type == 'headline'
@@ -428,12 +428,12 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           result
         renderSimple: (org)->
           switch org.type == 'simple' && org.markupType
-            when 'bold' then "<b>#{org.text}</b>"
-            when 'italic' then "<i>#{org.text}</i>"
-            when 'underline' then "<span style='text-decoration: underline'>#{org.text}</span>"
-            when 'strikethrough' then "<span style='text-decoration: line-through'>#{org.text}</span>"
-            when 'code' then "<code>#{org.text}</code>"
-            when 'verbatim' then "<code>#{org.text}</code>"
+            when 'bold' then "<b>#{escapeHtml org.text}</b>"
+            when 'italic' then "<i>#{escapeHtml org.text}</i>"
+            when 'underline' then "<span style='text-decoration: underline'>#{escapeHtml org.text}</span>"
+            when 'strikethrough' then "<span style='text-decoration: line-through'>#{escapeHtml org.text}</span>"
+            when 'code' then "<code>#{escapeHtml org.text}</code>"
+            when 'verbatim' then "<code>#{escapeHtml org.text}</code>"
             else org.allText()
 
       hideSlide = (slideDom)->
