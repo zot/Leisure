@@ -1010,12 +1010,12 @@ Data model -- override/reset these if you want to change how the store accesses 
         setBlock: (id, block)-> @blocks[id] = block
         deleteBlock: (id)-> delete @blocks[id]
         eachBlock: (func)->
-          for block, i of @blocks
-            if func(block, i) == false then break
+          for id, block of @blocks
+            if func(block, id) == false then break
         load: (@first, @blocks)-> @trigger 'load'
         check: ->
           seen = {}
-          next = @getFirst()
+          first = next = @getFirst()
           prev = null
           while next
             prev = next
@@ -1023,20 +1023,21 @@ Data model -- override/reset these if you want to change how the store accesses 
             seen[next] = true
             oldBl = bl
             bl = @getBlock next
-            if !bl then throw new Error "Next of #{oldBl.id} doesn't exist"
+            if !bl then throw new Error "Next of #{oldBl._id} doesn't exist"
             next = bl.next
-          @eachBlock (k)->
-            if !seen[k] then throw new Error "#{k} not in next chain"
+          @eachBlock (block)->
+            if block._id != first && !seen[block._id] then throw new Error "#{block._id} not in next chain"
           seen = {}
+          lastBlock = prev
           while prev
             if seen[prev] then throw new Error "cycle in prev links"
             seen[prev] = true
             oldBl = bl
             bl = @getBlock prev
-            if !bl then throw new Error "Prev of #{oldBl.id} doesn't exist"
+            if !bl then throw new Error "Prev of #{oldBl._id} doesn't exist"
             prev = bl.prev
-          @eachBlock (k)->
-            if !seen[k] then throw new Error "#{k} not in prev chain"
+          @eachBlock (block)->
+            if block._id != lastBlock && !seen[block._id] then throw new Error "#{block._id} not in prev chain"
           null
         blockList: ->
           next = @getFirst()
@@ -1061,6 +1062,7 @@ Data model -- override/reset these if you want to change how the store accesses 
           try
             @check()
           catch err
+            console.log err
           result
 
 DataStoreEditingOptions

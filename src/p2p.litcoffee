@@ -30,7 +30,8 @@ it easier to handle merges.
           if typeof id != 'string' then id else changes?.sets[id] ? @blocks.get id
         setBlock: (id, block)-> @blocks = @blocks.set id, block
         deleteBlock: (id)-> @blocks = @blocks.delete id
-        eachBlock: (func)-> @blocks.forEach func
+        eachBlock: (func)->
+          @blocks.forEach (block, id)-> if id != 'FIRST' then func block, id
         load: (first, newBlocks)->
           super first, setFirst((new Map newBlocks), first),
             sets: newBlocks

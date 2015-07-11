@@ -416,7 +416,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           if block.type == 'headline'
             {text} = parseOrgMode(block.text).children[0].partOffsets()
             "<span class='plain-headline'>#{escapeHtml txt.substring 0, text.start}#{@renderMainText txt.substring(text.start, text.end)}#{escapeHtml txt.substring text.end}</span>"
-          else @renderMainText block.text
+          else @renderMeat parseOrgMode(block.text).children[0]
         renderMainText: (txt)-> @renderMeat parseMeat(txt, 0, '', true)[0]
         renderMeat: (org)->
           result = ''

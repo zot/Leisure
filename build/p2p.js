@@ -44,7 +44,11 @@
       };
 
       P2POrgData.prototype.eachBlock = function(func) {
-        return this.blocks.forEach(func);
+        return this.blocks.forEach(function(block, id) {
+          if (id !== 'FIRST') {
+            return func(block, id);
+          }
+        });
       };
 
       P2POrgData.prototype.load = function(first, newBlocks) {

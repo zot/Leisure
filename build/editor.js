@@ -1300,12 +1300,12 @@
       };
 
       DataStore.prototype.eachBlock = function(func) {
-        var block, i, ref, results;
+        var block, id, ref, results;
         ref = this.blocks;
         results = [];
-        for (block in ref) {
-          i = ref[block];
-          if (func(block, i) === false) {
+        for (id in ref) {
+          block = ref[id];
+          if (func(block, id) === false) {
             break;
           } else {
             results.push(void 0);
@@ -1321,9 +1321,9 @@
       };
 
       DataStore.prototype.check = function() {
-        var bl, next, oldBl, prev, seen;
+        var bl, first, lastBlock, next, oldBl, prev, seen;
         seen = {};
-        next = this.getFirst();
+        first = next = this.getFirst();
         prev = null;
         while (next) {
           prev = next;
@@ -1334,16 +1334,17 @@
           oldBl = bl;
           bl = this.getBlock(next);
           if (!bl) {
-            throw new Error("Next of " + oldBl.id + " doesn't exist");
+            throw new Error("Next of " + oldBl._id + " doesn't exist");
           }
           next = bl.next;
         }
-        this.eachBlock(function(k) {
-          if (!seen[k]) {
-            throw new Error(k + " not in next chain");
+        this.eachBlock(function(block) {
+          if (block._id !== first && !seen[block._id]) {
+            throw new Error(block._id + " not in next chain");
           }
         });
         seen = {};
+        lastBlock = prev;
         while (prev) {
           if (seen[prev]) {
             throw new Error("cycle in prev links");
@@ -1352,13 +1353,13 @@
           oldBl = bl;
           bl = this.getBlock(prev);
           if (!bl) {
-            throw new Error("Prev of " + oldBl.id + " doesn't exist");
+            throw new Error("Prev of " + oldBl._id + " doesn't exist");
           }
           prev = bl.prev;
         }
-        this.eachBlock(function(k) {
-          if (!seen[k]) {
-            throw new Error(k + " not in prev chain");
+        this.eachBlock(function(block) {
+          if (block._id !== lastBlock && !seen[block._id]) {
+            throw new Error(block._id + " not in prev chain");
           }
         });
         return null;
@@ -1413,6 +1414,7 @@
           this.check();
         } catch (_error) {
           err = _error;
+          console.log(err);
         }
         return result;
       };

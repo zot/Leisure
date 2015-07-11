@@ -607,7 +607,7 @@
           text = parseOrgMode(block.text).children[0].partOffsets().text;
           return "<span class='plain-headline'>" + (escapeHtml(txt.substring(0, text.start))) + (this.renderMainText(txt.substring(text.start, text.end))) + (escapeHtml(txt.substring(text.end))) + "</span>";
         } else {
-          return this.renderMainText(block.text);
+          return this.renderMeat(parseOrgMode(block.text).children[0]);
         }
       },
       renderMainText: function(txt) {
