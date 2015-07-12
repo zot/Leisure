@@ -21,6 +21,8 @@ body {
     color: red;
     position: absolute;
     opacity: 0.3;
+}
+.plain .errorMark {
     z-index: -1;
 }
 .error {

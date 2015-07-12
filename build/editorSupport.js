@@ -758,39 +758,61 @@
       return text;
     });
     Handlebars.registerHelper('hiddenBeforeSource', function() {
-      if (this.sourceOrg.offset) {
-        return "<span class='hidden'>" + (this.block.text.substring(0, this.sourceOrg.offset)) + "</span>";
+      var source;
+      source = this.codeItems.source;
+      if (source.offset) {
+        return "<span class='hidden'>" + (this.block.text.substring(0, source.offset)) + "</span>";
       } else {
         return '';
       }
     });
     Handlebars.registerHelper('hiddenAfterSource', function() {
-      var end;
-      if ((end = this.sourceOrg.end()) > this.block.text.length) {
-        return "<span class='hidden'>" + (this.block.text.substring(this.sourceOrg.end())) + "</span>";
+      var end, source;
+      source = this.codeItems.source;
+      if ((end = source.end()) > this.block.text.length) {
+        return "<span class='hidden'>" + (this.block.text.substring(source.end())) + "</span>";
       } else {
         return '';
       }
     });
-    Handlebars.registerHelper('sourceHeader', function(src) {
+    Handlebars.registerHelper('sourceHeader', function() {
+      var src;
+      src = this.codeItems.source;
       return src.text.substring(0, src.contentPos);
     });
-    Handlebars.registerHelper('sourceBoiler', function(src) {
+    Handlebars.registerHelper('sourceBoiler', function() {
+      var src;
+      src = this.codeItems.source;
       return src.text.substring(0, src.infoPos);
     });
-    Handlebars.registerHelper('sourceInfo', function(src) {
+    Handlebars.registerHelper('sourceInfo', function() {
+      var src;
+      src = this.codeItems.source;
       return src.text.substring(src.infoPos, src.contentPos);
     });
     Handlebars.registerHelper('renderSource', function() {
-      return escapeHtml(this.source);
+      var error, pos, ref, source;
+      ref = this.codeItems, error = ref.error, source = ref.source;
+      if (error) {
+        pos = Number(error.info.match(/([^,]*),/)[1]) - 1;
+        return escapeHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(source.content.substring(pos));
+      } else {
+        return escapeHtml(this.source);
+      }
     });
-    Handlebars.registerHelper('sourceFooter', function(src) {
+    Handlebars.registerHelper('sourceFooter', function() {
+      var src;
+      src = this.codeItems.source;
       return src.text.substring(src.contentPos + src.content.length);
     });
-    Handlebars.registerHelper('resultsHeader', function(res) {
+    Handlebars.registerHelper('resultsHeader', function() {
+      var res;
+      res = this.codeItems.results;
       return res.text.substring(0, res.contentPos);
     });
-    Handlebars.registerHelper('resultsContents', function(res) {
+    Handlebars.registerHelper('resultsContents', function() {
+      var res;
+      res = this.codeItems.results;
       return resultsArea(res.text.substring(res.contentPos));
     });
     fancyMode = {
@@ -860,30 +882,30 @@
         }
       },
       renderCode: function(opts, block, prefix) {
-        var items, key, m, name, nameBoiler, org, ref, ref1, ref2, results, source;
+        var items, key, m, name, nameBoiler, org, ref, ref1, ref2, results, source, sourceData;
         key = "leisure-code";
         if (hasView(key, block.language)) {
           org = blockOrg(opts.data, block);
           ref2 = items = getCodeItems((ref = (ref1 = org.children) != null ? ref1[0] : void 0) != null ? ref : org), name = ref2.name, source = ref2.source, results = ref2.results;
           nameBoiler = name && (m = name.text.match(keywordRE)) ? m[KW_BOILERPLATE] : void 0;
-          return this.renderView(key, block.language, block.next, {
+          sourceData = {
             id: prefix + block._id,
             codeItems: items,
             language: block.language,
             block: block,
-            text: this.renderCodeOrg(block.language, org, block),
             header: block.text.substring(0, block.codePrelen),
             source: blockSource(block),
-            sourceOrg: source,
             footer: block.text.substring(block.text.length - block.codePostlen, source.end()),
             nameBoiler: nameBoiler != null ? nameBoiler : '',
-            nameText: name ? name.text.substring(nameBoiler.length, name.text.length - 1) : void 0,
+            nameText: name ? name.text.substring(nameBoiler.length, name.text.length - 1) : '',
             name: name ? name.text.substring(name.info) : '',
             afterName: name ? block.text.substring(name.end(), source.offset) : '',
             inter: results ? block.text.substring(source.end(), results != null ? results.offset : void 0) : block.text.substring(source.end()),
             results: results ? resultsArea(block.text.substring(results.offset, results.end())) : '',
             resultsContent: results ? resultsArea(results.text.substring(results.contentPos)) : ''
-          });
+          };
+          sourceData.text = this.renderCodeOrg(sourceData);
+          return this.renderView(key, block.language, block.next, sourceData);
         } else {
           return plainMode.render(opts, block, prefix);
         }
@@ -893,35 +915,30 @@
         text = this.renderOrg(blockOrg(opts.data, block));
         return ["<span id='" + block._id + "'>" + text + "</span>", block.next];
       },
-      renderCodeOrg: function(language, org, block) {
-        var allText, ctx, error, name, pos, ref, ref1, ref2, ref3, ref4, ref5, ref6, results, source, text;
-        ref2 = getCodeItems((ref = (ref1 = org.children) != null ? ref1[0] : void 0) != null ? ref : org), name = ref2.name, source = ref2.source, error = ref2.error, results = ref2.results;
-        allText = org.allText();
+      renderCodeOrg: function(context) {
+        var block, error, name, pos, ref, ref1, ref2, ref3, ref4, results, source, text;
+        block = context.block;
+        ref = context.codeItems, name = ref.name, source = ref.source, error = ref.error, results = ref.results;
         text = '';
         pos = 0;
-        ctx = {
-          allText: allText,
-          language: language
-        };
-        ref3 = this.renderCodeSegment('name', name, allText, language, pos, text, block), pos = ref3[0], text = ref3[1];
-        ref4 = this.renderCodeSegment('source', source, allText, language, pos, text, block), pos = ref4[0], text = ref4[1];
-        ref5 = this.renderCodeSegment('error', error, allText, language, pos, text, block), pos = ref5[0], text = ref5[1];
-        ref6 = this.renderCodeSegment('results', results, allText, language, pos, text, block), pos = ref6[0], text = ref6[1];
-        if (pos < allText.length) {
-          text += escapeHtml(allText.substring(pos));
+        ref1 = this.renderCodeSegment('name', pos, text, context), pos = ref1[0], text = ref1[1];
+        ref2 = this.renderCodeSegment('source', pos, text, context), pos = ref2[0], text = ref2[1];
+        ref3 = this.renderCodeSegment('error', pos, text, context), pos = ref3[0], text = ref3[1];
+        ref4 = this.renderCodeSegment('results', pos, text, context), pos = ref4[0], text = ref4[1];
+        if (pos < block.text.length) {
+          text += escapeHtml(block.text.substring(pos));
         }
         return text;
       },
-      renderCodeSegment: function(name, org, allText, language, pos, text, block) {
-        var key;
-        if (org) {
-          if (hasView(key = "leisure-code-" + name, language)) {
+      renderCodeSegment: function(name, pos, text, context) {
+        var block, key, org;
+        if (org = context.codeItems[name]) {
+          block = context.block;
+          if (hasView(key = "leisure-code-" + name, block.language)) {
             if (org.offset > pos) {
-              text += escapeHtml(allText.substring(pos, org.offset));
+              text += escapeHtml(block.text.substring(pos, org.offset));
             }
-            text += (this.renderView(key, language, null, _.merge({
-              block: block
-            }, org)))[0];
+            text += (this.renderView(key, block.language, null, context))[0];
             return [org.end(), text];
           } else if (name === 'results') {
             return [org.end(), resultsArea(org.allText())];

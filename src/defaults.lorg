@@ -102,7 +102,7 @@ CONTROLS
 <span
 class='source'
 data-org-src='{{block.codeAttributes.results}}'
-contenteditable='true'><span class='hidden'>{{sourceHeader this}}</span>{{content}}<span class='hidden'>{{sourceFooter this}}</span></span>
+contenteditable='true'><span class='hidden'>{{sourceHeader}}</span>{{{renderSource}}}<span class='hidden'>{{sourceFooter}}</span></span>
 #+END_SRC
 #+BEGIN_SRC html :defview leisure-code-results/js
 <span class='results coderesults'
@@ -140,6 +140,7 @@ span[data-block='code'].fancy {
   background: lightgray;
 }
 .source {
+  position: relative;
   display: block;
   border: solid 3px blue;
 }

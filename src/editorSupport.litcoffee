@@ -502,34 +502,46 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         text
 
       Handlebars.registerHelper 'hiddenBeforeSource', ->
-        if @sourceOrg.offset
-          "<span class='hidden'>#{@block.text.substring 0, @sourceOrg.offset}</span>"
+        {source} = @codeItems
+        if source.offset
+          "<span class='hidden'>#{@block.text.substring 0, source.offset}</span>"
         else ''
 
       Handlebars.registerHelper 'hiddenAfterSource', ->
-        if (end = @sourceOrg.end()) > @block.text.length
-          "<span class='hidden'>#{@block.text.substring @sourceOrg.end()}</span>"
+        {source} = @codeItems
+        if (end = source.end()) > @block.text.length
+          "<span class='hidden'>#{@block.text.substring source.end()}</span>"
         else ''
 
-      Handlebars.registerHelper 'sourceHeader', (src)->
+      Handlebars.registerHelper 'sourceHeader', ->
+        {source: src} = @codeItems
         src.text.substring 0, src.contentPos
 
-      Handlebars.registerHelper 'sourceBoiler', (src)->
+      Handlebars.registerHelper 'sourceBoiler', ->
+        {source: src} = @codeItems
         src.text.substring 0, src.infoPos
 
-      Handlebars.registerHelper 'sourceInfo', (src)->
+      Handlebars.registerHelper 'sourceInfo', ->
+        {source: src} = @codeItems
         src.text.substring(src.infoPos, src.contentPos)
 
       Handlebars.registerHelper 'renderSource', ->
-        escapeHtml this.source
+        {error, source} = @codeItems
+        if error
+          pos = Number(error.info.match(/([^,]*),/)[1]) - 1
+          escapeHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(source.content.substring(pos))
+        else escapeHtml this.source
 
-      Handlebars.registerHelper 'sourceFooter', (src)->
+      Handlebars.registerHelper 'sourceFooter', ->
+        {source: src} = @codeItems
         src.text.substring(src.contentPos + src.content.length)
 
-      Handlebars.registerHelper 'resultsHeader', (res)->
+      Handlebars.registerHelper 'resultsHeader', ->
+        {results: res} = @codeItems
         res.text.substring(0, res.contentPos)
 
-      Handlebars.registerHelper 'resultsContents', (res)->
+      Handlebars.registerHelper 'resultsContents', ->
+        {results: res} = @codeItems
         resultsArea res.text.substring res.contentPos
 
       fancyMode =
@@ -586,48 +598,47 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             nameBoiler = if name && m = name.text.match keywordRE
               m[KW_BOILERPLATE]
             # this argument object to renderView is total overkill
-            @renderView key, block.language, block.next,
+            sourceData = 
               id: prefix + block._id
               codeItems: items
               language: block.language
               block: block
-              text: @renderCodeOrg block.language, org, block
               header: block.text.substring 0, block.codePrelen
               source: blockSource block
-              sourceOrg: source
               footer: block.text.substring block.text.length - block.codePostlen, source.end()
               nameBoiler: nameBoiler ? ''
-              nameText: if name then name.text.substring nameBoiler.length, name.text.length - 1
+              nameText: if name then name.text.substring nameBoiler.length, name.text.length - 1 else ''
               name: if name then name.text.substring name.info else ''
               afterName: if name then block.text.substring name.end(), source.offset else ''
               inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
               results: if results then resultsArea block.text.substring results.offset, results.end() else ''
               resultsContent: if results then resultsArea results.text.substring results.contentPos else ''
+            sourceData.text = @renderCodeOrg sourceData
+            @renderView key, block.language, block.next, sourceData
           else plainMode.render opts, block, prefix
         renderOrgBlock: (opts, block, prefix)->
           text = @renderOrg blockOrg opts.data, block
           ["<span id='#{block._id}'>#{text}</span>", block.next]
-        renderCodeOrg: (language, org, block)->
-          {name, source, error, results} = getCodeItems org.children?[0] ? org
-          allText = org.allText()
+        renderCodeOrg: (context)->
+          block = context.block
+          {name, source, error, results} = context.codeItems
           text = ''
           pos = 0
-          ctx = allText: allText, language: language
-          [pos, text] = @renderCodeSegment 'name', name, allText, language, pos, text, block
-          [pos, text] = @renderCodeSegment 'source', source, allText, language, pos, text, block
-          [pos, text] = @renderCodeSegment 'error', error, allText, language, pos, text, block
-          [pos, text] = @renderCodeSegment 'results', results, allText, language, pos, text, block
-          if pos < allText.length then text += escapeHtml allText.substring pos
+          [pos, text] = @renderCodeSegment 'name', pos, text, context
+          [pos, text] = @renderCodeSegment 'source', pos, text, context
+          [pos, text] = @renderCodeSegment 'error', pos, text, context
+          [pos, text] = @renderCodeSegment 'results', pos, text, context
+          if pos < block.text.length then text += escapeHtml block.text.substring pos
           text
-        renderCodeSegment: (name, org, allText, language, pos, text, block)->
-          if org
-            if hasView key = "leisure-code-#{name}", language
+        renderCodeSegment: (name, pos, text, context)->
+          if org = context.codeItems[name]
+            block = context.block
+            if hasView key = "leisure-code-#{name}", block.language
               if org.offset > pos
-                text += escapeHtml allText.substring pos, org.offset
-              text += (@renderView key, language, null, _.merge {block: block}, org)[0]
+                text += escapeHtml block.text.substring pos, org.offset
+              text += (@renderView key, block.language, null, context)[0]
               [org.end(), text]
-            else if name == 'results'
-              [org.end(), resultsArea org.allText()]
+            else if name == 'results' then [org.end(), resultsArea org.allText()]
             else [pos, text]
           else [pos, text]
         renderOrg: (org)->
