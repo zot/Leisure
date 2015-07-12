@@ -230,6 +230,9 @@ that must be done regardless of the source of changes
               env.errorAt = (offset, msg)-> console.log msg
               env.executeText blockSource(newBlock), Nil, (->)
 
+      blockIsHidden = (block)->
+        String(block?.properties?.hidden ? '').toLowerCase() == 'true'
+
 `controllerEval` looks like a useless wrapper for eval, but you can use `apply()`
 and `call` to set "this" for the code, which you can't do with the primitive `eval()`
 
@@ -267,27 +270,44 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         constructor: (data)->
           super data
           data.on 'load', =>
-            setHtml @editor.node[0], @renderBlocks()
+            @rerenderAll()
             initializePendingViews()
           data.on 'change', -> initializePendingViews()
           @setPrefix 'leisureBlock-'
+          @hiding = true
           @setMode plainMode
-          @hiddenSlides = {}
           @toggledSlides = {}
+        rerenderAll: ->
+          super()
+          initializePendingViews()
+        initToolbar: ->
+          withContext {}, => $(@editor.node).before(renderView 'leisure-toolbar', null, null)
+          initializePendingViews()
+        slideFor: (thing)->
+          block = @data.getBlock thing
+          while block && !(block.type == 'headline' && block.level == 1)
+            block = @data.parent block
+          block
         toggleSlide: (id)->
-          if @toggledSlides[id] then delete @toggledSlides[id]
-          else @toggledSlides[id] = true
-        isToggled: (thing)->
-          thing && (@toggledSlides[if typeof thing == 'string' then thing else thing._id] || @isToggled @data.parent thing)
+          block = @data.getBlock id
+          if block?.type == 'headline' && block.level == 1
+            if @toggledSlides[id] then delete @toggledSlides[id]
+            else @toggledSlides[id] = true
+        isToggled: (thing)-> (slide = @slideFor thing) && @toggledSlides[slide._id]
         removeToggles: -> @toggledSlides = {}
-        hideSlide: (id)-> @hiddenSlides[id] = true
-        showSlide: (id)-> delete @hiddenSlides[id]
-        showAllSlides: -> @hiddenSlides = {}
-        isHidden: (thing)->
-          thing && (@hiddenSlides[if typeof thing == 'string' then thing else thing._id] || @isHidden @data.parent thing)
+        toggleHidden: ->
+          @hiding = !@hiding
+          @rerenderAll()
+        hideHiddenSlides: -> if !@hiding then @toggleHidden()
+        showAllSlides: -> if @hiding then @toggleHidden()
+        isHidden: (thing)-> blockIsHidden @slideFor thing
+        canHideSlides: -> @hiding && @mode == fancyMode
+        shouldHide: (thing)->
+          @canHideSlides() && (slide = @slideFor thing) && @isHidden(slide) && !@isToggled(slide)
         setEditor: (ed)->
           super ed
           @setMode @mode
+          @initToolbar()
         setMode: (@mode)->
           @editor?.node.attr 'data-edit-mode', @mode.name
           this
@@ -297,13 +317,14 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         nodeForId: (id)-> $("##{@idPrefix}#{id}")
         idForNode: (node)-> node.id.match(@idPattern)?[1]
         parseBlocks: (text)-> @data.parseBlocks text
-        renderBlock: (block)->
-          if !(@isHidden block) then @mode.render this, block, @idPrefix
-          else ['', block.next]
+        renderBlock: (block)-> @mode.render this, block, @idPrefix
 
 `change(changes)` -- about to change the data; compute some effects immediately.
 
         change: (changes)->
+          if @changesHidden changes
+            console.log "REJECTING DELETE OF HIDDEN"
+            return false
           computedProperties = {}
           changedProperties = []
           for id, change of changes.sets
@@ -321,6 +342,12 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
                 props = _.merge props, child.properties
               addChange(@data.getBlock(parent, changes), changes).properties = props
           super changes
+        changesHidden: (changes)->
+          if @canHideSlides()
+            console.log "CHANGES: ", changes
+            for change in changes.oldBlocks
+              if @shouldHide change then return true
+          false
         checkPropertyChange: (changes, change, oldBlock)->
           change.type == 'chunk' && !_.isEqual change.properties, @getBlock(change._id)?.properties
         checkCodeChange: (changes, change, oldBlock)->
@@ -453,11 +480,6 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         renderSimpleChild: (org)->
           if !org.children then escapeHtml org.text else @renderSimple org.children[0]
 
-      hideSlide = (slideDom)->
-        if editor = findEditor slideDom
-          editor.options.hideSlide slideDom[0].id
-          slideDom.remove()
-
       toggleSlideMode = (slideDom)->
         if opts = findEditor(slideDom)?.options
           block = opts.getBlock opts.idForNode slideDom[0]
@@ -513,38 +535,39 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           mergeContext {}, =>
             UI.context.opts = opts
             UI.context.prefix = prefix
-            if !block || block.properties?.hidden then ['', opts.data.nextRight block]
-            else if block.type == 'headline' then @renderHeadline opts, block, prefix
+            if block.type == 'headline' then @renderHeadline opts, block, prefix
             else if block.type == 'chunk' then @renderChunk opts, block, prefix
             else if block.type == 'code' then @renderCode opts, block, prefix
             else plainMode.render opts, block, prefix
         renderView: (type, ctx, next, data)-> [renderView(type, ctx, data), next]
         renderHeadline: (opts, block, prefix)->
           next = opts.data.nextRight(block)?._id
-          viewName = if block.type == 'headline' && block.level == 1 && opts.isToggled block
-            UI.context.viewAttrs = _.merge {class: 'plain'}, UI.context.viewAttrs ? {}
-            'leisure-headline-plain'
-          else 'leisure-headline'
-          if hasView viewName
-            m = block.text.match headlineRE
-            #console.log "headline view: #{block.text}"
-            @renderView viewName, null, next,
-              id: prefix + block._id
-              blockId: block._id
-              EOL: '\n'
-              topLevel: block.level == 1
-              level: block.level
-              stars: m[HL_LEVEL].trim()
-              maintext: block.text.substring m[HL_LEVEL].length
-              children: opts.data.children block
+          if opts.shouldHide block then ['', next]
           else
-            text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
-            text += escapeHtml block.text
-            id = block.next
-            while id && id != next
-              [nextText, id] = @render opts, opts.data.getBlock(id), prefix
-              text += nextText
-            [text + "</span>", next]
+            viewName = if block.type == 'headline' && block.level == 1 && opts.isToggled block
+              UI.context.viewAttrs = _.merge {class: 'plain'}, UI.context.viewAttrs ? {}
+              'leisure-headline-plain'
+            else 'leisure-headline'
+            if hasView viewName
+              m = block.text.match headlineRE
+              #console.log "headline view: #{block.text}"
+              @renderView viewName, null, next,
+                id: prefix + block._id
+                blockId: block._id
+                EOL: '\n'
+                topLevel: block.level == 1
+                level: block.level
+                stars: m[HL_LEVEL].trim()
+                maintext: block.text.substring m[HL_LEVEL].length
+                children: opts.data.children block
+            else
+              text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
+              text += escapeHtml block.text
+              id = block.next
+              while id && id != next
+                [nextText, id] = @render opts, opts.data.getBlock(id), prefix
+                text += nextText
+              [text + "</span>", next]
         renderChunk: (opts, block, prefix)->
           if hasView 'leisure-chunk'
             @renderView 'leisure-chunk', null, block.next,
@@ -614,8 +637,10 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             objectName = leisureMatch[1]
             viewName = if leisureMatch[2] then " data-view-name='#{leisureMatch[2]}'" else ''
             data = UI.context.opts.data
-            error = if !obj = data.getBlock(data.namedBlocks[objectName])?.yaml
+            error = if !obj = data.getBlock(data.namedBlocks[objectName])
               "No object named #{objectName}"
+            else if !obj = data.getBlock(data.namedBlocks[objectName])?.yaml
+              "Object #{objectName} isn't yaml"
             else if !(type = obj?.type)
               "No type field in object #{objectName}"
             else if !hasView type, viewName
@@ -741,13 +766,22 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
 
       followLink = (e)-> console.log "Click link", e
 
+      editorForToolbar = (el)->
+        findEditor $(el).closest('[data-view]')[0].nextSibling
+
+      showHide = (toolbar)->
+        editingOpts = editorForToolbar(toolbar).options
+        editingOpts.toggleHidden()
+        editingOpts.hiding
+
 Exports
 
       mergeExports {
         findEditor
-        hideSlide
         toggleSlideMode
         followLink
+        showHide
+        editorForToolbar
       }
 
       {

@@ -2,13 +2,15 @@
 (function() {
   var init;
 
-  init = function(EditorSupport, Diag, P2P, Tests, Webrtc, Defaults) {
-    var OrgData, Peer, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, installSelectionMenu, message, mode, offerAction, offerButton, peer, plainEditDiv, runTests, showMessage, showSpinner, spinner, useP2P;
+  init = function(EditorSupport, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports) {
+    var OrgData, Peer, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, initializePendingViews, installSelectionMenu, mergeExports, message, mode, offerAction, offerButton, peer, plainEditDiv, renderView, runTests, showMessage, showSpinner, spinner, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, plainEditDiv = EditorSupport.plainEditDiv, fancyEditDiv = EditorSupport.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
     Peer = P2P.Peer;
     findPeer = Webrtc.findPeer;
     runTests = Tests.runTests;
+    renderView = UI.renderView, initializePendingViews = UI.initializePendingViews, withContext = UI.withContext;
+    mergeExports = BrowserExports.mergeExports;
     useP2P = true;
     peer = null;
     mode = null;
@@ -30,27 +32,28 @@
       return spinner.removeClass('hidden');
     };
     configurePeerButttons = function() {
-      var connect, connectToMaster, connectToSlave, connectionDisplay, create, p2pControls, updateConnections;
+      var configureP2P, connectToMaster, connectToSlave, updateConnections;
       connectDialog = $("<div title=\"Connect\">\n  <div>\n    <div id=\"loaderContainer\" style=\"position: relative; height: 100%\">\n      <div id=\"loaderText\" style='text-align: center'>Discovering Connection Information</div>\n      <div class=\"loader\">\n        <span></span>\n        <span></span>\n        <span></span>\n      </div>\n    </div>\n    <textarea class='hidden' readonly=\"true\" style=\"width: 100%; height: calc(100% - 2.5em - 5px)\">Hello</textarea>\n    <button style=\"height: 2.5em; margin-top: 5px\" class='hidden'></button>\n  </div>\n</div>");
-      message = connectDialog.find('textarea');
-      spinner = connectDialog.find('#loaderContainer');
-      offerButton = connectDialog.find('button').button().on('click', function() {
-        return offerAction();
-      });
-      p2pControls = $("<div></div>").prependTo('body');
-      create = $("<button>Connect to Slave</button>").appendTo(p2pControls).button().on('click', function() {
-        return connectToSlave();
-      });
-      connect = $("<button>Connect to Master</button>").appendTo(p2pControls).button().on('click', function() {
-        return connectToMaster();
-      });
-      $(" <span><b>Connections: </b></span>").appendTo(p2pControls);
-      connectionDisplay = $("<span>0</span>").appendTo(p2pControls);
       connectDialog.appendTo('body').dialog().dialog('option', 'width', 700).dialog('option', 'height', 400).dialog('option', 'position', {
         my: "center",
         at: "top",
         of: window
       }).dialog('close');
+      message = connectDialog.find('textarea');
+      spinner = connectDialog.find('#loaderContainer');
+      offerButton = connectDialog.find('button').button().on('click', function() {
+        return offerAction();
+      });
+      configureP2P = function(connectSlaveButton, connectMasterButton, connectionDisplay) {
+        var opts;
+        opts = Leisure.editorForToolbar(connectSlaveButton).options;
+        connectSlaveButton.button().on('click', function() {
+          return connectToSlave();
+        });
+        return connectMasterButton.button().on('click', function() {
+          return connectToMaster();
+        });
+      };
       updateConnections = function(newTotal) {
         return connectionDisplay.html(newTotal);
       };
@@ -90,7 +93,7 @@
           }
         });
       };
-      return connectToMaster = function() {
+      connectToMaster = function() {
         console.log('CLICK');
         if (peer.becomeSlave(function(info) {
           return updateConnections(info.total);
@@ -131,6 +134,9 @@
           }), 1);
         });
       };
+      return mergeExports({
+        configureP2P: configureP2P
+      });
     };
     return $(document).ready(function() {
       var data;
@@ -148,14 +154,14 @@
       window.ED = fancyEditDiv($("[maindoc]"), data);
       ED.node.addClass('flat');
       createEditorDisplay(ED);
-      ED.options.load("* top\nbubba\n\n[[leisure:bubba]]\n#+NAME: bubba\n#+BEGIN_SRC yaml\ntype: rotator\ndegrees: 45\n#+END_SRC\n#+BEGIN_SRC html :defview rotator\n<div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>\n#+END_SRC\n#+BEGIN_SRC html :defview leisure-headlineX\n<span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop\n}}</span>{{#each children}}{{{render this}}}{{/each}}</span>\n#+END_SRC\n\n#+BEGIN_SRC css\n[data-block='headline'] .maintext {\n  font-weight: bold;\n  color: blue;\n}\n.custom-headline {\n  font-weight: bold;\n  color: green;\n}\n[data-block='headline'] {\n  color: orangeX;\n}\n#+END_SRC\n* Test properties > splunge\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\n** sub 1\n*/duh/*\n:properties:\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\n\n#+BEGIN_SRC cs :results dynamic\n'<b>duh</b>'\nhtml '<b>duh</b>'\n37/3333\nhtml '<img src=\"https://imgs.xkcd.com/comics/lisp_cycles.png\">'\n#+END_SRC\n#+RESULTS:\n: &lt;b&gt;duh&lt;/b&gt;\n: <b>duh</b>\n: 0.0111011101110111\n: <img src=\"https://imgs.xkcd.com/comics/lisp_cycles.png\">\n\nimage link\n[[https://imgs.xkcd.com/comics/lisp_cycles.png]]\n\npeep\n:properties:\n:b: 2\n:end:\n** sub 2\nasdf" + '\n');
+      ED.options.load("* top\nbubba\n\n[[leisure:bubba]][[leisure:bubba]]\n#+NAME: bubba\n#+BEGIN_SRC yaml\ntype: rotator\ndegrees: 45\n#+END_SRC\n#+BEGIN_SRC html :defview rotator\n<div style='padding: 25px; display: inline-block'>\n  <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>\n</div>\n#+END_SRC\n#+BEGIN_SRC html :defview leisure-headlineX\n<span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop\n}}</span>{{#each children}}{{{render this}}}{{/each}}</span>\n#+END_SRC\n\n#+BEGIN_SRC css\n[data-block='headline'] .maintext {\n  font-weight: bold;\n  color: blue;\n}\n.custom-headline {\n  font-weight: bold;\n  color: green;\n}\n[data-block='headline'] {\n  color: orangeX;\n}\n#+END_SRC\n* Test properties > splunge\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n#+RESULTS:\n: 7\n ** sub 1\n*/duh/*\n:properties:\n:hidden: true\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\n\n#+BEGIN_SRC cs :results dynamic\n'<b>duh</b>'\nhtml '<b>duh</b>'\n37/3333\nhtml '<img src=\"https://imgs.xkcd.com/comics/lisp_cycles.png\">'\n#+END_SRC\n#+RESULTS:\n: &lt;b&gt;duh&lt;/b&gt;\n: <b>duh</b>\n: 0.0111011101110111\n: <img src=\"https://imgs.xkcd.com/comics/lisp_cycles.png\">\n\nimage link\n[[https://imgs.xkcd.com/comics/lisp_cycles.png]]\n\npeep\n:properties:\n:b: 2\n:end:\n** sub 2\nasdf" + '\n');
       return $('#globalLoad').remove();
     });
   };
 
   require(['jquery'], function() {
-    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!./defaults.lorg'], function(jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults) {
-      return init(EditorSupport, Diag, P2P, tests, Webrtc, Defaults);
+    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!./defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], function(jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports) {
+      return init(EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports);
     });
   });
 

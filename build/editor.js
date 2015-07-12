@@ -252,11 +252,15 @@
         var block, endPos, length, offset, r, startPos;
         block = arg.block, offset = arg.offset, length = arg.length;
         startPos = this.domCursor(this.options.nodeForId(block._id), 0).forwardChars(offset);
-        endPos = startPos.forwardChars(length);
-        r = document.createRange();
-        r.setStart(startPos.node, startPos.pos);
-        r.setEnd(endPos.node, endPos.pos);
-        return r;
+        if (startPos.isEmpty()) {
+          return null;
+        } else {
+          endPos = startPos.forwardChars(length);
+          r = document.createRange();
+          r.setStart(startPos.node, startPos.pos);
+          r.setEnd(endPos.node, endPos.pos);
+          return r;
+        }
       };
 
       LeisureEditCore.prototype.blockOffset = function(node, offset) {
@@ -407,7 +411,9 @@
         ref = this.changeStructure(blocks, newText), oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks, offset = ref.offset, prev = ref.prev;
         if (oldBlocks.length || newBlocks.length) {
           oldFirst = (ref1 = oldBlocks[0]) != null ? ref1._id : void 0;
-          this.options.edit(prev, oldBlocks.slice(), newBlocks.slice());
+          if (!this.options.edit(prev, oldBlocks.slice(), newBlocks.slice())) {
+            return;
+          }
           if (!newBlocks.length) {
             startBlock = blocks[0];
             offset += start + startBlock.text.length;
@@ -1102,19 +1108,18 @@
       };
 
       BasicEditingOptions.prototype.change = function(arg) {
-        var block, first, id, j, len, removes, results, sets;
+        var block, first, id, j, len, removes, sets;
         first = arg.first, removes = arg.removes, sets = arg.sets;
         this.first = first;
         for (j = 0, len = removes.length; j < len; j++) {
           id = removes[j];
           delete this.blocks[id];
         }
-        results = [];
         for (id in sets) {
           block = sets[id];
-          results.push(this.blocks[id] = block);
+          this.blocks[id] = block;
         }
-        return results;
+        return true;
       };
 
       BasicEditingOptions.prototype.getBlock = function(id) {
@@ -1147,8 +1152,12 @@
 
       BasicEditingOptions.prototype.load = function(text) {
         this.replaceBlocks(this.blockList(), this.parseBlocks(text));
-        setHtml(this.editor.node[0], this.renderBlocks());
+        this.rerenderAll();
         return this.trigger('load');
+      };
+
+      BasicEditingOptions.prototype.rerenderAll = function() {
+        return setHtml(this.editor.node[0], this.renderBlocks());
       };
 
       BasicEditingOptions.prototype.blockCount = function() {
@@ -1477,7 +1486,7 @@
       DataStoreEditingOptions.prototype.changed = function(changes) {
         return this.editor.savePosition((function(_this) {
           return function() {
-            return setHtml(_this.editor.node[0], _this.renderBlocks());
+            return _this.rerenderAll();
           };
         })(this));
       };

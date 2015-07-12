@@ -4,7 +4,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports) {
-    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockEnvMaker, blockOrg, blockSource, blockText, blockViewType, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, hideSlide, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, keywordRE, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, throttledUpdateSelection, toggleSlideMode, updateSelection, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, keywordRE, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toggleSlideMode, updateSelection, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -305,6 +305,10 @@
       return OrgData;
 
     })(DataStore);
+    blockIsHidden = function(block) {
+      var ref, ref1;
+      return String((ref = block != null ? (ref1 = block.properties) != null ? ref1.hidden : void 0 : void 0) != null ? ref : '').toLowerCase() === 'true';
+    };
     controllerEval = function(txt) {
       return eval(txt);
     };
@@ -358,7 +362,7 @@
         OrgEditing.__super__.constructor.call(this, data);
         data.on('load', (function(_this) {
           return function() {
-            setHtml(_this.editor.node[0], _this.renderBlocks());
+            _this.rerenderAll();
             return initializePendingViews();
           };
         })(this));
@@ -366,46 +370,89 @@
           return initializePendingViews();
         });
         this.setPrefix('leisureBlock-');
+        this.hiding = true;
         this.setMode(plainMode);
-        this.hiddenSlides = {};
         this.toggledSlides = {};
       }
 
+      OrgEditing.prototype.rerenderAll = function() {
+        OrgEditing.__super__.rerenderAll.call(this);
+        return initializePendingViews();
+      };
+
+      OrgEditing.prototype.initToolbar = function() {
+        withContext({}, (function(_this) {
+          return function() {
+            return $(_this.editor.node).before(renderView('leisure-toolbar', null, null));
+          };
+        })(this));
+        return initializePendingViews();
+      };
+
+      OrgEditing.prototype.slideFor = function(thing) {
+        var block;
+        block = this.data.getBlock(thing);
+        while (block && !(block.type === 'headline' && block.level === 1)) {
+          block = this.data.parent(block);
+        }
+        return block;
+      };
+
       OrgEditing.prototype.toggleSlide = function(id) {
-        if (this.toggledSlides[id]) {
-          return delete this.toggledSlides[id];
-        } else {
-          return this.toggledSlides[id] = true;
+        var block;
+        block = this.data.getBlock(id);
+        if ((block != null ? block.type : void 0) === 'headline' && block.level === 1) {
+          if (this.toggledSlides[id]) {
+            return delete this.toggledSlides[id];
+          } else {
+            return this.toggledSlides[id] = true;
+          }
         }
       };
 
       OrgEditing.prototype.isToggled = function(thing) {
-        return thing && (this.toggledSlides[typeof thing === 'string' ? thing : thing._id] || this.isToggled(this.data.parent(thing)));
+        var slide;
+        return (slide = this.slideFor(thing)) && this.toggledSlides[slide._id];
       };
 
       OrgEditing.prototype.removeToggles = function() {
         return this.toggledSlides = {};
       };
 
-      OrgEditing.prototype.hideSlide = function(id) {
-        return this.hiddenSlides[id] = true;
+      OrgEditing.prototype.toggleHidden = function() {
+        this.hiding = !this.hiding;
+        return this.rerenderAll();
       };
 
-      OrgEditing.prototype.showSlide = function(id) {
-        return delete this.hiddenSlides[id];
+      OrgEditing.prototype.hideHiddenSlides = function() {
+        if (!this.hiding) {
+          return this.toggleHidden();
+        }
       };
 
       OrgEditing.prototype.showAllSlides = function() {
-        return this.hiddenSlides = {};
+        if (this.hiding) {
+          return this.toggleHidden();
+        }
       };
 
       OrgEditing.prototype.isHidden = function(thing) {
-        return thing && (this.hiddenSlides[typeof thing === 'string' ? thing : thing._id] || this.isHidden(this.data.parent(thing)));
+        return blockIsHidden(this.slideFor(thing));
+      };
+
+      OrgEditing.prototype.canHideSlides = function() {
+        return this.hiding && this.mode === fancyMode;
+      };
+
+      OrgEditing.prototype.shouldHide = function(thing) {
+        var slide;
+        return this.canHideSlides() && (slide = this.slideFor(thing)) && this.isHidden(slide) && !this.isToggled(slide);
       };
 
       OrgEditing.prototype.setEditor = function(ed) {
         OrgEditing.__super__.setEditor.call(this, ed);
-        return this.setMode(this.mode);
+        this.setMode(this.mode);
+        return this.initToolbar();
       };
 
       OrgEditing.prototype.setMode = function(mode) {
@@ -436,15 +483,15 @@
       };
 
       OrgEditing.prototype.renderBlock = function(block) {
-        if (!(this.isHidden(block))) {
-          return this.mode.render(this, block, this.idPrefix);
-        } else {
-          return ['', block.next];
-        }
+        return this.mode.render(this, block, this.idPrefix);
       };
 
       OrgEditing.prototype.change = function(changes) {
         var change, changedProperties, child, computedProperties, id, j, k, len, len1, oldBlock, parent, props, ref, ref1;
+        if (this.changesHidden(changes)) {
+          console.log("REJECTING DELETE OF HIDDEN");
+          return false;
+        }
         computedProperties = {};
         changedProperties = [];
         ref = changes.sets;
@@ -472,6 +519,21 @@
           }
         }
         return OrgEditing.__super__.change.call(this, changes);
+      };
+
+      OrgEditing.prototype.changesHidden = function(changes) {
+        var change, j, len, ref;
+        if (this.canHideSlides()) {
+          console.log("CHANGES: ", changes);
+          ref = changes.oldBlocks;
+          for (j = 0, len = ref.length; j < len; j++) {
+            change = ref[j];
+            if (this.shouldHide(change)) {
+              return true;
+            }
+          }
+        }
+        return false;
       };
 
       OrgEditing.prototype.checkPropertyChange = function(changes, change, oldBlock) {
@@ -668,13 +730,6 @@
         }
       }
     };
-    hideSlide = function(slideDom) {
-      var editor;
-      if (editor = findEditor(slideDom)) {
-        editor.options.hideSlide(slideDom[0].id);
-        return slideDom.remove();
-      }
-    };
     toggleSlideMode = function(slideDom) {
       var block, blockHtml, opts, ref;
       if (opts = (ref = findEditor(slideDom)) != null ? ref.options : void 0) {
@@ -740,12 +795,9 @@
       render: function(opts, block, prefix) {
         return mergeContext({}, (function(_this) {
           return function() {
-            var ref;
             UI.context.opts = opts;
             UI.context.prefix = prefix;
-            if (!block || ((ref = block.properties) != null ? ref.hidden : void 0)) {
-              return ['', opts.data.nextRight(block)];
-            } else if (block.type === 'headline') {
+            if (block.type === 'headline') {
               return _this.renderHeadline(opts, block, prefix);
             } else if (block.type === 'chunk') {
               return _this.renderChunk(opts, block, prefix);
@@ -763,30 +815,34 @@
       renderHeadline: function(opts, block, prefix) {
         var id, m, next, nextText, ref, ref1, ref2, text, viewName;
         next = (ref = opts.data.nextRight(block)) != null ? ref._id : void 0;
-        viewName = block.type === 'headline' && block.level === 1 && opts.isToggled(block) ? (UI.context.viewAttrs = _.merge({
-          "class": 'plain'
-        }, (ref1 = UI.context.viewAttrs) != null ? ref1 : {}), 'leisure-headline-plain') : 'leisure-headline';
-        if (hasView(viewName)) {
-          m = block.text.match(headlineRE);
-          return this.renderView(viewName, null, next, {
-            id: prefix + block._id,
-            blockId: block._id,
-            EOL: '\n',
-            topLevel: block.level === 1,
-            level: block.level,
-            stars: m[HL_LEVEL].trim(),
-            maintext: block.text.substring(m[HL_LEVEL].length),
-            children: opts.data.children(block)
-          });
+        if (opts.shouldHide(block)) {
+          return ['', next];
         } else {
-          text = "<span id='" + prefix + block._id + "' data-block='" + block.type + "'>";
-          text += escapeHtml(block.text);
-          id = block.next;
-          while (id && id !== next) {
-            ref2 = this.render(opts, opts.data.getBlock(id), prefix), nextText = ref2[0], id = ref2[1];
-            text += nextText;
+          viewName = block.type === 'headline' && block.level === 1 && opts.isToggled(block) ? (UI.context.viewAttrs = _.merge({
+            "class": 'plain'
+          }, (ref1 = UI.context.viewAttrs) != null ? ref1 : {}), 'leisure-headline-plain') : 'leisure-headline';
+          if (hasView(viewName)) {
+            m = block.text.match(headlineRE);
+            return this.renderView(viewName, null, next, {
+              id: prefix + block._id,
+              blockId: block._id,
+              EOL: '\n',
+              topLevel: block.level === 1,
+              level: block.level,
+              stars: m[HL_LEVEL].trim(),
+              maintext: block.text.substring(m[HL_LEVEL].length),
+              children: opts.data.children(block)
+            });
+          } else {
+            text = "<span id='" + prefix + block._id + "' data-block='" + block.type + "'>";
+            text += escapeHtml(block.text);
+            id = block.next;
+            while (id && id !== next) {
+              ref2 = this.render(opts, opts.data.getBlock(id), prefix), nextText = ref2[0], id = ref2[1];
+              text += nextText;
+            }
+            return [text + "</span>", next];
           }
-          return [text + "</span>", next];
         }
       },
       renderChunk: function(opts, block, prefix) {
@@ -899,7 +955,7 @@
           objectName = leisureMatch[1];
           viewName = leisureMatch[2] ? " data-view-name='" + leisureMatch[2] + "'" : '';
           data = UI.context.opts.data;
-          error = !(obj = (ref = data.getBlock(data.namedBlocks[objectName])) != null ? ref.yaml : void 0) ? "No object named " + objectName : !(type = obj != null ? obj.type : void 0) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
+          error = !(obj = data.getBlock(data.namedBlocks[objectName])) ? "No object named " + objectName : !(obj = (ref = data.getBlock(data.namedBlocks[objectName])) != null ? ref.yaml : void 0) ? "Object " + objectName + " isn't yaml" : !(type = obj != null ? obj.type : void 0) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
           if (error) {
             return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'><b>✖</b></span>" + (escapeHtml(org.allText()));
           } else {
@@ -1041,11 +1097,21 @@
     followLink = function(e) {
       return console.log("Click link", e);
     };
+    editorForToolbar = function(el) {
+      return findEditor($(el).closest('[data-view]')[0].nextSibling);
+    };
+    showHide = function(toolbar) {
+      var editingOpts;
+      editingOpts = editorForToolbar(toolbar).options;
+      editingOpts.toggleHidden();
+      return editingOpts.hiding;
+    };
     mergeExports({
       findEditor: findEditor,
-      hideSlide: hideSlide,
       toggleSlideMode: toggleSlideMode,
-      followLink: followLink
+      followLink: followLink,
+      showHide: showHide,
+      editorForToolbar: editorForToolbar
     });
     return {
       createLocalData: createLocalData,

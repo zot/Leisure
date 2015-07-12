@@ -319,11 +319,13 @@ Events:
           else selectRange @rangeForBlockRange blockRange
         rangeForBlockRange: ({block, offset, length})->
           startPos = @domCursor(@options.nodeForId(block._id), 0).forwardChars offset
-          endPos = startPos.forwardChars length
-          r = document.createRange()
-          r.setStart startPos.node, startPos.pos
-          r.setEnd endPos.node, endPos.pos
-          r
+          if startPos.isEmpty() then null
+          else
+            endPos = startPos.forwardChars length
+            r = document.createRange()
+            r.setStart startPos.node, startPos.pos
+            r.setEnd endPos.node, endPos.pos
+            r
         blockOffset: (node, offset)->
           if node instanceof Range
             offset = node.startOffset
@@ -404,7 +406,7 @@ This code is hairy and unintuitive and needs to be cleaned up!
           {oldBlocks, newBlocks, offset, prev} = @changeStructure blocks, newText
           if oldBlocks.length || newBlocks.length
             oldFirst = oldBlocks[0]?._id
-            @options.edit prev, oldBlocks.slice(), newBlocks.slice()
+            if !@options.edit prev, oldBlocks.slice(), newBlocks.slice() then return
             if !newBlocks.length
               startBlock = blocks[0]
               offset += start + startBlock.text.length
@@ -862,6 +864,7 @@ Main code
             delete @blocks[id]
           for id, block of sets
             @blocks[id] = block
+          true
 
 `getBlock(id) -> block?`: get the current block for id
 
@@ -899,8 +902,9 @@ Main code
 
         load: (text)->
           @replaceBlocks @blockList(), @parseBlocks text
-          setHtml @editor.node[0], @renderBlocks()
+          @rerenderAll()
           @trigger 'load'
+        rerenderAll: -> setHtml @editor.node[0], @renderBlocks()
         blockCount: ->
           c = 0
           for b of @blocks
@@ -1089,7 +1093,7 @@ DataStoreEditingOptions
         getBlock: (id)-> @data.getBlock id
         getFirst: (first)-> @data.getFirst()
         change: (changes)-> @data.change changes
-        changed: (changes)-> @editor.savePosition => setHtml @editor.node[0], @renderBlocks()
+        changed: (changes)-> @editor.savePosition => @rerenderAll()
 
 Utilities
 =========

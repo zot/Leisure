@@ -1,6 +1,6 @@
 Code for local-mode.  This will not be loaded under meteor.
 
-    init = (EditorSupport, Diag, P2P, Tests, Webrtc, Defaults)->
+    init = (EditorSupport, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports)->
 
       {
         OrgData
@@ -21,6 +21,14 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         runTests
       } = Tests
+      {
+        renderView
+        initializePendingViews
+        withContext
+      } = UI
+      {
+        mergeExports
+      } = BrowserExports
 
       useP2P = true
       #useP2P = false
@@ -61,20 +69,6 @@ Code for local-mode.  This will not be loaded under meteor.
             </div>
           </div>
         """
-        message = connectDialog.find 'textarea'
-        spinner = connectDialog.find '#loaderContainer'
-        offerButton = connectDialog.find('button').button().on 'click', -> offerAction()
-        p2pControls = $("<div></div>").prependTo 'body'
-        create = $("<button>Connect to Slave</button>")
-          .appendTo(p2pControls)
-          .button()
-          .on 'click', -> connectToSlave()
-        connect = $("<button>Connect to Master</button>")
-          .appendTo(p2pControls)
-          .button()
-          .on 'click', -> connectToMaster()
-        $(" <span><b>Connections: </b></span>").appendTo p2pControls
-        connectionDisplay = $("<span>0</span>").appendTo p2pControls
         connectDialog
           .appendTo('body')
           .dialog()
@@ -82,6 +76,14 @@ Code for local-mode.  This will not be loaded under meteor.
           .dialog 'option', 'height', 400
           .dialog 'option', 'position',  { my: "center", at: "top", of: window }
           .dialog 'close'
+        message = connectDialog.find 'textarea'
+        spinner = connectDialog.find '#loaderContainer'
+        offerButton = connectDialog.find('button').button().on 'click', -> offerAction()
+
+        configureP2P = (connectSlaveButton, connectMasterButton, connectionDisplay)->
+          opts = Leisure.editorForToolbar(connectSlaveButton).options
+          connectSlaveButton.button().on 'click', -> connectToSlave()
+          connectMasterButton.button().on 'click', -> connectToMaster()
 
         updateConnections = (newTotal)-> connectionDisplay.html newTotal
 
@@ -139,6 +141,10 @@ Code for local-mode.  This will not be loaded under meteor.
                 if empty != offerButton.button('option', 'disabled')
                   offerButton.button 'option', 'disabled', empty), 1
 
+        mergeExports {
+          configureP2P
+        }
+
       $(document).ready ->
         runTests()
         installSelectionMenu()
@@ -157,14 +163,16 @@ Code for local-mode.  This will not be loaded under meteor.
         * top
         bubba
 
-        [[leisure:bubba]]
+        [[leisure:bubba]][[leisure:bubba]]
         #+NAME: bubba
         #+BEGIN_SRC yaml
         type: rotator
         degrees: 45
         #+END_SRC
         #+BEGIN_SRC html :defview rotator
-        <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
+        <div style='padding: 25px; display: inline-block'>
+          <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
+        </div>
         #+END_SRC
         #+BEGIN_SRC html :defview leisure-headlineX
         <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
@@ -190,9 +198,10 @@ Code for local-mode.  This will not be loaded under meteor.
         #+END_SRC
         #+RESULTS:
         : 7
-        ** sub 1
+         ** sub 1
         */duh/*
         :properties:
+        :hidden: true
         :a: 1
         :end:
         #+BEGIN_SRC js :results dynamic
@@ -226,6 +235,5 @@ Code for local-mode.  This will not be loaded under meteor.
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!./defaults.lorg'], (jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults)->
-        init EditorSupport, Diag, P2P, tests, Webrtc, Defaults
-
+      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!./defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], (jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports)->
+        init EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports
