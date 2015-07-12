@@ -28,8 +28,12 @@ it easier to handle merges.
         setFirst: (firstId)-> @blocks = setFirst @blocks, firstId
         getBlock: (id, changes)->
           if typeof id != 'string' then id else changes?.sets[id] ? @blocks.get id
-        setBlock: (id, block)-> @blocks = @blocks.set id, block
-        deleteBlock: (id)-> @blocks = @blocks.delete id
+        setBlock: (id, block)->
+          @runFilters @getBlock(id), block
+          @blocks = @blocks.set id, block
+        deleteBlock: (id)->
+          @runFilters @getBlock(id), null
+          @blocks = @blocks.delete id
         eachBlock: (func)->
           @blocks.forEach (block, id)-> if id != 'FIRST' then func block, id
         load: (first, newBlocks)->

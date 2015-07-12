@@ -1,3 +1,4 @@
+* TODO coffeescript errors: deal with sourcemaps properly [[https://github.com/rich-harris/sorcery][sorcery]]
 * TODO think about using *.org instead of *.lorg
 * TODO register handlebars helpers directly with leisure source blocks
 * TODO use handlebars partials instead of templates[]

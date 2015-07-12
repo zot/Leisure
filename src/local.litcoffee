@@ -1,6 +1,6 @@
 Code for local-mode.  This will not be loaded under meteor.
 
-    init = (EditorSupport, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports)->
+    init = (jqui, EditorSupport, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search)->
 
       {
         OrgData
@@ -29,6 +29,9 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         mergeExports
       } = BrowserExports
+      {
+        addSearchDataFilter
+      } = Search
 
       useP2P = true
       #useP2P = false
@@ -153,6 +156,7 @@ Code for local-mode.  This will not be loaded under meteor.
           window.PEER = peer = new Peer
           window.DATA = data = peer.data
         else window.DATA = data = new OrgData()
+        addSearchDataFilter data
         data.processDefaults Defaults
         createStructureDisplay data
         #window.ED = plainEditDiv $("[maindoc]"), data
@@ -235,5 +239,4 @@ Code for local-mode.  This will not be loaded under meteor.
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], (jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports)->
-        init EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports
+      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee', 'cs!./search.litcoffee'], init

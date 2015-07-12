@@ -3,7 +3,7 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports) {
+  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', 'cs!./search.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Search) {
     var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, keywordRE, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toggleSlideMode, updateSelection, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
@@ -49,6 +49,7 @@
       function OrgData() {
         DataStore.apply(this, arguments);
         this.namedBlocks = {};
+        this.filters = [];
       }
 
       OrgData.prototype.getBlock = function(thing, changes) {
@@ -61,10 +62,15 @@
       };
 
       OrgData.prototype.load = function(first, blocks, changes) {
-        var block, id, ref;
+        var block, filter, id, j, len, ref, ref1;
         if (!first) {
           return OrgData.__super__.load.call(this, first, blocks);
         } else {
+          ref = this.filters;
+          for (j = 0, len = ref.length; j < len; j++) {
+            filter = ref[j];
+            filter.clear();
+          }
           if (!changes) {
             changes = {
               sets: blocks,
@@ -76,13 +82,45 @@
           for (block in this.blockList()) {
             this.checkChange(block, null);
           }
-          ref = changes.sets;
-          for (id in ref) {
-            block = ref[id];
+          ref1 = changes.sets;
+          for (id in ref1) {
+            block = ref1[id];
+            this.runFilters(null, block);
             this.checkChange(null, block);
           }
           return OrgData.__super__.load.call(this, first, blocks);
         }
+      };
+
+      OrgData.prototype.setBlock = function(id, block) {
+        this.runFilters(this.getBlock(id), block);
+        return OrgData.__super__.setBlock.call(this, id, block);
+      };
+
+      OrgData.prototype.deleteBlock = function(id) {
+        this.runFilters(this.getBlock(block), null);
+        return OrgData.__super__.deleteBlock.call(this, id);
+      };
+
+      OrgData.prototype.addFilter = function(filter) {
+        return this.filters.push(filter);
+      };
+
+      OrgData.prototype.removeFilter = function(filter) {
+        return _.remove(this.filters, function(i) {
+          return i === filter;
+        });
+      };
+
+      OrgData.prototype.runFilters = function(oldBlock, newBlock) {
+        var filter, j, len, ref, results1;
+        ref = this.filters;
+        results1 = [];
+        for (j = 0, len = ref.length; j < len; j++) {
+          filter = ref[j];
+          results1.push(filter.replaceBlock(oldBlock, newBlock));
+        }
+        return results1;
       };
 
       OrgData.prototype.parseBlocks = function(text) {

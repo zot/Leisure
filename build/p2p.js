@@ -36,10 +36,12 @@
       };
 
       P2POrgData.prototype.setBlock = function(id, block) {
+        this.runFilters(this.getBlock(id), block);
         return this.blocks = this.blocks.set(id, block);
       };
 
       P2POrgData.prototype.deleteBlock = function(id) {
+        this.runFilters(this.getBlock(id), null);
         return this.blocks = this.blocks["delete"](id);
       };
 
