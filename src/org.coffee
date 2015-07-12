@@ -723,6 +723,7 @@ define ['lib/lazy'], (Lazy)->
     keywordRE
     KW_BOILERPLATE
     KW_NAME
+    KW_INFO
     srcStartRE
     SRC_BOILERPLATE
     SRC_INFO

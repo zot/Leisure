@@ -1,7 +1,7 @@
 These are Leisure's default views
 
 #+BEGIN_SRC html :defview leisure-headline-plain
-{{> leisure-source-toggle}}{{{renderPlain this}}}</span>
+{{> leisure-source-toggle}}{{{renderPlain this}}}
 #+END_SRC
 #+BEGIN_SRC html :defview leisure-headline
 <div id='{{id}}' class='fancy'
@@ -32,7 +32,7 @@ render this
   data-org-type='source'
   data-shared='code'
   data-lang='{{language}}'
-  ><div
+  >{{> leisure-code-name}}<div
     class='codeHeading'
     contenteditable='true'><span class='hidden'>{{sourceBoiler sourceOrg}}</span>{{sourceInfo sourceOrg}}</div><div
     class='code-text'
@@ -43,6 +43,14 @@ class='hidden'>{{footer}}</span>{{#if
 inter}}<div>{{inter}}</div>{{/if}}{{#if
 resultsContent}}<div
 class='code-results' data-org-src>{{{resultsContent}}}</div>{{/if}}</span>
+#+END_SRC
+#+BEGIN_SRC html :defview leisure-code-name
+{{#if nameBoiler
+}}<span class='codename'><span class='hidden'>{{nameBoiler
+}}</span><span data-noncontent>"</span><span
+contenteditable='true'>{{nameText
+}}</span><span data-noncontent>"</span><span class='hidden'>
+{{afterName}}</span></span>{{/if}}
 #+END_SRC
 #+BEGIN_SRC html :defview leisure-code/js
 <span
@@ -77,6 +85,9 @@ data-org-type='results'
 .view [data-block],
 .view [data-block] * {
   white-space: pre-line;
+}
+.view [data-block] .maintext {
+  white-space: normal;
 }
 span[data-block='code'].fancy {
   border: solid 3px black;

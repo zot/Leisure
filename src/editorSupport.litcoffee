@@ -22,6 +22,10 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         HL_PRIORITY
         HL_TEXT
         HL_TAGS
+        keywordRE
+        KW_BOILERPLATE
+        KW_INFO
+        KEYWORD_
       } = Org
       {
         orgDoc
@@ -56,6 +60,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         removeView
         renderView
         hasView
+        viewKey
         addController
         removeController
         withContext
@@ -71,6 +76,13 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       defaults =
         views: {}
         controls: {}
+
+      escapeAttr = (text)->
+        escapeHtml(text).replace /['"&]/g, (c)->
+          switch c
+            when '"' then '&quot;'
+            when "'" then '&#39;'
+            when '&' then '&amp;'
 
       blockOrg = (data, blockOrText)->
         text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
@@ -196,9 +208,9 @@ that must be done regardless of the source of changes
           if isCss newBlock
             $('head').append "<style id='css-#{newBlock._id}'>#{blockSource newBlock}</style>"
         checkCodeChange: (oldBlock, newBlock, isDefault)->
-          differentName = oldBlock? != newBlock? || oldBlock.type != newBlock.type || oldBlock?.codeName != newBlock?.codeName
-          if oldBlock?.codeName then delete @namedBlocks[newBlock.codeName]
-          if newBlock?.codeName then @namedBlocks[newBlock.codeName] = newBlock._id
+          if oldBlock?.codeName != newBlock?.codeName
+            if oldBlock?.codeName then delete @namedBlocks[oldBlock.codeName]
+            if newBlock?.codeName then @namedBlocks[newBlock.codeName] = newBlock._id
         checkViewChange: (oldBlock, newBlock, isDefault)->
           removeView ov = blockViewType oldBlock
           if vt = blockViewType newBlock
@@ -467,6 +479,16 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           block = UI.context.opts.data.getBlock next
         text
 
+      Handlebars.registerHelper 'hiddenBeforeSource', ->
+        if @sourceOrg.offset
+          "<span class='hidden'>#{@block.text.substring 0, @sourceOrg.offset}</span>"
+        else ''
+
+      Handlebars.registerHelper 'hiddenAfterSource', ->
+        if (end = @sourceOrg.end()) > @block.text.length
+          "<span class='hidden'>#{@block.text.substring @sourceOrg.end()}</span>"
+        else ''
+
       Handlebars.registerHelper 'sourceHeader', (src)->
         src.text.substring 0, src.contentPos
 
@@ -531,19 +553,26 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               EOL: '\n'
           else @renderOrgBlock opts, block, prefix
         renderCode: (opts, block, prefix)->
-          viewKey = "leisure-code"
-          if hasView viewKey, block.language
+          key = "leisure-code"
+          if hasView key, block.language
             org = blockOrg opts.data, block
-            {source, results} = getCodeItems org.children?[0] ? org
+            {name, source, results} = items = getCodeItems org.children?[0] ? org
+            nameBoiler = if name && m = name.text.match keywordRE
+              m[KW_BOILERPLATE]
             # this argument object to renderView is total overkill
-            @renderView viewKey, block.language, block.next,
+            @renderView key, block.language, block.next,
               id: prefix + block._id
               language: block.language
+              block: block
               text: @renderCodeOrg block.language, org, block
               header: block.text.substring 0, block.codePrelen
               source: blockSource block
               sourceOrg: source
               footer: block.text.substring block.text.length - block.codePostlen, source.end()
+              nameBoiler: nameBoiler ? ''
+              nameText: if name then name.text.substring nameBoiler.length, name.text.length - 1
+              name: if name then name.text.substring name.info else ''
+              afterName: if name then block.text.substring name.end(), source.offset else ''
               inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
               results: if results then resultsArea block.text.substring results.offset, results.end() else ''
               resultsContent: if results then resultsArea results.text.substring results.contentPos else ''
@@ -581,9 +610,20 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             (@renderOrg child for child in org.children).join ''
           else org.allText()
         renderLink: (org)->
-          if false && leisureMatch = org.isLeisure()
-            #viewName = if leisureMatch[2] then " data-view-name='#{leisureMatch[2]}'" else ''
-            #"<span data-view-link='#{leisureMatch[1]}'#{viewName}><span class='hidden'>#{org.allText()}</span></span>"
+          if leisureMatch = org.isLeisure()
+            objectName = leisureMatch[1]
+            viewName = if leisureMatch[2] then " data-view-name='#{leisureMatch[2]}'" else ''
+            data = UI.context.opts.data
+            error = if !obj = data.getBlock(data.namedBlocks[objectName])?.yaml
+              "No object named #{objectName}"
+            else if !(type = obj?.type)
+              "No type field in object #{objectName}"
+            else if !hasView type, viewName
+              "No view '#{viewKey type, viewName}'"
+            if error
+              "<span class='error' data-noncontent title='#{escapeAttr error}'><b>✖</b></span>#{escapeHtml org.allText()}"
+            else
+              "<span class='hidden'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj}</span>"
           else if org.isImage()
             title = (if desc = org.descriptionText() then " title='#{escapeHtml desc}'" else "")
             "<img src='#{escapeHtml org.path}'#{title}><span class='hidden'>#{escapeHtml org.allText()}</span>"

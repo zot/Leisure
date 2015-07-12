@@ -23,6 +23,9 @@ body {
     opacity: 0.3;
     z-index: -1;
 }
+.error {
+    color: red;
+}
 #globalLoad {
     position: absolute;
     top: 0;

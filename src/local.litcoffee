@@ -154,6 +154,36 @@ Code for local-mode.  This will not be loaded under meteor.
         ED.node.addClass 'flat'
         createEditorDisplay ED
         ED.options.load """
+        * top
+        bubba
+
+        [[leisure:bubba]]
+        #+NAME: bubba
+        #+BEGIN_SRC yaml
+        type: rotator
+        degrees: 45
+        #+END_SRC
+        #+BEGIN_SRC html :defview rotator
+        <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
+        #+END_SRC
+        #+BEGIN_SRC html :defview leisure-headlineX
+        <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
+        }}</span>{{#each children}}{{{render this}}}{{/each}}</span>
+        #+END_SRC
+        
+        #+BEGIN_SRC css
+        [data-block='headline'] .maintext {
+          font-weight: bold;
+          color: blue;
+        }
+        .custom-headline {
+          font-weight: bold;
+          color: green;
+        }
+        [data-block='headline'] {
+          color: orangeX;
+        }
+        #+END_SRC
         * Test properties > splunge
         #+BEGIN_SRC lisp :results dynamic
         (+ 3 4)
@@ -183,41 +213,15 @@ Code for local-mode.  This will not be loaded under meteor.
         : 0.0111011101110111
         : <img src="https://imgs.xkcd.com/comics/lisp_cycles.png">
 
+        image link
+        [[https://imgs.xkcd.com/comics/lisp_cycles.png]]
+
         peep
         :properties:
         :b: 2
         :end:
         ** sub 2
         asdf
-        * top 2
-        bubba
-
-        #+NAME: bubba
-        #+BEGIN_SRC yaml
-        type: fred
-        value: 37
-        #+END_SRC
-        #+BEGIN_SRC html :defview fred
-        Value: {{value}}
-        #+END_SRC
-        #+BEGIN_SRC html :defview leisure-headlineX
-        <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
-        }}</span>{{#each children}}{{{render this}}}{{/each}}</span>
-        #+END_SRC
-        
-        #+BEGIN_SRC css
-        [data-block='headline'] .maintext {
-          font-weight: bold;
-          color: blue;
-        }
-        .custom-headline {
-          font-weight: bold;
-          color: green;
-        }
-        [data-block='headline'] {
-          color: orangeX;
-        }
-        #+END_SRC
         """ + '\n'
         $('#globalLoad').remove()
 

@@ -1453,6 +1453,7 @@ misrepresented as being the original software.
       keywordRE: keywordRE,
       KW_BOILERPLATE: KW_BOILERPLATE,
       KW_NAME: KW_NAME,
+      KW_INFO: KW_INFO,
       srcStartRE: srcStartRE,
       SRC_BOILERPLATE: SRC_BOILERPLATE,
       SRC_INFO: SRC_INFO,

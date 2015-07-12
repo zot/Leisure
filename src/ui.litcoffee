@@ -132,6 +132,8 @@ choose a handlebars template.
 
       removeController = (type, name, func)-> delete controllers[viewKey type, name]
 
+      getPendingViews = -> pendingViews
+
       root = {
         withContext
         mergeContext
@@ -143,5 +145,7 @@ choose a handlebars template.
         addController
         removeController
         initializePendingViews
+        getPendingViews
+        viewKey
         context: null
       }

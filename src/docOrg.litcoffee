@@ -1,19 +1,19 @@
-    define ['cs!./org', 'lib/yaml', 'lib/lazy'], (Org, Yaml, Lazy)->
+    define ['cs!./org', 'lib/js-yaml', 'lib/lazy'], (Org, Yaml, Lazy)->
 
       {
-        Headline,
-        Source,
-        HTML,
-        Keyword,
-        Drawer,
-        Meat,
-        Results,
-        parseOrgMode,
+        Headline
+        Source
+        HTML
+        Keyword
+        Drawer
+        Meat
+        Results
+        parseOrgMode
       } = Org
 
       {
-        safeLoad,
-        dump,
+        safeLoad
+        dump
       } = Yaml
 
       {_: _L} = Lazy
@@ -198,7 +198,7 @@
         else data
 
       blockSource = (block)->
-        block.text.substring block.codePrelen, block.text.length - block.codePostlen
+        block && block.text.substring block.codePrelen, block.text.length - block.codePostlen
 
       {
         getCodeItems

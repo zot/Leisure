@@ -886,7 +886,8 @@ Main code
 `domCursor(node, pos) -> DOMCursor`: return a domCursor that skips over non-content
 
         domCursor: (node, pos)->
-          new DOMCursor(node, pos).addFilter (n)-> (n.hasAttribute('data-noncontent') && 'skip') || isEditable(n.node)
+          #new DOMCursor(node, pos).addFilter (n)-> (n.hasAttribute('data-noncontent') && 'skip') || isEditable(n.node)
+          new DOMCursor(node, pos).addFilter (n)-> (n.hasAttribute('data-noncontent') && 'skip') || true
 
 `getContainer(node) -> Node?`: get block DOM node containing for a node
 

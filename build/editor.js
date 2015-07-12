@@ -1135,7 +1135,7 @@
 
       BasicEditingOptions.prototype.domCursor = function(node, pos) {
         return new DOMCursor(node, pos).addFilter(function(n) {
-          return (n.hasAttribute('data-noncontent') && 'skip') || isEditable(n.node);
+          return (n.hasAttribute('data-noncontent') && 'skip') || true;
         });
       };
 

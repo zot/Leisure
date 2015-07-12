@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['cs!./base', 'cs!./ast', 'lib/lodash.min', 'immutable', 'lib/yaml'], (Base, Ast, _, Immutable, Yaml)->
+define ['cs!./base', 'cs!./ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base, Ast, _, Immutable, Yaml)->
 
   {
     readFile,
