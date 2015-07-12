@@ -235,5 +235,5 @@ Code for local-mode.  This will not be loaded under meteor.
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!./defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], (jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports)->
+      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], (jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports)->
         init EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports

@@ -160,7 +160,7 @@
   };
 
   require(['jquery'], function() {
-    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!./defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], function(jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports) {
+    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], function(jqui, EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports) {
       return init(EditorSupport, Diag, P2P, tests, Webrtc, Defaults, UI, Exports);
     });
   });

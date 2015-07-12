@@ -520,6 +520,9 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       Handlebars.registerHelper 'sourceInfo', (src)->
         src.text.substring(src.infoPos, src.contentPos)
 
+      Handlebars.registerHelper 'renderSource', ->
+        escapeHtml this.source
+
       Handlebars.registerHelper 'sourceFooter', (src)->
         src.text.substring(src.contentPos + src.content.length)
 
@@ -585,6 +588,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             # this argument object to renderView is total overkill
             @renderView key, block.language, block.next,
               id: prefix + block._id
+              codeItems: items
               language: block.language
               block: block
               text: @renderCodeOrg block.language, org, block

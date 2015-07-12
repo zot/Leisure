@@ -781,6 +781,9 @@
     Handlebars.registerHelper('sourceInfo', function(src) {
       return src.text.substring(src.infoPos, src.contentPos);
     });
+    Handlebars.registerHelper('renderSource', function() {
+      return escapeHtml(this.source);
+    });
     Handlebars.registerHelper('sourceFooter', function(src) {
       return src.text.substring(src.contentPos + src.content.length);
     });
@@ -865,6 +868,7 @@
           nameBoiler = name && (m = name.text.match(keywordRE)) ? m[KW_BOILERPLATE] : void 0;
           return this.renderView(key, block.language, block.next, {
             id: prefix + block._id,
+            codeItems: items,
             language: block.language,
             block: block,
             text: this.renderCodeOrg(block.language, org, block),
