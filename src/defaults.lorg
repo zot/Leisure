@@ -17,7 +17,7 @@ in as long as you mark it as data-noncontent, etc.
 <label><input type='checkbox'></input>Fred</label>
 <button name='connectToSlave'>Connect to Slave</button>
 <button name='connectToMaster'>Connect to Master</button>
-Connections: <span name='connections'></span
+Connections: <span name='connections'></span>
 #+END_SRC
 #+BEGIN_SRC cs :control leisure-toolbar
 @initializeView = (view)->
