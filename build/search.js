@@ -54,7 +54,7 @@
         replaceBlock: function(oldBlock, newBlock) {
           var j, k, len, len1, ref, ref1, results, trigram;
           if (oldBlock) {
-            ref = oldBlock.trigrams;
+            ref = trigrams(oldBlock.text);
             for (j = 0, len = ref.length; j < len; j++) {
               trigram = ref[j];
               delete data.index[trigram][oldBlock._id];
@@ -64,7 +64,7 @@
             }
           }
           if (newBlock) {
-            ref1 = newBlock.trigrams = trigrams(newBlock.text);
+            ref1 = trigrams(newBlock.text);
             results = [];
             for (k = 0, len1 = ref1.length; k < len1; k++) {
               trigram = ref1[k];

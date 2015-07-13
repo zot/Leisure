@@ -27,11 +27,11 @@
           clear: -> data.index = {}
           replaceBlock: (oldBlock, newBlock)->
             if oldBlock
-              for trigram in oldBlock.trigrams
+              for trigram in trigrams oldBlock.text
                 delete data.index[trigram][oldBlock._id]
                 if _.isEmpty data.index[trigram] then delete data.index[trigram]
             if newBlock
-              for trigram in newBlock.trigrams = trigrams newBlock.text
+              for trigram in trigrams newBlock.text
                 if !data.index[trigram] then data.index[trigram] = {}
                 data.index[trigram][newBlock._id] = true
 
