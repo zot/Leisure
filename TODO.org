@@ -1,22 +1,20 @@
-* TODO change UI system to use a data filter to manage view definition
-* TODO coffeescript errors: deal with sourcemaps properly [[https://github.com/rich-harris/sorcery][sorcery]]
-* TODO think about using *.org instead of *.lorg
-* TODO register handlebars helpers directly with leisure source blocks
-* TODO use handlebars partials instead of templates[]
+* TODO spreadsheet, table rendering
+* TODO more value editors besides numeric sliders
+- colors
+- week/month days
+* TODO make UI system to use a data filter to manage view definition
+* TODO coffeescript errors should deal with sourcemaps properly [[https://github.com/rich-harris/sorcery][sorcery]]
+* TODO use handlebars partials instead of templates[]?
 * TODO keep cursor at EOL if collaborative change deletes rest of line
-* TODO port back over the UI stuff
-- handlebars
-- view system
-- data blocks
 * TODO display symantic errors properly (deal with stack trace and sourcemap)
-* TODO Fancy: place results after expressions?
-use Acorn to find ends of exprs
+* TODO Fancy: display results after expressions?
 * TODO make a host service (ssh, shell, python, Java, etc.)
 Basically tramp for Leisure
 - Leisure should ask for confirmation from user before connecting to local/nonpublic services
-* TODO separate project: UI system
-* TODO separate project: Leisure evaluator
-* TODO separate project: scope chains
+* TODO more separate projects
+- UI system
+- evaluator
+- scope chains
 * TODO scope chains
 - make evalScope(str) -> [result, newEval]
 - use this for dynamic edits
@@ -26,7 +24,6 @@ Basically tramp for Leisure
 we'll keep requirejs for now, but browserify looks to be much simpler and friendlier to use
 * TODO Look at supporting [[http://sweetjs.org/][sweetjs]]
 * TODO verify whether @ needs a fat arrow in runtime.coffee:Leisure_token.prototype.toString()
-* TODO repatch autoeval
 * TODO block comments and metadocuments
 - keep comments in the metadocument?
 - secure comment edit/insert using OAuth?
@@ -43,20 +40,12 @@ use an editor that
 *** TODO select text and create a floating code scope using cursor menu
 ** TODO Collapsible document outline
 Open in a code scope to get a floating outline
-* Make Leisure run serverless (alternate HTML file that loads meteor client files)
-Works from file or static website
-** TODO local file load/store
-** TODO make Cakefile create local-mode HTML file
-** TODO use GitHub for storage
-** TODO configure DataStore to run serverless (initialized from document)
-** TODO generate monolithic, minified JS file
-** TODO Look at WebRTC for peer-to-peer
-- WebRTC for notification
-  - initiating browser connects to each peer
-  - not super scalable but works and handles conflicts (otherwise use something like Gun)
+* TODO Storage
 - checkpointing and loading
   - Github: make a branch for each session?
   - webtorrent: [[https://github.com/feross/webtorrent]]
+- local file load/store
+* TODO generate monolithic, minified JS file
 * TODO EditCore: put plain editor options in 24-editorSupport.litcoffee
 ** TODO make server parse into new block format (sibling links)
 ** TODO configure DataStore to use meteor
@@ -921,6 +910,29 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE port back over the UI stuff
+  CLOSED: [2015-07-13 Mon 10:56]
+- handlebars
+- view system
+- data blocks
+** DONE Make Leisure run serverless (alternate HTML file that loads meteor client files)
+  CLOSED: [2015-07-13 Mon 10:55]
+Works from file or static website
+*** DONE make Cakefile create local-mode HTML file
+    CLOSED: [2015-07-13 Mon 10:53]
+    no longer needed
+*** DONE configure DataStore to run serverless (initialized from document)
+    CLOSED: [2015-07-13 Mon 10:53]
+*** DONE Look at WebRTC for peer-to-peer
+   CLOSED: [2015-07-13 Mon 10:53]
+- WebRTC for notification
+  - initiating browser connects to each peer
+  - not super scalable but works and handles conflicts (otherwise use something like Gun)
+
+** DONE repatch autoeval
+  CLOSED: [2015-07-13 Mon 10:52]
+** DONE register handlebars helpers directly with leisure source blocks
+  CLOSED: [2015-07-13 Mon 10:50]
 ** DONE merge PlainEditing into OrgEditing
   CLOSED: [2015-07-05 Sun 19:09]
 - add id-prefix
