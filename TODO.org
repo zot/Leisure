@@ -1,3 +1,13 @@
+* Project list
+- tables / spreadsheet
+- value sliders (numeric, color, weekday, month, etc.)
+- host service
+- metadocuments
+- scope chains
+- Sorcery integration with CS sourcemaps
+- drag and drop images
+- updating, result views / test cases
+- tab-collapse
 * TODO spreadsheet, table rendering
 * TODO more value editors besides numeric sliders
 - colors
@@ -46,11 +56,6 @@ Open in a code scope to get a floating outline
   - webtorrent: [[https://github.com/feross/webtorrent]]
 - local file load/store
 * TODO generate monolithic, minified JS file
-* TODO EditCore: put plain editor options in 24-editorSupport.litcoffee
-** TODO make server parse into new block format (sibling links)
-** TODO configure DataStore to use meteor
-* TODO EditCore: factor Leisure connection (eval, etc.) into separate file
-* TODO EditCore: put fancy editor options in 24-editorSupport.litcoffee
 * Short list -- announcement
 ** BUG inserting char at start of doc in plain mode makes cursor disappear
 ** BUG appended slide in plain mode disappears
@@ -910,6 +915,14 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE EditCore: factor Leisure connection (eval, etc.) into separate file
+   CLOSED: [2015-07-15 Wed 10:47]
+** DONE EditCore: put fancy editor options in 24-editorSupport.litcoffee
+   CLOSED: [2015-07-15 Wed 10:47]
+** DONE EditCore: put plain editor options in 24-editorSupport.litcoffee
+  CLOSED: [2015-07-15 Wed 10:45]
+*** TODO make server parse into new block format (sibling links)
+*** TODO configure DataStore to use meteor
 ** DONE port back over the UI stuff
   CLOSED: [2015-07-13 Mon 10:56]
 - handlebars
