@@ -1,13 +1,17 @@
 * Project list
+- fix up look and feel
+- host service
 - tables / spreadsheet
 - value sliders (numeric, color, weekday, month, etc.)
-- host service
 - metadocuments
 - scope chains
 - Sorcery integration with CS sourcemaps
 - drag and drop images
 - updating, result views / test cases
 - tab-collapse
+* Critical project list
+- p2p
+- storage
 * TODO spreadsheet, table rendering
 * TODO more value editors besides numeric sliders
 - colors
