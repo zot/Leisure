@@ -10,6 +10,7 @@
 - updating, result views / test cases
 - tab-collapse
 * Critical project list
+- code scopes
 - p2p
 - storage
 * TODO spreadsheet, table rendering
