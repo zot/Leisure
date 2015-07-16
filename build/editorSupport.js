@@ -3,8 +3,8 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', 'cs!./search.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Search) {
-    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, keywordRE, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toggleSlideMode, updateSelection, viewKey, withContext, workSpan;
+  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports) {
+    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, keywordRE, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toggleSlideMode, updateSelection, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -285,10 +285,10 @@
 
       OrgData.prototype.checkCssChange = function(oldBlock, newBlock, isDefault) {
         if (isCss(oldBlock) || isCss(newBlock)) {
-          $("#css-" + ((oldBlock != null ? oldBlock._id : void 0) || (newBlock != null ? newBlock._id : void 0))).filter('style').remove();
+          $("#css-" + (blockElementId(oldBlock) || blockElementId(newBlock))).filter('style').remove();
         }
         if (isCss(newBlock)) {
-          return $('head').append("<style id='css-" + newBlock._id + "'>" + (blockSource(newBlock)) + "</style>");
+          return $('head').append("<style id='css-" + (blockElementId(newBlock)) + "'>" + (blockSource(newBlock)) + "</style>");
         }
       };
 
@@ -343,6 +343,9 @@
       return OrgData;
 
     })(DataStore);
+    blockElementId = function(block) {
+      return block && (block.codeName || block._id);
+    };
     blockIsHidden = function(block) {
       var ref, ref1;
       return String((ref = block != null ? (ref1 = block.properties) != null ? ref1.hidden : void 0 : void 0) != null ? ref : '').toLowerCase() === 'true';
@@ -400,8 +403,7 @@
         OrgEditing.__super__.constructor.call(this, data);
         data.on('load', (function(_this) {
           return function() {
-            _this.rerenderAll();
-            return initializePendingViews();
+            return _this.rerenderAll();
           };
         })(this));
         data.on('change', function() {
@@ -494,10 +496,9 @@
       };
 
       OrgEditing.prototype.setMode = function(mode) {
-        var ref;
         this.mode = mode;
-        if ((ref = this.editor) != null) {
-          ref.node.attr('data-edit-mode', this.mode.name);
+        if (this.mode && this.editor) {
+          this.editor.node.attr('data-edit-mode', this.mode.name);
         }
         return this;
       };
@@ -562,7 +563,6 @@
       OrgEditing.prototype.changesHidden = function(changes) {
         var change, j, len, ref;
         if (this.canHideSlides()) {
-          console.log("CHANGES: ", changes);
           ref = changes.oldBlocks;
           for (j = 0, len = ref.length; j < len; j++) {
             change = ref[j];
@@ -1127,7 +1127,7 @@
       leading: true,
       trailing: true
     });
-    updateSelection = function() {
+    updateSelection = function(e) {
       return throttledUpdateSelection();
     };
     actualSelectionUpdate = function() {
@@ -1174,13 +1174,17 @@
     });
     return {
       createLocalData: createLocalData,
+      plainMode: plainMode,
+      fancyMode: fancyMode,
       plainEditDiv: plainEditDiv,
       fancyEditDiv: fancyEditDiv,
       OrgData: OrgData,
+      OrgEditing: OrgEditing,
       installSelectionMenu: installSelectionMenu,
       blockOrg: blockOrg,
       setResult: setResult,
-      setError: setError
+      setError: setError,
+      editorForToolbar: editorForToolbar
     };
   });
 

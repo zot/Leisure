@@ -33,11 +33,11 @@
       return spinner.removeClass('hidden');
     };
     configurePeerButttons = function() {
-      var configureP2P, connectToMaster, connectToSlave, updateConnections;
+      var configureP2P, connectMasterButton, connectSlaveButton, connectToMaster, connectToSlave, connectionDisplay, updateConnections;
       connectDialog = $("<div title=\"Connect\">\n  <div>\n    <div id=\"loaderContainer\" style=\"position: relative; height: 100%\">\n      <div id=\"loaderText\" style='text-align: center'>Discovering Connection Information</div>\n      <div class=\"loader\">\n        <span></span>\n        <span></span>\n        <span></span>\n      </div>\n    </div>\n    <textarea class='hidden' readonly=\"true\" style=\"width: 100%; height: calc(100% - 2.5em - 5px)\">Hello</textarea>\n    <button style=\"height: 2.5em; margin-top: 5px\" class='hidden'></button>\n  </div>\n</div>");
       connectDialog.appendTo('body').dialog().dialog('option', 'width', 700).dialog('option', 'height', 400).dialog('option', 'position', {
-        my: "center",
-        at: "top",
+        my: "top center",
+        at: "top center",
         of: window
       }).dialog('close');
       message = connectDialog.find('textarea');
@@ -45,8 +45,14 @@
       offerButton = connectDialog.find('button').button().on('click', function() {
         return offerAction();
       });
-      configureP2P = function(connectSlaveButton, connectMasterButton, connectionDisplay) {
+      connectMasterButton = null;
+      connectSlaveButton = null;
+      connectionDisplay = null;
+      configureP2P = function(newConnectSlaveButton, newConnectMasterButton, newConnectionDisplay) {
         var opts;
+        connectMasterButton = newConnectMasterButton;
+        connectSlaveButton = newConnectSlaveButton;
+        connectionDisplay = newConnectionDisplay;
         opts = Leisure.editorForToolbar(connectSlaveButton).options;
         connectSlaveButton.button().on('click', function() {
           return connectToSlave();
@@ -60,7 +66,7 @@
       };
       connectToSlave = function() {
         if (peer.becomeMaster()) {
-          connect.button('disable');
+          connectMasterButton.button('disable');
         }
         connectDialog.dialog('open');
         return peer.createConnectionForSlave({
@@ -99,7 +105,7 @@
         if (peer.becomeSlave(function(info) {
           return updateConnections(info.total);
         })) {
-          create.button('disable');
+          connectSlaveButton.button('disable');
         }
         showMessage('Press to generate answer from master offer', function() {
           console.log("GENERATE ANSWER");

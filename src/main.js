@@ -17,7 +17,9 @@ requirejs.config({
         // js/lib/jquery-1.9.0.js, relative to
         // the HTML page.
         jquery: 'lib/jquery-2.1.4.min',
-        jqueryui: 'lib/jquery-ui-1.9.1.custom.min',
+        //jqueryui: 'lib/jquery-ui-1.9.1.custom.min',
+        jqueryui: 'lib/jquery-ui.min-1.11.4',
+        //jqueryui: 'lib/jquery-ui-1.11.4',
         underscore: 'lib/underscore-min',
         acorn: 'lib/acorn-2.0.5',
         acorn_loose: 'lib/acorn_loose-2.0.5',

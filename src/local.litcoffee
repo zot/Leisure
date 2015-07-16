@@ -77,13 +77,19 @@ Code for local-mode.  This will not be loaded under meteor.
           .dialog()
           .dialog 'option', 'width', 700
           .dialog 'option', 'height', 400
-          .dialog 'option', 'position',  { my: "center", at: "top", of: window }
+          .dialog 'option', 'position',  { my: "top center", at: "top center", of: window }
           .dialog 'close'
         message = connectDialog.find 'textarea'
         spinner = connectDialog.find '#loaderContainer'
         offerButton = connectDialog.find('button').button().on 'click', -> offerAction()
+        connectMasterButton = null
+        connectSlaveButton = null
+        connectionDisplay = null
 
-        configureP2P = (connectSlaveButton, connectMasterButton, connectionDisplay)->
+        configureP2P = (newConnectSlaveButton, newConnectMasterButton, newConnectionDisplay)->
+          connectMasterButton = newConnectMasterButton
+          connectSlaveButton = newConnectSlaveButton
+          connectionDisplay = newConnectionDisplay
           opts = Leisure.editorForToolbar(connectSlaveButton).options
           connectSlaveButton.button().on 'click', -> connectToSlave()
           connectMasterButton.button().on 'click', -> connectToMaster()
@@ -91,7 +97,7 @@ Code for local-mode.  This will not be loaded under meteor.
         updateConnections = (newTotal)-> connectionDisplay.html newTotal
 
         connectToSlave = ->
-          if peer.becomeMaster() then connect.button('disable')
+          if peer.becomeMaster() then connectMasterButton.button('disable')
           connectDialog.dialog 'open'
           peer.createConnectionForSlave
             offerReady: (offer, connection)->
@@ -114,7 +120,7 @@ Code for local-mode.  This will not be loaded under meteor.
         connectToMaster = ->
           console.log 'CLICK'
           if peer.becomeSlave((info)-> updateConnections info.total)
-            create.button 'disable'
+            connectSlaveButton.button 'disable'
           showMessage 'Press to generate answer from master offer', ->
             console.log "GENERATE ANSWER"
             showSpinner()

@@ -1,16 +1,50 @@
-    define [], ->
-      searchToken = /[^'"]+|'[^']*'|"[^"]*"/g
+    define ['cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], (Editor, EditorSupport, UI, BrowserExports)->
+      {
+        findEditor
+        LeisureEditCore
+      } = Editor
+      {
+        OrgEditing
+        fancyMode
+        editorForToolbar
+      } = EditorSupport
+      {
+        addView
+        removeView
+        renderView
+        hasView
+        viewKey
+        addController
+        removeController
+        withContext
+        mergeContext
+        initializePendingViews
+      } = UI
+      {
+        mergeExports
+      } = BrowserExports
 
-      normalize = (str)-> "  #{str.toLowerCase().replace(/([^a-z0-9]|\n)+/g, '  ').trim()}  "
+      searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g
 
-      trigrams = (str, tri = {})->
+      normalize = (str)-> str && str.toLowerCase().replace(/([^a-z0-9]|\n)+/g, '').trim()
+
+      chr = (c)-> c.charCodeAt 0
+
+      grams = (str, gr = {})->
         str = normalize str
-        if str.length >= 3
+        if str
+          for cc in [chr('a')..chr('z')].concat [chr('0')..chr('9')]
+            c = String.fromCharCode cc
+            if str.indexOf(c) > -1 then gr[c] = true
+        if str && str.length >= 2
+          for i in [0...str.length - 3]
+            gr[str.substring i, i + 2] = true
+        if str && str.length >= 3
           for i in [0...str.length - 2]
-            tri[str.substring i, i + 3] = true
-        tri
+            gr[str.substring i, i + 3] = true
+        gr
 
-      tokenize = (query)-> normalize token for token in query.match searchToken
+      tokenize = (query)-> normalize token for token in query.match(searchToken) ? []
 
       indexQuery = (query)->
         tri = {}
@@ -18,27 +52,96 @@
         for token in tokenize query
           if !tokens[token]
             tokens[token] = true
-            trigrams token, tri
-        trigrams: tri
-        tokens: tokens
+            grams token, tri
+        grams: tri
+        tokens: _.keys tokens
 
       addSearchDataFilter = (data)->
         data.addFilter
-          clear: -> data.index = {}
+          clear: ->
+            data.ftsIndex =
+              sizes: {}
+              gramBlocks: {}
           replaceBlock: (oldBlock, newBlock)->
-            if oldBlock
-              for trigram in trigrams oldBlock.text
-                delete data.index[trigram][oldBlock._id]
-                if _.isEmpty data.index[trigram] then delete data.index[trigram]
-            if newBlock
-              for trigram in trigrams newBlock.text
-                if !data.index[trigram] then data.index[trigram] = {}
-                data.index[trigram][newBlock._id] = true
+            for gram of grams oldBlock?.text
+              if data.ftsIndex.gramBlocks[gram]?[oldBlock._id]
+                delete data.ftsIndex.gramBlocks[gram]?[oldBlock._id]
+                if ! --data.ftsIndex.sizes[gram]
+                  delete data.ftsIndex.gramBlocks[gram]
+                  delete data.ftsIndex.sizes[gram]
+            for gram of grams newBlock?.text
+              if !data.ftsIndex.gramBlocks[gram]?[newBlock._id]
+                if !data.ftsIndex.gramBlocks[gram]
+                  data.ftsIndex.gramBlocks[gram] = {}
+                  data.ftsIndex.sizes[gram] = 0
+                data.ftsIndex.gramBlocks[gram]?[newBlock._id] = true
+                ++data.ftsIndex.sizes[gram]
+
+      searchForBlocks = (data, query)->
+        {tokens, grams: g} = indexQuery query
+        {gramBlocks, sizes} = data.ftsIndex
+        counts = []
+        for gram of g
+          if !sizes[gram] then return []
+          else counts.push gram: gram, size: sizes[gram]
+        if counts.length
+          counts.sort (a, b)-> b.size - a.size
+          results = (block for block of gramBlocks[counts.pop().gram])
+          while counts.length
+            blocks = gramBlocks[counts.pop().gram]
+            results = _.filter results, (x)-> blocks[x]
+          _.filter results, (id)->
+            text = normalize data.getBlock(id).text
+            _.every tokens, (tok)-> text.search(tok) >= 0
+        else []
+
+      class SearchEditor extends OrgEditing
+        constructor: (@data)->
+          super @data
+          @results = {}
+        initToolbar: ->
+        setResults: (newResults)->
+          if changed = !_.isEqual newResults, @results
+            @results = newResults
+            @rerenderAll()
+          changed
+        renderBlock: (block)->
+          realBlock = @getBlock block
+          if @results[realBlock?._id] then super realBlock
+          else ['', realBlock?.next]
+
+      openSearch = (event)->
+        editor = editorForToolbar(event.originalEvent.srcElement)
+        withContext {editor: editor}, =>
+          $(editor.node)
+            .append renderView 'leisure-search'
+          initializePendingViews()
+
+      configureSearch = (view)->
+        editor = UI.context.editor
+        output = $(view).find '.leisure-searchOutput'
+        input = $(view).find '.leisure-searchText'
+        opts = new SearchEditor(editor.options.data).setMode fancyMode
+        new LeisureEditCore output, opts
+        opts.setMode fancyMode
+        opts.rerenderAll()
+        input.on 'input', (e)->
+          if hits = searchForBlocks(opts.data, input.val())
+            results = _.transform hits, ((obj, item)-> obj[item] = true), {}
+            opts.setResults results
+
+      mergeExports {
+        openSearch
+        configureSearch
+        searchForBlocks
+      }
 
       {
         normalize
         indexQuery
         tokenize
         addSearchDataFilter
-        trigrams
+        grams
+        searchForBlocks
+        openSearch
       }

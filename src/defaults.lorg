@@ -1,4 +1,4 @@
-These are Leisure's system views
+* These are Leisure's system views
 
 Some of these have newlines in strange places.  This is because it's crucial that
 no extra characters be inserted into the basic views in the wrong places.  So you
@@ -13,12 +13,16 @@ Here are the two special rules for these system views that don't apply to other 
 Anything else if fair game -- you can hide the content, you can add text
 in as long as you mark it as data-noncontent, etc.
 
+* Toolbar view
+
 #+BEGIN_SRC html :defview leisure-toolbar
 <label><input type='checkbox'></input>Fred</label>
+<button name='search'>Search</button>
 <button name='connectToSlave'>Connect to Slave</button>
 <button name='connectToMaster'>Connect to Master</button>
 Connections: <span name='connections'></span>
 #+END_SRC
+
 #+BEGIN_SRC cs :control leisure-toolbar
 @initializeView = (view)->
   v = view[0]
@@ -26,6 +30,7 @@ Connections: <span name='connections'></span>
     .button()
     .on 'click', (e)-> updateButton v, Leisure.showHide v
   updateButton v, Leisure.editorForToolbar(v).options.hiding
+  view.find('[name="search"]').button().on 'click', (e)-> Leisure.openSearch e
   Leisure.configureP2P view.find('[name="connectToSlave"]'),
     view.find('[name="connectToMaster"]'),
     view.find('[name="connections"]')
@@ -36,6 +41,9 @@ updateButton = (view, hiding)->
   else
     "<i class='fa fa-eye'></i> Show/hide"
 #+END_SRC
+
+* Block Views
+
 #+BEGIN_SRC html :defview leisure-headline-plain
 {{> leisure-source-toggle}}{{{renderPlain this}}}
 #+END_SRC
@@ -49,7 +57,7 @@ render this
 }}}{{/each}}</div>
 #+END_SRC
 #+BEGIN_SRC html :defview leisure-source-toggle
-{{#if topLevel}}<button class='toggle_edit' contenteditable='false'><i class="fa fa-glass"></i></button>{{/if}}
+{{#if topLevel}}<button class='toggle_edit' contenteditable='false'><i class="fa fa-glass"></i></button> {{/if}}
 #+END_SRC
 #+BEGIN_SRC cs :control leisure-source-toggle
 @initializeView = (view)->
@@ -110,6 +118,8 @@ data-org-results='{{block.codeAttributes.results}}'
 data-org-type='results'
 ><span class='hidden'>{{resultsHeader this}}</span>{{{resultsContents this}}}</span>
 #+END_SRC
+
+#+NAME: block-css
 #+BEGIN_SRC css
 .view[data-view='leisure-headline'] {
   display: block;
@@ -157,5 +167,41 @@ span[data-block='code'].fancy {
 .code-results {
   margin-top: 1em;
   margin-bottom: 1em;
+}
+#+END_SRC
+
+* Search Views
+
+#+BEGIN_SRC html :defview leisure-search
+<div title='Search' data-noncontent>
+  <div class='frame'>
+    <input class='leisure-searchText' type='text'></input>
+    <div class='leisure-searchOutput'></div>
+  </div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-search
+@initializeView = (view)->
+  d = $(view).children()
+    .dialog
+      width: 400
+      height: 600
+      position: my: "right top", at: "right top", of: window
+  Leisure.configureSearch d
+#+END_SRC
+
+#+NAME: search-css
+#+BEGIN_SRC css
+.leisure-searchText {
+  width: 100%;
+  height: 1.5em;
+}
+.leisure-searchOutput {
+  width: 100%;
+  height: calc(100% - 1.5em);
+  background: white;
+  color: black;
+  overflow: auto;
 }
 #+END_SRC

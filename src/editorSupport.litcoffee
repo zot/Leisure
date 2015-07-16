@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', 'cs!./search.litcoffee'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Search)->
+    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports)->
 
       {
         defaultEnv
@@ -219,9 +219,9 @@ that must be done regardless of the source of changes
           @checkControlChange oldBlock, newBlock, isDefault
         checkCssChange: (oldBlock, newBlock, isDefault)->
           if isCss(oldBlock) || isCss(newBlock)
-            $("#css-#{oldBlock?._id || newBlock?._id}").filter('style').remove()
+            $("#css-#{blockElementId(oldBlock) || blockElementId(newBlock)}").filter('style').remove()
           if isCss newBlock
-            $('head').append "<style id='css-#{newBlock._id}'>#{blockSource newBlock}</style>"
+            $('head').append "<style id='css-#{blockElementId newBlock}'>#{blockSource newBlock}</style>"
         checkCodeChange: (oldBlock, newBlock, isDefault)->
           if oldBlock?.codeName != newBlock?.codeName
             if oldBlock?.codeName then delete @namedBlocks[oldBlock.codeName]
@@ -244,6 +244,8 @@ that must be done regardless of the source of changes
               env.write = (str)->
               env.errorAt = (offset, msg)-> console.log msg
               env.executeText blockSource(newBlock), Nil, (->)
+
+      blockElementId = (block)-> block && (block.codeName || block._id)
 
       blockIsHidden = (block)->
         String(block?.properties?.hidden ? '').toLowerCase() == 'true'
@@ -284,9 +286,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       class OrgEditing extends DataStoreEditingOptions
         constructor: (data)->
           super data
-          data.on 'load', =>
-            @rerenderAll()
-            initializePendingViews()
+          data.on 'load', => @rerenderAll()
           data.on 'change', -> initializePendingViews()
           @setPrefix 'leisureBlock-'
           @hiding = true
@@ -324,7 +324,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           @setMode @mode
           @initToolbar()
         setMode: (@mode)->
-          @editor?.node.attr 'data-edit-mode', @mode.name
+          if @mode && @editor then @editor.node.attr 'data-edit-mode', @mode.name
           this
         setPrefix: (prefix)->
           @idPrefix = prefix
@@ -359,7 +359,6 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           super changes
         changesHidden: (changes)->
           if @canHideSlides()
-            console.log "CHANGES: ", changes
             for change in changes.oldBlocks
               if @shouldHide change then return true
           false
@@ -771,7 +770,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         leading: true
         trailing: true
       
-      updateSelection = ->
+      updateSelection = (e)->
         #console.log "updating selection...", new Error('trace').stack
         throttledUpdateSelection()
     
@@ -816,11 +815,15 @@ Exports
 
       {
         createLocalData
+        plainMode
+        fancyMode
         plainEditDiv
         fancyEditDiv
         OrgData
+        OrgEditing
         installSelectionMenu
         blockOrg
         setResult
         setError
+        editorForToolbar
       }

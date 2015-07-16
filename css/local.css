@@ -16,6 +16,7 @@ body {
     margin-top: 5px;
     border: solid orange 2px;
     white-space: pre;
+    overflow: auto;
 }
 .errorMark {
     color: red;
