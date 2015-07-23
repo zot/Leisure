@@ -78,8 +78,8 @@
 
 (defvar leisure/clientCount 0)
 
-;;(defvar leisure/fileURL "file:///C:/Users/bill/work/lc/floo/Leisure/emacs/test.html")
-(defvar leisure/fileURL "file:///C:/Users/bill/work/lc/floo/Leisure/index.html")
+(defvar leisure/fileURL "http://textcraft.org/newLeisure/")
+;;(defvar leisure/fileURL "file:///C:/Users/bill/work/lc/floo/Leisure/index.html")
 
 (defvar leisure/init nil)
 
