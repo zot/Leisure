@@ -295,8 +295,12 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         rerenderAll: ->
           super()
           initializePendingViews()
+        withContext: (func)-> mergeContext {}, =>
+          UI.context.opts = this
+          UI.context.prefix = @idPrefix
+          func()
         initToolbar: ->
-          withContext {}, => $(@editor.node).before(renderView 'leisure-toolbar', null, null)
+          @withContext => $(@editor.node).before(renderView 'leisure-toolbar', null, null)
           initializePendingViews()
         slideFor: (thing)->
           block = @data.getBlock thing
@@ -561,9 +565,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       fancyMode =
         name: 'fancy'
         render: (opts, block, prefix)->
-          mergeContext {}, =>
-            UI.context.opts = opts
-            UI.context.prefix = prefix
+          opts.withContext =>
             if block.type == 'headline' then @renderHeadline opts, block, prefix
             else if block.type == 'chunk' then @renderChunk opts, block, prefix
             else if block.type == 'code' then @renderCode opts, block, prefix

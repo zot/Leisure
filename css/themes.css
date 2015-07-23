@@ -937,6 +937,12 @@ body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
     background: #a2572e; /* Firefox */
 }
 .org-fancy body,
+.leisure-searchOutputHolder,
+body {
+    /*background: #CCCCCC;*/
+    background: #EEE;
+}
+.org-fancy body,
 body {
     /*position: relative;*/
     position: absolute;
@@ -947,8 +953,6 @@ body {
     margin: 0;
     font-family: Inconsolata;
     /*font-size: large;*/
-    /*background: #CCCCCC;*/
-    background: #EEE;
 }
 .syntaxhighlighter .ui-slider {
     left: inherit !important;

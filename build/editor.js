@@ -166,6 +166,10 @@
         return copy(this.options.getBlock(id));
       };
 
+      LeisureEditCore.prototype.getText = function() {
+        return this.options.getText();
+      };
+
       LeisureEditCore.prototype.domCursor = function(node, pos) {
         if (node instanceof jQuery) {
           node = node[0];
@@ -1215,6 +1219,10 @@
         return result;
       };
 
+      BasicEditingOptions.prototype.getText = function() {
+        return this.data.getText();
+      };
+
       return BasicEditingOptions;
 
     })(Observable);
@@ -1321,6 +1329,15 @@
           }
         }
         return results;
+      };
+
+      DataStore.prototype.getText = function() {
+        var text;
+        text = '';
+        this.eachBlock(function(block) {
+          return text += block.text;
+        });
+        return text;
       };
 
       DataStore.prototype.load = function(first1, blocks1) {

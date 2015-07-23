@@ -2,8 +2,8 @@
 (function() {
   var init;
 
-  init = function(jqui, EditorSupport, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search) {
-    var OrgData, Peer, addSearchDataFilter, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, initializePendingViews, installSelectionMenu, mergeExports, message, mode, offerAction, offerButton, peer, plainEditDiv, renderView, runTests, showMessage, showSpinner, spinner, useP2P, withContext;
+  init = function(jqui, EditorSupport, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs) {
+    var OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, initializePendingViews, installSelectionMenu, mergeExports, message, mode, offerAction, offerButton, peer, plainEditDiv, renderView, runTests, showMessage, showSpinner, spinner, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, plainEditDiv = EditorSupport.plainEditDiv, fancyEditDiv = EditorSupport.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
     Peer = P2P.Peer;
@@ -12,6 +12,7 @@
     renderView = UI.renderView, initializePendingViews = UI.initializePendingViews, withContext = UI.withContext;
     mergeExports = BrowserExports.mergeExports;
     addSearchDataFilter = Search.addSearchDataFilter;
+    addEmacsDataFilter = Emacs.addEmacsDataFilter;
     useP2P = true;
     peer = null;
     mode = null;
@@ -168,7 +169,7 @@
   };
 
   require(['jquery'], function() {
-    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee', 'cs!./search.litcoffee'], init);
+    return require(['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee', 'cs!./search.litcoffee', 'cs!./emacs.litcoffee'], init);
   });
 
 }).call(this);

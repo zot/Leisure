@@ -4,15 +4,15 @@
     var mergeExports, ref, root;
     root = window.Leisure = (ref = window.Leisure) != null ? ref : {};
     mergeExports = function(exports) {
-      var k, results, v;
-      results = [];
+      var k, v;
       for (k in exports) {
         v = exports[k];
-        results.push(root[k] = v);
+        root[k] = v;
       }
-      return results;
+      return exports;
     };
     window.Leisure = root;
+    root.mergeExports = mergeExports;
     return {
       mergeExports: mergeExports
     };

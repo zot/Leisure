@@ -420,8 +420,18 @@
         return initializePendingViews();
       };
 
+      OrgEditing.prototype.withContext = function(func) {
+        return mergeContext({}, (function(_this) {
+          return function() {
+            UI.context.opts = _this;
+            UI.context.prefix = _this.idPrefix;
+            return func();
+          };
+        })(this));
+      };
+
       OrgEditing.prototype.initToolbar = function() {
-        withContext({}, (function(_this) {
+        this.withContext((function(_this) {
           return function() {
             return $(_this.editor.node).before(renderView('leisure-toolbar', null, null));
           };
@@ -856,10 +866,8 @@
     fancyMode = {
       name: 'fancy',
       render: function(opts, block, prefix) {
-        return mergeContext({}, (function(_this) {
+        return opts.withContext((function(_this) {
           return function() {
-            UI.context.opts = opts;
-            UI.context.prefix = prefix;
             if (block.type === 'headline') {
               return _this.renderHeadline(opts, block, prefix);
             } else if (block.type === 'chunk') {

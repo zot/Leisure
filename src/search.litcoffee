@@ -123,6 +123,7 @@
         input = $(view).find '.leisure-searchText'
         opts = new SearchEditor(editor.options.data).setMode fancyMode
         new LeisureEditCore output, opts
+        $(output).parent().addClass 'flat'
         opts.setMode fancyMode
         opts.rerenderAll()
         input.on 'input', (e)->

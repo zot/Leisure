@@ -1,7 +1,19 @@
 * Project list
+- emacs connection using [[https://github.com/ahyatt/emacs-websocket][websockets]]
+  - emacs runs websocket server
+  - {type: 'replace', offset: off, length: len, text: text}
+  - {type: 'load', text: text, filename: name}
+  - <close> kills emacs buffer
+  - show in browser
+    - sends port to browser with cookie
+    - emacs-opened pages close on websocket close
+    - changing buffer sends changes to browser
 - fix up look and feel
-- host service
+- host services
+  - files
+  - shell
 - tables / spreadsheet
+- slide view
 - value sliders (numeric, color, weekday, month, etc.)
 - metadocuments
 - scope chains
@@ -9,10 +21,33 @@
 - drag and drop images
 - updating, result views / test cases
 - tab-collapse
+- minimal rendering
+- multiple cursors / occurrance editing
+- block sources (imports, comments, external data)
+  - convert a URL to a stream of blocks
+    - doesn't edit the file or local storage, just creates a temporary block source
+  - import a file
+  - local blocks
+- comments
+  - comment on named blocks
+    - autogen source block ids using #+ID: keyword
+      - make edits manage the block ID, copies get their own, etc.
+    - rename can redirect old comments to new block
+  - approval block sources (maybe imports)
+    - approve a comment (store a hash of it)
+    - approve a user (store a comment block source)
+  - users can have local approal block sources
+- keybindings for things
+  - switch to/from plain mode
 * Critical project list
 - code scopes
 - p2p
 - storage
+* Search stuff
+- search history
+- search type drop-down
+- case sensitive, regexp
+- highlight results
 * TODO spreadsheet, table rendering
 * TODO more value editors besides numeric sliders
 - colors

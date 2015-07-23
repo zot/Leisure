@@ -18,6 +18,7 @@ in as long as you mark it as data-noncontent, etc.
 #+BEGIN_SRC html :defview leisure-toolbar
 <label><input type='checkbox'></input>Fred</label>
 <button name='search'>Search</button>
+<span name='emacsConnector'><button name='connectToEmacs'>Emacs</button><span name="emacsPort">Port: <input type='text' value="1315"></span></span>
 <button name='connectToSlave'>Connect to Slave</button>
 <button name='connectToMaster'>Connect to Master</button>
 Connections: <span name='connections'></span>
@@ -25,21 +26,34 @@ Connections: <span name='connections'></span>
 
 #+BEGIN_SRC cs :control leisure-toolbar
 @initializeView = (view)->
-  v = view[0]
   view.find('label')
     .button()
-    .on 'click', (e)-> updateButton v, Leisure.showHide v
-  updateButton v, Leisure.editorForToolbar(v).options.hiding
+    .on 'click', (e)-> updateButton view, Leisure.showHide view[0]
+  updateButton view, Leisure.editorForToolbar(view[0]).options.hiding
   view.find('[name="search"]').button().on 'click', (e)-> Leisure.openSearch e
   Leisure.configureP2P view.find('[name="connectToSlave"]'),
     view.find('[name="connectToMaster"]'),
     view.find('[name="connections"]')
+  Leisure.configureEmacs view.find('[name="emacsConnector"]')
 
 updateButton = (view, hiding)->
-  $(view).find('label').button 'option', 'label', if hiding
+  view.find('label').button 'option', 'label', if hiding
     "<i class='fa fa-eye-slash'></i> Show/hide"
   else
     "<i class='fa fa-eye'></i> Show/hide"
+#+END_SRC
+
+#+NAME: toolbar-css
+#+BEGIN_SRC css
+[name='emacsConnector']:hover [name='emacsPort'] {
+  display: inherit;
+}
+[name='emacsConnector'] [name='emacsPort'] {
+  display: none;
+}
+[name='emacsConnector'] [name='emacsPort'] input {
+  width: 4em;
+}
 #+END_SRC
 
 * Block Views
@@ -176,7 +190,7 @@ span[data-block='code'].fancy {
 <div title='Search' data-noncontent>
   <div class='frame'>
     <input class='leisure-searchText' type='text'></input>
-    <div class='leisure-searchOutput'></div>
+    <div class='leisure-searchOutputHolder'><div class='leisure-searchOutput'></div></div>
   </div>
 </div>
 #+END_SRC
@@ -188,6 +202,10 @@ span[data-block='code'].fancy {
       width: 400
       height: 600
       position: my: "right top", at: "right top", of: window
+    .on 'dialogclose', ->
+      $(this).dialog('destroy')
+      $(this).remove()
+    #.on 'dialogclose', -> console.log this
   Leisure.configureSearch d
 #+END_SRC
 
@@ -200,7 +218,7 @@ span[data-block='code'].fancy {
 .leisure-searchOutput {
   width: 100%;
   height: calc(100% - 1.5em);
-  background: white;
+  /*background: white;*/
   color: black;
   overflow: auto;
 }

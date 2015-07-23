@@ -1,0 +1,10 @@
+#+BEGIN_SRC sh
+netstat -an|grep 777
+#+END_SRC
+
+#+RESULTS:
+
+* Settings
+Local Variables:
+org-confirm-babel-evaluate: nil
+End:

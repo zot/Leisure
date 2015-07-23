@@ -273,6 +273,7 @@ Events:
             catch
               @selectBlockRange pos
         getCopy: (id)-> copy @options.getBlock id
+        getText: -> @options.getText()
         domCursor: (node, pos)->
           if node instanceof jQuery
             node = node[0]
@@ -936,6 +937,7 @@ Main code
           while next && [html, next] = @renderBlock @getBlock next
             result += html
           result
+        getText: -> @data.getText()
 
       copyBlock = (block)->
         if !block then null
@@ -1017,6 +1019,10 @@ Data model -- override/reset these if you want to change how the store accesses 
         eachBlock: (func)->
           for id, block of @blocks
             if func(block, id) == false then break
+        getText: ->
+          text = ''
+          @eachBlock (block)-> text += block.text
+          text
         load: (@first, @blocks)-> @trigger 'load'
         check: ->
           seen = {}

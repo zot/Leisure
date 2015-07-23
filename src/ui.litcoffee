@@ -1,12 +1,15 @@
 Leisure's UI system uses a piece of data's "type" and the "context" (a string) to
 choose a handlebars template.
 
-    define ['handlebars'], (Handlebars)->
+    define ['handlebars', 'cs!./export.litcoffee'], (Handlebars, Exports)->
       {
         compile
         create
         registerHelper
       } = Handlebars
+      {
+        mergeExports
+      } = Exports
 
       templates = {}
       controllers = {}
@@ -90,12 +93,12 @@ choose a handlebars template.
               html = template data, data: root.context
               if isTop then attrs += " data-ids='#{settings.subviews.join ' '}'"
               html = "<span #{attrs}>'#{html}</span>"
-            activateScripts node
-        else simpleRenderView attrs, key, template, data, block
+              activateScripts node
+        else mergeContext settings, -> simpleRenderView attrs, key, template, data, block
 
       simpleRenderView = (attrs, key, template, data, block)->
         id = "view-#{viewIdCounter++}"
-        pendingViews.push id
+        pendingViews.push [id, root.context]
         attrs += " id='#{id}'"
         if block then root.context.subviews[block._id] = true
         "<span #{attrs}>#{template data, data: root.context}</span>"
@@ -103,30 +106,30 @@ choose a handlebars template.
       initializePendingViews = ->
         p = pendingViews
         pendingViews = []
-        for viewId in p
-          view = $("##{viewId}")
-          activateScripts view
+        for [viewId, context] in p
+          activateScripts $("##{viewId}"), context
 
-      activateScripts = (el)->
+      activateScripts = (el, context)->
         if !activating
-          activating = true
-          try
-            for script in $(el).find('script')
-              if !script.type || script.type == 'text/javascript'
-                newScript = document.createElement 'script'
-                newScript.type = 'text/javascript'
-                newScript.textContent = script.textContent
-                newScript.src = script.src
-                root.currentScript = newScript
-                script.parentNode.insertBefore newScript, script
-                script.remove()
-            for script in $(el).find('script[type="text/coffeescript"]').add($(el).find 'script[type="text/literate-coffeescript"]')
-              root.currentScript = script
-              CoffeeScript.run script.innerHTML
-            controllers[el.attr 'data-view']?.initializeView(el)
-          finally
-            root.currentScript = null
-            activating = false
+          withContext context, ->
+            activating = true
+            try
+              for script in $(el).find('script')
+                if !script.type || script.type == 'text/javascript'
+                  newScript = document.createElement 'script'
+                  newScript.type = 'text/javascript'
+                  newScript.textContent = script.textContent
+                  newScript.src = script.src
+                  root.currentScript = newScript
+                  script.parentNode.insertBefore newScript, script
+                  script.remove()
+              for script in $(el).find('script[type="text/coffeescript"]').add($(el).find 'script[type="text/literate-coffeescript"]')
+                root.currentScript = script
+                CoffeeScript.run script.innerHTML
+              controllers[el.attr 'data-view']?.initializeView(el)
+            finally
+              root.currentScript = null
+              activating = false
 
       addController = (type, name, func)-> controllers[viewKey type, name] = func
 
@@ -134,18 +137,20 @@ choose a handlebars template.
 
       getPendingViews = -> pendingViews
 
-      root = {
-        withContext
-        mergeContext
-        renderView
-        addView
-        removeView
-        hasView
-        getView
-        addController
-        removeController
-        initializePendingViews
-        getPendingViews
-        viewKey
-        context: null
-      }
+      root = mergeExports(
+        UI: {
+          withContext
+          mergeContext
+          renderView
+          addView
+          removeView
+          hasView
+          getView
+          addController
+          removeController
+          initializePendingViews
+          getPendingViews
+          viewKey
+          context: null
+        }
+      ).UI
