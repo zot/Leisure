@@ -100,6 +100,9 @@
 
 (defvar leisure/blockingChanges nil)
 
+(defvar leisure/showDiag nil)
+;;(setq leisure/showDiag t)
+
 (defconst leisure/actions
   '(display leisure/display))
 
@@ -153,7 +156,7 @@ FRAME: frame."
   "CONINFO received a MSG from websocket frame FRAME."
   (if (equal 'text (websocket-frame-opcode frame))
       (progn
-        ;;(leisure/print conInfo "received %s" msg)
+        ;;(leisure/diag conInfo "received %s" msg)
         (let* ((m (leisure/match "^\\([^ ]*\\) \\(.*\\)$" msg))
                (sym (and (elt m 1) (intern-soft (elt m 1))))
                (func (and sym (plist-get leisure/messages sym))))
@@ -200,7 +203,7 @@ FRAME: frame."
          (start (+ 1 (string-to-number (elt m 1))))
          (end (+ 1 (string-to-number (elt m 2))))
          (text (leisure/parseString (elt m 3))))
-    (leisure/print conInfo "received change start: %s, end: %s, text: '%s'" start end text)
+    (leisure/diag conInfo "received change start: %s, end: %s, text: '%s'" start end text)
     (save-excursion
       (leisure/blockChanges conInfo
         (if (eql end 0) (erase-buffer)
@@ -217,7 +220,7 @@ FRAME: frame."
          (requestedName (elt params 1))
          (requestedAction (elt params 2))
          (action (plist-get leisure/actions (intern requestedAction)))
-         (transient (not (leisure/str bufferName))))
+         (transient (not (leisure/str requestedName))))
     (cond ((and (equal bufferName requestedName)
                 (not (equal conInfo (leisure/getBufferConnection bufferName))))
            (leisure/error conInfo "Leisure requested a connection to a buffer that is already connected."))
@@ -226,13 +229,19 @@ FRAME: frame."
            (leisure/error conInfo "Leisure requested a different name for a connection."))
           (t (if (not (or (leisure/str bufferName) (leisure/str requestedName)))
                  (setq bufferName (setf (leisure/conInfo-bufferName conInfo) (make-temp-name "leisure-connection-"))))
-             (if (not (leisure/str bufferName)) (setq bufferName requestedName))
+             (if (not (leisure/str bufferName))
+                 (progn
+                   (setq bufferName requestedName)
+                   (setf (leisure/conInfo-bufferName conInfo) requestedName)))
              (setf (leisure/conInfo-changeCount conInfo) 0)
              (get-buffer-create bufferName)
              (with-current-buffer bufferName
-               (if transient (setf (leisure/conInfo-transient conInfo) t))
                (setq leisure/bufferConnection conInfo)
-               (add-hook 'kill-buffer-hook 'leisure/closeCurrentConnection nil t))
+               (if transient
+                   (progn
+                     (setf (leisure/conInfo-transient conInfo) t)
+                     (add-hook 'kill-buffer-hook 'leisure/closeCurrentConnection nil t))
+                 (leisure/sendChange 0 -1 (buffer-string))))
              (if action (funcall action conInfo)
                (leisure/print conInfo "no action for connection (requested: %s)" requestedAction))
              (leisure/print conInfo "connected to buffer '%s'" bufferName)))))
@@ -242,8 +251,7 @@ FRAME: frame."
   (let* ((con leisure/bufferConnection)
          (lastChange (leisure/conInfo-lastChange con)))
     (if (> lastChange (leisure/conInfo-changeCount con))
-        (setf (leisure/conInfo-changeCount con) (+ 1 lastChange))
-      )
+        (setf (leisure/conInfo-changeCount con) (+ 1 lastChange)))
     (let ((msg (format "r %s %s %s \"%s\""
                        (leisure/conInfo-changeCount con)
                        start
@@ -251,7 +259,7 @@ FRAME: frame."
                        (leisure/escapeString text)))
           (ws (leisure/conInfo-websocket leisure/bufferConnection)))
       (if ws (websocket-send-text ws msg))
-      (leisure/print con "sent %s" msg))))
+      (leisure/diag con "sent %s" msg))))
 
 ;; actions
 (defun leisure/display (conInfo)
@@ -409,6 +417,10 @@ FRAME: frame."
 (defun leisure/addNl (str)
   "Add a nl to STR."
   (string-join (list str "\n")))
+
+(defun leisure/diag (&rest args)
+  "Send ARGS to print if diagnostics is on."
+  (if leisure/showDiag (apply 'leisure/print args)))
 
 (defun leisure/print (conInfo str &rest body)
   "Print message for CONINFO, formatting STR with BODY (sent to format) in leisure message buffer."

@@ -172,79 +172,80 @@ Code for local-mode.  This will not be loaded under meteor.
         window.ED = fancyEditDiv $("[maindoc]"), data
         ED.node.addClass 'flat'
         createEditorDisplay ED
-        ED.options.load """
-        * top
-        bubba
+        if !document.location.search
+          ED.options.load """
+          * top
+          bubba
 
-        [[leisure:bubba]][[leisure:bubba]]
-        #+NAME: bubba
-        #+BEGIN_SRC yaml
-        type: rotator
-        degrees: 45
-        #+END_SRC
-        #+BEGIN_SRC html :defview rotator
-        <div style='padding: 25px; display: inline-block'>
-          <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
-        </div>
-        #+END_SRC
-        #+BEGIN_SRC html :defview leisure-headlineX
-        <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
-        }}</span>{{#each children}}{{{render this}}}{{/each}}</span>
-        #+END_SRC
-        
-        #+BEGIN_SRC css
-        [data-block='headline'] .maintext {
-          font-weight: bold;
-          color: blue;
-        }
-        .custom-headline {
-          font-weight: bold;
-          color: green;
-        }
-        [data-block='headline'] {
-          color: orangeX;
-        }
-        #+END_SRC
-        * Test properties > splunge
-        #+BEGIN_SRC lisp :results dynamic
-        (+ 3 4)
-        #+END_SRC
-        #+RESULTS:
-        : 7
-         ** sub 1
-        */duh/*
-        :properties:
-        :hidden: true
-        :a: 1
-        :end:
-        #+BEGIN_SRC js :results dynamic
-        3 + 4
-        #+END_SRC
-        #+RESULTS:
-        : 7
+          [[leisure:bubba]][[leisure:bubba]]
+          #+NAME: bubba
+          #+BEGIN_SRC yaml
+          type: rotator
+          degrees: 45
+          #+END_SRC
+          #+BEGIN_SRC html :defview rotator
+          <div style='padding: 25px; display: inline-block'>
+            <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
+          </div>
+          #+END_SRC
+          #+BEGIN_SRC html :defview leisure-headlineX
+          <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
+          }}</span>{{#each children}}{{{render this}}}{{/each}}</span>
+          #+END_SRC
+          
+          #+BEGIN_SRC css
+          [data-block='headline'] .maintext {
+            font-weight: bold;
+            color: blue;
+          }
+          .custom-headline {
+            font-weight: bold;
+            color: green;
+          }
+          [data-block='headline'] {
+            color: orangeX;
+          }
+          #+END_SRC
+          * Test properties > splunge
+          #+BEGIN_SRC lisp :results dynamic
+          (+ 3 4)
+          #+END_SRC
+          #+RESULTS:
+          : 7
+           ** sub 1
+          */duh/*
+          :properties:
+          :hidden: true
+          :a: 1
+          :end:
+          #+BEGIN_SRC js :results dynamic
+          3 + 4
+          #+END_SRC
+          #+RESULTS:
+          : 7
 
-        #+BEGIN_SRC cs :results dynamic
-        '<b>duh</b>'
-        html '<b>duh</b>'
-        37/3333
-        html '<img src="https://imgs.xkcd.com/comics/lisp_cycles.png">'
-        #+END_SRC
-        #+RESULTS:
-        : &lt;b&gt;duh&lt;/b&gt;
-        : <b>duh</b>
-        : 0.0111011101110111
-        : <img src="https://imgs.xkcd.com/comics/lisp_cycles.png">
+          #+BEGIN_SRC cs :results dynamic
+          '<b>duh</b>'
+          html '<b>duh</b>'
+          37/3333
+          html '<img src="https://imgs.xkcd.com/comics/lisp_cycles.png">'
+          #+END_SRC
+          #+RESULTS:
+          : &lt;b&gt;duh&lt;/b&gt;
+          : <b>duh</b>
+          : 0.0111011101110111
+          : <img src="https://imgs.xkcd.com/comics/lisp_cycles.png">
 
-        image link
-        [[https://imgs.xkcd.com/comics/lisp_cycles.png]]
+          image link
+          [[https://imgs.xkcd.com/comics/lisp_cycles.png]]
 
-        peep
-        :properties:
-        :b: 2
-        :end:
-        ** sub 2
-        asdf
-        """ + '\n'
+          peep
+          :properties:
+          :b: 2
+          :end:
+          ** sub 2
+          asdf
+          """ + '\n'
         $('#globalLoad').remove()
 
     require ['jquery'], ->

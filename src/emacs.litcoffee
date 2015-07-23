@@ -13,18 +13,24 @@ Emacs connection
       replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/
       replacing = false
       connected = false
+      showDiag = false
+      #showDiag = true
+
+      diag = (msg...)-> if showDiag then console.log msg...
 
       messages =
         r: (data, msg, frame)-> replace data, msg
 
       replace = (data, msg)->
-        console.log "Received #{msg}"
+        diag "Received #{msg}"
         [ignore, count, start, end, text] = msg.match replaceMsgPat
+        start = Number start
+        end = Number end
         text = JSON.parse text
         editor = data.emacsConnection.opts.editor
         replaceWhile ->
-          if end == -1 then editor.load text
-          else editor.replace null, blockRangeFor(data, Number(start), Number(end)), text
+          if end == -1 then editor.options.load text
+          else editor.replace null, blockRangeFor(data, start, end), text
 
       replaceWhile = (func)->
         replacing = true
@@ -95,7 +101,7 @@ Emacs connection
 
       sendReplace = (con, start, end, text)->
         con.send "r #{start} #{end} #{JSON.stringify text}"
-        console.log "sending r #{start} #{end} #{JSON.stringify text}"
+        diag "sending r #{start} #{end} #{JSON.stringify text}"
 
       blockRangeFor = (data, start, end)->
         con = data.emacsConnection
@@ -109,6 +115,9 @@ Emacs connection
           addBlockOffset data, offset, lastBlock._id, null
         while offset < start && lastId
           [lastId, offset] = addBlockOffset data, offset, lastId, null
+        if !lastId
+          lastId = _.last con.offsetIds
+          offset = con.idOffsets[lastId]
         while offset > start
           lastId = data.getBlock(lastId).prev
           offset = con.idOffsets[lastId]
@@ -129,6 +138,7 @@ Emacs connection
             offset = 0
             id = data.getFirst()
           while ([id, offset] = addBlockOffset data, offset, id, thingId) && id then
+          if !id then return connection.idOffsets[_.last connection.offsetIds]
         offset
 
       addBlockOffset = (data, offset, id, endId)->
