@@ -357,7 +357,8 @@ FRAME: frame."
    (not leisure/blockingChanges)
    leisure/bufferConnection
    (> (leisure/conInfo-changeCount leisure/bufferConnection) -1)
-   (not (equal (buffer-name) leisure/messageBufferName))))
+   (not (equal (buffer-name) leisure/messageBufferName))
+   (not (leisure/peekRevertInfo))))
 
 (defun leisure/str (s)
   "If S is an empty string, return nil otherwise s."
@@ -515,17 +516,31 @@ FRAME: frame."
 
 (defun leisure/beforeRevert ()
   "Preserve leisure info for after revert."
+  (if (leisure/shouldMonitor)
+      (leisure/saveRevertInfo)))
+
+(defun leisure/peekRevertInfo ()
+  "Get a buffer's revert info."
+  (cdr (assq (intern (buffer-name)) leisure/revertingBuffers)))
+
+(defun leisure/saveRevertInfo ()
+  "Set a buffer's revert info."
   (let ((name (intern (buffer-name))))
-    (if (and (leisure/shouldMonitor) (not (assq name leisure/revertingBuffers)))
-        (setq leisure/revertingBuffers (cons (cons name leisure/bufferConnection) leisure/revertingBuffers)))))
+    (setq leisure/revertingBuffers
+          (cons (cons name leisure/bufferConnection)
+                (assq-delete-all name leisure/revertingBuffers)))))
+
+(defun leisure/takeRevertInfo ()
+  "Remove and return a buffer's revert info ."
+  (let ((info (leisure/peekRevertInfo)))
+    (setq leisure/revertingBuffers (assq-delete-all (intern (buffer-name)) leisure/revertingBuffers))
+    info))
 
 (defun leisure/afterRevert ()
   "Restore leisure info after revert."
-  (let* ((name (intern (buffer-name)))
-         (info (cdr (assq name leisure/revertingBuffers))))
+  (let* ((info (leisure/takeRevertInfo)))
     (if info
         (progn
-          (setq leisure/revertingBuffers (assq-delete-all name leisure/revertingBuffers))
           (setq leisure/bufferConnection info)
           (if (not leisure-connection-mode) (leisure-connection-mode 'toggle))
           (leisure/sendChange 0 -1 (leisure/bufString))))))

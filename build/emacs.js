@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee'], function(_, Exports, UI, Editor) {
-    var addBlockOffset, blockRangeFor, c, close, configureEmacs, connect, connected, diag, e, error, escapeString, escaped, findEditor, mergeExports, message, messages, msgPat, offsetFor, open, replace, replaceMsgPat, replaceWhile, replacing, sendReplace, showDiag, slashed, specials, unescapeString, unescaped;
+    var blockRangeFor, c, close, configureEmacs, connect, connected, diag, e, error, escapeString, escaped, findEditor, mergeExports, message, messages, msgPat, offsetFor, open, replace, replaceMsgPat, replaceWhile, replacing, sendReplace, showDiag, slashed, specials, unescapeString, unescaped;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor;
     msgPat = /^([^ ]+) (.*)$/;
@@ -101,7 +101,7 @@
           return connection.idOffsets = {};
         },
         replaceBlock: function(oldBlock, newBlock) {
-          var end, endOff, i, index, j, newLen, oldLen, ref, ref1, ref2, start, startOff, text;
+          var end, endOff, i, index, j, newLen, oldLen, ref, ref1, ref2, ref3, start, startOff, text;
           if (!replacing) {
             if ((index = connection.idOffsets[oldBlock != null ? oldBlock._id : void 0]) != null) {
               while (connection.offsetIds.length > index) {
@@ -109,18 +109,18 @@
               }
             }
             start = offsetFor(data, (ref = oldBlock._id) != null ? ref : newBlock._id);
-            end = start + (oldBlock ? oldBlock.text.length : 0);
+            end = start + ((ref1 = oldBlock != null ? oldBlock.text.length : void 0) != null ? ref1 : 0);
             text = newBlock.text;
             if (oldBlock && newBlock) {
               oldLen = oldBlock.text.length;
               newLen = newBlock.text.length;
-              for (startOff = i = 0, ref1 = Math.min(oldLen, newLen); 0 <= ref1 ? i < ref1 : i > ref1; startOff = 0 <= ref1 ? ++i : --i) {
+              for (startOff = i = 0, ref2 = Math.min(oldLen, newLen); 0 <= ref2 ? i < ref2 : i > ref2; startOff = 0 <= ref2 ? ++i : --i) {
                 if (oldBlock.text[startOff] !== newBlock.text[startOff]) {
                   break;
                 }
               }
               start += startOff;
-              for (endOff = j = 1, ref2 = Math.min(oldLen, newLen, newLen - startOff - 1); 1 <= ref2 ? j <= ref2 : j >= ref2; endOff = 1 <= ref2 ? ++j : --j) {
+              for (endOff = j = 0, ref3 = Math.min(oldLen, newLen, newLen - startOff - 1); 0 <= ref3 ? j <= ref3 : j >= ref3; endOff = 0 <= ref3 ? ++j : --j) {
                 if (oldBlock.text[oldLen - endOff] !== newBlock.text[newLen - endOff]) {
                   break;
                 }
@@ -147,66 +147,37 @@
       return diag("sending r " + start + " " + end + " " + (JSON.stringify(text)));
     };
     blockRangeFor = function(data, start, end) {
-      var con, lastBlock, lastId, offset, ref;
+      var block, con, found, nextOffset, offset;
       con = data.emacsConnection;
-      if (lastId = _.last(con.offsetIds)) {
-        offset = con.idOffsets[lastId];
-        lastBlock = data.getBlock(lastId);
-      } else {
-        offset = 0;
-        lastId = data.getFirst();
-        lastBlock = data.getBlock(lastId);
-        addBlockOffset(data, offset, lastBlock._id, null);
-      }
-      while (offset < start && lastId) {
-        ref = addBlockOffset(data, offset, lastId, null), lastId = ref[0], offset = ref[1];
-      }
-      if (!lastId) {
-        lastId = _.last(con.offsetIds);
-        offset = con.idOffsets[lastId];
-      }
-      while (offset > start) {
-        lastId = data.getBlock(lastId).prev;
-        offset = con.idOffsets[lastId];
+      offset = 0;
+      block = data.getBlock(data.getFirst());
+      found = null;
+      while (offset < start && block.next) {
+        if ((nextOffset = block.text.length + offset) > start) {
+          found = block;
+          break;
+        }
+        offset = nextOffset;
+        block = data.getBlock(block.next);
       }
       return {
-        block: data.getBlock(lastId),
+        block: found != null ? found : block,
         offset: start - offset,
         length: end - start,
         type: start === end ? 'Caret' : 'Range'
       };
     };
     offsetFor = function(data, thing) {
-      var block, connection, id, lastId, offset, ref, thingId;
+      var block, con, offset, thingId;
       thingId = typeof thing === 'string' ? thing : thing._id;
-      connection = data.emacsConnection;
-      if ((offset = connection.idOffsets[thingId]) == null) {
-        if (lastId = _.last(connection.offsetIds)) {
-          block = data.getBlock(lastId);
-          offset = connection.idOffsets[lastId] + block.text.length;
-          id = block.next;
-        } else {
-          offset = 0;
-          id = data.getFirst();
-        }
-        while ((ref = addBlockOffset(data, offset, id, thingId), id = ref[0], offset = ref[1], ref) && id) {}
-        if (!id) {
-          return connection.idOffsets[_.last(connection.offsetIds)];
-        }
+      con = data.emacsConnection;
+      offset = 0;
+      block = data.getBlock(data.getFirst());
+      while (block && block._id !== thingId) {
+        offset += block.text.length;
+        block = data.getBlock(block.next);
       }
       return offset;
-    };
-    addBlockOffset = function(data, offset, id, endId) {
-      var block, connection;
-      connection = data.emacsConnection;
-      connection.idOffsets[id] = offset;
-      connection.offsetIds.push(id);
-      if (id === endId) {
-        return [];
-      } else {
-        block = data.getBlock(id);
-        return [block.next, offset + block.text.length];
-      }
     };
     specials = /[\b\f\n\r\t\v\"\\]/g;
     slashed = /\\./g;

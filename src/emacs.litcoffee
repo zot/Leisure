@@ -80,7 +80,7 @@ Emacs connection
               while connection.offsetIds.length > index
                 delete connection.idOffsets[connection.offsetIds.pop()]
             start = offsetFor(data, oldBlock._id ? newBlock._id)
-            end = start + (if oldBlock then oldBlock.text.length else 0)
+            end = start + (oldBlock?.text.length ? 0)
             text = newBlock.text
             if oldBlock && newBlock
               # trim common prefix/suffix off of message
@@ -89,7 +89,7 @@ Emacs connection
               for startOff in [0...Math.min oldLen, newLen]
                 if oldBlock.text[startOff] != newBlock.text[startOff] then break
               start += startOff
-              for endOff in [1..Math.min oldLen, newLen, newLen - startOff - 1]
+              for endOff in [0..Math.min oldLen, newLen, newLen - startOff - 1]
                 if oldBlock.text[oldLen - endOff] != newBlock.text[newLen - endOff] then break
               endOff -= 1
               end -= endOff
@@ -107,50 +107,29 @@ Emacs connection
 
       blockRangeFor = (data, start, end)->
         con = data.emacsConnection
-        if lastId = _.last con.offsetIds
-          offset = con.idOffsets[lastId]
-          lastBlock = data.getBlock lastId
-        else
-          offset = 0
-          lastId = data.getFirst()
-          lastBlock = data.getBlock lastId
-          addBlockOffset data, offset, lastBlock._id, null
-        while offset < start && lastId
-          [lastId, offset] = addBlockOffset data, offset, lastId, null
-        if !lastId
-          lastId = _.last con.offsetIds
-          offset = con.idOffsets[lastId]
-        while offset > start
-          lastId = data.getBlock(lastId).prev
-          offset = con.idOffsets[lastId]
-        block: data.getBlock lastId
+        offset = 0
+        block = data.getBlock data.getFirst()
+        found = null
+        while offset < start && block.next
+          if (nextOffset = block.text.length + offset) > start
+            found = block
+            break
+          offset = nextOffset
+          block = data.getBlock block.next
+        block: found ? block
         offset: start - offset
         length: end - start
         type: if start == end then 'Caret' else 'Range'
 
       offsetFor = (data, thing)->
         thingId = if typeof thing == 'string' then thing else thing._id
-        connection = data.emacsConnection
-        if !(offset = connection.idOffsets[thingId])?
-          if lastId = _.last(connection.offsetIds)
-            block = data.getBlock(lastId)
-            offset = connection.idOffsets[lastId] + block.text.length
-            id = block.next
-          else
-            offset = 0
-            id = data.getFirst()
-          while ([id, offset] = addBlockOffset data, offset, id, thingId) && id then
-          if !id then return connection.idOffsets[_.last connection.offsetIds]
+        con = data.emacsConnection
+        offset = 0
+        block = data.getBlock data.getFirst()
+        while block && block._id != thingId
+          offset += block.text.length
+          block = data.getBlock block.next
         offset
-
-      addBlockOffset = (data, offset, id, endId)->
-        connection = data.emacsConnection
-        connection.idOffsets[id] = offset
-        connection.offsetIds.push id
-        if id == endId then []
-        else
-          block = data.getBlock id
-          [block.next, offset + block.text.length]
 
       specials = /[\b\f\n\r\t\v\"\\]/g
 
