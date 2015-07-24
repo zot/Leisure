@@ -453,12 +453,22 @@ FRAME: frame."
   "Send ARGS to print if diagnostics is on."
   (if leisure/showDiag (apply 'leisure/print args)))
 
-(defun leisure/print (conInfo str &rest body)
+(defun leisure/print (str &rest body)
   "Print message for CONINFO, formatting STR with BODY (sent to format) in leisure message buffer."
-  (save-current-buffer
-    (set-buffer (get-buffer-create leisure/messageBufferName))
-    (end-of-buffer)
-    (insert (leisure/addNl (apply 'leisure/format conInfo str body)))))
+  (let ((conInfo nil))
+    (if (vectorp str)
+        (progn
+          (setq conInfo str)
+          (setq str (car body))
+          (setq body (cdr body)))
+      (setq conInfo leisure/bufferConnection))
+    (save-current-buffer
+      (set-buffer (get-buffer-create leisure/messageBufferName))
+      (setq buffer-read-only nil)
+      (end-of-buffer)
+      (insert (leisure/addNl (apply 'leisure/format conInfo str body)))
+      (setq buffer-read-only t)
+      (set-buffer-modified-p nil))))
 
 (defun leisure/error (conInfo str &rest body)
   "Close the conection and display a warning for CONINFO, formatting STR with BODY (sent to format) in leisure message buffer."
