@@ -14,7 +14,7 @@ Emacs connection
       replacing = false
       connected = false
       showDiag = false
-      showDiag = true
+      #showDiag = true
 
       diag = (msg...)-> if showDiag then console.log msg...
 

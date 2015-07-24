@@ -11,7 +11,6 @@
     replacing = false;
     connected = false;
     showDiag = false;
-    showDiag = true;
     diag = function() {
       var msg;
       msg = 1 <= arguments.length ? slice.call(arguments, 0) : [];

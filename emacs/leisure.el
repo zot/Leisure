@@ -95,7 +95,11 @@
 
 (defvar leisure/changedText nil)
 
+(defvar leisure/totalDelete nil)
+
 (defvar leisure/blockingChanges nil)
+
+(defvar leisure/revertingBuffers nil)
 
 (defvar leisure/showDiag nil)
 ;;(setq leisure/showDiag t)
@@ -270,7 +274,7 @@ FRAME: frame."
                (setq leisure/bufferConnection conInfo)
                (if transient
                    (setf (leisure/conInfo-transient conInfo) t)
-                 (leisure/sendChange 0 -1 (buffer-string)))
+                 (leisure/sendChange 0 -1 (leisure/bufString)))
                (add-hook 'kill-buffer-hook 'leisure/closeCurrentConnection nil t)
                (if (not leisure-connection-mode) (leisure-connection-mode 'toggle)))
              (if action (funcall action conInfo)
@@ -481,7 +485,9 @@ FRAME: frame."
 (defun leisure/beforeChange (start end)
   "Called on change (START, END) to leisure buffers."
   (if (leisure/shouldMonitor)
-      (setq leisure/changedText (buffer-substring-no-properties start end))))
+      (progn
+        (setq leisure/totalDelete (eql (buffer-size) (- end start)))
+        (setq leisure/changedText (buffer-substring-no-properties start end)))))
 
 (defun leisure/afterChange (start end oldLength)
   "Called on change (START, END, OLDLENGTH) to leisure buffers."
@@ -490,14 +496,37 @@ FRAME: frame."
         (if (not (equal newText leisure/changedText))
             (progn
               (decf start)
-              (leisure/sendChange start (+ start (length leisure/changedText)) newText)
+              (leisure/sendChange start (if leisure/totalDelete -1 (+ start (length leisure/changedText))) newText)
               (setq leisure/changedText nil))))))
+
+(defun leisure/bufString ()
+  "Get the buffer string without properties."
+  (buffer-substring-no-properties 1 (+ 1  (buffer-size))))
+
+(defun leisure/beforeRevert ()
+  "Preserve leisure info for after revert."
+  (let ((name (intern (buffer-name))))
+    (if (and (leisure/shouldMonitor) (not (assq name leisure/revertingBuffers)))
+        (setq leisure/revertingBuffers (cons (cons name leisure/bufferConnection) leisure/revertingBuffers)))))
+
+(defun leisure/afterRevert ()
+  "Restore leisure info after revert."
+  (let* ((name (intern (buffer-name)))
+         (info (cdr (assq name leisure/revertingBuffers))))
+    (if info
+        (progn
+          (setq leisure/revertingBuffers (assq-delete-all name leisure/revertingBuffers))
+          (setq leisure/bufferConnection info)
+          (if (not leisure-connection-mode) (leisure-connection-mode 'toggle))
+          (leisure/sendChange 0 -1 (leisure/bufString))))))
 
 ;;; initialization stuff
 (if (not leisure/init)
     (progn
       (add-hook 'before-change-functions 'leisure/beforeChange)
       (add-hook 'after-change-functions 'leisure/afterChange)
+      (add-hook 'before-revert-hook 'leisure/beforeRevert)
+      (add-hook 'after-revert-hook 'leisure/afterRevert)
       (setq leisure/init t)))
 
 (provide 'leisure)
