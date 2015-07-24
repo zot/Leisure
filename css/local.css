@@ -41,3 +41,11 @@ body {
     font-weight: bold;
     color: green;
 }
+.structure,
+.selectionInfo {
+    display: none;
+}
+.diag.structure,
+.diag.selectionInfo {
+    display: inherit;
+}

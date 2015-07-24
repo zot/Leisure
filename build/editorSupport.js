@@ -1032,11 +1032,11 @@
           title = ((desc = org.descriptionText()) ? " title='" + (escapeHtml(desc)) + "'" : "");
           return "<img src='" + (escapeHtml(org.path)) + "'" + title + "><span class='hidden'>" + (escapeHtml(org.allText())) + "</span>";
         } else {
-          guts = this.renderMeat;
+          guts = '';
           ref1 = org.children;
           for (j = 0, len = ref1.length; j < len; j++) {
             c = ref1[j];
-            guts += this.renderMeat(c, true);
+            guts += this.renderOrg(c);
           }
           if (!guts) {
             return "<span class='hidden'>[[</span><a onclick='Leisure.followLink(event)' href='" + org.path + "'>" + org.path + "</a><span class='hidden'>]]</span>";

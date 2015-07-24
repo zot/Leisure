@@ -78,9 +78,6 @@
 
 (defvar leisure/clientCount 0)
 
-(defvar leisure/fileURL "http://textcraft.org/newLeisure/")
-;;(defvar leisure/fileURL "file:///C:/Users/bill/work/lc/floo/Leisure/index.html")
-
 (defvar leisure/init nil)
 
 (defconst leisure/messageBufferName "*Leisure-messages*")
@@ -129,17 +126,50 @@
   lastChange
   transient)
 
+;;; leisure-connection-mode
+(defgroup leisure ()
+  "Customization for leisure.")
+
+(defcustom leisure/fileURL "http://textcraft.org/newLeisure/"
+  "URL for leisure documents."
+  :type 'string)
+;;(setq leisure/fileURL "file:///C:/Users/bill/work/lc/floo/Leisure/index.html")
+
+(defcustom leisure/port 1315
+  "Port for the leisure server."
+  :type 'integer)
+
+(define-minor-mode leisure-connection-mode
+  "Used when connected to a browser (☢)."
+  nil "☢" nil
+  :group 'leisure
+  (if leisure-connection-mode
+      (if leisure/bufferConnection
+          (message "Leisure: connected")
+        (progn
+          (message "Leisure not yet connected, spawning a browser...")
+          (leisure-connection-mode 'toggle)
+          (leisure-start leisure/port)
+          (leisure/openBrowser (buffer-name))))
+    (if leisure/bufferConnection
+        (progn
+          (message "Leisure disconnecting...")
+          (leisure/closeCurrentConnection))
+      (message "Leisure: disconnected"))))
+
 ;; websocket events
 (defun leisure/onOpen (ws)
   "Initialize WS (websocket)."
-  (lexical-let ((info (leisure/conInfo-create :websocket websocket :changeCount -1)))
+  (lexical-let ((info (leisure/conInfo-create :websocket ws :changeCount -1))
+                (oldClose (websocket-on-close ws)))
     (leisure/print info "opening connection")
     (setq leisure/info (plist-put leisure/info 'connections (+ 1 (plist-get leisure/info 'connections))))
-    (setf (websocket-on-message websocket)
+    (setf (websocket-on-message ws)
           (lambda (ws frame) (leisure/onMessage info ws frame)))
-    (setf (websocket-on-close websocket)
+    (setf (websocket-on-close ws)
           (lambda (ws)
             (leisure/print info "closing connection")
+            (and oldClose (funcall oldClose ws))
             (leisure/onClose info ws)))))
 
 (defun leisure/onMessage (conInfo ws frame)
@@ -193,7 +223,8 @@ FRAME: frame."
     (if (leisure/conInfo-transient conInfo)
         (progn
           (set-buffer-modified-p nil)
-          (kill-buffer))))
+          (kill-buffer)))
+    (if leisure-connection-mode (leisure-connection-mode 'toggle)))
   (setq leisure/info (plist-put leisure/info 'connections (- (plist-get leisure/info 'connections) 1))))
 
 ;; messages
@@ -238,10 +269,10 @@ FRAME: frame."
              (with-current-buffer bufferName
                (setq leisure/bufferConnection conInfo)
                (if transient
-                   (progn
-                     (setf (leisure/conInfo-transient conInfo) t)
-                     (add-hook 'kill-buffer-hook 'leisure/closeCurrentConnection nil t))
-                 (leisure/sendChange 0 -1 (buffer-string))))
+                   (setf (leisure/conInfo-transient conInfo) t)
+                 (leisure/sendChange 0 -1 (buffer-string)))
+               (add-hook 'kill-buffer-hook 'leisure/closeCurrentConnection nil t)
+               (if (not leisure-connection-mode) (leisure-connection-mode 'toggle)))
              (if action (funcall action conInfo)
                (leisure/print conInfo "no action for connection (requested: %s)" requestedAction))
              (leisure/print conInfo "connected to buffer '%s'" bufferName)))))
@@ -267,21 +298,16 @@ FRAME: frame."
   (display-buffer (get-buffer (leisure/conInfo-bufferName conInfo))))
 
 ;; commands
-(defun leisure-connect ()
-    "Connect the current buffer to Leisure."
-  (interactive)
-  (leisure-start)
-  (leisure/openBrowser (buffer-name)))
-
 (defun leisure-start (&optional port)
   "Run leisure server on PORT."
   (interactive (list
                 (if leisure/server
                     nil
-                  (string-to-number (read-from-minibuffer "Port: " "1315" nil nil nil)))))
-  (if (null port)
+                  (string-to-number (read-from-minibuffer "Port: " (number-to-string leisure/port) nil nil nil)))))
+  (if leisure/server
       (message (format  "Leisure already running on port %s" (plist-get leisure/info 'port)))
     (progn
+      (if (null port) (setq port leisure/port))
       (setq leisure/info (list 'port port 'connections 0))
       (setq leisure/server
             (websocket-server
@@ -298,7 +324,8 @@ FRAME: frame."
   (if leisure/server
       (progn
         (websocket-server-close leisure/server)
-        (setq leisure/server nil))))
+        (setq leisure/server nil)
+        (setq leisure/info (plist-put leisure/info 'port nil)))))
 
 (defun leisure-status ()
   "Print leisure status."
@@ -466,12 +493,12 @@ FRAME: frame."
               (leisure/sendChange start (+ start (length leisure/changedText)) newText)
               (setq leisure/changedText nil))))))
 
+;;; initialization stuff
 (if (not leisure/init)
     (progn
       (add-hook 'before-change-functions 'leisure/beforeChange)
-      (add-hook 'after-change-functions 'leisure/afterChange)))
-
-(setq leisure/init t)
+      (add-hook 'after-change-functions 'leisure/afterChange)
+      (setq leisure/init t)))
 
 (provide 'leisure)
 ;;; leisure.el ends here

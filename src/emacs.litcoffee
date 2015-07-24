@@ -14,7 +14,7 @@ Emacs connection
       replacing = false
       connected = false
       showDiag = false
-      #showDiag = true
+      showDiag = true
 
       diag = (msg...)-> if showDiag then console.log msg...
 
@@ -51,6 +51,7 @@ Emacs connection
         connection.panel.find('button').button 'enable'
         connection.panel.find('input').removeAttr 'readonly'
         console.log "closed"
+        if connection.cookie then window.close()
 
       message = (evt, data)->
         [ignore, msg, text] = evt.data.match msgPat
@@ -66,6 +67,7 @@ Emacs connection
         console.log "opened"
         ws.send "#{cookie ? ''} display"
         connection = data.emacsConnection
+        connection.cookie = cookie
         connection.panel.find('button').button 'disable'
         connection.panel.find('input').attr 'readonly', true
         connection.websocket = ws

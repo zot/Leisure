@@ -1,5 +1,4 @@
-    define ['cs!./editor.litcoffee'], (Editor)->
-
+    define ['cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./export.litcoffee'], (Editor, EditorSupport, Exports)->
       bindCount = 0
 
       {
@@ -7,6 +6,23 @@
         last
         escapeHtml
       } = Editor
+      {
+        editorForToolbar
+      } = EditorSupport
+      {
+        mergeExports
+      } = Exports
+
+      getDiagShowing = (node)->
+        $(editorForToolbar(node)?.node).nextAll(".selectionInfo").hasClass 'diag'
+      showDiag = (node, state)->
+        node = editorForToolbar(node)?.node
+        if state
+          $(node).nextAll(".selectionInfo").addClass 'diag'
+          $(node).nextAll(".structure").addClass 'diag'
+        else
+          $(node).nextAll(".selectionInfo").removeClass 'diag'
+          $(node).nextAll(".structure").removeClass 'diag'
 
       createEditorDisplay = (editor)->
         status = $("<div class='selectionInfo'>No selection</div>")
@@ -94,8 +110,15 @@
           ' <span class="err">[' + ("#{err}: #{block[err]}" for err in bad).join(', ') + ']</span>'
         else ''
 
+      mergeExports {
+        showDiag
+        getDiagShowing
+      }
+
       {
         createStructureDisplay
         createEditorDisplay
         structureInfo
+        showDiag
+        getDiagShowing
       }

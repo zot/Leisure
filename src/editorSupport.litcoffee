@@ -684,9 +684,9 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             title = (if desc = org.descriptionText() then " title='#{escapeHtml desc}'" else "")
             "<img src='#{escapeHtml org.path}'#{title}><span class='hidden'>#{escapeHtml org.allText()}</span>"
           else
-            guts = @renderMeat
+            guts = ''
             for c in org.children
-              guts += @renderMeat c, true
+              guts += @renderOrg c
             if !guts then "<span class='hidden'>[[</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{org.path}</a><span class='hidden'>]]</span>"
             else "<span class='hidden'>[[#{org.path}][</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{guts}</a><span class='hidden'>]]</span>"
         renderSimple: (org)->

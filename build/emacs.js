@@ -11,6 +11,7 @@
     replacing = false;
     connected = false;
     showDiag = false;
+    showDiag = true;
     diag = function() {
       var msg;
       msg = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -68,7 +69,10 @@
       connection = data.emacsConnection;
       connection.panel.find('button').button('enable');
       connection.panel.find('input').removeAttr('readonly');
-      return console.log("closed");
+      console.log("closed");
+      if (connection.cookie) {
+        return window.close();
+      }
     };
     message = function(evt, data) {
       var ignore, method, msg, ref, text;
@@ -88,6 +92,7 @@
       console.log("opened");
       ws.send((cookie != null ? cookie : '') + " display");
       connection = data.emacsConnection;
+      connection.cookie = cookie;
       connection.panel.find('button').button('disable');
       connection.panel.find('input').attr('readonly', true);
       connection.websocket = ws;
