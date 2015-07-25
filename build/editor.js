@@ -4,7 +4,7 @@
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['jquery', 'cs!./domCursor.litcoffee'], function(jq, DOMCursor) {
+  define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree'], function(jq, DOMCursor, Fingertree) {
     var BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, TAB, UP, _to_ascii, activateScripts, activating, blockText, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys;
     selectRange = DOMCursor.selectRange;
     maxLastKeys = 4;
@@ -461,7 +461,7 @@
           endPos = startPos.forwardChars(newContent.length, true);
           r.setEnd(endPos.node, endPos.pos);
           return selectRange(r);
-        } else {
+        } else if (!startPos.isEmpty()) {
           return startPos.forwardChars(offset + newContent.length, true).moveCaret();
         }
       };

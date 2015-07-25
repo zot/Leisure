@@ -305,11 +305,13 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         slideFor: (thing)->
           block = @data.getBlock thing
           while block && !(block.type == 'headline' && block.level == 1)
-            block = @data.parent block
+            parent = @data.parent block
+            if !parent then break
+            block = parent
           block
         toggleSlide: (id)->
           block = @data.getBlock id
-          if block?.type == 'headline' && block.level == 1
+          if (block?.type == 'headline' && block.level == 1) || (block && !block.prev)
             if @toggledSlides[id] then delete @toggledSlides[id]
             else @toggledSlides[id] = true
         isToggled: (thing)-> (slide = @slideFor thing) && @toggledSlides[slide._id]
@@ -503,7 +505,9 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           block = opts.getBlock opts.idForNode slideDom[0]
           opts.toggleSlide block._id
           blockHtml = opts.renderBlock(opts.getBlock block)[0]
-          preserveSelection -> slideDom.closest('[data-view]').replaceWith $(blockHtml)
+          preserveSelection ->
+            (if block.type == 'headline' then slideDom.closest('[data-view]')
+            else slideDom.closest('[data-view="leisure-top-chunk"]')).replaceWith $(blockHtml)
           initializePendingViews()
 
       Handlebars.registerHelper 'render', (block)->
@@ -511,12 +515,13 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
 
       Handlebars.registerHelper 'renderPlain', (data)->
         text = ''
-        block = UI.context.opts.data.getBlock data.blockId
-        end = UI.context.opts.data.nextRight block
+        edata = UI.context.opts.data
+        block = edata.getBlock data.blockId
+        end = edata.nextRight(block)?._id
         while block && block._id != end
           [plainText, next] = plainMode.render UI.context.opts, block, UI.context.prefix
           text += plainText
-          block = UI.context.opts.data.getBlock next
+          block = edata.getBlock next
         text
 
       Handlebars.registerHelper 'hiddenBeforeSource', ->
@@ -567,9 +572,12 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         render: (opts, block, prefix)->
           opts.withContext =>
             if block.type == 'headline' then @renderHeadline opts, block, prefix
-            else if block.type == 'chunk' then @renderChunk opts, block, prefix
-            else if block.type == 'code' then @renderCode opts, block, prefix
-            else plainMode.render opts, block, prefix
+            else if !block.prev then @renderFirstBlocks opts, block, prefix
+            else @renderNontop opts, block, prefix
+        renderNontop: (opts, block, prefix)->
+          if block.type == 'chunk' then @renderChunk opts, block, prefix
+          else if block.type == 'code' then @renderCode opts, block, prefix
+          else plainMode.render opts, block, prefix
         renderView: (type, ctx, next, data)-> [renderView(type, ctx, data), next]
         renderHeadline: (opts, block, prefix)->
           next = opts.data.nextRight(block)?._id
@@ -599,11 +607,31 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
                 [nextText, id] = @render opts, opts.data.getBlock(id), prefix
                 text += nextText
               [text + "</span>", next]
+        renderFirstBlocks: (opts, block, prefix)->
+          if hasView 'leisure-top-chunk'
+            if plain = opts.isToggled block
+              UI.context.viewAttrs = _.merge {class: 'plain'}, UI.context.viewAttrs ? {}
+            text = ''
+            cur = block
+            while !(cur.type == 'headline' && cur.level == 1)
+              [txt, next] = if plain then plainMode.render opts, cur, prefix
+              else @renderNontop opts, cur, prefix
+              text += txt
+              if !next then break
+              cur = opts.getBlock next
+            @renderView 'leisure-top-chunk', null, next,
+              id: prefix + block._id
+              text: text
+              topLevel: !block.prev
+              EOL: '\n'
+          else @renderNontop opts, block, prefix
         renderChunk: (opts, block, prefix)->
-          if hasView 'leisure-chunk'
-            @renderView 'leisure-chunk', null, block.next,
+          viewType = 'leisure-chunk'
+          if hasView viewType
+            @renderView viewType, null, block.next,
               id: prefix + block._id
               text: @renderOrg blockOrg opts.data, block
+              topLevel: !block.prev
               EOL: '\n'
           else @renderOrgBlock opts, block, prefix
         renderCode: (opts, block, prefix)->

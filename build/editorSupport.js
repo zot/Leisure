@@ -440,10 +440,14 @@
       };
 
       OrgEditing.prototype.slideFor = function(thing) {
-        var block;
+        var block, parent;
         block = this.data.getBlock(thing);
         while (block && !(block.type === 'headline' && block.level === 1)) {
-          block = this.data.parent(block);
+          parent = this.data.parent(block);
+          if (!parent) {
+            break;
+          }
+          block = parent;
         }
         return block;
       };
@@ -451,7 +455,7 @@
       OrgEditing.prototype.toggleSlide = function(id) {
         var block;
         block = this.data.getBlock(id);
-        if ((block != null ? block.type : void 0) === 'headline' && block.level === 1) {
+        if (((block != null ? block.type : void 0) === 'headline' && block.level === 1) || (block && !block.prev)) {
           if (this.toggledSlides[id]) {
             return delete this.toggledSlides[id];
           } else {
@@ -786,7 +790,7 @@
         opts.toggleSlide(block._id);
         blockHtml = opts.renderBlock(opts.getBlock(block))[0];
         preserveSelection(function() {
-          return slideDom.closest('[data-view]').replaceWith($(blockHtml));
+          return (block.type === 'headline' ? slideDom.closest('[data-view]') : slideDom.closest('[data-view="leisure-top-chunk"]')).replaceWith($(blockHtml));
         });
         return initializePendingViews();
       }
@@ -795,14 +799,15 @@
       return fancyMode.render(UI.context.opts, block, UI.context.prefix)[0];
     });
     Handlebars.registerHelper('renderPlain', function(data) {
-      var block, end, next, plainText, ref, text;
+      var block, edata, end, next, plainText, ref, ref1, text;
       text = '';
-      block = UI.context.opts.data.getBlock(data.blockId);
-      end = UI.context.opts.data.nextRight(block);
+      edata = UI.context.opts.data;
+      block = edata.getBlock(data.blockId);
+      end = (ref = edata.nextRight(block)) != null ? ref._id : void 0;
       while (block && block._id !== end) {
-        ref = plainMode.render(UI.context.opts, block, UI.context.prefix), plainText = ref[0], next = ref[1];
+        ref1 = plainMode.render(UI.context.opts, block, UI.context.prefix), plainText = ref1[0], next = ref1[1];
         text += plainText;
-        block = UI.context.opts.data.getBlock(next);
+        block = edata.getBlock(next);
       }
       return text;
     });
@@ -871,15 +876,22 @@
           return function() {
             if (block.type === 'headline') {
               return _this.renderHeadline(opts, block, prefix);
-            } else if (block.type === 'chunk') {
-              return _this.renderChunk(opts, block, prefix);
-            } else if (block.type === 'code') {
-              return _this.renderCode(opts, block, prefix);
+            } else if (!block.prev) {
+              return _this.renderFirstBlocks(opts, block, prefix);
             } else {
-              return plainMode.render(opts, block, prefix);
+              return _this.renderNontop(opts, block, prefix);
             }
           };
         })(this));
+      },
+      renderNontop: function(opts, block, prefix) {
+        if (block.type === 'chunk') {
+          return this.renderChunk(opts, block, prefix);
+        } else if (block.type === 'code') {
+          return this.renderCode(opts, block, prefix);
+        } else {
+          return plainMode.render(opts, block, prefix);
+        }
       },
       renderView: function(type, ctx, next, data) {
         return [renderView(type, ctx, data), next];
@@ -917,11 +929,42 @@
           }
         }
       },
+      renderFirstBlocks: function(opts, block, prefix) {
+        var cur, next, plain, ref, ref1, text, txt;
+        if (hasView('leisure-top-chunk')) {
+          if (plain = opts.isToggled(block)) {
+            UI.context.viewAttrs = _.merge({
+              "class": 'plain'
+            }, (ref = UI.context.viewAttrs) != null ? ref : {});
+          }
+          text = '';
+          cur = block;
+          while (!(cur.type === 'headline' && cur.level === 1)) {
+            ref1 = plain ? plainMode.render(opts, cur, prefix) : this.renderNontop(opts, cur, prefix), txt = ref1[0], next = ref1[1];
+            text += txt;
+            if (!next) {
+              break;
+            }
+            cur = opts.getBlock(next);
+          }
+          return this.renderView('leisure-top-chunk', null, next, {
+            id: prefix + block._id,
+            text: text,
+            topLevel: !block.prev,
+            EOL: '\n'
+          });
+        } else {
+          return this.renderNontop(opts, block, prefix);
+        }
+      },
       renderChunk: function(opts, block, prefix) {
-        if (hasView('leisure-chunk')) {
-          return this.renderView('leisure-chunk', null, block.next, {
+        var viewType;
+        viewType = 'leisure-chunk';
+        if (hasView(viewType)) {
+          return this.renderView(viewType, null, block.next, {
             id: prefix + block._id,
             text: this.renderOrg(blockOrg(opts.data, block)),
+            topLevel: !block.prev,
             EOL: '\n'
           });
         } else {

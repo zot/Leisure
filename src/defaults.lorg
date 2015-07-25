@@ -17,9 +17,9 @@ in as long as you mark it as data-noncontent, etc.
 
 #+BEGIN_SRC html :defview leisure-toolbar
 <label><input type='checkbox'></input>Fred</label>
+<button name='diag'>Diag: off</button>
 <button name='search'>Search</button>
 <span name='emacsConnector'><button name='connectToEmacs'>Emacs</button><span name="emacsPort">Port: <input type='text' value="1315"></span></span>
-<button name='diag'>Diag: off</button>
 <button name='connectToSlave'>Connect to Slave</button>
 <button name='connectToMaster'>Connect to Master</button>
 Connections: <span name='connections'></span>
@@ -62,10 +62,16 @@ updateButton = (view, hiding)->
 #+END_SRC
 
 * Block Views
-
 #+BEGIN_SRC html :defview leisure-headline-plain
-{{> leisure-source-toggle}}{{{renderPlain this}}}
+<div data-noncontent contenteditable='false'></div>{{> leisure-source-toggle}}{{{renderPlain this}}}
 #+END_SRC
+
+#+BEGIN_SRC html :defview leisure-top-chunk
+<div id='{{id}}' class='fancy'
+data-edit-mode='fancy'><span data-noncontent contenteditable='false'>{{> leisure-source-toggle}}
+</span>{{{text}}}</div>
+#+END_SRC
+
 #+BEGIN_SRC html :defview leisure-headline
 <div id='{{id}}' class='fancy'
 data-edit-mode='fancy'
@@ -75,17 +81,23 @@ EOL}}</div>{{#each children}}{{{
 render this
 }}}{{/each}}</div>
 #+END_SRC
+
 #+BEGIN_SRC html :defview leisure-source-toggle
-{{#if topLevel}}<button class='toggle_edit' contenteditable='false'><i class="fa fa-glass"></i></button> {{/if}}
+{{#if topLevel}}<button class='toggle_edit' contenteditable='false' data-noncontent><i class="fa fa-glass"></i></button><span data-noncontent contenteditable='false'> </span>{{/if}}
 #+END_SRC
+
 #+BEGIN_SRC cs :control leisure-source-toggle
 @initializeView = (view)->
-  if (slide = view.closest('[data-headline]')).is('[data-headline="1"]') || (slide = view.parent().filter("[data-view='leisure-headline-plain']").find('[data-headline="1"]')).length
+  if (slide = view.closest('[data-headline]')).is('[data-headline="1"]') ||
+  (slide = view.parent().filter("[data-view='leisure-headline-plain']").find('[data-headline="1"]')).length ||
+  (slide = view.closest('[data-view="leisure-top-chunk"]').find('[data-block]').first()).length
     view.find('button.toggle_edit').on 'click', -> Leisure.toggleSlideMode slide
 #+END_SRC
+
 #+BEGIN_SRC html :defview leisure-chunk
 <span id='{{id}}' class='fancy' data-block='chunk'>{{{text}}}</span>
 #+END_SRC
+
 #+BEGIN_SRC html :defview leisure-code
 <span
   id='{{id}}'
@@ -107,6 +119,7 @@ inter}}<div>{{inter}}</div>{{/if}}{{#if
 resultsContent}}<div
 class='code-results' data-org-src>{{{resultsContent}}}</div>{{/if}}</span>
 #+END_SRC
+
 #+BEGIN_SRC html :defview leisure-code-name
 {{#if nameBoiler
 }}<span class='codename'><span class='hidden'>{{nameBoiler
@@ -115,6 +128,7 @@ contenteditable='true'>{{nameText
 }}</span><span data-noncontent>"</span><span class='hidden'>
 {{afterName}}</span></span>{{/if}}
 #+END_SRC
+
 #+BEGIN_SRC html :defview leisure-code/js
 <span
 id='{{id}}'
@@ -125,12 +139,14 @@ data-lang='{{language}}'><table><tr><td class='code-controls' data-noncontent>
 CONTROLS
 </td><td class='code-text'>{{{text}}}</td></tr></table></span>
 #+END_SRC
+
 #+BEGIN_SRC html :defview leisure-code-source/js
 <span
 class='source'
 data-org-src='{{block.codeAttributes.results}}'
 contenteditable='true'><span class='hidden'>{{sourceHeader}}</span>{{{renderSource}}}<span class='hidden'>{{sourceFooter}}</span></span>
 #+END_SRC
+
 #+BEGIN_SRC html :defview leisure-code-results/js
 <span class='results coderesults'
 data-org-results='{{block.codeAttributes.results}}'

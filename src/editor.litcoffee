@@ -135,7 +135,7 @@ Code
 ====
 Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEditCore).
 
-    define ['jquery', 'cs!./domCursor.litcoffee'], (jq, DOMCursor)->
+    define ['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree'], (jq, DOMCursor, Fingertree)->
       {
         selectRange,
       } = DOMCursor
@@ -443,7 +443,8 @@ This code is hairy and unintuitive and needs to be cleaned up!
             endPos = startPos.forwardChars newContent.length, true
             r.setEnd endPos.node, endPos.pos
             selectRange r
-          else startPos.forwardChars(offset + newContent.length, true).moveCaret()
+          else if !startPos.isEmpty()
+            startPos.forwardChars(offset + newContent.length, true).moveCaret()
 
 `changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
 
