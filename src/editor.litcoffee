@@ -1037,11 +1037,11 @@ Data model -- override/reset these if you want to change how the store accesses 
         offsetForBlock: (blockOrId)->
           id = if typeof blockOrId == 'string' then blockOrId else blockOrId._id
           if block = @getBlock id
-            @blockIndex.split((m)-> m.ids.contains id)[0].measure().length - block.text.length
+            @blockIndex.split((m)-> !m.ids.contains id)[0].measure().length
           else 0
         blockForOffset: (offset)->
-          console.log @blockIndex.split((m)-> m.length <= offset)
-          @blockIndex.split((m)-> m.length <= offset)[0].peekLast().id
+          results = @blockIndex.split((m)-> m.length <= offset)
+          (results[1]?.peekFirst() ? results[0].peekLast).id
         getText: ->
           text = ''
           @eachBlock (block)-> text += block.text

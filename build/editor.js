@@ -90,30 +90,30 @@
         var l;
         if (this.listeners[type]) {
           return this.listeners[type] = (function() {
-            var j, len, ref, results;
+            var j, len, ref, results1;
             ref = this.listeners[type];
-            results = [];
+            results1 = [];
             for (j = 0, len = ref.length; j < len; j++) {
               l = ref[j];
               if (l !== callback) {
-                results.push(l);
+                results1.push(l);
               }
             }
-            return results;
+            return results1;
           }).call(this);
         }
       };
 
       Observable.prototype.trigger = function() {
-        var args, j, len, listener, ref, results, type;
+        var args, j, len, listener, ref, results1, type;
         type = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
         ref = this.listeners[type] || [];
-        results = [];
+        results1 = [];
         for (j = 0, len = ref.length; j < len; j++) {
           listener = ref[j];
-          results.push(listener.apply(null, args));
+          results1.push(listener.apply(null, args));
         }
-        return results;
+        return results1;
       };
 
       return Observable;
@@ -361,14 +361,14 @@
         sel = getSelection();
         if (sel.type === 'Range') {
           html = ((function() {
-            var j, len, ref, results;
+            var j, len, ref, results1;
             ref = sel.getRangeAt(0).cloneContents().childNodes;
-            results = [];
+            results1 = [];
             for (j = 0, len = ref.length; j < len; j++) {
               node = ref[j];
-              results.push(htmlForNode(node));
+              results1.push(htmlForNode(node));
             }
-            return results;
+            return results1;
           })()).join('');
           text = this.selectedText(sel);
           this.options.simulateCut({
@@ -583,14 +583,14 @@
               dragRange = _this.getSelectedBlockRange();
               clipboard = e.originalEvent.dataTransfer;
               clipboard.setData('text/html', ((function() {
-                var j, len, ref, results;
+                var j, len, ref, results1;
                 ref = sel.getRangeAt(0).cloneContents().childNodes;
-                results = [];
+                results1 = [];
                 for (j = 0, len = ref.length; j < len; j++) {
                   node = ref[j];
-                  results.push(htmlForNode(node));
+                  results1.push(htmlForNode(node));
                 }
-                return results;
+                return results1;
               })()).join(''));
               clipboard.setData('text/plain', _this.selectedText(sel));
               clipboard.effectAllowed = 'copyMove';
@@ -624,14 +624,14 @@
             if (sel.type === 'Range') {
               clipboard = e.originalEvent.clipboardData;
               clipboard.setData('text/html', ((function() {
-                var j, len, ref, results;
+                var j, len, ref, results1;
                 ref = sel.getRangeAt(0).cloneContents().childNodes;
-                results = [];
+                results1 = [];
                 for (j = 0, len = ref.length; j < len; j++) {
                   node = ref[j];
-                  results.push(htmlForNode(node));
+                  results1.push(htmlForNode(node));
                 }
-                return results;
+                return results1;
               })()).join(''));
               clipboard.setData('text/plain', _this.selectedText(sel));
               return _this.replace(e, _this.getSelectedBlockRange(), '');
@@ -646,14 +646,14 @@
             if (sel.type === 'Range') {
               clipboard = e.originalEvent.clipboardData;
               clipboard.setData('text/html', ((function() {
-                var j, len, ref, results;
+                var j, len, ref, results1;
                 ref = sel.getRangeAt(0).cloneContents().childNodes;
-                results = [];
+                results1 = [];
                 for (j = 0, len = ref.length; j < len; j++) {
                   node = ref[j];
-                  results.push(htmlForNode(node));
+                  results1.push(htmlForNode(node));
                 }
-                return results;
+                return results1;
               })()).join(''));
               return clipboard.setData('text/plain', _this.selectedText(sel));
             }
@@ -1097,7 +1097,7 @@
       };
 
       BasicEditingOptions.prototype.removeDuplicateChanges = function(newBlockMap) {
-        var block, dups, id, oldBlock, results;
+        var block, dups, id, oldBlock, results1;
         dups = [];
         for (id in newBlockMap) {
           block = newBlockMap[id];
@@ -1105,11 +1105,11 @@
             dups.push(id);
           }
         }
-        results = [];
+        results1 = [];
         for (id in dups) {
-          results.push(delete newBlockMap[id]);
+          results1.push(delete newBlockMap[id]);
         }
-        return results;
+        return results1;
       };
 
       BasicEditingOptions.prototype.change = function(arg) {
@@ -1175,15 +1175,15 @@
       };
 
       BasicEditingOptions.prototype.blockList = function() {
-        var bl, next, results;
+        var bl, next, results1;
         next = this.getFirst();
-        results = [];
+        results1 = [];
         while (next) {
           bl = this.getBlock(next);
           next = bl.next;
-          results.push(bl);
+          results1.push(bl);
         }
-        return results;
+        return results1;
       };
 
       BasicEditingOptions.prototype.getPositionForBlock = function(block) {
@@ -1256,12 +1256,12 @@
       return el;
     };
     activateScripts = function(jq) {
-      var j, len, newScript, ref, results, script, text;
+      var j, len, newScript, ref, results1, script, text;
       if (!activating) {
         activating = true;
         try {
           ref = jq.find('script');
-          results = [];
+          results1 = [];
           for (j = 0, len = ref.length; j < len; j++) {
             script = ref[j];
             text = !script.type || script.type.toLowerCase() === 'text/javascript' ? script.textContent : script.type.toLowerCase() === 'text/coffeescript' ? CoffeeScript.compile(script.textContent, {
@@ -1278,12 +1278,12 @@
               }
               newScript.textContent = text;
               script.parentNode.insertBefore(newScript, script);
-              results.push(script.parentNode.removeChild(script));
+              results1.push(script.parentNode.removeChild(script));
             } else {
-              results.push(void 0);
+              results1.push(void 0);
             }
           }
-          return results;
+          return results1;
         } finally {
           activating = false;
         }
@@ -1319,18 +1319,18 @@
       };
 
       DataStore.prototype.eachBlock = function(func) {
-        var block, id, ref, results;
+        var block, id, ref, results1;
         ref = this.blocks;
-        results = [];
+        results1 = [];
         for (id in ref) {
           block = ref[id];
           if (func(block, id) === false) {
             break;
           } else {
-            results.push(void 0);
+            results1.push(void 0);
           }
         }
-        return results;
+        return results1;
       };
 
       DataStore.prototype.emptyIndexMeasure = {
@@ -1375,20 +1375,19 @@
         id = typeof blockOrId === 'string' ? blockOrId : blockOrId._id;
         if (block = this.getBlock(id)) {
           return this.blockIndex.split(function(m) {
-            return m.ids.contains(id);
-          })[0].measure().length - block.text.length;
+            return !m.ids.contains(id);
+          })[0].measure().length;
         } else {
           return 0;
         }
       };
 
       DataStore.prototype.blockForOffset = function(offset) {
-        console.log(this.blockIndex.split(function(m) {
+        var ref, ref1, results;
+        results = this.blockIndex.split(function(m) {
           return m.length <= offset;
-        }));
-        return this.blockIndex.split(function(m) {
-          return m.length <= offset;
-        })[0].peekLast().id;
+        });
+        return ((ref = (ref1 = results[1]) != null ? ref1.peekFirst() : void 0) != null ? ref : results[0].peekLast).id;
       };
 
       DataStore.prototype.getText = function() {
@@ -1453,15 +1452,15 @@
       };
 
       DataStore.prototype.blockList = function() {
-        var bl, next, results;
+        var bl, next, results1;
         next = this.getFirst();
-        results = [];
+        results1 = [];
         while (next) {
           bl = this.getBlock(next);
           next = bl.next;
-          results.push(bl);
+          results1.push(bl);
         }
-        return results;
+        return results1;
       };
 
       DataStore.prototype.change = function(changes) {
@@ -1583,13 +1582,13 @@
     blockText = function(blocks) {
       var block;
       return ((function() {
-        var j, len, results;
-        results = [];
+        var j, len, results1;
+        results1 = [];
         for (j = 0, len = blocks.length; j < len; j++) {
           block = blocks[j];
-          results.push(block.text);
+          results1.push(block.text);
         }
-        return results;
+        return results1;
       })()).join('');
     };
     _to_ascii = {
