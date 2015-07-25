@@ -1015,25 +1015,40 @@ Data model -- override/reset these if you want to change how the store accesses 
         constructor: ->
           super()
           @blocks = {}
-          @initIndex()
+          @blockIndex = Fingertree.fromArray [], @emptyIndexMeasure
         getFirst: -> @first
         setFirst: (firstId)-> @first = firstId
         getBlock: (id)-> @blocks[id]
-        setBlock: (id, block)-> @blocks[id] = block
-        deleteBlock: (id)-> delete @blocks[id]
+        setBlock: (id, block)->
+          @blocks[id] = block
+          @indexBlock block
+        deleteBlock: (id)->
+          delete @blocks[id]
+          @unindexBlock id
         eachBlock: (func)->
           for id, block of @blocks
             if func(block, id) == false then break
+          null
         emptyIndexMeasure:
           identity: -> ids: Set(), length: 0
           measure: (v)-> ids: Set([v.id]), length: v.length
           sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
-        initIndex: -> @blockIndex = Fingertree.fromArray [], @emptyIndexMeasure
         indexBlocks: ->
-          @initIndex()
-          @eachBlock (block)=> @blockIndex = @blockIndex.addLast
+          items = []
+          @eachBlock (block)=> items.push
             id: block._id
             length: block.text.length
+          @blockIndex = Fingertree.fromArray items, @emptyIndexMeasure
+        indexBlock: (block)->
+          if block
+            [first, rest] = @blockIndex.split((m)-> !m.ids.contains block._id)
+            if rest.peekFirst()?.id == block._id then rest = rest.removeFirst()
+            @blockIndex = first.addLast(id: block._id, length: block.text.length).concat rest
+        unindexBlock: (id)->
+          if id
+            [first, rest] = @blockIndex.split((m)-> !m.ids.contains id)
+            if rest.peekFirst()?.id == id then rest = rest.removeFirst()
+            @blockIndex = first.concat rest
         offsetForBlock: (blockOrId)->
           id = if typeof blockOrId == 'string' then blockOrId else blockOrId._id
           if block = @getBlock id

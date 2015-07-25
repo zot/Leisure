@@ -37,12 +37,14 @@
 
       P2POrgData.prototype.setBlock = function(id, block) {
         this.runFilters(this.getBlock(id), block);
-        return this.blocks = this.blocks.set(id, block);
+        this.blocks = this.blocks.set(id, block);
+        return this.indexBlock(block);
       };
 
       P2POrgData.prototype.deleteBlock = function(id) {
         this.runFilters(this.getBlock(id), null);
-        return this.blocks = this.blocks["delete"](id);
+        this.blocks = this.blocks["delete"](id);
+        return this.unindexBlock(id);
       };
 
       P2POrgData.prototype.eachBlock = function(func) {

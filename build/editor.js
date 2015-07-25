@@ -1295,7 +1295,7 @@
       function DataStore() {
         DataStore.__super__.constructor.call(this);
         this.blocks = {};
-        this.initIndex();
+        this.blockIndex = Fingertree.fromArray([], this.emptyIndexMeasure);
       }
 
       DataStore.prototype.getFirst = function() {
@@ -1311,26 +1311,25 @@
       };
 
       DataStore.prototype.setBlock = function(id, block) {
-        return this.blocks[id] = block;
+        this.blocks[id] = block;
+        return this.indexBlock(block);
       };
 
       DataStore.prototype.deleteBlock = function(id) {
-        return delete this.blocks[id];
+        delete this.blocks[id];
+        return this.unindexBlock(id);
       };
 
       DataStore.prototype.eachBlock = function(func) {
-        var block, id, ref, results1;
+        var block, id, ref;
         ref = this.blocks;
-        results1 = [];
         for (id in ref) {
           block = ref[id];
           if (func(block, id) === false) {
             break;
-          } else {
-            results1.push(void 0);
           }
         }
-        return results1;
+        return null;
       };
 
       DataStore.prototype.emptyIndexMeasure = {
@@ -1354,20 +1353,47 @@
         }
       };
 
-      DataStore.prototype.initIndex = function() {
-        return this.blockIndex = Fingertree.fromArray([], this.emptyIndexMeasure);
-      };
-
       DataStore.prototype.indexBlocks = function() {
-        this.initIndex();
-        return this.eachBlock((function(_this) {
+        var items;
+        items = [];
+        this.eachBlock((function(_this) {
           return function(block) {
-            return _this.blockIndex = _this.blockIndex.addLast({
+            return items.push({
               id: block._id,
               length: block.text.length
             });
           };
         })(this));
+        return this.blockIndex = Fingertree.fromArray(items, this.emptyIndexMeasure);
+      };
+
+      DataStore.prototype.indexBlock = function(block) {
+        var first, ref, ref1, rest;
+        if (block) {
+          ref = this.blockIndex.split(function(m) {
+            return !m.ids.contains(block._id);
+          }), first = ref[0], rest = ref[1];
+          if (((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === block._id) {
+            rest = rest.removeFirst();
+          }
+          return this.blockIndex = first.addLast({
+            id: block._id,
+            length: block.text.length
+          }).concat(rest);
+        }
+      };
+
+      DataStore.prototype.unindexBlock = function(id) {
+        var first, ref, ref1, rest;
+        if (id) {
+          ref = this.blockIndex.split(function(m) {
+            return !m.ids.contains(id);
+          }), first = ref[0], rest = ref[1];
+          if (((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === id) {
+            rest = rest.removeFirst();
+          }
+          return this.blockIndex = first.concat(rest);
+        }
       };
 
       DataStore.prototype.offsetForBlock = function(blockOrId) {
