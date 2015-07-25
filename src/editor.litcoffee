@@ -135,10 +135,13 @@ Code
 ====
 Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEditCore).
 
-    define ['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree'], (jq, DOMCursor, Fingertree)->
+    define ['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable'], (jq, DOMCursor, Fingertree, Immutable)->
       {
         selectRange,
       } = DOMCursor
+      {
+        Set
+      } = Immutable
       maxLastKeys = 4
       BS = 8
       ENTER = 13
@@ -1012,6 +1015,7 @@ Data model -- override/reset these if you want to change how the store accesses 
         constructor: ->
           super()
           @blocks = {}
+          @initIndex()
         getFirst: -> @first
         setFirst: (firstId)-> @first = firstId
         getBlock: (id)-> @blocks[id]
@@ -1020,11 +1024,31 @@ Data model -- override/reset these if you want to change how the store accesses 
         eachBlock: (func)->
           for id, block of @blocks
             if func(block, id) == false then break
+        emptyIndexMeasure:
+          identity: -> ids: Set(), length: 0
+          measure: (v)-> ids: Set([v.id]), length: v.length
+          sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
+        initIndex: -> @blockIndex = Fingertree.fromArray [], @emptyIndexMeasure
+        indexBlocks: ->
+          @initIndex()
+          @eachBlock (block)=> @blockIndex = @blockIndex.addLast
+            id: block._id
+            length: block.text.length
+        offsetForBlock: (blockOrId)->
+          id = if typeof blockOrId == 'string' then blockOrId else blockOrId._id
+          if block = @getBlock id
+            @blockIndex.split((m)-> m.ids.contains id)[0].measure().length - block.text.length
+          else 0
+        blockForOffset: (offset)->
+          console.log @blockIndex.split((m)-> m.length <= offset)
+          @blockIndex.split((m)-> m.length <= offset)[0].peekLast().id
         getText: ->
           text = ''
           @eachBlock (block)-> text += block.text
           text
-        load: (@first, @blocks)-> @trigger 'load'
+        load: (@first, @blocks)->
+          @indexBlocks()
+          @trigger 'load'
         check: ->
           seen = {}
           first = next = @getFirst()

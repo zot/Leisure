@@ -4,9 +4,10 @@
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree'], function(jq, DOMCursor, Fingertree) {
-    var BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, TAB, UP, _to_ascii, activateScripts, activating, blockText, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys;
+  define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable'], function(jq, DOMCursor, Fingertree, Immutable) {
+    var BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, blockText, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys;
     selectRange = DOMCursor.selectRange;
+    Set = Immutable.Set;
     maxLastKeys = 4;
     BS = 8;
     ENTER = 13;
@@ -1033,14 +1034,14 @@
       };
 
       BasicEditingOptions.prototype.computeRemovesAndNewBlockIds = function(oldBlocks, newBlocks, newBlockMap, removes) {
-        var i, j, len, len1, m, newBlock, oldBlock, prev, ref;
+        var i, j, len, len1, newBlock, o, oldBlock, prev, ref;
         ref = oldBlocks.slice(newBlocks.length, oldBlocks.length);
         for (j = 0, len = ref.length; j < len; j++) {
           oldBlock = ref[j];
           removes[oldBlock._id] = oldBlock;
         }
         prev = null;
-        for (i = m = 0, len1 = newBlocks.length; m < len1; i = ++m) {
+        for (i = o = 0, len1 = newBlocks.length; o < len1; i = ++o) {
           newBlock = newBlocks[i];
           if (oldBlock = oldBlocks[i]) {
             newBlock._id = oldBlock._id;
@@ -1294,6 +1295,7 @@
       function DataStore() {
         DataStore.__super__.constructor.call(this);
         this.blocks = {};
+        this.initIndex();
       }
 
       DataStore.prototype.getFirst = function() {
@@ -1331,6 +1333,64 @@
         return results;
       };
 
+      DataStore.prototype.emptyIndexMeasure = {
+        identity: function() {
+          return {
+            ids: Set(),
+            length: 0
+          };
+        },
+        measure: function(v) {
+          return {
+            ids: Set([v.id]),
+            length: v.length
+          };
+        },
+        sum: function(a, b) {
+          return {
+            ids: a.ids.union(b.ids),
+            length: a.length + b.length
+          };
+        }
+      };
+
+      DataStore.prototype.initIndex = function() {
+        return this.blockIndex = Fingertree.fromArray([], this.emptyIndexMeasure);
+      };
+
+      DataStore.prototype.indexBlocks = function() {
+        this.initIndex();
+        return this.eachBlock((function(_this) {
+          return function(block) {
+            return _this.blockIndex = _this.blockIndex.addLast({
+              id: block._id,
+              length: block.text.length
+            });
+          };
+        })(this));
+      };
+
+      DataStore.prototype.offsetForBlock = function(blockOrId) {
+        var block, id;
+        id = typeof blockOrId === 'string' ? blockOrId : blockOrId._id;
+        if (block = this.getBlock(id)) {
+          return this.blockIndex.split(function(m) {
+            return m.ids.contains(id);
+          })[0].measure().length - block.text.length;
+        } else {
+          return 0;
+        }
+      };
+
+      DataStore.prototype.blockForOffset = function(offset) {
+        console.log(this.blockIndex.split(function(m) {
+          return m.length <= offset;
+        }));
+        return this.blockIndex.split(function(m) {
+          return m.length <= offset;
+        })[0].peekLast().id;
+      };
+
       DataStore.prototype.getText = function() {
         var text;
         text = '';
@@ -1343,6 +1403,7 @@
       DataStore.prototype.load = function(first1, blocks1) {
         this.first = first1;
         this.blocks = blocks1;
+        this.indexBlocks();
         return this.trigger('load');
       };
 
