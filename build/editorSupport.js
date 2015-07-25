@@ -536,7 +536,7 @@
       };
 
       OrgEditing.prototype.change = function(changes) {
-        var change, changedProperties, child, computedProperties, id, j, k, len, len1, oldBlock, parent, props, ref, ref1;
+        var change, changedProperties, child, computedProperties, id, j, k, len, len1, oldBlock, parent, props, ref, ref1, ref2;
         if (this.changesHidden(changes)) {
           console.log("REJECTING DELETE OF HIDDEN");
           return false;
@@ -555,16 +555,17 @@
         this.data.linkAllSiblings(changes);
         for (j = 0, len = changedProperties.length; j < len; j++) {
           change = changedProperties[j];
-          parent = this.data.parent(change, changes)._id;
-          if (!computedProperties[parent]) {
-            computedProperties[parent] = true;
-            props = {};
-            ref1 = this.data.children(parent, changes);
-            for (k = 0, len1 = ref1.length; k < len1; k++) {
-              child = ref1[k];
-              props = _.merge(props, child.properties);
+          if (parent = (ref1 = this.data.parent(change, changes)) != null ? ref1._id : void 0) {
+            if (!computedProperties[parent]) {
+              computedProperties[parent] = true;
+              props = {};
+              ref2 = this.data.children(parent, changes);
+              for (k = 0, len1 = ref2.length; k < len1; k++) {
+                child = ref2[k];
+                props = _.merge(props, child.properties);
+              }
+              addChange(this.data.getBlock(parent, changes), changes).properties = props;
             }
-            addChange(this.data.getBlock(parent, changes), changes).properties = props;
           }
         }
         return OrgEditing.__super__.change.call(this, changes);

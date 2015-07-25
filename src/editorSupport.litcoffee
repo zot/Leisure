@@ -353,13 +353,13 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             @checkCodeChange changes, change, oldBlock
           @data.linkAllSiblings changes
           for change in changedProperties
-            parent = @data.parent(change, changes)._id
-            if !computedProperties[parent]
-              computedProperties[parent] = true
-              props = {}
-              for child in @data.children parent, changes
-                props = _.merge props, child.properties
-              addChange(@data.getBlock(parent, changes), changes).properties = props
+            if parent = @data.parent(change, changes)?._id
+              if !computedProperties[parent]
+                computedProperties[parent] = true
+                props = {}
+                for child in @data.children parent, changes
+                  props = _.merge props, child.properties
+                addChange(@data.getBlock(parent, changes), changes).properties = props
           super changes
         changesHidden: (changes)->
           if @canHideSlides()

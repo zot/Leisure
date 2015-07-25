@@ -50,7 +50,7 @@ misrepresented as being the original software.
     SRC_BOILERPLATE = 1;
     SRC_NAME = 2;
     SRC_INFO = 3;
-    srcStartRE = /^(#\+(BEGIN_SRC) *)([^\n]*)$/im;
+    srcStartRE = /^(#\+(BEGIN_SRC) +)([^\n]*)$/im;
     END_NAME = 1;
     srcEndRE = /^#\+(END_SRC)( *)$/im;
     RES_NAME = 1;
