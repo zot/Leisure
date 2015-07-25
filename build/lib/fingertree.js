@@ -162,11 +162,15 @@
       FingerTree.prototype.split = notImplemented;
 
       FingerTree.prototype.takeUntil = function(predicate) {
-        return this.split(predicate)[0];
+        return this.split(function(x) {
+          return !predicate(x);
+        })[0];
       };
 
       FingerTree.prototype.dropUntil = function(predicate) {
-        return this.split(predicate)[1];
+        return this.split(function(x) {
+          return !predicate(x);
+        })[1];
       };
 
       FingerTree.prototype.toJSON = notImplemented;

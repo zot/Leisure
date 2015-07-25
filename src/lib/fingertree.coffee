@@ -206,12 +206,12 @@
       # Take elements from the tree until the predicate is returning false.
       # @param {function(*): boolean} predicate
       # @return {FingerTree}
-      takeUntil: (predicate)-> @split(predicate)[0]
+      takeUntil: (predicate)-> @split((x)-> !predicate x)[0]
 
       # Drop elements from the tree until the predicate is returning false.
       # @param {function(*): boolean} predicate
       # @return {FingerTree}
-      dropUntil: (predicate)-> @split(predicate)[1]
+      dropUntil: (predicate)-> @split((x)-> !predicate x)[1]
 
       # @return the JSON representation of the tree.
       toJSON: notImplemented
