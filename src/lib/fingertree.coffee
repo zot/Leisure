@@ -386,8 +386,8 @@
               fromArray(split.right, @measurer)
 
       split: (predicate)->
-        if predicate @measure()
-          split = @splitTree predicate, @measurer.identity()
+        if !predicate @measure()
+          split = @splitTree ((x)-> !predicate x), @measurer.identity()
           [split.left, split.right.addFirst split.mid]
         else [this, new Empty @measurer]
 

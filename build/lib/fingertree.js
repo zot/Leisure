@@ -409,8 +409,10 @@
 
       Deep.prototype.split = function(predicate) {
         var split;
-        if (predicate(this.measure())) {
-          split = this.splitTree(predicate, this.measurer.identity());
+        if (!predicate(this.measure())) {
+          split = this.splitTree((function(x) {
+            return !predicate(x);
+          }), this.measurer.identity());
           return [split.left, split.right.addFirst(split.mid)];
         } else {
           return [this, new Empty(this.measurer)];
