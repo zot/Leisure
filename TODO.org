@@ -1,3 +1,4 @@
+* TODO Make editor use docOffsets and domCursors, remove getPositionForBlock, etc.
 * Project list
 - switch to simple emacs protocol
   - use a [[https://github.com/qiao/fingertree.js][fingertree]] to handle inserts and track offsets

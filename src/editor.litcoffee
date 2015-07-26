@@ -270,11 +270,11 @@ Events:
         savePosition: (func)->
           if @editing then func()
           else
-            pos = @getSelectedBlockRange()
+            pos = @getSelectedDocRange()
             try
               func()
             catch
-              @selectBlockRange pos
+              @selectDocRange pos
         getCopy: (id)-> copy @options.getBlock id
         getText: -> @options.getText()
         domCursor: (node, pos)->
@@ -309,6 +309,38 @@ Events:
               .countChars targ.node, targ.pos
           else -1
         loadURL: (url)-> $.get url, (text)=> @options.load text
+        domCursorForDocOffset: (dOff)->
+          bOff = @options.blockOffsetForDocOffset dOff
+          node = @options.nodeForId bOff.block
+          @domCursorForText(node, 0).mutable().forwardChars bOff.offset
+        docOffsetForBlockOffset: (block, offset)->
+          @options.docOffsetForBlockOffset block, offset
+        docOffset: (node, offset)->
+          if node instanceof Range
+            offset = node.startOffset
+            node = node.startContainer
+          else if node instanceof DOMCursor
+            offset = node.pos
+            node = node.node
+          if startHolder = @options.getContainer(node)
+            @options.docOffsetForBlockOffset @options.idForNode(startHolder), @getTextPosition startHolder, node, offset
+        getSelectedDocRange: ->
+          s = getSelection()
+          if s.type == 'None' then type: 'None'
+          else
+            range = s.getRangeAt 0
+            start = @docOffset range.startContainer, range.startOffset
+            if s.type == 'Caret' then range.length = 0
+            else
+              end = @docOffset range.endContainer, range.endOffset
+              length = Math.abs start - end
+              start = Math.min start, end
+            type: s.type
+            start: start
+            length: length
+        selectDocRange: (range)->
+          start = @domCursorForDocOffset(range.start).save()
+          selectRange start.range(start.mutable().forwardChars range.length)
         getSelectedBlockRange: ->
           s = getSelection()
           if s.type == 'None' then type: 'None'
@@ -318,18 +350,6 @@ Events:
               p.length = @selectedText(s).length
               p
             else type: 'None'
-        selectBlockRange: (blockRange)->
-          if blockRange.type == 'None' then getSelection().removeAllRanges()
-          else selectRange @rangeForBlockRange blockRange
-        rangeForBlockRange: ({block, offset, length})->
-          startPos = @domCursor(@options.nodeForId(block._id), 0).forwardChars offset
-          if startPos.isEmpty() then null
-          else
-            endPos = startPos.forwardChars length
-            r = document.createRange()
-            r.setStart startPos.node, startPos.pos
-            r.setEnd endPos.node, endPos.pos
-            r
         blockOffset: (node, offset)->
           if node instanceof Range
             offset = node.startOffset
@@ -401,53 +421,14 @@ editBlocks: at this point, just place the cursor after the newContent, later
 on it can select if start and end are different
 
         editBlocks: (blocks, start, length, newContent, select)->
-          caret = start + newContent.length
+          pos = @docOffsetForBlockOffset blocks[0]._id, start + newContent.length
           oldText = blockText blocks
           newText = oldText.substring(0, start) + newContent + oldText.substring start + length
-
-This code is hairy and unintuitive and needs to be cleaned up!
-
           {oldBlocks, newBlocks, offset, prev} = @changeStructure blocks, newText
           if oldBlocks.length || newBlocks.length
             oldFirst = oldBlocks[0]?._id
             if !@options.edit prev, oldBlocks.slice(), newBlocks.slice() then return
-            if !newBlocks.length
-              startBlock = blocks[0]
-              offset += start + startBlock.text.length
-            else if !oldBlocks.length # just inserting
-              startBlock = newBlocks[0]
-              offset = start + offset
-            else
-              startBlock = newBlocks[0]
-              offset += start
-              if oldFirst && oldFirst != oldBlocks[0]?._id then offset += oldBlocks[0].text.length
-              while offset < 0
-                if !(block = @options.getBlock startBlock.prev)
-                  offset = 0
-                  break
-                startBlock = block
-                offset += startBlock.text.length
-              while offset > startBlock.text.length
-                if !(block = @options.getBlock startBlock.next)
-                  offset = startBlock.text.length
-                  break
-                offset -= startBlock.text.length
-                startBlock = block
-          else
-            startBlock = blocks[0]
-            offset = start
-          startPos = @domCursor @options.nodeForId(startBlock._id), 0
-          if typeof select == 'number'
-            startPos.forwardChars(offset + select, true).moveCaret()
-          else if select
-            r = document.createRange()
-            startPos = startPos.forwardChars offset, true
-            r.setStart startPos.node, startPos.pos
-            endPos = startPos.forwardChars newContent.length, true
-            r.setEnd endPos.node, endPos.pos
-            selectRange r
-          else if !startPos.isEmpty()
-            startPos.forwardChars(offset + newContent.length, true).moveCaret()
+            @domCursorForDocOffset(pos).moveCaret()
 
 `changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
 
@@ -535,9 +516,9 @@ This code is hairy and unintuitive and needs to be cleaned up!
               dragRange = null
               if e.dataTransfer.dropEffect == 'move'
                 e.preventDefault()
-                sel = @getSelectedBlockRange()
+                sel = @getSelectedDocRange()
                 @replace e, dr, ''
-                @selectBlockRange sel
+                @selectDocRange sel
         bindClipboard: ->
           @node.on 'cut', (e)=>
             e.preventDefault()
@@ -921,6 +902,8 @@ Main code
             bl = @getBlock next
             next = bl.next
             bl
+        docOffsetForBlockOffset: (bOff, offset)-> @data.docOffsetForBlockOffset bOff, offset
+        blockOffsetForDocOffset: (dOff)-> @data.blockOffsetForDocOffset dOff
         getPositionForBlock: (block)->
           cur = @getBlock @getFirst()
           offset = 0
@@ -1049,6 +1032,21 @@ Data model -- override/reset these if you want to change how the store accesses 
             [first, rest] = @blockIndex.split((m)-> !m.ids.contains id)
             if rest.peekFirst()?.id == id then rest = rest.removeFirst()
             @blockIndex = first.concat rest
+        docOffsetForBlockOffset: (block, offset)->
+          if typeof block == 'object'
+            offset = block.offset
+            block = block.block
+          (if @getBlock block
+            @blockIndex.split((m)-> !m.ids.contains block)[0].measure().length
+          else 0) + offset
+        blockOffsetForDocOffset: (offset)->
+          results = @blockIndex.split((m)-> m.length <= offset)
+          if results[1]
+            block: results[1].peekFirst().id
+            offset: offset - results[0].measure().length
+          else
+            block: results[0].peekLast().id
+            offset: results[0].removeLast().measure().length
         offsetForBlock: (blockOrId)->
           id = if typeof blockOrId == 'string' then blockOrId else blockOrId._id
           if block = @getBlock id
@@ -1269,11 +1267,11 @@ selection, regardless of the current value of LeisureEditCore.editing.
 
       preserveSelection = (func)->
         if editor = findEditor getSelection().anchorNode
-          range = editor.getSelectedBlockRange()
+          range = editor.getSelectedDocRange()
           try
             func()
           finally
-            editor.selectBlockRange range
+            editor.selectDocRange range
         else func()
 
 Exports

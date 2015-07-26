@@ -154,11 +154,11 @@
         if (this.editing) {
           return func();
         } else {
-          pos = this.getSelectedBlockRange();
+          pos = this.getSelectedDocRange();
           try {
             return func();
           } catch (_error) {
-            return this.selectBlockRange(pos);
+            return this.selectDocRange(pos);
           }
         }
       };
@@ -225,6 +225,62 @@
         })(this));
       };
 
+      LeisureEditCore.prototype.domCursorForDocOffset = function(dOff) {
+        var bOff, node;
+        bOff = this.options.blockOffsetForDocOffset(dOff);
+        node = this.options.nodeForId(bOff.block);
+        return this.domCursorForText(node, 0).mutable().forwardChars(bOff.offset);
+      };
+
+      LeisureEditCore.prototype.docOffsetForBlockOffset = function(block, offset) {
+        return this.options.docOffsetForBlockOffset(block, offset);
+      };
+
+      LeisureEditCore.prototype.docOffset = function(node, offset) {
+        var startHolder;
+        if (node instanceof Range) {
+          offset = node.startOffset;
+          node = node.startContainer;
+        } else if (node instanceof DOMCursor) {
+          offset = node.pos;
+          node = node.node;
+        }
+        if (startHolder = this.options.getContainer(node)) {
+          return this.options.docOffsetForBlockOffset(this.options.idForNode(startHolder), this.getTextPosition(startHolder, node, offset));
+        }
+      };
+
+      LeisureEditCore.prototype.getSelectedDocRange = function() {
+        var end, length, range, s, start;
+        s = getSelection();
+        if (s.type === 'None') {
+          return {
+            type: 'None'
+          };
+        } else {
+          range = s.getRangeAt(0);
+          start = this.docOffset(range.startContainer, range.startOffset);
+          if (s.type === 'Caret') {
+            range.length = 0;
+          } else {
+            end = this.docOffset(range.endContainer, range.endOffset);
+            length = Math.abs(start - end);
+            start = Math.min(start, end);
+          }
+          return {
+            type: s.type,
+            start: start,
+            length: length
+          };
+        }
+      };
+
+      LeisureEditCore.prototype.selectDocRange = function(range) {
+        var start;
+        start = this.domCursorForDocOffset(range.start).save();
+        return selectRange(start.range(start.mutable().forwardChars(range.length)));
+      };
+
       LeisureEditCore.prototype.getSelectedBlockRange = function() {
         var p, s;
         s = getSelection();
@@ -242,29 +298,6 @@
               type: 'None'
             };
           }
-        }
-      };
-
-      LeisureEditCore.prototype.selectBlockRange = function(blockRange) {
-        if (blockRange.type === 'None') {
-          return getSelection().removeAllRanges();
-        } else {
-          return selectRange(this.rangeForBlockRange(blockRange));
-        }
-      };
-
-      LeisureEditCore.prototype.rangeForBlockRange = function(arg) {
-        var block, endPos, length, offset, r, startPos;
-        block = arg.block, offset = arg.offset, length = arg.length;
-        startPos = this.domCursor(this.options.nodeForId(block._id), 0).forwardChars(offset);
-        if (startPos.isEmpty()) {
-          return null;
-        } else {
-          endPos = startPos.forwardChars(length);
-          r = document.createRange();
-          r.setStart(startPos.node, startPos.pos);
-          r.setEnd(endPos.node, endPos.pos);
-          return r;
         }
       };
 
@@ -409,8 +442,8 @@
       };
 
       LeisureEditCore.prototype.editBlocks = function(blocks, start, length, newContent, select) {
-        var block, caret, endPos, newBlocks, newText, offset, oldBlocks, oldFirst, oldText, prev, r, ref, ref1, ref2, startBlock, startPos;
-        caret = start + newContent.length;
+        var newBlocks, newText, offset, oldBlocks, oldFirst, oldText, pos, prev, ref, ref1;
+        pos = this.docOffsetForBlockOffset(blocks[0]._id, start + newContent.length);
         oldText = blockText(blocks);
         newText = oldText.substring(0, start) + newContent + oldText.substring(start + length);
         ref = this.changeStructure(blocks, newText), oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks, offset = ref.offset, prev = ref.prev;
@@ -419,51 +452,7 @@
           if (!this.options.edit(prev, oldBlocks.slice(), newBlocks.slice())) {
             return;
           }
-          if (!newBlocks.length) {
-            startBlock = blocks[0];
-            offset += start + startBlock.text.length;
-          } else if (!oldBlocks.length) {
-            startBlock = newBlocks[0];
-            offset = start + offset;
-          } else {
-            startBlock = newBlocks[0];
-            offset += start;
-            if (oldFirst && oldFirst !== ((ref2 = oldBlocks[0]) != null ? ref2._id : void 0)) {
-              offset += oldBlocks[0].text.length;
-            }
-            while (offset < 0) {
-              if (!(block = this.options.getBlock(startBlock.prev))) {
-                offset = 0;
-                break;
-              }
-              startBlock = block;
-              offset += startBlock.text.length;
-            }
-            while (offset > startBlock.text.length) {
-              if (!(block = this.options.getBlock(startBlock.next))) {
-                offset = startBlock.text.length;
-                break;
-              }
-              offset -= startBlock.text.length;
-              startBlock = block;
-            }
-          }
-        } else {
-          startBlock = blocks[0];
-          offset = start;
-        }
-        startPos = this.domCursor(this.options.nodeForId(startBlock._id), 0);
-        if (typeof select === 'number') {
-          return startPos.forwardChars(offset + select, true).moveCaret();
-        } else if (select) {
-          r = document.createRange();
-          startPos = startPos.forwardChars(offset, true);
-          r.setStart(startPos.node, startPos.pos);
-          endPos = startPos.forwardChars(newContent.length, true);
-          r.setEnd(endPos.node, endPos.pos);
-          return selectRange(r);
-        } else if (!startPos.isEmpty()) {
-          return startPos.forwardChars(offset + newContent.length, true).moveCaret();
+          return this.domCursorForDocOffset(pos).moveCaret();
         }
       };
 
@@ -606,9 +595,9 @@
               dragRange = null;
               if (e.dataTransfer.dropEffect === 'move') {
                 e.preventDefault();
-                sel = _this.getSelectedBlockRange();
+                sel = _this.getSelectedDocRange();
                 _this.replace(e, dr, '');
-                return _this.selectBlockRange(sel);
+                return _this.selectDocRange(sel);
               }
             }
           };
@@ -1186,6 +1175,14 @@
         return results1;
       };
 
+      BasicEditingOptions.prototype.docOffsetForBlockOffset = function(bOff, offset) {
+        return this.data.docOffsetForBlockOffset(bOff, offset);
+      };
+
+      BasicEditingOptions.prototype.blockOffsetForDocOffset = function(dOff) {
+        return this.data.blockOffsetForDocOffset(dOff);
+      };
+
       BasicEditingOptions.prototype.getPositionForBlock = function(block) {
         var cur, offset;
         cur = this.getBlock(this.getFirst());
@@ -1393,6 +1390,34 @@
             rest = rest.removeFirst();
           }
           return this.blockIndex = first.concat(rest);
+        }
+      };
+
+      DataStore.prototype.docOffsetForBlockOffset = function(block, offset) {
+        if (typeof block === 'object') {
+          offset = block.offset;
+          block = block.block;
+        }
+        return (this.getBlock(block) ? this.blockIndex.split(function(m) {
+          return !m.ids.contains(block);
+        })[0].measure().length : 0) + offset;
+      };
+
+      DataStore.prototype.blockOffsetForDocOffset = function(offset) {
+        var results;
+        results = this.blockIndex.split(function(m) {
+          return m.length <= offset;
+        });
+        if (results[1]) {
+          return {
+            block: results[1].peekFirst().id,
+            offset: offset - results[0].measure().length
+          };
+        } else {
+          return {
+            block: results[0].peekLast().id,
+            offset: results[0].removeLast().measure().length
+          };
         }
       };
 
@@ -1751,11 +1776,11 @@
     preserveSelection = function(func) {
       var editor, range;
       if (editor = findEditor(getSelection().anchorNode)) {
-        range = editor.getSelectedBlockRange();
+        range = editor.getSelectedDocRange();
         try {
           return func();
         } finally {
-          editor.selectBlockRange(range);
+          editor.selectDocRange(range);
         }
       } else {
         return func();

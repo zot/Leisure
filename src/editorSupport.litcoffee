@@ -596,7 +596,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
                 EOL: '\n'
                 topLevel: block.level == 1
                 level: block.level
-                stars: m[HL_LEVEL].trim()
+                stars: m[HL_LEVEL]
                 maintext: block.text.substring m[HL_LEVEL].length
                 children: opts.data.children block
             else
