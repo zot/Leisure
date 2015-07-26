@@ -833,6 +833,10 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         editingOpts.toggleHidden()
         editingOpts.hiding
 
+      breakpoint = ->
+        console.log()
+        console.log "breakpoint"
+
 Exports
 
       mergeExports {
@@ -841,6 +845,7 @@ Exports
         followLink
         showHide
         editorForToolbar
+        breakpoint
       }
 
       {

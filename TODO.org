@@ -1,4 +1,6 @@
+* TODO restore syntax highlighting
 * TODO Make editor use docOffsets and domCursors, remove getPositionForBlock, etc.
+* TODO link errors should have tooltips on the entire link, not just the X
 * Project list
 - switch to simple emacs protocol
   - use a [[https://github.com/qiao/fingertree.js][fingertree]] to handle inserts and track offsets
@@ -38,14 +40,18 @@
 - p2p
 - storage
 * Search stuff
+- switch to suffix list
 - search history
 - search type drop-down
 - case sensitive, regexp
 - highlight results
 * TODO spreadsheet, table rendering
-* TODO more value editors besides numeric sliders
+* TODO restore value sliders and make more value editors
 - colors
-- week/month days
+- calendars
+- clocks
+- region names
+- human name pickers
 * TODO make UI system to use a data filter to manage view definition
 * TODO coffeescript errors should deal with sourcemaps properly [[https://github.com/rich-harris/sorcery][sorcery]]
 * TODO use handlebars partials instead of templates[]?
@@ -949,6 +955,8 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE restore theme switching
+  CLOSED: [2015-07-26 Sun 20:09]
 ** DONE emacs connection using [[https://github.com/ahyatt/emacs-websocket][websockets]]
   CLOSED: [2015-07-25 Sat 10:00]
 Final choice of message is

@@ -4,7 +4,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports) {
-    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, keywordRE, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toggleSlideMode, updateSelection, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, keywordRE, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toggleSlideMode, updateSelection, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -1217,12 +1217,17 @@
       editingOpts.toggleHidden();
       return editingOpts.hiding;
     };
+    breakpoint = function() {
+      console.log();
+      return console.log("breakpoint");
+    };
     mergeExports({
       findEditor: findEditor,
       toggleSlideMode: toggleSlideMode,
       followLink: followLink,
       showHide: showHide,
-      editorForToolbar: editorForToolbar
+      editorForToolbar: editorForToolbar,
+      breakpoint: breakpoint
     });
     return {
       createLocalData: createLocalData,

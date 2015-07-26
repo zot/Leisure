@@ -21,7 +21,7 @@ body.leisureError > #error {
 @font-face
 {
     font-family: FranklinM54;
-    src: url('/font/franklinm54-webfont.woff') format('woff');
+    src: url('../font/franklinm54-webfont.woff') format('woff');
 }
 .cthulhu [data-edit-mode='plain'],
 body.cthulhu {
@@ -209,12 +209,12 @@ body.cthulhu {
 @font-face
 {
     font-family: SpaceshipBullet;
-    src: url('/font/Spaceship Bullet.woff') format('woff');
+    src: url('../font/Spaceship Bullet.woff') format('woff');
 }
 @font-face
 {
     font-family: Inconsolata;
-    src: url('/font/Inconsolata.woff') format('woff');
+    src: url('../font/Inconsolata.woff') format('woff');
 }
 
 .googie [data-edit-mode='plain'],
@@ -530,12 +530,12 @@ body.console {
 @font-face
 {
     font-family: MouseDeco;
-    src: url('/font/Mouse_Deco.woff') format('woff');
+    src: url('../font/Mouse_Deco.woff') format('woff');
 }
 @font-face
 {
     font-family: Ciudad;
-    src: url('/font/Ciudad Nueva CAPS Bold.woff') format('woff');
+    src: url('../font/Ciudad Nueva CAPS Bold.woff') format('woff');
 }
 .steampunk #leisure_bar  {
     width: 0px;

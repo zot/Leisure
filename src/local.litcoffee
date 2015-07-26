@@ -170,7 +170,6 @@ Code for local-mode.  This will not be loaded under meteor.
         createStructureDisplay data
         #window.ED = plainEditDiv $("[maindoc]"), data
         window.ED = fancyEditDiv $("[maindoc]"), data
-        ED.node.addClass 'flat'
         createEditorDisplay ED
         if !document.location.search
           ED.options.load """

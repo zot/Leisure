@@ -14,18 +14,43 @@ Anything else if fair game -- you can hide the content, you can add text
 in as long as you mark it as data-noncontent, etc.
 
 * Toolbar view
-
 #+BEGIN_SRC html :defview leisure-toolbar
+<div name='buttons' style="position: relative;">
 <label><input type='checkbox'></input>Fred</label>
 <button name='diag'>Diag: off</button>
 <button name='search'>Search</button>
-<span name='emacsConnector'><button name='connectToEmacs'>Emacs</button><span name="emacsPort">Port: <input type='text' value="1315"></span></span>
-<button name='connectToSlave'>Connect to Slave</button>
-<button name='connectToMaster'>Connect to Master</button>
-Connections: <span name='connections'></span>
+<div class='themeHolder' style="display: inline-block; overflow: hidden">
+  <div class='themeDiv' style="position: absolute; top: 0;">
+    <select name='themeSelector'></select>
+  </div>
+</div>
+<div name='emacsConnector'>
+  <button class='label' name='emacsLabel'>Emacs <i class='fa fa-arrow-right'></i></button>
+  <span class='contents'>
+    <button name='connectToEmacs'>Emacs</button>
+    <span name="emacsPort">Port: <input type='text' value="1315"></span>
+  </span>
+</div>
+<div name='p2pConnector'>
+  <button class='label' name='p2plabel'>P2P <i class='fa fa-arrow-right'></i></button>
+  <span class='contents'>
+    <button name='connectToSlave'>Connect to Slave</button>
+    <button name='connectToMaster'>Connect to Master</button>
+    Connections: <span name='connections'></span>
+  </span>
+</div>
+</div>
 #+END_SRC
 
 #+BEGIN_SRC cs :control leisure-toolbar
+themes = [
+  'Flat',
+  'Googie',
+  'Steampunk',
+  'Cthulhu',
+  'Console',
+]
+
 @initializeView = (view)->
   view.find('label')
     .button()
@@ -39,7 +64,22 @@ Connections: <span name='connections'></span>
   Leisure.configureP2P view.find('[name="connectToSlave"]'),
     view.find('[name="connectToMaster"]'),
     view.find('[name="connections"]')
+  view.find('[name="p2plabel"]').button()
+  themeMenu = view.find('[name="themeSelector"]')
+  themeMenu[0].innerHTML = ''
+  themeMenu.selectmenu change: -> selectTheme this
+  for theme in themes
+    themeMenu[0].innerHTML += "<option value='#{theme.toLowerCase()}'>#{theme}</option>"
+  themeMenu.val 'googie'
+  selectTheme themeMenu[0]
+  themeMenu.selectmenu 'refresh'
   Leisure.configureEmacs view.find('[name="emacsConnector"]')
+
+selectTheme = (select)->
+  editor = $(Leisure.editorForToolbar(select).node)
+  for theme in themes
+    editor.removeClass theme.toLowerCase()
+  editor.addClass select.value
 
 updateButton = (view, hiding)->
   view.find('label').button 'option', 'label', if hiding
@@ -50,36 +90,72 @@ updateButton = (view, hiding)->
 
 #+NAME: toolbar-css
 #+BEGIN_SRC css
-[name='emacsConnector']:hover [name='emacsPort'] {
+.themeDiv {
+  display: inline-block;
+}
+[name='emacsConnector'] {
+  display: inline-block;
+}
+[name='emacsConnector']:hover .contents {
   display: inherit;
 }
-[name='emacsConnector'] [name='emacsPort'] {
+[name='emacsConnector']:hover .label,
+[name='emacsConnector'] .contents {
   display: none;
 }
-[name='emacsConnector'] [name='emacsPort'] input {
+[name='emacsPort'] input {
   width: 4em;
+}
+[name='p2pConnector'] {
+  display: inline-block;
+}
+[name='p2pConnector']:hover .contents {
+  display: inherit;
+}
+[name='p2pConnector']:hover .label {
+  display: none;
+}
+[name='p2pConnector'] .contents {
+  display: none;
+}
+[name='buttons'] .ui-button {
+  height: 2em;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+[name='buttons'] .ui-selectmenu-text,
+[name='buttons'] .ui-selectmenu-button,
+[name='buttons'] label.ui-button {
+  height: calc(2em - 2px);
+}
+.themeDiv .ui-selectmenu-button {
+  width: 17ex !important;
+}
+.themeDiv,
+.themeHolder {
+  width: 19ex;
 }
 #+END_SRC
 
 * Block Views
 #+BEGIN_SRC html :defview leisure-headline-plain
-<div data-noncontent contenteditable='false'></div>{{> leisure-source-toggle}}{{{renderPlain this}}}
+<div class='slideholder'><div class='page'><div class='border'></div><div data-noncontent contenteditable='false'></div>{{> leisure-source-toggle}}{{{renderPlain this}}}</div></div>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-top-chunk
-<div id='{{id}}' class='fancy'
+<div class='slideholder'><div class='page'><div class='border'></div><div id='{{id}}' class='fancy'
 data-edit-mode='fancy'><span data-noncontent contenteditable='false'>{{> leisure-source-toggle}}
-</span>{{{text}}}</div>
+</span>{{{text}}}</div></div></div>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-headline
-<div id='{{id}}' class='fancy'
+<div class='slideholder'><div class='page'><div class='border'></div><div id='{{id}}' class='fancy'
 data-edit-mode='fancy'
 data-block='headline'
 data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{maintext}}{{
 EOL}}</div>{{#each children}}{{{
 render this
-}}}{{/each}}</div>
+}}}{{/each}}</div></div></div>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-source-toggle
@@ -88,8 +164,9 @@ render this
 
 #+BEGIN_SRC cs :control leisure-source-toggle
 @initializeView = (view)->
+  Leisure.breakpoint()
   if (slide = view.closest('[data-headline]')).is('[data-headline="1"]') ||
-  (slide = view.parent().filter("[data-view='leisure-headline-plain']").find('[data-headline="1"]')).length ||
+  (slide = view.closest("[data-view='leisure-headline-plain']").find('[data-headline="1"]')).length ||
   (slide = view.closest('[data-view="leisure-top-chunk"]').find('[data-block]').first()).length
     view.find('button.toggle_edit').on 'click', -> Leisure.toggleSlideMode slide
 #+END_SRC
