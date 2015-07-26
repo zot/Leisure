@@ -17,13 +17,13 @@ in as long as you mark it as data-noncontent, etc.
 #+BEGIN_SRC html :defview leisure-toolbar
 <div name='buttons' style="position: relative;">
 <label><input type='checkbox'></input>Fred</label>
-<button name='diag'>Diag: off</button>
-<button name='search'>Search</button>
 <div class='themeHolder' style="display: inline-block; overflow: hidden">
   <div class='themeDiv' style="position: absolute; top: 0;">
     <select name='themeSelector'></select>
   </div>
 </div>
+<button name='search'>Search</button>
+<button name='diag'>Diag: off</button>
 <div name='emacsConnector'>
   <button class='label' name='emacsLabel'>Emacs <i class='fa fa-arrow-right'></i></button>
   <span class='contents'>
@@ -90,6 +90,17 @@ updateButton = (view, hiding)->
 
 #+NAME: toolbar-css
 #+BEGIN_SRC css
+[maindoc].diag {
+  height: calc(100% - 20em);
+}
+[maindoc] {
+  height: calc(100% - 3em);
+  margin-top: 2.5em;
+  overflow: auto;
+}
+[data-view='leisure-toolbar'] {
+  position: fixed;
+}
 .themeDiv {
   display: inline-block;
 }

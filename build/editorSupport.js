@@ -3,8 +3,8 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports) {
-    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, keywordRE, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toggleSlideMode, updateSelection, viewKey, withContext, workSpan;
+  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism) {
+    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, Nil, OrgData, OrgEditing, SimpleMarkup, _workSpan, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, createWorkSpan, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, getId, goodHtml, goodText, greduce, hasView, headlineRE, html, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, keywordRE, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, prismAliases, prismHighlight, removeController, removeView, renderView, resultsArea, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toggleSlideMode, updateSelection, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -851,7 +851,7 @@
         pos = Number(error.info.match(/([^,]*),/)[1]) - 1;
         return escapeHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(source.content.substring(pos));
       } else {
-        return escapeHtml(this.source);
+        return prismHighlight(this.language, this.source);
       }
     });
     Handlebars.registerHelper('sourceFooter', function() {
@@ -1220,6 +1220,23 @@
     breakpoint = function() {
       console.log();
       return console.log("breakpoint");
+    };
+    prismAliases = {
+      html: 'markup',
+      coffee: 'coffeescript',
+      cs: 'coffeescript',
+      js: 'javascript'
+    };
+    prismHighlight = function(lang, text) {
+      var l;
+      if (l = prismAliases[lang]) {
+        lang = l;
+      }
+      if (Prism.languages[lang]) {
+        return Prism.highlight(text, Prism.languages[lang], lang);
+      } else {
+        return escapeHtml(text);
+      }
     };
     mergeExports({
       findEditor: findEditor,

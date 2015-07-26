@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports)->
+    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism)->
 
       {
         defaultEnv
@@ -553,7 +553,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         if error
           pos = Number(error.info.match(/([^,]*),/)[1]) - 1
           escapeHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(source.content.substring(pos))
-        else escapeHtml this.source
+        else prismHighlight this.language, this.source
 
       Handlebars.registerHelper 'sourceFooter', ->
         {source: src} = @codeItems
@@ -836,6 +836,19 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       breakpoint = ->
         console.log()
         console.log "breakpoint"
+
+      prismAliases =
+        html: 'markup'
+        coffee: 'coffeescript'
+        cs: 'coffeescript'
+        js: 'javascript'
+  
+      prismHighlight = (lang, text)->
+        if l = prismAliases[lang] then lang = l
+        if Prism.languages[lang]
+          #console.log "PRISM: " + lang
+          Prism.highlight text, Prism.languages[lang], lang
+        else escapeHtml text
 
 Exports
 

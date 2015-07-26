@@ -18,9 +18,11 @@
       showDiag = (node, state)->
         node = editorForToolbar(node)?.node
         if state
+          $(node).addClass 'diag'
           $(node).nextAll(".selectionInfo").addClass 'diag'
           $(node).nextAll(".structure").addClass 'diag'
         else
+          $(node).removeClass 'diag'
           $(node).nextAll(".selectionInfo").removeClass 'diag'
           $(node).nextAll(".structure").removeClass 'diag'
 

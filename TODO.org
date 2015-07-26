@@ -1,4 +1,4 @@
-* TODO restore syntax highlighting
+* TODO make errors insert into highlighted syntax
 * TODO Make editor use docOffsets and domCursors, remove getPositionForBlock, etc.
 * TODO link errors should have tooltips on the entire link, not just the X
 * Project list
@@ -955,6 +955,8 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE restore syntax highlighting
+   CLOSED: [2015-07-27 Mon 00:16]
 ** DONE restore theme switching
   CLOSED: [2015-07-26 Sun 20:09]
 ** DONE emacs connection using [[https://github.com/ahyatt/emacs-websocket][websockets]]

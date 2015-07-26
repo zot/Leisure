@@ -14,9 +14,11 @@
       var ref;
       node = (ref = editorForToolbar(node)) != null ? ref.node : void 0;
       if (state) {
+        $(node).addClass('diag');
         $(node).nextAll(".selectionInfo").addClass('diag');
         return $(node).nextAll(".structure").addClass('diag');
       } else {
+        $(node).removeClass('diag');
         $(node).nextAll(".selectionInfo").removeClass('diag');
         return $(node).nextAll(".structure").removeClass('diag');
       }
