@@ -47,9 +47,9 @@
         replacing = false;
       }
     };
-    connect = function(data, port, cookie, cont) {
+    connect = function(data, host, port, cookie, cont) {
       var con;
-      con = new WebSocket("ws://localhost:" + port);
+      con = new WebSocket("ws://" + host + ":" + port);
       con.onopen = function(evt) {
         return open(evt, con, data, port, cookie, cont);
       };
@@ -222,7 +222,7 @@
         return connect(data, Number(panel.find('input').val()), '', function() {});
       });
       return $(document).ready(function() {
-        var cookie, i, k, len, param, params, port, ref, ref1, v;
+        var con, cookie, host, i, ignore, k, len, m, param, params, port, ref, ref1, u, v;
         if (document.location.search.length > 1 && !connected) {
           connected = true;
           params = {};
@@ -232,9 +232,13 @@
             ref1 = param.split('='), k = ref1[0], v = ref1[1];
             params[k.toLowerCase()] = v;
           }
-          port = params.port, cookie = params.cookie;
-          if (port) {
-            return connect(data, port, cookie);
+          con = params.connect;
+          if (con) {
+            u = new URL(con);
+            if (u.protocol === 'emacs:' && (m = u.pathname.match(/^\/\/([^:]*)(:[^:]*)(\/.*)$/))) {
+              ignore = m[0], host = m[1], port = m[2], cookie = m[3];
+              return connect(data, host, port.substring(1), cookie.substring(1));
+            }
           }
         }
       });

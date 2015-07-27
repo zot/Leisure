@@ -345,7 +345,7 @@ FRAME: frame."
 
 (defun leisure/openBrowser (cookie)
   "Open a browser that connects to Emacs on PORT with COOKIE."
-  (browse-url-chromium (format "%s?port=%s%s\n" leisure/fileURL (plist-get leisure/info 'port) (or (and cookie (string-join (list "&cookie=" cookie))) ""))))
+  (browse-url-chromium (format "%s?connect=emacs://localhost:%s%s\n" leisure/fileURL (plist-get leisure/info 'port) (or (and cookie (string-join (list "/" cookie))) ""))))
 
 ;;test: (leisure/openBrowser "duh")
 

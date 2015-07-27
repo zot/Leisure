@@ -39,8 +39,8 @@ Emacs connection
         finally
           replacing = false
 
-      connect = (data, port, cookie, cont)->
-        con = new WebSocket "ws://localhost:#{port}"
+      connect = (data, host, port, cookie, cont)->
+        con = new WebSocket "ws://#{host}:#{port}"
         con.onopen = (evt)-> open evt, con, data, port, cookie, cont
         con.onclose = (evt)-> close evt, data
         con.onmessage = (evt)-> message evt, data
@@ -165,8 +165,12 @@ Emacs connection
             for param in document.location.search.substring(1).split '&'
               [k,v] = param.split '='
               params[k.toLowerCase()] = v
-            {port, cookie} = params
-            if port then connect data, port, cookie
+            {connect:con} = params
+            if con
+              u = new URL con
+              if u.protocol == 'emacs:' && m = u.pathname.match /^\/\/([^:]*)(:[^:]*)(\/.*)$/
+                [ignore, host, port, cookie] = m
+                connect data, host, port.substring(1), cookie.substring(1)
 
       mergeExports {
         offsetFor
