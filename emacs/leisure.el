@@ -147,9 +147,11 @@
   :group 'leisure
   (if leisure-connection-mode
       (if leisure/bufferConnection
-          (message "Leisure already connected")
+          (message "Leisure connected.")
         (progn
-          (leisure-connection-mode 'toggle)
+          ;; Disable mode temporarily until the browser connects
+          ;; Connecting will enable the mode again
+          (setq leisure-connection-mode nil)
           (leisure-start)
           (leisure/openBrowser (buffer-name))))
     (if leisure/bufferConnection
@@ -304,7 +306,8 @@ FRAME: frame."
                     nil
                   (string-to-number (read-from-minibuffer "Port: " (number-to-string leisure/port) nil nil nil)))))
   (if leisure/server
-      (message (format  "Leisure already running on port %s" (plist-get leisure/info 'port)))
+      (if (called-interactively-p 'interactive)
+          (message (format  "Leisure already running on port %s" (plist-get leisure/info 'port))))
     (progn
       (if (null port) (setq port leisure/port))
       (setq leisure/info (list 'port port 'connections 0))
@@ -542,14 +545,12 @@ FRAME: frame."
 
 (defun leisure/addChangeHooks ()
   "Add change hooks for buffer."
-  (make-local-variable 'before-change-functions)
-  (make-local-variable 'after-change-functions)
-  (make-local-variable 'before-revert-hook)
-  (make-local-variable 'after-revert-hook)
-  (add-hook 'before-change-functions 'leisure/beforeChange)
-  (add-hook 'after-change-functions 'leisure/afterChange)
-  (add-hook 'before-revert-hook 'leisure/beforeRevert)
-  (add-hook 'after-revert-hook 'leisure/afterRevert))
+  (if (not (memq 'leisure/beforeChange before-change-functions))
+      (progn
+        (add-hook 'before-change-functions 'leisure/beforeChange nil t)
+        (add-hook 'after-change-functions 'leisure/afterChange nil t)
+        (add-hook 'before-revert-hook 'leisure/beforeRevert nil t)
+        (add-hook 'after-revert-hook 'leisure/afterRevert nil t))))
 
 (provide 'leisure)
 ;;; leisure.el ends here
