@@ -75,7 +75,7 @@ Basically tramp for Leisure
 we'll keep requirejs for now, but browserify looks to be much simpler and friendlier to use
 * TODO Look at supporting [[http://sweetjs.org/][sweetjs]]
 * TODO verify whether @ needs a fat arrow in runtime.coffee:Leisure_token.prototype.toString()
-* TODO block comments and metadocuments
+* TODO code comments and metadocuments
 - keep comments in the metadocument?
 - secure comment edit/insert using OAuth?
 * TODO make editor support hidden blocks
@@ -956,6 +956,8 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE minimal rendering for changed data
+  CLOSED: [2015-07-27 Mon 14:38]
 ** DONE restore syntax highlighting
    CLOSED: [2015-07-27 Mon 00:16]
 ** DONE restore theme switching

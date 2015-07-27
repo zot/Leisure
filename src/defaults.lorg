@@ -274,7 +274,8 @@ data-org-type='results'
 .view [data-block] * {
   white-space: pre-line;
 }
-.view [data-block] .code-text {
+.view [data-block] .code-text,
+.view [data-block] .code-text * {
   white-space: pre;
 }
 .view [data-block] .maintext {
