@@ -78,8 +78,6 @@
 
 (defvar leisure/clientCount 0)
 
-(defvar leisure/init nil)
-
 (defconst leisure/messageBufferName "*Leisure-messages*")
 
 (defvar leisure/server nil
@@ -149,17 +147,13 @@
   :group 'leisure
   (if leisure-connection-mode
       (if leisure/bufferConnection
-          (message "Leisure: connected")
+          (message "Leisure already connected")
         (progn
-          (message "Leisure not yet connected, spawning a browser...")
           (leisure-connection-mode 'toggle)
-          (leisure-start leisure/port)
+          (leisure-start)
           (leisure/openBrowser (buffer-name))))
     (if leisure/bufferConnection
-        (progn
-          (message "Leisure disconnecting...")
-          (leisure/closeCurrentConnection))
-      (message "Leisure: disconnected"))))
+        (leisure/closeCurrentConnection))))
 
 ;; websocket events
 (defun leisure/onOpen (ws)
@@ -262,7 +256,8 @@ FRAME: frame."
           ((and (leisure/str bufferName) (leisure/str requestedName)
                 (not (equal bufferName requestedName)))
            (leisure/error conInfo "Leisure requested a different name for a connection."))
-          (t (if (not (or (leisure/str bufferName) (leisure/str requestedName)))
+          (t (leisure/addChangeHooks)
+             (if (not (or (leisure/str bufferName) (leisure/str requestedName)))
                  (setq bufferName (setf (leisure/conInfo-bufferName conInfo) (make-temp-name "leisure-connection-"))))
              (if (not (leisure/str bufferName))
                  (progn
@@ -319,8 +314,8 @@ FRAME: frame."
              :on-open (lambda (websocket) (leisure/onOpen websocket))
              :on-message (lambda (ws frame) "replaced in open")
              :on-close (lambda (websocket) "replaced in open")))
-      (leisure/print nil "Started server on port %s" port)
-      (message (format  "Started server on port %s" port)))))
+      (leisure/print "Started server on port %s" port)
+      (message (format  "Started Leisure server on port %s" port)))))
 
 (defun leisure-stop ()
   "Stop leisure server."
@@ -466,7 +461,7 @@ FRAME: frame."
     (save-current-buffer
       (set-buffer (get-buffer-create leisure/messageBufferName))
       (setq buffer-read-only nil)
-      (end-of-buffer)
+      (goto-char (point-max))
       (insert (leisure/addNl (apply 'leisure/format conInfo str body)))
       (setq buffer-read-only t)
       (set-buffer-modified-p nil))))
@@ -545,14 +540,16 @@ FRAME: frame."
           (if (not leisure-connection-mode) (leisure-connection-mode 'toggle))
           (leisure/sendChange 0 -1 (leisure/bufString))))))
 
-;;; initialization stuff
-(if (not leisure/init)
-    (progn
-      (add-hook 'before-change-functions 'leisure/beforeChange)
-      (add-hook 'after-change-functions 'leisure/afterChange)
-      (add-hook 'before-revert-hook 'leisure/beforeRevert)
-      (add-hook 'after-revert-hook 'leisure/afterRevert)
-      (setq leisure/init t)))
+(defun leisure/addChangeHooks ()
+  "Add change hooks for buffer."
+  (make-local-variable 'before-change-functions)
+  (make-local-variable 'after-change-functions)
+  (make-local-variable 'before-revert-hook)
+  (make-local-variable 'after-revert-hook)
+  (add-hook 'before-change-functions 'leisure/beforeChange)
+  (add-hook 'after-change-functions 'leisure/afterChange)
+  (add-hook 'before-revert-hook 'leisure/beforeRevert)
+  (add-hook 'after-revert-hook 'leisure/afterRevert))
 
 (provide 'leisure)
 ;;; leisure.el ends here
