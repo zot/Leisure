@@ -443,7 +443,7 @@
           viewNodes = $();
           for (q = 0, len3 = newBlocks.length; q < len3; q++) {
             block = newBlocks[q];
-            viewNodes = viewNodes.add($("[data-view-block='" + block._id + "']"));
+            viewNodes = viewNodes.add(this.find("[data-view-block='" + block._id + "']"));
             viewNodes = this.findViewsForDefiner(block, viewNodes);
           }
           return this.withContext((function(_this) {
@@ -470,11 +470,15 @@
         }
       };
 
+      OrgEditing.prototype.find = function(sel) {
+        return $(this.editor.node).find(sel);
+      };
+
       OrgEditing.prototype.findViewsForDefiner = function(block, nodes) {
         var attrs, viewType;
         attrs = block.type === 'code' && block.codeAttributes;
         if (attrs && (viewType = attrs.control || attrs.defview)) {
-          nodes = nodes.add($("[data-view='" + viewType + "']"));
+          nodes = nodes.add(this.find("[data-view='" + viewType + "']"));
         }
         return nodes;
       };

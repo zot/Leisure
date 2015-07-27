@@ -310,7 +310,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               @mode.render this, block, @idPrefix, true
             viewNodes = $()
             for block in newBlocks
-              viewNodes = viewNodes.add $("[data-view-block='#{block._id}']")
+              viewNodes = viewNodes.add @find "[data-view-block='#{block._id}']"
               viewNodes = @findViewsForDefiner block, viewNodes
             @withContext =>
               for node in viewNodes.filter((n)=> !blockIds[@idForNode n])
@@ -318,10 +318,11 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
                 if data = (block = @getBlock(node.attr 'data-view-block'))?.yaml
                   renderView $(node).attr('data-view'), null, data, node, block
           else super changes
+        find: (sel)-> $(@editor.node).find sel
         findViewsForDefiner: (block, nodes)->
           attrs = (block.type == 'code' && block.codeAttributes)
           if attrs && viewType = (attrs.control || attrs.defview)
-            nodes = nodes.add $("[data-view='#{viewType}']")
+            nodes = nodes.add @find "[data-view='#{viewType}']"
           nodes
         withContext: (func)-> mergeContext {}, =>
           UI.context.opts = this
