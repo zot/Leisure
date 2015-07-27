@@ -1519,8 +1519,8 @@
       };
 
       DataStore.prototype.makeChange = function(arg) {
-        var adds, bl, block, err, first, id, old, ref, removes, result, sets, updates;
-        first = arg.first, sets = arg.sets, removes = arg.removes;
+        var adds, bl, block, err, first, id, newBlocks, old, oldBlocks, ref, removes, result, sets, updates;
+        first = arg.first, sets = arg.sets, removes = arg.removes, oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks;
         ref = result = {
           adds: {},
           updates: {},
@@ -1528,7 +1528,9 @@
           old: {},
           sets: sets,
           oldFirst: this.getFirst(),
-          first: first
+          first: first,
+          oldBlocks: oldBlocks,
+          newBlocks: newBlocks
         }, adds = ref.adds, updates = ref.updates, old = ref.old;
         this.setFirst(first);
         for (id in removes) {

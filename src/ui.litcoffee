@@ -91,9 +91,10 @@ choose a handlebars template.
               if block then root.context.block = block
               if isTop then root.context.topView = node
               html = template data, data: root.context
-              if isTop then attrs += " data-ids='#{settings.subviews.join ' '}'"
-              html = "<span #{attrs}>'#{html}</span>"
-              activateScripts node
+              if isTop then attrs += " data-ids='#{_.keys(settings.subviews).join ' '}'"
+              n = $("<span #{attrs}>#{html}</span>")
+              $(node).replaceWith n
+              activateScripts n
         else mergeContext settings, -> simpleRenderView attrs, key, template, data, block
 
       simpleRenderView = (attrs, key, template, data, block)->
@@ -126,7 +127,7 @@ choose a handlebars template.
               for script in $(el).find('script[type="text/coffeescript"]').add($(el).find 'script[type="text/literate-coffeescript"]')
                 root.currentScript = script
                 CoffeeScript.run script.innerHTML
-              controllers[el.attr 'data-view']?.initializeView(el)
+              controllers[$(el).attr 'data-view']?.initializeView(el)
             finally
               root.currentScript = null
               activating = false

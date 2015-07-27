@@ -182,11 +182,17 @@ Code for local-mode.  This will not be loaded under meteor.
           type: rotator
           degrees: 45
           #+END_SRC
+
           #+BEGIN_SRC html :defview rotator
           <div style='padding: 25px; display: inline-block'>
             <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
           </div>
           #+END_SRC
+
+          #+BEGIN_SRC cs :control rotator
+          @initializeView = (view)-> console.log "initialize", view
+          #+END_SRC
+
           #+BEGIN_SRC html :defview leisure-headlineX
           <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
           }}</span>{{#each children}}{{{render this}}}{{/each}}</span>

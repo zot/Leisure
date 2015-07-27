@@ -1095,8 +1095,8 @@ Data model -- override/reset these if you want to change how the store accesses 
             next = bl.next
             bl
         change: (changes)-> @trigger 'change', @makeChange changes
-        makeChange: ({first, sets, removes})->
-          {adds, updates, old} = result = {adds: {}, updates: {}, removes, old: {}, sets, oldFirst: @getFirst(), first: first}
+        makeChange: ({first, sets, removes, oldBlocks, newBlocks})->
+          {adds, updates, old} = result = {adds: {}, updates: {}, removes, old: {}, sets, oldFirst: @getFirst(), first: first, oldBlocks, newBlocks}
           @setFirst first
           for id of removes
             if bl = @getBlock id

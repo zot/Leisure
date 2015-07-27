@@ -150,23 +150,42 @@ updateButton = (view, hiding)->
 
 * Block Views
 #+BEGIN_SRC html :defview leisure-headline-plain
-<div class='slideholder'><div class='page'><div class='border'></div><div data-noncontent contenteditable='false'></div>{{> leisure-source-toggle}}{{{renderPlain this}}}</div></div>
+<div class='slideholder'
+ ><div class='page'
+   ><div class='border'></div
+   ><div class='.pagecontent'>{{> leisure-source-toggle}}{{{renderPlain this}}}</div></div></div>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-top-chunk
-<div class='slideholder'><div class='page'><div class='border'></div><div id='{{id}}' class='fancy'
-data-edit-mode='fancy'><span data-noncontent contenteditable='false'>{{> leisure-source-toggle}}
+<div class='slideholder'
+ ><div class='page'
+   ><div class='border'></div
+   ><div id='{{id}}' class='fancy' data-edit-mode='fancy'
+     ><span data-noncontent contenteditable='false'>{{> leisure-source-toggle}}
 </span>{{{text}}}</div></div></div>
 #+END_SRC
 
-#+BEGIN_SRC html :defview leisure-headline
-<div class='slideholder'><div class='page'><div class='border'></div><div id='{{id}}' class='fancy'
+#+BEGIN_SRC html :defview leisure-top-headline
+<div class='slideholder'
+ ><div class='page'
+   ><div class='border'></div
+   ><div id='{{id}}' class='fancy pagecontent'
 data-edit-mode='fancy'
 data-block='headline'
 data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{maintext}}{{
 EOL}}</div>{{#each children}}{{{
 render this
 }}}{{/each}}</div></div></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-headline
+<div id='{{id}}' class='fancy'
+data-edit-mode='fancy'
+data-block='headline'
+data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{maintext}}{{
+EOL}}</div>{{#each children}}{{{
+render this
+}}}{{/each}}</div>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-source-toggle
@@ -224,8 +243,8 @@ class='fancy codeblock'
 data-block='code'
 contenteditable='false'
 data-lang='{{language}}'><table><tr><td class='code-controls' data-noncontent>
-CONTROLS
-</td><td class='code-text'>{{{text}}}</td></tr></table></span>
+<span class='hidden'>CONTROLS</span>
+</td><td class='code-text'>{{{text}}}</td><td></td></tr></table></span>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code-source/js

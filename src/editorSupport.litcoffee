@@ -295,6 +295,34 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         rerenderAll: ->
           super()
           initializePendingViews()
+        changed: (changes)->
+          {newBlocks, oldBlocks} = changes
+          if newBlocks.length == oldBlocks.length == 1
+            for newBlock, i in newBlocks
+              oldBlock = oldBlocks[i]
+              if newBlocks.type == 'headline' || oldBlock.type == 'headline' ||
+              newBlock._id != oldBlock._id
+                return super changes
+            blockIds = {}
+            for block in newBlocks
+              blockIds[block._id] = true
+            for block in newBlocks
+              @mode.render this, block, @idPrefix, true
+            viewNodes = $()
+            for block in newBlocks
+              viewNodes = viewNodes.add $("[data-view-block='#{block._id}']")
+              viewNodes = @findViewsForDefiner block, viewNodes
+            @withContext =>
+              for node in viewNodes.filter((n)=> !blockIds[@idForNode n])
+                node = $(node)
+                if data = (block = @getBlock(node.attr 'data-view-block'))?.yaml
+                  renderView $(node).attr('data-view'), null, data, node, block
+          else super changes
+        findViewsForDefiner: (block, nodes)->
+          attrs = (block.type == 'code' && block.codeAttributes)
+          if attrs && viewType = (attrs.control || attrs.defview)
+            nodes = nodes.add $("[data-view='#{viewType}']")
+          nodes
         withContext: (func)-> mergeContext {}, =>
           UI.context.opts = this
           UI.context.prefix = @idPrefix
@@ -336,7 +364,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           @idPrefix = prefix
           @idPattern = new RegExp "^#{prefix}(.*)$"
         nodeForId: (id)-> $("##{@idPrefix}#{id}")
-        idForNode: (node)-> node.id.match(@idPattern)?[1]
+        idForNode: (node)-> $(node).closest('[data-block]')[0]?.id.match(@idPattern)?[1]
         parseBlocks: (text)-> @data.parseBlocks text
         renderBlock: (block)-> @mode.render this, block, @idPrefix
 
@@ -454,9 +482,17 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           getCodeItems org
         else {}
 
+      replacementTargets = (block, prefix, replace)->
+        if replace && (targets = $("##{prefix}#{block._id}")) && targets.length
+          targets.closest('[data-view]')
+
+      maybeReplaceHtml = (block, prefix, html, replace)->
+        (replacementTargets block, prefix, replace)?.replaceWith html
+        initializePendingViews()
+
       plainMode =
         name: 'plain'
-        render: (opts, block, prefix)->
+        render: (opts, block, prefix, replace)->
           {source, error, results} = blockCodeItems this, block
           attrs = "id='#{prefix}#{block._id}' data-block='#{block.type}'"
           if block.type == 'headline' then attrs += " data-headline='#{block.level}'"
@@ -469,7 +505,9 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               pos = source.offset + source.contentPos + Number(error.info.match(/([^,]*),/)[1]) - 1
               text += escapeHtml(block.text.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, results?.offset ? block.text.length))
             if results? then text += "#{escapeHtml results?.text ? ''}#{escapeHtml block.text.substring(results.offset + results.text.length)}"
-          ["<span #{attrs}>#{text}</span>", block.next]
+          result = "<span #{attrs}>#{text}</span>"
+          maybeReplaceHtml block, prefix, result, replace
+          [result, block.next]
         renderMainBlock: (block)->
           txt = block.text
           if block.type == 'headline'
@@ -569,45 +607,49 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
 
       fancyMode =
         name: 'fancy'
-        render: (opts, block, prefix)->
-          opts.withContext =>
-            if block.type == 'headline' then @renderHeadline opts, block, prefix
-            else if !block.prev then @renderFirstBlocks opts, block, prefix
-            else @renderNontop opts, block, prefix
-        renderNontop: (opts, block, prefix)->
-          if block.type == 'chunk' then @renderChunk opts, block, prefix
-          else if block.type == 'code' then @renderCode opts, block, prefix
-          else plainMode.render opts, block, prefix
-        renderView: (type, ctx, next, data)-> [renderView(type, ctx, data), next]
-        renderHeadline: (opts, block, prefix)->
-          next = opts.data.nextRight(block)?._id
-          if opts.shouldHide block then ['', next]
+        render: (opts, block, prefix, replace)->
+          if opts.shouldHide block then ['', opts.data.nextRight(block)?._id]
           else
-            viewName = if block.type == 'headline' && block.level == 1 && opts.isToggled block
+            opts.withContext =>
+              if block.type == 'headline' then @renderHeadline opts, block, prefix, replace
+              else if !block.prev then @renderFirstBlocks opts, block, prefix, replace
+              else @renderNontop opts, block, prefix, replace
+        renderNontop: (opts, block, prefix, replace)->
+          if block.type == 'chunk' then @renderChunk opts, block, prefix, replace
+          else if block.type == 'code' then @renderCode opts, block, prefix, replace
+          else plainMode.render opts, block, prefix, replace
+        renderView: (type, ctx, next, data, targets)-> [renderView(type, ctx, data, targets), next]
+        renderHeadline: (opts, block, prefix, replace)->
+          next = opts.data.nextRight(block)?._id
+          viewName = if block.type == 'headline' && block.level == 1
+            if opts.isToggled block
               UI.context.viewAttrs = _.merge {class: 'plain'}, UI.context.viewAttrs ? {}
               'leisure-headline-plain'
-            else 'leisure-headline'
-            if hasView viewName
-              m = block.text.match headlineRE
-              #console.log "headline view: #{block.text}"
-              @renderView viewName, null, next,
-                id: prefix + block._id
-                blockId: block._id
-                EOL: '\n'
-                topLevel: block.level == 1
-                level: block.level
-                stars: m[HL_LEVEL]
-                maintext: block.text.substring m[HL_LEVEL].length
-                children: opts.data.children block
-            else
-              text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
-              text += escapeHtml block.text
-              id = block.next
-              while id && id != next
-                [nextText, id] = @render opts, opts.data.getBlock(id), prefix
-                text += nextText
-              [text + "</span>", next]
-        renderFirstBlocks: (opts, block, prefix)->
+            else 'leisure-top-headline'
+          else 'leisure-headline'
+          if hasView viewName
+            m = block.text.match headlineRE
+            @renderView viewName, null, next,
+               id: prefix + block._id
+               blockId: block._id
+               EOL: '\n'
+               topLevel: block.level == 1
+               level: block.level
+               stars: m[HL_LEVEL]
+               maintext: block.text.substring m[HL_LEVEL].length
+               children: (opts.data.children block),
+               replacementTargets block, prefix, replace
+          else
+            text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
+            text += escapeHtml block.text
+            id = block.next
+            while id && id != next
+               [nextText, id] = @render opts, opts.data.getBlock(id), prefix
+               text += nextText
+            text += "</span>"
+            maybeReplaceHtml block, prefix, text, replace
+            [text, next]
+        renderFirstBlocks: (opts, block, prefix, replace)->
           if hasView 'leisure-top-chunk'
             if plain = opts.isToggled block
               UI.context.viewAttrs = _.merge {class: 'plain'}, UI.context.viewAttrs ? {}
@@ -623,18 +665,20 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               id: prefix + block._id
               text: text
               topLevel: !block.prev
-              EOL: '\n'
+              EOL: '\n',
+              replacementTargets block, prefix, replace
           else @renderNontop opts, block, prefix
-        renderChunk: (opts, block, prefix)->
+        renderChunk: (opts, block, prefix, replace)->
           viewType = 'leisure-chunk'
           if hasView viewType
             @renderView viewType, null, block.next,
               id: prefix + block._id
               text: @renderOrg blockOrg opts.data, block
               topLevel: !block.prev
-              EOL: '\n'
-          else @renderOrgBlock opts, block, prefix
-        renderCode: (opts, block, prefix)->
+              EOL: '\n',
+              replacementTargets block, prefix, replace
+          else @renderOrgBlock opts, block, prefix, replace
+        renderCode: (opts, block, prefix, replace)->
           key = "leisure-code"
           if hasView key, block.language
             org = blockOrg opts.data, block
@@ -658,11 +702,13 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               results: if results then resultsArea block.text.substring results.offset, results.end() else ''
               resultsContent: if results then resultsArea results.text.substring results.contentPos else ''
             sourceData.text = @renderCodeOrg sourceData
-            @renderView key, block.language, block.next, sourceData
-          else plainMode.render opts, block, prefix
-        renderOrgBlock: (opts, block, prefix)->
-          text = @renderOrg blockOrg opts.data, block
-          ["<span id='#{block._id}'>#{text}</span>", block.next]
+            @renderView key, block.language, block.next, sourceData,
+              replacementTargets block, prefix, replace
+          else plainMode.render opts, block, prefix, replace
+        renderOrgBlock: (opts, block, prefix, replace)->
+          text = "<span id='#{block._id}'>#{@renderOrg blockOrg opts.data, block}</span>"
+          maybeReplaceHtml block, prefix, replace
+          [text, block.next]
         renderCodeOrg: (context)->
           block = context.block
           {name, source, error, results} = context.codeItems
@@ -698,7 +744,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             data = UI.context.opts.data
             error = if !obj = data.getBlock(data.namedBlocks[objectName])
               "No object named #{objectName}"
-            else if !obj = data.getBlock(data.namedBlocks[objectName])?.yaml
+            else if !obj = (block = data.getBlock(data.namedBlocks[objectName]))?.yaml
               "Object #{objectName} isn't yaml"
             else if !(type = obj?.type)
               "No type field in object #{objectName}"
@@ -707,7 +753,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             if error
               "<span class='error' data-noncontent title='#{escapeAttr error}'><b>✖</b></span>#{escapeHtml org.allText()}"
             else
-              "<span class='hidden'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj}</span>"
+              "<span class='hidden'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block}</span>"
           else if org.isImage()
             title = (if desc = org.descriptionText() then " title='#{escapeHtml desc}'" else "")
             "<img src='#{escapeHtml org.path}'#{title}><span class='hidden'>#{escapeHtml org.allText()}</span>"

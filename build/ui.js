@@ -103,7 +103,7 @@
           node = targets[i];
           settings.view = node;
           results.push(mergeContext(settings, function() {
-            var html;
+            var html, n;
             root.context.data = data;
             if (block) {
               root.context.block = block;
@@ -115,10 +115,11 @@
               data: root.context
             });
             if (isTop) {
-              attrs += " data-ids='" + (settings.subviews.join(' ')) + "'";
+              attrs += " data-ids='" + (_.keys(settings.subviews).join(' ')) + "'";
             }
-            html = "<span " + attrs + ">'" + html + "</span>";
-            return activateScripts(node);
+            n = $("<span " + attrs + ">" + html + "</span>");
+            $(node).replaceWith(n);
+            return activateScripts(n);
           }));
         }
         return results;
@@ -176,7 +177,7 @@
               root.currentScript = script;
               CoffeeScript.run(script.innerHTML);
             }
-            return (ref2 = controllers[el.attr('data-view')]) != null ? ref2.initializeView(el) : void 0;
+            return (ref2 = controllers[$(el).attr('data-view')]) != null ? ref2.initializeView(el) : void 0;
           } finally {
             root.currentScript = null;
             activating = false;
