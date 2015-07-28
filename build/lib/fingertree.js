@@ -162,15 +162,11 @@
       FingerTree.prototype.split = notImplemented;
 
       FingerTree.prototype.takeUntil = function(predicate) {
-        return this.split(function(x) {
-          return !predicate(x);
-        })[0];
+        return this.split(predicate)[0];
       };
 
       FingerTree.prototype.dropUntil = function(predicate) {
-        return this.split(function(x) {
-          return !predicate(x);
-        })[1];
+        return this.split(predicate)[1];
       };
 
       FingerTree.prototype.toJSON = notImplemented;
@@ -279,9 +275,9 @@
 
       Single.prototype.split = function(predicate) {
         if (predicate(this.measure())) {
-          return [this, new Empty(this.measurer)];
-        } else {
           return [new Empty(this.measurer), this];
+        } else {
+          return [this, new Empty(this.measurer)];
         }
       };
 
@@ -413,10 +409,8 @@
 
       Deep.prototype.split = function(predicate) {
         var split;
-        if (!predicate(this.measure())) {
-          split = this.splitTree((function(x) {
-            return !predicate(x);
-          }), this.measurer.identity());
+        if (predicate(this.measure())) {
+          split = this.splitTree(predicate, this.measurer.identity());
           return [split.left, split.right.addFirst(split.mid)];
         } else {
           return [this, new Empty(this.measurer)];

@@ -203,15 +203,15 @@
       #   element being a finger-tree that contains all the other elements.
       split: notImplemented
 
-      # Take elements from the tree until the predicate is returning false.
+      # Take elements from the tree until the predicate returns true.
       # @param {function(*): boolean} predicate
       # @return {FingerTree}
-      takeUntil: (predicate)-> @split((x)-> !predicate x)[0]
+      takeUntil: (predicate)-> @split(predicate)[0]
 
-      # Drop elements from the tree until the predicate is returning false.
+      # Drop elements from the tree until the predicate returns true.
       # @param {function(*): boolean} predicate
       # @return {FingerTree}
-      dropUntil: (predicate)-> @split((x)-> !predicate x)[1]
+      dropUntil: (predicate)-> @split(predicate)[1]
 
       # @return the JSON representation of the tree.
       toJSON: notImplemented
@@ -274,8 +274,8 @@
           new Empty(@measurer)
 
       split: (predicate)->
-        if predicate @measure() then [this, new Empty @measurer]
-        else [new Empty(@measurer), this]
+        if predicate @measure() then [new Empty(@measurer), this]
+        else [this, new Empty @measurer]
 
       toJSON: ->
         type: 'single'
@@ -386,8 +386,8 @@
               fromArray(split.right, @measurer)
 
       split: (predicate)->
-        if !predicate @measure()
-          split = @splitTree ((x)-> !predicate x), @measurer.identity()
+        if predicate @measure()
+          split = @splitTree predicate, @measurer.identity()
           [split.left, split.right.addFirst split.mid]
         else [this, new Empty @measurer]
 

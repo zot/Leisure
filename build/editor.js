@@ -1364,12 +1364,22 @@
         return this.blockIndex = Fingertree.fromArray(items, this.emptyIndexMeasure);
       };
 
+      DataStore.prototype.splitBlockIndexOnId = function(id) {
+        return this.blockIndex.split(function(m) {
+          return m.ids.contains(id);
+        });
+      };
+
+      DataStore.prototype.splitBlockIndexOnOffset = function(offset) {
+        return this.blockIndex.split(function(m) {
+          return m.length > offset;
+        });
+      };
+
       DataStore.prototype.indexBlock = function(block) {
         var first, ref, ref1, rest;
         if (block) {
-          ref = this.blockIndex.split(function(m) {
-            return !m.ids.contains(block._id);
-          }), first = ref[0], rest = ref[1];
+          ref = this.splitBlockIndexOnId(block._id), first = ref[0], rest = ref[1];
           if (((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === block._id) {
             rest = rest.removeFirst();
           }
@@ -1383,9 +1393,7 @@
       DataStore.prototype.unindexBlock = function(id) {
         var first, ref, ref1, rest;
         if (id) {
-          ref = this.blockIndex.split(function(m) {
-            return !m.ids.contains(id);
-          }), first = ref[0], rest = ref[1];
+          ref = this.splitBlockIndexOnId(id), first = ref[0], rest = ref[1];
           if (((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === id) {
             rest = rest.removeFirst();
           }
@@ -1398,16 +1406,12 @@
           offset = block.offset;
           block = block.block;
         }
-        return (this.getBlock(block) ? this.blockIndex.split(function(m) {
-          return !m.ids.contains(block);
-        })[0].measure().length : 0) + offset;
+        return this.offsetForBlock(block) + offset;
       };
 
       DataStore.prototype.blockOffsetForDocOffset = function(offset) {
         var results;
-        results = this.blockIndex.split(function(m) {
-          return m.length <= offset;
-        });
+        results = this.splitBlockIndexOnOffset(offset);
         if (results[1]) {
           return {
             block: results[1].peekFirst().id,
@@ -1422,12 +1426,10 @@
       };
 
       DataStore.prototype.offsetForBlock = function(blockOrId) {
-        var block, id;
+        var id;
         id = typeof blockOrId === 'string' ? blockOrId : blockOrId._id;
-        if (block = this.getBlock(id)) {
-          return this.blockIndex.split(function(m) {
-            return !m.ids.contains(id);
-          })[0].measure().length;
+        if (this.getBlock(id)) {
+          return this.splitBlockIndexOnId(id)[0].measure().length;
         } else {
           return 0;
         }
@@ -1435,9 +1437,7 @@
 
       DataStore.prototype.blockForOffset = function(offset) {
         var ref, ref1, results;
-        results = this.blockIndex.split(function(m) {
-          return m.length <= offset;
-        });
+        results = this.splitBlockIndexOnOffset(offset);
         return ((ref = (ref1 = results[1]) != null ? ref1.peekFirst() : void 0) != null ? ref : results[0].peekLast).id;
       };
 

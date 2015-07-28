@@ -1022,25 +1022,25 @@ Data model -- override/reset these if you want to change how the store accesses 
             id: block._id
             length: block.text.length
           @blockIndex = Fingertree.fromArray items, @emptyIndexMeasure
+        splitBlockIndexOnId: (id)-> @blockIndex.split (m)-> m.ids.contains id
+        splitBlockIndexOnOffset: (offset)-> @blockIndex.split (m)-> m.length > offset
         indexBlock: (block)->
           if block
-            [first, rest] = @blockIndex.split((m)-> !m.ids.contains block._id)
+            [first, rest] = @splitBlockIndexOnId block._id
             if rest.peekFirst()?.id == block._id then rest = rest.removeFirst()
             @blockIndex = first.addLast(id: block._id, length: block.text.length).concat rest
         unindexBlock: (id)->
           if id
-            [first, rest] = @blockIndex.split((m)-> !m.ids.contains id)
+            [first, rest] = @splitBlockIndexOnId id
             if rest.peekFirst()?.id == id then rest = rest.removeFirst()
             @blockIndex = first.concat rest
         docOffsetForBlockOffset: (block, offset)->
           if typeof block == 'object'
             offset = block.offset
             block = block.block
-          (if @getBlock block
-            @blockIndex.split((m)-> !m.ids.contains block)[0].measure().length
-          else 0) + offset
+          @offsetForBlock(block) + offset
         blockOffsetForDocOffset: (offset)->
-          results = @blockIndex.split((m)-> m.length <= offset)
+          results = @splitBlockIndexOnOffset offset
           if results[1]
             block: results[1].peekFirst().id
             offset: offset - results[0].measure().length
@@ -1049,11 +1049,9 @@ Data model -- override/reset these if you want to change how the store accesses 
             offset: results[0].removeLast().measure().length
         offsetForBlock: (blockOrId)->
           id = if typeof blockOrId == 'string' then blockOrId else blockOrId._id
-          if block = @getBlock id
-            @blockIndex.split((m)-> !m.ids.contains id)[0].measure().length
-          else 0
+          if @getBlock id then @splitBlockIndexOnId(id)[0].measure().length else 0
         blockForOffset: (offset)->
-          results = @blockIndex.split((m)-> m.length <= offset)
+          results = @splitBlockIndexOnOffset offset
           (results[1]?.peekFirst() ? results[0].peekLast).id
         getText: ->
           text = ''

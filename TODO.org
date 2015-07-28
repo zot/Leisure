@@ -1,10 +1,12 @@
+* BUG search not updating
+* BUG martini glass not working in plain mode (i.e. second click)
+* TODO teach minimal updates about top-level headlines
 * TODO move leisure stuff out of METEOR-OLD
 * TODO make errors insert into highlighted syntax (check out Prism's [[http://prismjs.com/extending.html#writing-plugins][hooks]])
 * TODO Make editor use docOffsets and domCursors, remove getPositionForBlock, etc.
 * TODO erroneous links should have tooltips on the entire link, not just the X
+* TODO make p2p use emacs protocol
 * Project list
-- switch to simple emacs protocol
-  - use a [[https://github.com/qiao/fingertree.js][fingertree]] to handle inserts and track offsets
 - fix up look and feel
 - host services
   - files
