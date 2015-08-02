@@ -937,10 +937,14 @@ body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
     background: #a2572e; /* Firefox */
 }
 .org-fancy body,
+.expandable-panel:hover,
+.expandable-panel.expand,
 .leisure-searchOutputHolder,
 body {
     /*background: #CCCCCC;*/
     background: #EEE;
+    transition: background 1s;
+    -webkit-transition: background 0.25s;
 }
 .org-fancy body,
 body {

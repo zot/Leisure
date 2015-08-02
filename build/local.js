@@ -49,18 +49,14 @@
       connectMasterButton = null;
       connectSlaveButton = null;
       connectionDisplay = null;
-      configureP2P = function(newConnectSlaveButton, newConnectMasterButton, newConnectionDisplay) {
-        var opts;
-        connectMasterButton = newConnectMasterButton;
-        connectSlaveButton = newConnectSlaveButton;
-        connectionDisplay = newConnectionDisplay;
-        opts = Leisure.editorForToolbar(connectSlaveButton).options;
-        connectSlaveButton.button().on('click', function() {
-          return connectToSlave();
-        });
-        return connectMasterButton.button().on('click', function() {
-          return connectToMaster();
-        });
+      configureP2P = function(arg) {
+        var connections, hostField, masterButton, slaveButton;
+        hostField = arg.hostField, masterButton = arg.masterButton, slaveButton = arg.slaveButton, connections = arg.connections;
+        console.log("host:", hostField);
+        console.log("masterButton:", masterButton);
+        console.log("slaveButton:", slaveButton);
+        console.log("connections:", connections);
+        return hostField.val(document.location.host);
       };
       updateConnections = function(newTotal) {
         return connectionDisplay.html(newTotal);

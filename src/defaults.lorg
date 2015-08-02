@@ -16,29 +16,31 @@ in as long as you mark it as data-noncontent, etc.
 * Toolbar view
 #+BEGIN_SRC html :defview leisure-toolbar
 <div name='buttons' style="position: relative;">
-<label><input type='checkbox'></input>Fred</label>
-<div class='themeHolder' style="display: inline-block; overflow: hidden">
-  <div class='themeDiv' style="position: absolute; top: 0;">
-    <select name='themeSelector'></select>
+  <label><input type='checkbox'></input>Fred</label>
+  <div class='themeHolder' style="display: inline-block; overflow: hidden">
+    <div class='themeDiv' style="position: absolute; top: 0;">
+      <select name='themeSelector'></select>
+    </div>
   </div>
-</div>
-<button name='search'>Search</button>
-<button name='diag'>Diag: off</button>
-<div name='emacsConnector'>
-  <button class='label' name='emacsLabel'>Emacs <i class='fa fa-arrow-right'></i></button>
-  <span class='contents'>
-    <button name='connectToEmacs'>Emacs</button>
-    <span name="emacsPort">Port: <input type='text' value="1315"></span>
-  </span>
-</div>
-<div name='p2pConnector'>
-  <button class='label' name='p2plabel'>P2P <i class='fa fa-arrow-right'></i></button>
-  <span class='contents'>
-    <button name='connectToSlave'>Connect to Slave</button>
-    <button name='connectToMaster'>Connect to Master</button>
-    Connections: <span name='connections'></span>
-  </span>
-</div>
+  <button name='search'>Search</button>
+  <button name='diag'>Diag: off</button>
+  <div name='emacsConnector' class='hidden-panel'>
+    <button class='label' name='emacsLabel'>Emacs <i class='fa fa-arrow-right'></i></button>
+    <span class='contents'>
+      <button name='connectToEmacs'>Emacs</button>
+      <span name="emacsPort">Port: <input type='text' value="1315"></span>
+    </span>
+  </div>
+  <div name='p2pConnector' class='expandable-panel'>
+    <button class='label' name='p2plabel'>P2P <i class='fa fa-arrow-left'></i><i class='fa fa-arrow-right'></i></button>
+    <span class='contents'>
+      Relay Host: <input name="p2pHost">
+      <button name='becomeMaster'>Create Session</button>
+      <button name='connectToMaster'>Connect</button>
+      Session Key: <input name="sessionKey">
+      Connections: <span name='connections'></span>
+    </span>
+  </div>
 </div>
 #+END_SRC
 
@@ -61,10 +63,14 @@ themes = [
     show = !Leisure.getDiagShowing view
     Leisure.showDiag view, show
     $(this).button 'option', 'label', "Diag: #{if show then 'on' else 'off'}"
-  Leisure.configureP2P view.find('[name="connectToSlave"]'),
-    view.find('[name="connectToMaster"]'),
-    view.find('[name="connections"]')
-  view.find('[name="p2plabel"]').button()
+  p2pWidgets = 
+    label: view.find('[name="p2plabel"]')
+    hostField: view.find('[name="p2pHost"]')
+    masterButton: view.find('[name="becomeMaster"]')
+    slaveButton: view.find('[name="connectToMaster"]')
+    connections: view.find('[name="connections"]')
+  $([p2pWidgets.label, p2pWidgets.masterButton, p2pWidgets.slaveButton]).button()
+  Leisure.configureP2P p2pWidgets
   themeMenu = view.find('[name="themeSelector"]')
   themeMenu[0].innerHTML = ''
   themeMenu.selectmenu change: -> selectTheme this
@@ -74,6 +80,7 @@ themes = [
   selectTheme themeMenu[0]
   themeMenu.selectmenu 'refresh'
   Leisure.configureEmacs view.find('[name="emacsConnector"]')
+  Leisure.UI.configurePanels view
 
 selectTheme = (select)->
   editor = $(Leisure.editorForToolbar(select).node)
@@ -100,34 +107,69 @@ updateButton = (view, hiding)->
 }
 [data-view='leisure-toolbar'] {
   position: fixed;
+  width: 100%;
 }
 .themeDiv {
   display: inline-block;
 }
-[name='emacsConnector'] {
+[name='buttons'] {
+  position: relative;
+  display: block;
+}
+.hidden-panel {
   display: inline-block;
 }
-[name='emacsConnector']:hover .contents {
+.hidden-panel:hover .contents {
   display: inherit;
 }
-[name='emacsConnector']:hover .label,
-[name='emacsConnector'] .contents {
+.hidden-panel:hover .label,
+.hidden-panel .contents {
   display: none;
 }
 [name='emacsPort'] input {
   width: 4em;
 }
-[name='p2pConnector'] {
+.expandable-panel {
   display: inline-block;
 }
-[name='p2pConnector']:hover .contents {
+.expandable-panel.expand,
+.expandable-panel:hover {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.expandable-panel.contract:hover > .contents {
+  display: none;
+}
+.expandable-panel.expand > .contents,
+.expandable-panel:hover > .contents {
+  display: inherit;
+  padding-left: 1ex;
+  width: 100%;
+  transition: width 1s;
+  -webkit-transition: width 1s;
+}
+.expandable-panel.contract:hover {
   display: inherit;
 }
-[name='p2pConnector']:hover .label {
+.expandable-panel.expand > .label,
+.expandable-panel:hover > .label {
   display: none;
 }
-[name='p2pConnector'] .contents {
+.expandable-panel .contents {
   display: none;
+  width: 0;
+  overflow: hidden;
+}
+[name='p2pHost'] {
+  width: 15ex;
+}
+[name='sessionKey'] {
+  width: 15ex;
 }
 [name='buttons'] .ui-button {
   height: 2em;

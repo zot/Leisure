@@ -138,6 +138,13 @@ choose a handlebars template.
 
       getPendingViews = -> pendingViews
 
+      configurePanels = (view)->
+        ep = $(view).find('.expandable-panel')
+        ep.mouseenter -> ep.removeClass 'contract'
+        ep.find('input').focus -> ep.addClass 'expand'
+        ep.find('input').blur -> ep.removeClass 'expand'
+        ep.find('button').click -> ep.addClass 'contract'
+
       root = mergeExports(
         UI: {
           withContext
@@ -152,6 +159,7 @@ choose a handlebars template.
           initializePendingViews
           getPendingViews
           viewKey
+          configurePanels
           context: null
         }
       ).UI

@@ -89,13 +89,20 @@ Code for local-mode.  This will not be loaded under meteor.
         connectSlaveButton = null
         connectionDisplay = null
 
-        configureP2P = (newConnectSlaveButton, newConnectMasterButton, newConnectionDisplay)->
-          connectMasterButton = newConnectMasterButton
-          connectSlaveButton = newConnectSlaveButton
-          connectionDisplay = newConnectionDisplay
-          opts = Leisure.editorForToolbar(connectSlaveButton).options
-          connectSlaveButton.button().on 'click', -> connectToSlave()
-          connectMasterButton.button().on 'click', -> connectToMaster()
+        #configureP2P = (newConnectSlaveButton, newConnectMasterButton, newConnectionDisplay)->
+        #  connectMasterButton = newConnectMasterButton
+        #  connectSlaveButton = newConnectSlaveButton
+        #  connectionDisplay = newConnectionDisplay
+        #  opts = Leisure.editorForToolbar(connectSlaveButton).options
+        #  connectSlaveButton.button().on 'click', -> connectToSlave()
+        #  connectMasterButton.button().on 'click', -> connectToMaster()
+
+        configureP2P = ({hostField, masterButton, slaveButton, connections})->
+          console.log "host:", hostField
+          console.log "masterButton:", masterButton
+          console.log "slaveButton:", slaveButton
+          console.log "connections:", connections
+          hostField.val document.location.host
 
         updateConnections = (newTotal)-> connectionDisplay.html newTotal
 
