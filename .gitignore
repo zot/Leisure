@@ -16,3 +16,4 @@ Thumbs.db
 /public/tmp
 /METEOR-OLD/public/dice
 /METEOR-OLD/public/tmp
+/build/node_modules

@@ -25,7 +25,8 @@ requirejs.config({
         acorn_loose: 'lib/acorn_loose-2.0.5',
         acorn_walk: 'lib/acorn_walk-2.0.5',
         immutable: 'lib/immutable-3.7.4.min',
-        handlebars: 'lib/handlebars-v3.0.3'
+        handlebars: 'lib/handlebars-v3.0.3',
+        sockjs: 'lib/sockjs-1.0.0.min'
     }
 });
 

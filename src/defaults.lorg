@@ -35,8 +35,8 @@ in as long as you mark it as data-noncontent, etc.
     <button class='label' name='p2plabel'>P2P <i class='fa fa-arrow-left'></i><i class='fa fa-arrow-right'></i></button>
     <span class='contents'>
       Relay Host: <input name="p2pHost">
-      <button name='becomeMaster'>Create Session</button>
-      <button name='connectToMaster'>Connect</button>
+      <button name='createSession'>Create Session</button>
+      <button name='connectToSession'>Connect</button>
       Session Key: <input name="sessionKey">
       Connections: <span name='connections'></span>
     </span>
@@ -67,10 +67,10 @@ themes = [
     label: view.find('[name="p2plabel"]')
     hostField: view.find('[name="p2pHost"]')
     sessionField: view.find('[name="sessionKey"]')
-    masterButton: view.find('[name="becomeMaster"]')
-    slaveButton: view.find('[name="connectToMaster"]')
+    createSessionButton: view.find('[name="createSession"]')
+    connectToSessionButton: view.find('[name="connectToSession"]')
     connections: view.find('[name="connections"]')
-  $([p2pWidgets.label, p2pWidgets.masterButton, p2pWidgets.slaveButton]).button()
+  $([p2pWidgets.label, p2pWidgets.createSessionButton, p2pWidgets.connectToSessionButton]).button()
   Leisure.configureP2P p2pWidgets
   themeMenu = view.find('[name="themeSelector"]')
   themeMenu[0].innerHTML = ''

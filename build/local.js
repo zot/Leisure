@@ -3,7 +3,7 @@
   var init;
 
   init = function(jqui, EditorSupport, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs) {
-    var OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, configurePeerButttons, connectDialog, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, initializePendingViews, installSelectionMenu, mergeExports, message, mode, offerAction, offerButton, peer, plainEditDiv, renderView, runTests, showMessage, showSpinner, spinner, useP2P, withContext;
+    var OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, configurePeerButttons, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, initializePendingViews, installSelectionMenu, mergeExports, peer, plainEditDiv, renderView, runTests, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, plainEditDiv = EditorSupport.plainEditDiv, fancyEditDiv = EditorSupport.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
     Peer = P2P.Peer;
@@ -15,129 +15,27 @@
     addEmacsDataFilter = Emacs.addEmacsDataFilter;
     useP2P = true;
     peer = null;
-    mode = null;
-    connectDialog = null;
-    offerButton = null;
-    spinner = null;
-    message = null;
-    offerAction = null;
-    showMessage = function(offerMessage, buttonAction) {
-      spinner.addClass('hidden');
-      message.removeClass('hidden');
-      offerButton.button('option', 'label', offerMessage);
-      offerButton.removeClass('hidden');
-      return offerAction = buttonAction;
-    };
-    showSpinner = function() {
-      message.addClass('hidden');
-      offerButton.addClass('hidden');
-      return spinner.removeClass('hidden');
-    };
     configurePeerButttons = function() {
-      var configureP2P, connectMasterButton, connectSlaveButton, connectToMaster, connectToSlave, connectionDisplay, updateConnections;
-      connectDialog = $("<div title=\"Connect\">\n  <div>\n    <div id=\"loaderContainer\" style=\"position: relative; height: 100%\">\n      <div id=\"loaderText\" style='text-align: center'>Discovering Connection Information</div>\n      <div class=\"loader\">\n        <span></span>\n        <span></span>\n        <span></span>\n      </div>\n    </div>\n    <textarea class='hidden' readonly=\"true\" style=\"width: 100%; height: calc(100% - 2.5em - 5px)\">Hello</textarea>\n    <button style=\"height: 2.5em; margin-top: 5px\" class='hidden'></button>\n  </div>\n</div>");
-      connectDialog.appendTo('body').dialog().dialog('option', 'width', 700).dialog('option', 'height', 400).dialog('option', 'position', {
-        my: "top center",
-        at: "top center",
-        of: window
-      }).dialog('close');
-      message = connectDialog.find('textarea');
-      spinner = connectDialog.find('#loaderContainer');
-      offerButton = connectDialog.find('button').button().on('click', function() {
-        return offerAction();
-      });
-      connectMasterButton = null;
-      connectSlaveButton = null;
-      connectionDisplay = null;
+      var configureP2P, updateConnections;
       configureP2P = function(arg) {
-        var connections, hostField, masterButton, sessionField, slaveButton;
-        hostField = arg.hostField, sessionField = arg.sessionField, masterButton = arg.masterButton, slaveButton = arg.slaveButton, connections = arg.connections;
+        var connectToSessionButton, connections, createSessionButton, hostField, sessionField;
+        hostField = arg.hostField, sessionField = arg.sessionField, createSessionButton = arg.createSessionButton, connectToSessionButton = arg.connectToSessionButton, connections = arg.connections;
+        hostField.val(document.location.host || "localhost:8080");
+        createSessionButton.click(function() {
+          peer.createSession(hostField.val());
+          return console.log("create session");
+        });
+        connectToSessionButton.click(function() {
+          return console.log("connect to session");
+        });
         console.log("host:", hostField);
         console.log("session:", sessionField);
-        console.log("masterButton:", masterButton);
-        console.log("slaveButton:", slaveButton);
-        console.log("connections:", connections);
-        return hostField.val(document.location.host || "localhost");
+        console.log("createSessionButton:", createSessionButton);
+        console.log("connectToSessionButton:", connectToSessionButton);
+        return console.log("connections:", connections);
       };
       updateConnections = function(newTotal) {
         return connectionDisplay.html(newTotal);
-      };
-      connectToSlave = function() {
-        if (peer.becomeMaster()) {
-          connectMasterButton.button('disable');
-        }
-        connectDialog.dialog('open');
-        return peer.createConnectionForSlave({
-          offerReady: function(offer, connection) {
-            message.val(JSON.stringify(offer));
-            showMessage('Send to slave and press when delivered', function() {
-              message.val('').removeAttr('readonly').off('keydown');
-              return showMessage('Paste slave answer and press this to accept it', function() {
-                if (message.val()) {
-                  connection.establishConnection(message.val());
-                  return connectDialog.dialog('close');
-                }
-              });
-            });
-            return message[0].select();
-          },
-          connected: function(connection) {
-            var con;
-            updateConnections(((function() {
-              var results;
-              results = [];
-              for (con in peer.connections) {
-                results.push(con);
-              }
-              return results;
-            })()).length);
-            return connectDialog.dialog('close');
-          },
-          error: function(err) {
-            return $('#loaderText').html(err);
-          }
-        });
-      };
-      connectToMaster = function() {
-        console.log('CLICK');
-        if (peer.becomeSlave(function(info) {
-          return updateConnections(info.total);
-        })) {
-          connectSlaveButton.button('disable');
-        }
-        showMessage('Press to generate answer from master offer', function() {
-          console.log("GENERATE ANSWER");
-          showSpinner();
-          return peer.createConnectionToMaster({
-            offer: message.val(),
-            answerReady: function(answer) {
-              console.log("answer ready");
-              message.val(JSON.stringify(answer));
-              showMessage('Press when master has above answer', function() {
-                return connectDialog.dialog('close');
-              });
-              return message[0].select();
-            },
-            connected: function() {
-              connectDialog.dialog('close');
-              return console.log('connected');
-            },
-            error: function(con, err) {
-              return $('#loaderText').html(err.message);
-            }
-          });
-        });
-        offerButton.button('disable');
-        connectDialog.dialog('open');
-        return message.val('').attr('placeholder', 'Paste master offer here').removeAttr('readonly').off('keydown').on('keydown', function() {
-          return setTimeout((function() {
-            var empty;
-            empty = message.val() === '';
-            if (empty !== offerButton.button('option', 'disabled')) {
-              return offerButton.button('option', 'disabled', empty);
-            }
-          }), 1);
-        });
       };
       return mergeExports({
         configureP2P: configureP2P

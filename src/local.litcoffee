@@ -36,130 +36,24 @@ Code for local-mode.  This will not be loaded under meteor.
         addEmacsDataFilter
       } = Emacs
 
+
       useP2P = true
-      #useP2P = false
       peer = null
-      mode = null
-      connectDialog = null
-      offerButton = null
-      spinner = null
-      message = null
-      offerAction = null
-
-      showMessage = (offerMessage, buttonAction)->
-        spinner.addClass 'hidden'
-        message.removeClass 'hidden'
-        offerButton.button 'option', 'label', offerMessage
-        offerButton.removeClass 'hidden'
-        offerAction = buttonAction
-
-      showSpinner = ->
-        message.addClass 'hidden'
-        offerButton.addClass 'hidden'
-        spinner.removeClass 'hidden'
 
       configurePeerButttons = ->
-        connectDialog = $ """
-          <div title="Connect">
-            <div>
-              <div id="loaderContainer" style="position: relative; height: 100%">
-                <div id="loaderText" style='text-align: center'>Discovering Connection Information</div>
-                <div class="loader">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
-              <textarea class='hidden' readonly="true" style="width: 100%; height: calc(100% - 2.5em - 5px)">Hello</textarea>
-              <button style="height: 2.5em; margin-top: 5px" class='hidden'></button>
-            </div>
-          </div>
-        """
-        connectDialog
-          .appendTo('body')
-          .dialog()
-          .dialog 'option', 'width', 700
-          .dialog 'option', 'height', 400
-          .dialog 'option', 'position',  { my: "top center", at: "top center", of: window }
-          .dialog 'close'
-        message = connectDialog.find 'textarea'
-        spinner = connectDialog.find '#loaderContainer'
-        offerButton = connectDialog.find('button').button().on 'click', -> offerAction()
-        connectMasterButton = null
-        connectSlaveButton = null
-        connectionDisplay = null
-
-        #configureP2P = (newConnectSlaveButton, newConnectMasterButton, newConnectionDisplay)->
-        #  connectMasterButton = newConnectMasterButton
-        #  connectSlaveButton = newConnectSlaveButton
-        #  connectionDisplay = newConnectionDisplay
-        #  opts = Leisure.editorForToolbar(connectSlaveButton).options
-        #  connectSlaveButton.button().on 'click', -> connectToSlave()
-        #  connectMasterButton.button().on 'click', -> connectToMaster()
-
-        configureP2P = ({hostField, sessionField, masterButton, slaveButton, connections})->
+        configureP2P = ({hostField, sessionField, createSessionButton, connectToSessionButton, connections})->
+          hostField.val document.location.host || "localhost:8080"
+          createSessionButton.click ->
+            peer.createSession hostField.val()
+            console.log "create session"
+          connectToSessionButton.click -> console.log "connect to session"
           console.log "host:", hostField
           console.log "session:", sessionField
-          console.log "masterButton:", masterButton
-          console.log "slaveButton:", slaveButton
+          console.log "createSessionButton:", createSessionButton
+          console.log "connectToSessionButton:", connectToSessionButton
           console.log "connections:", connections
-          hostField.val document.location.host || "localhost"
 
         updateConnections = (newTotal)-> connectionDisplay.html newTotal
-
-        connectToSlave = ->
-          if peer.becomeMaster() then connectMasterButton.button('disable')
-          connectDialog.dialog 'open'
-          peer.createConnectionForSlave
-            offerReady: (offer, connection)->
-              message.val JSON.stringify offer
-              showMessage 'Send to slave and press when delivered', ->
-                message
-                  .val ''
-                  .removeAttr 'readonly'
-                  .off 'keydown'
-                showMessage 'Paste slave answer and press this to accept it', ->
-                  if message.val()
-                    connection.establishConnection message.val()
-                    connectDialog.dialog 'close'
-              message[0].select()
-            connected: (connection)->
-              updateConnections (con for con of peer.connections).length
-              connectDialog.dialog 'close'
-            error: (err)-> $('#loaderText').html err
-
-        connectToMaster = ->
-          console.log 'CLICK'
-          if peer.becomeSlave((info)-> updateConnections info.total)
-            connectSlaveButton.button 'disable'
-          showMessage 'Press to generate answer from master offer', ->
-            console.log "GENERATE ANSWER"
-            showSpinner()
-            peer.createConnectionToMaster
-              offer: message.val()
-              answerReady: (answer)->
-                console.log "answer ready"
-                message.val JSON.stringify answer
-                showMessage 'Press when master has above answer', ->
-                  connectDialog.dialog 'close'
-                message[0].select()
-              connected: ->
-                connectDialog.dialog 'close'
-                console.log 'connected'
-              error: (con, err)-> $('#loaderText').html err.message
-          offerButton.button 'disable'
-          connectDialog.dialog 'open'
-          message
-            .val ''
-            .attr 'placeholder', 'Paste master offer here'
-            .removeAttr 'readonly'
-            .off 'keydown'
-            .on 'keydown', ->
-              # use keydown + a timeout here instead of keyup for better responsiveness
-              setTimeout (->
-                empty = (message.val() == '')
-                if empty != offerButton.button('option', 'disabled')
-                  offerButton.button 'option', 'disabled', empty), 1
 
         mergeExports {
           configureP2P

@@ -3,8 +3,8 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], function(jq, immutable, Peer, cycle, Editor, Support) {
-    var Connection, DataStore, MC, Map, MasterConnection, OrgData, P2POrgData, PeerConnection, SC, SlaveConnection, getFirst, preserveSelection, setFirst;
+  define(['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'sockjs'], function(jq, immutable, Peer, cycle, Editor, Support, SockJS) {
+    var DataStore, Map, MasterConnection, OrgData, P2POrgData, PeerConnection, SlaveConnection, XConnection, XMC, XPeer, XSC, getFirst, preserveSelection, setFirst;
     Map = (window.Immutable = immutable).Map;
     PeerConnection = Peer.PeerConnection, MasterConnection = Peer.MasterConnection, SlaveConnection = Peer.SlaveConnection;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection;
@@ -75,6 +75,52 @@
     })(OrgData);
     Peer = (function() {
       function Peer() {
+        this.data = new P2POrgData(this);
+        this.data.on('change', (function(_this) {
+          return function(change) {
+            return _this.changed(change);
+          };
+        })(this));
+      }
+
+      Peer.prototype.changed = function(change) {
+        return console.log("PEER CHANGE: " + change);
+      };
+
+      Peer.prototype.connect = function(url) {
+        this.socket = new SockJS(url);
+        this.socket.onopen = (function(_this) {
+          return function() {
+            console.log('open');
+            return _this.socket.send('test');
+          };
+        })(this);
+        this.socket.onmessage = (function(_this) {
+          return function(e) {
+            console.log('message', e.data);
+            return _this.socket.close();
+          };
+        })(this);
+        return this.socket.onclose = (function(_this) {
+          return function() {
+            return console.log('close');
+          };
+        })(this);
+      };
+
+      Peer.prototype.createSession = function(host) {
+        return this.connect("http://" + host + "/leisure");
+      };
+
+      Peer.prototype.connectToSession = function(host, key) {
+        return this.connect("http://" + host + "/leisure/connect/" + key);
+      };
+
+      return Peer;
+
+    })();
+    XPeer = (function() {
+      function XPeer() {
         this.changeCount = 0;
         this.connectionNumber = 0;
         this.data = new P2POrgData(this);
@@ -85,7 +131,7 @@
         })(this));
       }
 
-      Peer.prototype.receiveMessage = function(connection, msg) {
+      XPeer.prototype.receiveMessage = function(connection, msg) {
         if (msg.type in this.messageHandler) {
           console.log("receiving", msg);
           return this.messageHandler[msg.type](connection, msg);
@@ -94,9 +140,9 @@
         }
       };
 
-      Peer.prototype.changed = function(change) {};
+      XPeer.prototype.changed = function(change) {};
 
-      Peer.prototype.becomeMaster = function() {
+      XPeer.prototype.becomeMaster = function() {
         if (!this.mode) {
           this.mode = 'master';
           this.connections = {};
@@ -162,14 +208,14 @@
         }
       };
 
-      Peer.prototype.createConnectionForSlave = function(arg) {
+      XPeer.prototype.createConnectionForSlave = function(arg) {
         var connected, error, id, offerReady;
         offerReady = arg.offerReady, connected = arg.connected, error = arg.error;
         id = "master-" + (this.connectionNumber++);
         return this.pending[id] = new MC(this, id, offerReady, connected, error);
       };
 
-      Peer.prototype.becomeSlave = function(updateConnections) {
+      XPeer.prototype.becomeSlave = function(updateConnections) {
         if (!this.mode) {
           this.mode = 'slave';
           this.changing = false;
@@ -247,13 +293,13 @@
         }
       };
 
-      Peer.prototype.createConnectionToMaster = function(arg) {
+      XPeer.prototype.createConnectionToMaster = function(arg) {
         var answerReady, connected, error, offer;
         offer = arg.offer, answerReady = arg.answerReady, connected = arg.connected, error = arg.error;
         return this.connection = new SC(this, offer, answerReady, connected, error);
       };
 
-      return Peer;
+      return XPeer;
 
     })();
     getFirst = function(blocks) {
@@ -262,33 +308,33 @@
     setFirst = function(blocks, firstId) {
       return blocks.set('FIRST', firstId);
     };
-    Connection = (function() {
-      function Connection(peer1, errorFunc1) {
+    XConnection = (function() {
+      function XConnection(peer1, errorFunc1) {
         this.peer = peer1;
         this.errorFunc = errorFunc1;
       }
 
-      Connection.prototype.sendMessage = function(type, msg) {
+      XConnection.prototype.sendMessage = function(type, msg) {
         msg.type = type;
         console.log("SENDING", msg);
         return this.connection.sendMessage(JSON.stringify(JSON.decycle(msg)));
       };
 
-      Connection.prototype.error = function(err) {
+      XConnection.prototype.error = function(err) {
         console.log("Error: " + err.message, err);
         this.peer.removeConnection(this);
         return this.errorFunc(this, err);
       };
 
-      return Connection;
+      return XConnection;
 
     })();
-    MC = (function(superClass) {
-      extend(MC, superClass);
+    XMC = (function(superClass) {
+      extend(XMC, superClass);
 
-      function MC(peer, id1, offerReadyFunc, connectedFunc, errorFunc) {
+      function XMC(peer, id1, offerReadyFunc, connectedFunc, errorFunc) {
         this.id = id1;
-        MC.__super__.constructor.call(this, peer, errorFunc);
+        XMC.__super__.constructor.call(this, peer, errorFunc);
         this.trees = {};
         this.minCount = -1;
         this.lastUpdate = peer.currentUpdate;
@@ -322,7 +368,7 @@
         })(this));
       }
 
-      MC.prototype.ack = function(count) {
+      XMC.prototype.ack = function(count) {
         var c, i, ref, ref1;
         if (this.minCount >= 0) {
           for (c = i = ref = this.minCount, ref1 = count; ref <= ref1 ? i <= ref1 : i >= ref1; c = ref <= ref1 ? ++i : --i) {
@@ -334,7 +380,7 @@
         }
       };
 
-      MC.prototype.document = function() {
+      XMC.prototype.document = function() {
         var block, cur, doc;
         doc = [];
         cur = this.peer.data.getFirst();
@@ -346,11 +392,11 @@
         return doc;
       };
 
-      MC.prototype.establishConnection = function(answer) {
+      XMC.prototype.establishConnection = function(answer) {
         return this.connection.establishConnection(answer);
       };
 
-      MC.prototype.pushChange = function(change) {
+      XMC.prototype.pushChange = function(change) {
         this.trees[this.peer.changeCount] = this.peer.data.blocks;
         this.maxCount = this.peer.changeCount;
         if (this.minCount < 0) {
@@ -368,20 +414,20 @@
         }
       };
 
-      MC.prototype.updateConnections = function(tot) {
+      XMC.prototype.updateConnections = function(tot) {
         return this.sendMessage('connections', {
           total: tot
         });
       };
 
-      return MC;
+      return XMC;
 
-    })(Connection);
-    SC = (function(superClass) {
-      extend(SC, superClass);
+    })(XConnection);
+    XSC = (function(superClass) {
+      extend(XSC, superClass);
 
-      function SC(peer, masterOffer, answerReadyFunc, connectedFunc, errorFunc) {
-        SC.__super__.constructor.call(this, peer, errorFunc);
+      function XSC(peer, masterOffer, answerReadyFunc, connectedFunc, errorFunc) {
+        XSC.__super__.constructor.call(this, peer, errorFunc);
         this.connection = new SlaveConnection({
           offerReady: function(offer) {
             return answerReadyFunc(offer);
@@ -403,15 +449,16 @@
         })(this));
       }
 
-      SC.prototype.pushChange = function(change) {
+      XSC.prototype.pushChange = function(change) {
         return this.sendMessage('change', {
           change: change
         });
       };
 
-      return SC;
+      return XSC;
 
-    })(Connection);
+    })(XConnection);
+    console.log("POP");
     return {
       Peer: Peer
     };

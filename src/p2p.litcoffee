@@ -1,6 +1,6 @@
 Peer-to-peer connection
 
-    define ['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], (jq, immutable, Peer, cycle, Editor, Support)->
+    define ['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'sockjs'], (jq, immutable, Peer, cycle, Editor, Support, SockJS)->
       {
         Map
       } = window.Immutable = immutable
@@ -49,6 +49,23 @@ it easier to handle merges.
           ch
 
       class Peer
+        constructor: ->
+          @data = new P2POrgData this
+          @data.on 'change', (change)=> @changed change
+        changed: (change)-> console.log "PEER CHANGE: #{change}"
+        connect: (url)->
+          @socket = new SockJS url
+          @socket.onopen = =>
+            console.log('open')
+            @socket.send('test')
+          @socket.onmessage = (e)=>
+            console.log('message', e.data)
+            @socket.close()
+          @socket.onclose = => console.log('close')
+        createSession: (host)-> @connect "http://#{host}/leisure"
+        connectToSession: (host, key)-> @connect "http://#{host}/leisure/connect/#{key}"
+
+      class XPeer
         constructor: ->
           @changeCount = 0
           @connectionNumber = 0
@@ -139,7 +156,7 @@ it easier to handle merges.
       getFirst = (blocks)-> blocks.get 'FIRST'
       setFirst = (blocks, firstId)-> blocks.set 'FIRST', firstId
 
-      class Connection
+      class XConnection
         constructor: (@peer, @errorFunc)->
         sendMessage: (type, msg)->
           msg.type = type
@@ -150,7 +167,7 @@ it easier to handle merges.
           @peer.removeConnection this
           @errorFunc this, err
 
-      class MC extends Connection
+      class XMC extends XConnection
         constructor: (peer, @id, offerReadyFunc, connectedFunc, errorFunc)->
           super peer, errorFunc
           @trees = {}
@@ -187,7 +204,7 @@ it easier to handle merges.
           else @sendMessage 'changeAck', count: @peer.changeCount
         updateConnections: (tot)-> @sendMessage 'connections', total: tot
 
-      class SC extends Connection
+      class XSC extends XConnection
         constructor: (peer, masterOffer, answerReadyFunc, connectedFunc, errorFunc)->
           super peer, errorFunc
           @connection = new SlaveConnection
@@ -199,6 +216,8 @@ it easier to handle merges.
             handleMessage: (msg)=> @peer.receiveMessage _this, JSON.retrocycle JSON.parse msg
           @connection.start masterOffer, (err)=> @error err
         pushChange: (change)-> @sendMessage 'change', change: change
+
+      console.log "POP"
 
       {
         Peer
