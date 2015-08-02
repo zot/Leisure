@@ -66,6 +66,7 @@ themes = [
   p2pWidgets = 
     label: view.find('[name="p2plabel"]')
     hostField: view.find('[name="p2pHost"]')
+    sessionField: view.find('[name="sessionKey"]')
     masterButton: view.find('[name="becomeMaster"]')
     slaveButton: view.find('[name="connectToMaster"]')
     connections: view.find('[name="connections"]')

@@ -937,7 +937,7 @@ body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
     background: #a2572e; /* Firefox */
 }
 .org-fancy body,
-.expandable-panel:hover,
+.expandable-panel:hover:not(.contract),
 .expandable-panel.expand,
 .leisure-searchOutputHolder,
 body {

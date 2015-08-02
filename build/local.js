@@ -50,13 +50,14 @@
       connectSlaveButton = null;
       connectionDisplay = null;
       configureP2P = function(arg) {
-        var connections, hostField, masterButton, slaveButton;
-        hostField = arg.hostField, masterButton = arg.masterButton, slaveButton = arg.slaveButton, connections = arg.connections;
+        var connections, hostField, masterButton, sessionField, slaveButton;
+        hostField = arg.hostField, sessionField = arg.sessionField, masterButton = arg.masterButton, slaveButton = arg.slaveButton, connections = arg.connections;
         console.log("host:", hostField);
+        console.log("session:", sessionField);
         console.log("masterButton:", masterButton);
         console.log("slaveButton:", slaveButton);
         console.log("connections:", connections);
-        return hostField.val(document.location.host);
+        return hostField.val(document.location.host || "localhost");
       };
       updateConnections = function(newTotal) {
         return connectionDisplay.html(newTotal);

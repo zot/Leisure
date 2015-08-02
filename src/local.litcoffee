@@ -97,12 +97,13 @@ Code for local-mode.  This will not be loaded under meteor.
         #  connectSlaveButton.button().on 'click', -> connectToSlave()
         #  connectMasterButton.button().on 'click', -> connectToMaster()
 
-        configureP2P = ({hostField, masterButton, slaveButton, connections})->
+        configureP2P = ({hostField, sessionField, masterButton, slaveButton, connections})->
           console.log "host:", hostField
+          console.log "session:", sessionField
           console.log "masterButton:", masterButton
           console.log "slaveButton:", slaveButton
           console.log "connections:", connections
-          hostField.val document.location.host
+          hostField.val document.location.host || "localhost"
 
         updateConnections = (newTotal)-> connectionDisplay.html newTotal
 
