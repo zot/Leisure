@@ -138,12 +138,17 @@ choose a handlebars template.
 
       getPendingViews = -> pendingViews
 
+      getPanel = (view)-> $(view).closest '.expandable-panel'
+
       configurePanels = (view)->
-        ep = $(view).find('.expandable-panel')
-        ep.mouseenter -> ep.removeClass 'contract'
-        ep.find('input').focus -> ep.addClass 'expand'
-        ep.find('input').blur -> ep.removeClass 'expand'
-        ep.find('button').click -> ep.addClass 'contract'
+        ep = $(view).find '.expandable-panel'
+        $("<input name='hiddenFocus' class='hiddenTextField'>").appendTo ep
+        ep.mouseenter -> getPanel(this).removeClass 'contract'
+        ep.click ((e)-> if !$(e.target).closest('input,button').length
+          getPanel(this).find("[name='hiddenFocus']")[0].focus())
+        ep.find('input').focus -> getPanel(this).addClass 'expand'
+        ep.find('input').blur -> getPanel(this).removeClass 'expand'
+        ep.find('button').click -> getPanel(this).addClass 'contract'
 
       root = mergeExports(
         UI: {

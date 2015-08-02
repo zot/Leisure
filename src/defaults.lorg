@@ -129,47 +129,11 @@ updateButton = (view, hiding)->
 [name='emacsPort'] input {
   width: 4em;
 }
-.expandable-panel {
-  display: inline-block;
-}
-.expandable-panel.expand,
-.expandable-panel:hover {
-  position: absolute;
-  z-index: 1;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-.expandable-panel.contract:hover > .contents {
-  display: none;
-}
-.expandable-panel.expand > .contents,
-.expandable-panel:hover > .contents {
-  display: inherit;
-  padding-left: 1ex;
-  width: 100%;
-  transition: width 1s;
-  -webkit-transition: width 1s;
-}
-.expandable-panel.contract:hover {
-  display: inherit;
-}
-.expandable-panel.expand > .label,
-.expandable-panel:hover > .label {
-  display: none;
-}
-.expandable-panel .contents {
-  display: none;
-  width: 0;
-  overflow: hidden;
-}
 [name='p2pHost'] {
   width: 15ex;
 }
 [name='sessionKey'] {
-  width: 15ex;
+  width: 32ex;
 }
 [name='buttons'] .ui-button {
   height: 2em;

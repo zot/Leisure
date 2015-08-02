@@ -132,6 +132,18 @@
 (defgroup leisure ()
   "Customization for leisure.")
 
+(defcustom leisure/browseURLFunction 'browse-url-chromium
+  "Function to display the leisure document."
+  :type '(choice
+          (function-item :tag "Chromium" :value browse-url-chromium)
+          (function-item :tag "Default browser"
+			 :value browse-url-default-browser)
+          (function :tag "Your own function")
+          ;;(alist :tag "Regexp/function association list"
+          ;;       :key-type regexp :value-type function)
+          )
+  :group 'leisure)
+
 (defcustom leisure/fileURL "http://textcraft.org/newLeisure/"
   "URL for leisure documents."
   :type 'string)
@@ -327,7 +339,8 @@ FRAME: frame."
       (progn
         (websocket-server-close leisure/server)
         (setq leisure/server nil)
-        (setq leisure/info (plist-put leisure/info 'port nil)))))
+        (setq leisure/info (plist-put leisure/info 'port nil))
+        (message "Leisure server stopped"))))
 
 (defun leisure-status ()
   "Print leisure status."
@@ -345,7 +358,7 @@ FRAME: frame."
 
 (defun leisure/openBrowser (cookie)
   "Open a browser that connects to Emacs on PORT with COOKIE."
-  (browse-url-chromium (format "%s?connect=emacs://localhost:%s%s\n" leisure/fileURL (plist-get leisure/info 'port) (or (and cookie (string-join (list "/" cookie))) ""))))
+  (funcall leisure/browseURLFunction (format "%s?connect=emacs://localhost:%s%s\n" leisure/fileURL (plist-get leisure/info 'port) (or (and cookie (string-join (list "/" cookie))) ""))))
 
 ;;test: (leisure/openBrowser "duh")
 
