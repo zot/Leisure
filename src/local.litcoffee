@@ -1,13 +1,15 @@
 Code for local-mode.  This will not be loaded under meteor.
 
-    init = (jqui, EditorSupport, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs)->
+    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs)->
 
       {
         OrgData
         installSelectionMenu
+      } = EditorSupport
+      {
         plainEditDiv
         fancyEditDiv
-      } = EditorSupport
+      } = Modes
       {
         createStructureDisplay
         createEditorDisplay
@@ -92,7 +94,7 @@ Code for local-mode.  This will not be loaded under meteor.
           #+END_SRC
 
           #+BEGIN_SRC cs :control rotator
-          @initializeView = (view)-> console.log "initialize", view
+          @initializeView = (view)-> #console.log "initialize", view
           #+END_SRC
 
           #+BEGIN_SRC html :defview leisure-headlineX
@@ -156,4 +158,4 @@ Code for local-mode.  This will not be loaded under meteor.
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee', 'cs!./search.litcoffee', 'cs!./emacs.litcoffee'], init
+      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./modes', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee', 'cs!./search.litcoffee', 'cs!./emacs.litcoffee'], init
