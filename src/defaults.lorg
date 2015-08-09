@@ -16,30 +16,37 @@ in as long as you mark it as data-noncontent, etc.
 * Toolbar
 #+BEGIN_SRC html :defview leisure-toolbar
 <div name='buttons' style="position: relative;">
-  <label><input type='checkbox'></input>Fred</label>
-  <div class='themeHolder' style="display: inline-block; overflow: hidden">
-    <div class='themeDiv' style="position: absolute; top: 0;">
-      <select name='themeSelector'></select>
+  <div style='position: relative; display: inline-block; width: calc(100% - 13em)'>
+    <label><input type='checkbox'></input>Fred</label>
+    <button name='search'>Search</button>
+    <span class='expandable-panel'>
+      <button class='label'>Visual</button>
+      <span class='contents'>
+        <div class='themeHolder' style="display: inline-block; overflow: hidden">
+          <div class='themeDiv' style="position: absolute; top: 0;">
+            <select name='themeSelector'></select>
+          </div>
+        </div>
+        <button name='diag'>Diag: off</button>
+      </span>
+    </span>
+    <div name='emacsConnector' class='hidden-panel'>
+      <button class='label' name='emacsLabel'>Emacs</button>
+      <span class='contents'>
+        <button name='connectToEmacs'>Emacs</button>
+        <span name="emacsHost">Host: <input type='text' value="localhost:1315"></span>
+      </span>
     </div>
-  </div>
-  <button name='search'>Search</button>
-  <button name='diag'>Diag: off</button>
-  <div name='emacsConnector' class='hidden-panel'>
-    <button class='label' name='emacsLabel'>Emacs <i class='fa fa-arrow-right'></i></button>
-    <span class='contents'>
-      <button name='connectToEmacs'>Emacs</button>
-      <span name="emacsHost">Host: <input type='text' value="localhost:1315"></span>
-    </span>
-  </div>
-  <div name='p2pConnector' class='expandable-panel'>
-    <button class='label' name='p2plabel'>P2P <i class='fa fa-arrow-left'></i><i class='fa fa-arrow-right'></i></button>
-    <span class='contents'>
-      Relay Host: <input name="p2pHost">
-      <button name='createSession'>Create Session</button>
-      <button name='connectToSession'>Connect</button>
-      Session Key: <input name="sessionKey">
-      Connections: <span name='connections'></span>
-    </span>
+    <div name='p2pConnector' class='expandable-panel'>
+      <button class='label' name='p2plabel'>P2P</button>
+      <span class='contents'>
+        Relay Host: <input name="p2pHost">
+        <button name='createSession'>Create Session</button>
+        <button name='connectToSession'>Connect</button>
+        Session Key: <input name="sessionKey">
+        Connections: <span name='connections'></span>
+      </span>
+    </div>
   </div>
   <a name="tc" target="_blank" href="http://www.teamcthulhu.com">
     <button name="team_cthulhu" title="x">
@@ -59,6 +66,7 @@ themes = [
 ]
 
 @initializeView = (view)->
+  Leisure.UI.configurePanels view
   view.find('label')
     .button()
     .on 'click', (e)-> updateButton view, Leisure.showHide view[0]
@@ -76,7 +84,7 @@ themes = [
     createSessionButton: view.find('[name="createSession"]')
     connectToSessionButton: view.find('[name="connectToSession"]')
     connections: view.find('[name="connections"]')
-  $([p2pWidgets.label, p2pWidgets.createSessionButton, p2pWidgets.connectToSessionButton]).button()
+  $([p2pWidgets.createSessionButton, p2pWidgets.connectToSessionButton]).button()
   Leisure.configureP2P p2pWidgets
   themeMenu = view.find('[name="themeSelector"]')
   themeMenu[0].innerHTML = ''
@@ -87,7 +95,6 @@ themes = [
   selectTheme themeMenu[0]
   themeMenu.selectmenu 'refresh'
   Leisure.configureEmacs view.find('[name="emacsConnector"]')
-  Leisure.UI.configurePanels view
 
 selectTheme = (select)->
   Leisure.editorForToolbar(select).options.setTheme select.value

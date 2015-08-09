@@ -10,6 +10,7 @@
         Headline
         SimpleMarkup
         Link
+        ListItem
         HTML
         Nil
         headlineRE
@@ -234,6 +235,34 @@
 
       isHiddenSlide = (block)-> block.type == 'headline' && blockIsHidden block
 
+      closeList = (level, lastItem, stack)->
+        closeCount = 0
+        prevLast = lastItem
+        
+        while lastItem && lastItem.level > level
+          delete lastItem.middleItem
+          lastItem.lastItem = true
+          lastItem = stack.pop()
+          closeCount++
+        prevLast.closeCount = closeCount
+        lastItem
+
+      classifyListItems = (org)->
+        if !(org.firstItem || org.middleItem || org.lastItem)
+          stack = []
+          org.firstItem = true
+          lastItem = org
+          while org = org.next
+            if org instanceof ListItem
+              if lastItem.level > org.level
+                lastItem = closeList org.level, lastItem, stack
+              if lastItem.level < org.level
+                org.firstItem = true
+                stack.push lastItem
+              else org.middleItem = true
+              lastItem = org
+          closeList -1, lastItem, stack
+
       fancyMode =
         name: 'fancy'
         handleChanges: (opts, changes)->
@@ -329,10 +358,6 @@
               targets
           else @renderNontop opts, block, prefix
         renderChunk: (opts, block, prefix, replace)->
-          viewType = if opts.isToggled block
-              UI.context.viewAttrs = _.merge {class: 'plain'}, UI.context.viewAttrs ? {}
-              'leisure-headline-plain'
-            else 'leisure-top-headline'
           viewType = 'leisure-chunk'
           UI.context.currentView = targets = replacementTargets block, prefix, replace
           if hasView viewType
@@ -404,9 +429,17 @@
           else if org instanceof Link then @renderLink org
           else if org instanceof Fragment
             (@renderOrg child for child in org.children).join ''
+          else if org instanceof ListItem then @renderList org
           else org.allText()
         renderHtml: (org)->
           "<span class='hidden'>#{escapeHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{escapeHtml org.trailing}</span>"
+        renderList: (org)->
+          classifyListItems org
+          text = if org.firstItem then '<ul>' else ''
+          text += "<li><span class='hidden'>#{escapeHtml org.text.substring 0, org.contentOffset}</span>#{(@renderOrg child for child in org.children).join ''}"
+          for i in [0...org.closeCount]
+            text += '</ul>'
+          text
         renderLink: (org)->
           if leisureMatch = org.isLeisure()
             objectName = leisureMatch[1]

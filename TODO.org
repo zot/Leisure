@@ -1,3 +1,4 @@
+* TODO fix list parsing (place an empty list item after the final meat, etc.)
 * TODO render HTML blocks in fancy mode (as opposed to src blocks)
 * TODO widgets for Emacs demo
 * TODO code block views (replace whole code block)

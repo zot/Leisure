@@ -320,7 +320,9 @@ FRAME: frame."
 ;; actions
 (defun leisure/display (conInfo)
   "Leisure wants to display the buffer for CONINFO on connect."
-  (display-buffer (get-buffer (leisure/conInfo-bufferName conInfo))))
+  (let ((buffer (get-buffer (leisure/conInfo-bufferName conInfo))))
+    (if (not (get-buffer-window buffer t))
+        (display-buffer buffer))))
 
 ;; commands
 (defun leisure-start (&optional port)
