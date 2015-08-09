@@ -49,6 +49,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         withContext
         mergeContext
         initializePendingViews
+        escapeAttr
       } = UI
       {
         mergeExports
@@ -59,13 +60,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       defaults =
         views: {}
         controls: {}
-
-      escapeAttr = (text)->
-        escapeHtml(text).replace /['"&]/g, (c)->
-          switch c
-            when '"' then '&quot;'
-            when "'" then '&#39;'
-            when '&' then '&amp;'
 
       blockOrg = (data, blockOrText)->
         text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
@@ -275,6 +269,9 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           @hiding = true
           @setMode Leisure.plainMode
           @toggledSlides = {}
+        setTheme: (theme)->
+          if @theme then @editor.node.removeClass @theme
+          @editor.node.addClass @theme = theme
         rerenderAll: ->
           super()
           initializePendingViews()
@@ -294,7 +291,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             for block in newBlocks
               viewNodes = viewNodes.add @find "[data-view-block='#{block._id}']"
               viewNodes = @findViewsForDefiner block, viewNodes
-            @withContext =>
+            @withNewContext =>
               for node in viewNodes.filter((n)=> !blockIds[@idForNode n])
                 node = $(node)
                 if data = (block = @getBlock(node.attr 'data-view-block'))?.yaml
@@ -306,12 +303,12 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           if attrs && viewType = (attrs.control || attrs.defview)
             nodes = nodes.add @find "[data-view='#{viewType}']"
           nodes
-        withContext: (func)-> mergeContext {}, =>
+        withNewContext: (func)-> mergeContext {}, =>
           UI.context.opts = this
           UI.context.prefix = @idPrefix
           func()
         initToolbar: ->
-          @withContext => $(@editor.node).before(renderView 'leisure-toolbar', null, null)
+          @withNewContext => $(@editor.node).before(renderView 'leisure-toolbar', null, null)
           initializePendingViews()
         slideFor: (thing)->
           block = @data.getBlock thing
@@ -540,8 +537,11 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           selectionActive = (e.type == 'focus')
           updateSelection()
 
+      toolbarFor = (el)->
+        $(el).closest('[data-view]')[0]
+
       editorForToolbar = (el)->
-        findEditor $(el).closest('[data-view]')[0].nextSibling
+        findEditor toolbarFor(el).nextSibling
 
       showHide = (toolbar)->
         editingOpts = editorForToolbar(toolbar).options
@@ -560,8 +560,10 @@ Exports
       mergeExports {
         findEditor
         showHide
+        toolbarFor
         editorForToolbar
         breakpoint
+        blockOrg
       }
 
       {
@@ -572,6 +574,7 @@ Exports
         blockOrg
         setResult
         setError
+        toolbarFor
         editorForToolbar
         blockCodeItems
         escapeAttr

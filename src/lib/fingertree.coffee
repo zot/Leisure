@@ -415,8 +415,11 @@
       addLast: (v)-> @force().addLast(v)
       removeFirst: -> @force().removeFirst()
       removeLast: -> @force().removeLast()
+      concat: (other)-> @force().concat other
       splitTree: (predicate, initial)-> @force().splitTree(predicate, initial)
       split: (predicate)-> @force().split(predicate)
+      takeUntil: (predicate)-> @force().takeUntil other
+      dropUntil: (predicate)-> @force().dropUntil other
       toJSON: -> @force().toJSON()
 
     # @param {Array} left

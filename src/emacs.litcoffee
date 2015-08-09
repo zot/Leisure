@@ -7,7 +7,11 @@ Emacs connection
       } = Exports
       {
         findEditor
+        preserveSelection
       } = Editor
+      {
+        showMessage
+      } = UI
 
       msgPat = /^([^ ]+) (.*)$/
       replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/
@@ -39,12 +43,14 @@ Emacs connection
         finally
           replacing = false
 
-      connect = (data, host, port, cookie, cont)->
+      connect = (opts, host, port, cookie, cont)->
         con = new WebSocket "ws://#{host}:#{port}"
-        con.onopen = (evt)-> open evt, con, data, port, cookie, cont
-        con.onclose = (evt)-> close evt, data
-        con.onmessage = (evt)-> message evt, data
-        con.onerror = (evt)-> error evt, data
+        con.onopen = (evt)-> open evt, con, opts.data, port, cookie, cont
+        con.onclose = (evt)-> close evt, opts.data
+        con.onmessage = (evt)-> message evt, opts.data
+        con.onerror = (evt)-> showMessage opts.editor.node, "Connection error", "Could not open connection to emacs",
+          position: my: 'center top', at: 'center top'
+          buttons: OK: -> $(this).dialog 'close'
 
       close = (evt, data)->
         connection = data.emacsConnection
@@ -52,11 +58,13 @@ Emacs connection
         connection.panel.find('input').removeAttr 'readonly'
         console.log "closed"
         if connection.cookie then window.close()
+        data.removeFilter connection.filter
+        connection.websocket = null
+        connection.filter = null
 
       message = (evt, data)->
         [ignore, msg, text] = evt.data.match msgPat
-        if method = messages[msg]
-          method data, text, evt.data
+        if method = messages[msg] then preserveSelection => method data, text, evt.data
         else
           console.log "Unknown message #{msg}: #{text}"
           data.emacsConnection.websocket.close()
@@ -152,12 +160,14 @@ Emacs connection
       unescapeString = (str)-> str.replace slashed, (c)-> unescaped[c] ? c[1]
 
       configureEmacs = (panel)->
-        data = UI.context.opts.data
+        opts = UI.context.opts
+        data = opts.data
         data.emacsConnection =
           panel: panel
           opts: UI.context.opts
         panel.find('button').button().on 'click', ->
-          connect data, Number(panel.find('input').val()), '', ->
+          [host, port] = panel.find('input').val().split(':')
+          connect opts, host, Number(port), '', ->
         $(document).ready ->
           if document.location.search.length > 1 && !connected
             connected = true
@@ -165,12 +175,13 @@ Emacs connection
             for param in document.location.search.substring(1).split '&'
               [k,v] = param.split '='
               params[k.toLowerCase()] = v
-            {connect:con} = params
+            {connect:con, theme} = params
             if con
               u = new URL con
               if u.protocol == 'emacs:' && m = u.pathname.match /^\/\/([^:]*)(:[^:]*)(\/.*)$/
                 [ignore, host, port, cookie] = m
-                connect data, host, port.substring(1), cookie.substring(1)
+                connect opts, host, port.substring(1), cookie.substring(1)
+            if theme then opts.setTheme theme
 
       mergeExports {
         offsetFor

@@ -26,6 +26,11 @@ body.leisureError > #error {
 .cthulhu [data-edit-mode='plain'],
 body.cthulhu {
     background-color: #1c3d34;
+}
+.cthulhu [data-edit-mode='plain'],
+[maindoc].cthulhu,
+[maindoc].cthulhu .maintext,
+body.cthulhu {
     color: #f1c40f;
     text-shadow: 3px 3px #000000;
 }
@@ -617,9 +622,11 @@ body.console {
 .steampunk #leisure_rollup a {
     text-decoration: none;
 }
+.steampunk button[name=team_cthulhu] span,
 .steampunk button#team_cthulhu span {
     vertical-align: top;
 }
+.steampunk button[name=team_cthulhu],
 .steampunk button#team_cthulhu {
     padding: 6px 12px;
     color: #f1c40f;
@@ -627,6 +634,7 @@ body.console {
     font-family: Arial;
     font-size: 22px;
 }
+.steampunk button[name=team_cthulhu]:hover,
 .steampunk button#team_cthulhu:hover {
     background-color: #27ae60;
 }
@@ -1071,6 +1079,7 @@ body {
     display: block;
     height: 0;
 }
+[data-edit-mode='fancy'] [data-block=chunk],
 [data-edit-mode='fancy'] .meat-text {
     min-height: 1em;
 }
@@ -1206,21 +1215,27 @@ body {
 #hide-show-button span:after {
     content: 'Hidden';
 }
+button[name=team_cthulhu],
 button#team_cthulhu  {
     right: 0%;
     position: absolute;
     color: #f1c40f;
     font-style: italic;
     text-decoration: none;
+    /*
     padding-left: 20px;
     padding-right: 20px;
+    */
     background-color: #1c7d45;
+    background-image: none;
 }
+[name=team_cthulhu] img,
 #team_cthulhu img {
     width: 24px;
     height: 24px;
     padding-right: 4px;
 }
+button[name=team_cthulhu]:hover,
 button#team_cthulhu:hover {
     background-color: #27ae60;
 }
@@ -1568,7 +1583,9 @@ button:hover {
     padding: 8px;
     position: relative;
 }
-#loading, [data-edit-mode='fancy'][data-org-headline='1'] > .maincontent > [data-org-type='text'] {
+#loading,
+[data-edit-mode='fancy'][data-headline='1'] > .maintext,
+[data-edit-mode='fancy'][data-org-headline='1'] > .maincontent > [data-org-type='text'] {
     font-size: 2em;
     position: relative;
 }

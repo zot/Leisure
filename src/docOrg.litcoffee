@@ -24,6 +24,9 @@
           result = {}
           while !isSourceEnd org
             if type = getSourceNodeType org
+              if type == 'html'
+                return if result.first then result
+                else source: org, first: org, last: org
               if !result.first then result.first = org
               else if type == 'name' then return result
               if result[type]? then return result
@@ -41,6 +44,7 @@
 
       getSourceNodeType = (org)->
         if org instanceof Source then 'source'
+        else if org instanceof HTML then 'html'
         else if org instanceof Results then 'results'
         else if org instanceof Drawer && org.name.toLowerCase() == 'expected' then 'expected'
         else if org instanceof Keyword && org.name.match /^name$/i then 'name'

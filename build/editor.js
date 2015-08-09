@@ -54,6 +54,12 @@
         e.preventDefault();
         editor.moveSelectionDown(r);
         return false;
+      },
+      stabilizeCursor: function(editor, e, r) {
+        setTimeout((function() {
+          return editor.domCursorForCaret().moveCaret();
+        }), 1);
+        return false;
       }
     };
     defaultBindings = {
@@ -69,7 +75,11 @@
       'UP': keyFuncs.previousLine,
       'DOWN': keyFuncs.nextLine,
       'LEFT': keyFuncs.backwardChar,
-      'RIGHT': keyFuncs.forwardChar
+      'RIGHT': keyFuncs.forwardChar,
+      'HOME': keyFuncs.stabilizeCursor,
+      'END': keyFuncs.stabilizeCursor,
+      'C-HOME': keyFuncs.stabilizeCursor,
+      'C-END': keyFuncs.stabilizeCursor
     };
     dragRange = null;
     idCounter = 0;
@@ -692,7 +702,6 @@
             _this.currentBlockIds = _this.blockIdsForSelection(s, r);
             ref = _this.findKeyBinding(e, r), bound = ref[0], checkMod = ref[1];
             if (bound) {
-              e.preventDefault();
               return _this.modCancelled = !checkMod;
             } else {
               _this.modCancelled = false;

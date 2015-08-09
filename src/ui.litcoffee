@@ -1,7 +1,7 @@
 Leisure's UI system uses a piece of data's "type" and the "context" (a string) to
 choose a handlebars template.
 
-    define ['handlebars', 'cs!./export.litcoffee'], (Handlebars, Exports)->
+    define ['handlebars', 'cs!./export.litcoffee', 'cs!./editor.litcoffee'], (Handlebars, Exports, Editor)->
       {
         compile
         create
@@ -10,6 +10,9 @@ choose a handlebars template.
       {
         mergeExports
       } = Exports
+      {
+        escapeHtml
+      } = Editor
 
       templates = {}
       controllers = {}
@@ -17,6 +20,26 @@ choose a handlebars template.
       activating = false
       viewIdCounter = 0
       pendingViews = []
+      imageRefreshCounter = 0
+
+      nextImageSrc = (src)->
+        if (slide = root.context.currentView?.closest '.slideholder')?.length
+          slide.attr 'imgCount', imageRefreshCounter
+        if (hashLoc = src.indexOf '#') == -1 then hashLoc = src.length
+        "#{src.substring(0, hashLoc)}##{imageRefreshCounter}"
+
+      prevImageSrc = (src)->
+        count = if (slide = root.context.currentView?.closest '.slideholder')?.length
+          Number slide.attr 'imgCount'
+        else imageRefreshCounter - 1
+        if (hashLoc = src.indexOf '#') == -1 then hashLoc = src.length
+        "#{src.substring(0, hashLoc)}##{count}"
+
+      refreshImage = (img)->
+        if img.src.indexOf("file:") == 0
+          newImg = document.createElement('img')
+          newImg.onload = -> $(img).replaceWith newImg
+          newImg.src = nextImageSrc img.src
 
       viewKey = (type, context)->
         if context then "#{type.trim()}/#{context.trim()}" else type?.trim()
@@ -94,7 +117,7 @@ choose a handlebars template.
               if isTop then attrs += " data-ids='#{_.keys(settings.subviews).join ' '}'"
               n = $("<span #{attrs}>#{html}</span>")
               $(node).replaceWith n
-              activateScripts n
+              activateScripts n, root.context
         else mergeContext settings, -> simpleRenderView attrs, key, template, data, block
 
       simpleRenderView = (attrs, key, template, data, block)->
@@ -105,6 +128,7 @@ choose a handlebars template.
         "<span #{attrs}>#{template data, data: root.context}</span>"
 
       initializePendingViews = ->
+        imageRefreshCounter++
         p = pendingViews
         pendingViews = []
         for [viewId, context] in p
@@ -112,7 +136,8 @@ choose a handlebars template.
 
       activateScripts = (el, context)->
         if !activating
-          withContext context, ->
+          withContext _.merge({}, context), ->
+            root.context.currentView = el
             activating = true
             try
               for script in $(el).find('script')
@@ -128,6 +153,8 @@ choose a handlebars template.
                 root.currentScript = script
                 CoffeeScript.run script.innerHTML
               controllers[$(el).attr 'data-view']?.initializeView(el)
+              for img in el.find 'img'
+                refreshImage img
             finally
               root.currentScript = null
               activating = false
@@ -150,6 +177,19 @@ choose a handlebars template.
         ep.find('input').blur -> getPanel(this).removeClass 'expand'
         ep.find('button').click -> getPanel(this).addClass 'contract'
 
+      showMessage = (node, title, str, opts, func)->
+        dialog = $("<div title=#{escapeAttr title}><div>#{str}</div></div>")
+          .appendTo node
+          .dialog _.merge {close: -> dialog.remove()}, opts ? {}
+        func?(dialog)
+
+      escapeAttr = (text)->
+        escapeHtml(text).replace /['"&]/g, (c)->
+          switch c
+            when '"' then '&quot;'
+            when "'" then '&#39;'
+            when '&' then '&amp;'
+
       root = mergeExports(
         UI: {
           withContext
@@ -166,5 +206,10 @@ choose a handlebars template.
           viewKey
           configurePanels
           context: null
+          showMessage
+          escapeAttr
+          refreshImage
+          nextImageSrc
+          prevImageSrc
         }
       ).UI

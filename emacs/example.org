@@ -1,0 +1,48 @@
+* Headline
+#+BEGIN_HTML
+<b>hello {{name}}</b>
+#+END_HTML
+
+#+begin_src plantuml :file /tmp/duh.svg :results hidecode
+skinparam monochrome true
+FitsHdu <|-- PrimaryHdu
+FitsHdu <|-- ExtensionHdu
+
+FitsHdu : header
+FitsHdu : getHeaderKeyword()
+
+ExtensionHdu <|-- ImageHdu
+ImageHdu : image
+ImageHdu : getPixel(row, column)
+
+ExtensionHdu <|-- BinaryTableHdu
+BinaryTableHdu : table
+BinaryTableHdu : getRow(row)
+BinaryTableHdu : getColumn(column)
+#+end_src
+
+#+RESULTS:
+[[file:/tmp/duh.svg]]
+
+asdasdfasdf
+#+begin_src ditaa :file /tmp/ditaa-seqboxes.png :results hidecode
++------+   +-----+   +-----+   +-----+
+|{io}  |   |{d}  |   |{s}  |   |cBLU |
+| Foo  +---+ Bar +---+ Baz +---+ Moo |
+|      |   |     |   |     |   |     |
++------+   +-----+   +--+--+   +-----+
+                        |
+           /-----\      |      +------+
+           |     |      |      | c1AB |
+           | Goo +------+---=--+ Shoo |
+           \-----/             |      |
+                               +------+
+#+end_src
+
+* Settings
+:properties:
+:hidden: true
+:end:
+Local Variables:
+org-confirm-babel-evaluate: nil
+End:

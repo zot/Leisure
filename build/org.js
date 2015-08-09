@@ -1349,10 +1349,13 @@ misrepresented as being the original software.
       }
     };
     parseResults = function(text, offset, rest) {
-      var lines, m, oldRest;
+      var lines, m, oldRest, ref;
       oldRest = rest;
       while (m = rest.match(resultsLineRE)) {
         rest = rest.substring(m[0].length);
+      }
+      if (oldRest === rest && rest.length && !((ref = rest[0]) === '#' || ref === '\n')) {
+        rest = rest.substring(((m = rest.match(/\n/)) ? m.index + 1 : rest.length));
       }
       lines = oldRest.substring(0, oldRest.length - rest.length);
       return [new Results(text + lines, offset, text.match(resultsRE)[RES_NAME], text.length), rest];

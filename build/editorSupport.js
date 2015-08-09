@@ -4,32 +4,20 @@
     hasProp = {}.hasOwnProperty;
 
   define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, findEditor, getCodeItems, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, findEditor, getCodeItems, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection;
-    addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
+    addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
     mergeExports = BrowserExports.mergeExports;
     selectionActive = true;
     headlineRE = /^(\*+ *)(.*)(\n)$/;
     defaults = {
       views: {},
       controls: {}
-    };
-    escapeAttr = function(text) {
-      return escapeHtml(text).replace(/['"&]/g, function(c) {
-        switch (c) {
-          case '"':
-            return '&quot;';
-          case "'":
-            return '&#39;';
-          case '&':
-            return '&amp;';
-        }
-      });
     };
     blockOrg = function(data, blockOrText) {
       var frag, org, ref, text;
@@ -415,6 +403,13 @@
         this.toggledSlides = {};
       }
 
+      OrgEditing.prototype.setTheme = function(theme) {
+        if (this.theme) {
+          this.editor.node.removeClass(this.theme);
+        }
+        return this.editor.node.addClass(this.theme = theme);
+      };
+
       OrgEditing.prototype.rerenderAll = function() {
         OrgEditing.__super__.rerenderAll.call(this);
         return initializePendingViews();
@@ -443,7 +438,7 @@
             viewNodes = viewNodes.add(this.find("[data-view-block='" + block._id + "']"));
             viewNodes = this.findViewsForDefiner(block, viewNodes);
           }
-          return this.withContext((function(_this) {
+          return this.withNewContext((function(_this) {
             return function() {
               var data, len3, m, node, ref1, ref2, results1;
               ref1 = viewNodes.filter(function(n) {
@@ -480,7 +475,7 @@
         return nodes;
       };
 
-      OrgEditing.prototype.withContext = function(func) {
+      OrgEditing.prototype.withNewContext = function(func) {
         return mergeContext({}, (function(_this) {
           return function() {
             UI.context.opts = _this;
@@ -491,7 +486,7 @@
       };
 
       OrgEditing.prototype.initToolbar = function() {
-        this.withContext((function(_this) {
+        this.withNewContext((function(_this) {
           return function() {
             return $(_this.editor.node).before(renderView('leisure-toolbar', null, null));
           };
@@ -831,8 +826,11 @@
         return updateSelection();
       });
     };
+    toolbarFor = function(el) {
+      return $(el).closest('[data-view]')[0];
+    };
     editorForToolbar = function(el) {
-      return findEditor($(el).closest('[data-view]')[0].nextSibling);
+      return findEditor(toolbarFor(el).nextSibling);
     };
     showHide = function(toolbar) {
       var editingOpts;
@@ -850,8 +848,10 @@
     mergeExports({
       findEditor: findEditor,
       showHide: showHide,
+      toolbarFor: toolbarFor,
       editorForToolbar: editorForToolbar,
-      breakpoint: breakpoint
+      breakpoint: breakpoint,
+      blockOrg: blockOrg
     });
     return {
       createLocalData: createLocalData,
@@ -861,6 +861,7 @@
       blockOrg: blockOrg,
       setResult: setResult,
       setError: setError,
+      toolbarFor: toolbarFor,
       editorForToolbar: editorForToolbar,
       blockCodeItems: blockCodeItems,
       escapeAttr: escapeAttr

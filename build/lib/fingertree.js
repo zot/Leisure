@@ -475,12 +475,24 @@
         return this.force().removeLast();
       };
 
+      DelayedFingerTree.prototype.concat = function(other) {
+        return this.force().concat(other);
+      };
+
       DelayedFingerTree.prototype.splitTree = function(predicate, initial) {
         return this.force().splitTree(predicate, initial);
       };
 
       DelayedFingerTree.prototype.split = function(predicate) {
         return this.force().split(predicate);
+      };
+
+      DelayedFingerTree.prototype.takeUntil = function(predicate) {
+        return this.force().takeUntil(other);
+      };
+
+      DelayedFingerTree.prototype.dropUntil = function(predicate) {
+        return this.force().dropUntil(other);
       };
 
       DelayedFingerTree.prototype.toJSON = function() {

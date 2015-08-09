@@ -3,9 +3,10 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee'], function(_, Exports, UI, Editor) {
-    var blockRangeFor, c, close, configureEmacs, connect, connected, diag, e, error, escapeString, escaped, findEditor, mergeExports, message, messages, msgPat, offsetFor, open, replace, replaceMsgPat, replaceWhile, replacing, sendReplace, showDiag, slashed, specials, unescapeString, unescaped;
+    var blockRangeFor, c, close, configureEmacs, connect, connected, diag, e, error, escapeString, escaped, findEditor, mergeExports, message, messages, msgPat, offsetFor, open, preserveSelection, replace, replaceMsgPat, replaceWhile, replacing, sendReplace, showDiag, showMessage, slashed, specials, unescapeString, unescaped;
     mergeExports = Exports.mergeExports;
-    findEditor = Editor.findEditor;
+    findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection;
+    showMessage = UI.showMessage;
     msgPat = /^([^ ]+) (.*)$/;
     replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/;
     replacing = false;
@@ -47,20 +48,30 @@
         replacing = false;
       }
     };
-    connect = function(data, host, port, cookie, cont) {
+    connect = function(opts, host, port, cookie, cont) {
       var con;
       con = new WebSocket("ws://" + host + ":" + port);
       con.onopen = function(evt) {
-        return open(evt, con, data, port, cookie, cont);
+        return open(evt, con, opts.data, port, cookie, cont);
       };
       con.onclose = function(evt) {
-        return close(evt, data);
+        return close(evt, opts.data);
       };
       con.onmessage = function(evt) {
-        return message(evt, data);
+        return message(evt, opts.data);
       };
       return con.onerror = function(evt) {
-        return error(evt, data);
+        return showMessage(opts.editor.node, "Connection error", "Could not open connection to emacs", {
+          position: {
+            my: 'center top',
+            at: 'center top'
+          },
+          buttons: {
+            OK: function() {
+              return $(this).dialog('close');
+            }
+          }
+        });
       };
     };
     close = function(evt, data) {
@@ -70,14 +81,21 @@
       connection.panel.find('input').removeAttr('readonly');
       console.log("closed");
       if (connection.cookie) {
-        return window.close();
+        window.close();
       }
+      data.removeFilter(connection.filter);
+      connection.websocket = null;
+      return connection.filter = null;
     };
     message = function(evt, data) {
       var ignore, method, msg, ref, text;
       ref = evt.data.match(msgPat), ignore = ref[0], msg = ref[1], text = ref[2];
       if (method = messages[msg]) {
-        return method(data, text, evt.data);
+        return preserveSelection((function(_this) {
+          return function() {
+            return method(data, text, evt.data);
+          };
+        })(this));
       } else {
         console.log("Unknown message " + msg + ": " + text);
         return data.emacsConnection.websocket.close();
@@ -212,17 +230,20 @@
       });
     };
     configureEmacs = function(panel) {
-      var data;
-      data = UI.context.opts.data;
+      var data, opts;
+      opts = UI.context.opts;
+      data = opts.data;
       data.emacsConnection = {
         panel: panel,
         opts: UI.context.opts
       };
       panel.find('button').button().on('click', function() {
-        return connect(data, Number(panel.find('input').val()), '', function() {});
+        var host, port, ref;
+        ref = panel.find('input').val().split(':'), host = ref[0], port = ref[1];
+        return connect(opts, host, Number(port), '', function() {});
       });
       return $(document).ready(function() {
-        var con, cookie, host, i, ignore, k, len, m, param, params, port, ref, ref1, u, v;
+        var con, cookie, host, i, ignore, k, len, m, param, params, port, ref, ref1, theme, u, v;
         if (document.location.search.length > 1 && !connected) {
           connected = true;
           params = {};
@@ -232,13 +253,16 @@
             ref1 = param.split('='), k = ref1[0], v = ref1[1];
             params[k.toLowerCase()] = v;
           }
-          con = params.connect;
+          con = params.connect, theme = params.theme;
           if (con) {
             u = new URL(con);
             if (u.protocol === 'emacs:' && (m = u.pathname.match(/^\/\/([^:]*)(:[^:]*)(\/.*)$/))) {
               ignore = m[0], host = m[1], port = m[2], cookie = m[3];
-              return connect(data, host, port.substring(1), cookie.substring(1));
+              connect(opts, host, port.substring(1), cookie.substring(1));
             }
+          }
+          if (theme) {
+            return opts.setTheme(theme);
           }
         }
       });

@@ -13,6 +13,17 @@
         result = {};
         while (!isSourceEnd(org)) {
           if (type = getSourceNodeType(org)) {
+            if (type === 'html') {
+              if (result.first) {
+                return result;
+              } else {
+                return {
+                  source: org,
+                  first: org,
+                  last: org
+                };
+              }
+            }
             if (!result.first) {
               result.first = org;
             } else if (type === 'name') {
@@ -49,6 +60,8 @@
     getSourceNodeType = function(org) {
       if (org instanceof Source) {
         return 'source';
+      } else if (org instanceof HTML) {
+        return 'html';
       } else if (org instanceof Results) {
         return 'results';
       } else if (org instanceof Drawer && org.name.toLowerCase() === 'expected') {

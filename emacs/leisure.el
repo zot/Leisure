@@ -1,4 +1,4 @@
-;;; leisure.el --- server for connections from Leisure
+;;; leisure.el --- server for connections to Leisure
 
 ;; Copyright (c) 2015 TEAM CTHULHU and Bill Burdick
 
@@ -99,9 +99,6 @@
 
 (defvar leisure/revertingBuffers nil)
 
-(defvar leisure/showDiag nil)
-;;(setq leisure/showDiag t)
-
 (defconst leisure/actions
   '(display leisure/display))
 
@@ -152,6 +149,21 @@
 (defcustom leisure/port 1315
   "Port for the leisure server."
   :type 'integer)
+
+(defcustom leisure/theme "flat"
+  "Port for the leisure server."
+  :type '(choice
+          (string :tag "Flat" :value "flat")
+          (string :tag "Googie" :value "googie")
+          (string :tag "Steampunk" :value "steampunk")
+          (string :tag "Cthulhu" :value "cthulhu")
+          (string :tag "Console" :value "console")
+          (string :tag "Your own theme")
+          ))
+
+(defcustom leisure/showDiag nil
+  "Show diag messages in the *Leisure-messages* buffer."
+  :type 'boolean)
 
 (define-minor-mode leisure-connection-mode
   "Used when connected to a browser (☢)."
@@ -270,8 +282,7 @@ FRAME: frame."
           ((and (leisure/str bufferName) (leisure/str requestedName)
                 (not (equal bufferName requestedName)))
            (leisure/error conInfo "Leisure requested a different name for a connection."))
-          (t (leisure/addChangeHooks)
-             (if (not (or (leisure/str bufferName) (leisure/str requestedName)))
+          (t (if (not (or (leisure/str bufferName) (leisure/str requestedName)))
                  (setq bufferName (setf (leisure/conInfo-bufferName conInfo) (make-temp-name "leisure-connection-"))))
              (if (not (leisure/str bufferName))
                  (progn
@@ -280,6 +291,7 @@ FRAME: frame."
              (setf (leisure/conInfo-changeCount conInfo) 0)
              (get-buffer-create bufferName)
              (with-current-buffer bufferName
+               (leisure/addChangeHooks)
                (setq leisure/bufferConnection conInfo)
                (if transient
                    (setf (leisure/conInfo-transient conInfo) t)
@@ -358,7 +370,7 @@ FRAME: frame."
 
 (defun leisure/openBrowser (cookie)
   "Open a browser that connects to Emacs on PORT with COOKIE."
-  (funcall leisure/browseURLFunction (format "%s?connect=emacs://localhost:%s%s\n" leisure/fileURL (plist-get leisure/info 'port) (or (and cookie (string-join (list "/" cookie))) ""))))
+  (funcall leisure/browseURLFunction (format "%s?theme=%s&connect=emacs://localhost:%s%s\n" leisure/fileURL leisure/theme (plist-get leisure/info 'port) (or (and cookie (string-join (list "/" cookie))) ""))))
 
 ;;test: (leisure/openBrowser "duh")
 
@@ -563,7 +575,8 @@ FRAME: frame."
         (add-hook 'before-change-functions 'leisure/beforeChange nil t)
         (add-hook 'after-change-functions 'leisure/afterChange nil t)
         (add-hook 'before-revert-hook 'leisure/beforeRevert nil t)
-        (add-hook 'after-revert-hook 'leisure/afterRevert nil t))))
+        (add-hook 'after-revert-hook 'leisure/afterRevert nil t))
+    (leisure/diag "Not adding change hooks")))
 
 (provide 'leisure)
 ;;; leisure.el ends here

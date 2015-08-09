@@ -13,7 +13,7 @@ Here are the two special rules for these system views that don't apply to other 
 Anything else if fair game -- you can hide the content, you can add text
 in as long as you mark it as data-noncontent, etc.
 
-* Toolbar view
+* Toolbar
 #+BEGIN_SRC html :defview leisure-toolbar
 <div name='buttons' style="position: relative;">
   <label><input type='checkbox'></input>Fred</label>
@@ -28,7 +28,7 @@ in as long as you mark it as data-noncontent, etc.
     <button class='label' name='emacsLabel'>Emacs <i class='fa fa-arrow-right'></i></button>
     <span class='contents'>
       <button name='connectToEmacs'>Emacs</button>
-      <span name="emacsPort">Port: <input type='text' value="1315"></span>
+      <span name="emacsHost">Host: <input type='text' value="localhost:1315"></span>
     </span>
   </div>
   <div name='p2pConnector' class='expandable-panel'>
@@ -41,6 +41,11 @@ in as long as you mark it as data-noncontent, etc.
       Connections: <span name='connections'></span>
     </span>
   </div>
+  <a name="tc" target="_blank" href="http://www.teamcthulhu.com">
+    <button name="team_cthulhu" title="x">
+      <span><img src="css/images/eldersign.png">TEAM CTHULHU</span>
+    </button>
+  </a>
 </div>
 #+END_SRC
 
@@ -57,6 +62,7 @@ themes = [
   view.find('label')
     .button()
     .on 'click', (e)-> updateButton view, Leisure.showHide view[0]
+  view.find('[name=team_cthulhu]').button()
   updateButton view, Leisure.editorForToolbar(view[0]).options.hiding
   view.find('[name="search"]').button().on 'click', (e)-> Leisure.openSearch e
   view.find('[name="diag"]').button().on 'click', (e)->
@@ -77,17 +83,14 @@ themes = [
   themeMenu.selectmenu change: -> selectTheme this
   for theme in themes
     themeMenu[0].innerHTML += "<option value='#{theme.toLowerCase()}'>#{theme}</option>"
-  themeMenu.val 'googie'
+  themeMenu.val 'flat'
   selectTheme themeMenu[0]
   themeMenu.selectmenu 'refresh'
   Leisure.configureEmacs view.find('[name="emacsConnector"]')
   Leisure.UI.configurePanels view
 
 selectTheme = (select)->
-  editor = $(Leisure.editorForToolbar(select).node)
-  for theme in themes
-    editor.removeClass theme.toLowerCase()
-  editor.addClass select.value
+  Leisure.editorForToolbar(select).options.setTheme select.value
 
 updateButton = (view, hiding)->
   view.find('label').button 'option', 'label', if hiding
@@ -98,6 +101,12 @@ updateButton = (view, hiding)->
 
 #+NAME: toolbar-css
 #+BEGIN_SRC css
+[name=team_cthulhu] {
+  float: right;
+}
+[name=team_cthulhu] img {
+  height: 1em;
+}
 [maindoc].diag {
   height: calc(100% - 20em);
 }
@@ -122,13 +131,14 @@ updateButton = (view, hiding)->
 }
 .hidden-panel:hover .contents {
   display: inherit;
+  width: inherit;
 }
 .hidden-panel:hover .label,
 .hidden-panel .contents {
   display: none;
 }
-[name='emacsPort'] input {
-  width: 4em;
+[name='emacsHost'] input {
+  width: 8em;
 }
 [name='p2pHost'] {
   width: 15ex;
@@ -155,7 +165,7 @@ updateButton = (view, hiding)->
 }
 #+END_SRC
 
-* Block Views
+* Blocks
 ** Source Toggle
 #+BEGIN_SRC html :defview leisure-source-toggle
 {{#if topLevel}}<button class='toggle_edit' contenteditable='false' data-noncontent><i class="fa fa-glass"></i></button><span data-noncontent contenteditable='false'> </span>{{/if}}
@@ -181,7 +191,7 @@ updateButton = (view, hiding)->
 <div class='slideholder'
  ><div class='page'
    ><div class='border'></div
-   ><div id='{{id}}' class='fancy' data-edit-mode='fancy'
+   ><div id='{{id}}' class='fancy pagecontent' data-edit-mode='fancy'
      ><span data-noncontent contenteditable='false'>{{> leisure-source-toggle}}
 </span>{{{text}}}</div></div></div>
 #+END_SRC
@@ -208,11 +218,11 @@ EOL}}</div>{{#each children}}{{{
 render this
 }}}{{/each}}</div>
 #+END_SRC
-** Source Chunk
+** Chunk
 #+BEGIN_SRC html :defview leisure-chunk
 <span id='{{id}}' class='fancy' data-block='chunk'>{{{text}}}</span>
 #+END_SRC
-** Source Code
+** Code
 #+BEGIN_SRC html :defview leisure-code
 <span
   id='{{id}}'
@@ -242,6 +252,28 @@ class='code-results' data-org-src>{{{resultsContent}}}</div>{{/if}}</span>
 contenteditable='true'>{{nameText
 }}</span><span data-noncontent>"</span><span class='hidden'>
 {{afterName}}</span></span>{{/if}}
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code/inline-html
+<span
+id='{{id}}'
+data-block='code'
+contenteditable='false'
+data-lang='{{language}}'><span class='hidden'>{{block.text}}</span><div data-noncontent contenteditable='false'>{{{source}}}</div></span>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code/results-only
+<span
+id='{{id}}'
+data-block='code'
+contenteditable='false'
+data-lang='{{language}}'><span class='hidden'>{{beforeResults}}</span>{{{results}}}</span>
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-code/results-only
+@initializeView = (v)->
+  for img in v.find('img')
+    Leisure.UI.refreshImage img
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code/js
@@ -321,7 +353,7 @@ span[data-block='code'].fancy {
 }
 #+END_SRC
 
-* Search Views
+* Search
 #+BEGIN_SRC html :defview leisure-search
 <div title='Search' data-noncontent>
   <div class='frame'>

@@ -638,6 +638,8 @@ define ['lib/lazy'], (Lazy)->
     oldRest = rest
     while m = rest.match resultsLineRE
       rest = rest.substring m[0].length
+    if oldRest == rest && rest.length && !(rest[0] in ['#', '\n'])
+      rest = rest.substring (if m = rest.match /\n/ then m.index + 1 else rest.length)
     lines = oldRest.substring 0, oldRest.length - rest.length
     [new Results(text + lines, offset, text.match(resultsRE)[RES_NAME], text.length), rest]
   

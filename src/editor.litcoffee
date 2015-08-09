@@ -191,6 +191,9 @@ Basic functions used by [defaultBindings](#defaultBindings)
           e.preventDefault()
           editor.moveSelectionDown r
           false
+        stabilizeCursor: (editor, e, r)->
+          setTimeout (-> editor.domCursorForCaret().moveCaret()), 1
+          false
 
 <a name="defaultBindings"></a>Default key bindings
 --------------------------------------------------
@@ -208,6 +211,10 @@ course.)
         'DOWN': keyFuncs.nextLine
         'LEFT': keyFuncs.backwardChar
         'RIGHT': keyFuncs.forwardChar
+        'HOME': keyFuncs.stabilizeCursor
+        'END': keyFuncs.stabilizeCursor
+        'C-HOME': keyFuncs.stabilizeCursor
+        'C-END': keyFuncs.stabilizeCursor
         #'TAB': keyFuncs.expandTemplate
         #'C-C C-C': keyFuncs.swapMarkup
         #'M-C': keyFuncs.execute
@@ -555,9 +562,7 @@ on it can select if start and end are different
             r = s.rangeCount > 0 && s.getRangeAt(0)
             @currentBlockIds = @blockIdsForSelection s, r
             [bound, checkMod] = @findKeyBinding e, r
-            if bound
-              e.preventDefault()
-              @modCancelled = !checkMod
+            if bound then @modCancelled = !checkMod
             else
               @modCancelled = false
               if c == ENTER

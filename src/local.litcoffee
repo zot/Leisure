@@ -77,6 +77,7 @@ Code for local-mode.  This will not be loaded under meteor.
         createEditorDisplay ED
         if !document.location.search
           ED.options.load """
+          burp
           * top
           bubba
 
@@ -86,6 +87,10 @@ Code for local-mode.  This will not be loaded under meteor.
           type: rotator
           degrees: 45
           #+END_SRC
+
+          #+BEGIN_HTML
+          <b>hello</b>
+          #+END_HTML
 
           #+BEGIN_SRC html :defview rotator
           <div style='padding: 25px; display: inline-block'>
