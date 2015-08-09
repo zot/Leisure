@@ -85,6 +85,11 @@
 
       plainMode =
         name: 'plain'
+        renderBlocks: (opt, html)-> html
+        setSlideMode: (opt, flag)->
+        showingSlides: -> false
+        showNextSlide: -> false
+        showPrevSlide: -> false
         handleChanges: (changes)->
         renderChanged: (opts, blocks, prefix, replace)->
           for id, block of opts.slidesFor blocks
@@ -265,6 +270,11 @@
 
       fancyMode =
         name: 'fancy'
+        renderBlocks: (opt, html)->
+          header = if hasView 'header' then opt.withNewContext =>
+            @renderView 'header', null, null, {}
+          else "<div id='dummy_headline'></div>"
+          "#{header}#{html}"
         handleChanges: (opts, changes)->
           for block in changes.newBlocks
             if changes.sets[block._id] && (old = opts.getBlock block._id) && isHiddenSlide(block) != isHiddenSlide(old)
@@ -481,6 +491,45 @@
             when 'verbatim' then "<code>#{guts}</code>"
             else guts
           "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{goodText org.text[0]}</span>"
+        showingSlides: (opt)-> opt.editor.node.is '.slides'
+        setSlideMode: (opt, flag)->
+          if flag
+            opt.editor.node.addClass 'slides'
+            slides = @getSlides opt
+            slides.removeClass('firstSlide').removeClass('lastSlide')
+            slides.first().addClass 'firstSlide'
+            slides.last().addClass 'lastSlide'
+            @showSlide opt, slides.first()
+          else
+            opt.editor.node.removeClass 'slides'
+            $(opt.editor.node).find('.currentSlide').removeClass 'currentSlide'
+        getSlides: (opt)-> $(opt.editor.node).find('.slideHolder')
+        firstSlide: (opt)-> @getSlides(opt).first()
+        lastSlide: (opt)-> @getSlides(opt).last()
+        showSlide: (opt, slide)->
+          slides = @getSlides opt
+          top = $(opt.editor.node)
+          top.removeClass('firstSlide').removeClass('lastSlide')
+          $(opt.editor.node).find('.currentSlide').removeClass 'currentSlide'
+          $(slide).addClass 'currentSlide'
+          if $(slide)[0] == slides[0] then top.addClass 'firstSlide'
+          if $(slide)[0] == _.last(slides) then top.addClass 'lastSlide'
+        showNextSlide: (opt)->
+          if @showingSlides(opt)
+            slides = @getSlides opt
+            for slide, i in slides
+              if $(slide).is '.currentSlide'
+                if i + 1 < slides.length then @showSlide opt, slides[i + 1]
+                return true
+          false
+        showPrevSlide: (opt)->
+          if @showingSlides(opt)
+            slides = @getSlides opt
+            for slide, i in slides
+              if $(slide).is '.currentSlide'
+                if i > 0 then @showSlide opt, slides[i - 1]
+                return true
+          false
 
       _workSpan = null
 

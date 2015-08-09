@@ -14,20 +14,34 @@ Anything else if fair game -- you can hide the content, you can add text
 in as long as you mark it as data-noncontent, etc.
 
 * Toolbar
+#+BEGIN_SRC html :defview header
+<div class="paginators" data-noncontent contenteditable='false'>
+  <button name="prevSlide" class="bound">
+    <i class="fa fa-caret-left fa-1x"></i>
+    <span></span>
+  </button>
+  <button name="nextSlide" class="bound">
+    <i class="fa fa-caret-right fa-1x"></i>
+    <span></span>
+  </button>
+</div>
+<div id="dummy_headline" data-noncontent contenteditable='false'></div>
+#+END_SRC
 #+BEGIN_SRC html :defview leisure-toolbar
 <div name='buttons' style="position: relative;">
   <div style='position: relative; display: inline-block; width: calc(100% - 13em)'>
-    <label><input type='checkbox'></input>Fred</label>
+    <label name="showHide"><input type='checkbox'></input>Fred</label>
     <button name='search'>Search</button>
     <span class='expandable-panel'>
       <button class='label'>Visual</button>
       <span class='contents'>
+        <button name='diag'>Diag: off</button>
         <div class='themeHolder' style="display: inline-block; overflow: hidden">
           <div class='themeDiv' style="position: absolute; top: 0;">
             <select name='themeSelector'></select>
           </div>
         </div>
-        <button name='diag'>Diag: off</button>
+        <button name='slides'>Slides</button>
       </span>
     </span>
     <div name='emacsConnector' class='hidden-panel'>
@@ -56,6 +70,13 @@ in as long as you mark it as data-noncontent, etc.
 </div>
 #+END_SRC
 
+#+BEGIN_SRC cs :control header
+@initializeView = (view)->
+  opts = Leisure.findEditor(view).options
+  view.find('[name=prevSlide]').on 'click', -> opts.mode.showPrevSlide(opts)
+  view.find('[name=nextSlide]').on 'click', -> opts.mode.showNextSlide(opts)
+#+END_SRC
+
 #+BEGIN_SRC cs :control leisure-toolbar
 themes = [
   'Flat',
@@ -67,7 +88,9 @@ themes = [
 
 @initializeView = (view)->
   Leisure.UI.configurePanels view
-  view.find('label')
+  view.find('[name=slides]').button().on 'click', (e)->
+    Leisure.editorForToolbar(view[0]).options.toggleSlides()
+  view.find('[name=showHide]')
     .button()
     .on 'click', (e)-> updateButton view, Leisure.showHide view[0]
   view.find('[name=team_cthulhu]').button()
@@ -210,10 +233,11 @@ updateButton = (view, hiding)->
    ><div id='{{id}}' class='fancy pagecontent'
 data-edit-mode='fancy'
 data-block='headline'
-data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{maintext}}{{
-EOL}}</div>{{#each children}}{{{
+data-org-headline='{{level}}'
+data-headline='{{level}}'><span class='maincontent'><span class='hidden'>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'><div class="textborder" contenteditable="false"></div><div class='headline-content'><div class='maintext'>{{> leisure-source-toggle}}{{maintext}}{{
+EOL}}</div></div></div></div><div>{{#each children}}{{{
 render this
-}}}{{/each}}</div></div></div>
+}}}{{/each}}</div></div></div><span></div></div>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-headline

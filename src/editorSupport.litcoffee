@@ -271,9 +271,12 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           @hiding = true
           @setMode Leisure.plainMode
           @toggledSlides = {}
+        renderBlocks: -> @mode.renderBlocks this, super()
         setTheme: (theme)->
           if @theme then @editor.node.removeClass @theme
           @editor.node.addClass @theme = theme
+        toggleSlides: -> @mode.setSlideMode this, !@showingSlides()
+        showingSlides: -> @mode.showingSlides this
         rerenderAll: ->
           super()
           initializePendingViews()
@@ -347,6 +350,13 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           super ed
           @setMode @mode
           @initToolbar()
+          @bindings = __proto__: @bindings
+          @bindings.PAGEUP = (editor, e, r)=>
+            if @mode.showPrevSlide this then e.preventDefault()
+            false
+          @bindings.PAGEDOWN = (editor, e, r)=>
+            if @mode.showNextSlide this then e.preventDefault()
+            false
         setMode: (@mode)->
           if @mode && @editor then @editor.node.attr 'data-edit-mode', @mode.name
           this

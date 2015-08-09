@@ -404,11 +404,23 @@
         this.toggledSlides = {};
       }
 
+      OrgEditing.prototype.renderBlocks = function() {
+        return this.mode.renderBlocks(this, OrgEditing.__super__.renderBlocks.call(this));
+      };
+
       OrgEditing.prototype.setTheme = function(theme) {
         if (this.theme) {
           this.editor.node.removeClass(this.theme);
         }
         return this.editor.node.addClass(this.theme = theme);
+      };
+
+      OrgEditing.prototype.toggleSlides = function() {
+        return this.mode.setSlideMode(this, !this.showingSlides());
+      };
+
+      OrgEditing.prototype.showingSlides = function() {
+        return this.mode.showingSlides(this);
       };
 
       OrgEditing.prototype.rerenderAll = function() {
@@ -578,7 +590,26 @@
       OrgEditing.prototype.setEditor = function(ed) {
         OrgEditing.__super__.setEditor.call(this, ed);
         this.setMode(this.mode);
-        return this.initToolbar();
+        this.initToolbar();
+        this.bindings = {
+          __proto__: this.bindings
+        };
+        this.bindings.PAGEUP = (function(_this) {
+          return function(editor, e, r) {
+            if (_this.mode.showPrevSlide(_this)) {
+              e.preventDefault();
+            }
+            return false;
+          };
+        })(this);
+        return this.bindings.PAGEDOWN = (function(_this) {
+          return function(editor, e, r) {
+            if (_this.mode.showNextSlide(_this)) {
+              e.preventDefault();
+            }
+            return false;
+          };
+        })(this);
       };
 
       OrgEditing.prototype.setMode = function(mode) {

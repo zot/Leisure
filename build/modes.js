@@ -14,6 +14,19 @@
     singleControllers = {};
     plainMode = {
       name: 'plain',
+      renderBlocks: function(opt, html) {
+        return html;
+      },
+      setSlideMode: function(opt, flag) {},
+      showingSlides: function() {
+        return false;
+      },
+      showNextSlide: function() {
+        return false;
+      },
+      showPrevSlide: function() {
+        return false;
+      },
       handleChanges: function(changes) {},
       renderChanged: function(opts, blocks, prefix, replace) {
         var block, id, ref, results1;
@@ -283,6 +296,15 @@
     };
     fancyMode = {
       name: 'fancy',
+      renderBlocks: function(opt, html) {
+        var header;
+        header = hasView('header') ? opt.withNewContext((function(_this) {
+          return function() {
+            return _this.renderView('header', null, null, {});
+          };
+        })(this)) : "<div id='dummy_headline'></div>";
+        return "" + header + html;
+      },
       handleChanges: function(opts, changes) {
         var block, j, len, newNode, old, ref, results1, sibling, siblingNode;
         ref = changes.newBlocks;
@@ -625,6 +647,78 @@
           }
         })();
         return "<span class='hidden'>" + org.text[0] + "</span>" + text + "<span class='hidden'>" + (goodText(org.text[0])) + "</span>";
+      },
+      showingSlides: function(opt) {
+        return opt.editor.node.is('.slides');
+      },
+      setSlideMode: function(opt, flag) {
+        var slides;
+        if (flag) {
+          opt.editor.node.addClass('slides');
+          slides = this.getSlides(opt);
+          slides.removeClass('firstSlide').removeClass('lastSlide');
+          slides.first().addClass('firstSlide');
+          slides.last().addClass('lastSlide');
+          return this.showSlide(opt, slides.first());
+        } else {
+          opt.editor.node.removeClass('slides');
+          return $(opt.editor.node).find('.currentSlide').removeClass('currentSlide');
+        }
+      },
+      getSlides: function(opt) {
+        return $(opt.editor.node).find('.slideHolder');
+      },
+      firstSlide: function(opt) {
+        return this.getSlides(opt).first();
+      },
+      lastSlide: function(opt) {
+        return this.getSlides(opt).last();
+      },
+      showSlide: function(opt, slide) {
+        var slides, top;
+        slides = this.getSlides(opt);
+        top = $(opt.editor.node);
+        top.removeClass('firstSlide').removeClass('lastSlide');
+        $(opt.editor.node).find('.currentSlide').removeClass('currentSlide');
+        $(slide).addClass('currentSlide');
+        if ($(slide)[0] === slides[0]) {
+          top.addClass('firstSlide');
+        }
+        if ($(slide)[0] === _.last(slides)) {
+          return top.addClass('lastSlide');
+        }
+      },
+      showNextSlide: function(opt) {
+        var i, j, len, slide, slides;
+        if (this.showingSlides(opt)) {
+          slides = this.getSlides(opt);
+          for (i = j = 0, len = slides.length; j < len; i = ++j) {
+            slide = slides[i];
+            if ($(slide).is('.currentSlide')) {
+              if (i + 1 < slides.length) {
+                this.showSlide(opt, slides[i + 1]);
+              }
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      showPrevSlide: function(opt) {
+        var i, j, len, slide, slides;
+        if (this.showingSlides(opt)) {
+          slides = this.getSlides(opt);
+          for (i = j = 0, len = slides.length; j < len; i = ++j) {
+            slide = slides[i];
+            if ($(slide).is('.currentSlide')) {
+              if (i > 0) {
+                this.showSlide(opt, slides[i - 1]);
+              }
+              return true;
+            }
+          }
+        }
+        return false;
       }
     };
     _workSpan = null;

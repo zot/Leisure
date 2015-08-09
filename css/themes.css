@@ -24,12 +24,14 @@ body.leisureError > #error {
     src: url('../font/franklinm54-webfont.woff') format('woff');
 }
 .cthulhu [data-edit-mode='plain'],
+/*.cthulhu,*/
 body.cthulhu {
     background-color: #1c3d34;
 }
 .cthulhu [data-edit-mode='plain'],
 [maindoc].cthulhu,
 [maindoc].cthulhu .maintext,
+.cthulhu,
 body.cthulhu {
     color: #f1c40f;
     text-shadow: 3px 3px #000000;
@@ -176,16 +178,20 @@ body.cthulhu {
 .cthulhu .commentbox > .added, .cthulhu .commentbox > .main {
     border: none;
 }
+.cthulhu [name=prevSlide],
 .cthulhu #prevSlide {
     left: 100px;
     top: 120px;
     padding: 20px 35px;
 }
+.cthulhu [name=nextSlide],
 .cthulhu #nextSlide {
     right: 100px;
     top: 120px;
     padding: 20px 35px;
 }
+.cthulhu.bar_collapse [name=nextSlide],
+.cthulhu.bar_collapse [name=prevSlide],
 .cthulhu.bar_collapse #nextSlide, .cthulhu.bar_collapse #prevSlide {
     top: 75px;
 }
@@ -223,6 +229,7 @@ body.cthulhu {
 }
 
 .googie [data-edit-mode='plain'],
+/*.googie,*/
 body.googie {
     background-color: #ecf0f1;
 }
@@ -377,16 +384,20 @@ body.googie {
     border: solid rgb(56, 104, 194) 4px !important;
     border-radius: 10px;
 }
+.googie [name=prevSlide],
 .googie #prevSlide {
     left: 100px;
     top: 120px;
-    padding: 20px 35px;
+    padding: 20px 35px !important;
 }
+.googie [name=nextSlide],
 .googie #nextSlide {
     right: 100px;
     top: 120px;
-    padding: 20px 35px;
+    padding: 20px 35px !important;
 }
+.googie.bar_collapse [name=nextSlide],
+.googie.bar_collapse [name=prevSlide],
 .googie.bar_collapse #nextSlide, .googie.bar_collapse #prevSlide {
     top: 75px;
 }
@@ -405,6 +416,7 @@ body.googie {
     outline: none;
 }
 .console [data-edit-mode='plain'],
+.console,
 body.console {
     background-color: black;
     color: #0f0;
@@ -741,6 +753,8 @@ body.console {
 body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
     top: 0px;
 }
+.steampunk.bar_collapse [name=nextSlide],
+.steampunk.bar_collapse [name=prevSlide],
 .steampunk.bar_collapse #nextSlide, .steampunk.bar_collapse #prevSlide {
     top: inherit;
 }
@@ -834,6 +848,8 @@ body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
 .steampunk .code-content {
     padding-top: 0px;
 }
+.steampunk [name=nextSlide],
+.steampunk [name=prevSlide],
 .steampunk #nextSlide,  .steampunk #prevSlide {
     position: fixed;
     bottom: 50px;
@@ -842,23 +858,29 @@ body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
     height: 64px;
     border: none;
 }
+.steampunk [name=nextSlide],
 .steampunk #nextSlide {
     right: 150px;
     background: url(images/right_hand.png) no-repeat 0% 0% / 100% 100%;
 }
+.steampunk [name=prevSlide],
 .steampunk #prevSlide {
     left: 150px;
     background: url(images/left_hand.png) no-repeat 0% 0% / 100% 100%;
 }
+.steampunk [name=nextSlide] .fa,
+.steampunk [name=prevSlide] .fa,
 .steampunk #nextSlide .fa, .steampunk #prevSlide .fa {
     display: none;
 }
 .steampunk .testcase-button {
     padding: 0px 0px;
 }
+.steampunk [name=nextSlide] span:after,
 .steampunk #nextSlide span:after {
     content: none;
 }
+.steampunk [name=prevSlide] span:after,
 .steampunk #prevSlide span:after {
     content: none;
 }
@@ -1244,22 +1266,30 @@ button#team_cthulhu:hover {
     /* top: 45px; */
     /*position: relative;*/
 }
+[name=nextSlide],
+[name=prevSlide],
 #nextSlide, #prevSlide {
     top: 80px;
     z-index: 999;
 }
+[name=nextSlide],
 #nextSlide {
     right: 50px;
 }
+[name=prevSlide],
 #prevSlide {
     left: 50px;
 }
+.slides.lastSlide [name=nextSlide],
 body.slides.lastSlide #nextSlide {
     display: none;
 }
+.slides.firstSlide [name=prevSlide],
 body.slides.firstSlide #prevSlide {
     display: none;
 }
+.bar_collapse [name=nextSlide],
+.bar_collapse [name=prevSlide],
 .bar_collapse #nextSlide, .bar_collapse #prevSlide {
     top: 35px;
 }
@@ -1595,6 +1625,7 @@ button:hover {
 [data-edit-mode='fancy'] [data-org-headline] > [data-org-type='text'] {
     display: block;
 }
+.slides,
 body.loading, body.slides {
     position: absolute;
     border: none;
@@ -1664,13 +1695,17 @@ body.loading, body.slides {
     border-radius: 5px;
     background-color: #368ee0;
 }
+[name=nextSlide],
+[name=prevSlide],
 #nextSlide, #prevSlide {
     cursor: pointer;
     position: fixed;
 }
+[name=nextSlide] span:after,
 #nextSlide span:after {
     content: 'Next';
 }
+[name=prevSlide] span:after,
 #prevSlide span:after {
     content: 'Prev';
 }
@@ -1908,6 +1943,8 @@ i.fa + div, i.fa + span, i.fa + div + span {
 .flat [data-org-test] {
     cursor: pointer;
 }
+.flat [name=nextSlide],
+.flat [name=prevSlide],
 .flat #nextSlide, .flat #prevSlide {
     display: block;
     margin-left:auto;
@@ -1927,6 +1964,8 @@ i.fa + div, i.fa + span, i.fa + div + span {
     color: #fff;
     outline: none;
 }
+.flat [name=nextSlide]:hover,
+.flat [name=prevSlide]:hover,
 .flat #nextSlide:hover, .flat #prevSlide:hover {
     background-color: #549cde;
     border: solid rgb(54, 142, 224) 2px;

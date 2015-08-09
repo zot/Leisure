@@ -178,6 +178,9 @@ choose a handlebars template.
         $(view).find('.expandable-panel').children().filter('.label')
           .append(" <i class='fa fa-arrow-left'></i><i class='fa fa-arrow-right'></i>")
           .button()
+          .on 'click', ->
+            getPanel(this).addClass 'expand'
+            getPanel(this).find("[name='hiddenFocus']")[0].focus()
         ep = $(view).find '.expandable-panel'
         $("<input name='hiddenFocus' class='hiddenTextField'>").appendTo ep
         ep.mouseenter -> getPanel(this).removeClass 'contract'
