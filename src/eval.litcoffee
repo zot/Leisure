@@ -172,9 +172,25 @@ Evaulation support for Leisure
 
       languageEnvMaker = (name)-> knownLanguages[name?.toLowerCase()]
 
+      blockVars = (data, varDefs)->
+        blockIds = {}
+        vars = {}
+        if varDefs
+          for v in varDefs
+            if (eq = v.indexOf '=') > 0
+              value = v.substring(eq + 1).trim()
+              if value[0] in "'\"0123456789" then value = JSON.parse value
+              else if bl = data.namedBlocks[value]
+                blockIds[bl] = true
+                value = DATA.getBlock(bl)?.yaml
+              else value = value.trim()
+              vars[v.substring(0, eq).trim()] = value
+        [vars, _.keys blockIds]
+
       {
         languageEnvMaker
         html
         Html
         escapeHtml
+        blockVars
       }

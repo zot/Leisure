@@ -1,4 +1,4 @@
-* Data
+* Goodies
 :properties:
 :hidden: true
 :end:
@@ -6,9 +6,16 @@
 #+BEGIN_SRC yaml
 name: bubba
 #+END_SRC
+
+#+NAME: controller1
+#+BEGIN_SRC cs
+@initializeView = (view, data)->
+  $(view).find('[name=len]').html data.name.length
+#+END_SRC
 * Headline
-#+BEGIN_HTML :var __proto__=data1
+#+BEGIN_HTML :var __proto__=data1 :var x=3 :controller controller1
 <b>hello {{name}}</b>
+Name length: <b name='len'></b>
 #+END_HTML
 
 #+begin_src plantuml :file /tmp/duh.svg :results hidecode

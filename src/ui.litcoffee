@@ -122,17 +122,19 @@ choose a handlebars template.
 
       simpleRenderView = (attrs, key, template, data, block)->
         id = "view-#{viewIdCounter++}"
-        pendingViews.push [id, root.context]
+        do (context = root.context)->
+          pendingViews.push -> activateScripts $("##{id}"), context
         attrs += " id='#{id}'"
         if block then root.context.subviews[block._id] = true
+        root.context.simpleViewId = id
         "<span #{attrs}>#{template data, data: root.context}</span>"
 
       initializePendingViews = ->
         imageRefreshCounter++
         p = pendingViews
         pendingViews = []
-        for [viewId, context] in p
-          activateScripts $("##{viewId}"), context
+        for func in p
+          func()
 
       activateScripts = (el, context)->
         if !activating
@@ -152,7 +154,7 @@ choose a handlebars template.
               for script in $(el).find('script[type="text/coffeescript"]').add($(el).find 'script[type="text/literate-coffeescript"]')
                 root.currentScript = script
                 CoffeeScript.run script.innerHTML
-              controllers[$(el).attr 'data-view']?.initializeView(el)
+              controllers[$(el).attr 'data-view']?.initializeView(el, context.data)
               for img in el.find 'img'
                 refreshImage img
             finally
@@ -164,6 +166,8 @@ choose a handlebars template.
       removeController = (type, name, func)-> delete controllers[viewKey type, name]
 
       getPendingViews = -> pendingViews
+
+      pushPendingInitialzation = (pending)-> pendingViews.push pending
 
       getPanel = (view)-> $(view).closest '.expandable-panel'
 
@@ -211,5 +215,6 @@ choose a handlebars template.
           refreshImage
           nextImageSrc
           prevImageSrc
+          pushPendingInitialzation
         }
       ).UI

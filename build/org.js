@@ -985,14 +985,27 @@ misrepresented as being the original software.
       };
 
       Keyword.prototype.attributes = function() {
-        var o;
+        var attr, i, k, len, o, ref, ref1, v;
         o = _(this.info.split(keywordPropertyRE)).drop(1).map(function(str) {
           return str.trim();
-        }).chunk(2);
+        });
         if (o.isEmpty()) {
           return null;
         } else {
-          return o.toObject();
+          attr = {};
+          ref = o.chunk(2).toArray();
+          for (i = 0, len = ref.length; i < len; i++) {
+            ref1 = ref[i], k = ref1[0], v = ref1[1];
+            if (attr[k]) {
+              if (!(attr[k] instanceof Array)) {
+                attr[k] = [attr[k]];
+              }
+              attr[k].push(v);
+            } else {
+              attr[k] = v;
+            }
+          }
+          return attr;
         }
       };
 

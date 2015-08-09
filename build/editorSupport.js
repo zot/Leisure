@@ -417,7 +417,7 @@
       };
 
       OrgEditing.prototype.changed = function(changes) {
-        var block, blockIds, i, j, k, l, len, len1, len2, newBlock, newBlocks, oldBlock, oldBlocks, ref, viewNodes;
+        var block, i, id, j, k, l, len, len1, len2, nb, newBlock, newBlocks, node, oldBlock, oldBlocks, ref, ref1, viewNodes;
         newBlocks = changes.newBlocks, oldBlocks = changes.oldBlocks;
         if ((newBlocks.length === (ref = oldBlocks.length) && ref === 1)) {
           for (i = j = 0, len = newBlocks.length; j < len; i = ++j) {
@@ -427,29 +427,33 @@
               return OrgEditing.__super__.changed.call(this, changes);
             }
           }
-          blockIds = {};
+          nb = newBlocks.slice();
+          viewNodes = $();
           for (k = 0, len1 = newBlocks.length; k < len1; k++) {
             block = newBlocks[k];
-            blockIds[block._id] = true;
-          }
-          this.mode.renderChanged(this, newBlocks, this.idPrefix, true);
-          viewNodes = $();
-          for (l = 0, len2 = newBlocks.length; l < len2; l++) {
-            block = newBlocks[l];
             viewNodes = viewNodes.add(this.find("[data-view-block='" + block._id + "']"));
             viewNodes = this.findViewsForDefiner(block, viewNodes);
+            ref1 = this.find("[data-observe~=" + block._id + "]");
+            for (l = 0, len2 = ref1.length; l < len2; l++) {
+              node = ref1[l];
+              if (id = this.idForNode(node)) {
+                nb.push(this.getBlock(id, changes));
+              }
+            }
           }
+          nb = _.values(_.indexBy(nb, '_id'));
+          this.mode.renderChanged(this, nb, this.idPrefix, true);
           return this.withNewContext((function(_this) {
             return function() {
-              var data, len3, m, node, ref1, ref2, results1;
-              ref1 = viewNodes.filter(function(n) {
+              var data, len3, m, ref2, ref3, results1;
+              ref2 = viewNodes.filter(function(n) {
                 return !blockIds[_this.idForNode(n)];
               });
               results1 = [];
-              for (m = 0, len3 = ref1.length; m < len3; m++) {
-                node = ref1[m];
+              for (m = 0, len3 = ref2.length; m < len3; m++) {
+                node = ref2[m];
                 node = $(node);
-                if (data = (ref2 = (block = _this.getBlock(node.attr('data-view-block')))) != null ? ref2.yaml : void 0) {
+                if (data = (ref3 = (block = _this.getBlock(node.attr('data-view-block')))) != null ? ref3.yaml : void 0) {
                   results1.push(renderView($(node).attr('data-view'), null, data, node, block));
                 } else {
                   results1.push(void 0);
@@ -863,7 +867,9 @@
       editorForToolbar: editorForToolbar,
       blockCodeItems: blockCodeItems,
       escapeAttr: escapeAttr,
-      blockIsHidden: blockIsHidden
+      blockIsHidden: blockIsHidden,
+      blockEnvMaker: blockEnvMaker,
+      controllerEval: controllerEval
     };
   });
 

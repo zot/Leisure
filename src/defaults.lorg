@@ -259,7 +259,7 @@ contenteditable='true'>{{nameText
 id='{{id}}'
 data-block='code'
 contenteditable='false'
-data-lang='{{language}}'><span class='hidden'>{{block.text}}</span><div data-noncontent contenteditable='false'>{{{source}}}</div></span>
+data-lang='{{language}}'><span class='hidden'>{{block.text}}</span><div data-noncontent contenteditable='false'>{{{renderHtml source}}}</div></span>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code/results-only

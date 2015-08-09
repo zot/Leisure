@@ -446,8 +446,16 @@ define ['lib/lazy'], (Lazy)->
       name: @name
       info: @info
     attributes: ->
-      o = _(@info.split(keywordPropertyRE)).drop(1).map((str)-> str.trim()).chunk(2)
-      if o.isEmpty() then null else o.toObject()
+      o = _(@info.split(keywordPropertyRE)).drop(1).map((str)-> str.trim())
+      if o.isEmpty() then null
+      else
+        attr = {}
+        for [k,v] in o.chunk(2).toArray()
+          if attr[k]
+            if !(attr[k] instanceof Array) then attr[k] = [attr[k]]
+            attr[k].push v
+          else attr[k] = v
+        attr
     lead: -> _(@info.split(keywordPropertyRE)).first()
   
   class Source extends Keyword

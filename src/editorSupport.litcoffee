@@ -285,14 +285,16 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               if newBlocks.type == 'headline' || oldBlock.type == 'headline' ||
               newBlock._id != oldBlock._id
                 return super changes
-            blockIds = {}
-            for block in newBlocks
-              blockIds[block._id] = true
-            @mode.renderChanged this, newBlocks, @idPrefix, true
+            nb = newBlocks.slice()
             viewNodes = $()
             for block in newBlocks
               viewNodes = viewNodes.add @find "[data-view-block='#{block._id}']"
               viewNodes = @findViewsForDefiner block, viewNodes
+              for node in @find "[data-observe~=#{block._id}]"
+                if id = @idForNode node
+                  nb.push @getBlock id, changes
+            nb = _.values(_.indexBy(nb, '_id'))
+            @mode.renderChanged this, nb, @idPrefix, true
             @withNewContext =>
               for node in viewNodes.filter((n)=> !blockIds[@idForNode n])
                 node = $(node)
@@ -579,4 +581,6 @@ Exports
         blockCodeItems
         escapeAttr
         blockIsHidden
+        blockEnvMaker
+        controllerEval
       }

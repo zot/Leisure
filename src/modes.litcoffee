@@ -36,6 +36,7 @@
         Html
         escapeHtml
         html
+        blockVars
       } = Eval
       {
         LeisureEditCore
@@ -65,6 +66,7 @@
         escapeAttr
         nextImageSrc
         prevImageSrc
+        pushPendingInitialzation
       } = UI
       {
         mergeExports
@@ -74,7 +76,11 @@
         blockOrg
         blockCodeItems
         blockIsHidden
+        blockEnvMaker
+        controllerEval
       } = EditorSupport
+
+      singleControllers = {}
 
       plainMode =
         name: 'plain'
@@ -140,6 +146,32 @@
 
       Handlebars.registerHelper 'render', (block)->
         fancyMode.render(UI.context.opts, block, UI.context.prefix)[0]
+
+      Handlebars.registerHelper 'renderHtml', (html)->
+        [vars, ids] = blockVars UI.context?.opts?.data, this.block?.codeAttributes?.var
+        if ids.length > 0 && (id = UI.context?.simpleViewId ? this.id) && (opts = UI.context?.opts)
+          pushPendingInitialzation =>
+            viewNode = $("##{id}")
+            if (node = opts.nodeForId(@block._id)) && (node[0] == viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)
+              blocks = node.attr('data-observe') ? ''
+              for id in ids
+                blocks += " #{id}"
+              node.attr 'data-observe', blocks
+            if controllerName = @block.codeAttributes.controller
+              if !(controller = singleControllers[controllerName])
+                if block = opts.getBlock opts.data.namedBlocks[controllerName]
+                  controller = singleControllers[controllerName] = {}
+                  env = blockEnvMaker(block) __proto__: defaultEnv
+                  env.eval = (text)-> controllerEval.call controller, text
+                  env.write = (str)->
+                  env.errorAt = (offset, msg)-> console.log msg
+                  env.executeText blockSource(block), Nil, (->)
+              controller?.initializeView viewNode[0], vars
+        Handlebars.compile(html)(vars)
+
+      initializePendingViews = ->
+        UI.initializePendingViews()
+        singleControllers = {}
 
       Handlebars.registerHelper 'renderPlain', (data)->
         text = ''
@@ -468,6 +500,7 @@ Exports
         plainMode
         fancyMode
         toggleSlideMode
+        blockVars
       }
 
       {
