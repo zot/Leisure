@@ -336,18 +336,19 @@ Events:
           if s.type == 'None' then type: 'None'
           else
             range = s.getRangeAt 0
-            start = @docOffset range.startContainer, range.startOffset
-            if s.type == 'Caret' then range.length = 0
-            else
-              end = @docOffset range.endContainer, range.endOffset
-              length = Math.abs start - end
-              start = Math.min start, end
-            type: s.type
-            start: start
-            length: length
+            if start = @docOffset range.startContainer, range.startOffset
+              if s.type == 'Caret' then length = 0
+              else
+                end = @docOffset range.endContainer, range.endOffset
+                length = Math.abs start - end
+                start = Math.min start, end
+              type: s.type
+              start: start
+              length: length
+            else type: 'None'
         selectDocRange: (range)->
-          start = @domCursorForDocOffset(range.start).save()
-          selectRange start.range(start.mutable().forwardChars range.length)
+          if range.type != 'None' && !(start = @domCursorForDocOffset(range.start).save()).isEmpty()
+            selectRange start.range(start.mutable().forwardChars range.length)
         getSelectedBlockRange: ->
           s = getSelection()
           if s.type == 'None' then type: 'None'

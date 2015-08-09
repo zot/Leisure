@@ -189,10 +189,11 @@ The DOMCursor class...
 **moveCaret** move the document selection to the current position
 
         moveCaret: (r)->
-          if !r then r = document.createRange()
-          r.setStart @node, @pos
-          r.collapse true
-          selectRange r
+          if !@isEmpty()
+            if !r then r = document.createRange()
+            r.setStart @node, @pos
+            r.collapse true
+            selectRange r
           this
 
         adjustForNewline: ->

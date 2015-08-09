@@ -240,8 +240,10 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         (block?.type == 'code' && block.codeAttributes?[attr]) || null
 
       addChange = (block, changes)->
-        if !changes.oldBlocks[block._id] then changes.oldBlocks[block._id] = copy block
-        changes.sets[block._id] = block
+        if !changes.sets[block._id]
+          changes.oldBlocks.push = block
+          changes.newBlocks.push changes.sets[block._id] = copy block
+        changes.sets[block._id]
 
       greduce = (thing, changes, func, arg, next)->
         if typeof changes == 'function'
@@ -357,9 +359,6 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
 `change(changes)` -- about to change the data; compute some effects immediately.
 
         change: (changes)->
-          if @changesHidden changes
-            console.log "REJECTING DELETE OF HIDDEN"
-            return false
           computedProperties = {}
           changedProperties = []
           for id, change of changes.sets
@@ -376,6 +375,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
                 for child in @data.children parent, changes
                   props = _.merge props, child.properties
                 addChange(@data.getBlock(parent, changes), changes).properties = props
+          @mode.handleChanges this, changes
           super changes
         changesHidden: (changes)->
           if @canHideSlides()
@@ -578,4 +578,5 @@ Exports
         editorForToolbar
         blockCodeItems
         escapeAttr
+        blockIsHidden
       }

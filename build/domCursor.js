@@ -171,12 +171,14 @@
       };
 
       DOMCursor.prototype.moveCaret = function(r) {
-        if (!r) {
-          r = document.createRange();
+        if (!this.isEmpty()) {
+          if (!r) {
+            r = document.createRange();
+          }
+          r.setStart(this.node, this.pos);
+          r.collapse(true);
+          selectRange(r);
         }
-        r.setStart(this.node, this.pos);
-        r.collapse(true);
-        selectRange(r);
         return this;
       };
 

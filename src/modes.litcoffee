@@ -73,10 +73,12 @@
         OrgEditing
         blockOrg
         blockCodeItems
+        blockIsHidden
       } = EditorSupport
 
       plainMode =
         name: 'plain'
+        handleChanges: (changes)->
         renderChanged: (opts, blocks, prefix, replace)->
           for id, block of opts.slidesFor blocks
             @render opts, block, prefix, replace
@@ -196,8 +198,33 @@
         {results: res} = @codeItems
         resultsArea res.text.substring res.contentPos
 
+      slideNode = (node)-> $(node).closest('slideHolder').closest('[data-view]')
+
+      isHiddenSlide = (block)-> block.type == 'headline' && blockIsHidden block
+
       fancyMode =
         name: 'fancy'
+        handleChanges: (opts, changes)->
+          for block in changes.newBlocks
+            if changes.sets[block._id] && (old = opts.getBlock block._id) && isHiddenSlide(block) != isHiddenSlide(old)
+              if isHiddenSlide block
+                slideNode(opts.nodeForId(block._id)).remove()
+              else
+                siblingNode = null
+                [newNode] = @render opts, block, opts.prefix
+                sibling = block
+                while !siblingNode && (sibling = opts.data.previousSibling sibling, changes)
+                  if (siblingNode = opts.nodeForId(sibling._id)).length == 0
+                    siblingNode = null
+                if siblingNode then slideNode(siblingNode).after newNode
+                else
+                  sibling = block
+                  while !siblingNode && (sibling = opts.data.nextSibling sibling, changes)
+                    if (siblingNode = opts.nodeForId(sibling._id)).length == 0
+                      siblingNode = null
+                  if siblingNode then slideNode(siblingNode).before newNode
+                  else $(opts.editor.node).prepend newNode
+                initializePendingViews()
         renderChanged: (opts, blocks, prefix, replace)->
           rendered = {}
           for block in blocks

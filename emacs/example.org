@@ -1,5 +1,13 @@
+* Data
+:properties:
+:hidden: true
+:end:
+#+NAME: data1
+#+BEGIN_SRC yaml
+name: bubba
+#+END_SRC
 * Headline
-#+BEGIN_HTML
+#+BEGIN_HTML :var __proto__=data1
 <b>hello {{name}}</b>
 #+END_HTML
 
@@ -38,6 +46,9 @@ asdasdfasdf
            \-----/             |      |
                                +------+
 #+end_src
+
+#+RESULTS:
+[[file:/tmp/ditaa-seqboxes.png]]
 
 * Settings
 :properties:

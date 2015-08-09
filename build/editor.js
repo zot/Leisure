@@ -269,26 +269,32 @@
           };
         } else {
           range = s.getRangeAt(0);
-          start = this.docOffset(range.startContainer, range.startOffset);
-          if (s.type === 'Caret') {
-            range.length = 0;
+          if (start = this.docOffset(range.startContainer, range.startOffset)) {
+            if (s.type === 'Caret') {
+              length = 0;
+            } else {
+              end = this.docOffset(range.endContainer, range.endOffset);
+              length = Math.abs(start - end);
+              start = Math.min(start, end);
+            }
+            return {
+              type: s.type,
+              start: start,
+              length: length
+            };
           } else {
-            end = this.docOffset(range.endContainer, range.endOffset);
-            length = Math.abs(start - end);
-            start = Math.min(start, end);
+            return {
+              type: 'None'
+            };
           }
-          return {
-            type: s.type,
-            start: start,
-            length: length
-          };
         }
       };
 
       LeisureEditCore.prototype.selectDocRange = function(range) {
         var start;
-        start = this.domCursorForDocOffset(range.start).save();
-        return selectRange(start.range(start.mutable().forwardChars(range.length)));
+        if (range.type !== 'None' && !(start = this.domCursorForDocOffset(range.start).save()).isEmpty()) {
+          return selectRange(start.range(start.mutable().forwardChars(range.length)));
+        }
       };
 
       LeisureEditCore.prototype.getSelectedBlockRange = function() {

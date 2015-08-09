@@ -356,10 +356,11 @@
       return ((block != null ? block.type : void 0) === 'code' && ((ref = block.codeAttributes) != null ? ref[attr] : void 0)) || null;
     };
     addChange = function(block, changes) {
-      if (!changes.oldBlocks[block._id]) {
-        changes.oldBlocks[block._id] = copy(block);
+      if (!changes.sets[block._id]) {
+        changes.oldBlocks.push = block;
+        changes.newBlocks.push(changes.sets[block._id] = copy(block));
       }
-      return changes.sets[block._id] = block;
+      return changes.sets[block._id];
     };
     greduce = function(thing, changes, func, arg, next) {
       if (typeof changes === 'function') {
@@ -608,10 +609,6 @@
 
       OrgEditing.prototype.change = function(changes) {
         var change, changedProperties, child, computedProperties, id, j, k, len, len1, oldBlock, parent, props, ref, ref1, ref2;
-        if (this.changesHidden(changes)) {
-          console.log("REJECTING DELETE OF HIDDEN");
-          return false;
-        }
         computedProperties = {};
         changedProperties = [];
         ref = changes.sets;
@@ -639,6 +636,7 @@
             }
           }
         }
+        this.mode.handleChanges(this, changes);
         return OrgEditing.__super__.change.call(this, changes);
       };
 
@@ -864,7 +862,8 @@
       toolbarFor: toolbarFor,
       editorForToolbar: editorForToolbar,
       blockCodeItems: blockCodeItems,
-      escapeAttr: escapeAttr
+      escapeAttr: escapeAttr,
+      blockIsHidden: blockIsHidden
     };
   });
 
