@@ -459,7 +459,7 @@
             return function() {
               var data, len3, m, ref2, ref3, results1;
               ref2 = viewNodes.filter(function(n) {
-                return !blockIds[_this.idForNode(n)];
+                return !nb[_this.idForNode(n)];
               });
               results1 = [];
               for (m = 0, len3 = ref2.length; m < len3; m++) {

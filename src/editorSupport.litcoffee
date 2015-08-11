@@ -299,7 +299,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             nb = _.values(_.indexBy(nb, '_id'))
             @mode.renderChanged this, nb, @idPrefix, true
             @withNewContext =>
-              for node in viewNodes.filter((n)=> !blockIds[@idForNode n])
+              for node in viewNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
                 if data = (block = @getBlock(node.attr 'data-view-block'))?.yaml
                   renderView $(node).attr('data-view'), null, data, node, block

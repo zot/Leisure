@@ -4,7 +4,7 @@
 :end:
 #+NAME: data1
 #+BEGIN_SRC yaml
-name: bubba
+name: buwsdfj
 #+END_SRC
 
 #+NAME: controller1
@@ -39,7 +39,7 @@ BinaryTableHdu : getColumn(column)
 #+RESULTS:
 [[file:/tmp/duh.svg]]
 
-asdasdfasdf
+asdasdfasdfhjkjhkjhkjhjkh
 #+begin_src ditaa :file /tmp/ditaa-seqboxes.png :results hidecode
 +------+   +-----+   +-----+   +-----+
 |{io}  |   |{d}  |   |{s}  |   |cBLU |

@@ -1,5 +1,9 @@
+* TODO extract doc strings between name and begin_src
+* TODO extract doc strings from sourcemap, before code
+* TODO emacs file message for file links (images, etc.)
+* BUG problem editing headline in slide mode
+* TODO get toolbar theming working (at least get steampunk toolbar to work)
 * TODO fix list parsing (place an empty list item after the final meat, etc.)
-* TODO render HTML blocks in fancy mode (as opposed to src blocks)
 * TODO widgets for Emacs demo
 * TODO code block views (replace whole code block)
 * TODO code result views (replace results area)
@@ -733,7 +737,9 @@ they don't like building things...
   - [ ] Talk: future: code google
     - static inclusion (updatable subdocuments)
 * Resources
-[Org Syntax](http://orgmode.org/worg/dev/org-syntax.html)
+[[http://orgmode.org/worg/dev/org-syntax.html][Org syntax]]
+[[http://phantomjs.org/][PhantomJS]]
+[[https://github.com/cemerick/austin][Austin ClojureScript REPL]]
 * Todo Items
   :PROPERTIES:
   :ID:       41b927b5-242d-4552-b7ac-5ef44eccf79e
@@ -963,6 +969,8 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE render HTML blocks in fancy mode (as opposed to src blocks)
+   CLOSED: [2015-08-10 Mon 00:21]
 ** DONE martini glass not working in plain mode (i.e. second click)
    CLOSED: [2015-08-08 Sat 12:41]
 ** DONE minimal rendering for changed data
