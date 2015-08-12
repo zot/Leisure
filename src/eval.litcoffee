@@ -176,7 +176,7 @@ Evaulation support for Leisure
         blockIds = {}
         vars = {}
         if varDefs
-          for v in varDefs
+          for v in (if _.isArray varDefs then varDefs else [varDefs])
             if (eq = v.indexOf '=') > 0
               value = v.substring(eq + 1).trim()
               if value[0] in "'\"0123456789" then value = JSON.parse value

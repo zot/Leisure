@@ -12,13 +12,24 @@ name: buwsdfj
 @initializeView = (view, data)->
   $(view).find('[name=len]').html data.name.length
 #+END_SRC
+* Rotator
+#+NAME: rotator
+#+BEGIN_SRC yaml
+degrees: 22459
+#+END_SRC
+
+#+BEGIN_HTML :var __proto__=rotator
+<div style='padding: 25px; display: inline-block'>
+  <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
+</div>
+#+END_HTML
 * Headline
 #+BEGIN_HTML :var __proto__=data1 :var x=3 :controller controller1
 <b>hello {{name}}</b>
 Name length: <b name='len'></b>
 #+END_HTML
 
-#+begin_src plantuml :file /tmp/duh.svg :results hidecode
+#+begin_src plantuml :file /tmp/duh.svg :exports code
 skinparam monochrome true
 FitsHdu <|-- PrimaryHdu
 FitsHdu <|-- ExtensionHdu
@@ -40,7 +51,7 @@ BinaryTableHdu : getColumn(column)
 [[file:/tmp/duh.svg]]
 
 asdasdfasdfhjkjhkjhkjhjkh
-#+begin_src ditaa :file /tmp/ditaa-seqboxes.png :results hidecode
+#+begin_src ditaa :file /tmp/ditaa-seqboxes.png :exports results
 +------+   +-----+   +-----+   +-----+
 |{io}  |   |{d}  |   |{s}  |   |cBLU |
 | Foo  +---+ Bar +---+ Baz +---+ Moo |

@@ -82,6 +82,8 @@
       } = EditorSupport
 
       singleControllers = {}
+      numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/g
+      currentSlider = null
 
       plainMode =
         name: 'plain'
@@ -234,7 +236,8 @@
 
       Handlebars.registerHelper 'resultsContents', ->
         {results: res} = @codeItems
-        resultsArea res.text.substring res.contentPos
+        if @hideResults then "<span class='hidden'>#{escapeHtml res.text}</span>"
+        else resultsArea res.text.substring res.contentPos
 
       slideNode = (node)-> $(node).closest('slideHolder').closest('[data-view]')
 
@@ -308,6 +311,7 @@
           else
             opts.withNewContext =>
               UI.context.currentView = opts.nodeForId block._id
+              UI.context.block = block
               if block.type == 'headline' then @renderHeadline opts, block, prefix, replace
               else if !block.prev then @renderFirstBlocks opts, block, prefix, replace
               else @renderNontop opts, block, prefix, replace
@@ -381,8 +385,9 @@
         renderCode: (opts, block, prefix, replace)->
           key = "leisure-code"
           org = blockOrg opts.data, block
+          hideResults = !showsResults block
           {name, source, results} = items = getCodeItems org.children?[0] ? org
-          lang = if results && results.text.length > results.contentPos && _.contains (block.codeAttributes?.results?.split(' ') ? []), 'hidecode' then 'results-only'
+          lang = if results && results.text.length > results.contentPos && !showsCode block then 'results-only'
           else if items.source instanceof HTML then 'inline-html' else block.language
           if hasView key, lang
             nameBoiler = if name && m = name.text.match keywordRE
@@ -393,6 +398,7 @@
               id: prefix + block._id
               codeItems: items
               language: block.language
+              hideResults: hideResults
               block: block
               header: block.text.substring 0, block.codePrelen
               source: blockSource block
@@ -402,8 +408,9 @@
               name: if name then name.text.substring name.info else ''
               afterName: if name then block.text.substring name.end(), source.offset else ''
               inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
-              results: if results then resultsArea block.text.substring results.offset, results.end() else ''
-              resultsContent: if results then resultsArea results.text.substring results.contentPos else ''
+              results: if !results then ''
+              else if hideResults then "<span class='hidden'>#{escapeHtml results.text}</span>"
+              else resultsArea results.text
               beforeResults: block.text.substring 0, results?.offset ? source.end()
             sourceData.text = @renderCodeOrg sourceData
             @renderView key, lang, block.next, sourceData, targets
@@ -531,6 +538,69 @@
                 return true
           false
 
+      createValueSliders = ->
+        for num in $(UI.context.currentView).find('.token.number')
+          console.log "Number:", num
+          $(num).on 'click', -> showValueSlider this
+
+      showValueSlider = (number)->
+        editor = findEditor(number)
+        widget = editor.node.find('[name=valueSlider]')
+        blockOff = editor.blockOffset number, 0
+        currentSlider =
+          blockId: blockOff.block._id
+          start: blockOff.offset
+          editor: editor
+          widget: widget
+          sliding: true
+        widget.removeClass 'hidden'
+        widget.position my: 'center top', at: 'center bottom', of: number
+        setSliderValue Number number.textContent
+
+      setSliderValue = (val)->
+        widget = currentSlider.widget
+        if -100 <= val <= 100
+          widget.slider 'option', 'min', Math.min -100, -Math.abs val * 2
+          widget.slider 'option', 'max', Math.max 100, Math.abs val * 2
+        else if val > 100
+          widget.slider 'option', 'min', 0
+          widget.slider 'option', 'max', val * 2
+        else
+          widget.slider 'option', 'min', val * 2
+          widget.slider 'option', 'max', 0
+        widget.slider 'value', val
+
+      setSliding = (flag)->
+        if !flag then setSliderValue currentSlider.widget.slider 'value'
+        setTimeout (->currentSlider?.sliding = flag), 1
+
+      slideValue = ->
+        cs = currentSlider
+        block = cs.editor.options.getBlock cs.blockId
+        m = block.text.substring(cs.start).match numPat
+        newText = String currentSlider.widget.slider 'value'
+        if m[0] != newText
+          cs.editor.replace null,
+            block: block
+            offset: cs.start
+            length: m[0].length
+            type: 'Range',
+            newText
+
+      mayHideValueSlider = ->
+        if currentSlider && !currentSlider?.sliding
+          currentSlider.widget.addClass 'hidden'
+          currentSlider = null
+        else console.log "not hiding"
+
+      showsCode = (codeBlock)->
+        exports = codeBlock.codeAttributes?.exports?.split(' ')
+        !exports || ('code' in exports) || ('both' in exports)
+
+      showsResults = (codeBlock)->
+        exports = codeBlock.codeAttributes?.exports?.split(' ')
+        !exports || ('results' in exports) || ('both' in exports)
+
       _workSpan = null
 
       workSpan = -> _workSpan || createWorkSpan()
@@ -583,6 +653,10 @@ Exports
         fancyMode
         toggleSlideMode
         blockVars
+        createValueSliders
+        slideValue
+        mayHideValueSlider
+        setSliding
       }
 
       {

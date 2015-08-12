@@ -1,6 +1,13 @@
+* TODO hook to gists or fiddles
+* TODO expanded emacs server
+- file message for file links (images, etc.) and imports
+- execute message
+* TODO use :exports to control code appearance
+  :exports code
+  :exports both
+* TODO Check out [[https://disqus.com/][disqus]] for code comments [[https://disqus.com/api/docs/requests/][disqus api]]
 * TODO extract doc strings between name and begin_src
 * TODO extract doc strings from sourcemap, before code
-* TODO emacs file message for file links (images, etc.)
 * BUG problem editing headline in slide mode
 * TODO get toolbar theming working (at least get steampunk toolbar to work)
 * TODO fix list parsing (place an empty list item after the final meat, etc.)

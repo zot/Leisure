@@ -185,6 +185,9 @@
         if (node instanceof jQuery) {
           node = node[0];
           pos = pos != null ? pos : 0;
+        } else if (node instanceof DOMCursor) {
+          pos = node.pos;
+          node = node.node;
         }
         return this.options.domCursor(node, pos);
       };

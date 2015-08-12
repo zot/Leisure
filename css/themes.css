@@ -42,6 +42,7 @@ body.cthulhu {
 .cthulhu ::-moz-selection {
     background: #1c3d34; /* Firefox */
 }
+.cthulhu.slides [name=dummy_headline],
 .cthulhu.slides #dummy_headline {
     height: 240px;
 }
@@ -233,6 +234,7 @@ body.cthulhu {
 body.googie {
     background-color: #ecf0f1;
 }
+.googie.slides [name=dummy_headline],
 .googie.slides #dummy_headline {
     height: 240px;
 }
@@ -650,6 +652,7 @@ body.console {
 .steampunk button#team_cthulhu:hover {
     background-color: #27ae60;
 }
+.steampunk.slides [name=dummy_headline],
 .steampunk.slides #dummy_headline {
     height: 0px;
 }
@@ -1130,11 +1133,13 @@ body {
 .view {
     white-space: normal;
 }
+[name=dummy_headline],
 #dummy_headline {
     position: relative;
     width: 0px;
     height: 0px;
 }
+.slides [name=dummy_headline],
 .slides #dummy_headline {
     height: 122px;
 }

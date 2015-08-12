@@ -90,3 +90,11 @@ body {
     overflow: auto;
     height: 15em;
 }
+.token.number:hover {
+    outline: solid black 1px;
+}
+[name=valueSlider] {
+    display: inline-block;
+    position: absolute !important;
+    width: 8em;
+}

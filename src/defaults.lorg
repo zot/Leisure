@@ -25,7 +25,8 @@ in as long as you mark it as data-noncontent, etc.
     <span></span>
   </button>
 </div>
-<div id="dummy_headline" data-noncontent contenteditable='false'></div>
+<div name="dummy_headline" data-noncontent contenteditable='false'></div>
+<div name="valueSlider" class='hidden'></div>
 #+END_SRC
 #+BEGIN_SRC html :defview leisure-toolbar
 <div name='buttons' style="position: relative;">
@@ -75,6 +76,14 @@ in as long as you mark it as data-noncontent, etc.
   opts = Leisure.findEditor(view).options
   view.find('[name=prevSlide]').on 'click', -> opts.mode.showPrevSlide(opts)
   view.find('[name=nextSlide]').on 'click', -> opts.mode.showNextSlide(opts)
+  vs = view.find('[name=valueSlider]')
+  vs.slider
+    slide: -> Leisure.slideValue()
+    start: -> Leisure.setSliding true
+    stop: -> Leisure.setSliding false
+  vs.slider().on 'mouseleave', -> Leisure.mayHideValueSlider()
+  vs.on 'mouseleave', -> Leisure.mayHideValueSlider()
+  console.log "slider", vs
 #+END_SRC
 
 #+BEGIN_SRC cs :control leisure-toolbar
@@ -272,8 +281,12 @@ render this
     contenteditable='true'>{{{renderSource}}}</div><span
 class='hidden'>{{footer}}</span>{{#if
 inter}}<div>{{inter}}</div>{{/if}}{{#if
-resultsContent}}<div
-class='code-results' data-org-src>{{{resultsContent}}}</div>{{/if}}</span>
+results}}{{#if hideResults}}{{{results}}}{{else}}<div
+class='code-results' data-org-src>{{{results}}}</div>{{/if}}{{/if}}</span>
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-code
+@initializeView = (view)-> Leisure.createValueSliders()
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code-name
@@ -316,6 +329,10 @@ contenteditable='false'
 data-lang='{{language}}'><table><tr><td class='code-controls' data-noncontent>
 <span class='hidden'>CONTROLS</span>
 </td><td class='code-text'>{{{text}}}</td><td></td></tr></table></span>
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-code/js
+@initializeView = (view)-> Leisure.createValueSliders()
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code-source/js

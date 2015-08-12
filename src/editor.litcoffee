@@ -288,6 +288,9 @@ Events:
           if node instanceof jQuery
             node = node[0]
             pos = pos ? 0
+          else if node instanceof DOMCursor
+            pos = node.pos
+            node = node.node
           @options.domCursor(node, pos)
         domCursorForText: (node, pos, parent)->
           c = @domCursor node, pos
