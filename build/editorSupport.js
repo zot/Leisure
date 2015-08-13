@@ -810,13 +810,12 @@
       $("#selectionBubble").html(selectionMenu).on('mouseenter', function() {
         return configureMenu($("#selectionBubble ul"));
       });
-      $("#selectionBubble ul").menu({
+      return $("#selectionBubble ul").menu({
         select: function(event, ui) {
           console.log("MENU SELECT");
           return false;
         }
       });
-      return monitorSelectionChange();
     };
     selectionMenu = "<div>\n<ul>\n  <li name='insert'><a href='javascript:void(0)'><span>Insert</span></a>\n    <ul>\n      <li><a href='javascript:void(0)'><span>Leisure</span></a></li>\n      <li><a href='javascript:void(0)'><span>YAML</span></a></li>\n      <li><a href='javascript:void(0)'><span>HTML</span></a></li>\n      <li><a href='javascript:void(0)'><span>CoffeeScript</span></a></li>\n      <li><a href='javascript:void(0)'><span>JavaScript</span></a></li>\n    </ul>\n  </li>\n</ul>\n</div>";
     configureMenu = function(menu) {

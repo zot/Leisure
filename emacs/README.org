@@ -1,3 +1,8 @@
+* Leisure connection mode for Emacs
+This is a minor mode that connects an emacs buffer to Leisure web page.
+** Turning the mode on and off
+Turning the mode on will automatially open Leisure a new web page and connect
+it to your web
 * Goodies
 :properties:
 :hidden: true
@@ -68,10 +73,3 @@ asdasdfasdfhjkjhkjhkjhjkh
 #+RESULTS:
 [[file:/tmp/ditaa-seqboxes.png]]
 
-* Settings
-:properties:
-:hidden: true
-:end:
-Local Variables:
-org-confirm-babel-evaluate: nil
-End:

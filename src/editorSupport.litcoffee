@@ -491,7 +491,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           .html selectionMenu
           .on 'mouseenter', -> configureMenu $("#selectionBubble ul")
         $("#selectionBubble ul").menu select: (event, ui)-> console.log "MENU SELECT"; false
-        monitorSelectionChange()
+        #monitorSelectionChange()
     
       selectionMenu = """
       <div>

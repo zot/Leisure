@@ -16,15 +16,17 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+
 (defun dl (&rest elements)
   "A difference list of ELEMENTS."
   (lambda (y) (append elements y)))
 (defun dl/resolve (dl)
   "Resolve difference list DL."
   (funcall dl nil))
-(defun dl/append (a b)
-  "Append difference lists A and B."
-  (lambda (x) (funcall a (funcall b x))))
+(defun dl/append (&rest args)
+  "Append difference lists in ARGS."
+  (lambda (x) (cl-reduce (lambda (acc el) (funcall el acc)) (reverse args) :initial-value x)))
 
 (provide 'dl)
 ;;; dl.el ends here
