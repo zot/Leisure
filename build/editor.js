@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable'], function(jq, DOMCursor, Fingertree, Immutable) {
-    var BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, blockText, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys;
+    var Advice, BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, beforeMethod, blockText, changeAdvice, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     maxLastKeys = 4;
@@ -179,6 +179,43 @@
 
       LeisureEditCore.prototype.getText = function() {
         return this.options.getText();
+      };
+
+      LeisureEditCore.prototype.blockNodeForNode = function(node) {
+        return this.options.nodeForId(this.options.idForNode(node));
+      };
+
+      LeisureEditCore.prototype.blockTextForNode = function(node) {
+        var next, nextPos, parent, ref;
+        parent = $(this.blockNodeForNode(node))[0];
+        if (next = (ref = this.options.getBlock(this.options.idForNode(node))) != null ? ref.next : void 0) {
+          nextPos = this.domCursorForText(this.options.nodeForId(next), 0);
+          return this.domCursorForText(parent, 0, parent).getTextTo(nextPos);
+        } else {
+          return this.domCursorForText(parent, 0, parent).getText();
+        }
+      };
+
+      LeisureEditCore.prototype.verifyNode = function(node) {
+        if (typeof node === 'string') {
+          node = this.options.nodeForId(node);
+        }
+        return this.blockTextForNode(node) === this.options.getBlock(this.options.idForNode(node)).text;
+      };
+
+      LeisureEditCore.prototype.verifyAllNodes = function() {
+        var badIds, block, node;
+        badIds = [];
+        block = this.options.getBlock(this.options.getFirst());
+        while (block) {
+          if ((node = this.options.nodeForId(block._id)[0]) && !this.verifyNode(node)) {
+            badIds.push(block._id);
+          }
+          block = this.options.getBlock(block.next);
+        }
+        if (badIds.length) {
+          return badIds;
+        }
       };
 
       LeisureEditCore.prototype.domCursor = function(node, pos) {
@@ -994,6 +1031,21 @@
         this.initData();
       }
 
+      BasicEditingOptions.prototype.setDiagEnabled = function(flag) {
+        return changeAdvice(this, flag, {
+          renderBlocks: {
+            diag: wrapDiag
+          },
+          changed: {
+            diag: wrapDiag
+          }
+        });
+      };
+
+      BasicEditingOptions.prototype.diag = function() {
+        return this.trigger('diag', this.editor.verifyAllNodes());
+      };
+
       BasicEditingOptions.prototype.initData = function() {
         this.blocks = {};
         return this.first = null;
@@ -1313,6 +1365,24 @@
         this.blockIndex = Fingertree.fromArray([], this.emptyIndexMeasure);
       }
 
+      DataStore.prototype.setDiagEnabled = function(flag) {
+        return changeAdvice(this, flag, {
+          setIndex: {
+            diag: wrapDiag
+          },
+          indexBlock: {
+            diag: wrapDiag
+          },
+          indexBlocks: {
+            diag: wrapDiag
+          }
+        });
+      };
+
+      DataStore.prototype.setIndex = function(i) {
+        return this.blockIndex = i;
+      };
+
       DataStore.prototype.getFirst = function() {
         return this.first;
       };
@@ -1336,13 +1406,10 @@
       };
 
       DataStore.prototype.eachBlock = function(func) {
-        var block, id, ref;
-        ref = this.blocks;
-        for (id in ref) {
-          block = ref[id];
-          if (func(block, id) === false) {
-            break;
-          }
+        var block;
+        block = this.getBlock(this.getFirst());
+        while (block && func(block, block._id) !== false) {
+          block = this.getBlock(block.next);
         }
         return null;
       };
@@ -1373,13 +1440,10 @@
         items = [];
         this.eachBlock((function(_this) {
           return function(block) {
-            return items.push({
-              id: block._id,
-              length: block.text.length
-            });
+            return items.push(indexNode(block));
           };
         })(this));
-        return this.blockIndex = Fingertree.fromArray(items, this.emptyIndexMeasure);
+        return this.setIndex(Fingertree.fromArray(items, this.emptyIndexMeasure));
       };
 
       DataStore.prototype.splitBlockIndexOnId = function(id) {
@@ -1395,17 +1459,74 @@
       };
 
       DataStore.prototype.indexBlock = function(block) {
-        var first, ref, ref1, rest;
+        var first, ref, ref1, rest, split;
         if (block) {
-          ref = this.splitBlockIndexOnId(block._id), first = ref[0], rest = ref[1];
-          if (((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === block._id) {
-            rest = rest.removeFirst();
+          if (block.prev === ((ref = this.getBlock(block.prev)) != null ? ref._id : void 0) || block.next === ((ref1 = this.getBlock(block.next)) != null ? ref1._id : void 0)) {
+            if (this.fingerNode(block._id)) {
+              if (!block.next || this.fingerNodeOrder(block._id, block.next)) {
+                if (!block.prev || this.fingerNodeOrder(block.prev, block._id)) {
+                  return;
+                }
+              }
+              this.unindexBlock(block._id);
+            }
+            if (split = this.fingerNodeOrder(block.prev, block.next)) {
+              first = split[0], rest = split[1];
+              return this.setIndex(first.addLast(indexNode(block)).concat(rest));
+            }
           }
-          return this.blockIndex = first.addLast({
-            id: block._id,
-            length: block.text.length
-          }).concat(rest);
+          return this.insertAndRepairIndex(block);
         }
+      };
+
+      DataStore.prototype.fingerNode = function(id) {
+        var node;
+        return id && (node = this.splitBlockIndexOnId(id)[1].peekFirst()) && node.id === id && node;
+      };
+
+      DataStore.prototype.fingerNodeOrder = function(a, b) {
+        var first, ref, ref1, ref2, rest, split;
+        return !(a || b) || (!a && b ? this.fingerNode(b) : !b && a ? this.fingerNode(a) : ((ref = split = this.splitBlockIndexOnId(b), first = ref[0], rest = ref[1], ref), !first.isEmpty() && !rest.isEmpty() && ((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === b && ((ref2 = first.peekLast()) != null ? ref2.id : void 0) === a && split));
+      };
+
+      DataStore.prototype.insertAndRepairIndex = function(block) {
+        var cur, first, mark, node, prev, ref, ref1, ref2, ref3, rest, results1;
+        console.warn("REPAIR");
+        node = indexNode(block);
+        if (block.next) {
+          prev = this.getBlock(block.prev);
+          if (!block.prev) {
+            this.setIndex(this.blockIndex.addFirst(indexNode(block)));
+          } else {
+            ref = this.splitBlockIndexOnId(block.next), first = ref[0], rest = ref[1];
+            this.setIndex(first.addLast(node).concat(rest));
+          }
+        } else if (block.prev) {
+          ref1 = this.splitBlockIndexOnId(block.prev), first = ref1[0], rest = ref1[1];
+          this.setIndex(first.addLast(node).concat(rest));
+        } else {
+          this.setIndex(FingerTree.fromArray([node], this.emptyIndexMeasure));
+        }
+        mark = block;
+        cur = this.getBlock(block.next);
+        while (cur && !this.fingerNodeOrder(mark._id, cur._id)) {
+          this.unindexBlock(cur._id);
+          ref2 = this.splitBlockIndexOnId(mark._id), first = ref2[0], rest = ref2[1];
+          this.setIndex(insertAfterSplit(first, indexNode(cur), rest));
+          mark = cur;
+          cur = this.getBlock(cur.next);
+        }
+        mark = block;
+        cur = this.getBlock(block.prev);
+        results1 = [];
+        while (cur && !this.fingerNodeOrder(cur._id, mark._id)) {
+          this.unindexBlock(cur._id);
+          ref3 = this.splitBlockIndexOnId(mark._id), first = ref3[0], rest = ref3[1];
+          this.setIndex(insertInSplit(first, indexNode(cur), rest));
+          mark = cur;
+          results1.push(cur = this.getBlock(cur.prev));
+        }
+        return results1;
       };
 
       DataStore.prototype.unindexBlock = function(id) {
@@ -1413,9 +1534,8 @@
         if (id) {
           ref = this.splitBlockIndexOnId(id), first = ref[0], rest = ref[1];
           if (((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === id) {
-            rest = rest.removeFirst();
+            return this.setIndex(first.concat(rest.removeFirst()));
           }
-          return this.blockIndex = first.concat(rest);
         }
       };
 
@@ -1576,9 +1696,84 @@
         return result;
       };
 
+      DataStore.prototype.indexArray = function() {
+        return treeToArray(this.blockIndex);
+      };
+
+      DataStore.prototype.blockArray = function() {
+        var block, blocks;
+        blocks = [];
+        block = this.getBlock(this.getFirst());
+        while (block) {
+          blocks.push(block);
+          block = this.getBlock(block.next);
+        }
+        return blocks;
+      };
+
+      DataStore.prototype.diag = function() {
+        return this.trigger('diag', this.verifyIndex());
+      };
+
+      DataStore.prototype.verifyIndex = function() {
+        var badIds, blockIds, last, treeIds;
+        treeIds = _.pluck(this.indexArray(), 'id');
+        blockIds = _.pluck(this.blockArray(), '_id');
+        if (!_.isEqual(treeIds, blockIds)) {
+          console.warn("INDEX ERROR:\nEXPECTED: " + (JSON.stringify(blockIds)) + "\nBUT GOT: " + (JSON.stringify(treeIds)));
+        }
+        last = null;
+        badIds = [];
+        this.eachBlock((function(_this) {
+          return function(block) {
+            last = block;
+            if (!_this.fingerNodeOrder(block.prev, block._id)) {
+              badIds.push(block._id);
+              return console.warn("NODE ORDER WRONG FOR " + block.prev + ", " + block._id);
+            }
+          };
+        })(this));
+        if (badIds.length) {
+          return badIds;
+        }
+      };
+
       return DataStore;
 
     })(Observable);
+    treeToArray = function(tree) {
+      var nodes;
+      nodes = [];
+      while (!tree.isEmpty()) {
+        nodes.push(tree.peekFirst());
+        tree = tree.removeFirst();
+      }
+      return nodes;
+    };
+    indexNode = function(block) {
+      return {
+        id: block._id,
+        length: block.text.length
+      };
+    };
+    insertInSplit = function(first, middle, rest) {
+      if (first.isEmpty()) {
+        return rest.addFirst(middle);
+      } else if (rest.isEmpty()) {
+        return first.addLast(middle);
+      } else {
+        return first.addLast(middle).concat(rest);
+      }
+    };
+    insertAfterSplit = function(first, afterMiddle, rest) {
+      var next;
+      next = rest.removeFirst().addFirst(afterMiddle);
+      if (first.isEmpty()) {
+        return next.addFirst(rest.peekFirst());
+      } else {
+        return first.addLast(rest.peekFirst()).concat(next);
+      }
+    };
     DataStoreEditingOptions = (function(superClass) {
       extend(DataStoreEditingOptions, superClass);
 
@@ -1806,6 +2001,206 @@
         return func();
       }
     };
+    advise = function(object, method, name, def) {
+      var advice, meth, ref, results1;
+      if (typeof method === 'object') {
+        results1 = [];
+        for (meth in method) {
+          advice = method[meth];
+          results1.push((function() {
+            var results2;
+            results2 = [];
+            for (name in advice) {
+              def = advice[name];
+              results2.push(advise(object, meth, name, def));
+            }
+            return results2;
+          })());
+        }
+        return results1;
+      } else {
+        return ((ref = object.ADVICE) != null ? ref : new Advice(object)).advise(method, name, def);
+      }
+    };
+    unadvise = function(object, method, name) {
+      var advice, def, meth, ref, results1;
+      if (typeof method === 'object') {
+        results1 = [];
+        for (meth in method) {
+          advice = method[meth];
+          results1.push((function() {
+            var results2;
+            results2 = [];
+            for (name in advice) {
+              def = advice[name];
+              results2.push(unadvise(object, meth, name));
+            }
+            return results2;
+          })());
+        }
+        return results1;
+      } else {
+        return (ref = object.ADVICE) != null ? ref.unadvise(method, name) : void 0;
+      }
+    };
+    beforeMethod = function(def) {
+      return function(parent) {
+        return function() {
+          var args;
+          args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+          def.apply(this, args);
+          return parent.apply(this, args);
+        };
+      };
+    };
+    afterMethod = function(def) {
+      return function(parent) {
+        return function() {
+          var args, r;
+          args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+          r = parent.apply(this, args);
+          def.apply(this, args);
+          return r;
+        };
+      };
+    };
+    wrapDiag = function(parent) {
+      return function() {
+        var args, r;
+        args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        r = parent.apply(this, args);
+        this.diag();
+        return r;
+      };
+    };
+    changeAdvice = function(object, flag, advice) {
+      if (flag) {
+        return advise(object, advice);
+      } else {
+        return unadvise(object, advice);
+      }
+    };
+    Advice = (function() {
+      function Advice(target1, disabled) {
+        this.target = target1;
+        this.originals = {};
+        this.adviceOrder = {};
+        this.advice = {};
+        if (!disabled) {
+          this.enable();
+        }
+      }
+
+      Advice.prototype.enable = function(method) {
+        var j, len, ref;
+        if (!this.enabled) {
+          if (method) {
+            this.installAdviceHandler(method);
+          } else {
+            if (!this.target.ADVICE) {
+              this.target.ADVICE = this;
+            } else if (this.target.ADVICE !== this) {
+              throw new Error("Attempt to install advice on advised object");
+            }
+            ref = this.advice;
+            for (j = 0, len = ref.length; j < len; j++) {
+              method = ref[j];
+              this.installAdviceHandler(method);
+            }
+          }
+          this.enabled = true;
+          return this;
+        }
+      };
+
+      Advice.prototype.disable = function(method) {
+        var j, len, ref;
+        if (this.enabled) {
+          if (method) {
+            this.target[method] = this.originals[method];
+            delete this.originals[method];
+            if (_.isEmpty(this.originals)) {
+              this.disable();
+            }
+          } else {
+            ref = this.advice;
+            for (j = 0, len = ref.length; j < len; j++) {
+              method = ref[j];
+              this.target[method] = this.originals[method];
+            }
+            this.originals = {};
+            delete this.target.ADVICE;
+            this.enabled = false;
+          }
+          return this;
+        }
+      };
+
+      Advice.prototype.advise = function(method, name, def) {
+        var key;
+        key = method + "-" + name;
+        this.advice[key] = def;
+        if (!this.adviceOrder[method]) {
+          this.adviceOrder[method] = [];
+        }
+        this.adviceOrder[method].push(key);
+        if (this.enabled) {
+          this.installAdviceHandler(method);
+        }
+        return this;
+      };
+
+      Advice.prototype.unadvise = function(method, name) {
+        var j, key, len, ref, ref1, ref2;
+        if (!name) {
+          ref1 = (ref = this.adviceOrder[method]) != null ? ref : [];
+          for (j = 0, len = ref1.length; j < len; j++) {
+            name = ref1[j];
+            this.removeAdvice(method, name);
+          }
+        } else {
+          key = method + "-" + name;
+          if (((ref2 = this.adviceOrder[method]) != null ? ref2.length : void 0) === 1) {
+            this.disable(method);
+            delete this.adviceOrder[method];
+          } else {
+            _.remove(this.adviceOrder, function(x) {
+              return x === key;
+            });
+          }
+          delete this.advice[key];
+        }
+        return this;
+      };
+
+      Advice.prototype.installAdviceHandler = function(method) {
+        if (!this.originals[method]) {
+          this.originals[method] = this.target[method];
+          return this.target[method] = (function(_this) {
+            return function() {
+              var args;
+              args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+              return _this.callAdvice(_this.adviceOrder[method].length - 1, _this.adviceOrder[method], method, args);
+            };
+          })(this);
+        }
+      };
+
+      Advice.prototype.callAdvice = function(index, order, method, args) {
+        var func;
+        func = index < 0 ? this.originals[method] : this.advice[order[index]]((function(_this) {
+          return function() {
+            var args;
+            args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+            return _this.callAdvice(index - 1, order, method, args);
+          };
+        })(this));
+        return func.apply(this.target, args);
+      };
+
+      return Advice;
+
+    })();
     return {
       LeisureEditCore: LeisureEditCore,
       Observable: Observable,
@@ -1823,7 +2218,13 @@
       setHtml: setHtml,
       findEditor: findEditor,
       copyBlock: copyBlock,
-      preserveSelection: preserveSelection
+      preserveSelection: preserveSelection,
+      advise: advise,
+      unadvise: unadvise,
+      beforeMethod: beforeMethod,
+      afterMethod: afterMethod,
+      changeAdvice: changeAdvice,
+      treeToArray: treeToArray
     };
   });
 

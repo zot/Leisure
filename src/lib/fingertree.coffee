@@ -159,6 +159,9 @@
       # Get the measure of the tree.
       @measure: notImplemented
 
+      # Force on a normal FingerTree just returns this
+      force: -> this
+
       # Check whether the tree is empty.
       # @return {boolean} True if the tree is empty.
       isEmpty: notImplemented
@@ -352,6 +355,7 @@
       isEmpty: -> false
 
       concat: (other)->
+        other = other.force()
         if other instanceof Empty then this
         else if other instanceof Single then @addLast(other.value)
         else app3 this, [], other
@@ -453,6 +457,8 @@
     # @param {FingerTree} t2 Right finger-tree
     # @return {FingerTree}
     app3 = (t1, ts, t2)->
+      t1 = t1.force()
+      t2 = t2.force()
       if t1 instanceof Empty then prepend t2, ts
       else if t2 instanceof Empty then append t1, ts
       else if t1 instanceof Single then prepend(t2, ts).addFirst t1.value

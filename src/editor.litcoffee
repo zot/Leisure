@@ -284,6 +284,24 @@ Events:
               @selectDocRange pos
         getCopy: (id)-> copy @options.getBlock id
         getText: -> @options.getText()
+        blockNodeForNode: (node)-> @options.nodeForId @options.idForNode node
+        blockTextForNode: (node)->
+          parent = $(@blockNodeForNode(node))[0]
+          if next = @options.getBlock(@options.idForNode node)?.next
+            nextPos = @domCursorForText @options.nodeForId(next), 0
+            @domCursorForText(parent, 0, parent).getTextTo nextPos
+          else @domCursorForText(parent, 0, parent).getText()
+        verifyNode: (node)->
+          if typeof node == 'string' then node = @options.nodeForId node
+          @blockTextForNode(node) == @options.getBlock(@options.idForNode node).text
+        verifyAllNodes: ->
+          badIds = []
+          block = @options.getBlock @options.getFirst()
+          while block
+            if (node = @options.nodeForId(block._id)[0]) && !@verifyNode node
+              badIds.push block._id
+            block = @options.getBlock block.next
+          if badIds.length then badIds
         domCursor: (node, pos)->
           if node instanceof jQuery
             node = node[0]
@@ -771,6 +789,13 @@ Main code
           super()
           @initData()
 
+        setDiagEnabled: (flag)->
+          changeAdvice this, flag,
+            renderBlocks: diag: wrapDiag
+            changed: diag: wrapDiag
+
+        diag: -> @trigger 'diag', @editor.verifyAllNodes()
+
         initData: ->
 
 `blocks {id -> block}`: block table
@@ -1008,6 +1033,12 @@ Data model -- override/reset these if you want to change how the store accesses 
           super()
           @blocks = {}
           @blockIndex = Fingertree.fromArray [], @emptyIndexMeasure
+        setDiagEnabled: (flag)->
+          changeAdvice this, flag,
+            setIndex: diag: wrapDiag
+            indexBlock: diag: wrapDiag
+            indexBlocks: diag: wrapDiag
+        setIndex: (i)-> @blockIndex = i
         getFirst: -> @first
         setFirst: (firstId)-> @first = firstId
         getBlock: (id)-> @blocks[id]
@@ -1018,8 +1049,9 @@ Data model -- override/reset these if you want to change how the store accesses 
           delete @blocks[id]
           @unindexBlock id
         eachBlock: (func)->
-          for id, block of @blocks
-            if func(block, id) == false then break
+          block = @getBlock @getFirst()
+          while block && func(block, block._id) != false
+            block = @getBlock block.next
           null
         emptyIndexMeasure:
           identity: -> ids: Set(), length: 0
@@ -1027,22 +1059,70 @@ Data model -- override/reset these if you want to change how the store accesses 
           sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
         indexBlocks: ->
           items = []
-          @eachBlock (block)=> items.push
-            id: block._id
-            length: block.text.length
-          @blockIndex = Fingertree.fromArray items, @emptyIndexMeasure
+          @eachBlock (block)=> items.push indexNode block
+          @setIndex Fingertree.fromArray items, @emptyIndexMeasure
         splitBlockIndexOnId: (id)-> @blockIndex.split (m)-> m.ids.contains id
         splitBlockIndexOnOffset: (offset)-> @blockIndex.split (m)-> m.length > offset
         indexBlock: (block)->
           if block
-            [first, rest] = @splitBlockIndexOnId block._id
-            if rest.peekFirst()?.id == block._id then rest = rest.removeFirst()
-            @blockIndex = first.addLast(id: block._id, length: block.text.length).concat rest
+            if block.prev == @getBlock(block.prev)?._id || block.next == @getBlock(block.next)?._id
+              # if the block is indexed, it might be fine, otherwise unindex it
+              if @fingerNode(block._id)
+                if !block.next || @fingerNodeOrder(block._id, block.next)
+                  if !block.prev || @fingerNodeOrder(block.prev, block._id) then return
+                @unindexBlock block._id
+              # if next is followed by prev, just insert the block in between
+              if split = @fingerNodeOrder(block.prev, block.next)
+                [first, rest] = split
+                return @setIndex first.addLast(indexNode block).concat rest
+              # repair as much of the index as possible and insert the block
+            @insertAndRepairIndex block
+        fingerNode: (id)->
+          id && (node = @splitBlockIndexOnId(id)[1].peekFirst()) && node.id == id && node
+        fingerNodeOrder: (a, b)->
+          return !(a || b) ||
+          if !a && b then @fingerNode b
+          else if !b && a then @fingerNode a
+          else
+            [first, rest] = split = @splitBlockIndexOnId b
+            !first.isEmpty() && !rest.isEmpty() && rest.peekFirst()?.id == b && first.peekLast()?.id == a && split
+        # insert block into the index
+        # then trace forwards and backwards, repairing along the way
+        insertAndRepairIndex: (block)->
+          console.warn "REPAIR"
+          node = indexNode block
+          if block.next
+            prev = @getBlock block.prev
+            if !block.prev
+              @setIndex @blockIndex.addFirst indexNode block
+            else
+              [first, rest] = @splitBlockIndexOnId block.next
+              @setIndex first.addLast(node).concat rest
+          else if block.prev
+            [first, rest] = @splitBlockIndexOnId block.prev
+            @setIndex first.addLast(node).concat rest
+          else @setIndex FingerTree.fromArray [node], @emptyIndexMeasure
+          mark = block
+          cur = @getBlock block.next
+          while cur && !@fingerNodeOrder mark._id, cur._id
+            @unindexBlock cur._id
+            [first, rest] = @splitBlockIndexOnId mark._id
+            @setIndex insertAfterSplit first, indexNode(cur), rest
+            mark = cur
+            cur = @getBlock cur.next
+          mark = block
+          cur = @getBlock block.prev
+          while cur && !@fingerNodeOrder cur._id, mark._id
+            @unindexBlock cur._id
+            [first, rest] = @splitBlockIndexOnId mark._id
+            @setIndex insertInSplit first, indexNode(cur), rest
+            mark = cur
+            cur = @getBlock cur.prev
         unindexBlock: (id)->
           if id
             [first, rest] = @splitBlockIndexOnId id
-            if rest.peekFirst()?.id == id then rest = rest.removeFirst()
-            @blockIndex = first.concat rest
+            if rest.peekFirst()?.id == id
+              @setIndex first.concat rest.removeFirst()
         docOffsetForBlockOffset: (block, offset)->
           if typeof block == 'object'
             offset = block.offset
@@ -1120,6 +1200,47 @@ Data model -- override/reset these if you want to change how the store accesses 
           catch err
             console.log err
           result
+        indexArray: -> treeToArray @blockIndex
+        blockArray: ->
+          blocks = []
+          block = @getBlock @getFirst()
+          while block
+            blocks.push block
+            block = @getBlock block.next
+          blocks
+        diag: -> @trigger 'diag', @verifyIndex()
+        verifyIndex: ->
+          treeIds = _.pluck @indexArray(), 'id'
+          blockIds = _.pluck @blockArray(), '_id'
+          if !_.isEqual treeIds, blockIds
+            console.warn "INDEX ERROR:\nEXPECTED: #{JSON.stringify blockIds}\nBUT GOT: #{JSON.stringify treeIds}"
+          last = null
+          badIds = []
+          @eachBlock (block)=>
+            last = block
+            if !@fingerNodeOrder block.prev, block._id
+              badIds.push block._id
+              console.warn "NODE ORDER WRONG FOR #{block.prev}, #{block._id}"
+          if badIds.length then badIds
+
+      treeToArray = (tree)->
+        nodes = []
+        while !tree.isEmpty()
+          nodes.push tree.peekFirst()
+          tree = tree.removeFirst()
+        nodes
+
+      indexNode = (block)-> id: block._id, length: block.text.length
+
+      insertInSplit = (first, middle, rest)->
+        if first.isEmpty() then rest.addFirst middle
+        else if rest.isEmpty() then first.addLast middle
+        else first.addLast(middle).concat rest
+
+      insertAfterSplit = (first, afterMiddle, rest)->
+        next = rest.removeFirst().addFirst(afterMiddle)
+        if first.isEmpty() then next.addFirst rest.peekFirst()
+        else first.addLast(rest.peekFirst()).concat next
 
 DataStoreEditingOptions
 =======================
@@ -1281,6 +1402,97 @@ selection, regardless of the current value of LeisureEditCore.editing.
             editor.selectDocRange range
         else func()
 
+      advise = (object, method, name, def)->
+        if typeof method == 'object'
+          for meth, advice of method
+            for name, def of advice
+              advise object, meth, name, def
+        else (object.ADVICE ? new Advice object).advise method, name, def
+
+      unadvise = (object, method, name)->
+        if typeof method == 'object'
+          for meth, advice of method
+            for name, def of advice
+              unadvise object, meth, name
+        else object.ADVICE?.unadvise method, name
+
+      beforeMethod = (def)->
+        (parent)-> (args...)->
+          def.apply this, args
+          parent.apply this, args
+
+      afterMethod = (def)->
+        (parent)-> (args...)->
+          r = parent.apply this, args
+          def.apply this, args
+          r
+
+      wrapDiag = (parent)-> (args...)->
+        r = parent.apply this, args
+        @diag()
+        r
+
+      changeAdvice = (object, flag, advice)->
+        if flag then advise object, advice
+        else unadvise object, advice
+
+      class Advice
+        constructor: (@target, disabled)->
+          @originals = {}
+          @adviceOrder = {}
+          @advice = {}
+          if !disabled then @enable()
+        enable: (method)-> if !@enabled
+          if method then @installAdviceHandler method
+          else
+             if !@target.ADVICE then @target.ADVICE = this
+             else if @target.ADVICE != this
+               throw new Error "Attempt to install advice on advised object"
+             for method in @advice
+               @installAdviceHandler method
+          @enabled = true
+          this
+        disable: (method)-> if @enabled
+          if method
+            @target[method] = @originals[method]
+            delete @originals[method]
+            if _.isEmpty @originals then @disable()
+          else
+            for method in @advice
+              @target[method] = @originals[method]
+            @originals = {}
+            delete @target.ADVICE
+            @enabled = false
+          this
+        advise: (method, name, def)->
+          key = "#{method}-#{name}"
+          @advice[key] = def
+          if !@adviceOrder[method] then @adviceOrder[method] = []
+          @adviceOrder[method].push key
+          if @enabled then @installAdviceHandler method
+          this
+        unadvise: (method, name)->
+          if !name then for name in @adviceOrder[method] ? []
+            @removeAdvice method, name
+          else
+            key = "#{method}-#{name}"
+            if @adviceOrder[method]?.length == 1
+              @disable method
+              delete @adviceOrder[method]
+            else _.remove @adviceOrder, (x)-> x == key
+            delete @advice[key]
+          this
+        installAdviceHandler: (method)->
+          if !@originals[method]
+            @originals[method] = @target[method]
+            @target[method] = (args...)=>
+              @callAdvice @adviceOrder[method].length - 1, @adviceOrder[method], method, args
+        callAdvice: (index, order, method, args)->
+          func = if index < 0 then @originals[method]
+          else @advice[order[index]]((args...)=>
+            @callAdvice index - 1, order, method, args)
+          func.apply @target, args
+
 Exports
 =======
 
@@ -1302,4 +1514,10 @@ Exports
         findEditor
         copyBlock
         preserveSelection
+        advise
+        unadvise
+        beforeMethod
+        afterMethod
+        changeAdvice
+        treeToArray
       }

@@ -33,13 +33,13 @@ misrepresented as being the original software.
     _ = Lazy._;
     todoKeywords = ['TODO', 'DONE'];
     buildHeadlineRE = function() {
-      return new RegExp("^(\\*+ *)((?:" + (todoKeywords.join('|')) + ") *)?(\\[#(A|B|C)\\] *)?([^\\n]*?)(:[\\w@%#:]*: *)?$", 'm');
+      return new RegExp("^(\\*+( +|$))((?:" + (todoKeywords.join('|')) + ") *)?(\\[#(A|B|C)\\] *)?([^\\n]*?)(:[\\w@%#:]*: *)?$", 'm');
     };
     HL_LEVEL = 1;
-    HL_TODO = 2;
-    HL_PRIORITY = 4;
-    HL_TEXT = 5;
-    HL_TAGS = 6;
+    HL_TODO = 3;
+    HL_PRIORITY = 5;
+    HL_TEXT = 6;
+    HL_TAGS = 7;
     headlineRE = buildHeadlineRE();
     todoRE = /^(\*+) *(TODO|DONE)/;
     tagsRE = /:[^:]*/;
@@ -68,7 +68,7 @@ misrepresented as being the original software.
     LIST_CHECK_VALUE = 4;
     LIST_INFO = 5;
     listRE = /^( *)(- *)(\[( |X)\] +)?(.*)$/m;
-    simpleRE = /\B(\*[\/+=~\w](.*?[\/+=~\w])?\*|\/[*+=~\w](.*?[*+=~\w])?\/|\+[*\/=~\w](.*?[*\/=~\w])?\+|=[+*\/~\w](.*?[+*\/~\w])?=|~[=+*\/\w](.*?[=+*\/\w])?~)(\B|$)|\b_[^_]*\B_(\b|$)/;
+    simpleRE = /\B(\*[^\s*]([^*]*[^\s*])?\*|\/[^\s\/]([^\/]*[^\s\/])?\/|\+[^\s+]([^+]*[^\s+])?\+|=[^\s=]([^=]*[^\s=])?=|~[^\s~]([^~]*[^\s~])?~)(\B|$)|\b_[^_]*\B_(\b|$)/;
     LINK_HEAD = 1;
     LINK_INFO = 2;
     LINK_DESCRIPTION = 3;
@@ -182,8 +182,9 @@ misrepresented as being the original software.
           if (prev) {
             prev.next = c;
           }
-          prev = c;
           this.linkChild(c);
+          c.prev = prev;
+          prev = c;
         }
         return this;
       };

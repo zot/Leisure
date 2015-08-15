@@ -5,6 +5,7 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         OrgData
         installSelectionMenu
+        getDocumentParams
       } = EditorSupport
       {
         plainEditDiv
@@ -39,27 +40,23 @@ Code for local-mode.  This will not be loaded under meteor.
       } = Emacs
 
 
-      useP2P = true
+      #useP2P = true
+      useP2P = false
       peer = null
+      Leisure.configureP2P = ->
 
       configurePeerButttons = ->
-        configureP2P = ({hostField, sessionField, createSessionButton, connectToSessionButton, connections})->
+        Leisure.configureP2P = ({hostField, sessionField, createSessionButton, connectToSessionButton, connections})->
           hostField.val document.location.host || "localhost:8080"
           createSessionButton.click ->
             peer.createSession hostField.val()
             console.log "create session"
           connectToSessionButton.click -> console.log "connect to session"
-          console.log "host:", hostField
-          console.log "session:", sessionField
-          console.log "createSessionButton:", createSessionButton
-          console.log "connectToSessionButton:", connectToSessionButton
-          console.log "connections:", connections
-
-        updateConnections = (newTotal)-> connectionDisplay.html newTotal
-
-        mergeExports {
-          configureP2P
-        }
+          #console.log "host:", hostField
+          #console.log "session:", sessionField
+          #console.log "createSessionButton:", createSessionButton
+          #console.log "connectToSessionButton:", connectToSessionButton
+          #console.log "connections:", connections
 
       $(document).ready ->
         runTests()
@@ -75,7 +72,15 @@ Code for local-mode.  This will not be loaded under meteor.
         #window.ED = plainEditDiv $("[maindoc]"), data
         window.ED = fancyEditDiv $("[maindoc]"), data
         createEditorDisplay ED
-        if !document.location.search
+        if document.location.search
+          {load, theme} = getDocumentParams()
+          #if load
+          #  u = new URL con
+          #  if u.protocol == 'emacs:' && m = u.pathname.match /^\/\/([^:]*)(:[^:]*)(\/.*)$/
+          #    [ignore, host, port, cookie] = m
+          #    connect opts, host, port.substring(1), cookie.substring(1)
+          if theme then ED.options.setTheme theme
+        else
           ED.options.load """
           burp
           * top

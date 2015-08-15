@@ -1,6 +1,6 @@
 Emacs connection
 
-    define ['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee'], (_, Exports, UI, Editor)->
+    define ['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], (_, Exports, UI, Editor, EditorSupport)->
 
       {
         mergeExports
@@ -12,6 +12,9 @@ Emacs connection
       {
         showMessage
       } = UI
+      {
+        getDocumentParams
+      } = EditorSupport
 
       msgPat = /^([^ ]+) (.*)$/
       replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/
@@ -33,7 +36,8 @@ Emacs connection
         text = JSON.parse text
         editor = data.emacsConnection.opts.editor
         replaceWhile ->
-          if end == -1 then editor.options.load text
+          if end == -1
+            editor.options.load text
           else editor.replace null, blockRangeFor(data, start, end), text
 
       replaceWhile = (func)->
@@ -171,17 +175,12 @@ Emacs connection
         $(document).ready ->
           if document.location.search.length > 1 && !connected
             connected = true
-            params = {}
-            for param in document.location.search.substring(1).split '&'
-              [k,v] = param.split '='
-              params[k.toLowerCase()] = v
-            {connect:con, theme} = params
+            {connect:con, theme} = getDocumentParams()
             if con
               u = new URL con
               if u.protocol == 'emacs:' && m = u.pathname.match /^\/\/([^:]*)(:[^:]*)(\/.*)$/
                 [ignore, host, port, cookie] = m
                 connect opts, host, port.substring(1), cookie.substring(1)
-            if theme then opts.setTheme theme
 
       mergeExports {
         offsetFor

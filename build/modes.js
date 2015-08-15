@@ -3,9 +3,9 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./editorSupport.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport) {
-    var DataStore, DataStoreEditingOptions, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Nil, OrgEditing, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, isHiddenSlide, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, nextImageSrc, numPat, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Nil, OrgEditing, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, followLink, getCodeItems, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, keywordRE, languageEnvMaker, last, lineBreak, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
-    parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
+    parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html, blockVars = Eval.blockVars;
@@ -44,6 +44,7 @@
       },
       render: function(opts, block, prefix, replace) {
         var attrs, error, pos, ref, ref1, ref2, ref3, result, results, source, text;
+        opts.trigger('render', block);
         ref = blockCodeItems(this, block), source = ref.source, error = ref.error, results = ref.results;
         attrs = "id='" + prefix + block._id + "' data-block='" + block.type + "'";
         if (block.type === 'headline') {
@@ -72,7 +73,7 @@
         txt = block.text;
         if (block.type === 'headline') {
           text = parseOrgMode(block.text).children[0].partOffsets().text;
-          return "<span class='plain-headline'>" + (escapeHtml(txt.substring(0, text.start))) + (this.renderMainText(txt.substring(text.start, text.end))) + (escapeHtml(txt.substring(text.end))) + "</span>";
+          return "<span class='plain-headline maintext'>" + (escapeHtml(txt.substring(0, text.start))) + (this.renderMainText(txt.substring(text.start, text.end))) + (escapeHtml(txt.substring(text.end))) + "</span>";
         } else {
           return this.renderMeat(parseOrgMode(block.text).children[0]);
         }
@@ -308,7 +309,7 @@
         var header;
         header = hasView('header') ? opt.withNewContext((function(_this) {
           return function() {
-            return _this.renderView('header', null, null, {});
+            return _this.renderView('header', null, null, {})[0];
           };
         })(this)) : "<div id='dummy_headline'></div>";
         return "" + header + html;
@@ -373,6 +374,7 @@
       },
       render: function(opts, block, prefix, replace) {
         var ref;
+        opts.trigger('render', block);
         if (opts.shouldHide(block)) {
           return ['', (ref = opts.data.nextRight(block)) != null ? ref._id : void 0];
         } else {
@@ -380,6 +382,16 @@
             return function() {
               UI.context.currentView = opts.nodeForId(block._id);
               UI.context.block = block;
+              pushPendingInitialzation(function() {
+                var j, len, node, ref1, results1;
+                ref1 = opts.nodeForId(block._id).find('[title]');
+                results1 = [];
+                for (j = 0, len = ref1.length; j < len; j++) {
+                  node = ref1[j];
+                  results1.push($(node).tooltip().tooltip('option', 'content', $(node).attr('title')));
+                }
+                return results1;
+              });
               if (block.type === 'headline') {
                 return _this.renderHeadline(opts, block, prefix, replace);
               } else if (!block.prev) {
@@ -419,7 +431,7 @@
             topLevel: block.level === 1,
             level: block.level,
             stars: m[HL_LEVEL],
-            maintext: block.text.substring(m[HL_LEVEL].length),
+            maintext: this.renderOrg(cleanOrg(block.text.substring(m[HL_LEVEL].length))) + optWrench(block),
             children: opts.data.children(block)
           }, targets);
         } else {
@@ -471,7 +483,7 @@
         if (hasView(viewType)) {
           return this.renderView(viewType, null, block.next, {
             id: prefix + block._id,
-            text: this.renderOrg(blockOrg(opts.data, block)),
+            text: this.renderOrgChunk(blockOrg(opts.data, block)),
             topLevel: !block.prev,
             EOL: '\n'
           }, targets);
@@ -501,7 +513,7 @@
             nameBoiler: nameBoiler != null ? nameBoiler : '',
             nameText: name ? name.text.substring(nameBoiler.length, name.text.length - 1) : '',
             name: name ? name.text.substring(name.info) : '',
-            afterName: name ? block.text.substring(name.end(), source.offset) : '',
+            afterName: name ? this.renderOrg(cleanOrg(block.text.substring(name.end(), source.offset))) : '',
             inter: results ? block.text.substring(source.end(), results != null ? results.offset : void 0) : block.text.substring(source.end()),
             results: !results ? '' : hideResults ? "<span class='hidden'>" + (escapeHtml(results.text)) + "</span>" : resultsArea(results.text),
             beforeResults: block.text.substring(0, (ref3 = results != null ? results.offset : void 0) != null ? ref3 : source.end())
@@ -552,8 +564,11 @@
           return [pos, text];
         }
       },
+      renderOrgChunk: function(org) {
+        return "<span class='org-chunk'>" + (this.renderOrg(org)) + "</span>";
+      },
       renderOrg: function(org) {
-        var child;
+        var child, text;
         if (org instanceof SimpleMarkup) {
           return this.renderSimple(org);
         } else if (org instanceof Link) {
@@ -571,8 +586,15 @@
           }).call(this)).join('');
         } else if (org instanceof ListItem) {
           return this.renderList(org);
+        } else if (org instanceof Drawer) {
+          return this.renderDrawer(org);
         } else {
-          return org.allText();
+          text = insertBreaks(org.allText());
+          if (!org.prev) {
+            return prefixBreak(text);
+          } else {
+            return text;
+          }
         }
       },
       renderHtml: function(org) {
@@ -658,6 +680,13 @@
         })();
         return "<span class='hidden'>" + org.text[0] + "</span>" + text + "<span class='hidden'>" + (goodText(org.text[0])) + "</span>";
       },
+      renderDrawer: function(org) {
+        if (org.name === 'properties') {
+          return "<span class='hidden'>${escapeHtml org.allText()}</span>";
+        } else {
+          return "<span class='org-properties'>${escapeHtml org.allText}</span>";
+        }
+      },
       showingSlides: function(opt) {
         return opt.editor.node.is('.slides');
       },
@@ -731,13 +760,39 @@
         return false;
       }
     };
+    optWrench = function(block) {
+      var k, props, ref, v, wrench;
+      if (block.properties && !_.isEmpty(block.properties)) {
+        props = "<div><b>Properties</b></div>";
+        ref = block.properties;
+        for (k in ref) {
+          v = ref[k];
+          props += "<p>:" + k + ": " + v;
+        }
+        wrench = $("<i class='fa fa-wrench'></i>")[0];
+        wrench.setAttribute('title', props);
+        return wrench.outerHTML;
+      } else {
+        return '';
+      }
+    };
+    lineBreak = "<br data-noncontent contenteditable='false'><br data-noncontent contenteditable='false'>";
+    insertBreaks = function(text) {
+      return text.replace(/\n\n/g, lineBreak + "\n\n");
+    };
+    prefixBreak = function(text) {
+      if (text[0] === '\n' && text[1] !== '\n') {
+        return lineBreak + text;
+      } else {
+        return text;
+      }
+    };
     createValueSliders = function() {
       var j, len, num, ref, results1;
       ref = $(UI.context.currentView).find('.token.number');
       results1 = [];
       for (j = 0, len = ref.length; j < len; j++) {
         num = ref[j];
-        console.log("Number:", num);
         results1.push($(num).on('click', function() {
           return showValueSlider(this);
         }));
@@ -767,10 +822,10 @@
     setSliderValue = function(val) {
       var widget;
       widget = currentSlider.widget;
-      if ((-100 <= val && val <= 100)) {
+      if ((-50 <= val && val <= 50)) {
         widget.slider('option', 'min', Math.min(-100, -Math.abs(val * 2)));
         widget.slider('option', 'max', Math.max(100, Math.abs(val * 2)));
-      } else if (val > 100) {
+      } else if (val > 50) {
         widget.slider('option', 'min', 0);
         widget.slider('option', 'max', val * 2);
       } else {
@@ -806,8 +861,6 @@
       if (currentSlider && !(currentSlider != null ? currentSlider.sliding : void 0)) {
         currentSlider.widget.addClass('hidden');
         return currentSlider = null;
-      } else {
-        return console.log("not hiding");
       }
     };
     showsCode = function(codeBlock) {
@@ -842,9 +895,7 @@
           return goodHtml(g2);
         })) + "</span>";
       } else {
-        return "<span class='hidden'>" + (results.substring(0, firstResult)) + "</span>" + (fancyMode.renderOrg(blockOrg(null, {
-          text: results.substring(firstResult)
-        })));
+        return "<span class='hidden'>" + (results.substring(0, firstResult)) + "</span>" + (fancyMode.renderOrg(cleanOrg(results.substring(firstResult))));
       }
     };
     plainEditDiv = function(div, data) {
@@ -889,6 +940,11 @@
         return initializePendingViews();
       }
     };
+    cleanOrg = function(text) {
+      return blockOrg(null, {
+        text: text
+      });
+    };
     mergeExports({
       plainMode: plainMode,
       fancyMode: fancyMode,
@@ -897,7 +953,8 @@
       createValueSliders: createValueSliders,
       slideValue: slideValue,
       mayHideValueSlider: mayHideValueSlider,
-      setSliding: setSliding
+      setSliding: setSliding,
+      cleanOrg: cleanOrg
     });
     return {
       plainMode: plainMode,

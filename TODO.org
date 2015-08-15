@@ -1,3 +1,4 @@
+* TODO allow links in simple markup (but not inside other links)        :org:
 * TODO hook to gists or fiddles
 * TODO expanded emacs server
 - file message for file links (images, etc.) and imports

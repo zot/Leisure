@@ -2,11 +2,12 @@
 (function() {
   var slice = [].slice;
 
-  define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee'], function(_, Exports, UI, Editor) {
-    var blockRangeFor, c, close, configureEmacs, connect, connected, diag, e, error, escapeString, escaped, findEditor, mergeExports, message, messages, msgPat, offsetFor, open, preserveSelection, replace, replaceMsgPat, replaceWhile, replacing, sendReplace, showDiag, showMessage, slashed, specials, unescapeString, unescaped;
+  define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], function(_, Exports, UI, Editor, EditorSupport) {
+    var blockRangeFor, c, close, configureEmacs, connect, connected, diag, e, error, escapeString, escaped, findEditor, getDocumentParams, mergeExports, message, messages, msgPat, offsetFor, open, preserveSelection, replace, replaceMsgPat, replaceWhile, replacing, sendReplace, showDiag, showMessage, slashed, specials, unescapeString, unescaped;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection;
     showMessage = UI.showMessage;
+    getDocumentParams = EditorSupport.getDocumentParams;
     msgPat = /^([^ ]+) (.*)$/;
     replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/;
     replacing = false;
@@ -243,26 +244,16 @@
         return connect(opts, host, Number(port), '', function() {});
       });
       return $(document).ready(function() {
-        var con, cookie, host, i, ignore, k, len, m, param, params, port, ref, ref1, theme, u, v;
+        var con, cookie, host, ignore, m, port, ref, theme, u;
         if (document.location.search.length > 1 && !connected) {
           connected = true;
-          params = {};
-          ref = document.location.search.substring(1).split('&');
-          for (i = 0, len = ref.length; i < len; i++) {
-            param = ref[i];
-            ref1 = param.split('='), k = ref1[0], v = ref1[1];
-            params[k.toLowerCase()] = v;
-          }
-          con = params.connect, theme = params.theme;
+          ref = getDocumentParams(), con = ref.connect, theme = ref.theme;
           if (con) {
             u = new URL(con);
             if (u.protocol === 'emacs:' && (m = u.pathname.match(/^\/\/([^:]*)(:[^:]*)(\/.*)$/))) {
               ignore = m[0], host = m[1], port = m[2], cookie = m[3];
-              connect(opts, host, port.substring(1), cookie.substring(1));
+              return connect(opts, host, port.substring(1), cookie.substring(1));
             }
-          }
-          if (theme) {
-            return opts.setTheme(theme);
           }
         }
       });

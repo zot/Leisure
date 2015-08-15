@@ -4,17 +4,18 @@
     hasProp = {}.hasOwnProperty;
 
   define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, editorForToolbar, escapeAttr, escapeHtml, findEditor, getCodeItems, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, afterMethod, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, editorForToolbar, escapeAttr, escapeHtml, findEditor, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html;
-    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection;
+    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, changeAdvice = Editor.changeAdvice, afterMethod = Editor.afterMethod, beforeMethod = Editor.beforeMethod;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
     mergeExports = BrowserExports.mergeExports;
     selectionActive = true;
     headlineRE = /^(\*+ *)(.*)(\n)$/;
+    documentParams = null;
     defaults = {
       views: {},
       controls: {}
@@ -86,7 +87,7 @@
       };
 
       OrgData.prototype.deleteBlock = function(id) {
-        this.runFilters(this.getBlock(block), null);
+        this.runFilters(this.getBlock(id), null);
         return OrgData.__super__.deleteBlock.call(this, id);
       };
 
@@ -429,7 +430,7 @@
       };
 
       OrgEditing.prototype.changed = function(changes) {
-        var block, i, id, j, k, l, len, len1, len2, nb, newBlock, newBlocks, node, oldBlock, oldBlocks, ref, ref1, viewNodes;
+        var block, i, id, j, l, len, len1, len2, m, nb, newBlock, newBlocks, node, oldBlock, oldBlocks, ref, ref1, viewNodes;
         newBlocks = changes.newBlocks, oldBlocks = changes.oldBlocks;
         if ((newBlocks.length === (ref = oldBlocks.length) && ref === 1)) {
           for (i = j = 0, len = newBlocks.length; j < len; i = ++j) {
@@ -441,13 +442,13 @@
           }
           nb = newBlocks.slice();
           viewNodes = $();
-          for (k = 0, len1 = newBlocks.length; k < len1; k++) {
-            block = newBlocks[k];
+          for (l = 0, len1 = newBlocks.length; l < len1; l++) {
+            block = newBlocks[l];
             viewNodes = viewNodes.add(this.find("[data-view-block='" + block._id + "']"));
             viewNodes = this.findViewsForDefiner(block, viewNodes);
             ref1 = this.find("[data-observe~=" + block._id + "]");
-            for (l = 0, len2 = ref1.length; l < len2; l++) {
-              node = ref1[l];
+            for (m = 0, len2 = ref1.length; m < len2; m++) {
+              node = ref1[m];
               if (id = this.idForNode(node)) {
                 nb.push(this.getBlock(id, changes));
               }
@@ -457,13 +458,13 @@
           this.mode.renderChanged(this, nb, this.idPrefix, true);
           return this.withNewContext((function(_this) {
             return function() {
-              var data, len3, m, ref2, ref3, results1;
+              var data, len3, o, ref2, ref3, results1;
               ref2 = viewNodes.filter(function(n) {
                 return !nb[_this.idForNode(n)];
               });
               results1 = [];
-              for (m = 0, len3 = ref2.length; m < len3; m++) {
-                node = ref2[m];
+              for (o = 0, len3 = ref2.length; o < len3; o++) {
+                node = ref2[o];
                 node = $(node);
                 if (data = (ref3 = (block = _this.getBlock(node.attr('data-view-block')))) != null ? ref3.yaml : void 0) {
                   results1.push(renderView($(node).attr('data-view'), null, data, node, block));
@@ -589,6 +590,7 @@
 
       OrgEditing.prototype.setEditor = function(ed) {
         OrgEditing.__super__.setEditor.call(this, ed);
+        $(ed.node).addClass('leisure-editor');
         this.setMode(this.mode);
         this.initToolbar();
         this.bindings = {
@@ -643,7 +645,7 @@
       };
 
       OrgEditing.prototype.change = function(changes) {
-        var change, changedProperties, child, computedProperties, id, j, k, len, len1, oldBlock, parent, props, ref, ref1, ref2;
+        var change, changedProperties, child, computedProperties, id, j, l, len, len1, oldBlock, parent, props, ref, ref1, ref2;
         computedProperties = {};
         changedProperties = [];
         ref = changes.sets;
@@ -663,8 +665,8 @@
               computedProperties[parent] = true;
               props = {};
               ref2 = this.data.children(parent, changes);
-              for (k = 0, len1 = ref2.length; k < len1; k++) {
-                child = ref2[k];
+              for (l = 0, len1 = ref2.length; l < len1; l++) {
+                child = ref2[l];
                 props = _.merge(props, child.properties);
               }
               addChange(this.data.getBlock(parent, changes), changes).properties = props;
@@ -807,15 +809,7 @@
     };
     installSelectionMenu = function() {
       $(document.body).append("<div id='selectionBubble' contenteditable='false'></div>").append("<div id='topCaretBox' contenteditable='false'></div>").append("<div id='bottomCaretBox' contenteditable='false'></div>");
-      $("#selectionBubble").html(selectionMenu).on('mouseenter', function() {
-        return configureMenu($("#selectionBubble ul"));
-      });
-      return $("#selectionBubble ul").menu({
-        select: function(event, ui) {
-          console.log("MENU SELECT");
-          return false;
-        }
-      });
+      return monitorSelectionChange();
     };
     selectionMenu = "<div>\n<ul>\n  <li name='insert'><a href='javascript:void(0)'><span>Insert</span></a>\n    <ul>\n      <li><a href='javascript:void(0)'><span>Leisure</span></a></li>\n      <li><a href='javascript:void(0)'><span>YAML</span></a></li>\n      <li><a href='javascript:void(0)'><span>HTML</span></a></li>\n      <li><a href='javascript:void(0)'><span>CoffeeScript</span></a></li>\n      <li><a href='javascript:void(0)'><span>JavaScript</span></a></li>\n    </ul>\n  </li>\n</ul>\n</div>";
     configureMenu = function(menu) {
@@ -877,13 +871,27 @@
     isContentEditable = function(node) {
       return (node instanceof Element ? node : node.parentElement).isContentEditable;
     };
+    getDocumentParams = function() {
+      var j, k, len, param, ref, ref1, v;
+      if (!documentParams) {
+        documentParams = {};
+        ref = document.location.search.substring(1).split('&');
+        for (j = 0, len = ref.length; j < len; j++) {
+          param = ref[j];
+          ref1 = param.split('='), k = ref1[0], v = ref1[1];
+          documentParams[k.toLowerCase()] = v;
+        }
+      }
+      return documentParams;
+    };
     mergeExports({
       findEditor: findEditor,
       showHide: showHide,
       toolbarFor: toolbarFor,
       editorForToolbar: editorForToolbar,
       breakpoint: breakpoint,
-      blockOrg: blockOrg
+      blockOrg: blockOrg,
+      parseOrgMode: parseOrgMode
     });
     return {
       createLocalData: createLocalData,
@@ -899,7 +907,8 @@
       escapeAttr: escapeAttr,
       blockIsHidden: blockIsHidden,
       blockEnvMaker: blockEnvMaker,
-      controllerEval: controllerEval
+      controllerEval: controllerEval,
+      getDocumentParams: getDocumentParams
     };
   });
 

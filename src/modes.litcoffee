@@ -11,6 +11,7 @@
         SimpleMarkup
         Link
         ListItem
+        Drawer
         HTML
         Nil
         headlineRE
@@ -97,6 +98,7 @@
           for id, block of opts.slidesFor blocks
             @render opts, block, prefix, replace
         render: (opts, block, prefix, replace)->
+          opts.trigger 'render', block
           {source, error, results} = blockCodeItems this, block
           attrs = "id='#{prefix}#{block._id}' data-block='#{block.type}'"
           if block.type == 'headline' then attrs += " data-headline='#{block.level}'"
@@ -116,7 +118,7 @@
           txt = block.text
           if block.type == 'headline'
             {text} = parseOrgMode(block.text).children[0].partOffsets()
-            "<span class='plain-headline'>#{escapeHtml txt.substring 0, text.start}#{@renderMainText txt.substring(text.start, text.end)}#{escapeHtml txt.substring text.end}</span>"
+            "<span class='plain-headline maintext'>#{escapeHtml txt.substring 0, text.start}#{@renderMainText txt.substring(text.start, text.end)}#{escapeHtml txt.substring text.end}</span>"
           else @renderMeat parseOrgMode(block.text).children[0]
         renderMainText: (txt)-> @renderMeat parseMeat(txt, 0, '', true)[0]
         renderMeat: (org)->
@@ -275,7 +277,7 @@
         name: 'fancy'
         renderBlocks: (opt, html)->
           header = if hasView 'header' then opt.withNewContext =>
-            @renderView 'header', null, null, {}
+            @renderView('header', null, null, {})[0]
           else "<div id='dummy_headline'></div>"
           "#{header}#{html}"
         handleChanges: (opts, changes)->
@@ -307,11 +309,15 @@
               rendered[slide._id] = true
               @render opts, slide, prefix, replace
         render: (opts, block, prefix, replace)->
+          opts.trigger 'render', block
           if opts.shouldHide block then ['', opts.data.nextRight(block)?._id]
           else
             opts.withNewContext =>
               UI.context.currentView = opts.nodeForId block._id
               UI.context.block = block
+              pushPendingInitialzation ->
+                for node in opts.nodeForId(block._id).find('[title]')
+                  $(node).tooltip().tooltip('option', 'content', $(node).attr 'title')
               if block.type == 'headline' then @renderHeadline opts, block, prefix, replace
               else if !block.prev then @renderFirstBlocks opts, block, prefix, replace
               else @renderNontop opts, block, prefix, replace
@@ -338,7 +344,7 @@
                topLevel: block.level == 1
                level: block.level
                stars: m[HL_LEVEL]
-               maintext: block.text.substring m[HL_LEVEL].length
+               maintext: @renderOrg(cleanOrg(block.text.substring(m[HL_LEVEL].length))) + optWrench(block)
                children: (opts.data.children block),
                targets
           else
@@ -377,7 +383,7 @@
           if hasView viewType
             @renderView viewType, null, block.next,
               id: prefix + block._id
-              text: @renderOrg blockOrg opts.data, block
+              text: @renderOrgChunk blockOrg opts.data, block
               topLevel: !block.prev
               EOL: '\n',
               targets
@@ -406,7 +412,7 @@
               nameBoiler: nameBoiler ? ''
               nameText: if name then name.text.substring nameBoiler.length, name.text.length - 1 else ''
               name: if name then name.text.substring name.info else ''
-              afterName: if name then block.text.substring name.end(), source.offset else ''
+              afterName: if name then @renderOrg cleanOrg block.text.substring name.end(), source.offset else ''
               inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
               results: if !results then ''
               else if hideResults then "<span class='hidden'>#{escapeHtml results.text}</span>"
@@ -441,13 +447,17 @@
             else if name == 'results' then [org.end(), resultsArea org.allText()]
             else [pos, text]
           else [pos, text]
+        renderOrgChunk: (org)-> "<span class='org-chunk'>#{@renderOrg org}</span>"
         renderOrg: (org)->
           if org instanceof SimpleMarkup then @renderSimple org
           else if org instanceof Link then @renderLink org
           else if org instanceof Fragment
             (@renderOrg child for child in org.children).join ''
           else if org instanceof ListItem then @renderList org
-          else org.allText()
+          else if org instanceof Drawer then @renderDrawer org
+          else
+            text = insertBreaks org.allText()
+            if !org.prev then prefixBreak text else text
         renderHtml: (org)->
           "<span class='hidden'>#{escapeHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{escapeHtml org.trailing}</span>"
         renderList: (org)->
@@ -498,6 +508,9 @@
             when 'verbatim' then "<code>#{guts}</code>"
             else guts
           "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{goodText org.text[0]}</span>"
+        renderDrawer: (org)->
+          if org.name == 'properties' then "<span class='hidden'>${escapeHtml org.allText()}</span>"
+          else "<span class='org-properties'>${escapeHtml org.allText}</span>"
         showingSlides: (opt)-> opt.editor.node.is '.slides'
         setSlideMode: (opt, flag)->
           if flag
@@ -538,9 +551,24 @@
                 return true
           false
 
+      optWrench = (block)->
+        if block.properties && !_.isEmpty block.properties
+          props = "<div><b>Properties</b></div>"
+          for k, v of block.properties
+            props += "<p>:#{k}: #{v}"
+          wrench = $("<i class='fa fa-wrench'></i>")[0]
+          wrench.setAttribute 'title', props
+          wrench.outerHTML
+        else ''
+
+      lineBreak = "<br data-noncontent contenteditable='false'><br data-noncontent contenteditable='false'>"
+
+      insertBreaks = (text)-> text.replace /\n\n/g, "#{lineBreak}\n\n"
+
+      prefixBreak = (text)-> if text[0] == '\n' && text[1] != '\n' then lineBreak + text else text
+
       createValueSliders = ->
         for num in $(UI.context.currentView).find('.token.number')
-          console.log "Number:", num
           $(num).on 'click', -> showValueSlider this
 
       showValueSlider = (number)->
@@ -559,10 +587,10 @@
 
       setSliderValue = (val)->
         widget = currentSlider.widget
-        if -100 <= val <= 100
+        if -50 <= val <= 50
           widget.slider 'option', 'min', Math.min -100, -Math.abs val * 2
           widget.slider 'option', 'max', Math.max 100, Math.abs val * 2
-        else if val > 100
+        else if val > 50
           widget.slider 'option', 'min', 0
           widget.slider 'option', 'max', val * 2
         else
@@ -591,7 +619,6 @@
         if currentSlider && !currentSlider?.sliding
           currentSlider.widget.addClass 'hidden'
           currentSlider = null
-        else console.log "not hiding"
 
       showsCode = (codeBlock)->
         exports = codeBlock.codeAttributes?.exports?.split(' ')
@@ -614,7 +641,7 @@
       resultsArea = (results)->
         if !(firstResult = results.indexOf('\n') + 1) || results[firstResult] == ':'
           "<span class='hidden'>#{goodText results}</span><span data-noncontent>#{results.replace /^(: )(.*\n)/gm, (m, g1, g2)-> goodHtml(g2)}</span>"
-        else "<span class='hidden'>#{results.substring 0, firstResult}</span>#{fancyMode.renderOrg blockOrg null, text: results.substring(firstResult)}"
+        else "<span class='hidden'>#{results.substring 0, firstResult}</span>#{fancyMode.renderOrg cleanOrg results.substring(firstResult)}"
 
       plainEditDiv = (div, data)->
         $(div).addClass 'plain'
@@ -646,6 +673,8 @@
         (replacementTargets block, prefix, replace)?.replaceWith html
         if replace then initializePendingViews()
 
+      cleanOrg = (text)-> blockOrg null, text: text
+
 Exports
 
       mergeExports {
@@ -657,6 +686,7 @@ Exports
         slideValue
         mayHideValueSlider
         setSliding
+        cleanOrg
       }
 
       {

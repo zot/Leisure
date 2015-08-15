@@ -39,12 +39,12 @@ define ['lib/lazy'], (Lazy)->
   todoKeywords = ['TODO', 'DONE']
   
   buildHeadlineRE = ->
-    new RegExp "^(\\*+ *)((?:#{todoKeywords.join('|')}) *)?(\\[#(A|B|C)\\] *)?([^\\n]*?)(:[\\w@%#:]*: *)?$", 'm'
+    new RegExp "^(\\*+( +|$))((?:#{todoKeywords.join('|')}) *)?(\\[#(A|B|C)\\] *)?([^\\n]*?)(:[\\w@%#:]*: *)?$", 'm'
   HL_LEVEL = 1
-  HL_TODO = 2
-  HL_PRIORITY = 4
-  HL_TEXT = 5
-  HL_TAGS = 6
+  HL_TODO = 3
+  HL_PRIORITY = 5
+  HL_TEXT = 6
+  HL_TAGS = 7
   headlineRE = buildHeadlineRE()
   todoRE = /^(\*+) *(TODO|DONE)/
   tagsRE = /:[^:]*/
@@ -74,7 +74,9 @@ define ['lib/lazy'], (Lazy)->
   LIST_INFO = 5
   listRE = /^( *)(- *)(\[( |X)\] +)?(.*)$/m
   # markup characters: * / + = ~ _
-  simpleRE = /\B(\*[/+=~\w](.*?[/+=~\w])?\*|\/[*+=~\w](.*?[*+=~\w])?\/|\+[*/=~\w](.*?[*/=~\w])?\+|=[+*/~\w](.*?[+*/~\w])?=|~[=+*/\w](.*?[=+*/\w])?~)(\B|$)|\b_[^_]*\B_(\b|$)/
+  #simpleRE = /\B(\*[/+=~\w](.*?[/+=~\w])?\*|\/[*+=~\w](.*?[*+=~\w])?\/|\+[*/=~\w](.*?[*/=~\w])?\+|=[+*/~\w](.*?[+*/~\w])?=|~[=+*/\w](.*?[=+*/\w])?~)(\B|$)|\b_[^_]*\B_(\b|$)/
+  #simpleRE = /\B(\*[/+=~\S](.*?[/+=~\S])?\*|\/[*+=~\S](.*?[*+=~\S])?\/|\+[*/=~\S](.*?[*/=~\S])?\+|=[+*/~\S](.*?[+*/~\S])?=|~[=+*/\S](.*?[=+*/\S])?~)(\B|$)|\b_[^_]*\B_(\b|$)/
+  simpleRE = /\B(\*[^\s*]([^*]*[^\s*])?\*|\/[^\s\/]([^\/]*[^\s\/])?\/|\+[^\s+]([^+]*[^\s+])?\+|=[^\s=]([^=]*[^\s=])?=|~[^\s~]([^~]*[^\s~])?~)(\B|$)|\b_[^_]*\B_(\b|$)/
   LINK_HEAD = 1
   LINK_INFO = 2
   LINK_DESCRIPTION = 3
@@ -135,8 +137,9 @@ define ['lib/lazy'], (Lazy)->
       prev = null
       for c in @children
         if prev then prev.next = c
-        prev = c
         @linkChild c
+        c.prev = prev
+        prev = c
       this
     contains: (node)->
       while node

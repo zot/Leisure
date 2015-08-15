@@ -143,6 +143,10 @@
 
       FingerTree.measure = notImplemented;
 
+      FingerTree.prototype.force = function() {
+        return this;
+      };
+
       FingerTree.prototype.isEmpty = notImplemented;
 
       FingerTree.prototype.addFirst = notImplemented;
@@ -379,6 +383,7 @@
       };
 
       Deep.prototype.concat = function(other) {
+        other = other.force();
         if (other instanceof Empty) {
           return this;
         } else if (other instanceof Single) {
@@ -529,6 +534,8 @@
       }
     };
     app3 = function(t1, ts, t2) {
+      t1 = t1.force();
+      t2 = t2.force();
       if (t1 instanceof Empty) {
         return prepend(t2, ts);
       } else if (t2 instanceof Empty) {

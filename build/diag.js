@@ -11,22 +11,30 @@
       return $((ref = editorForToolbar(node)) != null ? ref.node : void 0).nextAll(".selectionInfo").hasClass('diag');
     };
     showDiag = function(node, state) {
-      var ref;
-      node = (ref = editorForToolbar(node)) != null ? ref.node : void 0;
+      var editor;
+      editor = editorForToolbar(node);
+      node = editor != null ? editor.node : void 0;
+      editor.diag = state;
       if (state) {
         $(node).addClass('diag');
-        $(node).nextAll(".selectionInfo").addClass('diag');
-        return $(node).nextAll(".structure").addClass('diag');
+        $(node).nextAll(".editorDiag").addClass('diag');
+        $(node).nextAll(".structure").addClass('diag');
+        editor.options.setDiagEnabled(true);
+        return editor.options.data.setDiagEnabled(true);
       } else {
         $(node).removeClass('diag');
-        $(node).nextAll(".selectionInfo").removeClass('diag');
-        return $(node).nextAll(".structure").removeClass('diag');
+        $(node).nextAll(".editorDiag").removeClass('diag');
+        $(node).nextAll(".structure").removeClass('diag');
+        editor.options.setDiagEnabled(false);
+        return editor.options.data.setDiagEnabled(false);
       }
     };
     createEditorDisplay = function(editor) {
-      var status, statusUpdate;
-      status = $("<div class='selectionInfo'>No selection</div>");
+      var errors, selection, status, statusUpdate;
+      status = $("<div class='editorDiag'><div class='editorErrors'></div><div class='selectionInfo'>No selection</div></div>");
       editor.node.after(status);
+      errors = status.find('.editorErrors');
+      selection = status.find('.selectionInfo');
       statusUpdate = (function(_this) {
         return function() {
           var block, blockLine, col, left, line, offset, ref, ref1, top;
@@ -34,14 +42,27 @@
           if (block) {
             ref1 = lineInfo(editor.options, block, offset), line = ref1.line, col = ref1.col, blockLine = ref1.blockLine, top = ref1.top, left = ref1.left;
             if (line) {
-              return status.html("line: " + (numSpan(line)) + " col: " + (numSpan(col)) + " block: " + block._id + ":" + (numSpan(blockLine)) + " top: " + (numSpan(top)) + " left: " + (numSpan(left)));
+              return selection.html("line: " + (numSpan(line)) + " col: " + (numSpan(col)) + " block: " + block._id + ":" + (numSpan(blockLine)) + " top: " + (numSpan(top)) + " left: " + (numSpan(left)));
             }
           }
-          return status.html("No selection");
+          return selection.html("No selection");
         };
       })(this);
       editor.on('moved', statusUpdate);
-      return editor.on('selection', statusUpdate);
+      editor.on('selection', statusUpdate);
+      return editor.options.on('diag', function(badBlocks) {
+        if (badBlocks) {
+          $(editor.node).addClass('error');
+          return errors.html("BAD BLOCKS: " + (JSON.stringify(badBlocks)));
+        } else {
+          $(editor.node).removeClass('error');
+          return errors.html('');
+        }
+      }).on('render', function(block) {
+        if (editor.diag) {
+          return console.log("RENDER: " + block._id);
+        }
+      });
     };
     numSpan = function(n) {
       return "<span class='status-num'>" + n + "</span>";
@@ -82,14 +103,22 @@
       };
     };
     createStructureDisplay = function(data, stop) {
-      var div;
+      var blockDisplay, div, errorDisplay;
       if (!$(".structure").length) {
-        div = $("<div class='structure'></div>");
+        div = $("<div class='structure'><div class='dataErrors'></div><div class='blocks'></div></div>");
         $(document.body).append(div);
+        errorDisplay = div.find('.dataErrors');
+        blockDisplay = div.find('.blocks');
         return data.on('change', function(changes) {
-          return displayStructure(data, div);
+          return displayStructure(data, blockDisplay);
         }).on('load', function() {
-          return displayStructure(data, div);
+          return displayStructure(data, blockDisplay);
+        }).on('diag', function(badBlocks) {
+          if (badBlocks) {
+            return errorDisplay.html("<b>BAD BLOCKS:</b> " + (JSON.stringify(badBlocks)));
+          } else {
+            return errorDisplay.html('');
+          }
         });
       }
     };

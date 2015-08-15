@@ -36,8 +36,6 @@ it easier to handle merges.
           @runFilters @getBlock(id), null
           @blocks = @blocks.delete id
           @unindexBlock id
-        eachBlock: (func)->
-          @blocks.forEach (block, id)-> if id != 'FIRST' then func block, id
         load: (first, newBlocks)->
           super first, setFirst((new Map newBlocks), first),
             sets: newBlocks

@@ -1,26 +1,42 @@
 * Leisure connection mode for Emacs
 This is a minor mode that connects an emacs buffer to Leisure web page.
-** Turning the mode on and off
-Turning the mode on will automatially open Leisure a new web page and connect
-it to your web
-* Goodies
-:properties:
-:hidden: true
-:end:
-#+NAME: data1
-#+BEGIN_SRC yaml
-name: buwsdfj
-#+END_SRC
 
-#+NAME: controller1
-#+BEGIN_SRC cs
-@initializeView = (view, data)->
-  $(view).find('[name=len]').html data.name.length
-#+END_SRC
+*NOTE: LEISURE CURRENTLY ONLY RUNS IN CHROMIUM-BASED BROWSERS (LIKE CHROME).*
+
+*If you are viewing this in Emacs*, you can try this out by [[elisp:leisure-connection-mode][CLICKING
+THIS LINK]] and then switching to your newly opened browser page (if it
+doesn't automatically switch you to the browser).
+** Features
+*** Bidirectional connection to Emacs
+This might be the most important feature for Emacs/Orgmode users
+**** Basic operation
+Toggling leisure-connection-smode will open and close a web page associated with
+the current buffer.
+
+You can also initiate connections from Leisure to emacs, provided that
+you have started Emacs' Leisure service.  Leisure-connection-mode
+automatically turns on the service but you can also control it with
+the leisure-start and leisure-stop commands.
+*** Code syntax highlighting
+*** Source and slides
+- You can click the martini glass to view/edit orgmode source
+- You can use the toolar to start a slideshow using top-level healines as slides
+*** Themes
+- You can choose themes in the Leisure toolbar
+- You can set a default theme in the [[elisp:(customize-group-other-window "leisure")][leisure customize group]]
+*** Views
+Leisure uses Handlebars to define HTML views for different types of data.
+This is what it uses for its normal display (called "fancy mode").
+- You can tweak Leisure's rendering by overriding parts of [[elisp:(browse-url-emacs "http://textcraft.org/newLeisure/src/defaults.lorg")][defaults.lorg]] in your document
 * Rotator
 #+NAME: rotator
-#+BEGIN_SRC yaml
-degrees: 22459
+This data controls the rotating square below. 
+- Click the degrees value and move the slider that pops up
+- When you let go of the sider, it snaps to the middle so the value can keep changing
+- Watch it update in both Emacs and Leisure
+- Edit the value in Emacs
+#+BEGIN_SRC yaml 
+degrees: 45
 #+END_SRC
 
 #+BEGIN_HTML :var __proto__=rotator
@@ -28,19 +44,42 @@ degrees: 22459
   <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
 </div>
 #+END_HTML
-* Headline
-#+BEGIN_HTML :var __proto__=data1 :var x=3 :controller controller1
-<b>hello {{name}}</b>
+* HTML templates
+#+NAME: fred
+This is Fred
+#+BEGIN_SRC yaml
+name: Fred
+#+END_SRC
+
+Here's some Html that uses Fred and Fred's controller.
+
+#+BEGIN_HTML :var __proto__=fred :controller fred-controller
+<b>Hello {{name}}</b>
 Name length: <b name='len'></b>
 #+END_HTML
 
-#+begin_src plantuml :file /tmp/duh.svg :exports code
+#+NAME: fred-controller
+This is Fred's controller
+#+BEGIN_SRC cs
+@initializeView = (view, data)->
+  $(view).find('[name=len]').html data.name.length
+#+END_SRC
+* Media
+[[https://imgs.xkcd.com/comics/lisp_cycles.png]]
+
+This is a nice video by John Kitchin about Orgmode
+
+#+BEGIN_HTML
+<iframe width="420" height="315" src="https://www.youtube.com/embed/fgizHHd7nOo" frameborder="0" allowfullscreen></iframe>
+#+END_HTML
+
+#+BEGIN_src plantuml :file /tmp/duh.svg :exports code
 skinparam monochrome true
 FitsHdu <|-- PrimaryHdu
 FitsHdu <|-- ExtensionHdu
 
 FitsHdu : header
-FitsHdu : getHeaderKeyword()
+Fitshdu : getHeaderKeyword()
 
 ExtensionHdu <|-- ImageHdu
 ImageHdu : image
@@ -50,13 +89,9 @@ ExtensionHdu <|-- BinaryTableHdu
 BinaryTableHdu : table
 BinaryTableHdu : getRow(row)
 BinaryTableHdu : getColumn(column)
-#+end_src
+#+END_src
 
-#+RESULTS:
-[[file:/tmp/duh.svg]]
-
-asdasdfasdfhjkjhkjhkjhjkh
-#+begin_src ditaa :file /tmp/ditaa-seqboxes.png :exports results
+#+BEGIN_SRC ditaa :file /tmp/ditaa-seqboxes.png :exports results
 +------+   +-----+   +-----+   +-----+
 |{io}  |   |{d}  |   |{s}  |   |cBLU |
 | Foo  +---+ Bar +---+ Baz +---+ Moo |
@@ -68,8 +103,13 @@ asdasdfasdfhjkjhkjhkjhjkh
            | Goo +------+---=--+ Shoo |
            \-----/             |      |
                                +------+
-#+end_src
-
-#+RESULTS:
-[[file:/tmp/ditaa-seqboxes.png]]
-
+#+END_SRC
+* Hidden Data
+:properties:
+:hidden: true
+:end:
+* Settings
+:properties:
+:hidden: true
+:end:
+#+STARTUP: showeverything

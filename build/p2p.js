@@ -47,14 +47,6 @@
         return this.unindexBlock(id);
       };
 
-      P2POrgData.prototype.eachBlock = function(func) {
-        return this.blocks.forEach(function(block, id) {
-          if (id !== 'FIRST') {
-            return func(block, id);
-          }
-        });
-      };
-
       P2POrgData.prototype.load = function(first, newBlocks) {
         return P2POrgData.__super__.load.call(this, first, setFirst(new Map(newBlocks), first), {
           sets: newBlocks,

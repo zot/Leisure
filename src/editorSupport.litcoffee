@@ -39,6 +39,9 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         findEditor
         copyBlock
         preserveSelection
+        changeAdvice
+        afterMethod
+        beforeMethod
       } = Editor
       {
         addView
@@ -57,6 +60,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
 
       selectionActive = true
       headlineRE = /^(\*+ *)(.*)(\n)$/
+      documentParams = null
       defaults =
         views: {}
         controls: {}
@@ -104,7 +108,7 @@ Let's just call this poetic license for the time being...
           @runFilters @getBlock(id), block
           super id, block
         deleteBlock: (id)->
-          @runFilters @getBlock(block), null
+          @runFilters @getBlock(id), null
           super id
         addFilter: (filter)-> @filters.push filter
         removeFilter: (filter)-> _.remove @filters, (i)-> i == filter
@@ -348,6 +352,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           @canHideSlides() && (slide = @slideFor thing) && @isHidden(slide) && !@isToggled(slide)
         setEditor: (ed)->
           super ed
+          $(ed.node).addClass 'leisure-editor'
           @setMode @mode
           @initToolbar()
           @bindings = __proto__: @bindings
@@ -487,11 +492,11 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           .append "<div id='selectionBubble' contenteditable='false'></div>"
           .append "<div id='topCaretBox' contenteditable='false'></div>"
           .append "<div id='bottomCaretBox' contenteditable='false'></div>"
-        $("#selectionBubble")
-          .html selectionMenu
-          .on 'mouseenter', -> configureMenu $("#selectionBubble ul")
-        $("#selectionBubble ul").menu select: (event, ui)-> console.log "MENU SELECT"; false
-        #monitorSelectionChange()
+        #$("#selectionBubble")
+        #  .html selectionMenu
+        #  .on 'mouseenter', -> configureMenu $("#selectionBubble ul")
+        #$("#selectionBubble ul").menu select: (event, ui)-> console.log "MENU SELECT"; false
+        monitorSelectionChange()
     
       selectionMenu = """
       <div>
@@ -567,6 +572,14 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       isContentEditable = (node)->
         (if node instanceof Element then node else node.parentElement).isContentEditable
 
+      getDocumentParams = ->
+        if !documentParams
+          documentParams = {}
+          for param in document.location.search.substring(1).split '&'
+            [k,v] = param.split '='
+            documentParams[k.toLowerCase()] = v
+        documentParams
+
 Exports
 
       mergeExports {
@@ -576,6 +589,7 @@ Exports
         editorForToolbar
         breakpoint
         blockOrg
+        parseOrgMode
       }
 
       {
@@ -593,4 +607,5 @@ Exports
         blockIsHidden
         blockEnvMaker
         controllerEval
+        getDocumentParams
       }

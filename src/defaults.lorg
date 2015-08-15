@@ -15,19 +15,22 @@ in as long as you mark it as data-noncontent, etc.
 
 * Toolbar
 #+BEGIN_SRC html :defview header
-<div class="paginators" data-noncontent contenteditable='false'>
-  <button name="prevSlide" class="bound">
-    <i class="fa fa-caret-left fa-1x"></i>
-    <span></span>
-  </button>
-  <button name="nextSlide" class="bound">
-    <i class="fa fa-caret-right fa-1x"></i>
-    <span></span>
-  </button>
+<div contenteditable='false' data-noncontent>
+  <div class="paginators">
+    <button name="prevSlide" class="bound">
+      <i class="fa fa-caret-left fa-1x"></i>
+      <span></span>
+    </button>
+    <button name="nextSlide" class="bound">
+      <i class="fa fa-caret-right fa-1x"></i>
+      <span></span>
+    </button>
+  </div>
+  <div name="dummy_headline"></div>
+  <div name="valueSlider" class='hidden'></div>
 </div>
-<div name="dummy_headline" data-noncontent contenteditable='false'></div>
-<div name="valueSlider" class='hidden'></div>
 #+END_SRC
+
 #+BEGIN_SRC html :defview leisure-toolbar
 <div name='buttons' style="position: relative;">
   <div style='position: relative; display: inline-block; width: calc(100% - 13em)'>
@@ -157,6 +160,7 @@ updateButton = (view, hiding)->
 [data-view='leisure-toolbar'] {
   position: fixed;
   width: 100%;
+  height: 2.5em;
 }
 .themeDiv {
   display: inline-block;
@@ -243,8 +247,7 @@ updateButton = (view, hiding)->
 data-edit-mode='fancy'
 data-block='headline'
 data-org-headline='{{level}}'
-data-headline='{{level}}'><span class='maincontent'><span class='hidden'>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'><div class="textborder" contenteditable="false"></div><div class='headline-content'><div class='maintext'>{{> leisure-source-toggle}}{{maintext}}{{
-EOL}}</div></div></div></div><div>{{#each children}}{{{
+data-headline='{{level}}'><span class='maincontent'><span class='hidden'>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'><div class="textborder" contenteditable="false"></div><div class='headline-content'><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div></div></div></div><div>{{#each children}}{{{
 render this
 }}}{{/each}}</div></div></div><span></div></div>
 #+END_SRC
@@ -253,8 +256,7 @@ render this
 <div id='{{id}}' class='fancy'
 data-edit-mode='fancy'
 data-block='headline'
-data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{maintext}}{{
-EOL}}</div>{{#each children}}{{{
+data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div>{{#each children}}{{{
 render this
 }}}{{/each}}</div>
 #+END_SRC
@@ -272,9 +274,7 @@ render this
   data-org-type='source'
   data-shared='code'
   data-lang='{{language}}'
-  >{{> leisure-code-name}}<div
-    class='codeHeading'
-    contenteditable='true'><span class='hidden'>{{sourceBoiler sourceOrg}}</span>{{sourceInfo sourceOrg}}</div><div
+  >{{> leisure-code-boiler}}<div
     class='code-text'
     data-org-src
     data-contain
@@ -289,13 +289,18 @@ class='code-results' data-org-src>{{{results}}}</div>{{/if}}{{/if}}</span>
 @initializeView = (view)-> Leisure.createValueSliders()
 #+END_SRC
 
-#+BEGIN_SRC html :defview leisure-code-name
-{{#if nameBoiler
-}}<span class='codename'><span class='hidden'>{{nameBoiler
-}}</span><span data-noncontent>"</span><span
-contenteditable='true'>{{nameText
-}}</span><span data-noncontent>"</span><span class='hidden'>
-{{afterName}}</span></span>{{/if}}
+#+BEGIN_SRC html :defview leisure-code-boiler
+<span class='codename'>{{#if nameBoiler
+}}<span class='hidden'>{{nameBoiler
+}}</span><span class='name-label'><span data-noncontent>NAME: "</span><span
+contenteditable='true' class='name'>{{nameText
+}}</span><span data-noncontent>"
+</span></span><span class='hidden'>
+</span>{{#if afterName}}<span class='code-doc-holder'><span class='code-doc-background'></span><span class='code-doc' contenteditable='true'>{{{afterName}}}</span></span>{{/if}}{{/if}}<div class='src-line-break'></div>{{> leisure-code-src-line}}</span>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code-src-line
+<div class='codeHeading' contenteditable='true'><span class='hidden'>{{sourceBoiler sourceOrg}}</span><span data-noncontent contenteditable='false'>LANGUAGE: </span>{{sourceInfo sourceOrg}}</div>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code/inline-html
@@ -303,7 +308,7 @@ contenteditable='true'>{{nameText
 id='{{id}}'
 data-block='code'
 contenteditable='false'
-data-lang='{{language}}'><span class='hidden'>{{block.text}}</span><div data-noncontent contenteditable='false'>{{{renderHtml source}}}</div></span>
+data-lang='{{language}}'><span class='hidden'>{{block.text}}</span><span data-noncontent contenteditable='false'>{{{renderHtml source}}}</span></span>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code/results-only
@@ -351,54 +356,136 @@ data-org-type='results'
 ** Block CSS
 #+NAME: block-css
 #+BEGIN_SRC css
-.view[data-view='leisure-headline'] {
-  display: block;
-}
-.plain.view [data-block],
-.plain.view [data-block] * {
-  white-space: pre;
-}
-.view [data-block],
-.view [data-block] * {
-  white-space: pre-line;
-}
-.view [data-block] .code-text,
-.view [data-block] .code-text * {
-  white-space: pre;
-}
-.view [data-block] .maintext {
-  white-space: normal;
-}
-span[data-block='code'].fancy {
-  border: solid 3px black;
-  margin: 2px;
-  vertical-align: middle;
-  position: relative;
-  display: inline-block;
-}
-.code-controls {
-  vertical-align: middle;
-  background: lightgray;
-}
-.source {
-  position: relative;
-  display: block;
-  border: solid 3px blue;
-}
-.results {
-  display: block;
-  border: solid 3px green;
-}
+  [name=valueSlider] {
+    z-index: 1;
+  }
+  /****
+   * Hacky flex settings to simulate wimpy grid-layout.
+   * Can't use grid until it's more widely available.
+   * The reason for this is to lay out the source items in an order
+   * that is different from how the occur in the file.  Custom
+   * elements could also solve this (or Shadow DOM) but there's
+   * not a lot of cross-browser support there.
+   * Also, this flex layout is complicated because I'm running into
+   * box sizing problems.  The name-label and leisure-code-src-line
+   * widths are being added to the overall width, even though they
+   * only occur on the first line together and they are smaller than
+   * the maximum width of the elements below them.  So they get width: 0.
+   * Then, to compensate for their lack of being able to "push the
+   * sides, we set a min-width of 80ex.  Hope that's enough because
+   * long src header lines will now wrap.
+   ****/
+  .codename {
+    display: inline-flex;
+    padding-top: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+    flex-wrap: wrap;
+    min-width: 80ex;
+  }
+  .name-label {
+    order: 1;
+    flex-basis: 25ex;
+    flex-grow: 1;
+    width: 0;
+  }
+  .code-doc-holder {
+    position: relative;
+    font-style: italic;
+    font-size: larger;
+    order: 4;
+    width: 100%;
+    padding: 10px;
+    margin: 5px;
+  }
+  .code-doc-background {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    opacity: 0.1;
+    background-color: black;
+  }
+  .code-doc {
+    position: relative;
+  }
+  [data-view="leisure-code-src-line"] {
+    order: 2;
+/*
+    width: 0;
+    flex-basis: 10ex;
+    flex-grow: 1;
+*/
+    text-align: right;
+  }
+  .src-line-break {
+    width: calc(100% - 5ex);
+    height: 0px;
+    order: 3;
+  }
+  /****
+   ,* end of hacky flex settings
+   ,****/
+  .fancy[data-block=code] .codeHeading {
+    padding-top: 0;
+  }
+  .view[data-view='leisure-headline'] {
+    display: block;
+  }
+  .plain {
+    white-space: pre;
+    font-family: Courier;
+  }
+/*
+  .view [data-block],
+  .view [data-block] * {
+    white-space: pre-line;
+  }
+*/
+  .view [data-block] .code-text,
+  .view [data-block] .code-text * {
+    white-space: pre;
+  }
+  .fancy .view [data-block] .maintext {
+    white-space: normal;
+  }
+  span[data-block='code'].fancy {
+    border: solid 3px black;
+    margin: 2px;
+    vertical-align: middle;
+    position: relative;
+    display: inline-block;
+  }
+  .code-controls {
+    vertical-align: middle;
+    background: lightgray;
+  }
+  .source {
+    position: relative;
+    display: block;
+    border: solid 3px blue;
+  }
+  .results {
+    display: block;
+    border: solid 3px green;
+  }
 
-/* patches for theme problems */
-[data-org-src].code-results,
-[data-org-src].code-text {
-  height: auto;
-}
-.code-results {
-  margin-top: 1em;
-  margin-bottom: 1em;
-}
+  /* patches for theme problems */
+  [data-org-src].code-results,
+  [data-org-src].code-text {
+    height: auto;
+  }
+  .name-label,
+  .fancy[data-block=code] .codeHeading,
+  [data-org-src].code-results,
+  [data-org-src].code-text {
+    font-size: x-large;
+  }
+  .code-results {
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
 #+END_SRC
 
 * Search

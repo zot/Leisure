@@ -71,13 +71,20 @@ body {
     font-weight: bold;
     color: green;
 }
+.org-properties {
+    white-space: pre-line
+}
 .structure,
 .selectionInfo {
     display: none;
 }
 .diag.structure,
-.diag.selectionInfo {
+.editorDiag.diag .selectionInfo {
     display: inherit;
+}
+.editorErrors,
+.dataErrors {
+    color: red;
 }
 .selectionInfo {
     border: solid green 2px;
@@ -89,6 +96,17 @@ body {
     white-space: pre;
     overflow: auto;
     height: 15em;
+}
+[data-headline] {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
+.org-chunk {
+    white-space: normal !important;
+}
+.line-break {
+    display: inline-block;
+    break-after: always;
 }
 .token.number:hover {
     outline: solid black 1px;
