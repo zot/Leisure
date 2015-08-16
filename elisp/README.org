@@ -21,11 +21,12 @@ you have started Emacs' Leisure service.  Leisure-connection-mode
 automatically turns on the service but you can also control it with
 the leisure-start and leisure-stop commands.
 * Work in progress
+** Leisure is not stable, yet
 - Leisure is a *work in progress*
 - It's *NOT HARDENED*
   - *If you an unforgiving user, don't use Leisure yet!*
 - It doesn't support orgmode tables yet
-** This doesn't necessarily mean you can't use it, if you're willing to live on the edge...
+** But that doesn't mean you can't use it!
 - You can still benefit from Leisure's features, like interactive views, value sliders, etc.
 - You can edit in Emacs and keep a Leisure browser next to it to see your formatted document as you type
 - Leisure just changes the document text and then sends to Emacs.
@@ -159,7 +160,7 @@ Here is a nice video by John Kitchin about Orgmode
 <iframe width="420" height="315" src="https://www.youtube.com/embed/fgizHHd7nOo" frameborder="0" allowfullscreen></iframe>
 #+END_HTML
 * Babel
-If you are connecte to Emacs and have access to plantuml and dita, you
+If you are connected to Emacs and have access to plantuml and ditaa, you
 can change these diagrams and the pictures will update in Leisure.
 
 #+begin_src plantuml :file sequence.png :exports results :cache yes
@@ -226,7 +227,7 @@ Leisure started out as an experimental programming language that's
 quite a mouthful: a dynamically typed, lazy, functional programming
 language with strong support for metaprogramming.  Soon, TEAM CTHUHLU
 wanted to extend our experiment into programming environments.
-Leisure was already web-based, why shouldn't it eploit the powers of
+Leisure was already web-based, why shouldn't it exploit the powers of
 the Web?
 
 We didn't start from orgmode -- we hadn't even heard of it.  We did,

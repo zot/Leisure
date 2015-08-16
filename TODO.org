@@ -1,6 +1,4 @@
-* TODO expanded emacs server
-- file message for file links (images, etc.) and imports
-- execute message
+* TODO slider stays up when you scroll and doesn't scroll with the page
 * TODO load parameter so people can view the example without Emacs
   provide plantuml and ditaa files for the current text (use /tmp/blah on the site)
 * TODO allow links in simple markup (but not inside other links)        :org:
@@ -979,6 +977,10 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE expanded emacs server
+  CLOSED: [2015-08-16 Sun 20:55]
+- file message for file links (images, etc.) and imports
+- execute message
 ** DONE render HTML blocks in fancy mode (as opposed to src blocks)
    CLOSED: [2015-08-10 Mon 00:21]
 ** DONE martini glass not working in plain mode (i.e. second click)
