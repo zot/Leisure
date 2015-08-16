@@ -857,7 +857,7 @@
           r = s.getRangeAt(0);
           pos = this.domCursor(r.endContainer, r.endOffset).mutable().filterVisibleTextNodes().firstText();
           while (pos.node !== r.startContainer && pos.node.data.trim() === '') {
-            pos === pos.prev();
+            pos = pos.prev();
           }
           while (pos.pos > 0 && pos.node.data[pos.pos - 1] === ' ') {
             pos.pos--;
@@ -1459,17 +1459,14 @@
       };
 
       DataStore.prototype.indexBlock = function(block) {
-        var first, ref, ref1, rest, split;
+        var first, ref, ref1, ref2, ref3, rest, split;
         if (block) {
           if (block.prev === ((ref = this.getBlock(block.prev)) != null ? ref._id : void 0) || block.next === ((ref1 = this.getBlock(block.next)) != null ? ref1._id : void 0)) {
-            if (this.fingerNode(block._id)) {
-              if (!block.next || this.fingerNodeOrder(block._id, block.next)) {
-                if (!block.prev || this.fingerNodeOrder(block.prev, block._id)) {
-                  return;
-                }
-              }
-              this.unindexBlock(block._id);
+            ref2 = this.splitBlockIndexOnId(block._id), first = ref2[0], rest = ref2[1];
+            if ((!rest.isEmpty() && rest.peekFirst().id === block._id) && (!block.next || ((ref3 = rest.removeFirst().peekFirst()) != null ? ref3.id : void 0) === block.next) && (!block.prev || !first.isEmpty() && first.peekLast().id === block.prev)) {
+              return this.setIndex(first.addLast(indexNode(block)).concat(rest.removeFirst()));
             }
+            this.unindexBlock(block._id);
             if (split = this.fingerNodeOrder(block.prev, block.next)) {
               first = split[0], rest = split[1];
               return this.setIndex(first.addLast(indexNode(block)).concat(rest));
@@ -1587,8 +1584,13 @@
         text = '';
         while (block._id !== endOffset.block) {
           text += block.text;
+          block = this.getBlock(block.next);
         }
-        return text.substring(startOffset.offset) + block.text.substring(0, endOffset.offset);
+        if (startOffset.block === endOffset.block) {
+          return block.text.substring(startOffset.offset, endOffset.offset);
+        } else {
+          return text.substring(startOffset.offset) + block.text.substring(0, endOffset.offset);
+        }
       };
 
       DataStore.prototype.getText = function() {

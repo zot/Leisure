@@ -655,7 +655,7 @@ on it can select if start and end are different
               .filterVisibleTextNodes()
               .firstText()
             while pos.node != r.startContainer && pos.node.data.trim() == ''
-              pos == pos.prev()
+              pos = pos.prev()
             while pos.pos > 0 && pos.node.data[pos.pos - 1] == ' '
               pos.pos--
             if (pos.node != r.startContainer || pos.pos > r.startOffset) && (pos.node != r.endContainer || pos.pos < r.endOffset)
@@ -1067,9 +1067,11 @@ Data model -- override/reset these if you want to change how the store accesses 
           if block
             if block.prev == @getBlock(block.prev)?._id || block.next == @getBlock(block.next)?._id
               # if the block is indexed, it might be fine, otherwise unindex it
-              if @fingerNode(block._id)
-                if !block.next || @fingerNodeOrder(block._id, block.next)
-                  if !block.prev || @fingerNodeOrder(block.prev, block._id) then return
+              [first, rest] = @splitBlockIndexOnId block._id
+              if (!rest.isEmpty() && rest.peekFirst().id == block._id) &&
+                (!block.next || rest.removeFirst().peekFirst()?.id == block.next) &&
+                (!block.prev || !first.isEmpty() && first.peekLast().id == block.prev)
+                  return @setIndex first.addLast(indexNode block).concat rest.removeFirst()
                 @unindexBlock block._id
               # if next is followed by prev, just insert the block in between
               if split = @fingerNodeOrder(block.prev, block.next)
@@ -1149,7 +1151,10 @@ Data model -- override/reset these if you want to change how the store accesses 
           text = ''
           while block._id != endOffset.block
             text += block.text
-          text.substring(startOffset.offset) + block.text.substring 0, endOffset.offset
+            block = @getBlock block.next
+          if startOffset.block == endOffset.block
+            block.text.substring startOffset.offset, endOffset.offset
+          else text.substring(startOffset.offset) + block.text.substring 0, endOffset.offset
         getText: ->
           text = ''
           @eachBlock (block)-> text += block.text

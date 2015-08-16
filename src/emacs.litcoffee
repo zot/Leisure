@@ -55,7 +55,11 @@ Emacs connection
         replaceWhile ->
           if end == -1
             editor.options.load text
-          else editor.replace null, blockRangeFor(data, start, end), text
+          else
+            editor.replace null, blockRangeFor(data, start, end), text
+            #docString = editor.options.data.getDocSubstring(start, start + text.length)
+            #if text != docString
+            #  console.log "TEXT MISMATCH #{start} #{start + text.length}\n'#{text}'\n'#{docString}'"
 
       receiveFile = (data, msg)->
         [lead, id] = msg.match /^([^ ]+) +/
