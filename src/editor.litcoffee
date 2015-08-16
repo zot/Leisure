@@ -1416,6 +1416,9 @@ selection, regardless of the current value of LeisureEditCore.editing.
             editor.selectDocRange range
         else func()
 
+<a id='Method_Advice'></a>
+Method Advice
+
       advise = (object, method, name, def)->
         if typeof method == 'object'
           for meth, advice of method
