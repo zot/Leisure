@@ -53,6 +53,7 @@
           $.get(load, function(data) {
             return ED.options.load(data);
           });
+          ED.options.loadName = new URL(load, document.location).toString();
         }
         if (theme) {
           ED.options.setTheme(theme);

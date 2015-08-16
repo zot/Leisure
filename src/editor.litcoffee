@@ -1427,6 +1427,10 @@ selection, regardless of the current value of LeisureEditCore.editing.
           def.apply this, args
           r
 
+      aroundMethod = (def)->
+        (parent)-> (args...)->
+          (def.call this, (=> parent.apply this, args)).apply this, args
+
       wrapDiag = (parent)-> (args...)->
         r = parent.apply this, args
         @diag()
@@ -1518,6 +1522,7 @@ Exports
         unadvise
         beforeMethod
         afterMethod
+        aroundMethod
         changeAdvice
         treeToArray
       }

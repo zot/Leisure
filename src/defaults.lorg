@@ -86,7 +86,6 @@ in as long as you mark it as data-noncontent, etc.
     stop: -> Leisure.setSliding false
   vs.slider().on 'mouseleave', -> Leisure.mayHideValueSlider()
   vs.on 'mouseleave', -> Leisure.mayHideValueSlider()
-  console.log "slider", vs
 #+END_SRC
 
 #+BEGIN_SRC cs :control leisure-toolbar
@@ -216,7 +215,6 @@ updateButton = (view, hiding)->
 
 #+BEGIN_SRC cs :control leisure-source-toggle
 @initializeView = (view)->
-  Leisure.breakpoint()
   if (slide = view.closest('[data-headline]')).is('[data-headline="1"]') ||
   (slide = view.closest("[data-view='leisure-headline-plain']").find('[data-headline="1"]')).length ||
   (slide = view.closest('[data-view="leisure-top-chunk"]').find('[data-block]').first()).length

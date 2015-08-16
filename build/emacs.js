@@ -3,16 +3,25 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], function(_, Exports, UI, Editor, EditorSupport) {
-    var blockRangeFor, c, close, configureEmacs, connect, connected, diag, e, error, escapeString, escaped, findEditor, getDocumentParams, mergeExports, message, messages, msgPat, offsetFor, open, preserveSelection, replace, replaceMsgPat, replaceWhile, replacing, sendReplace, showDiag, showMessage, slashed, specials, unescapeString, unescaped;
+    var advise, aroundMethod, blockRangeFor, c, close, configureEmacs, connect, connected, diag, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, mergeExports, message, messages, msgPat, offsetFor, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, replacing, sendCcCc, sendFollowLink, sendGetFile, sendReplace, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
     mergeExports = Exports.mergeExports;
-    findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection;
-    showMessage = UI.showMessage;
+    findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, aroundMethod = Editor.aroundMethod, advise = Editor.advise;
+    showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr;
     getDocumentParams = EditorSupport.getDocumentParams;
     msgPat = /^([^ ]+)( (.*))?$/;
     replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/;
     replacing = false;
     connected = false;
     showDiag = false;
+    imgCount = 0;
+    fileCount = 0;
+    fileTypes = {
+      pgn: 'image/png',
+      gif: 'image/gif',
+      bmp: 'image/bmp',
+      xpm: 'image/xpm',
+      svg: 'image/svg'
+    };
     diag = function() {
       var msg;
       msg = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -26,6 +35,13 @@
       },
       reload: function() {
         return document.location.href = document.location.href;
+      },
+      activate: function() {
+        window.open("javascript:close()");
+        return window.focus();
+      },
+      file: function(data, msg, frame) {
+        return receiveFile(data, msg);
       }
     };
     replace = function(data, msg) {
@@ -43,6 +59,14 @@
           return editor.replace(null, blockRangeFor(data, start, end), text);
         }
       });
+    };
+    receiveFile = function(data, msg) {
+      var base, id, lead, ref;
+      ref = msg.match(/^([^ ]+) +/), lead = ref[0], id = ref[1];
+      if (typeof (base = data.emacsConnection.fileCallbacks)[id] === "function") {
+        base[id](msg.substring(lead.length));
+      }
+      return delete data.emacsConnection.fileCallbacks[id];
     };
     replaceWhile = function(func) {
       replacing = true;
@@ -64,7 +88,7 @@
       con.onmessage = function(evt) {
         return message(evt, opts.data);
       };
-      return con.onerror = function(evt) {
+      con.onerror = function(evt) {
         return showMessage(opts.editor.node, "Connection error", "Could not open connection to emacs", {
           position: {
             my: 'center top',
@@ -77,13 +101,49 @@
           }
         });
       };
+      _.merge(opts, {
+        renderImage: renderImage
+      });
+      advise(opts, {
+        followLink: {
+          emacs: aroundMethod(function(parent) {
+            return function(e) {
+              if (e.target.href.match(/^elisp/)) {
+                sendFollowLink(this.data.emacsConnection.websocket, this.editor.docOffset($(e.target).prev('.link')[0], 1));
+                return false;
+              } else {
+                return parent();
+              }
+            };
+          })
+        }
+      });
+      return opts.bindings['C-C C-C'] = function(editor, e, r) {
+        return sendCcCc(editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0));
+      };
+    };
+    renderImage = function(src, title) {
+      var imgId;
+      if (src.match(/^file:/)) {
+        imgId = "emacs-image-" + (imgCount++);
+        sendGetFile(this.data, src, function(file) {
+          return $("#" + imgId).prop('src', "data:" + (typeForFile(src)) + ";base64," + file);
+        });
+        return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'>";
+      } else {
+        return "<img src='" + src + "' title='" + title + "'>";
+      }
+    };
+    typeForFile = function(name) {
+      var ext, ignore, ref;
+      ref = name.match(/\.(.*)$/), ignore = ref[0], ext = ref[1];
+      return fileTypes[ext];
     };
     close = function(evt, data) {
       var connection;
       connection = data.emacsConnection;
       connection.panel.find('button').button('enable');
       connection.panel.find('input').removeAttr('readonly');
-      console.log("closed");
       if (connection.cookie) {
         window.close();
       }
@@ -110,7 +170,6 @@
     };
     open = function(evt, ws, data, port, cookie, cont) {
       var connection;
-      console.log("opened");
       ws.send((cookie != null ? cookie : '') + " display");
       connection = data.emacsConnection;
       connection.cookie = cookie;
@@ -167,6 +226,28 @@
     sendReplace = function(con, start, end, text) {
       con.send("r " + start + " " + end + " " + (JSON.stringify(text)));
       return diag("sending r " + start + " " + end + " " + (JSON.stringify(text)));
+    };
+    sendFollowLink = function(con, location) {
+      con.send("followLink " + location);
+      return diag("sending followLink " + location);
+    };
+    sendCcCc = function(con, location) {
+      con.send("ctrl-c-ctrl-c " + location);
+      return diag("sending ctrl-c-ctrl-c " + location);
+    };
+    sendGetFile = function(data, name, callback) {
+      var con, id, m;
+      con = data.emacsConnection.websocket;
+      if (m = name.match(/#.*$/)) {
+        name = name.substring(0, name.length - m[0].length);
+      }
+      id = "file-" + (fileCount++);
+      diag("sending getFile " + id + " " + name);
+      data.emacsConnection.fileCallbacks[id] = function(file) {
+        delete data.emacsConnection.fileCallbacks[id];
+        return callback(file);
+      };
+      return con.send("getFile " + id + " " + name);
     };
     blockRangeFor = function(data, start, end) {
       var block, con, found, nextOffset, offset;
@@ -239,7 +320,8 @@
       data = opts.data;
       data.emacsConnection = {
         panel: panel,
-        opts: UI.context.opts
+        opts: UI.context.opts,
+        fileCallbacks: {}
       };
       panel.find('button').button().on('click', function() {
         var host, port, ref;

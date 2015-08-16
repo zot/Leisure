@@ -74,7 +74,9 @@ Code for local-mode.  This will not be loaded under meteor.
         createEditorDisplay ED
         if document.location.search
           {load, theme} = getDocumentParams()
-          if load then $.get(load, (data)-> ED.options.load data)
+          if load
+            $.get(load, (data)-> ED.options.load data)
+            ED.options.loadName = new URL(load, document.location).toString()
           if theme then ED.options.setTheme theme
         else
           ED.options.load """

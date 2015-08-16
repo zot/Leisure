@@ -33,8 +33,6 @@ Evaulation support for Leisure
         jsonConvert
       } = Runtime
 
-      console.log CS
-
       defaultEnv.write = (str)-> console.log str
 
       leisureEnv = (env)->

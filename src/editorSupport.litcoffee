@@ -289,8 +289,9 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           if newBlocks.length == oldBlocks.length == 1
             for newBlock, i in newBlocks
               oldBlock = oldBlocks[i]
-              if newBlocks.type == 'headline' || oldBlock.type == 'headline' ||
-              newBlock._id != oldBlock._id
+              #if newBlock.type == 'headline' || oldBlock.type == 'headline' ||
+              #newBlock._id != oldBlock._id
+              if trickyChange oldBlock, newBlock
                 return super changes
             nb = newBlocks.slice()
             viewNodes = $()
@@ -436,6 +437,21 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               for block, i in changes.newBlocks
                 if block._id == newBlock._id then changes.newBlocks[i] = newBlock
               sync = false
+        renderImage: (src, title)->
+          if @loadName && m = src.match /^file:(\/\/)?(.*)$/
+            src = new URL(m[2], @loadName).toString()
+          "<img src='#{src}'#{title}>"
+        followLink: (e)->
+          if e.target.href.match /^elisp/
+            console.log "Attempt to follow elisp link at #{@editor.docOffset e.target, 0}"
+            alert "Elisp links not supported:\n#{e.target.href}"
+          else open e.target.href
+          false
+
+      trickyChange = (oldBlock, newBlock)->
+        oldBlock._id != newBlock._id ||
+        ('headline' in (t = [oldBlock.type, newBlock.type]) && t[0] != t[1]) ||
+        (t[0] == 'headline' && oldBlock.level != newBlock.level)
 
       setResult = (block, result)->
         {results} = blockCodeItems this, block
@@ -580,10 +596,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             documentParams[k.toLowerCase()] = v
         documentParams
 
-      followLink = (e)->
-        console.log "FOLLOW LINK", e
-        alert 'Following links is not supported yet'
-        false
+      followLink = (e)-> Leisure.findEditor(e.target)?.options.followLink(e) || false
 
 Exports
 

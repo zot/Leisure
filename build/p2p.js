@@ -450,7 +450,6 @@
       return XSC;
 
     })(XConnection);
-    console.log("POP");
     return {
       Peer: Peer
     };

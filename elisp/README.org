@@ -3,9 +3,12 @@ This is a minor mode that connects an emacs buffer to Leisure web page.
 
 *NOTE: LEISURE CURRENTLY ONLY RUNS IN CHROMIUM-BASED BROWSERS (LIKE CHROME).*
 
-*If you are viewing this in Emacs*, you can try this out by [[elisp:leisure-connection-mode][CLICKING
-THIS LINK]] and then switching to your newly opened browser page (if it
-doesn't automatically switch you to the browser).
+*If you are in Emacs* and you have leisure-connection-mode loaded, you
+can try this out by [[elisp:leisure-connection-mode][CLICKING THIS LINK]] and then switching to your
+newly opened browser page (if it doesn't automatically switch you to
+the browser).
+
+*NOTE:* We're not orgmode experts and we need help from people who are!
 * Bidirectional connection to Emacs
 Leisure is an editable, web-based computing environment that uses
 orgmode format and it can hook up to Emacs.
@@ -18,17 +21,55 @@ you have started Emacs' Leisure service.  Leisure-connection-mode
 automatically turns on the service but you can also control it with
 the leisure-start and leisure-stop commands.
 * Work in progress
-Leisure is a *work in progress* and it's *not hardened* or ready for
-unforgiving users yet, but that doesn't necessarily mean you can't use
-it.  You can edit in Emacs and keep a Leisure browser next ot it to
-see your formatted changes.  You can use Leisure's features, like
-interactive widgets, value sliders, etc.  They just change the
-document text which Leisure then sends to Emacs.  If Leisure gets
-messed up, you can either reload the page yourself, use the
-[[elisp:leisure-reload]] command, or close and reopen the page.  Leisure
-will connect right back to your Emacs buffer.  Also, since Leisure's
-just sending text to Emacs, you can use Emacs' fabulous undo support
-if you use Leisure to make a change and it somehow messes up.
+- Leisure is a *work in progress*
+- It's *NOT HARDENED*
+  - *If you an unforgiving user, don't use Leisure yet!*
+- It doesn't support orgmode tables yet
+** This doesn't necessarily mean you can't use it, if you're willing to live on the edge...
+- You can still benefit from Leisure's features, like interactive views, value sliders, etc.
+- You can edit in Emacs and keep a Leisure browser next to it to see your formatted document as you type
+- Leisure just changes the document text and then sends to Emacs.
+- If Leisure gets messed up, you can just reload the webpage one of these ways!
+  - revert the buffer
+  - use the [[elisp:leisure-reload][leisure-reload]] command
+  - use the browser to reload the page
+  - close the page and reopen it from Emacs
+  - execute [[elisp:leisure-connection-mode]] to close and open the browser window
+  - Leisure will connect right back to your Emacs buffer
+- You can use Emacs' fabulous undo support if you use Leisure to
+  make a change and it somehow messes up.
+  - Leisure and Emacs are just sending text changes to each other
+* Emacs code-execution
+Hit C-c C-c in this code block in Leisure and it will attempt to
+execute in Emacs.
+
+#+BEGIN_SRC sh :results output
+ls
+#+END_SRC
+
+Click this in Leisure and it will [[elisp:(message "Hello from Leisure!")][show a message]] in Emacs.
+** (Why) does Leisure flicker after an Emacs command?
+- When Emacs asks you permission to execute a code block, the Emacs
+window takes input focus
+- After the command executes, the Leisure connection code in Emacs attempts to send focus back to the browser.
+- Browser focus is a tricky thing because of spammers
+
+You may notice a popup notice in your browser's location bar.  If you
+enable popups from Leisure, the browser will be able to take focus
+back after it executes a remote Emacs command.
+
+Once you enable popups, the browser will flicker, slightly when it
+takes focus back.  This is because in order to reactivate the browser,
+Leisure has to quickly open a temporary window and that is what causes
+the flicker.
+* Emacs file service
+When connected to Emacs, Leisure uses Emacs to access file: links so
+that it can display them in the browser.
+
+Here's the emacs logo from a file link: [[file:EmacsSplashScreen.png]]
+
+When not connected to Emacs, Leisure attempts to use local urls
+instead.  Sometimes that works :).
 * Code syntax highlighting
 Leisure uses [[http://prismjs.com/][Prism]] to highlight syntax as you type.  Here's an
 example:
@@ -41,13 +82,19 @@ example:
 - You can click the martini glass to view/edit orgmode source
 - You can use the toolar to start a slideshow using top-level headlines as slides
 * Themes
+Leisure was built to be modded.
 - You can choose themes in the Leisure toolbar
 - You can set a default theme in the Emacs [[elisp:(customize-group-other-window "leisure")][leisure customize group]]
+- Your documents can override a *lot* of how Leisure renders
+- You can experiment with the built-in themes in the "Visual" panel above
 * Views
 Leisure uses Handlebars to define HTML views for different types of data.
 This is what it uses for its normal display (called "fancy mode").
 - You can tweak Leisure's rendering by overriding parts of [[elisp:(browse-url-emacs "http://textcraft.org/newLeisure/src/defaults.lorg")][defaults.lorg]] in your document
 * HTML templates
+Leisure uses [[http://handlebarsjs.com/][Handlebars]] templates and it use data from the document
+when it renders them.
+
 #+NAME: fred
 This is Fred.  The Html snippet below displays Fred's name and the
 name's length.  Change it to see the HTML below update.
@@ -73,7 +120,7 @@ This is Fred's controller
 
 Leisure has a presentation system that can display a "view" on data
 according to its "type" field.  You can nest views and even define
-alternate views on the same type of data.
+alternate views for the same type of data.
 
 Leisure uses this presentation system to display its own documents and
 you can redefine how Leisure displays its document parts in the
@@ -101,9 +148,6 @@ degrees: 90
   <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
 </div>
 #+END_SRC
-* Collaboration
-The old version of Leisure has collaboration and the new version will
-also, but it will take a more peer-to-peer approach (coming soon).
 * Media
 It's the web.  You can has media.
 
@@ -114,43 +158,90 @@ Here is a nice video by John Kitchin about Orgmode
 #+BEGIN_HTML
 <iframe width="420" height="315" src="https://www.youtube.com/embed/fgizHHd7nOo" frameborder="0" allowfullscreen></iframe>
 #+END_HTML
-* Babel stuff
+* Babel
 If you are connecte to Emacs and have access to plantuml and dita, you
 can change these diagrams and the pictures will update in Leisure.
 
-#+BEGIN_src plantuml :file /tmp/plantuml-example.svg :exports results
-skinparam monochrome true
-FitsHdu <|-- PrimaryHdu
-FitsHdu <|-- ExtensionHdu
+#+begin_src plantuml :file sequence.png :exports results :cache yes
+title Example Sequence Diagram
+activate Client
+Client -> Server: Session Initiation
+note right: Client requests new session
+activate Server
+Client <-- Server: Authorization Request
+note left: Server requires authentication
+Client -> Server: Authorization Response
+note right: Client provides authentication details
+Server --> Client: Session Token
+note left: Session established
+deactivate Server
+Client -> Client: Saves token
+deactivate Client
+#+end_src
 
-FitsHdu : header
-Fitshdu : getHeaderKeyword()
+#+results:
+[[file:sequence.png]]
 
-ExtensionHdu <|-- ImageHdu
-ImageHdu : image
-ImageHdu : getPixel(row, column)
+#+begin_src ditaa :file communication.png :cmdline -r -s 0.8 :exports results :cache yes
+    +-----------+        +---------+  
+    |    PLC    |        |         |                
+    |  Network  +<------>+   PLC   +<---=---------+ 
+    |    cRED   |        |  c707   |              | 
+    +-----------+        +----+----+              | 
+                              ^                   | 
+                              |                   | 
+                              |  +----------------|-----------------+
+                              |  |                |                 |
+                              v  v                v                 v
+      +----------+       +----+--+--+      +-------+---+      +-----+-----+       Windows clients
+      |          |       |          |      |           |      |           |      +----+      +----+
+      | Database +<----->+  Shared  +<---->+ Executive +<-=-->+ Operator  +<---->|cYEL| . . .|cYEL|
+      |   c707   |       |  Memory  |      |   c707    |      | Server    |      |    |      |    |
+      +--+----+--+       |{d} cGRE  |      +------+----+      |   c707    |      +----+      +----+
+         ^    ^          +----------+             ^           +-------+---+
+         |    |                                   |                        
+         |    +--------=--------------------------+                    
+         v                                                             
++--------+--------+                                                         
+|                 |                                                         
+| Millwide System |            -------- Data ---------                      
+| cBLU            |            --=----- Signals ---=--                      
++-----------------+                                                         
+#+end_src
 
-ExtensionHdu <|-- BinaryTableHdu
-BinaryTableHdu : table
-BinaryTableHdu : getRow(row)
-BinaryTableHdu : getColumn(column)
-#+END_src
+#+results:
+[[file:communication.png]]
+* Features in Old Leisure
+This new version doesn't have all of the features of the old version, yet...
+** Collaboration
+The new version will take a more peer-to-peer approach.
+** Code Comments
+We are considering integrating with services like [[https://disqus.com/][Disqus]] so other
+people can commment on your code and discuss it.
+** Test cases
+Converting code into a visual test case result is an imporant feature
+we plan to bring back.
+* Some Leisure History
+Leisure started out as an experimental programming language that's
+quite a mouthful: a dynamically typed, lazy, functional programming
+language with strong support for metaprogramming.  Soon, TEAM CTHUHLU
+wanted to extend our experiment into programming environments.
+Leisure was already web-based, why shouldn't it eploit the powers of
+the Web?
 
-#+BEGIN_SRC ditaa :file /tmp/ditaa-seqboxes.png :exports results
-+------+   +-----+   +-----+   +-----+
-|{io}  |   |{d}  |   |{s}  |   |cBLU |
-| Foo  +---+ Bar +---+ Baz +---+ Moo |
-|      |   |     |   |     |   |     |
-+------+   +-----+   +--+--+   +-----+
-                        |
-           /-----\      |      +------+
-           |     |      |      | c1AB |
-           | Goo +------+---=--+ Shoo |
-           \-----/             |      |
-                               +------+
-#+END_SRC
+We didn't start from orgmode -- we hadn't even heard of it.  We did,
+however, already know the power of text; we had experimented with
+text-based computing environments more than [[http://ober.sourceforge.net/][10 years ago]], we even had
+a text-based auto-formatted table that could use spreadsheet formulas!
+
+We started with Markdown and it was great.  For a while.  When we
+decided that Leisure documents should contain data, as well as code,
+we started running up against Markdown's lack of metadata.
+
+Investigations pointed us towards orgmode.
 * Hidden slides
-There are some hidden settings.  Click Show/Hide at the top to show and hide them.
+There are some hidden settings and you can reveal and hide them by
+clicking Show/Hide at the top of the page.
 * Settings
 :properties:
 :hidden: true

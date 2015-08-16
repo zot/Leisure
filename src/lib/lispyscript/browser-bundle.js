@@ -5963,5 +5963,4 @@ module.exports = tinix
 
 
 },{}]},{},[2]);
-    console.log('poop', module, exports);
 })();

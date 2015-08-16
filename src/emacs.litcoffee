@@ -8,9 +8,13 @@ Emacs connection
       {
         findEditor
         preserveSelection
+        aroundMethod
+        advise
       } = Editor
       {
         showMessage
+        pushPendingInitialzation
+        escapeAttr
       } = UI
       {
         getDocumentParams
@@ -22,12 +26,24 @@ Emacs connection
       connected = false
       showDiag = false
       #showDiag = true
+      imgCount = 0
+      fileCount = 0
+      fileTypes =
+        pgn: 'image/png'
+        gif: 'image/gif'
+        bmp: 'image/bmp'
+        xpm: 'image/xpm'
+        svg: 'image/svg'
 
       diag = (msg...)-> if showDiag then console.log msg...
 
       messages =
         r: (data, msg, frame)-> replace data, msg
         reload: -> document.location.href = document.location.href
+        activate: ->
+          window.open "javascript:close()"
+          window.focus()
+        file: (data, msg, frame)-> receiveFile data, msg
 
       replace = (data, msg)->
         diag "Received #{msg}"
@@ -40,6 +56,11 @@ Emacs connection
           if end == -1
             editor.options.load text
           else editor.replace null, blockRangeFor(data, start, end), text
+
+      receiveFile = (data, msg)->
+        [lead, id] = msg.match /^([^ ]+) +/
+        data.emacsConnection.fileCallbacks[id]?(msg.substring lead.length)
+        delete data.emacsConnection.fileCallbacks[id]
 
       replaceWhile = (func)->
         replacing = true
@@ -56,12 +77,33 @@ Emacs connection
         con.onerror = (evt)-> showMessage opts.editor.node, "Connection error", "Could not open connection to emacs",
           position: my: 'center top', at: 'center top'
           buttons: OK: -> $(this).dialog 'close'
+        _.merge opts, {
+          renderImage
+        }
+        advise opts, followLink: emacs: aroundMethod (parent)->(e)->
+          if e.target.href.match /^elisp/
+            sendFollowLink @data.emacsConnection.websocket, @editor.docOffset($(e.target).prev('.link')[0], 1)
+            false
+          else parent()
+        opts.bindings['C-C C-C'] = (editor, e, r)->
+          sendCcCc editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0)
+
+      renderImage = (src, title)->
+        if src.match /^file:/
+          imgId = "emacs-image-#{imgCount++}"
+          sendGetFile @data, src, (file)->
+            $("##{imgId}").prop 'src', "data:#{typeForFile src};base64,#{file}"
+          "<img id='#{imgId}' title='#{escapeAttr title}'>"
+        else "<img src='#{src}' title='#{title}'>"
+
+      typeForFile = (name)->
+        [ignore,ext] = name.match /\.(.*)$/
+        fileTypes[ext]
 
       close = (evt, data)->
         connection = data.emacsConnection
         connection.panel.find('button').button 'enable'
         connection.panel.find('input').removeAttr 'readonly'
-        console.log "closed"
         if connection.cookie then window.close()
         data.removeFilter connection.filter
         connection.websocket = null
@@ -77,7 +119,6 @@ Emacs connection
       error = (evt, data)-> console.log "Error: #{evt.data}"
 
       open = (evt, ws, data, port, cookie, cont)->
-        console.log "opened"
         ws.send "#{cookie ? ''} display"
         connection = data.emacsConnection
         connection.cookie = cookie
@@ -117,6 +158,25 @@ Emacs connection
       sendReplace = (con, start, end, text)->
         con.send "r #{start} #{end} #{JSON.stringify text}"
         diag "sending r #{start} #{end} #{JSON.stringify text}"
+
+      sendFollowLink = (con, location)->
+        con.send "followLink #{location}"
+        diag "sending followLink #{location}"
+
+      sendCcCc = (con, location)->
+        con.send "ctrl-c-ctrl-c #{location}"
+        diag "sending ctrl-c-ctrl-c #{location}"
+
+      sendGetFile = (data, name, callback)->
+        con = data.emacsConnection.websocket
+        if m = name.match /#.*$/
+          name = name.substring 0, name.length - m[0].length
+        id = "file-#{fileCount++}"
+        diag "sending getFile #{id} #{name}"
+        data.emacsConnection.fileCallbacks[id] = (file)->
+          delete data.emacsConnection.fileCallbacks[id]
+          callback file
+        con.send "getFile #{id} #{name}"
 
       blockRangeFor = (data, start, end)->
         con = data.emacsConnection
@@ -170,6 +230,7 @@ Emacs connection
         data.emacsConnection =
           panel: panel
           opts: UI.context.opts
+          fileCallbacks: {}
         panel.find('button').button().on 'click', ->
           [host, port] = panel.find('input').val().split(':')
           connect opts, host, Number(port), '', ->

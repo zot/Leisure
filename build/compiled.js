@@ -2,7 +2,11 @@
 (function() {
   requirejs.leisureCompiled = true;
 
-  require(['main']);
+  if (document.location.search.match(/pop=/)) {
+    window.close();
+  } else {
+    require(['main']);
+  }
 
 }).call(this);
 

@@ -114,7 +114,10 @@
   '(display leisure/display))
 
 (defconst leisure/messages
-  '(r leisure/receiveChange))
+  '(r leisure/receiveChange
+      followLink leisure/followLink
+      ctrl-c-ctrl-c leisure/ctrl-c-ctrl-c
+      getFile leisure/getFile))
 
 (defstruct
     (leisure/conInfo
@@ -173,6 +176,11 @@
 
 (defcustom leisure/showDiag nil
   "Show diag messages in the *Leisure-messages* buffer."
+  :group 'leisure
+  :type 'boolean)
+
+(defcustom leisure/popupBrowser t
+  "Whether to pop up the browser after it sends a command to Emacs."
   :group 'leisure
   :type 'boolean)
 
@@ -278,6 +286,47 @@ FRAME: frame."
             (goto-char start)))
         (insert text)))))
 
+(defun leisure/followLink (conInfo msg frame)
+  "CONINFO received a 'followLink' MSG (FRAME provided for context)."
+  (let* ((location (string-to-number msg)))
+    (leisure/print conInfo "received followLink: %s, buffer: %s" location (current-buffer))
+    (save-excursion
+      (leisure/withBuffer conInfo
+        (leisure/raiseFrame conInfo)
+        (goto-char location)
+        (org-open-at-point)
+        (leisure/sendActivate)))))
+
+(defun leisure/getFile (conInfo msg frame)
+  "CONINFO received a 'getFile' MSG (FRAME provided for context)."
+  (leisure/withBuffer conInfo
+    (let* ((m (leisure/match "^\\([^ ]+\\) +\\([^:]+:\\)?\\(.*\\)$" msg))
+           (id (elt m 1))
+           (fileScheme (elt m 2))
+           (filePath (elt m 3)))
+      (leisure/print conInfo "received getFile: %s %s %s [%s], buffer: %s" id fileScheme filePath msg (current-buffer))
+      (leisure/print conInfo "buffer-directory: %s" (file-name-directory (buffer-file-name)))
+      (leisure/sendFile conInfo id (replace-regexp-in-string "\n" "" (leisure/base64-file (concat (file-name-directory (buffer-file-name)) filePath)))))))
+
+(defun leisure/raiseFrame (conInfo)
+  "Raise the frame for CONINFO."
+  (if (get-buffer-window-list (leisure/getBuffer conInfo))
+      (raise-frame (window-frame))
+    (raise-frame)))
+
+(defun leisure/ctrl-c-ctrl-c (conInfo msg frame)
+  "CONINFO received a 'ctrl-c-ctrl-c' MSG (FRAME provided for context)."
+  (let* ((location (string-to-number msg)))
+    (leisure/print conInfo "received followLink: %s, buffer: %s" location (current-buffer))
+    (save-excursion
+      (leisure/withBuffer conInfo
+        (leisure/raiseFrame conInfo)
+        (goto-char location)
+        (condition-case nil
+            (call-interactively 'org-ctrl-c-ctrl-c)
+          (error nil))
+        (leisure/sendActivate)))))
+
 ;; sending changes
 (defun leisure/initBufferConnection (conInfo initMsg)
   "Initalize CONINFO with INITMSG (empty means create a tmp buffer)."
@@ -338,6 +387,19 @@ FRAME: frame."
           (ws (leisure/conInfo-websocket leisure/bufferConnection)))
       (if ws (websocket-send-text ws msg))
       (leisure/diag con "sent %s" msg))))
+
+(defun leisure/sendActivate ()
+  "Send activate message."
+  (if leisure/popupBrowser
+      (let ((ws (leisure/conInfo-websocket leisure/bufferConnection)))
+        (if ws (websocket-send-text ws "activate"))
+        (leisure/diag leisure/bufferConnection "sent activate"))))
+
+(defun leisure/sendFile (conInfo id contents)
+  "Send file over CONINFO with ID and CONTENTS."
+  (let ((ws (leisure/conInfo-websocket leisure/bufferConnection)))
+    (if ws (websocket-send-text ws (format "file %s %s" id contents)))
+    (leisure/diag leisure/bufferConnection "sent activate")))
 
 ;; actions
 (defun leisure/display (conInfo)
@@ -603,6 +665,11 @@ FRAME: frame."
         (add-hook 'before-revert-hook 'leisure/beforeRevert nil t)
         (add-hook 'after-revert-hook 'leisure/afterRevert nil t))
     (leisure/diag "Not adding change hooks")))
+
+(defun leisure/base64-file (fileName)
+  (with-temp-buffer
+    (insert-file-contents fileName)
+    (base64-encode-string (buffer-string))))
 
 (defun leisure-readme ()
   "Open the contents of the the Leisure readme in a buffer"

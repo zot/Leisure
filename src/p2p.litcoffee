@@ -215,8 +215,6 @@ it easier to handle merges.
           @connection.start masterOffer, (err)=> @error err
         pushChange: (change)-> @sendMessage 'change', change: change
 
-      console.log "POP"
-
       {
         Peer
       }

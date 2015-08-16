@@ -2,6 +2,9 @@ body {
     position: relative;
     min-height: 25em;
 }
+a:hover {
+    background-color: lightyellow;
+}
 .plain {
     white-space: pre;
 }

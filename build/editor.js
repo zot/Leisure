@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable'], function(jq, DOMCursor, Fingertree, Immutable) {
-    var Advice, BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, beforeMethod, blockText, changeAdvice, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
+    var Advice, BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     maxLastKeys = 4;
@@ -2064,6 +2064,19 @@
         };
       };
     };
+    aroundMethod = function(def) {
+      return function(parent) {
+        return function() {
+          var args;
+          args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+          return (def.call(this, ((function(_this) {
+            return function() {
+              return parent.apply(_this, args);
+            };
+          })(this)))).apply(this, args);
+        };
+      };
+    };
     wrapDiag = function(parent) {
       return function() {
         var args, r;
@@ -2223,6 +2236,7 @@
       unadvise: unadvise,
       beforeMethod: beforeMethod,
       afterMethod: afterMethod,
+      aroundMethod: aroundMethod,
       changeAdvice: changeAdvice,
       treeToArray: treeToArray
     };
