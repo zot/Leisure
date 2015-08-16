@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable'], function(jq, DOMCursor, Fingertree, Immutable) {
-    var Advice, BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
+    var Advice, BS, BasicEditingOptions, DEL, DOWN, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     maxLastKeys = 4;
@@ -100,30 +100,30 @@
         var l;
         if (this.listeners[type]) {
           return this.listeners[type] = (function() {
-            var j, len, ref, results1;
+            var j, len, ref, results;
             ref = this.listeners[type];
-            results1 = [];
+            results = [];
             for (j = 0, len = ref.length; j < len; j++) {
               l = ref[j];
               if (l !== callback) {
-                results1.push(l);
+                results.push(l);
               }
             }
-            return results1;
+            return results;
           }).call(this);
         }
       };
 
       Observable.prototype.trigger = function() {
-        var args, j, len, listener, ref, results1, type;
+        var args, j, len, listener, ref, results, type;
         type = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
         ref = this.listeners[type] || [];
-        results1 = [];
+        results = [];
         for (j = 0, len = ref.length; j < len; j++) {
           listener = ref[j];
-          results1.push(listener.apply(null, args));
+          results.push(listener.apply(null, args));
         }
-        return results1;
+        return results;
       };
 
       return Observable;
@@ -450,14 +450,14 @@
         sel = getSelection();
         if (sel.type === 'Range') {
           html = ((function() {
-            var j, len, ref, results1;
+            var j, len, ref, results;
             ref = sel.getRangeAt(0).cloneContents().childNodes;
-            results1 = [];
+            results = [];
             for (j = 0, len = ref.length; j < len; j++) {
               node = ref[j];
-              results1.push(htmlForNode(node));
+              results.push(htmlForNode(node));
             }
-            return results1;
+            return results;
           })()).join('');
           text = this.selectedText(sel);
           this.options.simulateCut({
@@ -628,14 +628,14 @@
               dragRange = _this.getSelectedBlockRange();
               clipboard = e.originalEvent.dataTransfer;
               clipboard.setData('text/html', ((function() {
-                var j, len, ref, results1;
+                var j, len, ref, results;
                 ref = sel.getRangeAt(0).cloneContents().childNodes;
-                results1 = [];
+                results = [];
                 for (j = 0, len = ref.length; j < len; j++) {
                   node = ref[j];
-                  results1.push(htmlForNode(node));
+                  results.push(htmlForNode(node));
                 }
-                return results1;
+                return results;
               })()).join(''));
               clipboard.setData('text/plain', _this.selectedText(sel));
               clipboard.effectAllowed = 'copyMove';
@@ -669,14 +669,14 @@
             if (sel.type === 'Range') {
               clipboard = e.originalEvent.clipboardData;
               clipboard.setData('text/html', ((function() {
-                var j, len, ref, results1;
+                var j, len, ref, results;
                 ref = sel.getRangeAt(0).cloneContents().childNodes;
-                results1 = [];
+                results = [];
                 for (j = 0, len = ref.length; j < len; j++) {
                   node = ref[j];
-                  results1.push(htmlForNode(node));
+                  results.push(htmlForNode(node));
                 }
-                return results1;
+                return results;
               })()).join(''));
               clipboard.setData('text/plain', _this.selectedText(sel));
               return _this.replace(e, _this.getSelectedBlockRange(), '');
@@ -691,14 +691,14 @@
             if (sel.type === 'Range') {
               clipboard = e.originalEvent.clipboardData;
               clipboard.setData('text/html', ((function() {
-                var j, len, ref, results1;
+                var j, len, ref, results;
                 ref = sel.getRangeAt(0).cloneContents().childNodes;
-                results1 = [];
+                results = [];
                 for (j = 0, len = ref.length; j < len; j++) {
                   node = ref[j];
-                  results1.push(htmlForNode(node));
+                  results.push(htmlForNode(node));
                 }
-                return results1;
+                return results;
               })()).join(''));
               return clipboard.setData('text/plain', _this.selectedText(sel));
             }
@@ -1093,14 +1093,14 @@
       };
 
       BasicEditingOptions.prototype.computeRemovesAndNewBlockIds = function(oldBlocks, newBlocks, newBlockMap, removes) {
-        var i, j, len, len1, newBlock, o, oldBlock, prev, ref;
+        var i, j, len, len1, m, newBlock, oldBlock, prev, ref;
         ref = oldBlocks.slice(newBlocks.length, oldBlocks.length);
         for (j = 0, len = ref.length; j < len; j++) {
           oldBlock = ref[j];
           removes[oldBlock._id] = oldBlock;
         }
         prev = null;
-        for (i = o = 0, len1 = newBlocks.length; o < len1; i = ++o) {
+        for (i = m = 0, len1 = newBlocks.length; m < len1; i = ++m) {
           newBlock = newBlocks[i];
           if (oldBlock = oldBlocks[i]) {
             newBlock._id = oldBlock._id;
@@ -1156,7 +1156,7 @@
       };
 
       BasicEditingOptions.prototype.removeDuplicateChanges = function(newBlockMap) {
-        var block, dups, id, oldBlock, results1;
+        var block, dups, id, oldBlock, results;
         dups = [];
         for (id in newBlockMap) {
           block = newBlockMap[id];
@@ -1164,11 +1164,11 @@
             dups.push(id);
           }
         }
-        results1 = [];
+        results = [];
         for (id in dups) {
-          results1.push(delete newBlockMap[id]);
+          results.push(delete newBlockMap[id]);
         }
-        return results1;
+        return results;
       };
 
       BasicEditingOptions.prototype.change = function(arg) {
@@ -1234,15 +1234,15 @@
       };
 
       BasicEditingOptions.prototype.blockList = function() {
-        var bl, next, results1;
+        var bl, next, results;
         next = this.getFirst();
-        results1 = [];
+        results = [];
         while (next) {
           bl = this.getBlock(next);
           next = bl.next;
-          results1.push(bl);
+          results.push(bl);
         }
-        return results1;
+        return results;
       };
 
       BasicEditingOptions.prototype.docOffsetForBlockOffset = function(bOff, offset) {
@@ -1323,12 +1323,12 @@
       return el;
     };
     activateScripts = function(jq) {
-      var j, len, newScript, ref, results1, script, text;
+      var j, len, newScript, ref, results, script, text;
       if (!activating) {
         activating = true;
         try {
           ref = jq.find('script');
-          results1 = [];
+          results = [];
           for (j = 0, len = ref.length; j < len; j++) {
             script = ref[j];
             text = !script.type || script.type.toLowerCase() === 'text/javascript' ? script.textContent : script.type.toLowerCase() === 'text/coffeescript' ? CoffeeScript.compile(script.textContent, {
@@ -1345,416 +1345,17 @@
               }
               newScript.textContent = text;
               script.parentNode.insertBefore(newScript, script);
-              results1.push(script.parentNode.removeChild(script));
+              results.push(script.parentNode.removeChild(script));
             } else {
-              results1.push(void 0);
+              results.push(void 0);
             }
           }
-          return results1;
+          return results;
         } finally {
           activating = false;
         }
       }
     };
-    DataStore = (function(superClass) {
-      extend(DataStore, superClass);
-
-      function DataStore() {
-        DataStore.__super__.constructor.call(this);
-        this.blocks = {};
-        this.blockIndex = Fingertree.fromArray([], this.emptyIndexMeasure);
-      }
-
-      DataStore.prototype.setDiagEnabled = function(flag) {
-        return changeAdvice(this, flag, {
-          setIndex: {
-            diag: wrapDiag
-          },
-          indexBlock: {
-            diag: wrapDiag
-          },
-          indexBlocks: {
-            diag: wrapDiag
-          }
-        });
-      };
-
-      DataStore.prototype.setIndex = function(i) {
-        return this.blockIndex = i;
-      };
-
-      DataStore.prototype.getFirst = function() {
-        return this.first;
-      };
-
-      DataStore.prototype.setFirst = function(firstId) {
-        return this.first = firstId;
-      };
-
-      DataStore.prototype.getBlock = function(id) {
-        return this.blocks[id];
-      };
-
-      DataStore.prototype.setBlock = function(id, block) {
-        this.blocks[id] = block;
-        return this.indexBlock(block);
-      };
-
-      DataStore.prototype.deleteBlock = function(id) {
-        delete this.blocks[id];
-        return this.unindexBlock(id);
-      };
-
-      DataStore.prototype.eachBlock = function(func) {
-        var block;
-        block = this.getBlock(this.getFirst());
-        while (block && func(block, block._id) !== false) {
-          block = this.getBlock(block.next);
-        }
-        return null;
-      };
-
-      DataStore.prototype.emptyIndexMeasure = {
-        identity: function() {
-          return {
-            ids: Set(),
-            length: 0
-          };
-        },
-        measure: function(v) {
-          return {
-            ids: Set([v.id]),
-            length: v.length
-          };
-        },
-        sum: function(a, b) {
-          return {
-            ids: a.ids.union(b.ids),
-            length: a.length + b.length
-          };
-        }
-      };
-
-      DataStore.prototype.indexBlocks = function() {
-        var items;
-        items = [];
-        this.eachBlock((function(_this) {
-          return function(block) {
-            return items.push(indexNode(block));
-          };
-        })(this));
-        return this.setIndex(Fingertree.fromArray(items, this.emptyIndexMeasure));
-      };
-
-      DataStore.prototype.splitBlockIndexOnId = function(id) {
-        return this.blockIndex.split(function(m) {
-          return m.ids.contains(id);
-        });
-      };
-
-      DataStore.prototype.splitBlockIndexOnOffset = function(offset) {
-        return this.blockIndex.split(function(m) {
-          return m.length > offset;
-        });
-      };
-
-      DataStore.prototype.indexBlock = function(block) {
-        var first, ref, ref1, ref2, ref3, rest, split;
-        if (block) {
-          if (block.prev === ((ref = this.getBlock(block.prev)) != null ? ref._id : void 0) || block.next === ((ref1 = this.getBlock(block.next)) != null ? ref1._id : void 0)) {
-            ref2 = this.splitBlockIndexOnId(block._id), first = ref2[0], rest = ref2[1];
-            if ((!rest.isEmpty() && rest.peekFirst().id === block._id) && (!block.next || ((ref3 = rest.removeFirst().peekFirst()) != null ? ref3.id : void 0) === block.next) && (!block.prev || !first.isEmpty() && first.peekLast().id === block.prev)) {
-              return this.setIndex(first.addLast(indexNode(block)).concat(rest.removeFirst()));
-            }
-            this.unindexBlock(block._id);
-            if (split = this.fingerNodeOrder(block.prev, block.next)) {
-              first = split[0], rest = split[1];
-              return this.setIndex(first.addLast(indexNode(block)).concat(rest));
-            }
-          }
-          return this.insertAndRepairIndex(block);
-        }
-      };
-
-      DataStore.prototype.fingerNode = function(id) {
-        var node;
-        return id && (node = this.splitBlockIndexOnId(id)[1].peekFirst()) && node.id === id && node;
-      };
-
-      DataStore.prototype.fingerNodeOrder = function(a, b) {
-        var first, ref, ref1, ref2, rest, split;
-        return !(a || b) || (!a && b ? this.fingerNode(b) : !b && a ? this.fingerNode(a) : ((ref = split = this.splitBlockIndexOnId(b), first = ref[0], rest = ref[1], ref), !first.isEmpty() && !rest.isEmpty() && ((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === b && ((ref2 = first.peekLast()) != null ? ref2.id : void 0) === a && split));
-      };
-
-      DataStore.prototype.insertAndRepairIndex = function(block) {
-        var cur, first, mark, node, prev, ref, ref1, ref2, ref3, rest, results1;
-        console.warn("REPAIR");
-        node = indexNode(block);
-        if (block.next) {
-          prev = this.getBlock(block.prev);
-          if (!block.prev) {
-            this.setIndex(this.blockIndex.addFirst(indexNode(block)));
-          } else {
-            ref = this.splitBlockIndexOnId(block.next), first = ref[0], rest = ref[1];
-            this.setIndex(first.addLast(node).concat(rest));
-          }
-        } else if (block.prev) {
-          ref1 = this.splitBlockIndexOnId(block.prev), first = ref1[0], rest = ref1[1];
-          this.setIndex(first.addLast(node).concat(rest));
-        } else {
-          this.setIndex(FingerTree.fromArray([node], this.emptyIndexMeasure));
-        }
-        mark = block;
-        cur = this.getBlock(block.next);
-        while (cur && !this.fingerNodeOrder(mark._id, cur._id)) {
-          this.unindexBlock(cur._id);
-          ref2 = this.splitBlockIndexOnId(mark._id), first = ref2[0], rest = ref2[1];
-          this.setIndex(insertAfterSplit(first, indexNode(cur), rest));
-          mark = cur;
-          cur = this.getBlock(cur.next);
-        }
-        mark = block;
-        cur = this.getBlock(block.prev);
-        results1 = [];
-        while (cur && !this.fingerNodeOrder(cur._id, mark._id)) {
-          this.unindexBlock(cur._id);
-          ref3 = this.splitBlockIndexOnId(mark._id), first = ref3[0], rest = ref3[1];
-          this.setIndex(insertInSplit(first, indexNode(cur), rest));
-          mark = cur;
-          results1.push(cur = this.getBlock(cur.prev));
-        }
-        return results1;
-      };
-
-      DataStore.prototype.unindexBlock = function(id) {
-        var first, ref, ref1, rest;
-        if (id) {
-          ref = this.splitBlockIndexOnId(id), first = ref[0], rest = ref[1];
-          if (((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === id) {
-            return this.setIndex(first.concat(rest.removeFirst()));
-          }
-        }
-      };
-
-      DataStore.prototype.docOffsetForBlockOffset = function(block, offset) {
-        if (typeof block === 'object') {
-          offset = block.offset;
-          block = block.block;
-        }
-        return this.offsetForBlock(block) + offset;
-      };
-
-      DataStore.prototype.blockOffsetForDocOffset = function(offset) {
-        var results;
-        results = this.splitBlockIndexOnOffset(offset);
-        if (results[1]) {
-          return {
-            block: results[1].peekFirst().id,
-            offset: offset - results[0].measure().length
-          };
-        } else {
-          return {
-            block: results[0].peekLast().id,
-            offset: results[0].removeLast().measure().length
-          };
-        }
-      };
-
-      DataStore.prototype.offsetForBlock = function(blockOrId) {
-        var id;
-        id = typeof blockOrId === 'string' ? blockOrId : blockOrId._id;
-        if (this.getBlock(id)) {
-          return this.splitBlockIndexOnId(id)[0].measure().length;
-        } else {
-          return 0;
-        }
-      };
-
-      DataStore.prototype.blockForOffset = function(offset) {
-        var ref, ref1, results;
-        results = this.splitBlockIndexOnOffset(offset);
-        return ((ref = (ref1 = results[1]) != null ? ref1.peekFirst() : void 0) != null ? ref : results[0].peekLast).id;
-      };
-
-      DataStore.prototype.getDocSubstring = function(start, end) {
-        var block, endOffset, startOffset, text;
-        startOffset = this.blockOffsetForDocOffset(start);
-        endOffset = this.blockOffsetForDocOffset(end);
-        block = this.getBlock(startOffset.block);
-        text = '';
-        while (block._id !== endOffset.block) {
-          text += block.text;
-          block = this.getBlock(block.next);
-        }
-        if (startOffset.block === endOffset.block) {
-          return block.text.substring(startOffset.offset, endOffset.offset);
-        } else {
-          return text.substring(startOffset.offset) + block.text.substring(0, endOffset.offset);
-        }
-      };
-
-      DataStore.prototype.getText = function() {
-        var text;
-        text = '';
-        this.eachBlock(function(block) {
-          return text += block.text;
-        });
-        return text;
-      };
-
-      DataStore.prototype.load = function(first1, blocks1) {
-        this.first = first1;
-        this.blocks = blocks1;
-        this.indexBlocks();
-        return this.trigger('load');
-      };
-
-      DataStore.prototype.check = function() {
-        var bl, first, lastBlock, next, oldBl, prev, seen;
-        seen = {};
-        first = next = this.getFirst();
-        prev = null;
-        while (next) {
-          prev = next;
-          if (seen[next]) {
-            throw new Error("cycle in next links");
-          }
-          seen[next] = true;
-          oldBl = bl;
-          bl = this.getBlock(next);
-          if (!bl) {
-            throw new Error("Next of " + oldBl._id + " doesn't exist");
-          }
-          next = bl.next;
-        }
-        this.eachBlock(function(block) {
-          if (block._id !== first && !seen[block._id]) {
-            throw new Error(block._id + " not in next chain");
-          }
-        });
-        seen = {};
-        lastBlock = prev;
-        while (prev) {
-          if (seen[prev]) {
-            throw new Error("cycle in prev links");
-          }
-          seen[prev] = true;
-          oldBl = bl;
-          bl = this.getBlock(prev);
-          if (!bl) {
-            throw new Error("Prev of " + oldBl._id + " doesn't exist");
-          }
-          prev = bl.prev;
-        }
-        this.eachBlock(function(block) {
-          if (block._id !== lastBlock && !seen[block._id]) {
-            throw new Error(block._id + " not in prev chain");
-          }
-        });
-        return null;
-      };
-
-      DataStore.prototype.blockList = function() {
-        var bl, next, results1;
-        next = this.getFirst();
-        results1 = [];
-        while (next) {
-          bl = this.getBlock(next);
-          next = bl.next;
-          results1.push(bl);
-        }
-        return results1;
-      };
-
-      DataStore.prototype.change = function(changes) {
-        return this.trigger('change', this.makeChange(changes));
-      };
-
-      DataStore.prototype.makeChange = function(arg) {
-        var adds, bl, block, err, first, id, newBlocks, old, oldBlocks, ref, removes, result, sets, updates;
-        first = arg.first, sets = arg.sets, removes = arg.removes, oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks;
-        ref = result = {
-          adds: {},
-          updates: {},
-          removes: removes,
-          old: {},
-          sets: sets,
-          oldFirst: this.getFirst(),
-          first: first,
-          oldBlocks: oldBlocks,
-          newBlocks: newBlocks
-        }, adds = ref.adds, updates = ref.updates, old = ref.old;
-        this.setFirst(first);
-        for (id in removes) {
-          if (bl = this.getBlock(id)) {
-            old[id] = bl;
-            this.deleteBlock(id);
-          }
-        }
-        for (id in sets) {
-          block = sets[id];
-          if (bl = this.getBlock(id)) {
-            old[id] = bl;
-            updates[id] = block;
-          } else {
-            adds[id] = block;
-          }
-          this.setBlock(id, block);
-        }
-        try {
-          this.check();
-        } catch (_error) {
-          err = _error;
-          console.log(err);
-        }
-        return result;
-      };
-
-      DataStore.prototype.indexArray = function() {
-        return treeToArray(this.blockIndex);
-      };
-
-      DataStore.prototype.blockArray = function() {
-        var block, blocks;
-        blocks = [];
-        block = this.getBlock(this.getFirst());
-        while (block) {
-          blocks.push(block);
-          block = this.getBlock(block.next);
-        }
-        return blocks;
-      };
-
-      DataStore.prototype.diag = function() {
-        return this.trigger('diag', this.verifyIndex());
-      };
-
-      DataStore.prototype.verifyIndex = function() {
-        var badIds, blockIds, last, treeIds;
-        treeIds = _.pluck(this.indexArray(), 'id');
-        blockIds = _.pluck(this.blockArray(), '_id');
-        if (!_.isEqual(treeIds, blockIds)) {
-          console.warn("INDEX ERROR:\nEXPECTED: " + (JSON.stringify(blockIds)) + "\nBUT GOT: " + (JSON.stringify(treeIds)));
-        }
-        last = null;
-        badIds = [];
-        this.eachBlock((function(_this) {
-          return function(block) {
-            last = block;
-            if (!_this.fingerNodeOrder(block.prev, block._id)) {
-              badIds.push(block._id);
-              return console.warn("NODE ORDER WRONG FOR " + block.prev + ", " + block._id);
-            }
-          };
-        })(this));
-        if (badIds.length) {
-          return badIds;
-        }
-      };
-
-      return DataStore;
-
-    })(Observable);
     treeToArray = function(tree) {
       var nodes;
       nodes = [];
@@ -1862,13 +1463,13 @@
     blockText = function(blocks) {
       var block;
       return ((function() {
-        var j, len, results1;
-        results1 = [];
+        var j, len, results;
+        results = [];
         for (j = 0, len = blocks.length; j < len; j++) {
           block = blocks[j];
-          results1.push(block.text);
+          results.push(block.text);
         }
-        return results1;
+        return results;
       })()).join('');
     };
     _to_ascii = {
@@ -2016,43 +1617,43 @@
       }
     };
     advise = function(object, method, name, def) {
-      var advice, meth, ref, results1;
+      var advice, meth, ref, results;
       if (typeof method === 'object') {
-        results1 = [];
+        results = [];
         for (meth in method) {
           advice = method[meth];
-          results1.push((function() {
-            var results2;
-            results2 = [];
+          results.push((function() {
+            var results1;
+            results1 = [];
             for (name in advice) {
               def = advice[name];
-              results2.push(advise(object, meth, name, def));
+              results1.push(advise(object, meth, name, def));
             }
-            return results2;
+            return results1;
           })());
         }
-        return results1;
+        return results;
       } else {
         return ((ref = object.ADVICE) != null ? ref : new Advice(object)).advise(method, name, def);
       }
     };
     unadvise = function(object, method, name) {
-      var advice, def, meth, ref, results1;
+      var advice, def, meth, ref, results;
       if (typeof method === 'object') {
-        results1 = [];
+        results = [];
         for (meth in method) {
           advice = method[meth];
-          results1.push((function() {
-            var results2;
-            results2 = [];
+          results.push((function() {
+            var results1;
+            results1 = [];
             for (name in advice) {
               def = advice[name];
-              results2.push(unadvise(object, meth, name));
+              results1.push(unadvise(object, meth, name));
             }
-            return results2;
+            return results1;
           })());
         }
-        return results1;
+        return results;
       } else {
         return (ref = object.ADVICE) != null ? ref.unadvise(method, name) : void 0;
       }

@@ -1,3 +1,4 @@
+* TODO when diag is enabled, check inserted text
 * TODO slider stays up when you scroll and doesn't scroll with the page
 * TODO load parameter so people can view the example without Emacs
   provide plantuml and ditaa files for the current text (use /tmp/blah on the site)

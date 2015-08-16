@@ -1028,6 +1028,7 @@ Data model -- override/reset these if you want to change how the store accesses 
   * `eachBlock(func(block [, id]))` -- iterate with func (exit if func returns false)
   * `load(first, blocks)` -- should trigger 'load'
 
+<!-- -->
       class DataStore extends Observable
         constructor: ->
           super()
