@@ -179,20 +179,11 @@ Emacs connection
         con.send "getFile #{id} #{name}"
 
       blockRangeFor = (data, start, end)->
-        con = data.emacsConnection
-        offset = 0
-        block = data.getBlock data.getFirst()
-        found = null
-        while offset < start && block.next
-          if (nextOffset = block.text.length + offset) > start
-            found = block
-            break
-          offset = nextOffset
-          block = data.getBlock block.next
-        block: found ? block
-        offset: start - offset
-        length: end - start
-        type: if start == end then 'Caret' else 'Range'
+        bOff = data.blockOffsetForDocOffset start
+        bOff.block = data.getBlock bOff.block
+        bOff.length = end - start
+        bOff.type = if start == end then 'Caret' else 'Range'
+        bOff
 
       offsetFor = (data, thing)->
         thingId = if typeof thing == 'string' then thing else thing._id

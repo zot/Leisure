@@ -250,25 +250,12 @@
       return con.send("getFile " + id + " " + name);
     };
     blockRangeFor = function(data, start, end) {
-      var block, con, found, nextOffset, offset;
-      con = data.emacsConnection;
-      offset = 0;
-      block = data.getBlock(data.getFirst());
-      found = null;
-      while (offset < start && block.next) {
-        if ((nextOffset = block.text.length + offset) > start) {
-          found = block;
-          break;
-        }
-        offset = nextOffset;
-        block = data.getBlock(block.next);
-      }
-      return {
-        block: found != null ? found : block,
-        offset: start - offset,
-        length: end - start,
-        type: start === end ? 'Caret' : 'Range'
-      };
+      var bOff;
+      bOff = data.blockOffsetForDocOffset(start);
+      bOff.block = data.getBlock(bOff.block);
+      bOff.length = end - start;
+      bOff.type = start === end ? 'Caret' : 'Range';
+      return bOff;
     };
     offsetFor = function(data, thing) {
       var block, con, offset, thingId;

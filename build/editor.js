@@ -1579,6 +1579,18 @@
         return ((ref = (ref1 = results[1]) != null ? ref1.peekFirst() : void 0) != null ? ref : results[0].peekLast).id;
       };
 
+      DataStore.prototype.getDocSubstring = function(start, end) {
+        var block, endOffset, startOffset, text;
+        startOffset = this.blockOffsetForDocOffset(start);
+        endOffset = this.blockOffsetForDocOffset(end);
+        block = this.getBlock(startOffset.block);
+        text = '';
+        while (block._id !== endOffset.block) {
+          text += block.text;
+        }
+        return text.substring(startOffset.offset) + block.text.substring(0, endOffset.offset);
+      };
+
       DataStore.prototype.getText = function() {
         var text;
         text = '';

@@ -1142,6 +1142,14 @@ Data model -- override/reset these if you want to change how the store accesses 
         blockForOffset: (offset)->
           results = @splitBlockIndexOnOffset offset
           (results[1]?.peekFirst() ? results[0].peekLast).id
+        getDocSubstring: (start, end)->
+          startOffset = @blockOffsetForDocOffset start
+          endOffset = @blockOffsetForDocOffset end
+          block = @getBlock startOffset.block
+          text = ''
+          while block._id != endOffset.block
+            text += block.text
+          text.substring(startOffset.offset) + block.text.substring 0, endOffset.offset
         getText: ->
           text = ''
           @eachBlock (block)-> text += block.text
