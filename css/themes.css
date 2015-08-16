@@ -975,7 +975,7 @@ body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
 .leisure-searchOutputHolder,
 /*body*/
 [data-view=leisure-toolbar],
-[data-edit-mode]
+.flat [data-edit-mode]
 {
     /*background: #CCCCCC;*/
     /*background: #F8F8F8;*/
