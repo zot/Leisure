@@ -470,7 +470,7 @@
         renderLink: (org)->
           if leisureMatch = org.isLeisure()
             objectName = leisureMatch[1]
-            viewName = if leisureMatch[2] then " data-view-name='#{leisureMatch[2]}'" else ''
+            viewName = leisureMatch[2]
             data = UI.context.opts.data
             error = if !obj = data.getBlock(data.namedBlocks[objectName])
               "No object named #{objectName}"

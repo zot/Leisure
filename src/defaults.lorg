@@ -55,7 +55,7 @@ in as long as you mark it as data-noncontent, etc.
         <span name="emacsHost">Host: <input type='text' value="localhost:1315"></span>
       </span>
     </div>
-    <div name='p2pConnector' class='expandable-panel'>
+    <div name='p2pConnector' class='expandable-panel' style='display: none'>
       <button class='label' name='p2plabel'>P2P</button>
       <span class='contents'>
         Relay Host: <input name="p2pHost">
@@ -292,7 +292,7 @@ class='code-results' data-org-src>{{{results}}}</div>{{/if}}{{/if}}</span>
 #+BEGIN_SRC html :defview leisure-code-boiler
 <span class='codename'>{{#if nameBoiler
 }}<span class='hidden'>{{nameBoiler
-}}</span><span class='name-label'><span data-noncontent>NAME: "</span><span
+}}</span><span class='name-label'><span data-noncontent>"</span><span
 contenteditable='true' class='name'>{{nameText
 }}</span><span data-noncontent>"
 </span></span><span class='hidden'>
@@ -300,7 +300,7 @@ contenteditable='true' class='name'>{{nameText
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code-src-line
-<div class='codeHeading' contenteditable='true'><span class='hidden'>{{sourceBoiler sourceOrg}}</span><span data-noncontent contenteditable='false'>LANGUAGE: </span>{{sourceInfo sourceOrg}}</div>
+<div class='codeHeading' contenteditable='true'><span class='hidden'>{{sourceBoiler sourceOrg}}</span>{{sourceInfo}}</div>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code/inline-html

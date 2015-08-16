@@ -74,11 +74,7 @@ Code for local-mode.  This will not be loaded under meteor.
         createEditorDisplay ED
         if document.location.search
           {load, theme} = getDocumentParams()
-          #if load
-          #  u = new URL con
-          #  if u.protocol == 'emacs:' && m = u.pathname.match /^\/\/([^:]*)(:[^:]*)(\/.*)$/
-          #    [ignore, host, port, cookie] = m
-          #    connect opts, host, port.substring(1), cookie.substring(1)
+          if load then $.get(load, (data)-> ED.options.load data)
           if theme then ED.options.setTheme theme
         else
           ED.options.load """

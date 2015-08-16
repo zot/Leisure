@@ -580,6 +580,11 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             documentParams[k.toLowerCase()] = v
         documentParams
 
+      followLink = (e)->
+        console.log "FOLLOW LINK", e
+        alert 'Following links is not supported yet'
+        false
+
 Exports
 
       mergeExports {
@@ -590,6 +595,7 @@ Exports
         breakpoint
         blockOrg
         parseOrgMode
+        followLink
       }
 
       {

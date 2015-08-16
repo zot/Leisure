@@ -1,0 +1,4 @@
+(leisure-connection-mode
+ :fetcher github
+ :repo "zot/Leisure"
+ :files ("elisp/*.el" "elisp/README.org"))

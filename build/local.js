@@ -49,6 +49,11 @@
       createEditorDisplay(ED);
       if (document.location.search) {
         ref = getDocumentParams(), load = ref.load, theme = ref.theme;
+        if (load) {
+          $.get(load, function(data) {
+            return ED.options.load(data);
+          });
+        }
         if (theme) {
           ED.options.setTheme(theme);
         }

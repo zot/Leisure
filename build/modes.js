@@ -623,7 +623,7 @@
         var block, c, data, desc, error, guts, j, leisureMatch, len, obj, objectName, ref, ref1, src, title, type, viewName;
         if (leisureMatch = org.isLeisure()) {
           objectName = leisureMatch[1];
-          viewName = leisureMatch[2] ? " data-view-name='" + leisureMatch[2] + "'" : '';
+          viewName = leisureMatch[2];
           data = UI.context.opts.data;
           error = !(obj = data.getBlock(data.namedBlocks[objectName])) ? "No object named " + objectName : !(obj = (ref = (block = data.getBlock(data.namedBlocks[objectName]))) != null ? ref.yaml : void 0) ? "Object " + objectName + " isn't yaml" : !(type = obj != null ? obj.type : void 0) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
           if (error) {

@@ -16,7 +16,7 @@ Emacs connection
         getDocumentParams
       } = EditorSupport
 
-      msgPat = /^([^ ]+) (.*)$/
+      msgPat = /^([^ ]+)( (.*))?$/
       replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/
       replacing = false
       connected = false
@@ -27,6 +27,7 @@ Emacs connection
 
       messages =
         r: (data, msg, frame)-> replace data, msg
+        reload: -> document.location.href = document.location.href
 
       replace = (data, msg)->
         diag "Received #{msg}"
@@ -67,7 +68,7 @@ Emacs connection
         connection.filter = null
 
       message = (evt, data)->
-        [ignore, msg, text] = evt.data.match msgPat
+        [ignore, msg, ignore, text] = evt.data.match msgPat
         if method = messages[msg] then preserveSelection => method data, text, evt.data
         else
           console.log "Unknown message #{msg}: #{text}"

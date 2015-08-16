@@ -8,7 +8,7 @@
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection;
     showMessage = UI.showMessage;
     getDocumentParams = EditorSupport.getDocumentParams;
-    msgPat = /^([^ ]+) (.*)$/;
+    msgPat = /^([^ ]+)( (.*))?$/;
     replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/;
     replacing = false;
     connected = false;
@@ -23,6 +23,9 @@
     messages = {
       r: function(data, msg, frame) {
         return replace(data, msg);
+      },
+      reload: function() {
+        return document.location.href = document.location.href;
       }
     };
     replace = function(data, msg) {
@@ -90,7 +93,7 @@
     };
     message = function(evt, data) {
       var ignore, method, msg, ref, text;
-      ref = evt.data.match(msgPat), ignore = ref[0], msg = ref[1], text = ref[2];
+      ref = evt.data.match(msgPat), ignore = ref[0], msg = ref[1], ignore = ref[2], text = ref[3];
       if (method = messages[msg]) {
         return preserveSelection((function(_this) {
           return function() {

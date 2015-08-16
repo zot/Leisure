@@ -1,8 +1,10 @@
-* TODO allow links in simple markup (but not inside other links)        :org:
-* TODO hook to gists or fiddles
 * TODO expanded emacs server
 - file message for file links (images, etc.) and imports
 - execute message
+* TODO load parameter so people can view the example without Emacs
+  provide plantuml and ditaa files for the current text (use /tmp/blah on the site)
+* TODO allow links in simple markup (but not inside other links)        :org:
+* TODO hook to gists or fiddles
 * TODO use :exports to control code appearance
   :exports code
   :exports both
