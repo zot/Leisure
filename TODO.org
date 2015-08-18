@@ -1,3 +1,17 @@
+* TODO announcement form
+- melpa package
+- screen cast
+- demo repo
+- start with fresh emacs
+* TODO add begin_example/end_example (and more) to org parsing
+center, abstract, note, ...
+Check [[https://github.com/fniessen/org-html-themes]]
+* TODO ditaa doesn't refresh properly
+* TODO use Courier for unknown programming languages
+* TODO mode to only show blocks with certain tags
+hides cruft so you can just look at the code
+* TODO indicate the age of each block
+* TODO make headlines bigger in plain mode
 * TODO Move advice into a separate file
 * TODO when diag is enabled, check inserted text
 * TODO slider stays up when you scroll and doesn't scroll with the page

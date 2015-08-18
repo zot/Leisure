@@ -88,6 +88,7 @@
 
       plainMode =
         name: 'plain'
+        enter: (opts, parent, e)-> parent e
         renderBlocks: (opt, html)-> html
         setSlideMode: (opt, flag)->
         showingSlides: -> false
@@ -275,6 +276,31 @@
 
       fancyMode =
         name: 'fancy'
+        enter: (opts, parent, e)->
+          block = opts.getBlock opts.idForNode getSelection().getRangeAt(0).startContainer
+          console.log "enter in block ", block._id
+          if opts.isToggled block then parent e
+          else
+            e.preventDefault()
+            opts.editor.replace e, opts.editor.getSelectedBlockRange(), '\n\n', false
+        handleDelete: (opts, parent, e, sel, forward)->
+          pos = opts.editor.docOffset opts.editor.domCursorForCaret().firstText()
+          [start, end] = if forward
+            [pos, Math.min(pos + 2, opts.data.getDocLength())]
+          else [Math.max(0, pos - 2), pos]
+          s = opts.data.getDocSubstring(start, end)
+          if s == '\n\n'
+            boff = opts.data.blockOffsetForDocOffset start
+            eoff = opts.data.blockOffsetForDocOffset end
+            if opts.isToggled(boff.block) || opts.isToggled(boff.block)
+              parent e, sel, forward
+            else
+              boff.block = opts.data.getBlock boff.block
+              boff.length = 2
+              boff.type = 'Caret'
+              console.log "DELETE NEWLINE", boff
+              opts.editor.replace null, boff, ''
+          else parent e, sel, forward
         renderBlocks: (opt, html)->
           header = if hasView 'header' then opt.withNewContext =>
             @renderView('header', null, null, {})[0]
@@ -561,11 +587,9 @@
           wrench.outerHTML
         else ''
 
-      lineBreak = "<br data-noncontent contenteditable='false'><br data-noncontent contenteditable='false'>"
+      insertBreaks = (text)-> text.replace /\n\n/g, "\n\n<span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>"
 
-      insertBreaks = (text)-> text.replace /\n\n/g, "#{lineBreak}\n\n"
-
-      prefixBreak = (text)-> if text[0] == '\n' && text[1] != '\n' then lineBreak + text else text
+      prefixBreak = (text)-> if text[0] == '\n' && text[1] != '\n' then "\n<span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>#{text.substring 1}" else text
 
       createValueSliders = ->
         for num in $(UI.context.currentView).find('.token.number')
@@ -622,11 +646,11 @@
 
       showsCode = (codeBlock)->
         exports = codeBlock.codeAttributes?.exports?.split(' ')
-        !exports || ('code' in exports) || ('both' in exports)
+        !exports || !('results' in exports)
 
       showsResults = (codeBlock)->
         exports = codeBlock.codeAttributes?.exports?.split(' ')
-        !exports || ('results' in exports) || ('both' in exports)
+        !exports || !('code' in exports)
 
       _workSpan = null
 
@@ -660,7 +684,7 @@
         if l = prismAliases[lang] then lang = l
         if Prism.languages[lang]
           Prism.highlight text, Prism.languages[lang], lang
-        else escapeHtml text
+        else "<span class='unknown-language'>#{escapeHtml text}</span>"
 
       replacementTargets = (block, prefix, replace)->
         if replace && (targets = $("##{prefix}#{block._id}")) && targets.length

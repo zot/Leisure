@@ -413,9 +413,7 @@
         }
         holderId = this.idAtCaret(sel);
         this.currentBlockIds = [holderId];
-        return this.handleDelete(event, sel, false, function(text, pos) {
-          return true;
-        });
+        return this.handleDelete(event, sel, false);
       };
 
       LeisureEditCore.prototype.del = function(event, sel, r) {
@@ -425,9 +423,7 @@
         }
         holderId = this.idAtCaret(sel);
         this.currentBlockIds = [holderId];
-        return this.handleDelete(event, sel, true, function(text, pos) {
-          return true;
-        });
+        return this.handleDelete(event, sel, true);
       };
 
       LeisureEditCore.prototype.idAtCaret = function(sel) {
@@ -468,32 +464,25 @@
         }
       };
 
-      LeisureEditCore.prototype.handleDelete = function(e, s, forward, delFunc) {
-        var bl, block, blocks, c, cont, pos, result;
+      LeisureEditCore.prototype.handleDelete = function(e, s, forward) {
+        var bl, block, blocks, c, cont, pos;
         e.preventDefault();
         if (s.type === 'Caret') {
           c = this.domCursorForCaret().firstText();
           cont = this.options.getContainer(c.node);
           block = this.getCopy(this.options.idForNode(cont));
           pos = this.getTextPosition(cont, c.node, c.pos);
-          result = delFunc(block.text, pos);
           blocks = [];
-          if (!result) {
-            return this.ignoreModCheck = this.ignoreModCheck || 1;
+          pos += forward ? 0 : -1;
+          if (pos >= 0) {
+            blocks.push(block);
+          } else if (block.prev) {
+            blocks.push(bl = this.getCopy(block.prev));
+            pos += bl.text.length;
           } else {
-            pos += forward ? 0 : -1;
-            if (pos < 0) {
-              if (block.prev) {
-                blocks.push(bl = this.getCopy(block.prev));
-                pos += bl.text.length;
-              } else {
-                return;
-              }
-            } else {
-              blocks.push(block);
-            }
-            return this.options.editBlocks(blocks, pos, 1, '');
+            return;
           }
+          return this.options.editBlocks(blocks, pos, 1, '');
         }
       };
 
@@ -752,8 +741,7 @@
             } else {
               _this.modCancelled = false;
               if (c === ENTER) {
-                e.preventDefault();
-                return _this.replace(e, _this.getSelectedBlockRange(), '\n', false);
+                return _this.enter(e);
               } else if (c === BS) {
                 e.preventDefault();
                 return _this.backspace(e, s, r);
@@ -770,10 +758,19 @@
         })(this));
         return this.node.on('keypress', (function(_this) {
           return function(e) {
-            e.preventDefault();
-            return _this.replace(e, _this.getSelectedBlockRange(), null, false);
+            return _this.keyPress(e);
           };
         })(this));
+      };
+
+      LeisureEditCore.prototype.enter = function(e) {
+        e.preventDefault();
+        return this.replace(e, this.getSelectedBlockRange(), '\n', false);
+      };
+
+      LeisureEditCore.prototype.keyPress = function(e) {
+        e.preventDefault();
+        return this.replace(e, this.getSelectedBlockRange(), null, false);
       };
 
       LeisureEditCore.prototype.blockIdsForSelection = function(sel, r) {
@@ -1032,7 +1029,7 @@
       }
 
       BasicEditingOptions.prototype.setDiagEnabled = function(flag) {
-        return changeAdvice(this, flag, {
+        changeAdvice(this, flag, {
           renderBlocks: {
             diag: wrapDiag
           },
@@ -1040,6 +1037,9 @@
             diag: wrapDiag
           }
         });
+        if (flag) {
+          return this.diag();
+        }
       };
 
       BasicEditingOptions.prototype.diag = function() {
@@ -1366,7 +1366,7 @@
       }
 
       DataStore.prototype.setDiagEnabled = function(flag) {
-        return changeAdvice(this, flag, {
+        changeAdvice(this, flag, {
           setIndex: {
             diag: wrapDiag
           },
@@ -1377,6 +1377,9 @@
             diag: wrapDiag
           }
         });
+        if (flag) {
+          return this.diag();
+        }
       };
 
       DataStore.prototype.setIndex = function(i) {
@@ -1576,6 +1579,10 @@
         return ((ref = (ref1 = results[1]) != null ? ref1.peekFirst() : void 0) != null ? ref : results[0].peekLast).id;
       };
 
+      DataStore.prototype.getDocLength = function() {
+        return this.blockIndex.measure().length;
+      };
+
       DataStore.prototype.getDocSubstring = function(start, end) {
         var block, endOffset, startOffset, text;
         startOffset = this.blockOffsetForDocOffset(start);
@@ -1730,25 +1737,45 @@
       };
 
       DataStore.prototype.verifyIndex = function() {
-        var badIds, blockIds, last, treeIds;
-        treeIds = _.pluck(this.indexArray(), 'id');
-        blockIds = _.pluck(this.blockArray(), '_id');
+        var bArray, badIdObj, badIds, blockIds, iArray, id, j, last, len, len1, node, o, ref, results1, treeIds;
+        iArray = this.indexArray();
+        treeIds = _.pluck(iArray, 'id');
+        bArray = this.blockArray();
+        blockIds = _.pluck(bArray, '_id');
         if (!_.isEqual(treeIds, blockIds)) {
           console.warn("INDEX ERROR:\nEXPECTED: " + (JSON.stringify(blockIds)) + "\nBUT GOT: " + (JSON.stringify(treeIds)));
         }
         last = null;
         badIds = [];
+        badIdObj = {};
+        for (j = 0, len = iArray.length; j < len; j++) {
+          node = iArray[j];
+          if (node.length !== ((ref = this.getBlock(node.id)) != null ? ref.text.length : void 0)) {
+            badIdObj[node.id] = 'bad length';
+            badIds.push(node.id);
+          }
+        }
         this.eachBlock((function(_this) {
           return function(block) {
             last = block;
             if (!_this.fingerNodeOrder(block.prev, block._id)) {
-              badIds.push(block._id);
+              if (!badIdObj[block._id]) {
+                badIds.push(block._id);
+                badIdObj[block._id] = 'bad order';
+              } else {
+                badIdObj[block._id] += ', bad order';
+              }
               return console.warn("NODE ORDER WRONG FOR " + block.prev + ", " + block._id);
             }
           };
         })(this));
         if (badIds.length) {
-          return badIds;
+          results1 = [];
+          for (o = 0, len1 = badIds.length; o < len1; o++) {
+            id = badIds[o];
+            results1.push([id, "(" + badIdObj[id] + ")"]);
+          }
+          return results1;
         }
       };
 
@@ -2085,7 +2112,9 @@
           args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
           return (def.call(this, ((function(_this) {
             return function() {
-              return parent.apply(_this, args);
+              var newArgs;
+              newArgs = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+              return parent.apply(_this, newArgs);
             };
           })(this)))).apply(this, args);
         };

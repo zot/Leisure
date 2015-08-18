@@ -42,6 +42,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         changeAdvice
         afterMethod
         beforeMethod
+        aroundMethod
       } = Editor
       {
         addView
@@ -363,6 +364,12 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           @bindings.PAGEDOWN = (editor, e, r)=>
             if @mode.showNextSlide this then e.preventDefault()
             false
+          opts = this
+          changeAdvice ed, true,
+            enter: options: aroundMethod (parent)-> (e)->
+              opts.mode.enter opts, parent, e
+            handleDelete: options: aroundMethod (parent)-> (e, sel, forward)->
+              opts.mode.handleDelete opts, parent, e, sel, forward
         setMode: (@mode)->
           if @mode && @editor then @editor.node.attr 'data-edit-mode', @mode.name
           this

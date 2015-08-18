@@ -456,7 +456,7 @@ FRAME: frame."
 
 (defun leisure/openBrowser (cookie)
   "Open a browser that connects to Emacs on PORT with COOKIE."
-  (funcall leisure/browseURLFunction (format "%s?theme=%s&connect=emacs://localhost:%s%s\n" leisure/fileURL leisure/theme (plist-get leisure/info 'port) (or (and cookie (string-join (list "/" cookie))) ""))))
+  (funcall leisure/browseURLFunction (format "%s?theme=%s&connect=emacs://localhost:%s%s" leisure/fileURL leisure/theme (plist-get leisure/info 'port) (or (and cookie (string-join (list "/" cookie))) ""))))
 
 ;;test: (leisure/openBrowser "duh")
 
@@ -668,7 +668,9 @@ FRAME: frame."
 
 (defun leisure/base64-file (fileName)
   (with-temp-buffer
-    (insert-file-contents fileName)
+    (condition-case nil
+        (insert-file-contents fileName)
+      (error nil))
     (base64-encode-string (buffer-string))))
 
 (defun leisure-readme ()

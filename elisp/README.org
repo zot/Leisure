@@ -20,11 +20,18 @@ You can also initiate connections from Leisure to emacs, provided that
 you have started Emacs' Leisure service.  Leisure-connection-mode
 automatically turns on the service but you can also control it with
 the leisure-start and leisure-stop commands.
+
+Once connected, changes in Emacs are mirrored in Leisure, and vice
+versa.  If you hit C-C C-C or click an elisp link in Leisure, it will
+delegate it to Emacs and Leisure will also attempt to fetch "file:"
+image data from Emacs so that it can display the results of your
+file-based computations.
 * Work in progress
 ** Leisure is not stable, yet
 - Leisure is a *work in progress*
 - It's *NOT HARDENED*
-  - *If you an unforgiving user, don't use Leisure yet!*
+  - *Don't rely on Leisure for super-important tasks yet!*
+  - Leisure won't destroy Emacs' undo history, so it *should* be realtively safe
 - It doesn't support orgmode tables yet
 ** But that doesn't mean you can't use it!
 - You can still benefit from Leisure's features, like interactive views, value sliders, etc.
@@ -97,7 +104,7 @@ Leisure uses [[http://handlebarsjs.com/][Handlebars]] templates and it use data 
 when it renders them.
 
 #+NAME: fred
-This is Fred.  The Html snippet below displays Fred's name and the
+This is Fred.  The HTML snippet below displays Fred's name and the
 name's length.  Change it to see the HTML below update.
 #+BEGIN_SRC yaml
 name: Fred
@@ -117,8 +124,6 @@ This is Fred's controller
   $(view).find('[name=len]').html data.name.length
 #+END_SRC
 * View definitions
-[[leisure:rotator]] [[leisure:rotator/two]]
-
 Leisure has a presentation system that can display a "view" on data
 according to its "type" field.  You can nest views and even define
 alternate views for the same type of data.
@@ -128,7 +133,7 @@ you can redefine how Leisure displays its document parts in the
 documents themselves.  It's so meta.
 
 #+NAME: rotator
-This YAML data controls the rotating square above.
+This YAML data controls the rotating square and line below.
 - Click the degrees value and move the slider that pops up
 - When you let go of the sider, it snaps to the middle so the value can keep changing
 - Watch it update in both Emacs and Leisure
@@ -137,6 +142,8 @@ This YAML data controls the rotating square above.
 type: rotator
 degrees: 90
 #+END_SRC
+
+[[leisure:rotator]] [[leisure:rotator/two]]
 
 #+BEGIN_SRC html :defview rotator
 <div style='padding: 25px; display: inline-block'>
@@ -221,11 +228,11 @@ We are considering integrating with services like [[https://disqus.com/][Disqus]
 people can commment on your code and discuss it.
 ** Test cases
 Converting code into a visual test case result is an imporant feature
-we plan to bring back.
+we plan to bring back soon!
 * Some Leisure History
-Leisure started out as an experimental programming language that's
-quite a mouthful: a dynamically typed, lazy, functional programming
-language with strong support for metaprogramming.  Soon, TEAM CTHUHLU
+Leisure started out as an experimental, dynamically typed, lazy,
+functional programming language with strong support for
+metaprogramming (quite a mouthful, isn't it?).  Soon, TEAM CTHUHLU
 wanted to extend our experiment into programming environments.
 Leisure was already web-based, why shouldn't it exploit the powers of
 the Web?

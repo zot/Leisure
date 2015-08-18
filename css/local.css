@@ -119,3 +119,6 @@ a:hover {
     position: absolute !important;
     width: 8em;
 }
+.unknown-language {
+    font-family: Courier;
+}

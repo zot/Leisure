@@ -88,14 +88,14 @@ Emacs connection
           if e.target.href.match /^elisp/
             sendFollowLink @data.emacsConnection.websocket, @editor.docOffset($(e.target).prev('.link')[0], 1)
             false
-          else parent()
+          else parent e
         opts.bindings['C-C C-C'] = (editor, e, r)->
           sendCcCc editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0)
 
       renderImage = (src, title)->
         if src.match /^file:/
           imgId = "emacs-image-#{imgCount++}"
-          sendGetFile @data, src, (file)->
+          sendGetFile @data, src, (file)-> if file
             $("##{imgId}").prop 'src', "data:#{typeForFile src};base64,#{file}"
           "<img id='#{imgId}' title='#{escapeAttr title}'>"
         else "<img src='#{src}' title='#{title}'>"
@@ -137,7 +137,7 @@ Emacs connection
             if (index = connection.idOffsets[oldBlock?._id])?
               while connection.offsetIds.length > index
                 delete connection.idOffsets[connection.offsetIds.pop()]
-            start = offsetFor(data, oldBlock._id ? newBlock._id)
+            start = offsetFor(data, oldBlock?._id ? newBlock._id)
             end = start + (oldBlock?.text.length ? 0)
             text = newBlock.text
             if oldBlock && newBlock
@@ -147,7 +147,7 @@ Emacs connection
               for startOff in [0...Math.min oldLen, newLen]
                 if oldBlock.text[startOff] != newBlock.text[startOff] then break
               start += startOff
-              for endOff in [0..Math.min oldLen, newLen, newLen - startOff - 1]
+              for endOff in [0..Math.min oldLen, newLen, newLen - startOff - 1, oldLen - startOff - 1]
                 if oldBlock.text[oldLen - endOff] != newBlock.text[newLen - endOff] then break
               endOff -= 1
               end -= endOff
@@ -189,15 +189,7 @@ Emacs connection
         bOff.type = if start == end then 'Caret' else 'Range'
         bOff
 
-      offsetFor = (data, thing)->
-        thingId = if typeof thing == 'string' then thing else thing._id
-        con = data.emacsConnection
-        offset = 0
-        block = data.getBlock data.getFirst()
-        while block && block._id != thingId
-          offset += block.text.length
-          block = data.getBlock block.next
-        offset
+      offsetFor = (data, thing)-> data.offsetForBlock thing
 
       specials = /[\b\f\n\r\t\v\"\\]/g
 
@@ -235,7 +227,7 @@ Emacs connection
             {connect:con, theme} = getDocumentParams()
             if con
               u = new URL con
-              if u.protocol == 'emacs:' && m = u.pathname.match /^\/\/([^:]*)(:[^:]*)(\/.*)$/
+              if u.protocol == 'emacs:' && m = u.pathname.match /^\/\/([^:]*)(:[^\/]*)(\/.*)$/
                 [ignore, host, port, cookie] = m
                 connect opts, host, port.substring(1), cookie.substring(1)
 

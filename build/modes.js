@@ -3,7 +3,7 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./editorSupport.litcoffee'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport) {
-    var DataStore, DataStoreEditingOptions, Drawer, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Nil, OrgEditing, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, keywordRE, languageEnvMaker, last, lineBreak, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Nil, OrgEditing, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -18,6 +18,9 @@
     currentSlider = null;
     plainMode = {
       name: 'plain',
+      enter: function(opts, parent, e) {
+        return parent(e);
+      },
       renderBlocks: function(opt, html) {
         return html;
       },
@@ -305,6 +308,38 @@
     };
     fancyMode = {
       name: 'fancy',
+      enter: function(opts, parent, e) {
+        var block;
+        block = opts.getBlock(opts.idForNode(getSelection().getRangeAt(0).startContainer));
+        console.log("enter in block ", block._id);
+        if (opts.isToggled(block)) {
+          return parent(e);
+        } else {
+          e.preventDefault();
+          return opts.editor.replace(e, opts.editor.getSelectedBlockRange(), '\n\n', false);
+        }
+      },
+      handleDelete: function(opts, parent, e, sel, forward) {
+        var boff, end, eoff, pos, ref, s, start;
+        pos = opts.editor.docOffset(opts.editor.domCursorForCaret().firstText());
+        ref = forward ? [pos, Math.min(pos + 2, opts.data.getDocLength())] : [Math.max(0, pos - 2), pos], start = ref[0], end = ref[1];
+        s = opts.data.getDocSubstring(start, end);
+        if (s === '\n\n') {
+          boff = opts.data.blockOffsetForDocOffset(start);
+          eoff = opts.data.blockOffsetForDocOffset(end);
+          if (opts.isToggled(boff.block) || opts.isToggled(boff.block)) {
+            return parent(e, sel, forward);
+          } else {
+            boff.block = opts.data.getBlock(boff.block);
+            boff.length = 2;
+            boff.type = 'Caret';
+            console.log("DELETE NEWLINE", boff);
+            return opts.editor.replace(null, boff, '');
+          }
+        } else {
+          return parent(e, sel, forward);
+        }
+      },
       renderBlocks: function(opt, html) {
         var header;
         header = hasView('header') ? opt.withNewContext((function(_this) {
@@ -776,13 +811,12 @@
         return '';
       }
     };
-    lineBreak = "<br data-noncontent contenteditable='false'><br data-noncontent contenteditable='false'>";
     insertBreaks = function(text) {
-      return text.replace(/\n\n/g, lineBreak + "\n\n");
+      return text.replace(/\n\n/g, "\n\n<span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>");
     };
     prefixBreak = function(text) {
       if (text[0] === '\n' && text[1] !== '\n') {
-        return lineBreak + text;
+        return "\n<span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>" + (text.substring(1));
       } else {
         return text;
       }
@@ -866,12 +900,12 @@
     showsCode = function(codeBlock) {
       var exports, ref, ref1;
       exports = (ref = codeBlock.codeAttributes) != null ? (ref1 = ref.exports) != null ? ref1.split(' ') : void 0 : void 0;
-      return !exports || (indexOf.call(exports, 'code') >= 0) || (indexOf.call(exports, 'both') >= 0);
+      return !exports || !(indexOf.call(exports, 'results') >= 0);
     };
     showsResults = function(codeBlock) {
       var exports, ref, ref1;
       exports = (ref = codeBlock.codeAttributes) != null ? (ref1 = ref.exports) != null ? ref1.split(' ') : void 0 : void 0;
-      return !exports || (indexOf.call(exports, 'results') >= 0) || (indexOf.call(exports, 'both') >= 0);
+      return !exports || !(indexOf.call(exports, 'code') >= 0);
     };
     _workSpan = null;
     workSpan = function() {
@@ -919,7 +953,7 @@
       if (Prism.languages[lang]) {
         return Prism.highlight(text, Prism.languages[lang], lang);
       } else {
-        return escapeHtml(text);
+        return "<span class='unknown-language'>" + (escapeHtml(text)) + "</span>";
       }
     };
     replacementTargets = function(block, prefix, replace) {

@@ -2140,6 +2140,7 @@ table[data-org-headline='1'] {
 }
 .leisure-editor:not(.slides) [data-headline='1'] > .maintext {
     color: blue;
+    font-size: 175%;
 }
 [data-headline='2'] > .maintext {
     color: darkgoldenrod;

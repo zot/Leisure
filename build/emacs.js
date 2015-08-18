@@ -112,7 +112,7 @@
                 sendFollowLink(this.data.emacsConnection.websocket, this.editor.docOffset($(e.target).prev('.link')[0], 1));
                 return false;
               } else {
-                return parent();
+                return parent(e);
               }
             };
           })
@@ -127,7 +127,9 @@
       if (src.match(/^file:/)) {
         imgId = "emacs-image-" + (imgCount++);
         sendGetFile(this.data, src, function(file) {
-          return $("#" + imgId).prop('src', "data:" + (typeForFile(src)) + ";base64," + file);
+          if (file) {
+            return $("#" + imgId).prop('src', "data:" + (typeForFile(src)) + ";base64," + file);
+          }
         });
         return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'>";
       } else {
@@ -189,7 +191,7 @@
                 delete connection.idOffsets[connection.offsetIds.pop()];
               }
             }
-            start = offsetFor(data, (ref = oldBlock._id) != null ? ref : newBlock._id);
+            start = offsetFor(data, (ref = oldBlock != null ? oldBlock._id : void 0) != null ? ref : newBlock._id);
             end = start + ((ref1 = oldBlock != null ? oldBlock.text.length : void 0) != null ? ref1 : 0);
             text = newBlock.text;
             if (oldBlock && newBlock) {
@@ -201,7 +203,7 @@
                 }
               }
               start += startOff;
-              for (endOff = j = 0, ref3 = Math.min(oldLen, newLen, newLen - startOff - 1); 0 <= ref3 ? j <= ref3 : j >= ref3; endOff = 0 <= ref3 ? ++j : --j) {
+              for (endOff = j = 0, ref3 = Math.min(oldLen, newLen, newLen - startOff - 1, oldLen - startOff - 1); 0 <= ref3 ? j <= ref3 : j >= ref3; endOff = 0 <= ref3 ? ++j : --j) {
                 if (oldBlock.text[oldLen - endOff] !== newBlock.text[newLen - endOff]) {
                   break;
                 }
@@ -258,16 +260,7 @@
       return bOff;
     };
     offsetFor = function(data, thing) {
-      var block, con, offset, thingId;
-      thingId = typeof thing === 'string' ? thing : thing._id;
-      con = data.emacsConnection;
-      offset = 0;
-      block = data.getBlock(data.getFirst());
-      while (block && block._id !== thingId) {
-        offset += block.text.length;
-        block = data.getBlock(block.next);
-      }
-      return offset;
+      return data.offsetForBlock(thing);
     };
     specials = /[\b\f\n\r\t\v\"\\]/g;
     slashed = /\\./g;
@@ -322,7 +315,7 @@
           ref = getDocumentParams(), con = ref.connect, theme = ref.theme;
           if (con) {
             u = new URL(con);
-            if (u.protocol === 'emacs:' && (m = u.pathname.match(/^\/\/([^:]*)(:[^:]*)(\/.*)$/))) {
+            if (u.protocol === 'emacs:' && (m = u.pathname.match(/^\/\/([^:]*)(:[^\/]*)(\/.*)$/))) {
               ignore = m[0], host = m[1], port = m[2], cookie = m[3];
               return connect(opts, host, port.substring(1), cookie.substring(1));
             }

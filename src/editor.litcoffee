@@ -407,12 +407,12 @@ Events:
           if sel.type == 'Range' then return @cutText event
           holderId = @idAtCaret sel
           @currentBlockIds = [holderId]
-          @handleDelete event, sel, false, (text, pos)-> true
+          @handleDelete event, sel, false
         del: (event, sel, r)->
           if sel.type == 'Range' then return @cutText event
           holderId = @idAtCaret sel
           @currentBlockIds = [holderId]
-          @handleDelete event, sel, true, (text, pos)-> true
+          @handleDelete event, sel, true
         idAtCaret: (sel)-> @options.idForNode @options.getContainer(sel.anchorNode)
         selectedText: (s)->
           r = s.getRangeAt(0)
@@ -426,25 +426,21 @@ Events:
             text = @selectedText sel
             @options.simulateCut html: html, text: text
             @replace e, @getSelectedBlockRange(), ''
-        handleDelete: (e, s, forward, delFunc)->
+        handleDelete: (e, s, forward)->
           e.preventDefault()
           if s.type == 'Caret'
             c = @domCursorForCaret().firstText()
             cont = @options.getContainer(c.node)
             block = @getCopy @options.idForNode cont
             pos = @getTextPosition cont, c.node, c.pos
-            result = delFunc block.text, pos
             blocks = []
-            if !result then @ignoreModCheck = @ignoreModCheck || 1
-            else
-              pos += if forward then 0 else -1
-              if pos < 0
-                if block.prev
-                  blocks.push bl = @getCopy block.prev
-                  pos += bl.text.length
-                else return
-              else blocks.push block
-              @options.editBlocks blocks, pos, 1, ''
+            pos += if forward then 0 else -1
+            if pos >= 0 then blocks.push block
+            else if block.prev
+              blocks.push bl = @getCopy block.prev
+              pos += bl.text.length
+            else return
+            @options.editBlocks blocks, pos, 1, ''
 
 editBlocks: at this point, just place the cursor after the newContent, later
 on it can select if start and end are different
@@ -587,9 +583,7 @@ on it can select if start and end are different
             if bound then @modCancelled = !checkMod
             else
               @modCancelled = false
-              if c == ENTER
-                e.preventDefault()
-                @replace e, @getSelectedBlockRange(), '\n', false
+              if c == ENTER then @enter e
               else if c == BS
                 e.preventDefault()
                 @backspace e, s, r
@@ -600,9 +594,13 @@ on it can select if start and end are different
                 e.preventDefault()
                 @char = getEventChar e
                 @replace e, @getSelectedBlockRange(), null, false
-          @node.on 'keypress', (e)=>
-            e.preventDefault()
-            @replace e, @getSelectedBlockRange(), null, false
+          @node.on 'keypress', (e)=> @keyPress e
+        enter: (e)->
+          e.preventDefault()
+          @replace e, @getSelectedBlockRange(), '\n', false
+        keyPress: (e)->
+          e.preventDefault()
+          @replace e, @getSelectedBlockRange(), null, false
         blockIdsForSelection: (sel, r)->
           if !sel then sel = getSelection()
           if sel.rangeCount == 1
@@ -793,6 +791,7 @@ Main code
           changeAdvice this, flag,
             renderBlocks: diag: wrapDiag
             changed: diag: wrapDiag
+          if flag then @diag()
 
         diag: -> @trigger 'diag', @editor.verifyAllNodes()
 
@@ -1040,6 +1039,7 @@ Data model -- override/reset these if you want to change how the store accesses 
             setIndex: diag: wrapDiag
             indexBlock: diag: wrapDiag
             indexBlocks: diag: wrapDiag
+          if flag then @diag()
         setIndex: (i)-> @blockIndex = i
         getFirst: -> @first
         setFirst: (firstId)-> @first = firstId
@@ -1146,6 +1146,7 @@ Data model -- override/reset these if you want to change how the store accesses 
         blockForOffset: (offset)->
           results = @splitBlockIndexOnOffset offset
           (results[1]?.peekFirst() ? results[0].peekLast).id
+        getDocLength: -> @blockIndex.measure().length
         getDocSubstring: (start, end)->
           startOffset = @blockOffsetForDocOffset start
           endOffset = @blockOffsetForDocOffset end
@@ -1225,18 +1226,28 @@ Data model -- override/reset these if you want to change how the store accesses 
           blocks
         diag: -> @trigger 'diag', @verifyIndex()
         verifyIndex: ->
-          treeIds = _.pluck @indexArray(), 'id'
-          blockIds = _.pluck @blockArray(), '_id'
+          iArray = @indexArray()
+          treeIds = _.pluck iArray, 'id'
+          bArray = @blockArray()
+          blockIds = _.pluck bArray, '_id'
           if !_.isEqual treeIds, blockIds
             console.warn "INDEX ERROR:\nEXPECTED: #{JSON.stringify blockIds}\nBUT GOT: #{JSON.stringify treeIds}"
           last = null
           badIds = []
+          badIdObj = {}
+          for node in iArray
+            if node.length != @getBlock(node.id)?.text.length
+              badIdObj[node.id] = 'bad length'
+              badIds.push node.id
           @eachBlock (block)=>
             last = block
             if !@fingerNodeOrder block.prev, block._id
-              badIds.push block._id
+              if !badIdObj[block._id]
+                badIds.push block._id
+                badIdObj[block._id] = 'bad order'
+              else badIdObj[block._id] += ', bad order'
               console.warn "NODE ORDER WRONG FOR #{block.prev}, #{block._id}"
-          if badIds.length then badIds
+          if badIds.length then [id, "(#{badIdObj[id]})"] for id in badIds
 
       treeToArray = (tree)->
         nodes = []
@@ -1447,7 +1458,7 @@ Method Advice
 
       aroundMethod = (def)->
         (parent)-> (args...)->
-          (def.call this, (=> parent.apply this, args)).apply this, args
+          (def.call this, ((newArgs...)=> parent.apply this, newArgs)).apply this, args
 
       wrapDiag = (parent)-> (args...)->
         r = parent.apply this, args

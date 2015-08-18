@@ -13,6 +13,8 @@
         mergeExports
       } = Exports
 
+      errorDisplay = null
+
       getDiagShowing = (node)->
         $(editorForToolbar(node)?.node).nextAll(".selectionInfo").hasClass 'diag'
 
@@ -49,12 +51,11 @@
         editor.on 'selection', statusUpdate
         editor.options
           .on 'diag', (badBlocks)->
-            if badBlocks
-              $(editor.node).addClass 'error'
-              errors.html "BAD BLOCKS: #{JSON.stringify badBlocks}"
-            else
-              $(editor.node).removeClass 'error'
-              errors.html ''
+            $(editor.node).find('.error').removeClass 'error'
+            for id in badBlocks ? []
+              $(editor.options.nodeForId(id)).addClass 'error'
+            if badBlocks?.length then errors.html "BAD BLOCKS: #{JSON.stringify badBlocks}"
+            else errors.html ''
           .on 'render', (block)->
             if editor.diag then console.log "RENDER: #{block._id}"
 
@@ -94,12 +95,20 @@
             .on 'change', (changes)-> displayStructure data, blockDisplay
             .on 'load', -> displayStructure data, blockDisplay
             .on 'diag', (badBlocks)->
-              if badBlocks
-                errorDisplay.html "<b>BAD BLOCKS:</b> #{JSON.stringify badBlocks}"
-              else errorDisplay.html ''
+              $(".structure").data badBlocks: badBlocks
+              showStructureErrors()
+
+      showStructureErrors = ->
+        if errorDisplay
+          if badBlocks = $('.structure').data().badBlocks
+            errorDisplay.html "<b>BAD BLOCKS:</b> #{(b[0]+': '+b[1] for b in badBlocks).join ', '}"
+            console.log "ADDING ERROR TO: " + (".structure.diag .#{b[0]}" for b in badBlocks).join ','
+            $((".structure.diag .#{b[0]}" for b in badBlocks).join ',').addClass 'error'
+          else errorDisplay.html ''
 
       displayStructure = (data, div)->
-        $(div).html escapeHtml structureInfo(data).description
+        $(div).html structureInfo(data).description
+        showStructureErrors()
 
       structureInfo = (data)->
         parentStack = []
@@ -128,7 +137,7 @@
             while p = data.parent p
               level++
           levels[cur._id] = level
-          desc += "#{('   ' for i in [0...level]).join ''}#{cur._id} #{cur.type}#{checkStructure cur, bad}: #{JSON.stringify cur.text}\n"
+          desc += "<span class='#{cur._id}'>#{('   ' for i in [0...level]).join ''}#{cur._id} #{cur.type}#{checkStructure cur, bad}: #{escapeHtml JSON.stringify cur.text}\n</span>"
           if !cur.nextSibling then level = 0
           cur = data.getBlock cur.next
         levels: levels, description: desc
