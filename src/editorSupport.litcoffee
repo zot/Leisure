@@ -299,6 +299,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             for block in newBlocks
               viewNodes = viewNodes.add @find "[data-view-block='#{block._id}']"
               viewNodes = @findViewsForDefiner block, viewNodes
+              viewNodes = @findViewsForDefiner changes.old[block._id], viewNodes
               for node in @find "[data-observe~=#{block._id}]"
                 if id = @idForNode node
                   nb.push @getBlock id, changes
@@ -308,13 +309,16 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               for node in viewNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
                 if data = (block = @getBlock(node.attr 'data-view-block'))?.yaml
-                  renderView $(node).attr('data-view'), null, data, node, block
+                  [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
+                  renderView view, name, data, node, block
           else super changes
         find: (sel)-> $(@editor.node).find sel
         findViewsForDefiner: (block, nodes)->
-          attrs = (block.type == 'code' && block.codeAttributes)
-          if attrs && viewType = (attrs.control || attrs.defview)
-            nodes = nodes.add @find "[data-view='#{viewType}']"
+          if block
+            attrs = (block.type == 'code' && block.codeAttributes)
+            if attrs && viewType = (attrs.control || attrs.defview)
+              nodes = nodes.add @find "[data-view='#{viewType}']"
+              nodes = nodes.add @find "[data-requested-view='#{viewType}']"
           nodes
         withNewContext: (func)-> mergeContext {}, =>
           UI.context.opts = this

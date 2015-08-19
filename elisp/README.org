@@ -38,7 +38,7 @@ reproducible research.
 - Leisure is a *work in progress*
 - It's *NOT HARDENED*
   - *Don't rely on Leisure for super-important tasks yet!*
-  - Leisure won't destroy Emacs' undo history, so it *should* be realtively safe
+  - Leisure won't destroy Emacs' undo history, so it *should* be safe to use
 - It doesn't support parts of orgmode, yet
   - Like tables
   - And stuff
@@ -63,7 +63,7 @@ Hit C-c C-c in this code block in Leisure and it will attempt to
 execute in Emacs.
 
 #+BEGIN_SRC sh :results output
-ls
+ls /tmp
 #+END_SRC
 
 Click this in Leisure and it will [[elisp:(message "Hello from Leisure!")][show a message]] in Emacs.
@@ -135,20 +135,19 @@ This is Fred's controller
   $(view).find('[name=len]').html data.name.length
 #+END_SRC
 * View definitions
-Leisure has a presentation system that can automitically determine
-which "view" to use to display a piece of data according to its "type"
-field.  You can nest views and even define alternate views for the
-same types of data.  At this point, Leisure uses YAML data for its
-views.
+Leisure uses "leisure:" links to display data, based on the data's
+"type" field.  You can nest views and even pick alternate views for
+the same types of data by specifying a view name in the link.  At this
+point, Leisure uses YAML data for its views.
 
 Leisure uses this presentation system when it displays every Leisure
 document and you can redefine how Leisure displays its document parts
 in the documents themselves (but you have to be verrry careful when
-you do this.  So a lot of Leisure's document display is defined in
-Leisure.  It's so meta.
+you redefine things at such a low-level.  So a lot of Leisure's
+document display is defined in Leisure.  It's so meta
 
 #+NAME: rotator
-This YAML item controls the rotating square and line below.
+This YAML data controls the rotating square and line below.
 - Click the degrees value and move the slider that pops up
 - When you let go of the sider, it snaps to the middle so the value can keep changing
 - Watch it update in both Emacs and Leisure
@@ -160,13 +159,15 @@ degrees: 90
 
 [[leisure:rotator]] [[leisure:rotator/two]]
 
+Fiddle with these view definitions and you'll see the views change.
+
 #+BEGIN_SRC html :defview rotator
 <div style='padding: 25px; display: inline-block'>
-  <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
+  <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>
 </div>
 #+END_SRC
 
-#+BEGIN_SRC html :defview rotator2/two
+#+BEGIN_SRC html :defview rotator/two
 <div style='padding: 25px; padding-left: 100px; display: inline-block'>
   <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
 </div>
@@ -205,46 +206,47 @@ deactivate Client
 #+results:
 [[file:sequence.png]]
 
-#+begin_src ditaa :file communication.png :cmdline -r -s 0.8 :exports results :cache yes
-    +-----------+        +---------+  
-    |    PLC    |        |         |                
-    |  Network  +<------>+   PLA   +<---=---------+ 
-    |    cRED   |        |  c707   |              | 
-    +-----------+        +----+----+              | 
-                              ^                   | 
-                              |                   | 
-                              |  +----------------|-----------------+
-                              |  |                |                 |
-                              v  v                v                 v
-      +----------+       +----+--+--+      +-------+---+      +-----+-----+       Windows clients
-      |          |       |          |      |           |      |           |      +----+      +----+
-      | Database +<----->+  Shared  +<---->+ Executive +<-=-->+ Operator  +<---->|cYEL| . . .|cYEL|
-      |   c707   |       |  Memory  |      |   c707    |      | Server    |      |    |      |    |
-      +--+----+--+       |{d} cGRE  |      +------+----+      |   c707    |      +----+      +----+
-         ^    ^          +----------+             ^           +-------+---+
-         |    |                                   |                        
-         |    +--------=--------------------------+                    
-         v                                                             
-+--------+--------+                                                         
-|                 |                                                         
-| Millwide System |            -------- Data ---------                      
-| cBLU            |            --=----- Signals ---=--                      
-+-----------------+                                                         
-#+end_src
-
-#+RESULTS[a32b48b60992ab19ad85b497c58efe74919bb9b6]:
-[[file:communication.png]]
-
 * Features in Old Leisure
 This new version doesn't have all of the features of the old version, yet...
 ** Collaboration
-The new version will take a more peer-to-peer approach.
-** Code Comments
-We are considering integrating with services like [[https://disqus.com/][Disqus]] so other
-people can commment on your code and discuss it.
+The new version will take a more peer-to-peer approach, still using a
+server but designating the session-initiator as the "master".
+
+#+begin_src ditaa :file communication.png :cmdline -r -s 0.8 :exports results :cache yes
+                                                   +-----------------------------+
+                                                   |            User             |
+                                                   +---+---------------------+---+
+                                                       |                     |
+                                                       v                     v
+     +-----------------------------+             +-----------+           +-------+
+     |            User             |             |  Leisure  | <-------> | Emacs |
+     +---+---------------------+---+             +-----------+  Changes  +-------+
+         |                     |                       ^
+         v                     v                       |
+     +-------+            +---------+       Changes    |
+     | Emacs |<---------->| Leisure |<-----------------+ 
+     +-------+   Changes  +---------+                  |
+                                                       |
+                                                       v
+                                                 +-----------+  Changes  +-------+
+                                                 |  Leisure  | <-------> | Emacs |
+                                                 +-----------+           +-------+
+                                                       ^                     ^
+                                                       |                     |
+                                                   +---+---------------------+---+
+                                                   |            User             |
+                                                   +-----------------------------+
+
+#+end_src
+
+#+RESULTS[dc18a5bec7d75eaee8ffea84abd0ad3679c1d5ed]:
+[[file:communication.png]]
+** Code Discussions
+The old version uses GitHub issues so other people can discuss your
+code.  but we may switch to a service(s) like [[https://disqus.com/][Disqus]].
 ** Test cases
 Converting code into a visual test case result is an imporant feature
-we plan to bring back soon!
+we plan to bring back soon.
 * Some Leisure History
 Leisure started out as an experimental, dynamically typed, lazy,
 functional programming language with strong support for

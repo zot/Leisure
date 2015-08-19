@@ -83,11 +83,11 @@ choose a handlebars template.
           renderView data.type, contextName, data, null, false, block
 
       Handlebars.registerHelper 'viewWrapper', (name, data, opts)->
-        simpleRenderView "data-view='#{name}' class='view'", name, opts.fn, this
+        simpleRenderView "data-view='#{name}' data-requested-view='#{name}' class='view'", name, opts.fn, this
 
       renderView = (type, contextName, data, targets, block)->
         isTop = !root.context?.topView
-        key = viewKey type, contextName
+        requestedKey = key = viewKey type, contextName
         if !(template = templates[key])
           key = type
           contextName = null
@@ -98,7 +98,7 @@ choose a handlebars template.
         if isTop
           settings.subviews = {}
           if block then settings.subviews[block._id] = true
-        attrs = "data-view='#{key}'"
+        attrs = "data-view='#{key}' data-requested-view='#{requestedKey}'"
         classAttr = 'view'
         for attr, value of root.context.viewAttrs ? {}
           if attr == 'class' then classAttr += " #{value}"

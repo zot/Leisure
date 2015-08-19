@@ -262,6 +262,10 @@ render this
 #+BEGIN_SRC html :defview leisure-chunk
 <span id='{{id}}' class='fancy' data-block='chunk'>{{{text}}}</span>
 #+END_SRC
+
+#+BEGIN_SRC html :defview leisure-example
+<span class='hidden'>{{start}}</span><span class='example'>{{text}}</span><span class='hidden'>{{end}}</span>
+#+END_SRC
 ** Code
 #+BEGIN_SRC html :defview leisure-code
 <span

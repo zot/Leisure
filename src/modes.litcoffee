@@ -12,6 +12,7 @@
         Link
         ListItem
         Drawer
+        Example
         HTML
         Nil
         headlineRE
@@ -474,6 +475,17 @@
             else [pos, text]
           else [pos, text]
         renderOrgChunk: (opts, org)-> "<span class='org-chunk'>#{@renderOrg opts, org}</span>"
+        renderExample: (opts, org)->
+          start = org.text.substring 0, org.contentPos
+          text = org.exampleText()
+          end = org.text.substring org.contentPos + org.contentLength
+          if hasView key = "leisure-example"
+            (@renderView key, null, null,
+              start: start
+              text: text
+              end: end
+              org: org)[0]
+          else "<span class='hidden'>#{escapeHtml start}</span><span class='example'>#{escapeHtml text}</span><span class='hidden'>#{escapeHtml end}</span>"
         renderOrg: (opts, org)->
           if org instanceof SimpleMarkup then @renderSimple opts, org
           else if org instanceof Link then @renderLink opts, org
@@ -481,9 +493,10 @@
             (@renderOrg opts, child for child in org.children).join ''
           else if org instanceof ListItem then @renderList opts, org
           else if org instanceof Drawer then @renderDrawer opts, org
+          else if org instanceof Example then @renderExample opts, org
           else
             text = insertBreaks org.allText()
-            if !org.prev then prefixBreak text else text
+            prefixBreak text
         renderHtml: (opts, org)->
           "<span class='hidden'>#{escapeHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{escapeHtml org.trailing}</span>"
         renderList: (opts, org)->

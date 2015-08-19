@@ -122,3 +122,8 @@ a:hover {
 .unknown-language {
     font-family: Courier;
 }
+.example {
+    display: inline-block;
+    font-family: Courier;
+    white-space: pre;
+}

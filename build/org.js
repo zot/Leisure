@@ -29,9 +29,10 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['lib/lazy'], function(Lazy) {
-    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseDrawer, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
+    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, declRE, drawerRE, endRE, exampleEndRE, exampleStartRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseDrawer, parseExample, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
     _ = Lazy._;
     todoKeywords = ['TODO', 'DONE'];
+    declRE = /^#\+.*$/m;
     buildHeadlineRE = function() {
       return new RegExp("^(\\*+( +|$))((?:" + (todoKeywords.join('|')) + ") *)?(\\[#(A|B|C)\\] *)?([^\\n]*?)(:[\\w@%#:]*: *)?$", 'm');
     };
@@ -46,15 +47,17 @@ misrepresented as being the original software.
     KW_BOILERPLATE = 1;
     KW_NAME = 2;
     KW_INFO = 3;
-    keywordRE = /^(#\+([^:\n]+): *)([^\n]*)$/im;
+    keywordRE = /^(#\+([^:\[\n]+)(?:\[.*\] *)?: *)([^\n]*)$/im;
     SRC_BOILERPLATE = 1;
     SRC_NAME = 2;
     SRC_INFO = 3;
     srcStartRE = /^(#\+(BEGIN_SRC) +)([^\n]*)$/im;
     END_NAME = 1;
     srcEndRE = /^#\+(END_SRC)( *)$/im;
+    exampleStartRE = /^#\+BEGIN_EXAMPLE *$/im;
+    exampleEndRE = /^#\+END_EXAMPLE *$/im;
     RES_NAME = 1;
-    resultsRE = /^#\+(RESULTS): *$/im;
+    resultsRE = /^#\+(RESULTS)(?: *\[.*\] *)?: *$/im;
     resultsLineRE = /^([:|] .*)(?:\n|$)/i;
     DRAWER_NAME = 1;
     drawerRE = /^:([^\n:]*): *$/im;
@@ -88,7 +91,7 @@ misrepresented as being the original software.
       if (((ref = txt.match(simpleRE)) != null ? ref.index : void 0) === 0) {
         return false;
       } else {
-        return checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, attrHtmlRE, 'attr') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
+        return checkMatch(txt, exampleStartRE, 'exampleStart') || checkMatch(txt, exampleEndRE, 'exampleEnd') || checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, attrHtmlRE, 'attr') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
           return "headline-" + (m[HL_LEVEL].trim().length);
         }) || checkMatch(txt, listRE, 'list') || checkMatch(txt, htmlStartRE, 'htmlStart') || checkMatch(txt, htmlEndRE, 'htmlEnd');
       }
@@ -887,11 +890,11 @@ misrepresented as being the original software.
     Drawer = (function(superClass) {
       extend(Drawer, superClass);
 
-      function Drawer(text1, offset1, name1, contentPos, endPos) {
+      function Drawer(text1, offset1, name1, contentPos1, endPos) {
         this.text = text1;
         this.offset = offset1;
         this.name = name1;
-        this.contentPos = contentPos;
+        this.contentPos = contentPos1;
         this.endPos = endPos;
         Drawer.__super__.constructor.call(this, this.text, this.offset);
       }
@@ -960,6 +963,37 @@ misrepresented as being the original software.
       return Drawer;
 
     })(Meat);
+    Example = (function(superClass) {
+      extend(Example, superClass);
+
+      function Example(text1, offset1, contentPos1, contentLength1) {
+        this.text = text1;
+        this.offset = offset1;
+        this.contentPos = contentPos1;
+        this.contentLength = contentLength1;
+      }
+
+      Example.prototype.block = true;
+
+      Example.prototype.type = 'example';
+
+      Example.prototype.jsonDef = function() {
+        return {
+          type: this.type,
+          text: this.text,
+          offset: this.offset,
+          contentPos: this.contentPos,
+          contentLength: this.contentLength
+        };
+      };
+
+      Example.prototype.exampleText = function() {
+        return this.text.substring(this.contentPos, this.contentPos + this.contentLength);
+      };
+
+      return Example;
+
+    })(Meat);
     Keyword = (function(superClass) {
       extend(Keyword, superClass);
 
@@ -1020,14 +1054,14 @@ misrepresented as being the original software.
     Source = (function(superClass) {
       extend(Source, superClass);
 
-      function Source(text1, offset1, name1, info1, infoPos1, content, contentPos) {
+      function Source(text1, offset1, name1, info1, infoPos1, content, contentPos1) {
         this.text = text1;
         this.offset = offset1;
         this.name = name1;
         this.info = info1;
         this.infoPos = infoPos1;
         this.content = content;
-        this.contentPos = contentPos;
+        this.contentPos = contentPos1;
         Source.__super__.constructor.call(this, this.text, this.offset, this.name, this.info);
       }
 
@@ -1058,12 +1092,12 @@ misrepresented as being the original software.
     HTML = (function(superClass) {
       extend(HTML, superClass);
 
-      function HTML(text1, offset1, name1, contentPos, contentLength, info1) {
+      function HTML(text1, offset1, name1, contentPos1, contentLength1, info1) {
         this.text = text1;
         this.offset = offset1;
         this.name = name1;
-        this.contentPos = contentPos;
-        this.contentLength = contentLength;
+        this.contentPos = contentPos1;
+        this.contentLength = contentLength1;
         this.info = info1;
         HTML.__super__.constructor.call(this, this.text, this.offset, this.name, this.info);
       }
@@ -1099,11 +1133,11 @@ misrepresented as being the original software.
     Results = (function(superClass) {
       extend(Results, superClass);
 
-      function Results(text1, offset1, name1, contentPos) {
+      function Results(text1, offset1, name1, contentPos1) {
         this.text = text1;
         this.offset = offset1;
         this.name = name1;
-        this.contentPos = contentPos;
+        this.contentPos = contentPos1;
         Results.__super__.constructor.call(this, this.text, this.offset, this.name);
       }
 
@@ -1129,11 +1163,11 @@ misrepresented as being the original software.
     AttrHtml = (function(superClass) {
       extend(AttrHtml, superClass);
 
-      function AttrHtml(text1, offset1, name1, contentPos) {
+      function AttrHtml(text1, offset1, name1, contentPos1) {
         this.text = text1;
         this.offset = offset1;
         this.name = name1;
-        this.contentPos = contentPos;
+        this.contentPos = contentPos1;
         AttrHtml.__super__.constructor.call(this, this.text, this.offset, this.name);
       }
 
@@ -1288,6 +1322,12 @@ misrepresented as being the original software.
             var ref, ref1;
             return parseList(list, line, offset, (ref = (ref1 = list[LIST_LEVEL]) != null ? ref1.length : void 0) != null ? ref : 0, list[LIST_CHECK_VALUE], list[LIST_INFO], newRest);
           });
+          this.checkPat(exampleStartRE, function(line, newRest, start) {
+            var end;
+            if ((end = newRest.match(declRE)) && end[0].match(exampleEndRE)) {
+              return parseExample(line, offset, start, end, newRest);
+            }
+          });
           this.checkPat(drawerRE, function(line, newRest, drawer) {
             var end;
             if (end = newRest.match(endRE)) {
@@ -1391,6 +1431,15 @@ misrepresented as being the original software.
     parseKeyword = function(match, text, offset, name, info, rest) {
       return [new Keyword(text, offset, name, text.substring(match[KW_BOILERPLATE].length)), rest];
     };
+    parseExample = function(startLine, offset, start, end, rest) {
+      var contentLength, contentPos, lastLine, newRest, text;
+      lastLine = fullLine(end, rest);
+      newRest = rest.substring(end.index + lastLine.length);
+      contentPos = startLine.length;
+      contentLength = end.index;
+      text = startLine + rest.substring(0, rest.length - newRest.length);
+      return [new Example(text, offset, contentPos, contentLength), newRest];
+    };
     parseSrcBlock = function(text, offset, info, infoPos, rest) {
       var end, endLine, line, otherSrcStart;
       end = rest.match(srcEndRE);
@@ -1458,6 +1507,7 @@ misrepresented as being the original software.
       SimpleMarkup: SimpleMarkup,
       Link: Link,
       Drawer: Drawer,
+      Example: Example,
       drawerRE: drawerRE,
       headlineRE: headlineRE,
       HL_LEVEL: HL_LEVEL,

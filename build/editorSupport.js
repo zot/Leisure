@@ -447,6 +447,7 @@
             block = newBlocks[l];
             viewNodes = viewNodes.add(this.find("[data-view-block='" + block._id + "']"));
             viewNodes = this.findViewsForDefiner(block, viewNodes);
+            viewNodes = this.findViewsForDefiner(changes.old[block._id], viewNodes);
             ref1 = this.find("[data-observe~=" + block._id + "]");
             for (o = 0, len2 = ref1.length; o < len2; o++) {
               node = ref1[o];
@@ -459,7 +460,7 @@
           this.mode.renderChanged(this, nb, this.idPrefix, true);
           return this.withNewContext((function(_this) {
             return function() {
-              var data, len3, q, ref2, ref3, results1;
+              var data, len3, name, q, ref2, ref3, ref4, ref5, results1, view;
               ref2 = viewNodes.filter(function(n) {
                 return !nb[_this.idForNode(n)];
               });
@@ -468,7 +469,8 @@
                 node = ref2[q];
                 node = $(node);
                 if (data = (ref3 = (block = _this.getBlock(node.attr('data-view-block')))) != null ? ref3.yaml : void 0) {
-                  results1.push(renderView($(node).attr('data-view'), null, data, node, block));
+                  ref5 = ((ref4 = $(node).attr('data-requested-view')) != null ? ref4 : '').split('/'), view = ref5[0], name = ref5[1];
+                  results1.push(renderView(view, name, data, node, block));
                 } else {
                   results1.push(void 0);
                 }
@@ -487,9 +489,12 @@
 
       OrgEditing.prototype.findViewsForDefiner = function(block, nodes) {
         var attrs, viewType;
-        attrs = block.type === 'code' && block.codeAttributes;
-        if (attrs && (viewType = attrs.control || attrs.defview)) {
-          nodes = nodes.add(this.find("[data-view='" + viewType + "']"));
+        if (block) {
+          attrs = block.type === 'code' && block.codeAttributes;
+          if (attrs && (viewType = attrs.control || attrs.defview)) {
+            nodes = nodes.add(this.find("[data-view='" + viewType + "']"));
+            nodes = nodes.add(this.find("[data-requested-view='" + viewType + "']"));
+          }
         }
         return nodes;
       };

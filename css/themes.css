@@ -303,6 +303,11 @@ body.googie {
     border: solid black 2px;
     border-radius: 10px;
 }
+.googie .example {
+    border: lightgray solid 5px;
+    border-radius: 10px;
+    padding: 10px;
+}
 .googie [data-org-test="unknown"] {
     background: url(images/googie_test_white.png);
     background-size: 64px 64px;
@@ -1861,6 +1866,10 @@ i.fa + div, i.fa + span, i.fa + div + span {
 }
 .flat .code-buttons {
     background: linear-gradient(#666666, #333333);
+}
+.flat .example {
+    border: lightgray solid 5px;
+    padding: 10px;
 }
 .flat [data-edit-mode='fancy'] [data-org-src],
 .flat .coderesults,

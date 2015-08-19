@@ -38,6 +38,7 @@ define ['lib/lazy'], (Lazy)->
 
   todoKeywords = ['TODO', 'DONE']
   
+  declRE = /^#\+.*$/m
   buildHeadlineRE = ->
     new RegExp "^(\\*+( +|$))((?:#{todoKeywords.join('|')}) *)?(\\[#(A|B|C)\\] *)?([^\\n]*?)(:[\\w@%#:]*: *)?$", 'm'
   HL_LEVEL = 1
@@ -51,15 +52,17 @@ define ['lib/lazy'], (Lazy)->
   KW_BOILERPLATE = 1
   KW_NAME = 2
   KW_INFO = 3
-  keywordRE = /^(#\+([^:\n]+): *)([^\n]*)$/im
+  keywordRE = /^(#\+([^:\[\n]+)(?:\[.*\] *)?: *)([^\n]*)$/im
   SRC_BOILERPLATE = 1
   SRC_NAME = 2
   SRC_INFO = 3
   srcStartRE = /^(#\+(BEGIN_SRC) +)([^\n]*)$/im
   END_NAME = 1
   srcEndRE = /^#\+(END_SRC)( *)$/im
+  exampleStartRE = /^#\+BEGIN_EXAMPLE *$/im
+  exampleEndRE = /^#\+END_EXAMPLE *$/im
   RES_NAME = 1
-  resultsRE = /^#\+(RESULTS): *$/im
+  resultsRE = /^#\+(RESULTS)(?: *\[.*\] *)?: *$/im
   resultsLineRE = /^([:|] .*)(?:\n|$)/i
   DRAWER_NAME = 1
   drawerRE = /^:([^\n:]*): *$/im
@@ -95,6 +98,8 @@ define ['lib/lazy'], (Lazy)->
   matchLine = (txt)->
     if txt.match(simpleRE)?.index == 0 then false
     else
+      checkMatch(txt, exampleStartRE, 'exampleStart') ||
+      checkMatch(txt, exampleEndRE, 'exampleEnd') ||
       checkMatch(txt, srcStartRE, 'srcStart') ||
       checkMatch(txt, srcEndRE, 'srcEnd') ||
       checkMatch(txt, resultsRE, 'results') ||
@@ -438,6 +443,18 @@ define ['lib/lazy'], (Lazy)->
           for k, v of @properties()
             node.properties[k] = v
   
+  class Example extends Meat
+    constructor: (@text, @offset, @contentPos, @contentLength)->
+    block: true
+    type: 'example'
+    jsonDef: ->
+      type: @type
+      text: @text
+      offset: @offset
+      contentPos: @contentPos
+      contentLength: @contentLength
+    exampleText: -> @text.substring @contentPos, @contentPos + @contentLength
+
   class Keyword extends Meat
     constructor: (@text, @offset, @name, @info)-> super @text, @offset
     block: true
@@ -597,6 +614,9 @@ define ['lib/lazy'], (Lazy)->
           parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], newRest
         @checkPat listRE, (line, newRest, list)->
           parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], newRest
+        @checkPat exampleStartRE, (line, newRest, start)->
+          if (end = newRest.match declRE) && end[0].match exampleEndRE
+            parseExample line, offset, start, end, newRest
         @checkPat drawerRE, (line, newRest, drawer)->
           if end = newRest.match endRE
             parseDrawer line, drawer[DRAWER_NAME], offset, end, newRest
@@ -668,6 +688,14 @@ define ['lib/lazy'], (Lazy)->
   parseKeyword = (match, text, offset, name, info, rest)->
     [new Keyword(text, offset, name, text.substring match[KW_BOILERPLATE].length), rest]
   
+  parseExample = (startLine, offset, start, end, rest)->
+    lastLine = fullLine end, rest
+    newRest = rest.substring end.index + lastLine.length
+    contentPos = startLine.length
+    contentLength = end.index
+    text = startLine + rest.substring 0, rest.length - newRest.length
+    [new Example(text, offset, contentPos, contentLength), newRest]
+
   parseSrcBlock = (text, offset, info, infoPos, rest)->
     end = rest.match srcEndRE
     otherSrcStart = rest.match srcStartRE
@@ -724,6 +752,7 @@ define ['lib/lazy'], (Lazy)->
     SimpleMarkup
     Link
     Drawer
+    Example
     drawerRE
     headlineRE
     HL_LEVEL
