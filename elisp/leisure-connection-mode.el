@@ -102,10 +102,6 @@
 
 (make-variable-buffer-local 'leisure/bufferConnection)
 
-(defvar leisure/changedText nil)
-
-(defvar leisure/totalDelete nil)
-
 (defvar leisure/blockingChanges nil)
 
 (defvar leisure/revertingBuffers nil)
@@ -604,22 +600,13 @@ FRAME: frame."
 (display-warning '(leisure) (apply 'leisure/format conInfo str body)))
 
 ;; buffer change handling
-(defun leisure/beforeChange (start end)
-  "Called on change (START, END) to leisure buffers."
-  (if (leisure/shouldMonitor)
-      (progn
-        (setq leisure/totalDelete (eql (buffer-size) (- end start)))
-        (setq leisure/changedText (buffer-substring-no-properties start end)))))
-
 (defun leisure/afterChange (start end oldLength)
   "Called on change (START, END, OLDLENGTH) to leisure buffers."
   (if (leisure/shouldMonitor)
       (let ((newText (buffer-substring-no-properties start end)))
-        (if (not (equal newText leisure/changedText))
-            (progn
-              (decf start)
-              (leisure/sendChange start (if leisure/totalDelete -1 (+ start (length leisure/changedText))) newText)
-              (setq leisure/changedText nil))))))
+        (decf start)
+        (leisure/sendChange start (+ start oldLength) newText))
+    (leisure/print "Not monitoring after change")))
 
 (defun leisure/bufString ()
   "Get the buffer string without properties."
@@ -654,13 +641,13 @@ FRAME: frame."
         (progn
           (setq leisure/bufferConnection info)
           (if (not leisure-connection-mode) (leisure-connection-mode 'toggle))
+          (leisure/addChangeHooks)
           (leisure/sendChange 0 -1 (leisure/bufString))))))
 
 (defun leisure/addChangeHooks ()
   "Add change hooks for buffer."
-  (if (not (memq 'leisure/beforeChange before-change-functions))
+  (if (not (memq 'leisure/afterChange after-change-functions))
       (progn
-        (add-hook 'before-change-functions 'leisure/beforeChange nil t)
         (add-hook 'after-change-functions 'leisure/afterChange nil t)
         (add-hook 'before-revert-hook 'leisure/beforeRevert nil t)
         (add-hook 'after-revert-hook 'leisure/afterRevert nil t))

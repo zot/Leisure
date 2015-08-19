@@ -1,6 +1,6 @@
 Emacs connection
 
-    define ['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], (_, Exports, UI, Editor, EditorSupport)->
+    define ['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee'], (_, Exports, UI, Editor, EditorSupport, Diag)->
 
       {
         mergeExports
@@ -19,6 +19,10 @@ Emacs connection
       {
         getDocumentParams
       } = EditorSupport
+      {
+        clearDiag
+        diagMessage
+      } = Diag
 
       msgPat = /^([^ ]+)( (.*))?$/
       replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/
@@ -56,7 +60,11 @@ Emacs connection
           if end == -1
             editor.options.load text
           else
+            targetLen = data.getDocLength() - (end - start) + text.length
             editor.replace null, blockRangeFor(data, start, end), text
+            endLen = data.getDocLength()
+            if endLen != targetLen
+              diagMessage "BAD DOC LENGTH AFTER REPLACEMENT, expected <#{targetLen}> but ggot<#{endLen}>"
             #docString = editor.options.data.getDocSubstring(start, start + text.length)
             #if text != docString
             #  console.log "TEXT MISMATCH #{start} #{start + text.length}\n'#{text}'\n'#{docString}'"

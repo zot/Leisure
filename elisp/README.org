@@ -22,17 +22,28 @@ automatically turns on the service but you can also control it with
 the leisure-start and leisure-stop commands.
 
 Once connected, changes in Emacs are mirrored in Leisure, and vice
-versa.  If you hit C-C C-C or click an elisp link in Leisure, it will
-delegate it to Emacs and Leisure will also attempt to fetch "file:"
-image data from Emacs so that it can display the results of your
-file-based computations.
+versa.  In Leisure, if you hit C-C C-C or click an elisp link, it will
+delegate that to Emacs. Leisure will also attempt to fetch "file:"
+image data from Emacs so it can display the results of your file-based
+computations.
+* What is Leisure?
+Leisure is an interactive, web-based, document-oriented exploratory
+computing environment that implements *Illuminated Programming* for
+people at all levels of expertise.  *Illuminated Programming* is our
+term for interactive documents that are applications, source code, and
+data, all rolled up into one.  Sort of a zero-install version of
+reproducible research.
 * Work in progress
 ** Leisure is not stable, yet
 - Leisure is a *work in progress*
 - It's *NOT HARDENED*
   - *Don't rely on Leisure for super-important tasks yet!*
   - Leisure won't destroy Emacs' undo history, so it *should* be realtively safe
-- It doesn't support orgmode tables yet
+- It doesn't support parts of orgmode, yet
+  - Like tables
+  - And stuff
+  - We'll get there
+  - There's a lot to do, pitch in and help!
 ** But that doesn't mean you can't use it!
 - You can still benefit from Leisure's features, like interactive views, value sliders, etc.
 - You can edit in Emacs and keep a Leisure browser next to it to see your formatted document as you type
@@ -124,16 +135,20 @@ This is Fred's controller
   $(view).find('[name=len]').html data.name.length
 #+END_SRC
 * View definitions
-Leisure has a presentation system that can display a "view" on data
-according to its "type" field.  You can nest views and even define
-alternate views for the same type of data.
+Leisure has a presentation system that can automitically determine
+which "view" to use to display a piece of data according to its "type"
+field.  You can nest views and even define alternate views for the
+same types of data.  At this point, Leisure uses YAML data for its
+views.
 
-Leisure uses this presentation system to display its own documents and
-you can redefine how Leisure displays its document parts in the
-documents themselves.  It's so meta.
+Leisure uses this presentation system when it displays every Leisure
+document and you can redefine how Leisure displays its document parts
+in the documents themselves (but you have to be verrry careful when
+you do this.  So a lot of Leisure's document display is defined in
+Leisure.  It's so meta.
 
 #+NAME: rotator
-This YAML data controls the rotating square and line below.
+This YAML item controls the rotating square and line below.
 - Click the degrees value and move the slider that pops up
 - When you let go of the sider, it snaps to the middle so the value can keep changing
 - Watch it update in both Emacs and Leisure
@@ -151,7 +166,7 @@ degrees: 90
 </div>
 #+END_SRC
 
-#+BEGIN_SRC html :defview rotator/two
+#+BEGIN_SRC html :defview rotator2/two
 <div style='padding: 25px; padding-left: 100px; display: inline-block'>
   <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
 </div>
@@ -193,7 +208,7 @@ deactivate Client
 #+begin_src ditaa :file communication.png :cmdline -r -s 0.8 :exports results :cache yes
     +-----------+        +---------+  
     |    PLC    |        |         |                
-    |  Network  +<------>+   PLC   +<---=---------+ 
+    |  Network  +<------>+   PLA   +<---=---------+ 
     |    cRED   |        |  c707   |              | 
     +-----------+        +----+----+              | 
                               ^                   | 
@@ -217,8 +232,9 @@ deactivate Client
 +-----------------+                                                         
 #+end_src
 
-#+results:
+#+RESULTS[a32b48b60992ab19ad85b497c58efe74919bb9b6]:
 [[file:communication.png]]
+
 * Features in Old Leisure
 This new version doesn't have all of the features of the old version, yet...
 ** Collaboration

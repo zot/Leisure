@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable'], function(jq, DOMCursor, Fingertree, Immutable) {
-    var Advice, BS, BasicEditingOptions, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
+    var Advice, BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     maxLastKeys = 4;
@@ -1737,7 +1737,7 @@
       };
 
       DataStore.prototype.verifyIndex = function() {
-        var bArray, badIdObj, badIds, blockIds, iArray, id, j, last, len, len1, node, o, ref, results1, treeIds;
+        var bArray, blockIds, errs, iArray, j, last, len, node, offset, ref, treeIds;
         iArray = this.indexArray();
         treeIds = _.pluck(iArray, 'id');
         bArray = this.blockArray();
@@ -1746,42 +1746,74 @@
           console.warn("INDEX ERROR:\nEXPECTED: " + (JSON.stringify(blockIds)) + "\nBUT GOT: " + (JSON.stringify(treeIds)));
         }
         last = null;
-        badIds = [];
-        badIdObj = {};
+        errs = new BlockErrors();
         for (j = 0, len = iArray.length; j < len; j++) {
           node = iArray[j];
           if (node.length !== ((ref = this.getBlock(node.id)) != null ? ref.text.length : void 0)) {
-            badIdObj[node.id] = 'bad length';
-            badIds.push(node.id);
+            errs.badId(node.id, 'bad index length');
           }
         }
+        offset = 0;
         this.eachBlock((function(_this) {
           return function(block) {
             last = block;
             if (!_this.fingerNodeOrder(block.prev, block._id)) {
-              if (!badIdObj[block._id]) {
-                badIds.push(block._id);
-                badIdObj[block._id] = 'bad order';
-              } else {
-                badIdObj[block._id] += ', bad order';
-              }
-              return console.warn("NODE ORDER WRONG FOR " + block.prev + ", " + block._id);
+              errs.badId(block._id, 'bad order');
+              console.warn("NODE ORDER WRONG FOR " + block.prev + ", " + block._id);
             }
+            if (offset !== _this.offsetForBlock(block._id)) {
+              errs.badId(block._id, "offset");
+            }
+            if (block.prev && _this.blockForOffset(offset - 1) !== block.prev) {
+              errs.badId(block._id, "prev");
+            }
+            if (block.next && _this.blockForOffset(offset + block.text.length) !== block.next) {
+              errs.badId(block._id, "next");
+            }
+            return offset += block.text.length;
           };
         })(this));
-        if (badIds.length) {
-          results1 = [];
-          for (o = 0, len1 = badIds.length; o < len1; o++) {
-            id = badIds[o];
-            results1.push([id, "(" + badIdObj[id] + ")"]);
-          }
-          return results1;
-        }
+        return errs.errors();
       };
 
       return DataStore;
 
     })(Observable);
+    BlockErrors = (function() {
+      function BlockErrors() {
+        this.order = [];
+        this.ids = {};
+      }
+
+      BlockErrors.prototype.isEmpty = function() {
+        return !this.order.length;
+      };
+
+      BlockErrors.prototype.badId = function(id, msg) {
+        if (!this.ids[id]) {
+          this.order.push(id);
+          return this.ids[id] = msg;
+        } else {
+          return this.ids[id] += ", " + msg;
+        }
+      };
+
+      BlockErrors.prototype.errors = function() {
+        var id, j, len, ref, results1;
+        if (!this.isEmpty()) {
+          ref = this.order;
+          results1 = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            id = ref[j];
+            results1.push([id, "(" + this.ids[id] + ")"]);
+          }
+          return results1;
+        }
+      };
+
+      return BlockErrors;
+
+    })();
     treeToArray = function(tree) {
       var nodes;
       nodes = [];

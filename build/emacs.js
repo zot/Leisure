@@ -2,12 +2,13 @@
 (function() {
   var slice = [].slice;
 
-  define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], function(_, Exports, UI, Editor, EditorSupport) {
-    var advise, aroundMethod, blockRangeFor, c, close, configureEmacs, connect, connected, diag, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, mergeExports, message, messages, msgPat, offsetFor, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, replacing, sendCcCc, sendFollowLink, sendGetFile, sendReplace, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
+  define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee'], function(_, Exports, UI, Editor, EditorSupport, Diag) {
+    var advise, aroundMethod, blockRangeFor, c, clearDiag, close, configureEmacs, connect, connected, diag, diagMessage, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, mergeExports, message, messages, msgPat, offsetFor, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, replacing, sendCcCc, sendFollowLink, sendGetFile, sendReplace, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, aroundMethod = Editor.aroundMethod, advise = Editor.advise;
     showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr;
     getDocumentParams = EditorSupport.getDocumentParams;
+    clearDiag = Diag.clearDiag, diagMessage = Diag.diagMessage;
     msgPat = /^([^ ]+)( (.*))?$/;
     replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/;
     replacing = false;
@@ -53,10 +54,16 @@
       text = JSON.parse(text);
       editor = data.emacsConnection.opts.editor;
       return replaceWhile(function() {
+        var endLen, targetLen;
         if (end === -1) {
           return editor.options.load(text);
         } else {
-          return editor.replace(null, blockRangeFor(data, start, end), text);
+          targetLen = data.getDocLength() - (end - start) + text.length;
+          editor.replace(null, blockRangeFor(data, start, end), text);
+          endLen = data.getDocLength();
+          if (endLen !== targetLen) {
+            return diagMessage("BAD DOC LENGTH AFTER REPLACEMENT, expected <" + targetLen + "> but ggot<" + endLen + ">");
+          }
         }
       });
     };

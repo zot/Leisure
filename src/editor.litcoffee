@@ -1233,21 +1233,36 @@ Data model -- override/reset these if you want to change how the store accesses 
           if !_.isEqual treeIds, blockIds
             console.warn "INDEX ERROR:\nEXPECTED: #{JSON.stringify blockIds}\nBUT GOT: #{JSON.stringify treeIds}"
           last = null
-          badIds = []
-          badIdObj = {}
+          errs = new BlockErrors()
           for node in iArray
             if node.length != @getBlock(node.id)?.text.length
-              badIdObj[node.id] = 'bad length'
-              badIds.push node.id
+              errs.badId node.id, 'bad index length'
+          offset = 0
           @eachBlock (block)=>
             last = block
             if !@fingerNodeOrder block.prev, block._id
-              if !badIdObj[block._id]
-                badIds.push block._id
-                badIdObj[block._id] = 'bad order'
-              else badIdObj[block._id] += ', bad order'
+              errs.badId block._id, 'bad order'
               console.warn "NODE ORDER WRONG FOR #{block.prev}, #{block._id}"
-          if badIds.length then [id, "(#{badIdObj[id]})"] for id in badIds
+            if offset != @offsetForBlock block._id
+              errs.badId block._id, "offset"
+            if block.prev && @blockForOffset(offset - 1) != block.prev
+              errs.badId block._id, "prev"
+            if block.next && @blockForOffset(offset + block.text.length) != block.next
+              errs.badId block._id, "next"
+            offset += block.text.length
+          errs.errors()
+
+      class BlockErrors
+        constructor: ->
+          @order = []
+          @ids = {}
+        isEmpty: -> !@order.length
+        badId: (id, msg)->
+          if !@ids[id]
+            @order.push id
+            @ids[id] = msg
+          else @ids[id] += ", #{msg}"
+        errors: -> if !@isEmpty() then [id, "(#{@ids[id]})"] for id in @order
 
       treeToArray = (tree)->
         nodes = []
