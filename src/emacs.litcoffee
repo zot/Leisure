@@ -101,7 +101,7 @@ Emacs connection
           sendCcCc editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0)
 
       renderImage = (src, title, currentId)->
-        if name = src.match(/^file:([^#]*)(#.*)?$/)?[1]
+        if name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
           con = @data.emacsConnection
           imgId = currentId || "emacs-image-#{imgCount++}"
           sendGetFile @data, src, (file)->

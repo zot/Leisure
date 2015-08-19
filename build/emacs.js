@@ -131,7 +131,7 @@
     };
     renderImage = function(src, title, currentId) {
       var con, imgId, name, ref, ref1;
-      if (name = (ref = src.match(/^file:([^#]*)(#.*)?$/)) != null ? ref[1] : void 0) {
+      if (name = (ref = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref[1] : void 0) {
         con = this.data.emacsConnection;
         imgId = currentId || ("emacs-image-" + (imgCount++));
         sendGetFile(this.data, src, function(file) {

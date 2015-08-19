@@ -15,8 +15,7 @@
 
       errorDisplay = null
 
-      getDiagShowing = (node)->
-        $(editorForToolbar(node)?.node).nextAll(".selectionInfo").hasClass 'diag'
+      getDiagShowing = (node)-> editorForToolbar(node).diag
 
       showDiag = (node, state)->
         editor = editorForToolbar(node)
@@ -26,8 +25,8 @@
           $(node).addClass 'diag'
           $(node).nextAll(".editorDiag").addClass 'diag'
           $(node).nextAll(".structure").addClass 'diag'
-          editor.options.setDiagEnabled true
-          editor.options.data.setDiagEnabled true
+          setTimeout (-> editor.options.setDiagEnabled true), 1
+          setTimeout (-> editor.options.data.setDiagEnabled true), 1
         else
           $(node).removeClass 'diag'
           $(node).nextAll(".editorDiag").removeClass 'diag'

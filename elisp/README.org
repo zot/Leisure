@@ -9,6 +9,18 @@ newly opened browser page (if it doesn't automatically switch you to
 the browser).
 
 *NOTE:* We're not orgmode experts and we need help from people who are!
+* What is Leisure?
+Leisure is an interactive, web-based, document-oriented exploratory
+computing environment that implements *Illuminated Programming* for
+people at all levels of expertise.  *Illuminated Programming* is our
+term for interactive, collboratively editable documents that are
+applications, source code, and data, all rolled up into one.  Sort of
+a zero-install version of reproducible research.
+
+This idea has been around for quite a while (Hypercard and Mathematica
+did it, albeit without collaboration).  We thought it was well past
+time for an open-source, web-based *Illuminated Programming*
+environment for everyone.
 * Bidirectional connection to Emacs
 Leisure is an editable, web-based computing environment that uses
 orgmode format and it can hook up to Emacs.
@@ -26,13 +38,6 @@ versa.  In Leisure, if you hit C-C C-C or click an elisp link, it will
 delegate that to Emacs. Leisure will also attempt to fetch "file:"
 image data from Emacs so it can display the results of your file-based
 computations.
-* What is Leisure?
-Leisure is an interactive, web-based, document-oriented exploratory
-computing environment that implements *Illuminated Programming* for
-people at all levels of expertise.  *Illuminated Programming* is our
-term for interactive documents that are applications, source code, and
-data, all rolled up into one.  Sort of a zero-install version of
-reproducible research.
 * Work in progress
 ** Leisure is not stable, yet
 - Leisure is a *work in progress*
@@ -172,12 +177,11 @@ Fiddle with these view definitions and you'll see the views change.
   <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
 </div>
 #+END_SRC
-* Media
-It's the web.  You can has media.
+* You Can Has Media Because Web
 
 [[https://imgs.xkcd.com/comics/lisp_cycles.png]]
 
-Here is a nice video by John Kitchin about Orgmode
+Here is a nice video by John Kitchin about Orgmode.
 
 #+BEGIN_HTML
 <iframe width="420" height="315" src="https://www.youtube.com/embed/fgizHHd7nOo" frameborder="0" allowfullscreen></iframe>
@@ -208,11 +212,35 @@ deactivate Client
 
 * Features in Old Leisure
 This new version doesn't have all of the features of the old version, yet...
+** Local headlines
+Top-level headlines marked "local" are copy-on-write and the copy is
+optionally stored in your browser's local storage.  This isolates user
+changes from the main document and lets users make (potentially
+persistent) changes that don't leave their browser.
+
+Also, this is very important for collaboration (see below) because it
+lets users have their own versions of shared objects, like data.  This
+allows, for instance, a named data block to contain different,
+user-specific GUI state for each user.
+
+#+begin_src ditaa :file local-data.png :cmdline -r -s 0.8 :exports results :cache yes
+    +-------+
+    |       |
+  +-| Local |
+  | | Copy  |
+  | |       |
+  | +-------+
+  |       |
+  +-------+
+#+end_src
+
+#+RESULTS[0e2f17b475aa320de4bf4a5d0444c17f7732b883]:
+[[file:local-data.png]]
 ** Collaboration
 The new version will take a more peer-to-peer approach, still using a
 server but designating the session-initiator as the "master".
 
-#+begin_src ditaa :file communication.png :cmdline -r -s 0.8 :exports results :cache yes
+#+begin_src ditaa :file architecture.png :cmdline -r -s 0.8 :exports results :cache yes
                                                    +-----------------------------+
                                                    |            User             |
                                                    +---+---------------------+---+
@@ -239,14 +267,18 @@ server but designating the session-initiator as the "master".
 
 #+end_src
 
-#+RESULTS[dc18a5bec7d75eaee8ffea84abd0ad3679c1d5ed]:
-[[file:communication.png]]
+#+RESULTS[611e8190dd1c9956a6caeeae655284026beb965f]:
+[[file:architecture.png]]
+
+** Imports
+Imported document data is merged into the current document using
+copy-on-write.
 ** Code Discussions
 The old version uses GitHub issues so other people can discuss your
 code.  but we may switch to a service(s) like [[https://disqus.com/][Disqus]].
 ** Test cases
 Converting code into a visual test case result is an imporant feature
-we plan to bring back soon.
+we plan to bring back very soon.
 * Some Leisure History
 Leisure started out as an experimental, dynamically typed, lazy,
 functional programming language with strong support for
@@ -267,10 +299,13 @@ decided that Leisure documents should contain data, as well as code,
 we started running up against Markdown's lack of metadata.
 
 Investigations pointed us towards orgmode.
-* How you can help
+* How you can help!
 - Report bugs
 - Contribute code
 - Contribute documentation
+  - We need a lot of it
+  - In Leisure documents (of course)
+  - With interactive examples (illuminated documents)
 - Request features
 * Hidden slides
 There are some hidden settings and you can reveal and hide them by

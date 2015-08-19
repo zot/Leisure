@@ -548,8 +548,8 @@
             else guts
           "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{goodText org.text[0]}</span>"
         renderDrawer: (opts, org)->
-          if org.name == 'properties' then "<span class='hidden'>${escapeHtml org.allText()}</span>"
-          else "<span class='org-properties'>${escapeHtml org.allText}</span>"
+          if org.name == 'properties' then "<span class='hidden'>#{escapeHtml org.allText()}</span>"
+          else "<span class='org-properties'>#{escapeHtml org.allText}</span>"
         showingSlides: (opt)-> opt.editor.node.is '.slides'
         setSlideMode: (opt, flag)->
           if flag

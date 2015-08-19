@@ -731,9 +731,9 @@
       },
       renderDrawer: function(opts, org) {
         if (org.name === 'properties') {
-          return "<span class='hidden'>${escapeHtml org.allText()}</span>";
+          return "<span class='hidden'>" + (escapeHtml(org.allText())) + "</span>";
         } else {
-          return "<span class='org-properties'>${escapeHtml org.allText}</span>";
+          return "<span class='org-properties'>" + (escapeHtml(org.allText)) + "</span>";
         }
       },
       showingSlides: function(opt) {

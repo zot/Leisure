@@ -8,8 +8,7 @@
     mergeExports = Exports.mergeExports;
     errorDisplay = null;
     getDiagShowing = function(node) {
-      var ref;
-      return $((ref = editorForToolbar(node)) != null ? ref.node : void 0).nextAll(".selectionInfo").hasClass('diag');
+      return editorForToolbar(node).diag;
     };
     showDiag = function(node, state) {
       var editor;
@@ -20,8 +19,12 @@
         $(node).addClass('diag');
         $(node).nextAll(".editorDiag").addClass('diag');
         $(node).nextAll(".structure").addClass('diag');
-        editor.options.setDiagEnabled(true);
-        return editor.options.data.setDiagEnabled(true);
+        setTimeout((function() {
+          return editor.options.setDiagEnabled(true);
+        }), 1);
+        return setTimeout((function() {
+          return editor.options.data.setDiagEnabled(true);
+        }), 1);
       } else {
         $(node).removeClass('diag');
         $(node).nextAll(".editorDiag").removeClass('diag');
