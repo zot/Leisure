@@ -100,12 +100,18 @@ Emacs connection
         opts.bindings['C-C C-C'] = (editor, e, r)->
           sendCcCc editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0)
 
-      renderImage = (src, title)->
-        if src.match /^file:/
-          imgId = "emacs-image-#{imgCount++}"
-          sendGetFile @data, src, (file)-> if file
-            $("##{imgId}").prop 'src', "data:#{typeForFile src};base64,#{file}"
-          "<img id='#{imgId}' title='#{escapeAttr title}'>"
+      renderImage = (src, title, currentId)->
+        if name = src.match(/^file:([^#]*)(#.*)?$/)?[1]
+          con = @data.emacsConnection
+          imgId = currentId || "emacs-image-#{imgCount++}"
+          sendGetFile @data, src, (file)->
+            if file && img = $("##{imgId}")[0]
+              preserveSelection (range)->
+                img.src = "data:#{typeForFile name};base64,#{file}"
+                img.onload = ->
+                  img.removeAttribute 'style'
+                  con.imageHeights[name] = " style='height: #{img.height}px'"
+          "<img id='#{imgId}' title='#{escapeAttr title}'#{con.imageHeights[name] ? ''}>"
         else "<img src='#{src}' title='#{title}'>"
 
       typeForFile = (name)->
@@ -223,6 +229,7 @@ Emacs connection
         opts = UI.context.opts
         data = opts.data
         data.emacsConnection =
+          imageHeights: {}
           panel: panel
           opts: UI.context.opts
           fileCallbacks: {}

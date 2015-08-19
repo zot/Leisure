@@ -320,7 +320,9 @@
             return {
               type: s.type,
               start: start,
-              length: length
+              length: length,
+              scrollTop: this.node[0].scrollTop,
+              scrollLeft: this.node[0].scrollLeft
             };
           } else {
             return {
@@ -333,7 +335,9 @@
       LeisureEditCore.prototype.selectDocRange = function(range) {
         var start;
         if (range.type !== 'None' && !(start = this.domCursorForDocOffset(range.start).save()).isEmpty()) {
-          return selectRange(start.range(start.mutable().forwardChars(range.length)));
+          selectRange(start.range(start.mutable().forwardChars(range.length)));
+          this.node[0].scrollTop = range.scrollTop;
+          return this.node[0].scrollLeft = range.scrollLeft;
         }
       };
 
@@ -1855,7 +1859,9 @@
         DataStoreEditingOptions.__super__.constructor.call(this);
         this.data.on('change', (function(_this) {
           return function(changes) {
-            return _this.changed(changes);
+            return preserveSelection(function() {
+              return _this.changed(changes);
+            });
           };
         })(this));
         this.data.on('load', (function(_this) {
@@ -1900,11 +1906,7 @@
       };
 
       DataStoreEditingOptions.prototype.changed = function(changes) {
-        return this.editor.savePosition((function(_this) {
-          return function() {
-            return _this.rerenderAll();
-          };
-        })(this));
+        return this.rerenderAll();
       };
 
       return DataStoreEditingOptions;
@@ -2066,12 +2068,16 @@
       if (editor = findEditor(getSelection().anchorNode)) {
         range = editor.getSelectedDocRange();
         try {
-          return func();
+          return func(range);
         } finally {
           editor.selectDocRange(range);
         }
       } else {
-        return func();
+        return func({
+          type: 'None',
+          scrollTop: 0,
+          scrollLeft: 0
+        });
       }
     };
     advise = function(object, method, name, def) {

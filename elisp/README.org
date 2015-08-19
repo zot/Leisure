@@ -267,6 +267,11 @@ decided that Leisure documents should contain data, as well as code,
 we started running up against Markdown's lack of metadata.
 
 Investigations pointed us towards orgmode.
+* How you can help
+- Report bugs
+- Contribute code
+- Contribute documentation
+- Request features
 * Hidden slides
 There are some hidden settings and you can reveal and hide them by
 clicking Show/Hide at the top of the page.

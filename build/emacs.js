@@ -129,16 +129,24 @@
         return sendCcCc(editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0));
       };
     };
-    renderImage = function(src, title) {
-      var imgId;
-      if (src.match(/^file:/)) {
-        imgId = "emacs-image-" + (imgCount++);
+    renderImage = function(src, title, currentId) {
+      var con, imgId, name, ref, ref1;
+      if (name = (ref = src.match(/^file:([^#]*)(#.*)?$/)) != null ? ref[1] : void 0) {
+        con = this.data.emacsConnection;
+        imgId = currentId || ("emacs-image-" + (imgCount++));
         sendGetFile(this.data, src, function(file) {
-          if (file) {
-            return $("#" + imgId).prop('src', "data:" + (typeForFile(src)) + ";base64," + file);
+          var img;
+          if (file && (img = $("#" + imgId)[0])) {
+            return preserveSelection(function(range) {
+              img.src = "data:" + (typeForFile(name)) + ";base64," + file;
+              return img.onload = function() {
+                img.removeAttribute('style');
+                return con.imageHeights[name] = " style='height: " + img.height + "px'";
+              };
+            });
           }
         });
-        return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'>";
+        return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'" + ((ref1 = con.imageHeights[name]) != null ? ref1 : '') + ">";
       } else {
         return "<img src='" + src + "' title='" + title + "'>";
       }
@@ -306,6 +314,7 @@
       opts = UI.context.opts;
       data = opts.data;
       data.emacsConnection = {
+        imageHeights: {},
         panel: panel,
         opts: UI.context.opts,
         fileCallbacks: {}

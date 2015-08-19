@@ -366,10 +366,14 @@ Events:
               type: s.type
               start: start
               length: length
+              scrollTop: @node[0].scrollTop
+              scrollLeft: @node[0].scrollLeft
             else type: 'None'
         selectDocRange: (range)->
           if range.type != 'None' && !(start = @domCursorForDocOffset(range.start).save()).isEmpty()
             selectRange start.range(start.mutable().forwardChars range.length)
+            @node[0].scrollTop = range.scrollTop
+            @node[0].scrollLeft = range.scrollLeft
         getSelectedBlockRange: ->
           s = getSelection()
           if s.type == 'None' then type: 'None'
@@ -1289,7 +1293,7 @@ DataStoreEditingOptions
       class DataStoreEditingOptions extends BasicEditingOptions
         constructor: (@data)->
           super()
-          @data.on 'change', (changes)=> @changed changes
+          @data.on 'change', (changes)=> preserveSelection => @changed changes
           @data.on 'load', => @trigger 'load'
         initData: ->
         load: (text)->
@@ -1306,7 +1310,7 @@ DataStoreEditingOptions
         getBlock: (id)-> @data.getBlock id
         getFirst: (first)-> @data.getFirst()
         change: (changes)-> @data.change changes
-        changed: (changes)-> @editor.savePosition => @rerenderAll()
+        changed: (changes)-> @rerenderAll()
 
 Utilities
 =========
@@ -1438,10 +1442,13 @@ selection, regardless of the current value of LeisureEditCore.editing.
         if editor = findEditor getSelection().anchorNode
           range = editor.getSelectedDocRange()
           try
-            func()
+            func range
           finally
             editor.selectDocRange range
-        else func()
+        else func
+          type: 'None'
+          scrollTop: 0
+          scrollLeft: 0
 
 <a id='Method_Advice'></a>
 Method Advice
