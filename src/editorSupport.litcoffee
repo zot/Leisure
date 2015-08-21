@@ -44,7 +44,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         changeAdvice
         afterMethod
         beforeMethod
-        aroundMethod
       } = Advice
       {
         addView
@@ -379,7 +378,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           changeAdvice ed, true,
             enter: options: (parent)-> (e)->
               opts.mode.enter opts, parent, e
-            handleDelete: options: aroundMethod (parent)-> (e, sel, forward)->
+            handleDelete: options: (parent)-> (e, sel, forward)->
               opts.mode.handleDelete opts, parent, e, sel, forward
           $(@editor.node).on 'scroll', updateSelection
         setMode: (@mode)->

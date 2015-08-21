@@ -51,8 +51,9 @@ wrap them with your advice
 
 Calling changeAdvice with false will restore the original methods.
 
-When you specify advice, you can use beforeMethod, afterMethod, and aroundMethod
-to create the advice.
+When you specify advice, you can use beforeMethod and afterMethod to
+create the advice or you can just provide a function that takes the
+parent function and returns the function to run in its place.
 
       ->
         changeAdvice object, true,
@@ -71,7 +72,7 @@ used as methods on object, so you can use "this" in them.
 
       -> `
         function monitorName(newName) {
-          console.log("Set name #{newName}");
+          console.log("Set name " + newName);
         }
         function diagSetOwner(parent) {
           return function (newOwner) {
@@ -196,7 +197,6 @@ Low Level Code
         changeAdvice
         beforeMethod
         afterMethod
-        aroundMethod
         advise
         unadvise
       }

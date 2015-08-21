@@ -5,10 +5,10 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable', 'cs!./advice.litcoffee'], function(jq, DOMCursor, Fingertree, Immutable, Advice) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, wrapDiag;
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
-    beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, aroundMethod = Advice.aroundMethod, changeAdvice = Advice.changeAdvice;
+    beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
     maxLastKeys = 4;
     BS = 8;
     ENTER = 13;

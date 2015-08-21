@@ -30,7 +30,7 @@
     (function() {
       return 
         function monitorName(newName) {
-          console.log("Set name #{newName}");
+          console.log("Set name " + newName);
         }
         function diagSetOwner(parent) {
           return function (newOwner) {
@@ -244,7 +244,6 @@
       changeAdvice: changeAdvice,
       beforeMethod: beforeMethod,
       afterMethod: afterMethod,
-      aroundMethod: aroundMethod,
       advise: advise,
       unadvise: unadvise
     };

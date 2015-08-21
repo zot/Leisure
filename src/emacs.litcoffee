@@ -11,7 +11,6 @@ Emacs connection
         computeNewStructure
       } = Editor
       {
-        aroundMethod
         changeAdvice
       } = Advice
       {
@@ -121,12 +120,12 @@ Emacs connection
           renderImage
         }
         changeAdvice opts, true,
-          followLink: emacs: aroundMethod (parent)->(e)->
+          followLink: emacs: (parent)->(e)->
             if e.target.href.match /^elisp/
               sendFollowLink @data.emacsConnection.websocket, @editor.docOffset($(e.target).prev('.link')[0], 1)
               false
             else parent e
-          execute: emacs: aroundMethod (parent)->->
+          execute: emacs: (parent)->->
             if @editor.blockForCaret()?.language.toLowerCase() of knownLanguages
               parent()
             else sendCcCc @editor.options.data.emacsConnection.websocket, @editor.docOffset(@editor.domCursorForCaret())

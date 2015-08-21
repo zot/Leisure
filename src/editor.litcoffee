@@ -145,7 +145,6 @@ Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEd
       {
         beforeMethod
         afterMethod
-        aroundMethod
         changeAdvice
       } = Advice
       maxLastKeys = 4
