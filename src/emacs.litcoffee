@@ -128,7 +128,7 @@ Emacs connection
           execute: emacs: aroundMethod (parent)->->
             if @editor.blockForCaret()?.language.toLowerCase() of knownLanguages
               parent()
-            else sendCcCc editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0)
+            else sendCcCc @editor.options.data.emacsConnection.websocket, @editor.docOffset(@editor.domCursorForCaret())
 
       renderImage = (src, title, currentId)->
         if name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]

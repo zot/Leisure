@@ -169,7 +169,7 @@
               if (((ref = this.editor.blockForCaret()) != null ? ref.language.toLowerCase() : void 0) in knownLanguages) {
                 return parent();
               } else {
-                return sendCcCc(editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0));
+                return sendCcCc(this.editor.options.data.emacsConnection.websocket, this.editor.docOffset(this.editor.domCursorForCaret()));
               }
             };
           })
