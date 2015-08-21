@@ -361,7 +361,12 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           $(ed.node).addClass 'leisure-editor'
           @setMode @mode
           @initToolbar()
-          @bindings = __proto__: @bindings
+          @bindings =
+            __proto__: @bindings
+            'C-C C-C': ((editor, e, r)=>
+              # execute asynchronously because alerts mess with the events
+              setTimeout (=>@execute()),1
+              false)
           @bindings.PAGEUP = (editor, e, r)=>
             if @mode.showPrevSlide this then e.preventDefault()
             false
@@ -374,6 +379,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               opts.mode.enter opts, parent, e
             handleDelete: options: aroundMethod (parent)-> (e, sel, forward)->
               opts.mode.handleDelete opts, parent, e, sel, forward
+          $(@editor.node).on 'scroll', updateSelection
         setMode: (@mode)->
           if @mode && @editor then @editor.node.attr 'data-edit-mode', @mode.name
           this
@@ -406,6 +412,15 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
                 addChange(@data.getBlock(parent, changes), changes).properties = props
           @mode.handleChanges this, changes
           super changes
+        update: (block)->
+          oldBlock = @getBlock block._id
+          if !_.isEqual block, oldBlock
+            @change
+              first: @data.getFirst()
+              removes: {}
+              sets: _.object [[block._id, block]]
+              newBlocks: [block]
+              oldBlocks: (if oldBlock then [oldBlock] else [])
         changesHidden: (changes)->
           if @canHideSlides()
             for change in changes.oldBlocks
@@ -448,6 +463,28 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
               for block, i in changes.newBlocks
                 if block._id == newBlock._id then changes.newBlocks[i] = newBlock
               sync = false
+        execute: ->
+          block = @editor.blockForCaret()
+          if block.type == 'code' && envM = blockEnvMaker block
+            @executeBlock block, envM
+        executeBlock: (block, envM)->
+          if envM = blockEnvMaker block
+            {source} = blockCodeItems this, block
+            result = ''
+            sync = true
+            env = envM __proto__: defaultEnv
+            opts = this
+            newBlock = setError block
+            env.errorAt = (offset, msg)->
+              newBlock = setError block, offset, msg
+              if newBlock != block && !sync then opts.update newBlock
+            env.write = (str)->
+              result += str
+              if !sync then opts.update newBlock = setResult block, str
+            env.executeText source.content, Nil, ->
+            sync = false
+            newBlock = setResult newBlock, result
+            if newBlock != block then opts.update newBlock
         renderImage: (src, title)->
           if @loadName && m = src.match /^file:(\/\/)?(.*)$/
             src = new URL(m[2], @loadName).toString()

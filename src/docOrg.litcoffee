@@ -7,6 +7,7 @@
         Keyword
         Drawer
         Meat
+        UnknownDeclaration
         Results
         parseOrgMode
       } = Org
@@ -32,7 +33,7 @@
               if result[type]? then return result
               result.last = result[type] = org
               if type == 'results' then break
-            else if org instanceof Drawer || org instanceof Keyword then break
+            else if org instanceof Drawer || org instanceof Keyword || org instanceof UnknownDeclaration then break
             org = org.next
           if result.source then result else {}
 

@@ -439,7 +439,7 @@
               nameBoiler: nameBoiler ? ''
               nameText: if name then name.text.substring nameBoiler.length, name.text.length - 1 else ''
               name: if name then name.text.substring name.info else ''
-              afterName: if name then @renderOrg opts, cleanOrg block.text.substring name.end(), source.offset else ''
+              afterName: if name then @renderOrg opts, cleanOrg(block.text.substring name.end(), source.offset), true else ''
               inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
               results: if !results then ''
               else if hideResults then "<span class='hidden'>#{escapeHtml results.text}</span>"
@@ -449,7 +449,7 @@
             @renderView key, lang, block.next, sourceData, targets
           else plainMode.render opts, block, prefix, replace
         renderOrgBlock: (opts, block, prefix, replace)->
-          text = "<span id='#{block._id}'>#{@renderOrg opts, blockOrg opts.data, block}</span>"
+          text = "<span id='#{block._id}'>#{@renderOrg opts, blockOrg(opts.data, block), true}</span>"
           maybeReplaceHtml block, prefix, replace
           [text, block.next]
         renderCodeOrg: (opts, context)->
@@ -474,7 +474,7 @@
             else if name == 'results' then [org.end(), resultsArea opts, org.allText()]
             else [pos, text]
           else [pos, text]
-        renderOrgChunk: (opts, org)-> "<span class='org-chunk'>#{@renderOrg opts, org}</span>"
+        renderOrgChunk: (opts, org)-> "<span class='org-chunk'>#{@renderOrg opts, org, true}</span>"
         renderExample: (opts, org)->
           start = org.text.substring 0, org.contentPos
           text = org.exampleText()
@@ -486,17 +486,16 @@
               end: end
               org: org)[0]
           else "<span class='hidden'>#{escapeHtml start}</span><span class='example'>#{escapeHtml text}</span><span class='hidden'>#{escapeHtml end}</span>"
-        renderOrg: (opts, org)->
-          if org instanceof SimpleMarkup then @renderSimple opts, org
+        renderOrg: (opts, org, start)->
+          text = if org instanceof SimpleMarkup then @renderSimple opts, org
           else if org instanceof Link then @renderLink opts, org
           else if org instanceof Fragment
-            (@renderOrg opts, child for child in org.children).join ''
+            (@renderOrg opts, child for child, i in org.children).join ''
           else if org instanceof ListItem then @renderList opts, org
           else if org instanceof Drawer then @renderDrawer opts, org
           else if org instanceof Example then @renderExample opts, org
-          else
-            text = insertBreaks org.allText()
-            prefixBreak text
+          else insertBreaks org.allText()
+          if start then prefixBreak text else text
         renderHtml: (opts, org)->
           "<span class='hidden'>#{escapeHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{escapeHtml org.trailing}</span>"
         renderList: (opts, org)->
@@ -537,7 +536,7 @@
         renderSimple: (opts, org)->
           guts = ''
           for c in org.children
-            guts += @renderOrg opts, c, true
+            guts += @renderOrg opts, c
           text = switch org.markupType
             when 'bold' then "<b>#{guts}</b>"
             when 'italic' then "<i>#{guts}</i>"
@@ -677,7 +676,7 @@
 
       resultsArea = (opts, results)->
         if !(firstResult = results.indexOf('\n') + 1) || results[firstResult] == ':'
-          "<span class='hidden'>#{goodText results}</span><pre data-noncontent>#{results.substring(firstResult).replace /^(: )(.*\n)/gm, (m, g1, g2)-> goodHtml(g2)}</pre>"
+          "<span class='hidden'>#{goodText results}</span><span class='results-verbatim' data-noncontent>#{results.substring(firstResult).replace /^(: )(.*\n)/gm, (m, g1, g2)-> goodHtml(g2)}</span>"
         else "<span class='hidden'>#{results.substring 0, firstResult}</span>#{fancyMode.renderOrg opts, cleanOrg results.substring(firstResult)}"
 
       plainEditDiv = (div, data)->
@@ -692,6 +691,7 @@
         coffee: 'coffeescript'
         cs: 'coffeescript'
         js: 'javascript'
+        lisp: 'scheme'
   
       prismHighlight = (lang, text)->
         if l = prismAliases[lang] then lang = l

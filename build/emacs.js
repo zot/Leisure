@@ -2,16 +2,16 @@
 (function() {
   var slice = [].slice;
 
-  define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee'], function(_, Exports, UI, Editor, EditorSupport, Diag) {
-    var advise, aroundMethod, blockRangeFor, c, clearDiag, close, configureEmacs, connect, connected, diag, diagMessage, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, mergeExports, message, messages, msgPat, offsetFor, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, replacing, sendCcCc, sendFollowLink, sendGetFile, sendReplace, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
+  define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./eval.litcoffee'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval) {
+    var advise, aroundMethod, blockRangeFor, c, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
     mergeExports = Exports.mergeExports;
-    findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, aroundMethod = Editor.aroundMethod, advise = Editor.advise;
+    findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, aroundMethod = Editor.aroundMethod, advise = Editor.advise, changeAdvice = Editor.changeAdvice, computeNewStructure = Editor.computeNewStructure;
     showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr;
     getDocumentParams = EditorSupport.getDocumentParams;
     clearDiag = Diag.clearDiag, diagMessage = Diag.diagMessage;
+    knownLanguages = Eval.knownLanguages;
     msgPat = /^([^ ]+)( (.*))?$/;
     replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/;
-    replacing = false;
     connected = false;
     showDiag = false;
     imgCount = 0;
@@ -53,13 +53,13 @@
       end = Number(end);
       text = JSON.parse(text);
       editor = data.emacsConnection.opts.editor;
-      return replaceWhile(function() {
+      return replaceWhile(start, end, text, data, function(repl) {
         var endLen, targetLen;
         if (end === -1) {
           return editor.options.load(text);
         } else {
           targetLen = data.getDocLength() - (end - start) + text.length;
-          editor.replace(null, blockRangeFor(data, start, end), text);
+          editor.options.makeStructureChange(repl);
           endLen = data.getDocLength();
           if (endLen !== targetLen) {
             return diagMessage("BAD DOC LENGTH AFTER REPLACEMENT, expected <" + targetLen + "> but ggot<" + endLen + ">");
@@ -75,12 +75,50 @@
       }
       return delete data.emacsConnection.fileCallbacks[id];
     };
-    replaceWhile = function(func) {
-      replacing = true;
+    replaceWhile = function(start, end, text, data, func) {
+      var blocks, newText, ref, repl;
+      if (end === -1) {
+        blocks = [];
+        newText = text;
+      } else {
+        ref = data.blockOverlapsForReplacement(start, end, text), blocks = ref.blocks, newText = ref.newText;
+      }
+      repl = computeNewStructure(data, blocks, newText);
+      repl.emacsNewBlocks = repl.newBlocks.slice();
+      repl.blockOffset = blocks.length ? data.offsetForBlock(blocks[0]) : 0;
+      data.emacsConnection.replacing = repl;
       try {
-        return func();
+        return func(repl);
       } finally {
-        replacing = false;
+        data.emacsConnection.replacing = null;
+      }
+    };
+    shouldSendConcurrent = function(data, newBlock) {
+      var currentBlock, repl;
+      if (newBlock) {
+        repl = data.emacsConnection.replacing;
+        currentBlock = _.find(repl.newBlocks, function(b) {
+          return b._id === newBlock._id;
+        });
+        return currentBlock && currentBlock.text !== newBlock.text;
+      }
+    };
+    sendConcurrentBlockChange = function(data, newBlock) {
+      var currentNew, ind, offset, oldLen, repl, start;
+      repl = data.emacsConnection.replacing;
+      ind = _.findIndex(repl.newBlocks, function(x) {
+        return x._id = newBlock;
+      });
+      currentNew = repl.emacsNewBlocks[ind];
+      if (currentNew.text !== newBlock.text) {
+        offset = 0;
+        oldLen = currentNew.text.length;
+        repl.emacsNewBlocks[ind] = newBlock;
+        while (ind-- > 0) {
+          offset += repl.emacsNewBlocks[ind];
+        }
+        start = offset + repl.blockOffset;
+        return sendReplace(data.emacsConnection.websocket, start, start + oldLen, newBlock.text);
       }
     };
     connect = function(opts, host, port, cookie, cont) {
@@ -111,7 +149,7 @@
       _.merge(opts, {
         renderImage: renderImage
       });
-      advise(opts, {
+      return changeAdvice(opts, true, {
         followLink: {
           emacs: aroundMethod(function(parent) {
             return function(e) {
@@ -123,11 +161,20 @@
               }
             };
           })
+        },
+        execute: {
+          emacs: aroundMethod(function(parent) {
+            return function() {
+              var ref;
+              if (((ref = this.editor.blockForCaret()) != null ? ref.language.toLowerCase() : void 0) in knownLanguages) {
+                return parent();
+              } else {
+                return sendCcCc(editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0));
+              }
+            };
+          })
         }
       });
-      return opts.bindings['C-C C-C'] = function(editor, e, r) {
-        return sendCcCc(editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0));
-      };
     };
     renderImage = function(src, title, currentId) {
       var con, imgId, name, ref, ref1;
@@ -141,12 +188,12 @@
               img.src = "data:" + (typeForFile(name)) + ";base64," + file;
               return img.onload = function() {
                 img.removeAttribute('style');
-                return con.imageHeights[name] = " style='height: " + img.height + "px'";
+                return con.imageSizes[name] = " style='height: " + img.height + "px; width: " + img.width + "px'";
               };
             });
           }
         });
-        return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'" + ((ref1 = con.imageHeights[name]) != null ? ref1 : '') + ">";
+        return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'" + ((ref1 = con.imageSizes[name]) != null ? ref1 : '') + ">";
       } else {
         return "<img src='" + src + "' title='" + title + "'>";
       }
@@ -200,36 +247,41 @@
         },
         replaceBlock: function(oldBlock, newBlock) {
           var end, endOff, i, index, j, newLen, oldLen, ref, ref1, ref2, ref3, start, startOff, text;
-          if (!replacing) {
+          if (!data.emacsConnection.replacing || shouldSendConcurrent(data, newBlock)) {
             if ((index = connection.idOffsets[oldBlock != null ? oldBlock._id : void 0]) != null) {
               while (connection.offsetIds.length > index) {
                 delete connection.idOffsets[connection.offsetIds.pop()];
               }
             }
-            start = offsetFor(data, (ref = oldBlock != null ? oldBlock._id : void 0) != null ? ref : newBlock._id);
+            start = data.offsetForBlock((ref = oldBlock != null ? oldBlock._id : void 0) != null ? ref : newBlock._id);
             end = start + ((ref1 = oldBlock != null ? oldBlock.text.length : void 0) != null ? ref1 : 0);
             text = newBlock.text;
-            if (oldBlock && newBlock) {
-              oldLen = oldBlock.text.length;
-              newLen = newBlock.text.length;
-              for (startOff = i = 0, ref2 = Math.min(oldLen, newLen); 0 <= ref2 ? i < ref2 : i > ref2; startOff = 0 <= ref2 ? ++i : --i) {
-                if (oldBlock.text[startOff] !== newBlock.text[startOff]) {
-                  break;
+            if (data.emacsConnection.replacing) {
+              return sendConcurrentBlockChange(data, newBlock);
+            } else {
+              if (oldBlock && newBlock) {
+                oldLen = oldBlock.text.length;
+                newLen = newBlock.text.length;
+                for (startOff = i = 0, ref2 = Math.min(oldLen, newLen); 0 <= ref2 ? i < ref2 : i > ref2; startOff = 0 <= ref2 ? ++i : --i) {
+                  if (oldBlock.text[startOff] !== newBlock.text[startOff]) {
+                    break;
+                  }
+                }
+                start += startOff;
+                for (endOff = j = 0, ref3 = Math.min(oldLen, newLen); 0 <= ref3 ? j <= ref3 : j >= ref3; endOff = 0 <= ref3 ? ++j : --j) {
+                  if (oldBlock.text[oldLen - endOff] !== newBlock.text[newLen - endOff] || oldLen - endOff <= startOff || newLen - endOff <= startOff) {
+                    break;
+                  }
+                }
+                end -= endOff;
+                if (startOff || endOff) {
+                  text = text.substring(startOff, text.length - endOff);
                 }
               }
-              start += startOff;
-              for (endOff = j = 0, ref3 = Math.min(oldLen, newLen, newLen - startOff - 1, oldLen - startOff - 1); 0 <= ref3 ? j <= ref3 : j >= ref3; endOff = 0 <= ref3 ? ++j : --j) {
-                if (oldBlock.text[oldLen - endOff] !== newBlock.text[newLen - endOff]) {
-                  break;
-                }
-              }
-              endOff -= 1;
-              end -= endOff;
-              if (startOff || endOff) {
-                text = text.substring(startOff, text.length - endOff);
+              if (start !== end || text !== '') {
+                return sendReplace(ws, start, end, text);
               }
             }
-            return sendReplace(ws, start, end, text);
           }
         }
       };
@@ -274,9 +326,6 @@
       bOff.type = start === end ? 'Caret' : 'Range';
       return bOff;
     };
-    offsetFor = function(data, thing) {
-      return data.offsetForBlock(thing);
-    };
     specials = /[\b\f\n\r\t\v\"\\]/g;
     slashed = /\\./g;
     escaped = {
@@ -314,7 +363,7 @@
       opts = UI.context.opts;
       data = opts.data;
       data.emacsConnection = {
-        imageHeights: {},
+        imageSizes: {},
         panel: panel,
         opts: UI.context.opts,
         fileCallbacks: {}
@@ -340,7 +389,6 @@
       });
     };
     mergeExports({
-      offsetFor: offsetFor,
       blockRangeFor: blockRangeFor,
       configureEmacs: configureEmacs
     });

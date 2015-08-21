@@ -601,7 +601,15 @@
         this.setMode(this.mode);
         this.initToolbar();
         this.bindings = {
-          __proto__: this.bindings
+          __proto__: this.bindings,
+          'C-C C-C': ((function(_this) {
+            return function(editor, e, r) {
+              setTimeout((function() {
+                return _this.execute();
+              }), 1);
+              return false;
+            };
+          })(this))
         };
         this.bindings.PAGEUP = (function(_this) {
           return function(editor, e, r) {
@@ -620,7 +628,7 @@
           };
         })(this);
         opts = this;
-        return changeAdvice(ed, true, {
+        changeAdvice(ed, true, {
           enter: {
             options: aroundMethod(function(parent) {
               return function(e) {
@@ -636,6 +644,7 @@
             })
           }
         });
+        return $(this.editor.node).on('scroll', updateSelection);
       };
 
       OrgEditing.prototype.setMode = function(mode) {
@@ -699,6 +708,20 @@
         }
         this.mode.handleChanges(this, changes);
         return OrgEditing.__super__.change.call(this, changes);
+      };
+
+      OrgEditing.prototype.update = function(block) {
+        var oldBlock;
+        oldBlock = this.getBlock(block._id);
+        if (!_.isEqual(block, oldBlock)) {
+          return this.change({
+            first: this.data.getFirst(),
+            removes: {},
+            sets: _.object([[block._id, block]]),
+            newBlocks: [block],
+            oldBlocks: (oldBlock ? [oldBlock] : [])
+          });
+        }
       };
 
       OrgEditing.prototype.changesHidden = function(changes) {
@@ -767,6 +790,46 @@
               }
             }
             return sync = false;
+          }
+        }
+      };
+
+      OrgEditing.prototype.execute = function() {
+        var block, envM;
+        block = this.editor.blockForCaret();
+        if (block.type === 'code' && (envM = blockEnvMaker(block))) {
+          return this.executeBlock(block, envM);
+        }
+      };
+
+      OrgEditing.prototype.executeBlock = function(block, envM) {
+        var env, newBlock, opts, result, source, sync;
+        if (envM = blockEnvMaker(block)) {
+          source = blockCodeItems(this, block).source;
+          result = '';
+          sync = true;
+          env = envM({
+            __proto__: defaultEnv
+          });
+          opts = this;
+          newBlock = setError(block);
+          env.errorAt = function(offset, msg) {
+            newBlock = setError(block, offset, msg);
+            if (newBlock !== block && !sync) {
+              return opts.update(newBlock);
+            }
+          };
+          env.write = function(str) {
+            result += str;
+            if (!sync) {
+              return opts.update(newBlock = setResult(block, str));
+            }
+          };
+          env.executeText(source.content, Nil, function() {});
+          sync = false;
+          newBlock = setResult(newBlock, result);
+          if (newBlock !== block) {
+            return opts.update(newBlock);
           }
         }
       };

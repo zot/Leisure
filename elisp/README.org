@@ -1,37 +1,49 @@
+* What is Leisure?
+Simply put, Leisure is a document-oriented, exploratory computing
+environment for what we call *[[https://en.wikipedia.org/wiki/Illuminated_manuscript][Illuminated Programming]]*.  Leisure
+documents are:
+- *editable*
+- collaborative
+- interactive
+- web-based (zero install)
+*[[https://en.wikipedia.org/wiki/Illuminati][Illuminated Programming]]* is our term for application, source code,
+and data, all rolled up into one interactive, collboratively editable
+document.  A Leisure document might hide its code and data and appear
+to be just an app or it might present the code and data along with the
+app(s), like [[http://textcraft.org:3333/#load=/demo/game.lorg][this Leisure game does]], or it might be mostly a document
+with interactive examples in it.
+
+A lot of this has been around for quite a while, [[http://hypercard.org/][Hypercard]] and
+[[http://www.wolfram.com/mathematica/][Mathematica]] are interactive documents that contain code and data, and
+people are starting to work on modern interactive documents, like
+[[https://jupyter.org/][Jupyter]] (based on the iPython Notebook).
+
+Leisure is a little different because it's purely web-based, no
+install needed, and it's collaborative.  We've been working
+(relatively) quietly on Leisure since 2011.
+
+We think it's well past time for an open-source, web-based
+*Illuminated Programming* environment for everyone.
 * Leisure connection mode for Emacs
 This is a minor mode that connects an emacs buffer to Leisure web page.
 
 *NOTE: LEISURE CURRENTLY ONLY RUNS IN CHROMIUM-BASED BROWSERS (LIKE CHROME).*
 
-*If you are in Emacs* and you have leisure-connection-mode loaded, you
-can try this out by [[elisp:leisure-connection-mode][CLICKING THIS LINK]] and then switching to your
-newly opened browser page (if it doesn't automatically switch you to
-the browser).
+*If you are viewing this in Emacs* and you already have
+leisure-connection-mode loaded, you can try this out by [[elisp:leisure-connection-mode][CLICKING THIS
+LINK]].
 
 *NOTE:* We're not orgmode experts and we need help from people who are!
-* What is Leisure?
-Leisure is an interactive, web-based, document-oriented exploratory
-computing environment that implements *Illuminated Programming* for
-people at all levels of expertise.  *Illuminated Programming* is our
-term for interactive, collboratively editable documents that are
-applications, source code, and data, all rolled up into one.  Sort of
-a zero-install version of reproducible research.
-
-This idea has been around for quite a while (Hypercard and Mathematica
-did it, albeit without collaboration).  We thought it was well past
-time for an open-source, web-based *Illuminated Programming*
-environment for everyone.
 * Bidirectional connection to Emacs
-Leisure is an editable, web-based computing environment that uses
-orgmode format and it can hook up to Emacs.
+Leisure uses orgmode as its file format and it can hook up to Emacs.
 
-Toggling leisure-connection-mode will open and close a web page associated with
-the current buffer.
+Toggling leisure-connection-mode will open and close a web page
+associated with the current buffer.
 
-You can also initiate connections from Leisure to emacs, provided that
-you have started Emacs' Leisure service.  Leisure-connection-mode
+You can also start in Leisure and connect to Emacs, provided that
+Emacs is running the Leisure service.  Leisure-connection-mode
 automatically turns on the service but you can also control it with
-the leisure-start and leisure-stop commands.
+the [[elisp:leisure-start]] and [[elisp:leisure-stop]] commands.
 
 Once connected, changes in Emacs are mirrored in Leisure, and vice
 versa.  In Leisure, if you hit C-C C-C or click an elisp link, it will
@@ -39,7 +51,7 @@ delegate that to Emacs. Leisure will also attempt to fetch "file:"
 image data from Emacs so it can display the results of your file-based
 computations.
 * Work in progress
-** Leisure is not stable, yet
+** Leisure is not quite stable, yet
 - Leisure is a *work in progress*
 - It's *NOT HARDENED*
   - *Don't rely on Leisure for super-important tasks yet!*
@@ -64,14 +76,36 @@ computations.
   make a change and it somehow messes up.
   - Leisure and Emacs are just sending text changes to each other
 * Emacs code-execution
-Hit C-c C-c in this code block in Leisure and it will attempt to
-execute in Emacs.
+*(Wanna see the source?  Click the martini glass.)*
+
+Leisure can use orgmode's code execution features.
+
+Hitting C-c C-c in a non-webby code block in Leisure will attempt to
+execute in Emacs.  You can try it here:
 
 #+BEGIN_SRC sh :results output
 ls /tmp
 #+END_SRC
 
-Click this in Leisure and it will [[elisp:(message "Hello from Leisure!")][show a message]] in Emacs.
+Webby code blocks execute in the browser directly.
+
+Go to Leisure and hit C-C C-C in this block:
+
+#+BEGIN_SRC coffee
+alert 'hello'
+#+END_SRC
+
+This is a dynamic block.  Go to Emacs and alter the code in this block
+and Leisure will update the results as you type.
+
+#+BEGIN_SRC coffee :results dynamic
+3 + 4
+#+END_SRC
+#+RESULTS:
+: 7
+
+Clicking an elisp link in Leisure will run it in Emacs.  Click this
+and it will [[elisp:(message "Hello from Leisure!")][show a message]] in Emacs.
 ** (Why) does Leisure flicker after an Emacs command?
 - When Emacs asks you permission to execute a code block, the Emacs
 window takes input focus
@@ -297,6 +331,10 @@ affinity for it.
 We started with Markdown and it was great.  For a while.  When we
 decided that Leisure documents should contain data, as well as code,
 we started running up against Markdown's lack of metadata.
+
+Since that time, there have been several architectural overhauls and
+now the architectore seems to be relatively stable and simpler than it
+has been in the past.
 
 Investigations pointed us towards orgmode.
 * How you can help!

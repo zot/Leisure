@@ -1,3 +1,10 @@
+* TODO on reload, add hash to preserve selection
+* TODO Tool to find defs and controllers from views
+* TODO nice text color against white bgnd: #4D4D4C
+* BUG splitting a dynamic code block in Emacs causes problems in Leisure
+* BUG splitting a code block directly above a dynamic one in Emacs causes problems in Leisure
+* BUG toggling show/hide in slide mode dies
+* TODO get collaboration going again
 * TODO convert source to Leisure files
 * TODO announcement form
 - melpa package

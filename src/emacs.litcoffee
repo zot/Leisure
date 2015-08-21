@@ -1,6 +1,6 @@
 Emacs connection
 
-    define ['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee'], (_, Exports, UI, Editor, EditorSupport, Diag)->
+    define ['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./eval.litcoffee'], (_, Exports, UI, Editor, EditorSupport, Diag, Eval)->
 
       {
         mergeExports
@@ -10,6 +10,8 @@ Emacs connection
         preserveSelection
         aroundMethod
         advise
+        changeAdvice
+        computeNewStructure
       } = Editor
       {
         showMessage
@@ -23,10 +25,12 @@ Emacs connection
         clearDiag
         diagMessage
       } = Diag
+      {
+        knownLanguages
+      } = Eval
 
       msgPat = /^([^ ]+)( (.*))?$/
       replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/
-      replacing = false
       connected = false
       showDiag = false
       #showDiag = true
@@ -56,30 +60,53 @@ Emacs connection
         end = Number end
         text = JSON.parse text
         editor = data.emacsConnection.opts.editor
-        replaceWhile ->
+        replaceWhile start, end, text, data, (repl)->
           if end == -1
             editor.options.load text
           else
             targetLen = data.getDocLength() - (end - start) + text.length
-            editor.replace null, blockRangeFor(data, start, end), text
+            editor.options.makeStructureChange repl
             endLen = data.getDocLength()
             if endLen != targetLen
               diagMessage "BAD DOC LENGTH AFTER REPLACEMENT, expected <#{targetLen}> but ggot<#{endLen}>"
-            #docString = editor.options.data.getDocSubstring(start, start + text.length)
-            #if text != docString
-            #  console.log "TEXT MISMATCH #{start} #{start + text.length}\n'#{text}'\n'#{docString}'"
 
       receiveFile = (data, msg)->
         [lead, id] = msg.match /^([^ ]+) +/
         data.emacsConnection.fileCallbacks[id]?(msg.substring lead.length)
         delete data.emacsConnection.fileCallbacks[id]
 
-      replaceWhile = (func)->
-        replacing = true
+      replaceWhile = (start, end, text, data, func)->
+        if end == -1
+          blocks = []
+          newText = text
+        else {blocks, newText} = data.blockOverlapsForReplacement(start, end, text)
+        repl = computeNewStructure data, blocks, newText
+        repl.emacsNewBlocks = repl.newBlocks.slice()
+        repl.blockOffset = if blocks.length then data.offsetForBlock blocks[0] else 0
+        data.emacsConnection.replacing = repl
         try
-          func()
+          func repl
         finally
-          replacing = false
+          data.emacsConnection.replacing = null
+
+      shouldSendConcurrent = (data, newBlock)->
+        if newBlock
+          repl = data.emacsConnection.replacing
+          currentBlock = _.find repl.newBlocks, (b)-> b._id == newBlock._id
+          currentBlock && currentBlock.text != newBlock.text
+
+      sendConcurrentBlockChange = (data, newBlock)->
+        repl = data.emacsConnection.replacing
+        ind = _.findIndex repl.newBlocks, (x)-> x._id = newBlock
+        currentNew = repl.emacsNewBlocks[ind]
+        if currentNew.text != newBlock.text
+          offset = 0
+          oldLen = currentNew.text.length
+          repl.emacsNewBlocks[ind] = newBlock
+          while ind-- > 0
+            offset += repl.emacsNewBlocks[ind]
+          start = offset + repl.blockOffset
+          sendReplace data.emacsConnection.websocket, start, start + oldLen, newBlock.text
 
       connect = (opts, host, port, cookie, cont)->
         con = new WebSocket "ws://#{host}:#{port}"
@@ -92,13 +119,16 @@ Emacs connection
         _.merge opts, {
           renderImage
         }
-        advise opts, followLink: emacs: aroundMethod (parent)->(e)->
-          if e.target.href.match /^elisp/
-            sendFollowLink @data.emacsConnection.websocket, @editor.docOffset($(e.target).prev('.link')[0], 1)
-            false
-          else parent e
-        opts.bindings['C-C C-C'] = (editor, e, r)->
-          sendCcCc editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0)
+        changeAdvice opts, true,
+          followLink: emacs: aroundMethod (parent)->(e)->
+            if e.target.href.match /^elisp/
+              sendFollowLink @data.emacsConnection.websocket, @editor.docOffset($(e.target).prev('.link')[0], 1)
+              false
+            else parent e
+          execute: emacs: aroundMethod (parent)->->
+            if @editor.blockForCaret()?.language.toLowerCase() of knownLanguages
+              parent()
+            else sendCcCc editor.options.data.emacsConnection.websocket, editor.docOffset(e.target, 0)
 
       renderImage = (src, title, currentId)->
         if name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
@@ -110,8 +140,8 @@ Emacs connection
                 img.src = "data:#{typeForFile name};base64,#{file}"
                 img.onload = ->
                   img.removeAttribute 'style'
-                  con.imageHeights[name] = " style='height: #{img.height}px'"
-          "<img id='#{imgId}' title='#{escapeAttr title}'#{con.imageHeights[name] ? ''}>"
+                  con.imageSizes[name] = " style='height: #{img.height}px; width: #{img.width}px'"
+          "<img id='#{imgId}' title='#{escapeAttr title}'#{con.imageSizes[name] ? ''}>"
         else "<img src='#{src}' title='#{title}'>"
 
       typeForFile = (name)->
@@ -147,27 +177,33 @@ Emacs connection
           clear: ->
             connection.offsetIds = []
             connection.idOffsets = {}
-          replaceBlock: (oldBlock, newBlock)-> if !replacing
-            if (index = connection.idOffsets[oldBlock?._id])?
-              while connection.offsetIds.length > index
-                delete connection.idOffsets[connection.offsetIds.pop()]
-            start = offsetFor(data, oldBlock?._id ? newBlock._id)
-            end = start + (oldBlock?.text.length ? 0)
-            text = newBlock.text
-            if oldBlock && newBlock
-              # trim common prefix/suffix off of message
-              oldLen = oldBlock.text.length
-              newLen = newBlock.text.length
-              for startOff in [0...Math.min oldLen, newLen]
-                if oldBlock.text[startOff] != newBlock.text[startOff] then break
-              start += startOff
-              for endOff in [0..Math.min oldLen, newLen, newLen - startOff - 1, oldLen - startOff - 1]
-                if oldBlock.text[oldLen - endOff] != newBlock.text[newLen - endOff] then break
-              endOff -= 1
-              end -= endOff
-              if startOff || endOff
-                text = text.substring startOff, text.length - endOff
-            sendReplace ws, start, end, text
+          replaceBlock: (oldBlock, newBlock)->
+            if !data.emacsConnection.replacing || shouldSendConcurrent data, newBlock
+              if (index = connection.idOffsets[oldBlock?._id])?
+                while connection.offsetIds.length > index
+                  delete connection.idOffsets[connection.offsetIds.pop()]
+              start = data.offsetForBlock oldBlock?._id ? newBlock._id
+              end = start + (oldBlock?.text.length ? 0)
+              text = newBlock.text
+              #if replacing && (replacing.start + replacing.text.length <= start || replacing.start >= end)
+              if data.emacsConnection.replacing
+                sendConcurrentBlockChange data, newBlock
+              else
+                if oldBlock && newBlock
+                  # trim common prefix/suffix off of message
+                  oldLen = oldBlock.text.length
+                  newLen = newBlock.text.length
+                  for startOff in [0...Math.min oldLen, newLen]
+                    if oldBlock.text[startOff] != newBlock.text[startOff] then break
+                  start += startOff
+                  for endOff in [0..Math.min oldLen, newLen]
+                    if oldBlock.text[oldLen - endOff] != newBlock.text[newLen - endOff] || oldLen - endOff <= startOff || newLen - endOff <= startOff
+                      break
+                  end -= endOff
+                  if startOff || endOff
+                    text = text.substring startOff, text.length - endOff
+                if start != end || text != ''
+                  sendReplace ws, start, end, text
         connection.filter.clear()
         data.addFilter connection.filter
         if !cookie then sendReplace ws, 0, -1, data.getText()
@@ -203,8 +239,6 @@ Emacs connection
         bOff.type = if start == end then 'Caret' else 'Range'
         bOff
 
-      offsetFor = (data, thing)-> data.offsetForBlock thing
-
       specials = /[\b\f\n\r\t\v\"\\]/g
 
       slashed = /\\./g
@@ -229,7 +263,7 @@ Emacs connection
         opts = UI.context.opts
         data = opts.data
         data.emacsConnection =
-          imageHeights: {}
+          imageSizes: {}
           panel: panel
           opts: UI.context.opts
           fileCallbacks: {}
@@ -247,7 +281,6 @@ Emacs connection
                 connect opts, host, port.substring(1), cookie.substring(1)
 
       mergeExports {
-        offsetFor
         blockRangeFor
         configureEmacs
       }

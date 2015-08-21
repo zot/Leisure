@@ -272,7 +272,9 @@ FRAME: frame."
   (let* ((m (leisure/match "^\\([^ ]+\\) \\([^ ]+\\) \\(.*\\)$" msg))
          (start (+ 1 (string-to-number (elt m 1))))
          (end (+ 1 (string-to-number (elt m 2))))
-         (text (leisure/parseString (elt m 3))))
+         (text (leisure/parseString (elt m 3)))
+         (pt (point))
+         (expansion (- (length text) (- end start))))
     (leisure/diag conInfo "received change start: %s, end: %s, text: '%s'" start end text)
     (save-excursion
       (leisure/blockChanges conInfo
@@ -280,7 +282,9 @@ FRAME: frame."
           (progn
             (delete-region start end)
             (goto-char start)))
-        (insert text)))))
+        (insert text)))
+    (if (and (< start pt) (< pt end))
+        (goto-char pt))))
 
 (defun leisure/followLink (conInfo msg frame)
   "CONINFO received a 'followLink' MSG (FRAME provided for context)."

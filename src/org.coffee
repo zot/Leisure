@@ -108,7 +108,8 @@ define ['lib/lazy'], (Lazy)->
       checkMatch(txt, headlineRE, (m)-> "headline-#{m[HL_LEVEL].trim().length}") ||
       checkMatch(txt, listRE, 'list') ||
       checkMatch(txt, htmlStartRE, 'htmlStart') ||
-      checkMatch(txt, htmlEndRE, 'htmlEnd')
+      checkMatch(txt, htmlEndRE, 'htmlEnd') ||
+      checkMatch(txt, declRE, 'unknownDecl')
   
   checkMatch = (txt, pat, result)->
     m = txt.match pat
@@ -528,6 +529,14 @@ define ['lib/lazy'], (Lazy)->
       name: @name
       contentPos: @contentPos
   
+  class UnknownDeclaration extends Meat
+    constructor: (@text, @offset)->
+    type: 'unknown'
+    jsonDef: ->
+      type: @type
+      text: @text
+      offset: @offset
+    
   nextOrgNode = (node)->
     up = false
     while node
@@ -620,6 +629,8 @@ define ['lib/lazy'], (Lazy)->
         @checkPat drawerRE, (line, newRest, drawer)->
           if end = newRest.match endRE
             parseDrawer line, drawer[DRAWER_NAME], offset, end, newRest
+        @checkPat declRE, (line, newRest)->
+          parseUnknown line, offset, newRest
       if @result then @result
       else
         @checkPat simpleRE, (line, newRest, simple)->
@@ -731,6 +742,8 @@ define ['lib/lazy'], (Lazy)->
         node = node.next
     [new ListItem(text, offset, level, check == 'X' || (if check == ' ' then false else null), contentOffset, children), rest]
   
+  parseUnknown = (line, offset, rest)-> [new UnknownDeclaration(line, offset), rest]
+
   listContentOffset = (match)->
     match[LIST_LEVEL].length + match[LIST_BOILERPLATE].length + (match[LIST_CHECK]?.length ? 0)
   
@@ -751,6 +764,7 @@ define ['lib/lazy'], (Lazy)->
     ListItem
     SimpleMarkup
     Link
+    UnknownDeclaration
     Drawer
     Example
     drawerRE

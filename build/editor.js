@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable'], function(jq, DOMCursor, Fingertree, Immutable) {
-    var Advice, BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
+    var Advice, BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     maxLastKeys = 4;
@@ -179,6 +179,14 @@
 
       LeisureEditCore.prototype.getText = function() {
         return this.options.getText();
+      };
+
+      LeisureEditCore.prototype.blockForCaret = function() {
+        return this.blockForNode(this.domCursorForCaret().node);
+      };
+
+      LeisureEditCore.prototype.blockForNode = function(node) {
+        return this.options.getBlock(this.options.idForNode(node));
       };
 
       LeisureEditCore.prototype.blockNodeForNode = function(node) {
@@ -491,61 +499,10 @@
       };
 
       LeisureEditCore.prototype.editBlocks = function(blocks, start, length, newContent, select) {
-        var newBlocks, newText, offset, oldBlocks, oldFirst, oldText, pos, prev, ref, ref1;
-        pos = this.docOffsetForBlockOffset(blocks[0]._id, start + newContent.length);
-        oldText = blockText(blocks);
-        newText = oldText.substring(0, start) + newContent + oldText.substring(start + length);
-        ref = this.changeStructure(blocks, newText), oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks, offset = ref.offset, prev = ref.prev;
-        if (oldBlocks.length || newBlocks.length) {
-          oldFirst = (ref1 = oldBlocks[0]) != null ? ref1._id : void 0;
-          if (!this.options.edit(prev, oldBlocks.slice(), newBlocks.slice())) {
-            return;
-          }
+        var pos;
+        if (pos = this.options.replaceContent(blocks, start, length, newContent)) {
           return this.domCursorForDocOffset(pos).moveCaret();
         }
-      };
-
-      LeisureEditCore.prototype.changeStructure = function(oldBlocks, newText) {
-        var newBlocks, next, offset, oldText, prev;
-        prev = oldBlocks[0].prev;
-        oldBlocks = oldBlocks.slice();
-        oldText = null;
-        offset = 0;
-        while (oldText !== newText && (oldBlocks[0].prev || last(oldBlocks).next)) {
-          oldText = newText;
-          if (prev = this.options.getBlock(oldBlocks[0].prev)) {
-            oldBlocks.unshift(prev);
-            newText = prev.text + newText;
-            offset += prev.text.length;
-          }
-          if (next = this.options.getBlock(last(oldBlocks).next)) {
-            oldBlocks.push(next);
-            newText += next.text;
-          }
-          newBlocks = this.options.parseBlocks(newText);
-          if ((!prev || prev.text === newBlocks[0].text) && (!next || next.text === last(newBlocks).text)) {
-            break;
-          }
-        }
-        if (!newBlocks) {
-          newBlocks = this.options.parseBlocks(newText);
-        }
-        while (oldBlocks.length && newBlocks.length && oldBlocks[0].text === newBlocks[0].text) {
-          offset -= oldBlocks[0].text.length;
-          prev = oldBlocks[0]._id;
-          oldBlocks.shift();
-          newBlocks.shift();
-        }
-        while (oldBlocks.length && newBlocks.length && last(oldBlocks).text === last(newBlocks).text) {
-          oldBlocks.pop();
-          newBlocks.pop();
-        }
-        return {
-          oldBlocks: oldBlocks,
-          newBlocks: newBlocks,
-          offset: offset,
-          prev: prev
-        };
       };
 
       LeisureEditCore.prototype.bind = function() {
@@ -1079,6 +1036,68 @@
         return this.change(this.changesFor(prev, oldBlocks, newBlocks));
       };
 
+      BasicEditingOptions.prototype.changeStructure = function(oldBlocks, newText) {
+        var newBlocks, next, offset, oldText, prev;
+        prev = oldBlocks[0].prev;
+        oldBlocks = oldBlocks.slice();
+        oldText = null;
+        offset = 0;
+        while (oldText !== newText && (oldBlocks[0].prev || last(oldBlocks).next)) {
+          oldText = newText;
+          if (prev = this.getBlock(oldBlocks[0].prev)) {
+            oldBlocks.unshift(prev);
+            newText = prev.text + newText;
+            offset += prev.text.length;
+          }
+          if (next = this.getBlock(last(oldBlocks).next)) {
+            oldBlocks.push(next);
+            newText += next.text;
+          }
+          newBlocks = this.parseBlocks(newText);
+          if ((!prev || prev.text === newBlocks[0].text) && (!next || next.text === last(newBlocks).text)) {
+            break;
+          }
+        }
+        if (!newBlocks) {
+          newBlocks = this.parseBlocks(newText);
+        }
+        while (oldBlocks.length && newBlocks.length && oldBlocks[0].text === newBlocks[0].text) {
+          offset -= oldBlocks[0].text.length;
+          prev = oldBlocks[0]._id;
+          oldBlocks.shift();
+          newBlocks.shift();
+        }
+        while (oldBlocks.length && newBlocks.length && last(oldBlocks).text === last(newBlocks).text) {
+          oldBlocks.pop();
+          newBlocks.pop();
+        }
+        return {
+          oldBlocks: oldBlocks,
+          newBlocks: newBlocks,
+          offset: offset,
+          prev: prev
+        };
+      };
+
+      BasicEditingOptions.prototype.replaceContent = function(blocks, start, length, newContent) {
+        var newText, oldText, pos;
+        pos = this.editor.docOffsetForBlockOffset(blocks[0]._id, start + newContent.length);
+        oldText = blockText(blocks);
+        newText = oldText.substring(0, start) + newContent + oldText.substring(start + length);
+        if (this.makeStructureChange(computeNewStructure(this, blocks, newText))) {
+          return pos;
+        }
+      };
+
+      BasicEditingOptions.prototype.makeStructureChange = function(arg) {
+        var newBlocks, offset, oldBlocks, oldFirst, prev, ref;
+        oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks, offset = arg.offset, prev = arg.prev;
+        if (oldBlocks.length || newBlocks.length) {
+          oldFirst = (ref = oldBlocks[0]) != null ? ref._id : void 0;
+          return this.edit(prev, oldBlocks.slice(), newBlocks.slice());
+        }
+      };
+
       BasicEditingOptions.prototype.changesFor = function(first, oldBlocks, newBlocks) {
         var changes, newBlockMap, prev, removes;
         newBlockMap = {};
@@ -1298,6 +1317,50 @@
       return BasicEditingOptions;
 
     })(Observable);
+    computeNewStructure = function(access, oldBlocks, newText) {
+      var newBlocks, next, offset, oldText, prev, ref, ref1;
+      prev = (ref = (ref1 = oldBlocks[0]) != null ? ref1.prev : void 0) != null ? ref : 0;
+      oldBlocks = oldBlocks.slice();
+      oldText = null;
+      offset = 0;
+      if (oldBlocks.length) {
+        while (oldText !== newText && (oldBlocks[0].prev || last(oldBlocks).next)) {
+          oldText = newText;
+          if (prev = access.getBlock(oldBlocks[0].prev)) {
+            oldBlocks.unshift(prev);
+            newText = prev.text + newText;
+            offset += prev.text.length;
+          }
+          if (next = access.getBlock(last(oldBlocks).next)) {
+            oldBlocks.push(next);
+            newText += next.text;
+          }
+          newBlocks = access.parseBlocks(newText);
+          if ((!prev || prev.text === newBlocks[0].text) && (!next || next.text === last(newBlocks).text)) {
+            break;
+          }
+        }
+      }
+      if (!newBlocks) {
+        newBlocks = access.parseBlocks(newText);
+      }
+      while (oldBlocks.length && newBlocks.length && oldBlocks[0].text === newBlocks[0].text) {
+        offset -= oldBlocks[0].text.length;
+        prev = oldBlocks[0]._id;
+        oldBlocks.shift();
+        newBlocks.shift();
+      }
+      while (oldBlocks.length && newBlocks.length && last(oldBlocks).text === last(newBlocks).text) {
+        oldBlocks.pop();
+        newBlocks.pop();
+      }
+      return {
+        oldBlocks: oldBlocks,
+        newBlocks: newBlocks,
+        offset: offset,
+        prev: prev
+      };
+    };
     copyBlock = function(block) {
       var bl, k, v;
       if (!block) {
@@ -1778,6 +1841,24 @@
           };
         })(this));
         return errs.errors();
+      };
+
+      DataStore.prototype.blockOverlapsForReplacement = function(start, end, text) {
+        var blocks, cur, endBlock, fullText, offset, startBlock;
+        startBlock = this.blockForOffset(start);
+        endBlock = this.blockForOffset(end);
+        blocks = [this.getBlock(startBlock)];
+        cur = startBlock;
+        while (cur !== endBlock && cur.next) {
+          block.push(cur = this.getBlock(cur.next));
+        }
+        fullText = blockText(blocks);
+        offset = this.offsetForBlock(blocks[0]);
+        return {
+          blocks: blocks,
+          blockText: fullText,
+          newText: fullText.substring(0, start - offset) + text + (fullText.substring(end - offset))
+        };
       };
 
       return DataStore;
@@ -2319,7 +2400,8 @@
       afterMethod: afterMethod,
       aroundMethod: aroundMethod,
       changeAdvice: changeAdvice,
-      treeToArray: treeToArray
+      treeToArray: treeToArray,
+      computeNewStructure: computeNewStructure
     };
   });
 

@@ -548,7 +548,7 @@
             nameBoiler: nameBoiler != null ? nameBoiler : '',
             nameText: name ? name.text.substring(nameBoiler.length, name.text.length - 1) : '',
             name: name ? name.text.substring(name.info) : '',
-            afterName: name ? this.renderOrg(opts, cleanOrg(block.text.substring(name.end(), source.offset))) : '',
+            afterName: name ? this.renderOrg(opts, cleanOrg(block.text.substring(name.end(), source.offset)), true) : '',
             inter: results ? block.text.substring(source.end(), results != null ? results.offset : void 0) : block.text.substring(source.end()),
             results: !results ? '' : hideResults ? "<span class='hidden'>" + (escapeHtml(results.text)) + "</span>" : resultsArea(opts, results.text),
             beforeResults: block.text.substring(0, (ref3 = results != null ? results.offset : void 0) != null ? ref3 : source.end())
@@ -561,7 +561,7 @@
       },
       renderOrgBlock: function(opts, block, prefix, replace) {
         var text;
-        text = "<span id='" + block._id + "'>" + (this.renderOrg(opts, blockOrg(opts.data, block))) + "</span>";
+        text = "<span id='" + block._id + "'>" + (this.renderOrg(opts, blockOrg(opts.data, block), true)) + "</span>";
         maybeReplaceHtml(block, prefix, replace);
         return [text, block.next];
       },
@@ -600,7 +600,7 @@
         }
       },
       renderOrgChunk: function(opts, org) {
-        return "<span class='org-chunk'>" + (this.renderOrg(opts, org)) + "</span>";
+        return "<span class='org-chunk'>" + (this.renderOrg(opts, org, true)) + "</span>";
       },
       renderExample: function(opts, org) {
         var end, key, start, text;
@@ -618,32 +618,22 @@
           return "<span class='hidden'>" + (escapeHtml(start)) + "</span><span class='example'>" + (escapeHtml(text)) + "</span><span class='hidden'>" + (escapeHtml(end)) + "</span>";
         }
       },
-      renderOrg: function(opts, org) {
-        var child, text;
-        if (org instanceof SimpleMarkup) {
-          return this.renderSimple(opts, org);
-        } else if (org instanceof Link) {
-          return this.renderLink(opts, org);
-        } else if (org instanceof Fragment) {
-          return ((function() {
-            var j, len, ref, results1;
-            ref = org.children;
-            results1 = [];
-            for (j = 0, len = ref.length; j < len; j++) {
-              child = ref[j];
-              results1.push(this.renderOrg(opts, child));
-            }
-            return results1;
-          }).call(this)).join('');
-        } else if (org instanceof ListItem) {
-          return this.renderList(opts, org);
-        } else if (org instanceof Drawer) {
-          return this.renderDrawer(opts, org);
-        } else if (org instanceof Example) {
-          return this.renderExample(opts, org);
-        } else {
-          text = insertBreaks(org.allText());
+      renderOrg: function(opts, org, start) {
+        var child, i, text;
+        text = org instanceof SimpleMarkup ? this.renderSimple(opts, org) : org instanceof Link ? this.renderLink(opts, org) : org instanceof Fragment ? ((function() {
+          var j, len, ref, results1;
+          ref = org.children;
+          results1 = [];
+          for (i = j = 0, len = ref.length; j < len; i = ++j) {
+            child = ref[i];
+            results1.push(this.renderOrg(opts, child));
+          }
+          return results1;
+        }).call(this)).join('') : org instanceof ListItem ? this.renderList(opts, org) : org instanceof Drawer ? this.renderDrawer(opts, org) : org instanceof Example ? this.renderExample(opts, org) : insertBreaks(org.allText());
+        if (start) {
           return prefixBreak(text);
+        } else {
+          return text;
         }
       },
       renderHtml: function(opts, org) {
@@ -707,7 +697,7 @@
         ref = org.children;
         for (j = 0, len = ref.length; j < len; j++) {
           c = ref[j];
-          guts += this.renderOrg(opts, c, true);
+          guts += this.renderOrg(opts, c);
         }
         text = (function() {
           switch (org.markupType) {
@@ -939,9 +929,9 @@
     resultsArea = function(opts, results) {
       var firstResult;
       if (!(firstResult = results.indexOf('\n') + 1) || results[firstResult] === ':') {
-        return "<span class='hidden'>" + (goodText(results)) + "</span><pre data-noncontent>" + (results.substring(firstResult).replace(/^(: )(.*\n)/gm, function(m, g1, g2) {
+        return "<span class='hidden'>" + (goodText(results)) + "</span><span class='results-verbatim' data-noncontent>" + (results.substring(firstResult).replace(/^(: )(.*\n)/gm, function(m, g1, g2) {
           return goodHtml(g2);
-        })) + "</pre>";
+        })) + "</span>";
       } else {
         return "<span class='hidden'>" + (results.substring(0, firstResult)) + "</span>" + (fancyMode.renderOrg(opts, cleanOrg(results.substring(firstResult))));
       }
@@ -957,7 +947,8 @@
       html: 'markup',
       coffee: 'coffeescript',
       cs: 'coffeescript',
-      js: 'javascript'
+      js: 'javascript',
+      lisp: 'scheme'
     };
     prismHighlight = function(lang, text) {
       var l;

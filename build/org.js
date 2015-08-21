@@ -29,7 +29,7 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['lib/lazy'], function(Lazy) {
-    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, declRE, drawerRE, endRE, exampleEndRE, exampleStartRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseDrawer, parseExample, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
+    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, UnknownDeclaration, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, declRE, drawerRE, endRE, exampleEndRE, exampleStartRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseDrawer, parseExample, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, parseUnknown, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
     _ = Lazy._;
     todoKeywords = ['TODO', 'DONE'];
     declRE = /^#\+.*$/m;
@@ -93,7 +93,7 @@ misrepresented as being the original software.
       } else {
         return checkMatch(txt, exampleStartRE, 'exampleStart') || checkMatch(txt, exampleEndRE, 'exampleEnd') || checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, attrHtmlRE, 'attr') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
           return "headline-" + (m[HL_LEVEL].trim().length);
-        }) || checkMatch(txt, listRE, 'list') || checkMatch(txt, htmlStartRE, 'htmlStart') || checkMatch(txt, htmlEndRE, 'htmlEnd');
+        }) || checkMatch(txt, listRE, 'list') || checkMatch(txt, htmlStartRE, 'htmlStart') || checkMatch(txt, htmlEndRE, 'htmlEnd') || checkMatch(txt, declRE, 'unknownDecl');
       }
     };
     checkMatch = function(txt, pat, result) {
@@ -1186,6 +1186,27 @@ misrepresented as being the original software.
       return AttrHtml;
 
     })(Keyword);
+    UnknownDeclaration = (function(superClass) {
+      extend(UnknownDeclaration, superClass);
+
+      function UnknownDeclaration(text1, offset1) {
+        this.text = text1;
+        this.offset = offset1;
+      }
+
+      UnknownDeclaration.prototype.type = 'unknown';
+
+      UnknownDeclaration.prototype.jsonDef = function() {
+        return {
+          type: this.type,
+          text: this.text,
+          offset: this.offset
+        };
+      };
+
+      return UnknownDeclaration;
+
+    })(Meat);
     nextOrgNode = function(node) {
       var up;
       up = false;
@@ -1333,6 +1354,9 @@ misrepresented as being the original software.
             if (end = newRest.match(endRE)) {
               return parseDrawer(line, drawer[DRAWER_NAME], offset, end, newRest);
             }
+          });
+          this.checkPat(declRE, function(line, newRest) {
+            return parseUnknown(line, offset, newRest);
           });
         }
         if (this.result) {
@@ -1486,6 +1510,9 @@ misrepresented as being the original software.
       }
       return [new ListItem(text, offset, level, check === 'X' || (check === ' ' ? false : null), contentOffset, children), rest];
     };
+    parseUnknown = function(line, offset, rest) {
+      return [new UnknownDeclaration(line, offset), rest];
+    };
     listContentOffset = function(match) {
       var ref, ref1;
       return match[LIST_LEVEL].length + match[LIST_BOILERPLATE].length + ((ref = (ref1 = match[LIST_CHECK]) != null ? ref1.length : void 0) != null ? ref : 0);
@@ -1506,6 +1533,7 @@ misrepresented as being the original software.
       ListItem: ListItem,
       SimpleMarkup: SimpleMarkup,
       Link: Link,
+      UnknownDeclaration: UnknownDeclaration,
       Drawer: Drawer,
       Example: Example,
       drawerRE: drawerRE,

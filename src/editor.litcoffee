@@ -284,6 +284,8 @@ Events:
               @selectDocRange pos
         getCopy: (id)-> copy @options.getBlock id
         getText: -> @options.getText()
+        blockForCaret: -> @blockForNode @domCursorForCaret().node
+        blockForNode: (node)-> @options.getBlock @options.idForNode node
         blockNodeForNode: (node)-> @options.nodeForId @options.idForNode node
         blockTextForNode: (node)->
           parent = $(@blockNodeForNode(node))[0]
@@ -450,44 +452,8 @@ editBlocks: at this point, just place the cursor after the newContent, later
 on it can select if start and end are different
 
         editBlocks: (blocks, start, length, newContent, select)->
-          pos = @docOffsetForBlockOffset blocks[0]._id, start + newContent.length
-          oldText = blockText blocks
-          newText = oldText.substring(0, start) + newContent + oldText.substring start + length
-          {oldBlocks, newBlocks, offset, prev} = @changeStructure blocks, newText
-          if oldBlocks.length || newBlocks.length
-            oldFirst = oldBlocks[0]?._id
-            if !@options.edit prev, oldBlocks.slice(), newBlocks.slice() then return
+          if pos = @options.replaceContent blocks, start, length, newContent
             @domCursorForDocOffset(pos).moveCaret()
-
-`changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
-
-        changeStructure: (oldBlocks, newText)->
-          prev = oldBlocks[0].prev
-          oldBlocks = oldBlocks.slice()
-          oldText = null
-          offset = 0
-          while oldText != newText && (oldBlocks[0].prev || last(oldBlocks).next)
-            oldText = newText
-            if prev = @options.getBlock oldBlocks[0].prev
-              oldBlocks.unshift prev
-              newText = prev.text + newText
-              offset += prev.text.length
-            if next = @options.getBlock last(oldBlocks).next
-              oldBlocks.push next
-              newText += next.text
-            newBlocks = @options.parseBlocks newText
-            if (!prev || prev.text == newBlocks[0].text) && (!next || next.text == last(newBlocks).text)
-              break
-          if !newBlocks then newBlocks = @options.parseBlocks newText
-          while oldBlocks.length && newBlocks.length && oldBlocks[0].text == newBlocks[0].text
-            offset -= oldBlocks[0].text.length
-            prev = oldBlocks[0]._id
-            oldBlocks.shift()
-            newBlocks.shift()
-          while oldBlocks.length && newBlocks.length && last(oldBlocks).text == last(newBlocks).text
-            oldBlocks.pop()
-            newBlocks.pop()
-          oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
         bind: ->
           @bindDragAndDrop()
           @bindClipboard()
@@ -821,6 +787,47 @@ Main code
 
         replaceBlocks: (prev, oldBlocks, newBlocks)-> @change @changesFor prev, oldBlocks, newBlocks
 
+
+`changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
+
+        changeStructure: (oldBlocks, newText)->
+          prev = oldBlocks[0].prev
+          oldBlocks = oldBlocks.slice()
+          oldText = null
+          offset = 0
+          while oldText != newText && (oldBlocks[0].prev || last(oldBlocks).next)
+            oldText = newText
+            if prev = @getBlock oldBlocks[0].prev
+              oldBlocks.unshift prev
+              newText = prev.text + newText
+              offset += prev.text.length
+            if next = @getBlock last(oldBlocks).next
+              oldBlocks.push next
+              newText += next.text
+            newBlocks = @parseBlocks newText
+            if (!prev || prev.text == newBlocks[0].text) && (!next || next.text == last(newBlocks).text)
+              break
+          if !newBlocks then newBlocks = @parseBlocks newText
+          while oldBlocks.length && newBlocks.length && oldBlocks[0].text == newBlocks[0].text
+            offset -= oldBlocks[0].text.length
+            prev = oldBlocks[0]._id
+            oldBlocks.shift()
+            newBlocks.shift()
+          while oldBlocks.length && newBlocks.length && last(oldBlocks).text == last(newBlocks).text
+            oldBlocks.pop()
+            newBlocks.pop()
+          oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
+        replaceContent: (blocks, start, length, newContent)->
+          pos = @editor.docOffsetForBlockOffset blocks[0]._id, start + newContent.length
+          oldText = blockText blocks
+          newText = oldText.substring(0, start) + newContent + oldText.substring start + length
+          #{oldBlocks, newBlocks, offset, prev} = @changeStructure blocks, newText
+          if @makeStructureChange computeNewStructure this, blocks, newText
+            pos
+        makeStructureChange: ({oldBlocks, newBlocks, offset, prev})->
+          if oldBlocks.length || newBlocks.length
+            oldFirst = oldBlocks[0]?._id
+            @edit prev, oldBlocks.slice(), newBlocks.slice()
         changesFor: (first, oldBlocks, newBlocks)->
           newBlockMap = {}
           removes = {}
@@ -829,7 +836,6 @@ Main code
           @patchNewBlocks first, oldBlocks, newBlocks, changes, newBlockMap, removes, prev
           @removeDuplicateChanges newBlockMap
           changes
-
         computeRemovesAndNewBlockIds: (oldBlocks, newBlocks, newBlockMap, removes)->
           for oldBlock in oldBlocks[newBlocks.length...oldBlocks.length]
             removes[oldBlock._id] = oldBlock
@@ -962,6 +968,35 @@ Main code
             result += html
           result
         getText: -> @data.getText()
+
+      computeNewStructure = (access, oldBlocks, newText)->
+        prev = oldBlocks[0]?.prev ? 0
+        oldBlocks = oldBlocks.slice()
+        oldText = null
+        offset = 0
+        if oldBlocks.length
+          while oldText != newText && (oldBlocks[0].prev || last(oldBlocks).next)
+            oldText = newText
+            if prev = access.getBlock oldBlocks[0].prev
+              oldBlocks.unshift prev
+              newText = prev.text + newText
+              offset += prev.text.length
+            if next = access.getBlock last(oldBlocks).next
+              oldBlocks.push next
+              newText += next.text
+            newBlocks = access.parseBlocks newText
+            if (!prev || prev.text == newBlocks[0].text) && (!next || next.text == last(newBlocks).text)
+              break
+        if !newBlocks then newBlocks = access.parseBlocks newText
+        while oldBlocks.length && newBlocks.length && oldBlocks[0].text == newBlocks[0].text
+          offset -= oldBlocks[0].text.length
+          prev = oldBlocks[0]._id
+          oldBlocks.shift()
+          newBlocks.shift()
+        while oldBlocks.length && newBlocks.length && last(oldBlocks).text == last(newBlocks).text
+          oldBlocks.pop()
+          newBlocks.pop()
+        oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
 
       copyBlock = (block)->
         if !block then null
@@ -1255,7 +1290,19 @@ Data model -- override/reset these if you want to change how the store accesses 
               errs.badId block._id, "next"
             offset += block.text.length
           errs.errors()
-
+        blockOverlapsForReplacement: (start, end, text)->
+          startBlock = @blockForOffset start
+          endBlock = @blockForOffset end
+          blocks = [@getBlock startBlock]
+          cur = startBlock
+          while cur != endBlock && cur.next
+            block.push cur = @getBlock cur.next
+          fullText = blockText blocks
+          offset = @offsetForBlock blocks[0]
+          blocks: blocks
+          blockText: fullText
+          newText: fullText.substring(0, start - offset) + text + (fullText.substring end - offset)
+          
       class BlockErrors
         constructor: ->
           @order = []
@@ -1576,4 +1623,5 @@ Exports
         aroundMethod
         changeAdvice
         treeToArray
+        computeNewStructure
       }

@@ -1,6 +1,6 @@
 Code for local-mode.  This will not be loaded under meteor.
 
-    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs)->
+    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, HamtData)->
 
       {
         OrgData
@@ -38,10 +38,15 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         addEmacsDataFilter
       } = Emacs
+      {
+        HamtOrgData
+      } = HamtData
 
 
       #useP2P = true
       useP2P = false
+      #useHamt = true
+      useHamt = false
       peer = null
       Leisure.configureP2P = ->
 
@@ -65,6 +70,8 @@ Code for local-mode.  This will not be loaded under meteor.
           configurePeerButttons()
           window.PEER = peer = new Peer
           window.DATA = data = peer.data
+        else if useHamt
+          window.DATA = data = new HamtOrgData()
         else window.DATA = data = new OrgData()
         addSearchDataFilter data
         data.processDefaults Defaults
@@ -127,8 +134,6 @@ Code for local-mode.  This will not be loaded under meteor.
           #+BEGIN_SRC lisp :results dynamic
           (+ 3 4)
           #+END_SRC
-          #+RESULTS:
-          : 7
            ** sub 1
           */duh/*
           :properties:
@@ -166,4 +171,4 @@ Code for local-mode.  This will not be loaded under meteor.
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./modes', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee', 'cs!./search.litcoffee', 'cs!./emacs.litcoffee'], init
+      require ['jqueryui', 'cs!./editorSupport.litcoffee', 'cs!./modes', 'cs!./diag.litcoffee', 'cs!./p2p.litcoffee', 'cs!./tests.litcoffee', 'cs!./lib/webrtc.litcoffee', 'text!../src/defaults.lorg', 'cs!./ui.litcoffee', 'cs!./export.litcoffee', 'cs!./search.litcoffee', 'cs!./emacs.litcoffee', 'cs!./hamtData.litcoffee'], init

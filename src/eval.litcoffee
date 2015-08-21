@@ -164,6 +164,7 @@ Evaulation support for Leisure
         js: jsEnv
         lisp: lsEnv
         cs: csEnv
+        coffee: csEnv
         coffeescript: csEnv
 
       localEval = do (html)-> (x)-> eval x
@@ -191,4 +192,5 @@ Evaulation support for Leisure
         Html
         escapeHtml
         blockVars
+        knownLanguages
       }

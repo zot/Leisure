@@ -3,71 +3,16 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'sockjs'], function(jq, immutable, Peer, cycle, Editor, Support, SockJS) {
-    var DataStore, Map, MasterConnection, OrgData, P2POrgData, PeerConnection, SlaveConnection, XConnection, XMC, XPeer, XSC, getFirst, preserveSelection, setFirst;
+  define(['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'sockjs', 'cs!./hamtData.litcoffee'], function(jq, immutable, Peer, cycle, Editor, Support, SockJS, HamtData) {
+    var DataStore, HamtOrgData, Map, MasterConnection, OrgData, PeerConnection, SlaveConnection, XConnection, XMC, XPeer, XSC, preserveSelection;
     Map = (window.Immutable = immutable).Map;
     PeerConnection = Peer.PeerConnection, MasterConnection = Peer.MasterConnection, SlaveConnection = Peer.SlaveConnection;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection;
     OrgData = Support.OrgData;
-    P2POrgData = (function(superClass) {
-      extend(P2POrgData, superClass);
-
-      function P2POrgData(peer1) {
-        this.peer = peer1;
-        P2POrgData.__super__.constructor.call(this);
-        this.blocks = new Map();
-      }
-
-      P2POrgData.prototype.getFirst = function() {
-        return getFirst(this.blocks);
-      };
-
-      P2POrgData.prototype.setFirst = function(firstId) {
-        return this.blocks = setFirst(this.blocks, firstId);
-      };
-
-      P2POrgData.prototype.getBlock = function(id, changes) {
-        var ref;
-        if (typeof id !== 'string') {
-          return id;
-        } else {
-          return (ref = changes != null ? changes.sets[id] : void 0) != null ? ref : this.blocks.get(id);
-        }
-      };
-
-      P2POrgData.prototype.setBlock = function(id, block) {
-        this.runFilters(this.getBlock(id), block);
-        this.blocks = this.blocks.set(id, block);
-        return this.indexBlock(block);
-      };
-
-      P2POrgData.prototype.deleteBlock = function(id) {
-        this.runFilters(this.getBlock(id), null);
-        this.blocks = this.blocks["delete"](id);
-        return this.unindexBlock(id);
-      };
-
-      P2POrgData.prototype.load = function(first, newBlocks) {
-        return P2POrgData.__super__.load.call(this, first, setFirst(new Map(newBlocks), first), {
-          sets: newBlocks,
-          oldBlocks: {},
-          first: first
-        });
-      };
-
-      P2POrgData.prototype.makeChange = function(change) {
-        var ch;
-        ch = P2POrgData.__super__.makeChange.call(this, change);
-        ch.origin = change.origin;
-        return ch;
-      };
-
-      return P2POrgData;
-
-    })(OrgData);
+    HamtOrgData = HamtData.HamtOrgData;
     Peer = (function() {
       function Peer() {
-        this.data = new P2POrgData(this);
+        this.data = new HamtOrgData();
         this.data.on('change', (function(_this) {
           return function(change) {
             return _this.changed(change);
@@ -294,12 +239,6 @@
       return XPeer;
 
     })();
-    getFirst = function(blocks) {
-      return blocks.get('FIRST');
-    };
-    setFirst = function(blocks, firstId) {
-      return blocks.set('FIRST', firstId);
-    };
     XConnection = (function() {
       function XConnection(peer1, errorFunc1) {
         this.peer = peer1;

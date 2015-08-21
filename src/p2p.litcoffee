@@ -1,6 +1,6 @@
 Peer-to-peer connection
 
-    define ['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'sockjs'], (jq, immutable, Peer, cycle, Editor, Support, SockJS)->
+    define ['jquery', 'immutable', 'cs!./lib/webrtc.litcoffee', 'lib/cycle', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'sockjs', 'cs!./hamtData.litcoffee'], (jq, immutable, Peer, cycle, Editor, Support, SockJS, HamtData)->
       {
         Map
       } = window.Immutable = immutable
@@ -16,39 +16,13 @@ Peer-to-peer connection
       {
         OrgData
       } = Support
-
-`P2POrgData` uses a HAMT for blocks instead of a regular JS object.  This is to make
-it easier to handle merges.
-
-      class P2POrgData extends OrgData
-        constructor: (@peer)->
-          super()
-          @blocks = new Map()
-        getFirst: -> getFirst @blocks
-        setFirst: (firstId)-> @blocks = setFirst @blocks, firstId
-        getBlock: (id, changes)->
-          if typeof id != 'string' then id else changes?.sets[id] ? @blocks.get id
-        setBlock: (id, block)->
-          @runFilters @getBlock(id), block
-          @blocks = @blocks.set id, block
-          @indexBlock block
-        deleteBlock: (id)->
-          @runFilters @getBlock(id), null
-          @blocks = @blocks.delete id
-          @unindexBlock id
-        load: (first, newBlocks)->
-          super first, setFirst((new Map newBlocks), first),
-            sets: newBlocks
-            oldBlocks: {}
-            first: first
-        makeChange: (change)->
-          ch = super change
-          ch.origin = change.origin
-          ch
+      {
+        HamtOrgData
+      } = HamtData
 
       class Peer
         constructor: ->
-          @data = new P2POrgData this
+          @data = new HamtOrgData()
           @data.on 'change', (change)=> @changed change
         changed: (change)-> console.log "PEER CHANGE: #{change}"
         connect: (url)->
@@ -150,9 +124,6 @@ it easier to handle merges.
           else false
         createConnectionToMaster: ({offer, answerReady, connected, error})->
           @connection = new SC this, offer, answerReady, connected, error
-
-      getFirst = (blocks)-> blocks.get 'FIRST'
-      setFirst = (blocks, firstId)-> blocks.set 'FIRST', firstId
 
       class XConnection
         constructor: (@peer, @errorFunc)->

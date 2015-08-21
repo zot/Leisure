@@ -250,6 +250,7 @@
       js: jsEnv,
       lisp: lsEnv,
       cs: csEnv,
+      coffee: csEnv,
       coffeescript: csEnv
     };
     localEval = (function(html) {
@@ -289,7 +290,8 @@
       html: html,
       Html: Html,
       escapeHtml: escapeHtml,
-      blockVars: blockVars
+      blockVars: blockVars,
+      knownLanguages: knownLanguages
     };
   });
 

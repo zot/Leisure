@@ -2172,6 +2172,10 @@ table[data-org-headline='1'] {
     font-weight: bold;
     font-style: italic;
 }
+.results-verbatim {
+    display: inline-block;
+    white-space: pre;
+}
 .loader {
     text-align: center;
     height: 100px;
