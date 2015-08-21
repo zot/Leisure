@@ -2,10 +2,11 @@
 (function() {
   var slice = [].slice;
 
-  define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./eval.litcoffee'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval) {
-    var advise, aroundMethod, blockRangeFor, c, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
+  define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./eval.litcoffee', 'cs!./advice.litcoffee'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
+    var aroundMethod, blockRangeFor, c, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
     mergeExports = Exports.mergeExports;
-    findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, aroundMethod = Editor.aroundMethod, advise = Editor.advise, changeAdvice = Editor.changeAdvice, computeNewStructure = Editor.computeNewStructure;
+    findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
+    aroundMethod = Advice.aroundMethod, changeAdvice = Advice.changeAdvice;
     showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr;
     getDocumentParams = EditorSupport.getDocumentParams;
     clearDiag = Diag.clearDiag, diagMessage = Diag.diagMessage;

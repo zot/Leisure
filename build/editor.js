@@ -4,10 +4,11 @@
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable'], function(jq, DOMCursor, Fingertree, Immutable) {
-    var Advice, BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, advise, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, unadvise, wrapDiag;
+  define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable', 'cs!./advice.litcoffee'], function(jq, DOMCursor, Fingertree, Immutable, Advice) {
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, aroundMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
+    beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, aroundMethod = Advice.aroundMethod, changeAdvice = Advice.changeAdvice;
     maxLastKeys = 4;
     BS = 8;
     ENTER = 13;
@@ -2161,84 +2162,6 @@
         });
       }
     };
-    advise = function(object, method, name, def) {
-      var advice, meth, ref, results1;
-      if (typeof method === 'object') {
-        results1 = [];
-        for (meth in method) {
-          advice = method[meth];
-          results1.push((function() {
-            var results2;
-            results2 = [];
-            for (name in advice) {
-              def = advice[name];
-              results2.push(advise(object, meth, name, def));
-            }
-            return results2;
-          })());
-        }
-        return results1;
-      } else {
-        return ((ref = object.ADVICE) != null ? ref : new Advice(object)).advise(method, name, def);
-      }
-    };
-    unadvise = function(object, method, name) {
-      var advice, def, meth, ref, results1;
-      if (typeof method === 'object') {
-        results1 = [];
-        for (meth in method) {
-          advice = method[meth];
-          results1.push((function() {
-            var results2;
-            results2 = [];
-            for (name in advice) {
-              def = advice[name];
-              results2.push(unadvise(object, meth, name));
-            }
-            return results2;
-          })());
-        }
-        return results1;
-      } else {
-        return (ref = object.ADVICE) != null ? ref.unadvise(method, name) : void 0;
-      }
-    };
-    beforeMethod = function(def) {
-      return function(parent) {
-        return function() {
-          var args;
-          args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-          def.apply(this, args);
-          return parent.apply(this, args);
-        };
-      };
-    };
-    afterMethod = function(def) {
-      return function(parent) {
-        return function() {
-          var args, r;
-          args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-          r = parent.apply(this, args);
-          def.apply(this, args);
-          return r;
-        };
-      };
-    };
-    aroundMethod = function(def) {
-      return function(parent) {
-        return function() {
-          var args;
-          args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-          return (def.call(this, ((function(_this) {
-            return function() {
-              var newArgs;
-              newArgs = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-              return parent.apply(_this, newArgs);
-            };
-          })(this)))).apply(this, args);
-        };
-      };
-    };
     wrapDiag = function(parent) {
       return function() {
         var args, r;
@@ -2248,134 +2171,6 @@
         return r;
       };
     };
-    changeAdvice = function(object, flag, advice) {
-      if (flag) {
-        return advise(object, advice);
-      } else {
-        return unadvise(object, advice);
-      }
-    };
-    Advice = (function() {
-      function Advice(target1, disabled) {
-        this.target = target1;
-        this.originals = {};
-        this.adviceOrder = {};
-        this.advice = {};
-        if (!disabled) {
-          this.enable();
-        }
-      }
-
-      Advice.prototype.enable = function(method) {
-        var j, len, ref;
-        if (!this.enabled) {
-          if (method) {
-            this.installAdviceHandler(method);
-          } else {
-            if (!this.target.ADVICE) {
-              this.target.ADVICE = this;
-            } else if (this.target.ADVICE !== this) {
-              throw new Error("Attempt to install advice on advised object");
-            }
-            ref = this.advice;
-            for (j = 0, len = ref.length; j < len; j++) {
-              method = ref[j];
-              this.installAdviceHandler(method);
-            }
-          }
-          this.enabled = true;
-          return this;
-        }
-      };
-
-      Advice.prototype.disable = function(method) {
-        var j, len, ref;
-        if (this.enabled) {
-          if (method) {
-            this.target[method] = this.originals[method];
-            delete this.originals[method];
-            if (_.isEmpty(this.originals)) {
-              this.disable();
-            }
-          } else {
-            ref = this.advice;
-            for (j = 0, len = ref.length; j < len; j++) {
-              method = ref[j];
-              this.target[method] = this.originals[method];
-            }
-            this.originals = {};
-            delete this.target.ADVICE;
-            this.enabled = false;
-          }
-          return this;
-        }
-      };
-
-      Advice.prototype.advise = function(method, name, def) {
-        var key;
-        key = method + "-" + name;
-        this.advice[key] = def;
-        if (!this.adviceOrder[method]) {
-          this.adviceOrder[method] = [];
-        }
-        this.adviceOrder[method].push(key);
-        if (this.enabled) {
-          this.installAdviceHandler(method);
-        }
-        return this;
-      };
-
-      Advice.prototype.unadvise = function(method, name) {
-        var j, key, len, ref, ref1, ref2;
-        if (!name) {
-          ref1 = (ref = this.adviceOrder[method]) != null ? ref : [];
-          for (j = 0, len = ref1.length; j < len; j++) {
-            name = ref1[j];
-            this.removeAdvice(method, name);
-          }
-        } else {
-          key = method + "-" + name;
-          if (((ref2 = this.adviceOrder[method]) != null ? ref2.length : void 0) === 1) {
-            this.disable(method);
-            delete this.adviceOrder[method];
-          } else {
-            _.remove(this.adviceOrder, function(x) {
-              return x === key;
-            });
-          }
-          delete this.advice[key];
-        }
-        return this;
-      };
-
-      Advice.prototype.installAdviceHandler = function(method) {
-        if (!this.originals[method]) {
-          this.originals[method] = this.target[method];
-          return this.target[method] = (function(_this) {
-            return function() {
-              var args;
-              args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-              return _this.callAdvice(_this.adviceOrder[method].length - 1, _this.adviceOrder[method], method, args);
-            };
-          })(this);
-        }
-      };
-
-      Advice.prototype.callAdvice = function(index, order, method, args) {
-        var func;
-        func = index < 0 ? this.originals[method] : this.advice[order[index]]((function(_this) {
-          return function() {
-            var args;
-            args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-            return _this.callAdvice(index - 1, order, method, args);
-          };
-        })(this));
-        return func.apply(this.target, args);
-      };
-
-      return Advice;
-
-    })();
     return {
       LeisureEditCore: LeisureEditCore,
       Observable: Observable,
@@ -2394,12 +2189,6 @@
       findEditor: findEditor,
       copyBlock: copyBlock,
       preserveSelection: preserveSelection,
-      advise: advise,
-      unadvise: unadvise,
-      beforeMethod: beforeMethod,
-      afterMethod: afterMethod,
-      aroundMethod: aroundMethod,
-      changeAdvice: changeAdvice,
       treeToArray: treeToArray,
       computeNewStructure: computeNewStructure
     };

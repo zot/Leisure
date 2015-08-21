@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism)->
+    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice)->
 
       {
         defaultEnv
@@ -39,11 +39,13 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         findEditor
         copyBlock
         preserveSelection
+      } = Editor
+      {
         changeAdvice
         afterMethod
         beforeMethod
         aroundMethod
-      } = Editor
+      } = Advice
       {
         addView
         removeView
@@ -375,7 +377,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
             false
           opts = this
           changeAdvice ed, true,
-            enter: options: aroundMethod (parent)-> (e)->
+            enter: options: (parent)-> (e)->
               opts.mode.enter opts, parent, e
             handleDelete: options: aroundMethod (parent)-> (e, sel, forward)->
               opts.mode.handleDelete opts, parent, e, sel, forward

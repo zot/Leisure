@@ -1,6 +1,6 @@
 Emacs connection
 
-    define ['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./eval.litcoffee'], (_, Exports, UI, Editor, EditorSupport, Diag, Eval)->
+    define ['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./eval.litcoffee', 'cs!./advice.litcoffee'], (_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice)->
 
       {
         mergeExports
@@ -8,11 +8,12 @@ Emacs connection
       {
         findEditor
         preserveSelection
-        aroundMethod
-        advise
-        changeAdvice
         computeNewStructure
       } = Editor
+      {
+        aroundMethod
+        changeAdvice
+      } = Advice
       {
         showMessage
         pushPendingInitialzation

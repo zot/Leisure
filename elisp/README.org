@@ -1,4 +1,4 @@
-* What is Leisure?
+* What is Leisure? (view this [[http://textcraft.org/newLeisure/?load=https://raw.githubusercontent.com/zot/Leisure/master/elisp/README.org][document]], [[https://raw.githubusercontent.com/zot/Leisure/master/elisp/README.org][its source]])
 Simply put, Leisure is a document-oriented, exploratory computing
 environment for what we call *[[https://en.wikipedia.org/wiki/Illuminated_manuscript][Illuminated Programming]]*.  Leisure
 documents are:

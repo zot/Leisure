@@ -135,13 +135,19 @@ Code
 ====
 Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEditCore).
 
-    define ['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable'], (jq, DOMCursor, Fingertree, Immutable)->
+    define ['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable', 'cs!./advice.litcoffee'], (jq, DOMCursor, Fingertree, Immutable, Advice)->
       {
         selectRange,
       } = DOMCursor
       {
         Set
       } = Immutable
+      {
+        beforeMethod
+        afterMethod
+        aroundMethod
+        changeAdvice
+      } = Advice
       maxLastKeys = 4
       BS = 8
       ENTER = 13
@@ -1497,103 +1503,10 @@ selection, regardless of the current value of LeisureEditCore.editing.
           scrollTop: 0
           scrollLeft: 0
 
-<a id='Method_Advice'></a>
-Method Advice
-
-      advise = (object, method, name, def)->
-        if typeof method == 'object'
-          for meth, advice of method
-            for name, def of advice
-              advise object, meth, name, def
-        else (object.ADVICE ? new Advice object).advise method, name, def
-
-      unadvise = (object, method, name)->
-        if typeof method == 'object'
-          for meth, advice of method
-            for name, def of advice
-              unadvise object, meth, name
-        else object.ADVICE?.unadvise method, name
-
-      beforeMethod = (def)->
-        (parent)-> (args...)->
-          def.apply this, args
-          parent.apply this, args
-
-      afterMethod = (def)->
-        (parent)-> (args...)->
-          r = parent.apply this, args
-          def.apply this, args
-          r
-
-      aroundMethod = (def)->
-        (parent)-> (args...)->
-          (def.call this, ((newArgs...)=> parent.apply this, newArgs)).apply this, args
-
       wrapDiag = (parent)-> (args...)->
         r = parent.apply this, args
         @diag()
         r
-
-      changeAdvice = (object, flag, advice)->
-        if flag then advise object, advice
-        else unadvise object, advice
-
-      class Advice
-        constructor: (@target, disabled)->
-          @originals = {}
-          @adviceOrder = {}
-          @advice = {}
-          if !disabled then @enable()
-        enable: (method)-> if !@enabled
-          if method then @installAdviceHandler method
-          else
-             if !@target.ADVICE then @target.ADVICE = this
-             else if @target.ADVICE != this
-               throw new Error "Attempt to install advice on advised object"
-             for method in @advice
-               @installAdviceHandler method
-          @enabled = true
-          this
-        disable: (method)-> if @enabled
-          if method
-            @target[method] = @originals[method]
-            delete @originals[method]
-            if _.isEmpty @originals then @disable()
-          else
-            for method in @advice
-              @target[method] = @originals[method]
-            @originals = {}
-            delete @target.ADVICE
-            @enabled = false
-          this
-        advise: (method, name, def)->
-          key = "#{method}-#{name}"
-          @advice[key] = def
-          if !@adviceOrder[method] then @adviceOrder[method] = []
-          @adviceOrder[method].push key
-          if @enabled then @installAdviceHandler method
-          this
-        unadvise: (method, name)->
-          if !name then for name in @adviceOrder[method] ? []
-            @removeAdvice method, name
-          else
-            key = "#{method}-#{name}"
-            if @adviceOrder[method]?.length == 1
-              @disable method
-              delete @adviceOrder[method]
-            else _.remove @adviceOrder, (x)-> x == key
-            delete @advice[key]
-          this
-        installAdviceHandler: (method)->
-          if !@originals[method]
-            @originals[method] = @target[method]
-            @target[method] = (args...)=>
-              @callAdvice @adviceOrder[method].length - 1, @adviceOrder[method], method, args
-        callAdvice: (index, order, method, args)->
-          func = if index < 0 then @originals[method]
-          else @advice[order[index]]((args...)=>
-            @callAdvice index - 1, order, method, args)
-          func.apply @target, args
 
 Exports
 =======
@@ -1616,12 +1529,6 @@ Exports
         findEditor
         copyBlock
         preserveSelection
-        advise
-        unadvise
-        beforeMethod
-        afterMethod
-        aroundMethod
-        changeAdvice
         treeToArray
         computeNewStructure
       }
