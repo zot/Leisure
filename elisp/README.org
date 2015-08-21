@@ -80,8 +80,8 @@ computations.
 
 Leisure can use orgmode's code execution features.
 
-Hitting C-c C-c in a non-webby code block in Leisure will attempt to
-execute in Emacs.  You can try it here:
+If you hit C-c C-c in a language that Leisure can't execute (e.g. sh),
+Leisure will attempt to execute in Emacs.  You can try it here:
 
 #+BEGIN_SRC sh :results output
 ls /tmp
@@ -271,8 +271,10 @@ user-specific GUI state for each user.
 #+RESULTS[0e2f17b475aa320de4bf4a5d0444c17f7732b883]:
 [[file:local-data.png]]
 ** Collaboration
-The new version will take a more peer-to-peer approach, still using a
-server but designating the session-initiator as the "master".
+The new version will take a more peer-to-peer approach but, because
+symmetric NAT remains a crippling problem for WebRTC, it will use a
+server as a message-passing "switchboard".  The session-initiator will
+serve as the "session master".
 
 #+begin_src ditaa :file architecture.png :cmdline -r -s 0.8 :exports results :cache yes
                                                    +-----------------------------+
@@ -298,7 +300,6 @@ server but designating the session-initiator as the "master".
                                                    +---+---------------------+---+
                                                    |            User             |
                                                    +-----------------------------+
-
 #+end_src
 
 #+RESULTS[611e8190dd1c9956a6caeeae655284026beb965f]:
@@ -337,6 +338,18 @@ now the architectore seems to be relatively stable and simpler than it
 has been in the past.
 
 Investigations pointed us towards orgmode.
+* Orgmode features missing from Leisure
+Leisure is a stand-alone computation environment that uses
+orgmode's excellent file format, it's primary purpose is not to be an
+extension of orgmode.  Nevertheless, using it as such is a fine way to
+use Leisure, if that's all you need it for.
+
+There are a lot of things left to do!
+- orgmode-style collapse-cycling
+- more org structure support
+  - tables
+  - tags
+  - lots of other things :)
 * How you can help!
 - Report bugs
 - Contribute code
