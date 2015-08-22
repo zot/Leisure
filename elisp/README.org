@@ -17,7 +17,7 @@ with interactive examples in it.
 
 A lot of this has been around for quite a while, [[http://hypercard.org/][Hypercard]] and
 [[http://www.wolfram.com/mathematica/][Mathematica]] implement interactive documents that contain code and data, as
-does Emacs' orgmode, [[https://jupyter.org/][Jupyter/iPython Notebook]].
+does [[http://orgmode.org/][Emacs' orgmode]] and [[https://jupyter.org/][Jupyter/iPython Notebook]].
 
 Leisure is just HTML/JS/CSS and it has a simple architecture.  It only
 needs a static HTML server for basic operation to present editable
