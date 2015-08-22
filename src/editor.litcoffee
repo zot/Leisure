@@ -1078,20 +1078,36 @@ Data model -- override/reset these if you want to change how the store accesses 
           super()
           @blocks = {}
           @blockIndex = Fingertree.fromArray [], @emptyIndexMeasure
+          @changeCount = 0
         setDiagEnabled: (flag)->
+          #changeAdvice this, flag,
+          #  setIndex: diag: wrapDiag
+          #  indexBlock: diag: wrapDiag
+          #  indexBlocks: diag: wrapDiag
           changeAdvice this, flag,
-            setIndex: diag: wrapDiag
-            indexBlock: diag: wrapDiag
-            indexBlocks: diag: wrapDiag
+            makeChanges: diag: afterMethod (func)->
+              if @changeCount == 0 then @diag()
           if flag then @diag()
-        setIndex: (i)-> @blockIndex = i
+        makeChanges: (func)->
+          @changeCount++
+          try
+            func()
+          finally
+            @changeCount--
+        checkChanges: -> if @changeCount == 0
+          throw new Error "Attempt to make a change outside of makeChanges"
+        setIndex: (i)->
+          @checkChanges()
+          @blockIndex = i
         getFirst: -> @first
         setFirst: (firstId)-> @first = firstId
         getBlock: (id)-> @blocks[id]
         setBlock: (id, block)->
+          @checkChanges()
           @blocks[id] = block
           @indexBlock block
         deleteBlock: (id)->
+          @checkChanges()
           delete @blocks[id]
           @unindexBlock id
         eachBlock: (func)->
@@ -1104,12 +1120,14 @@ Data model -- override/reset these if you want to change how the store accesses 
           measure: (v)-> ids: Set([v.id]), length: v.length
           sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
         indexBlocks: ->
+          @checkChanges()
           items = []
           @eachBlock (block)=> items.push indexNode block
           @setIndex Fingertree.fromArray items, @emptyIndexMeasure
         splitBlockIndexOnId: (id)-> @blockIndex.split (m)-> m.ids.contains id
         splitBlockIndexOnOffset: (offset)-> @blockIndex.split (m)-> m.length > offset
         indexBlock: (block)->
+          @checkChanges()
           if block
             if block.prev == @getBlock(block.prev)?._id || block.next == @getBlock(block.next)?._id
               # if the block is indexed, it might be fine, otherwise unindex it
@@ -1167,6 +1185,7 @@ Data model -- override/reset these if you want to change how the store accesses 
             mark = cur
             cur = @getBlock cur.prev
         unindexBlock: (id)->
+          @checkChanges()
           if id
             [first, rest] = @splitBlockIndexOnId id
             if rest.peekFirst()?.id == id
@@ -1207,8 +1226,9 @@ Data model -- override/reset these if you want to change how the store accesses 
           @eachBlock (block)-> text += block.text
           text
         load: (@first, @blocks)->
-          @indexBlocks()
-          @trigger 'load'
+          @makeChanges =>
+            @indexBlocks()
+            @trigger 'load'
         check: ->
           seen = {}
           first = next = @getFirst()
@@ -1243,23 +1263,24 @@ Data model -- override/reset these if you want to change how the store accesses 
             bl
         change: (changes)-> @trigger 'change', @makeChange changes
         makeChange: ({first, sets, removes, oldBlocks, newBlocks})->
-          {adds, updates, old} = result = {adds: {}, updates: {}, removes, old: {}, sets, oldFirst: @getFirst(), first: first, oldBlocks, newBlocks}
-          @setFirst first
-          for id of removes
-            if bl = @getBlock id
-              old[id] = bl
-              @deleteBlock id
-          for id, block of sets
-            if bl = @getBlock id
-              old[id] = bl
-              updates[id] = block
-            else adds[id] = block
-            @setBlock id, block
-          try
-            @check()
-          catch err
-            console.log err
-          result
+          @makeChanges =>
+            {adds, updates, old} = result = {adds: {}, updates: {}, removes, old: {}, sets, oldFirst: @getFirst(), first: first, oldBlocks, newBlocks}
+            @setFirst first
+            for id of removes
+              if bl = @getBlock id
+                old[id] = bl
+                @deleteBlock id
+            for id, block of sets
+              if bl = @getBlock id
+                old[id] = bl
+                updates[id] = block
+              else adds[id] = block
+              @setBlock id, block
+            try
+              @check()
+            catch err
+              console.log err
+            result
         indexArray: -> treeToArray @blockIndex
         blockArray: ->
           blocks = []

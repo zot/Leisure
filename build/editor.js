@@ -1431,18 +1431,17 @@
         DataStore.__super__.constructor.call(this);
         this.blocks = {};
         this.blockIndex = Fingertree.fromArray([], this.emptyIndexMeasure);
+        this.changeCount = 0;
       }
 
       DataStore.prototype.setDiagEnabled = function(flag) {
         changeAdvice(this, flag, {
-          setIndex: {
-            diag: wrapDiag
-          },
-          indexBlock: {
-            diag: wrapDiag
-          },
-          indexBlocks: {
-            diag: wrapDiag
+          makeChanges: {
+            diag: afterMethod(function(func) {
+              if (this.changeCount === 0) {
+                return this.diag();
+              }
+            })
           }
         });
         if (flag) {
@@ -1450,7 +1449,23 @@
         }
       };
 
+      DataStore.prototype.makeChanges = function(func) {
+        this.changeCount++;
+        try {
+          return func();
+        } finally {
+          this.changeCount--;
+        }
+      };
+
+      DataStore.prototype.checkChanges = function() {
+        if (this.changeCount === 0) {
+          throw new Error("Attempt to make a change outside of makeChanges");
+        }
+      };
+
       DataStore.prototype.setIndex = function(i) {
+        this.checkChanges();
         return this.blockIndex = i;
       };
 
@@ -1467,11 +1482,13 @@
       };
 
       DataStore.prototype.setBlock = function(id, block) {
+        this.checkChanges();
         this.blocks[id] = block;
         return this.indexBlock(block);
       };
 
       DataStore.prototype.deleteBlock = function(id) {
+        this.checkChanges();
         delete this.blocks[id];
         return this.unindexBlock(id);
       };
@@ -1508,6 +1525,7 @@
 
       DataStore.prototype.indexBlocks = function() {
         var items;
+        this.checkChanges();
         items = [];
         this.eachBlock((function(_this) {
           return function(block) {
@@ -1531,6 +1549,7 @@
 
       DataStore.prototype.indexBlock = function(block) {
         var first, ref, ref1, ref2, ref3, rest, split;
+        this.checkChanges();
         if (block) {
           if (block.prev === ((ref = this.getBlock(block.prev)) != null ? ref._id : void 0) || block.next === ((ref1 = this.getBlock(block.next)) != null ? ref1._id : void 0)) {
             ref2 = this.splitBlockIndexOnId(block._id), first = ref2[0], rest = ref2[1];
@@ -1599,6 +1618,7 @@
 
       DataStore.prototype.unindexBlock = function(id) {
         var first, ref, ref1, rest;
+        this.checkChanges();
         if (id) {
           ref = this.splitBlockIndexOnId(id), first = ref[0], rest = ref[1];
           if (((ref1 = rest.peekFirst()) != null ? ref1.id : void 0) === id) {
@@ -1680,8 +1700,12 @@
       DataStore.prototype.load = function(first1, blocks1) {
         this.first = first1;
         this.blocks = blocks1;
-        this.indexBlocks();
-        return this.trigger('load');
+        return this.makeChanges((function(_this) {
+          return function() {
+            _this.indexBlocks();
+            return _this.trigger('load');
+          };
+        })(this));
       };
 
       DataStore.prototype.check = function() {
@@ -1746,43 +1770,48 @@
       };
 
       DataStore.prototype.makeChange = function(arg) {
-        var adds, bl, block, err, first, id, newBlocks, old, oldBlocks, ref, removes, result, sets, updates;
+        var first, newBlocks, oldBlocks, removes, sets;
         first = arg.first, sets = arg.sets, removes = arg.removes, oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks;
-        ref = result = {
-          adds: {},
-          updates: {},
-          removes: removes,
-          old: {},
-          sets: sets,
-          oldFirst: this.getFirst(),
-          first: first,
-          oldBlocks: oldBlocks,
-          newBlocks: newBlocks
-        }, adds = ref.adds, updates = ref.updates, old = ref.old;
-        this.setFirst(first);
-        for (id in removes) {
-          if (bl = this.getBlock(id)) {
-            old[id] = bl;
-            this.deleteBlock(id);
-          }
-        }
-        for (id in sets) {
-          block = sets[id];
-          if (bl = this.getBlock(id)) {
-            old[id] = bl;
-            updates[id] = block;
-          } else {
-            adds[id] = block;
-          }
-          this.setBlock(id, block);
-        }
-        try {
-          this.check();
-        } catch (_error) {
-          err = _error;
-          console.log(err);
-        }
-        return result;
+        return this.makeChanges((function(_this) {
+          return function() {
+            var adds, bl, block, err, id, old, ref, result, updates;
+            ref = result = {
+              adds: {},
+              updates: {},
+              removes: removes,
+              old: {},
+              sets: sets,
+              oldFirst: _this.getFirst(),
+              first: first,
+              oldBlocks: oldBlocks,
+              newBlocks: newBlocks
+            }, adds = ref.adds, updates = ref.updates, old = ref.old;
+            _this.setFirst(first);
+            for (id in removes) {
+              if (bl = _this.getBlock(id)) {
+                old[id] = bl;
+                _this.deleteBlock(id);
+              }
+            }
+            for (id in sets) {
+              block = sets[id];
+              if (bl = _this.getBlock(id)) {
+                old[id] = bl;
+                updates[id] = block;
+              } else {
+                adds[id] = block;
+              }
+              _this.setBlock(id, block);
+            }
+            try {
+              _this.check();
+            } catch (_error) {
+              err = _error;
+              console.log(err);
+            }
+            return result;
+          };
+        })(this));
       };
 
       DataStore.prototype.indexArray = function() {

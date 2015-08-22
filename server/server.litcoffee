@@ -1,8 +1,9 @@
 SockJS relay server
 
     sockjs = require 'sockjs'
+    http = require 'http'
 
-Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript/105074#105074)
+Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript/105074#105074) for guid code.
 
     s4 = ->
       Math.floor((1 + Math.random()) * 0x10000)

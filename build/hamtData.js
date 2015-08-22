@@ -42,23 +42,35 @@
       };
 
       HamtOrgData.prototype.setBlock = function(id, block) {
-        this.runFilters(this.getBlock(id), block);
-        this.blocks = this.blocks.set(id, block);
-        return this.indexBlock(block);
+        return this.makeChanges((function(_this) {
+          return function() {
+            _this.runFilters(_this.getBlock(id), block);
+            _this.blocks = _this.blocks.set(id, block);
+            return _this.indexBlock(block);
+          };
+        })(this));
       };
 
       HamtOrgData.prototype.deleteBlock = function(id) {
-        this.runFilters(this.getBlock(id), null);
-        this.blocks = this.blocks["delete"](id);
-        return this.unindexBlock(id);
+        return this.makeChanges((function(_this) {
+          return function() {
+            _this.runFilters(_this.getBlock(id), null);
+            _this.blocks = _this.blocks["delete"](id);
+            return _this.unindexBlock(id);
+          };
+        })(this));
       };
 
       HamtOrgData.prototype.load = function(first, newBlocks) {
-        return HamtOrgData.__super__.load.call(this, first, setFirst(new Map(newBlocks), first), {
-          sets: newBlocks,
-          oldBlocks: {},
-          first: first
-        });
+        return this.makeChanges((function(_this) {
+          return function() {
+            return HamtOrgData.__super__.load.call(_this, first, setFirst(new Map(newBlocks), first), {
+              sets: newBlocks,
+              oldBlocks: {},
+              first: first
+            });
+          };
+        })(this));
       };
 
       HamtOrgData.prototype.makeChange = function(change) {

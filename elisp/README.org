@@ -1,11 +1,13 @@
-* What is Leisure? (view this [[http://textcraft.org/newLeisure/?load=https://raw.githubusercontent.com/zot/Leisure/master/elisp/README.org][document]], [[https://raw.githubusercontent.com/zot/Leisure/master/elisp/README.org][its source]])
-Simply put, Leisure is a document-oriented, exploratory computing
-environment for what we call *[[https://en.wikipedia.org/wiki/Illuminated_manuscript][Illuminated Programming]]*.  Leisure
-documents are:
-- *editable*
-- collaborative
+* What is Leisure? ([[http://textcraft.org/newLeisure/?load=https://raw.githubusercontent.com/zot/Leisure/master/elisp/README.org][this document]], [[https://raw.githubusercontent.com/zot/Leisure/master/elisp/README.org][source]], [[https://github.com/zot/Leisure/][repository]])
+Leisure is an open-source web-based platform for interactive editable
+documents that uses orgmode format for what we call *[[https://en.wikipedia.org/wiki/Illuminated_manuscript][Illuminated
+Programming]]*.  Leisure documents are:
+- editable
+- modeless (like Emacs!)
 - interactive
+- graphical
 - web-based (zero install)
+- collaborative
 *[[https://en.wikipedia.org/wiki/Illuminati][Illuminated Programming]]* is our term for application, source code,
 and data, all rolled up into one interactive, collboratively editable
 document.  A Leisure document might hide its code and data and appear
@@ -14,31 +16,36 @@ app(s), like [[http://textcraft.org:3333/#load=/demo/game.lorg][this Leisure gam
 with interactive examples in it.
 
 A lot of this has been around for quite a while, [[http://hypercard.org/][Hypercard]] and
-[[http://www.wolfram.com/mathematica/][Mathematica]] are interactive documents that contain code and data, and
-people are starting to work on modern interactive documents, like
-[[https://jupyter.org/][Jupyter]] (based on the iPython Notebook).
+[[http://www.wolfram.com/mathematica/][Mathematica]] implement interactive documents that contain code and data, as
+does Emacs' orgmode, [[https://jupyter.org/][Jupyter/iPython Notebook]].
 
-Leisure is a little different because it's purely web-based, no
-install needed, and it's collaborative.  We've been working
-(relatively) quietly on Leisure since 2011.
+Leisure is just HTML/JS/CSS and it has a simple architecture.  It only
+needs a static HTML server for basic operation to present editable
+documents that can hook up to Emacs.  It's easy to manage because it
+has so few requirements, which means less worry about language or
+library version conflicts.
 
-We think it's well past time for an open-source, web-based
-*Illuminated Programming* environment for everyone.
+Leisure can also communicate directly with Eamcs orgmode.  Once
+connected, Emacs and Leisure will mirror changes to the other side.
+
+We've been working (relatively) quietly on Leisure since 2011.  This
+is a new version, we've been overhauling a lot of it, and we're
+finally ready to start to talk more publicly about it.
+*NOTE: LEISURE CURRENTLY ONLY RUNS IN CHROMIUM-BASED BROWSERS (LIKE CHROME).*
+
 * Leisure connection mode for Emacs
 This is a minor mode that connects an emacs buffer to Leisure web page.
-
-*NOTE: LEISURE CURRENTLY ONLY RUNS IN CHROMIUM-BASED BROWSERS (LIKE CHROME).*
 
 *If you are viewing this in Emacs* and you already have
 leisure-connection-mode loaded, you can try this out by [[elisp:leisure-connection-mode][CLICKING THIS
 LINK]].
 
-*NOTE:* We're not orgmode experts and we need help from people who are!
-* Bidirectional connection to Emacs
 Leisure uses orgmode as its file format and it can hook up to Emacs.
 
+*NOTE:* We're not orgmode experts and we need help from people who are!
+
 Toggling leisure-connection-mode will open and close a web page
-associated with the current buffer.
+connected to the current buffer.
 
 You can also start in Leisure and connect to Emacs, provided that
 Emacs is running the Leisure service.  Leisure-connection-mode
@@ -112,7 +119,7 @@ window takes input focus
 - After the command executes, the Leisure connection code in Emacs attempts to send focus back to the browser.
 - Browser focus is a tricky thing because of spammers
 
-You may notice a popup notice in your browser's location bar.  If you
+You may see a popup notice in your browser's location bar.  If you
 enable popups from Leisure, the browser will be able to take focus
 back after it executes a remote Emacs command.
 

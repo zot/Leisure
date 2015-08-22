@@ -53,44 +53,56 @@
       };
 
       OrgData.prototype.load = function(first, blocks, changes) {
-        var block, filter, id, j, len, ref, ref1;
-        if (!first) {
-          return OrgData.__super__.load.call(this, first, blocks);
-        } else {
-          ref = this.filters;
-          for (j = 0, len = ref.length; j < len; j++) {
-            filter = ref[j];
-            filter.clear();
-          }
-          if (!changes) {
-            changes = {
-              sets: blocks,
-              oldBlocks: {},
-              first: first
-            };
-          }
-          this.linkAllSiblings(changes);
-          for (block in this.blockList()) {
-            this.checkChange(block, null);
-          }
-          ref1 = changes.sets;
-          for (id in ref1) {
-            block = ref1[id];
-            this.runFilters(null, block);
-            this.checkChange(null, block);
-          }
-          return OrgData.__super__.load.call(this, first, blocks);
-        }
+        return this.makeChanges((function(_this) {
+          return function() {
+            var block, filter, id, j, len, ref, ref1;
+            if (!first) {
+              return OrgData.__super__.load.call(_this, first, blocks);
+            } else {
+              ref = _this.filters;
+              for (j = 0, len = ref.length; j < len; j++) {
+                filter = ref[j];
+                filter.clear();
+              }
+              if (!changes) {
+                changes = {
+                  sets: blocks,
+                  oldBlocks: {},
+                  first: first
+                };
+              }
+              _this.linkAllSiblings(changes);
+              for (block in _this.blockList()) {
+                _this.checkChange(block, null);
+              }
+              ref1 = changes.sets;
+              for (id in ref1) {
+                block = ref1[id];
+                _this.runFilters(null, block);
+                _this.checkChange(null, block);
+              }
+              return OrgData.__super__.load.call(_this, first, blocks);
+            }
+          };
+        })(this));
       };
 
       OrgData.prototype.setBlock = function(id, block) {
-        this.runFilters(this.getBlock(id), block);
-        return OrgData.__super__.setBlock.call(this, id, block);
+        return this.makeChanges((function(_this) {
+          return function() {
+            _this.runFilters(_this.getBlock(id), block);
+            return OrgData.__super__.setBlock.call(_this, id, block);
+          };
+        })(this));
       };
 
       OrgData.prototype.deleteBlock = function(id) {
-        this.runFilters(this.getBlock(id), null);
-        return OrgData.__super__.deleteBlock.call(this, id);
+        return this.makeChanges((function(_this) {
+          return function() {
+            _this.runFilters(_this.getBlock(id), null);
+            return OrgData.__super__.deleteBlock.call(_this, id);
+          };
+        })(this));
       };
 
       OrgData.prototype.addFilter = function(filter) {

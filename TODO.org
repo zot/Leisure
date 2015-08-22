@@ -1,3 +1,4 @@
+* TODO Leisure isn't sending replaced regions properly to Emacs
 * TODO on reload, add hash to preserve selection
 * TODO Tool to find defs and controllers from views
 * TODO nice text color against white bgnd: #4D4D4C
@@ -26,7 +27,7 @@ hides cruft so you can just look at the code
 * TODO load parameter so people can view the example without Emacs
   provide plantuml and ditaa files for the current text (use /tmp/blah on the site)
 * TODO allow links in simple markup (but not inside other links)        :org:
-* TODO hook to gists or fiddles
+* TODO load *and save* gists or fiddles
 * TODO use :exports to control code appearance
   :exports code
   :exports both

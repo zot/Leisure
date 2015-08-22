@@ -94,24 +94,27 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
 Let's just call this poetic license for the time being...
 
         load: (first, blocks, changes)->
-          if !first then super first, blocks
-          else
-            for filter in @filters
-              filter.clear()
-            if !changes then changes = sets: blocks, oldBlocks: {}, first: first
-            @linkAllSiblings changes
-            for block of @blockList()
-              @checkChange block, null
-            for id, block of changes.sets
-              @runFilters null, block
-              @checkChange null, block
-            super first, blocks
+          @makeChanges =>
+            if !first then super first, blocks
+            else
+              for filter in @filters
+                filter.clear()
+              if !changes then changes = sets: blocks, oldBlocks: {}, first: first
+              @linkAllSiblings changes
+              for block of @blockList()
+                @checkChange block, null
+              for id, block of changes.sets
+                @runFilters null, block
+                @checkChange null, block
+              super first, blocks
         setBlock: (id, block)->
-          @runFilters @getBlock(id), block
-          super id, block
+          @makeChanges =>
+            @runFilters @getBlock(id), block
+            super id, block
         deleteBlock: (id)->
-          @runFilters @getBlock(id), null
-          super id
+          @makeChanges =>
+            @runFilters @getBlock(id), null
+            super id
         addFilter: (filter)-> @filters.push filter
         removeFilter: (filter)-> _.remove @filters, (i)-> i == filter
         runFilters: (oldBlock, newBlock)->
