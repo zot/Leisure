@@ -242,18 +242,10 @@
       connection.panel.find('input').attr('readonly', true);
       connection.websocket = ws;
       connection.filter = {
-        clear: function() {
-          connection.offsetIds = [];
-          return connection.idOffsets = {};
-        },
+        clear: function() {},
         replaceBlock: function(oldBlock, newBlock) {
-          var end, endOff, i, index, j, newLen, oldLen, ref, ref1, ref2, ref3, start, startOff, text;
+          var end, endOff, i, j, newLen, oldLen, ref, ref1, ref2, ref3, start, startOff, text;
           if (!data.emacsConnection.replacing || shouldSendConcurrent(data, newBlock)) {
-            if ((index = connection.idOffsets[oldBlock != null ? oldBlock._id : void 0]) != null) {
-              while (connection.offsetIds.length > index) {
-                delete connection.idOffsets[connection.offsetIds.pop()];
-              }
-            }
             start = data.offsetForBlock((ref = oldBlock != null ? oldBlock._id : void 0) != null ? ref : newBlock._id);
             end = start + ((ref1 = oldBlock != null ? oldBlock.text.length : void 0) != null ? ref1 : 0);
             text = newBlock.text;

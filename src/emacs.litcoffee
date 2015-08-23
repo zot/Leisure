@@ -175,13 +175,8 @@ Emacs connection
         connection.websocket = ws
         connection.filter =
           clear: ->
-            connection.offsetIds = []
-            connection.idOffsets = {}
           replaceBlock: (oldBlock, newBlock)->
             if !data.emacsConnection.replacing || shouldSendConcurrent data, newBlock
-              if (index = connection.idOffsets[oldBlock?._id])?
-                while connection.offsetIds.length > index
-                  delete connection.idOffsets[connection.offsetIds.pop()]
               start = data.offsetForBlock oldBlock?._id ? newBlock._id
               end = start + (oldBlock?.text.length ? 0)
               text = newBlock.text

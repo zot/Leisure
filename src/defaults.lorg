@@ -55,14 +55,15 @@ in as long as you mark it as data-noncontent, etc.
         <span name="emacsHost">Host: <input type='text' value="localhost:1315"></span>
       </span>
     </div>
-    <div name='p2pConnector' class='expandable-panel' style='display: none'>
-      <button class='label' name='p2plabel'>P2P</button>
-      <span class='contents'>
-        Relay Host: <input name="p2pHost">
+    <div name='p2pConnector' class='expandable-panel'>
+      <button class='label' name='p2plabel'>P2P (work in progress)</button>
+      <span class='contents not-connected'>
         <button name='createSession'>Create Session</button>
-        <button name='connectToSession'>Connect</button>
-        Session Key: <input name="sessionKey">
-        Connections: <span name='connections'></span>
+        <span class='when-not-connected'>Relay Host: <input name="p2pHost"></span>
+        <span class='when-connected'>
+          Connection URL: <input name="sessionKey">
+          Connections: <span name='connections'></span>
+        </span>
       </span>
     </div>
   </div>
@@ -111,14 +112,14 @@ themes = [
     show = !Leisure.getDiagShowing view
     Leisure.showDiag view, show
     $(this).button 'option', 'label', "Diag: #{if show then 'on' else 'off'}"
-  p2pWidgets = 
+  p2pWidgets =
+    panel: view.find('[name="p2pConnector"]')
     label: view.find('[name="p2plabel"]')
     hostField: view.find('[name="p2pHost"]')
     sessionField: view.find('[name="sessionKey"]')
     createSessionButton: view.find('[name="createSession"]')
-    connectToSessionButton: view.find('[name="connectToSession"]')
     connections: view.find('[name="connections"]')
-  $([p2pWidgets.createSessionButton, p2pWidgets.connectToSessionButton]).button()
+  $([p2pWidgets.createSessionButton]).button()
   Leisure.configureP2P p2pWidgets
   themeMenu = view.find('[name="themeSelector"]')
   themeMenu[0].innerHTML = ''
@@ -185,8 +186,12 @@ updateButton = (view, hiding)->
 [name='p2pHost'] {
   width: 15ex;
 }
+.connected .when-not-connected,
+.not-connected .when-connected {
+  display: none;
+}
 [name='sessionKey'] {
-  width: 32ex;
+  width: 72ex;
 }
 [name='buttons'] .ui-button {
   height: 2em;

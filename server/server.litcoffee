@@ -12,10 +12,9 @@ SockJS relay server
 
     masters = {}
     slaves = {}
-    masterPrefix = '/Leisure/master'
-    slavePrefix = '/Leisure/slave[^/]*'
+    socketPrefix = '/Leisure/(master|slave(?:-([^/]*)))'
 
-Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript/105074#105074) for guid code.
+Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript/105074#105074) Altered the code to use crypto's random.
 
     s4 = ->
       bytes = crypto.randomBytes 2
@@ -28,11 +27,9 @@ Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/10503
 
     class MessageHandler
       setConnection: (@con)->
-        @id = guid()
         @con.leisure = this
         @con.on 'data', (msg)=> @handleMessage JSON.parse msg
         @con.on 'close', => @closed()
-        @send type: 'connect', id: @id
       type: 'Unknown Handler'
       close: -> @con.close()
       closed: ->
@@ -41,55 +38,60 @@ Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/10503
 Handle a message from the connected browser
 
       handleMessage: (msg)->
-        console.log "#{@type} received: #{JSON.stringify msg}"
+        console.log "#{@type} received:", msg
         if msg.type?.toLowerCase() in @legalMessages
           this[msg.type](msg)
-          @send type: 'close'
         else @send badMsgTypeError msg
       legalMessages: ['log']
       log: (msg)-> console.log msg.msg
 
     class MasterHandler extends MessageHandler
       constructor: ->
+        @slaveCount = 1
         @slaves = {}
+      type: 'Master'
       setConnection: (con)->
         super con
+        @id = guid()
         console.log "Master connection: #{con.leisure.id}"
         masters[@id] = this
-      addSlave: (slave)-> @slaves[slave.id] = slave
-      type: 'Master'
+        @send type: 'connect', id: @id
+      addSlave: (slave)->
+        slaveId = "slave-#{@slaveCount++}"
+        @slaves[slaveId] = slave
+        slave.setId slaveId
+      removeSlave: (slave)-> delete @slaves[slave.id]
       closed: ->
         console.log "Closed master: #{@con.leisure.id}"
         delete masters[@con.leisure.id]
         for id, slave of @slaves
           slave.close()
-      legalMessages: ['log', 'change']
-      change: (msg)->
+        @slaves = {}
+      legalMessages: ['log', 'replace']
+      replace: (msg)->
 
     class SlaveHandler extends MessageHandler
-      connectToMaster: (@master)-> 
       type: 'Slave'
-      setConnection: (con)->
+      setConnection: (con, masterId)->
         super con
-        [ignore, masterId] = con.pathname.match(con.prefix)[0].match /.*([0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12})/
         if !(master = masters[masterId])
           @send badMasterIdError masterId
           @close()
         else
           @master.addSlave this
+      setId: (@id)->
+      closed: -> @master.removeSlave this
       legalMessages: []
 
     startServer = (port)->
       http_server = http.createServer()
       sockjs.createServer(
         sockjs_url: 'http://cdn.jsdelivr.net/sockjs/1.0.1/sockjs.min.js'
-        prefix: masterPrefix)
-        .on 'connection', (con)-> new MasterHandler().setConnection con
-        .installHandlers(http_server)
-      sockjs.createServer(
-        sockjs_url: 'http://cdn.jsdelivr.net/sockjs/1.0.1/sockjs.min.js'
-        prefix: slavePrefix)
-        .on 'connection', (con)-> new SlaveHandler().setConnection con
+        prefix: socketPrefix)
+        .on 'connection', (con)->
+          [ignore, type, masterId] = con.pathname.match socketPrefix
+          if type == 'master' then new MasterHandler().setConnection con
+          else new SlaveHandler().setConnection con, masterId
         .installHandlers(http_server)
       http_server.listen(port, '0.0.0.0')
 

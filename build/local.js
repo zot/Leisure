@@ -3,44 +3,64 @@
   var init;
 
   init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, HamtData) {
-    var HamtOrgData, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, configurePeerButttons, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, mergeExports, peer, plainEditDiv, renderView, runTests, useHamt, useP2P, withContext;
+    var HamtOrgData, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, mergeExports, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, useHamt, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams;
     plainEditDiv = Modes.plainEditDiv, fancyEditDiv = Modes.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
     Peer = P2P.Peer;
     findPeer = Webrtc.findPeer;
     runTests = Tests.runTests;
-    renderView = UI.renderView, initializePendingViews = UI.initializePendingViews, withContext = UI.withContext;
+    renderView = UI.renderView, initializePendingViews = UI.initializePendingViews, withContext = UI.withContext, setPanelExpanded = UI.setPanelExpanded;
     mergeExports = BrowserExports.mergeExports;
     addSearchDataFilter = Search.addSearchDataFilter;
     addEmacsDataFilter = Emacs.addEmacsDataFilter;
     HamtOrgData = HamtData.HamtOrgData;
-    useP2P = false;
+    useP2P = true;
     useHamt = false;
     peer = null;
-    Leisure.configureP2P = function() {};
-    configurePeerButttons = function() {
-      return Leisure.configureP2P = function(arg) {
-        var connectToSessionButton, connections, createSessionButton, hostField, sessionField;
-        hostField = arg.hostField, sessionField = arg.sessionField, createSessionButton = arg.createSessionButton, connectToSessionButton = arg.connectToSessionButton, connections = arg.connections;
-        hostField.val(document.location.host || "localhost:8080");
-        createSessionButton.click(function() {
-          peer.createSession(hostField.val());
-          return console.log("create session");
-        });
-        return connectToSessionButton.click(function() {
-          return console.log("connect to session");
-        });
-      };
+    p2pPanel = null;
+    Leisure.configureP2P = function(arg) {
+      var connections, createSessionButton, hasSession, hostField, panel, sessionField;
+      panel = arg.panel, hostField = arg.hostField, sessionField = arg.sessionField, createSessionButton = arg.createSessionButton, connections = arg.connections;
+      p2pPanel = panel;
+      if (!useP2P) {
+        panel.css('display', 'none');
+      }
+      hostField.val(document.location.host || "localhost:8080");
+      hasSession = false;
+      return createSessionButton.click(function() {
+        if (!hasSession) {
+          createSessionButton.closest('.contents').removeClass('not-connected');
+          createSessionButton.closest('.contents').addClass('connected');
+          peer.createSession(hostField.val(), function(con) {
+            sessionField.val(con.connectUrl);
+            setPanelExpanded(panel, true);
+            sessionField[0].select();
+            sessionField[0].focus();
+            return createSessionButton.button('option', 'label', 'Disconnect');
+          });
+        } else {
+          createSessionButton.closest('.contents').removeClass('connected');
+          createSessionButton.closest('.contents').addClass('not-connected');
+          peer.disconnect();
+          createSessionButton.button('option', 'label', 'Create Session');
+          setTimeout((function() {
+            return setPanelExpanded(panel, true);
+          }), 1);
+        }
+        return hasSession = !hasSession;
+      });
     };
     return $(document).ready(function() {
       var data, load, ref, theme;
       runTests();
       installSelectionMenu();
       if (useP2P) {
-        configurePeerButttons();
         window.PEER = peer = new Peer;
         window.DATA = data = peer.data;
+        if (p2pPanel != null) {
+          p2pPanel.css('display', '');
+        }
       } else if (useHamt) {
         window.DATA = data = new HamtOrgData();
       } else {

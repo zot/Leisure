@@ -1,3 +1,7 @@
+* TODO look at task management
+- Leisure docs displayed from textcraft can share web storage
+- when a doc loads, put its agenda info in web storage
+- potentially load docs and update agenda data like Emacs does
 * TODO down-arrow next to Emacs icon hangs
 * TODO Read-only mode (turn off editing)
 * TODO Leisure isn't sending replaced regions properly to Emacs

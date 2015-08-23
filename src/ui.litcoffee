@@ -190,6 +190,11 @@ choose a handlebars template.
         ep.find('input').blur -> getPanel(this).removeClass 'expand'
         ep.find('button').click -> getPanel(this).addClass 'contract'
 
+      setPanelExpanded = (view, expand)->
+        panel = getPanel(view)
+        panel.removeClass (if expand then 'contract' else 'expand')
+        panel.addClass (if expand then 'expand' else 'contract')
+
       showMessage = (node, title, str, opts, func)->
         dialog = $("<div title=#{escapeAttr title}><div>#{str}</div></div>")
           .appendTo node
@@ -225,5 +230,6 @@ choose a handlebars template.
           nextImageSrc
           prevImageSrc
           pushPendingInitialzation
+          setPanelExpanded
         }
       ).UI

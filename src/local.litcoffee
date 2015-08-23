@@ -28,6 +28,7 @@ Code for local-mode.  This will not be loaded under meteor.
         renderView
         initializePendingViews
         withContext
+        setPanelExpanded
       } = UI
       {
         mergeExports
@@ -42,34 +43,49 @@ Code for local-mode.  This will not be loaded under meteor.
         HamtOrgData
       } = HamtData
 
-
-      #useP2P = true
-      useP2P = false
+      useP2P = true
+      #useP2P = false
       #useHamt = true
       useHamt = false
       peer = null
-      Leisure.configureP2P = ->
+      p2pPanel = null
 
-      configurePeerButttons = ->
-        Leisure.configureP2P = ({hostField, sessionField, createSessionButton, connectToSessionButton, connections})->
-          hostField.val document.location.host || "localhost:8080"
-          createSessionButton.click ->
-            peer.createSession hostField.val()
-            console.log "create session"
-          connectToSessionButton.click -> console.log "connect to session"
-          #console.log "host:", hostField
-          #console.log "session:", sessionField
-          #console.log "createSessionButton:", createSessionButton
-          #console.log "connectToSessionButton:", connectToSessionButton
-          #console.log "connections:", connections
+      Leisure.configureP2P = ({panel, hostField, sessionField, createSessionButton, connections})->
+        p2pPanel = panel
+        if !useP2P then panel.css 'display', 'none'
+        hostField.val document.location.host || "localhost:8080"
+        hasSession = false
+        createSessionButton.click ->
+          if !hasSession
+            createSessionButton.closest('.contents').removeClass 'not-connected'
+            createSessionButton.closest('.contents').addClass 'connected'
+            peer.createSession hostField.val(), (con)->
+              sessionField.val con.connectUrl
+              setPanelExpanded panel, true
+              sessionField[0].select()
+              sessionField[0].focus()
+              createSessionButton.button('option', 'label', 'Disconnect')
+          else
+            createSessionButton.closest('.contents').removeClass 'connected'
+            createSessionButton.closest('.contents').addClass 'not-connected'
+            peer.disconnect()
+            createSessionButton.button('option', 'label', 'Create Session')
+            setTimeout (->setPanelExpanded panel, true), 1
+          hasSession = !hasSession
+        #connectToSessionButton.click -> console.log "connect to session"
+        #console.log "host:", hostField
+        #console.log "session:", sessionField
+        #console.log "createSessionButton:", createSessionButton
+        #console.log "connectToSessionButton:", connectToSessionButton
+        #console.log "connections:", connections
 
       $(document).ready ->
         runTests()
         installSelectionMenu()
         if useP2P
-          configurePeerButttons()
           window.PEER = peer = new Peer
           window.DATA = data = peer.data
+          p2pPanel?.css 'display', ''
         else if useHamt
           window.DATA = data = new HamtOrgData()
         else window.DATA = data = new OrgData()
