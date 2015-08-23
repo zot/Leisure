@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "common.js",
+  "sourceRoot": "..",
+  "sources": [
+    "server\\common.litcoffee"
+  ],
+  "names": [],
+  "mappings": ";AAEI;EAAA,MAAA,CAAO,EAAP,EAAW,SAAA;WACT;MAAA,YAAA,EAAc,CAAd;;EADS,CAAX;AAAA"
+}
