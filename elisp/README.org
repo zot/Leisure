@@ -62,6 +62,15 @@ The emacs code lives in the Leisure repository, in the elisp
 directory.  Soon, this will be published to Melpa but until then, for
 feedback purposes, you can get the emacs code by cloning the [[https://github.com/zot/Leisure][GitHub
 repository]] and adding the elisp directory to your Emacs load-path.
+
+Once you have leisure-connection-mode loaded in emacs, open this file
+(which is elisp/README.org in the project) in Emacs and click the link
+in Emacs above that says "CLICKING THIS LINK".  This will open a live
+connection to the buffer that mirrors your changes.
+
+Please note, there are still bugs in the mirroring, but we may not
+know about all of them, so if you're motivated to report them in
+GitHub, that would be nice :).
 * Work in progress
 ** Leisure is not quite stable, yet
 - Leisure is a *work in progress*
