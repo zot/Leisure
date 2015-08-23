@@ -57,6 +57,11 @@ versa.  In Leisure, if you hit C-C C-C or click an elisp link, it will
 delegate that to Emacs. Leisure will also attempt to fetch "file:"
 image data from Emacs so it can display the results of your file-based
 computations.
+** Getting leisure-connection-mode for Emacs
+The emacs code lives in the Leisure repository, in the elisp
+directory.  Soon, this will be published to Melpa but until then, for
+feedback purposes, you can get the emacs code by cloning the [[https://github.com/zot/Leisure][GitHub
+repository]] and adding the elisp directory to your Emacs load-path.
 * Work in progress
 ** Leisure is not quite stable, yet
 - Leisure is a *work in progress*
@@ -291,12 +296,12 @@ serve as the "session master".
                                                        v                     v
      +-----------------------------+             +-----------+           +-------+
      |            User             |             |  Leisure  | <-------> | Emacs |
-     +---+---------------------+---+             +-----------+  Changes  +-------+
-         |                     |                       ^
-         v                     v                       |
-     +-------+            +---------+       Changes    |
-     | Emacs |<---------->| Leisure |<-----------------+ 
-     +-------+   Changes  +---------+                  |
+     +--------------+--------------+             +-----------+  Changes  +-------+
+                    |                                  ^
+                    v                                  |
+               +---------+                             |
+               | Leisure |<----------------------------+
+               +---------+                             |
                                                        |
                                                        v
                                                  +-----------+  Changes  +-------+
@@ -309,7 +314,7 @@ serve as the "session master".
                                                    +-----------------------------+
 #+end_src
 
-#+RESULTS[611e8190dd1c9956a6caeeae655284026beb965f]:
+#+RESULTS[145d33e6b8c76835b4003568f33d948e8a82b88c]:
 [[file:architecture.png]]
 
 ** Imports

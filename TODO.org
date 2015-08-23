@@ -1,3 +1,5 @@
+* TODO down-arrow next to Emacs icon hangs
+* TODO Read-only mode (turn off editing)
 * TODO Leisure isn't sending replaced regions properly to Emacs
 * TODO on reload, add hash to preserve selection
 * TODO Tool to find defs and controllers from views
