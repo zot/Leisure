@@ -8,11 +8,14 @@
     sock = new SockJS(url);
     sock.onopen = function() {
       console.log('open');
-      return sock.send('test');
+      return sock.send('{"type": "log", "msg": "test"}');
     };
     sock.onmessage = function(e) {
+      var ref;
       console.log('message', e.data);
-      return sock.close();
+      if (((ref = JSON.parse(e.data)) != null ? ref.type : void 0) === 'close') {
+        return sock.close();
+      }
     };
     return sock.onclose = function() {
       return console.log('close');

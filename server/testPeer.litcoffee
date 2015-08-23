@@ -6,8 +6,8 @@
       sock = new SockJS(url);
       sock.onopen = ->
         console.log('open')
-        sock.send('test')
+        sock.send('{"type": "log", "msg": "test"}')
       sock.onmessage = (e)->
         console.log('message', e.data)
-        sock.close()
+        if JSON.parse(e.data)?.type == 'close' then sock.close()
       sock.onclose = -> console.log('close')

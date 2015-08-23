@@ -37,6 +37,10 @@ Peer-to-peer connection
         createSession: (host)-> @connect "http://#{host}/leisure"
         connectToSession: (host, key)-> @connect "http://#{host}/leisure/connect/#{key}"
 
+      class MasterConnection
+        constructor: ->
+          
+
       class XPeer
         constructor: ->
           @changeCount = 0

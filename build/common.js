@@ -2,7 +2,20 @@
 (function() {
   define([], function() {
     return {
-      BAD_ID_ERROR: 1
+      badMasterIdError: function(id) {
+        return {
+          code: 1,
+          type: 'error',
+          error: "Bad master Id: " + id
+        };
+      },
+      badMsgTypeError: function(msg) {
+        return {
+          code: 2,
+          type: 'error',
+          error: "Bad message type: " + msg.type
+        };
+      }
     };
   });
 

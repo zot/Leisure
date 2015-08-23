@@ -56,6 +56,12 @@
       return Peer;
 
     })();
+    MasterConnection = (function() {
+      function MasterConnection() {}
+
+      return MasterConnection;
+
+    })();
     XPeer = (function() {
       function XPeer() {
         this.changeCount = 0;
