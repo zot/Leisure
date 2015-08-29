@@ -494,7 +494,7 @@
           else if org instanceof ListItem then @renderList opts, org
           else if org instanceof Drawer then @renderDrawer opts, org
           else if org instanceof Example then @renderExample opts, org
-          else insertBreaks org.allText()
+          else insertBreaks escapeHtml org.allText()
           if start then prefixBreak text else text
         renderHtml: (opts, org)->
           "<span class='hidden'>#{escapeHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{escapeHtml org.trailing}</span>"

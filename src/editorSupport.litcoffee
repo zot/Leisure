@@ -87,8 +87,22 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
           DataStore.apply this, arguments
           @namedBlocks = {}
           @filters = []
+        makeChanges: (func)->
+          if !@changeCount
+            for filter in @filters
+              filter.startChange this
+          try
+            super func
+          catch err
+            for filter in @filters
+              filter.endChange this
+            throw err
         getBlock: (thing, changes)->
           if typeof thing == 'string' then changes?.sets[thing] ? super(thing) else thing
+        changesFor: (first, oldBlocks, newBlocks)->
+          changes = super first, oldBlocks, newBlocks
+          @linkAllSiblings changes
+          changes
 
 `load` -- not the best use of inheritance here, changes is specifically for P2POrgData :).
 Let's just call this poetic license for the time being...
@@ -98,7 +112,7 @@ Let's just call this poetic license for the time being...
             if !first then super first, blocks
             else
               for filter in @filters
-                filter.clear()
+                filter.clear this
               if !changes then changes = sets: blocks, oldBlocks: {}, first: first
               @linkAllSiblings changes
               for block of @blockList()
@@ -119,7 +133,7 @@ Let's just call this poetic license for the time being...
         removeFilter: (filter)-> _.remove @filters, (i)-> i == filter
         runFilters: (oldBlock, newBlock)->
           for filter in @filters
-            filter.replaceBlock oldBlock, newBlock
+            filter.replaceBlock this, oldBlock, newBlock
         parseBlocks: (text)->
           if text == '' then []
           else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
@@ -230,6 +244,12 @@ that must be done regardless of the source of changes
               env.write = (str)->
               env.errorAt = (offset, msg)-> console.log msg
               env.executeText blockSource(newBlock), Nil, (->)
+
+      basicDataFilter =
+        startChange: (data)->
+        endChange: (data)->
+        clear: (data)->
+        replaceBlock: (data, oldBlock, newBlock)->
 
       blockElementId = (block)-> block && (block.codeName || block._id)
 
@@ -395,17 +415,19 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         parseBlocks: (text)-> @data.parseBlocks text
         renderBlock: (block)-> @mode.render this, block, @idPrefix
 
-`change(changes)` -- about to change the data; compute some effects immediately.
+        replaceBlocks: (prev, oldBlocks, newBlocks, verbatim)-> @change @changesFor prev, oldBlocks, newBlocks, verbatim
 
-        change: (changes)->
+`changesFor(first, oldBlocks, newBlocks)` -- compute some effects immediately
+
+        changesFor: (first, oldBlocks, newBlocks, verbatim)->
+          changes = @data.changesFor first, oldBlocks, newBlocks
           computedProperties = {}
           changedProperties = []
           for id, change of changes.sets
             oldBlock = @getBlock change._id
             if @checkPropertyChange changes, change, oldBlock
               changedProperties.push change._id
-            @checkCodeChange changes, change, oldBlock
-          @data.linkAllSiblings changes
+            if !verbatim then @checkCodeChange changes, change, oldBlock
           for change in changedProperties
             if parent = @data.parent(change, changes)?._id
               if !computedProperties[parent]
@@ -414,7 +436,12 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
                 for child in @data.children parent, changes
                   props = _.merge props, child.properties
                 addChange(@data.getBlock(parent, changes), changes).properties = props
-          @mode.handleChanges this, changes
+          changes
+
+`change(changes)` -- about to change the data, allow mode to render some things
+
+        change: (changes)->
+          if changes then @mode.handleChanges this, changes
           super changes
         update: (block)->
           oldBlock = @getBlock block._id
@@ -628,6 +655,8 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       editorForToolbar = (el)->
         findEditor toolbarFor(el).nextSibling
 
+      editorToolbar = (editorNode)-> findEditor(editorNode).node.prev()
+
       showHide = (toolbar)->
         editingOpts = editorForToolbar(toolbar).options
         editingOpts.toggleHidden()
@@ -656,6 +685,7 @@ Exports
         findEditor
         showHide
         toolbarFor
+        editorToolbar
         editorForToolbar
         breakpoint
         blockOrg
@@ -672,6 +702,7 @@ Exports
         setResult
         setError
         toolbarFor
+        editorToolbar
         editorForToolbar
         blockCodeItems
         escapeAttr
@@ -679,4 +710,5 @@ Exports
         blockEnvMaker
         controllerEval
         getDocumentParams
+        basicDataFilter
       }

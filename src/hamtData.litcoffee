@@ -18,10 +18,10 @@ to make it easier to handle merges.
           super()
           @blocks = new Map()
         snapshot: ->
-          data = new HamtDataStore()
+          data = new HamtOrgData()
           data.blocks = @blocks
           data.blockIndex = @blockIndex
-          @addSnapshot data
+          data
         getFirst: -> getFirst @blocks
         setFirst: (firstId)-> @blocks = setFirst @blocks, firstId
         getBlock: (id, changes)->

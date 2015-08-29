@@ -20,6 +20,7 @@ Emacs connection
       } = UI
       {
         getDocumentParams
+        basicDataFilter
       } = EditorSupport
       {
         clearDiag
@@ -65,7 +66,7 @@ Emacs connection
             editor.options.load text
           else
             targetLen = data.getDocLength() - (end - start) + text.length
-            editor.options.makeStructureChange repl
+            editor.options.makeStructureChange start, end, text, repl
             endLen = data.getDocLength()
             if endLen != targetLen
               diagMessage "BAD DOC LENGTH AFTER REPLACEMENT, expected <#{targetLen}> but ggot<#{endLen}>"
@@ -81,9 +82,12 @@ Emacs connection
           newText = text
         else {blocks, newText} = data.blockOverlapsForReplacement(start, end, text)
         repl = computeNewStructure data, blocks, newText
+        repl.changeId = "emacs-#{data.emacsConnection.changeCount++}"
         repl.emacsNewBlocks = repl.newBlocks.slice()
         repl.blockOffset = if blocks.length then data.offsetForBlock blocks[0] else 0
         data.emacsConnection.replacing = repl
+        data.emacsConnection.opts.mergeChangeContext fromEmacs: repl.changeId
+        data.emacsConnection.pendingChanges[repl.changeId] = repl
         try
           func repl
         finally
@@ -149,6 +153,7 @@ Emacs connection
         fileTypes[ext]
 
       close = (evt, data)->
+        console.log "CLOSED EMACS CONNECTION"
         connection = data.emacsConnection
         connection.panel.find('button').button 'enable'
         connection.panel.find('input').removeAttr 'readonly'
@@ -174,13 +179,17 @@ Emacs connection
         connection.panel.find('input').attr 'readonly', true
         connection.websocket = ws
         connection.filter =
-          clear: ->
-          replaceBlock: (oldBlock, newBlock)->
-            if !data.emacsConnection.replacing || shouldSendConcurrent data, newBlock
+          __proto__: basicDataFilter
+          replaceBlock: (data, oldBlock, newBlock)->
+            con = data.emacsConnection
+            if !con.replacing && con.opts.changeContext?.fromEmacs?
+              tmpReplacing = con.replacing = con.pendingChanges[con.opts.changeContext.fromEmacs]
+            if con.replacing
+              delete data.emacsConnection.pendingChanges[con.replacing.changeId]
+            if !con.replacing || shouldSendConcurrent data, newBlock
               start = data.offsetForBlock oldBlock?._id ? newBlock._id
               end = start + (oldBlock?.text.length ? 0)
               text = newBlock.text
-              #if replacing && (replacing.start + replacing.text.length <= start || replacing.start >= end)
               if data.emacsConnection.replacing
                 sendConcurrentBlockChange data, newBlock
               else
@@ -191,15 +200,15 @@ Emacs connection
                   for startOff in [0...Math.min oldLen, newLen]
                     if oldBlock.text[startOff] != newBlock.text[startOff] then break
                   start += startOff
-                  for endOff in [0..Math.min oldLen, newLen]
-                    if oldBlock.text[oldLen - endOff] != newBlock.text[newLen - endOff] || oldLen - endOff <= startOff || newLen - endOff <= startOff
+                  for endOff in [0..Math.min oldLen - startOff - 1, newLen - startOff - 1] by 1
+                    if oldBlock.text[oldLen - endOff - 1] != newBlock.text[newLen - endOff - 1]
                       break
                   end -= endOff
                   if startOff || endOff
                     text = text.substring startOff, text.length - endOff
                 if start != end || text != ''
                   sendReplace ws, start, end, text
-        connection.filter.clear()
+            if tmpReplacing then con.replacing = null
         data.addFilter connection.filter
         if !cookie then sendReplace ws, 0, -1, data.getText()
         cont?()
@@ -262,13 +271,15 @@ Emacs connection
           panel: panel
           opts: UI.context.opts
           fileCallbacks: {}
+          changeCount: 0
+          pendingChanges: {}
         panel.find('button').button().on 'click', ->
           [host, port] = panel.find('input').val().split(':')
           connect opts, host, Number(port), '', ->
         $(document).ready ->
           if document.location.search.length > 1 && !connected
             connected = true
-            {connect:con, theme} = getDocumentParams()
+            {connect:con} = getDocumentParams()
             if con
               u = new URL con
               if u.protocol == 'emacs:' && m = u.pathname.match /^\/\/([^:]*)(:[^\/]*)(\/.*)$/

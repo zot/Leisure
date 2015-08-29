@@ -15,6 +15,13 @@
           type: 'error',
           error: "Bad message type: " + msg.type
         };
+      },
+      disapprovedError: function() {
+        return {
+          code: 3,
+          type: 'error',
+          error: "The master does not approve"
+        };
       }
     };
   });

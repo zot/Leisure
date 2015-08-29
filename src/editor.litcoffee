@@ -724,7 +724,7 @@ Hook methods (required)
 
 `edit(prev, oldBlocks, newBlocks)`: The editor calls this after the user has attempted an edit.  It should make the requested change (probably by calling `replaceBlocks`, below) and rerender the appropriate DOM.
 
-        edit: (prev, oldBlocks, newBlocks)-> throw new Error "options.edit(func) is not implemented"
+        edit: (prev, oldBlocks, newBlocks, verbatim)-> throw new Error "options.edit(func) is not implemented"
 
 Hook methods (optional)
 -----------------------
@@ -760,6 +760,7 @@ Main code
 
         constructor: ->
           super()
+          @changeContext = null
           @initData()
 
         setDiagEnabled: (flag)->
@@ -786,11 +787,11 @@ Main code
         nodeForId: (id)-> $("##{id}")
         idForNode: (node)-> $(node).prop(id)
         setEditor: (@editor)->
-        newId: -> "block#{idCounter++}"
+        newId: -> @data.newId()
 
 `replaceBlocks(oldBlocks, newBlocks) -> removedBlocks`: override this if you need to link up the blocks, etc., like so that `renderBlock()` can return the proper next id, for instance.
 
-        replaceBlocks: (prev, oldBlocks, newBlocks)-> @change @changesFor prev, oldBlocks, newBlocks
+        replaceBlocks: (prev, oldBlocks, newBlocks, verbatim)-> @change @data.changesFor prev, oldBlocks, newBlocks
 
 
 `changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
@@ -822,83 +823,32 @@ Main code
             oldBlocks.pop()
             newBlocks.pop()
           oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
-        replaceContent: (blocks, start, length, newContent)->
-          pos = @editor.docOffsetForBlockOffset blocks[0]._id, start + newContent.length
+        mergeChangeContext: (obj)-> @changeContext = _.merge (@changeContext ? {}), obj
+        replaceContent: (blocks, start, length, newContent, verbatim)->
           oldText = blockText blocks
           newText = oldText.substring(0, start) + newContent + oldText.substring start + length
-          #{oldBlocks, newBlocks, offset, prev} = @changeStructure blocks, newText
-          if @makeStructureChange computeNewStructure this, blocks, newText
-            pos
-        makeStructureChange: ({oldBlocks, newBlocks, offset, prev})->
-          if oldBlocks.length || newBlocks.length
-            oldFirst = oldBlocks[0]?._id
-            @edit prev, oldBlocks.slice(), newBlocks.slice()
-        changesFor: (first, oldBlocks, newBlocks)->
-          newBlockMap = {}
-          removes = {}
-          changes = {removes, sets: newBlockMap, first: @getFirst(), oldBlocks, newBlocks}
-          prev = @computeRemovesAndNewBlockIds oldBlocks, newBlocks, newBlockMap, removes
-          @patchNewBlocks first, oldBlocks, newBlocks, changes, newBlockMap, removes, prev
-          @removeDuplicateChanges newBlockMap
-          changes
-        computeRemovesAndNewBlockIds: (oldBlocks, newBlocks, newBlockMap, removes)->
-          for oldBlock in oldBlocks[newBlocks.length...oldBlocks.length]
-            removes[oldBlock._id] = oldBlock
-          prev = null
-          for newBlock, i in newBlocks
-            if oldBlock = oldBlocks[i]
-              newBlock._id = oldBlock._id
-              newBlock.prev = oldBlock.prev
-              newBlock.next = oldBlock.next
-            else
-              newBlock._id = @newId()
-              if prev then link prev, newBlock
-            prev = newBlockMap[newBlock._id] = newBlock
-          prev
+          pos = @data.docOffsetForBlockOffset blocks[0]._id, start
+          if @makeStructureChange pos, pos + length, newContent, computeNewStructure(this, blocks, newText), verbatim
+            pos + newContent.length
 
-        patchNewBlocks: (first, oldBlocks, newBlocks, changes, newBlockMap, removes, prev)->
-          if !oldBlocks.length && first = @getBlock first
-            oldNext = @getBlock first.next
-            oldBlocks.unshift first
-            first = newBlockMap[first._id] = copyBlock first
-            link first, newBlocks[0]
-            newBlocks.unshift first
-            if oldNext
-              oldBlocks.push oldNext
-              oldNext = newBlockMap[oldNext._id] = copyBlock oldNext
-              link last(newBlocks), oldNext
-              newBlocks.push oldNext
-          else if oldBlocks.length != newBlocks.length
-            if !prev && prev = copyBlock oldPrev = @getBlock oldBlocks[0].prev
-              oldBlocks.unshift oldPrev
-              newBlocks.unshift prev
-              newBlockMap[prev._id] = prev
-            lastBlock = last oldBlocks
-            if next = copyBlock oldNext = @getBlock (if lastBlock then lastBlock.next else @getFirst())
-              oldBlocks.push oldNext
-              newBlocks.push next
-              newBlockMap[next._id] = next
-              if !(next.prev = prev?._id) then changes.first = next._id
-            if prev
-              if !first && ((newBlocks.length && !newBlocks[0].prev) || !oldBlocks.length || !@getFirst() || removes[@getFirst()])
-                changes.first = newBlocks[0]._id
-              prev.next = next?._id
+Factored out because the Emacs connection calls MakeStructureChange.
 
-        removeDuplicateChanges: (newBlockMap)->
-          dups = []
-          for id, block of newBlockMap
-            if (oldBlock = @getBlock id) && block.text == oldBlock.text && block.next == oldBlock.next && block.prev == oldBlock.prev
-              dups.push id
-          for id of dups
-            delete newBlockMap[id]
-
-        change: ({first, removes, sets})->
-          @first = first
-          for id in removes
-            delete @blocks[id]
-          for id, block of sets
-            @blocks[id] = block
-          true
+        makeStructureChange: (start, end, text, {oldBlocks, newBlocks, offset, prev}, verbatim)->
+          try
+            if oldBlocks.length || newBlocks.length
+              oldFirst = oldBlocks[0]?._id
+              @edit prev, oldBlocks.slice(), newBlocks.slice(), verbatim
+          finally
+            @changeContext = null
+        change: (changes)->
+          if changes
+            {first, removes, sets} = changes
+            @first = first
+            for id in removes
+              delete @blocks[id]
+            for id, block of sets
+              @blocks[id] = block
+            true
 
 `getBlock(id) -> block?`: get the current block for id
 
@@ -1079,6 +1029,7 @@ Data model -- override/reset these if you want to change how the store accesses 
           @blocks = {}
           @blockIndex = Fingertree.fromArray [], @emptyIndexMeasure
           @changeCount = 0
+        newId: -> "block#{idCounter++}"
         setDiagEnabled: (flag)->
           #changeAdvice this, flag,
           #  setIndex: diag: wrapDiag
@@ -1094,6 +1045,62 @@ Data model -- override/reset these if you want to change how the store accesses 
             func()
           finally
             @changeCount--
+        computeRemovesAndNewBlockIds: (oldBlocks, newBlocks, newBlockMap, removes)->
+          for oldBlock in oldBlocks[newBlocks.length...oldBlocks.length]
+            removes[oldBlock._id] = oldBlock
+          prev = null
+          for newBlock, i in newBlocks
+            if oldBlock = oldBlocks[i]
+              newBlock._id = oldBlock._id
+              newBlock.prev = oldBlock.prev
+              newBlock.next = oldBlock.next
+            else
+              newBlock._id = @newId()
+              if prev then link prev, newBlock
+            prev = newBlockMap[newBlock._id] = newBlock
+          prev
+        patchNewBlocks: (first, oldBlocks, newBlocks, changes, newBlockMap, removes, prev)->
+          if !oldBlocks.length && first = @getBlock first
+            oldNext = @getBlock first.next
+            oldBlocks.unshift first
+            first = newBlockMap[first._id] = copyBlock first
+            link first, newBlocks[0]
+            newBlocks.unshift first
+            if oldNext
+              oldBlocks.push oldNext
+              oldNext = newBlockMap[oldNext._id] = copyBlock oldNext
+              link last(newBlocks), oldNext
+              newBlocks.push oldNext
+          else if oldBlocks.length != newBlocks.length
+            if !prev && prev = copyBlock oldPrev = @getBlock oldBlocks[0].prev
+              oldBlocks.unshift oldPrev
+              newBlocks.unshift prev
+              newBlockMap[prev._id] = prev
+            lastBlock = last oldBlocks
+            if next = copyBlock oldNext = @getBlock (if lastBlock then lastBlock.next else @getFirst())
+              oldBlocks.push oldNext
+              newBlocks.push next
+              newBlockMap[next._id] = next
+              if !(next.prev = prev?._id) then changes.first = next._id
+            if prev
+              if !first && ((newBlocks.length && !newBlocks[0].prev) || !oldBlocks.length || !@getFirst() || removes[@getFirst()])
+                changes.first = newBlocks[0]._id
+              prev.next = next?._id
+        changesFor: (first, oldBlocks, newBlocks)->
+          newBlockMap = {}
+          removes = {}
+          changes = {removes, sets: newBlockMap, first: @getFirst(), oldBlocks, newBlocks}
+          prev = @computeRemovesAndNewBlockIds oldBlocks, newBlocks, newBlockMap, removes
+          @patchNewBlocks first, oldBlocks, newBlocks, changes, newBlockMap, removes, prev
+          @removeDuplicateChanges newBlockMap
+          changes
+        removeDuplicateChanges: (newBlockMap)->
+          dups = []
+          for id, block of newBlockMap
+            if (oldBlock = @getBlock id) && block.text == oldBlock.text && block.next == oldBlock.next && block.prev == oldBlock.prev
+              dups.push id
+          for id of dups
+            delete newBlockMap[id]
         checkChanges: -> if @changeCount == 0
           throw new Error "Attempt to make a change outside of makeChanges"
         setIndex: (i)->
@@ -1261,7 +1268,12 @@ Data model -- override/reset these if you want to change how the store accesses 
             bl = @getBlock next
             next = bl.next
             bl
-        change: (changes)-> @trigger 'change', @makeChange changes
+        change: (changes)->
+          @currentChanges = changes
+          try
+            @trigger 'change', @makeChange changes
+          finally
+            @currentChanges = null
         makeChange: ({first, sets, removes, oldBlocks, newBlocks})->
           @makeChanges =>
             {adds, updates, old} = result = {adds: {}, updates: {}, removes, old: {}, sets, oldFirst: @getFirst(), first: first, oldBlocks, newBlocks}
@@ -1379,10 +1391,10 @@ DataStoreEditingOptions
               prev.next = block._id
               block.prev = prev._id
           @data.load newBlocks[0]?._id, blockMap
-        edit: (prev, oldBlocks, newBlocks)-> @replaceBlocks prev, oldBlocks, newBlocks
+        edit: (prev, oldBlocks, newBlocks, verbatim)-> @replaceBlocks prev, oldBlocks, newBlocks, verbatim
         getBlock: (id)-> @data.getBlock id
         getFirst: (first)-> @data.getFirst()
-        change: (changes)-> @data.change changes
+        change: (changes)-> if changes then @data.change changes
         changed: (changes)-> @rerenderAll()
 
 Utilities

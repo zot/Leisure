@@ -18,10 +18,10 @@
 
       HamtOrgData.prototype.snapshot = function() {
         var data;
-        data = new HamtDataStore();
+        data = new HamtOrgData();
         data.blocks = this.blocks;
         data.blockIndex = this.blockIndex;
-        return this.addSnapshot(data);
+        return data;
       };
 
       HamtOrgData.prototype.getFirst = function() {

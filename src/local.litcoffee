@@ -54,13 +54,15 @@ Code for local-mode.  This will not be loaded under meteor.
         p2pPanel = panel
         if !useP2P then panel.css 'display', 'none'
         hostField.val document.location.host || "localhost:8080"
-        hasSession = false
+        createSessionButton.data hasSession: false
         createSessionButton.click ->
-          if !hasSession
+          if !createSessionButton.data().hasSession
             createSessionButton.closest('.contents').removeClass 'not-connected'
             createSessionButton.closest('.contents').addClass 'connected'
             peer.createSession hostField.val(), (con)->
-              sessionField.val con.connectUrl
+              url = new URL("", document.location)
+              url.search = "?join=#{con.connectUrl}"
+              sessionField.val url.toString()
               setPanelExpanded panel, true
               sessionField[0].select()
               sessionField[0].focus()
@@ -71,13 +73,7 @@ Code for local-mode.  This will not be loaded under meteor.
             peer.disconnect()
             createSessionButton.button('option', 'label', 'Create Session')
             setTimeout (->setPanelExpanded panel, true), 1
-          hasSession = !hasSession
-        #connectToSessionButton.click -> console.log "connect to session"
-        #console.log "host:", hostField
-        #console.log "session:", sessionField
-        #console.log "createSessionButton:", createSessionButton
-        #console.log "connectToSessionButton:", connectToSessionButton
-        #console.log "connections:", connections
+          createSessionButton.data hasSession: !createSessionButton.data().hasSession
 
       $(document).ready ->
         runTests()
@@ -94,6 +90,7 @@ Code for local-mode.  This will not be loaded under meteor.
         createStructureDisplay data
         #window.ED = plainEditDiv $("[maindoc]"), data
         window.ED = fancyEditDiv $("[maindoc]"), data
+        if useP2P then window.PEER.setEditor ED
         createEditorDisplay ED
         if document.location.search
           {load, theme} = getDocumentParams()

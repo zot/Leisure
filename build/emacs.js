@@ -3,12 +3,12 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./eval.litcoffee', 'cs!./advice.litcoffee'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
-    var blockRangeFor, c, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
+    var basicDataFilter, blockRangeFor, c, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
     showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr;
-    getDocumentParams = EditorSupport.getDocumentParams;
+    getDocumentParams = EditorSupport.getDocumentParams, basicDataFilter = EditorSupport.basicDataFilter;
     clearDiag = Diag.clearDiag, diagMessage = Diag.diagMessage;
     knownLanguages = Eval.knownLanguages;
     msgPat = /^([^ ]+)( (.*))?$/;
@@ -60,7 +60,7 @@
           return editor.options.load(text);
         } else {
           targetLen = data.getDocLength() - (end - start) + text.length;
-          editor.options.makeStructureChange(repl);
+          editor.options.makeStructureChange(start, end, text, repl);
           endLen = data.getDocLength();
           if (endLen !== targetLen) {
             return diagMessage("BAD DOC LENGTH AFTER REPLACEMENT, expected <" + targetLen + "> but ggot<" + endLen + ">");
@@ -85,9 +85,14 @@
         ref = data.blockOverlapsForReplacement(start, end, text), blocks = ref.blocks, newText = ref.newText;
       }
       repl = computeNewStructure(data, blocks, newText);
+      repl.changeId = "emacs-" + (data.emacsConnection.changeCount++);
       repl.emacsNewBlocks = repl.newBlocks.slice();
       repl.blockOffset = blocks.length ? data.offsetForBlock(blocks[0]) : 0;
       data.emacsConnection.replacing = repl;
+      data.emacsConnection.opts.mergeChangeContext({
+        fromEmacs: repl.changeId
+      });
+      data.emacsConnection.pendingChanges[repl.changeId] = repl;
       try {
         return func(repl);
       } finally {
@@ -206,6 +211,7 @@
     };
     close = function(evt, data) {
       var connection;
+      console.log("CLOSED EMACS CONNECTION");
       connection = data.emacsConnection;
       connection.panel.find('button').button('enable');
       connection.panel.find('input').removeAttr('readonly');
@@ -242,27 +248,34 @@
       connection.panel.find('input').attr('readonly', true);
       connection.websocket = ws;
       connection.filter = {
-        clear: function() {},
-        replaceBlock: function(oldBlock, newBlock) {
-          var end, endOff, i, j, newLen, oldLen, ref, ref1, ref2, ref3, start, startOff, text;
-          if (!data.emacsConnection.replacing || shouldSendConcurrent(data, newBlock)) {
-            start = data.offsetForBlock((ref = oldBlock != null ? oldBlock._id : void 0) != null ? ref : newBlock._id);
-            end = start + ((ref1 = oldBlock != null ? oldBlock.text.length : void 0) != null ? ref1 : 0);
+        __proto__: basicDataFilter,
+        replaceBlock: function(data, oldBlock, newBlock) {
+          var con, end, endOff, i, j, newLen, oldLen, ref, ref1, ref2, ref3, ref4, start, startOff, text, tmpReplacing;
+          con = data.emacsConnection;
+          if (!con.replacing && (((ref = con.opts.changeContext) != null ? ref.fromEmacs : void 0) != null)) {
+            tmpReplacing = con.replacing = con.pendingChanges[con.opts.changeContext.fromEmacs];
+          }
+          if (con.replacing) {
+            delete data.emacsConnection.pendingChanges[con.replacing.changeId];
+          }
+          if (!con.replacing || shouldSendConcurrent(data, newBlock)) {
+            start = data.offsetForBlock((ref1 = oldBlock != null ? oldBlock._id : void 0) != null ? ref1 : newBlock._id);
+            end = start + ((ref2 = oldBlock != null ? oldBlock.text.length : void 0) != null ? ref2 : 0);
             text = newBlock.text;
             if (data.emacsConnection.replacing) {
-              return sendConcurrentBlockChange(data, newBlock);
+              sendConcurrentBlockChange(data, newBlock);
             } else {
               if (oldBlock && newBlock) {
                 oldLen = oldBlock.text.length;
                 newLen = newBlock.text.length;
-                for (startOff = i = 0, ref2 = Math.min(oldLen, newLen); 0 <= ref2 ? i < ref2 : i > ref2; startOff = 0 <= ref2 ? ++i : --i) {
+                for (startOff = i = 0, ref3 = Math.min(oldLen, newLen); 0 <= ref3 ? i < ref3 : i > ref3; startOff = 0 <= ref3 ? ++i : --i) {
                   if (oldBlock.text[startOff] !== newBlock.text[startOff]) {
                     break;
                   }
                 }
                 start += startOff;
-                for (endOff = j = 0, ref3 = Math.min(oldLen, newLen); 0 <= ref3 ? j <= ref3 : j >= ref3; endOff = 0 <= ref3 ? ++j : --j) {
-                  if (oldBlock.text[oldLen - endOff] !== newBlock.text[newLen - endOff] || oldLen - endOff <= startOff || newLen - endOff <= startOff) {
+                for (endOff = j = 0, ref4 = Math.min(oldLen - startOff - 1, newLen - startOff - 1); j <= ref4; endOff = j += 1) {
+                  if (oldBlock.text[oldLen - endOff - 1] !== newBlock.text[newLen - endOff - 1]) {
                     break;
                   }
                 }
@@ -272,13 +285,15 @@
                 }
               }
               if (start !== end || text !== '') {
-                return sendReplace(ws, start, end, text);
+                sendReplace(ws, start, end, text);
               }
             }
           }
+          if (tmpReplacing) {
+            return con.replacing = null;
+          }
         }
       };
-      connection.filter.clear();
       data.addFilter(connection.filter);
       if (!cookie) {
         sendReplace(ws, 0, -1, data.getText());
@@ -359,7 +374,9 @@
         imageSizes: {},
         panel: panel,
         opts: UI.context.opts,
-        fileCallbacks: {}
+        fileCallbacks: {},
+        changeCount: 0,
+        pendingChanges: {}
       };
       panel.find('button').button().on('click', function() {
         var host, port, ref;
@@ -367,10 +384,10 @@
         return connect(opts, host, Number(port), '', function() {});
       });
       return $(document).ready(function() {
-        var con, cookie, host, ignore, m, port, ref, theme, u;
+        var con, cookie, host, ignore, m, port, u;
         if (document.location.search.length > 1 && !connected) {
           connected = true;
-          ref = getDocumentParams(), con = ref.connect, theme = ref.theme;
+          con = getDocumentParams().connect;
           if (con) {
             u = new URL(con);
             if (u.protocol === 'emacs:' && (m = u.pathname.match(/^\/\/([^:]*)(:[^\/]*)(\/.*)$/))) {

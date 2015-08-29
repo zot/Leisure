@@ -1,3 +1,7 @@
+* TODO fix list parsing
+- make indented lines following a list item part of the list
+- lines starting without indent terminate all pending lists
+- mark end list items (starts can be determined from those)
 * TODO look at task management
 - Leisure docs displayed from textcraft can share web storage
 - when a doc loads, put its agenda info in web storage
@@ -42,7 +46,6 @@ hides cruft so you can just look at the code
 * TODO extract doc strings from sourcemap, before code
 * BUG problem editing headline in slide mode
 * TODO get toolbar theming working (at least get steampunk toolbar to work)
-* TODO fix list parsing (place an empty list item after the final meat, etc.)
 * TODO widgets for Emacs demo
 * TODO code block views (replace whole code block)
 * TODO code result views (replace results area)

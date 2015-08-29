@@ -26,62 +26,100 @@ Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/10503
     guid = -> "#{s4()}#{s4()}-#{s4()}-#{s4()}-#{s4()}-#{s4()}#{s4()}#{s4()}"
 
     class MessageHandler
+      constructor: ->
+        @id = guid()
       setConnection: (@con)->
+        console.log "#{@type} connection: #{@id}"
         @con.leisure = this
         @con.on 'data', (msg)=> @handleMessage JSON.parse msg
         @con.on 'close', => @closed()
       type: 'Unknown Handler'
       close: -> @con.close()
       closed: ->
-      send: (msg)-> @con.write JSON.stringify msg
+        console.log "#{@type} closed: #{@id}"
+      send: (msg)->
+        #console.log "Sending message", msg
+        @con.write JSON.stringify msg
+      sendError: (msg)->
+        msg.type = 'error'
+        @send msg
+        setTimeout (=> @close()), 1
 
 Handle a message from the connected browser
 
       handleMessage: (msg)->
-        console.log "#{@type} received:", msg
-        if msg.type?.toLowerCase() in @legalMessages
-          this[msg.type](msg)
-        else @send badMsgTypeError msg
-      legalMessages: ['log']
-      log: (msg)-> console.log msg.msg
+        msg.connectionId = @connectionId
+        #console.log "#{@type} received: #{JSON.stringify msg}"
+        if !(msg.type of @handler)
+          console.log "Received bad message #{msg.type}", msg
+          @close()
+        else @handler[msg.type].call this, msg
+      handler:
+        log: (msg)-> console.log msg.msg
+        replace: (msg)-> @master.relay msg
+      sendEcho: -> @send type: 'echo'
 
     class MasterHandler extends MessageHandler
       constructor: ->
-        @slaveCount = 1
+        super()
+        @master = this
+        @msgCount = 0
+        @connectionId = "peer-0"
         @slaves = {}
+        @pendingSlaves = {}
+        @doc = ''
+        @peerCount = 0
       type: 'Master'
       setConnection: (con)->
-        super con
-        @id = guid()
-        console.log "Master connection: #{con.leisure.id}"
         masters[@id] = this
-        @send type: 'connect', id: @id
+        super con
+        @send type: 'connect', id: @id, connectionId: @connectionId
       addSlave: (slave)->
-        slaveId = "slave-#{@slaveCount++}"
-        @slaves[slaveId] = slave
-        slave.setId slaveId
-      removeSlave: (slave)-> delete @slaves[slave.id]
+        slave.connectionId = "peer-#{++@peerCount}"
+        @pendingSlaves[slave.connectionId] = slave
+        @send type: 'slaveConnect', slaveId: slave.connectionId
+      removeSlave: (slave)->
+        delete @slaves[slave.connectionId]
+        delete @pendingSlaves[slave.connectionId]
+        @send type: 'slaveDisconnect', slaveId: slave.connectionId
       closed: ->
-        console.log "Closed master: #{@con.leisure.id}"
         delete masters[@con.leisure.id]
         for id, slave of @slaves
           slave.close()
         @slaves = {}
-      legalMessages: ['log', 'replace']
-      replace: (msg)->
+        super()
+      relay: (msg)->
+        if msg.type == 'replace'
+          {start, end, text, connectionId: replId} = msg
+          @doc = @doc.substring(0, start) + text + @doc.substring(end)
+          if msg.connectionId == @connectionId then @sendEcho()
+          else @slaves[replId].sendEcho()
+        msg.msgCount = @msgCount++
+        if replId != @connectionId then @send msg
+        for id, slave of @slaves
+          if replId != slave.connectionId then slave.send msg
+      handler:
+        __proto__: MessageHandler::handler
+        initDoc: ({@doc})->
+        slaveApproval: ({slaveId, approval})->
+          if slave = @pendingSlaves[slaveId]
+            delete @pendingSlaves[slaveId]
+            if approval
+              @slaves[slaveId] = slave
+              slave.send type: 'connect', id: @id, connectionId: slave.connectionId, doc: @doc
+            else slave.sendError disapprovedError()
 
     class SlaveHandler extends MessageHandler
       type: 'Slave'
       setConnection: (con, masterId)->
+        if !(@master = masters[masterId])
+          @sendError badMasterIdError masterId
+        else @master.addSlave this
         super con
-        if !(master = masters[masterId])
-          @send badMasterIdError masterId
-          @close()
-        else
-          @master.addSlave this
       setId: (@id)->
-      closed: -> @master.removeSlave this
-      legalMessages: []
+      closed: ->
+        @master.removeSlave this
+        super()
 
     startServer = (port)->
       http_server = http.createServer()
@@ -95,24 +133,7 @@ Handle a message from the connected browser
         .installHandlers(http_server)
       http_server.listen(port, '0.0.0.0')
 
-    rerequire = (module)->
-      removeKey = null
-      if module.match /^\.[\/\\]/
-        exp = new RegExp "#{module.substring 2}\.js$"
-        console.log exp
-        for k, v of require.cache
-          if (k.match exp) && !k.match /node_modules/
-            if removeKey
-              console.log "WARNING: More than one module matches #{module}"
-              removeKey = null
-              break
-            removeKey = k
-        if removeKey
-          delete require.cache[removeKey]
-      require module
-
     module.exports = {
       startServer
-      rerequire
       guid
     }

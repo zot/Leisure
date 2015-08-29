@@ -629,7 +629,7 @@
             results1.push(this.renderOrg(opts, child));
           }
           return results1;
-        }).call(this)).join('') : org instanceof ListItem ? this.renderList(opts, org) : org instanceof Drawer ? this.renderDrawer(opts, org) : org instanceof Example ? this.renderExample(opts, org) : insertBreaks(org.allText());
+        }).call(this)).join('') : org instanceof ListItem ? this.renderList(opts, org) : org instanceof Drawer ? this.renderDrawer(opts, org) : org instanceof Example ? this.renderExample(opts, org) : insertBreaks(escapeHtml(org.allText()));
         if (start) {
           return prefixBreak(text);
         } else {

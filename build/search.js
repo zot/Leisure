@@ -4,9 +4,9 @@
     hasProp = {}.hasOwnProperty;
 
   define(['cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], function(Editor, EditorSupport, UI, BrowserExports) {
-    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, chr, configureSearch, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
+    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
     findEditor = Editor.findEditor, LeisureEditCore = Editor.LeisureEditCore;
-    OrgEditing = EditorSupport.OrgEditing, fancyMode = EditorSupport.fancyMode, editorForToolbar = EditorSupport.editorForToolbar;
+    OrgEditing = EditorSupport.OrgEditing, fancyMode = EditorSupport.fancyMode, editorForToolbar = EditorSupport.editorForToolbar, basicDataFilter = EditorSupport.basicDataFilter;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
     mergeExports = BrowserExports.mergeExports;
     searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g;
@@ -81,13 +81,14 @@
     };
     addSearchDataFilter = function(data) {
       return data.addFilter({
-        clear: function() {
+        __proto__: basicDataFilter,
+        clear: function(data) {
           return data.ftsIndex = {
             sizes: {},
             gramBlocks: {}
           };
         },
-        replaceBlock: function(oldBlock, newBlock) {
+        replaceBlock: function(data, oldBlock, newBlock) {
           var gram, ref, ref1, ref2, ref3, results1;
           for (gram in grams(oldBlock != null ? oldBlock.text : void 0)) {
             if ((ref = data.ftsIndex.gramBlocks[gram]) != null ? ref[oldBlock._id] : void 0) {

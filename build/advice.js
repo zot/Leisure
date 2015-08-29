@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define([], function() {
-    var Advice, advise, afterMethod, beforeMethod, changeAdvice, unadvise;
+    var Advice, advise, afterMethod, beforeMethod, callOriginal, changeAdvice, unadvise;
     (function() {
       return changeAdvice(object, true, {
         setName: {
@@ -240,12 +240,18 @@
         return (ref = object.ADVICE) != null ? ref.unadvise(method, name) : void 0;
       }
     };
+    callOriginal = function() {
+      var args, method, object, ref, ref1;
+      object = arguments[0], method = arguments[1], args = 3 <= arguments.length ? slice.call(arguments, 2) : [];
+      return ((ref = (ref1 = object.ADVICE) != null ? ref1.originals : void 0) != null ? ref : object)[method].apply(object, args);
+    };
     return {
       changeAdvice: changeAdvice,
       beforeMethod: beforeMethod,
       afterMethod: afterMethod,
       advise: advise,
-      unadvise: unadvise
+      unadvise: unadvise,
+      callOriginal: callOriginal
     };
   });
 

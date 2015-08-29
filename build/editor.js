@@ -958,7 +958,7 @@
         throw new Error("options.renderBlock(block) is not implemented");
       };
 
-      BasicEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks) {
+      BasicEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks, verbatim) {
         throw new Error("options.edit(func) is not implemented");
       };
 
@@ -987,6 +987,7 @@
 
       function BasicEditingOptions() {
         BasicEditingOptions.__super__.constructor.call(this);
+        this.changeContext = null;
         this.initData();
       }
 
@@ -1030,11 +1031,11 @@
       };
 
       BasicEditingOptions.prototype.newId = function() {
-        return "block" + (idCounter++);
+        return this.data.newId();
       };
 
-      BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks) {
-        return this.change(this.changesFor(prev, oldBlocks, newBlocks));
+      BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks, verbatim) {
+        return this.change(this.data.changesFor(prev, oldBlocks, newBlocks));
       };
 
       BasicEditingOptions.prototype.changeStructure = function(oldBlocks, newText) {
@@ -1080,134 +1081,49 @@
         };
       };
 
-      BasicEditingOptions.prototype.replaceContent = function(blocks, start, length, newContent) {
+      BasicEditingOptions.prototype.mergeChangeContext = function(obj) {
+        var ref;
+        return this.changeContext = _.merge((ref = this.changeContext) != null ? ref : {}, obj);
+      };
+
+      BasicEditingOptions.prototype.replaceContent = function(blocks, start, length, newContent, verbatim) {
         var newText, oldText, pos;
-        pos = this.editor.docOffsetForBlockOffset(blocks[0]._id, start + newContent.length);
         oldText = blockText(blocks);
         newText = oldText.substring(0, start) + newContent + oldText.substring(start + length);
-        if (this.makeStructureChange(computeNewStructure(this, blocks, newText))) {
-          return pos;
+        pos = this.data.docOffsetForBlockOffset(blocks[0]._id, start);
+        if (this.makeStructureChange(pos, pos + length, newContent, computeNewStructure(this, blocks, newText), verbatim)) {
+          return pos + newContent.length;
         }
       };
 
-      BasicEditingOptions.prototype.makeStructureChange = function(arg) {
+      BasicEditingOptions.prototype.makeStructureChange = function(start, end, text, arg, verbatim) {
         var newBlocks, offset, oldBlocks, oldFirst, prev, ref;
         oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks, offset = arg.offset, prev = arg.prev;
-        if (oldBlocks.length || newBlocks.length) {
-          oldFirst = (ref = oldBlocks[0]) != null ? ref._id : void 0;
-          return this.edit(prev, oldBlocks.slice(), newBlocks.slice());
+        try {
+          if (oldBlocks.length || newBlocks.length) {
+            oldFirst = (ref = oldBlocks[0]) != null ? ref._id : void 0;
+            return this.edit(prev, oldBlocks.slice(), newBlocks.slice(), verbatim);
+          }
+        } finally {
+          this.changeContext = null;
         }
       };
 
-      BasicEditingOptions.prototype.changesFor = function(first, oldBlocks, newBlocks) {
-        var changes, newBlockMap, prev, removes;
-        newBlockMap = {};
-        removes = {};
-        changes = {
-          removes: removes,
-          sets: newBlockMap,
-          first: this.getFirst(),
-          oldBlocks: oldBlocks,
-          newBlocks: newBlocks
-        };
-        prev = this.computeRemovesAndNewBlockIds(oldBlocks, newBlocks, newBlockMap, removes);
-        this.patchNewBlocks(first, oldBlocks, newBlocks, changes, newBlockMap, removes, prev);
-        this.removeDuplicateChanges(newBlockMap);
-        return changes;
-      };
-
-      BasicEditingOptions.prototype.computeRemovesAndNewBlockIds = function(oldBlocks, newBlocks, newBlockMap, removes) {
-        var i, j, len, len1, newBlock, o, oldBlock, prev, ref;
-        ref = oldBlocks.slice(newBlocks.length, oldBlocks.length);
-        for (j = 0, len = ref.length; j < len; j++) {
-          oldBlock = ref[j];
-          removes[oldBlock._id] = oldBlock;
-        }
-        prev = null;
-        for (i = o = 0, len1 = newBlocks.length; o < len1; i = ++o) {
-          newBlock = newBlocks[i];
-          if (oldBlock = oldBlocks[i]) {
-            newBlock._id = oldBlock._id;
-            newBlock.prev = oldBlock.prev;
-            newBlock.next = oldBlock.next;
-          } else {
-            newBlock._id = this.newId();
-            if (prev) {
-              link(prev, newBlock);
-            }
-          }
-          prev = newBlockMap[newBlock._id] = newBlock;
-        }
-        return prev;
-      };
-
-      BasicEditingOptions.prototype.patchNewBlocks = function(first, oldBlocks, newBlocks, changes, newBlockMap, removes, prev) {
-        var lastBlock, next, oldNext, oldPrev;
-        if (!oldBlocks.length && (first = this.getBlock(first))) {
-          oldNext = this.getBlock(first.next);
-          oldBlocks.unshift(first);
-          first = newBlockMap[first._id] = copyBlock(first);
-          link(first, newBlocks[0]);
-          newBlocks.unshift(first);
-          if (oldNext) {
-            oldBlocks.push(oldNext);
-            oldNext = newBlockMap[oldNext._id] = copyBlock(oldNext);
-            link(last(newBlocks), oldNext);
-            return newBlocks.push(oldNext);
-          }
-        } else if (oldBlocks.length !== newBlocks.length) {
-          if (!prev && (prev = copyBlock(oldPrev = this.getBlock(oldBlocks[0].prev)))) {
-            oldBlocks.unshift(oldPrev);
-            newBlocks.unshift(prev);
-            newBlockMap[prev._id] = prev;
-          }
-          lastBlock = last(oldBlocks);
-          if (next = copyBlock(oldNext = this.getBlock((lastBlock ? lastBlock.next : this.getFirst())))) {
-            oldBlocks.push(oldNext);
-            newBlocks.push(next);
-            newBlockMap[next._id] = next;
-            if (!(next.prev = prev != null ? prev._id : void 0)) {
-              changes.first = next._id;
-            }
-          }
-          if (prev) {
-            if (!first && ((newBlocks.length && !newBlocks[0].prev) || !oldBlocks.length || !this.getFirst() || removes[this.getFirst()])) {
-              changes.first = newBlocks[0]._id;
-            }
-            return prev.next = next != null ? next._id : void 0;
-          }
-        }
-      };
-
-      BasicEditingOptions.prototype.removeDuplicateChanges = function(newBlockMap) {
-        var block, dups, id, oldBlock, results1;
-        dups = [];
-        for (id in newBlockMap) {
-          block = newBlockMap[id];
-          if ((oldBlock = this.getBlock(id)) && block.text === oldBlock.text && block.next === oldBlock.next && block.prev === oldBlock.prev) {
-            dups.push(id);
-          }
-        }
-        results1 = [];
-        for (id in dups) {
-          results1.push(delete newBlockMap[id]);
-        }
-        return results1;
-      };
-
-      BasicEditingOptions.prototype.change = function(arg) {
+      BasicEditingOptions.prototype.change = function(changes) {
         var block, first, id, j, len, removes, sets;
-        first = arg.first, removes = arg.removes, sets = arg.sets;
-        this.first = first;
-        for (j = 0, len = removes.length; j < len; j++) {
-          id = removes[j];
-          delete this.blocks[id];
+        if (changes) {
+          first = changes.first, removes = changes.removes, sets = changes.sets;
+          this.first = first;
+          for (j = 0, len = removes.length; j < len; j++) {
+            id = removes[j];
+            delete this.blocks[id];
+          }
+          for (id in sets) {
+            block = sets[id];
+            this.blocks[id] = block;
+          }
+          return true;
         }
-        for (id in sets) {
-          block = sets[id];
-          this.blocks[id] = block;
-        }
-        return true;
       };
 
       BasicEditingOptions.prototype.getBlock = function(id) {
@@ -1434,6 +1350,10 @@
         this.changeCount = 0;
       }
 
+      DataStore.prototype.newId = function() {
+        return "block" + (idCounter++);
+      };
+
       DataStore.prototype.setDiagEnabled = function(flag) {
         changeAdvice(this, flag, {
           makeChanges: {
@@ -1456,6 +1376,102 @@
         } finally {
           this.changeCount--;
         }
+      };
+
+      DataStore.prototype.computeRemovesAndNewBlockIds = function(oldBlocks, newBlocks, newBlockMap, removes) {
+        var i, j, len, len1, newBlock, o, oldBlock, prev, ref;
+        ref = oldBlocks.slice(newBlocks.length, oldBlocks.length);
+        for (j = 0, len = ref.length; j < len; j++) {
+          oldBlock = ref[j];
+          removes[oldBlock._id] = oldBlock;
+        }
+        prev = null;
+        for (i = o = 0, len1 = newBlocks.length; o < len1; i = ++o) {
+          newBlock = newBlocks[i];
+          if (oldBlock = oldBlocks[i]) {
+            newBlock._id = oldBlock._id;
+            newBlock.prev = oldBlock.prev;
+            newBlock.next = oldBlock.next;
+          } else {
+            newBlock._id = this.newId();
+            if (prev) {
+              link(prev, newBlock);
+            }
+          }
+          prev = newBlockMap[newBlock._id] = newBlock;
+        }
+        return prev;
+      };
+
+      DataStore.prototype.patchNewBlocks = function(first, oldBlocks, newBlocks, changes, newBlockMap, removes, prev) {
+        var lastBlock, next, oldNext, oldPrev;
+        if (!oldBlocks.length && (first = this.getBlock(first))) {
+          oldNext = this.getBlock(first.next);
+          oldBlocks.unshift(first);
+          first = newBlockMap[first._id] = copyBlock(first);
+          link(first, newBlocks[0]);
+          newBlocks.unshift(first);
+          if (oldNext) {
+            oldBlocks.push(oldNext);
+            oldNext = newBlockMap[oldNext._id] = copyBlock(oldNext);
+            link(last(newBlocks), oldNext);
+            return newBlocks.push(oldNext);
+          }
+        } else if (oldBlocks.length !== newBlocks.length) {
+          if (!prev && (prev = copyBlock(oldPrev = this.getBlock(oldBlocks[0].prev)))) {
+            oldBlocks.unshift(oldPrev);
+            newBlocks.unshift(prev);
+            newBlockMap[prev._id] = prev;
+          }
+          lastBlock = last(oldBlocks);
+          if (next = copyBlock(oldNext = this.getBlock((lastBlock ? lastBlock.next : this.getFirst())))) {
+            oldBlocks.push(oldNext);
+            newBlocks.push(next);
+            newBlockMap[next._id] = next;
+            if (!(next.prev = prev != null ? prev._id : void 0)) {
+              changes.first = next._id;
+            }
+          }
+          if (prev) {
+            if (!first && ((newBlocks.length && !newBlocks[0].prev) || !oldBlocks.length || !this.getFirst() || removes[this.getFirst()])) {
+              changes.first = newBlocks[0]._id;
+            }
+            return prev.next = next != null ? next._id : void 0;
+          }
+        }
+      };
+
+      DataStore.prototype.changesFor = function(first, oldBlocks, newBlocks) {
+        var changes, newBlockMap, prev, removes;
+        newBlockMap = {};
+        removes = {};
+        changes = {
+          removes: removes,
+          sets: newBlockMap,
+          first: this.getFirst(),
+          oldBlocks: oldBlocks,
+          newBlocks: newBlocks
+        };
+        prev = this.computeRemovesAndNewBlockIds(oldBlocks, newBlocks, newBlockMap, removes);
+        this.patchNewBlocks(first, oldBlocks, newBlocks, changes, newBlockMap, removes, prev);
+        this.removeDuplicateChanges(newBlockMap);
+        return changes;
+      };
+
+      DataStore.prototype.removeDuplicateChanges = function(newBlockMap) {
+        var block, dups, id, oldBlock, results1;
+        dups = [];
+        for (id in newBlockMap) {
+          block = newBlockMap[id];
+          if ((oldBlock = this.getBlock(id)) && block.text === oldBlock.text && block.next === oldBlock.next && block.prev === oldBlock.prev) {
+            dups.push(id);
+          }
+        }
+        results1 = [];
+        for (id in dups) {
+          results1.push(delete newBlockMap[id]);
+        }
+        return results1;
       };
 
       DataStore.prototype.checkChanges = function() {
@@ -1766,7 +1782,12 @@
       };
 
       DataStore.prototype.change = function(changes) {
-        return this.trigger('change', this.makeChange(changes));
+        this.currentChanges = changes;
+        try {
+          return this.trigger('change', this.makeChange(changes));
+        } finally {
+          this.currentChanges = null;
+        }
       };
 
       DataStore.prototype.makeChange = function(arg) {
@@ -2000,8 +2021,8 @@
         return this.data.load((ref = newBlocks[0]) != null ? ref._id : void 0, blockMap);
       };
 
-      DataStoreEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks) {
-        return this.replaceBlocks(prev, oldBlocks, newBlocks);
+      DataStoreEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks, verbatim) {
+        return this.replaceBlocks(prev, oldBlocks, newBlocks, verbatim);
       };
 
       DataStoreEditingOptions.prototype.getBlock = function(id) {
@@ -2013,7 +2034,9 @@
       };
 
       DataStoreEditingOptions.prototype.change = function(changes) {
-        return this.data.change(changes);
+        if (changes) {
+          return this.data.change(changes);
+        }
       };
 
       DataStoreEditingOptions.prototype.changed = function(changes) {

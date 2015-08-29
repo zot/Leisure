@@ -5,7 +5,7 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, afterMethod, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, editorForToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -43,6 +43,28 @@
         this.filters = [];
       }
 
+      OrgData.prototype.makeChanges = function(func) {
+        var err, filter, j, l, len, len1, ref, ref1;
+        if (!this.changeCount) {
+          ref = this.filters;
+          for (j = 0, len = ref.length; j < len; j++) {
+            filter = ref[j];
+            filter.startChange(this);
+          }
+        }
+        try {
+          return OrgData.__super__.makeChanges.call(this, func);
+        } catch (_error) {
+          err = _error;
+          ref1 = this.filters;
+          for (l = 0, len1 = ref1.length; l < len1; l++) {
+            filter = ref1[l];
+            filter.endChange(this);
+          }
+          throw err;
+        }
+      };
+
       OrgData.prototype.getBlock = function(thing, changes) {
         var ref;
         if (typeof thing === 'string') {
@@ -50,6 +72,13 @@
         } else {
           return thing;
         }
+      };
+
+      OrgData.prototype.changesFor = function(first, oldBlocks, newBlocks) {
+        var changes;
+        changes = OrgData.__super__.changesFor.call(this, first, oldBlocks, newBlocks);
+        this.linkAllSiblings(changes);
+        return changes;
       };
 
       OrgData.prototype.load = function(first, blocks, changes) {
@@ -62,7 +91,7 @@
               ref = _this.filters;
               for (j = 0, len = ref.length; j < len; j++) {
                 filter = ref[j];
-                filter.clear();
+                filter.clear(_this);
               }
               if (!changes) {
                 changes = {
@@ -121,7 +150,7 @@
         results1 = [];
         for (j = 0, len = ref.length; j < len; j++) {
           filter = ref[j];
-          results1.push(filter.replaceBlock(oldBlock, newBlock));
+          results1.push(filter.replaceBlock(this, oldBlock, newBlock));
         }
         return results1;
       };
@@ -346,6 +375,12 @@
       return OrgData;
 
     })(DataStore);
+    basicDataFilter = {
+      startChange: function(data) {},
+      endChange: function(data) {},
+      clear: function(data) {},
+      replaceBlock: function(data, oldBlock, newBlock) {}
+    };
     blockElementId = function(block) {
       return block && (block.codeName || block._id);
     };
@@ -690,8 +725,13 @@
         return this.mode.render(this, block, this.idPrefix);
       };
 
-      OrgEditing.prototype.change = function(changes) {
-        var change, changedProperties, child, computedProperties, id, j, l, len, len1, oldBlock, parent, props, ref, ref1, ref2;
+      OrgEditing.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks, verbatim) {
+        return this.change(this.changesFor(prev, oldBlocks, newBlocks, verbatim));
+      };
+
+      OrgEditing.prototype.changesFor = function(first, oldBlocks, newBlocks, verbatim) {
+        var change, changedProperties, changes, child, computedProperties, id, j, l, len, len1, oldBlock, parent, props, ref, ref1, ref2;
+        changes = this.data.changesFor(first, oldBlocks, newBlocks);
         computedProperties = {};
         changedProperties = [];
         ref = changes.sets;
@@ -701,9 +741,10 @@
           if (this.checkPropertyChange(changes, change, oldBlock)) {
             changedProperties.push(change._id);
           }
-          this.checkCodeChange(changes, change, oldBlock);
+          if (!verbatim) {
+            this.checkCodeChange(changes, change, oldBlock);
+          }
         }
-        this.data.linkAllSiblings(changes);
         for (j = 0, len = changedProperties.length; j < len; j++) {
           change = changedProperties[j];
           if (parent = (ref1 = this.data.parent(change, changes)) != null ? ref1._id : void 0) {
@@ -719,7 +760,13 @@
             }
           }
         }
-        this.mode.handleChanges(this, changes);
+        return changes;
+      };
+
+      OrgEditing.prototype.change = function(changes) {
+        if (changes) {
+          this.mode.handleChanges(this, changes);
+        }
         return OrgEditing.__super__.change.call(this, changes);
       };
 
@@ -980,6 +1027,9 @@
     editorForToolbar = function(el) {
       return findEditor(toolbarFor(el).nextSibling);
     };
+    editorToolbar = function(editorNode) {
+      return findEditor(editorNode).node.prev();
+    };
     showHide = function(toolbar) {
       var editingOpts;
       editingOpts = editorForToolbar(toolbar).options;
@@ -1014,6 +1064,7 @@
       findEditor: findEditor,
       showHide: showHide,
       toolbarFor: toolbarFor,
+      editorToolbar: editorToolbar,
       editorForToolbar: editorForToolbar,
       breakpoint: breakpoint,
       blockOrg: blockOrg,
@@ -1029,13 +1080,15 @@
       setResult: setResult,
       setError: setError,
       toolbarFor: toolbarFor,
+      editorToolbar: editorToolbar,
       editorForToolbar: editorForToolbar,
       blockCodeItems: blockCodeItems,
       escapeAttr: escapeAttr,
       blockIsHidden: blockIsHidden,
       blockEnvMaker: blockEnvMaker,
       controllerEval: controllerEval,
-      getDocumentParams: getDocumentParams
+      getDocumentParams: getDocumentParams,
+      basicDataFilter: basicDataFilter
     };
   });
 

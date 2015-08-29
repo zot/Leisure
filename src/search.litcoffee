@@ -7,6 +7,7 @@
         OrgEditing
         fancyMode
         editorForToolbar
+        basicDataFilter
       } = EditorSupport
       {
         addView
@@ -58,11 +59,12 @@
 
       addSearchDataFilter = (data)->
         data.addFilter
-          clear: ->
+          __proto__: basicDataFilter
+          clear: (data)->
             data.ftsIndex =
               sizes: {}
               gramBlocks: {}
-          replaceBlock: (oldBlock, newBlock)->
+          replaceBlock: (data, oldBlock, newBlock)->
             for gram of grams oldBlock?.text
               if data.ftsIndex.gramBlocks[gram]?[oldBlock._id]
                 delete data.ftsIndex.gramBlocks[gram]?[oldBlock._id]

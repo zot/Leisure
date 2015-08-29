@@ -20,20 +20,25 @@
     peer = null;
     p2pPanel = null;
     Leisure.configureP2P = function(arg) {
-      var connections, createSessionButton, hasSession, hostField, panel, sessionField;
+      var connections, createSessionButton, hostField, panel, sessionField;
       panel = arg.panel, hostField = arg.hostField, sessionField = arg.sessionField, createSessionButton = arg.createSessionButton, connections = arg.connections;
       p2pPanel = panel;
       if (!useP2P) {
         panel.css('display', 'none');
       }
       hostField.val(document.location.host || "localhost:8080");
-      hasSession = false;
+      createSessionButton.data({
+        hasSession: false
+      });
       return createSessionButton.click(function() {
-        if (!hasSession) {
+        if (!createSessionButton.data().hasSession) {
           createSessionButton.closest('.contents').removeClass('not-connected');
           createSessionButton.closest('.contents').addClass('connected');
           peer.createSession(hostField.val(), function(con) {
-            sessionField.val(con.connectUrl);
+            var url;
+            url = new URL("", document.location);
+            url.search = "?join=" + con.connectUrl;
+            sessionField.val(url.toString());
             setPanelExpanded(panel, true);
             sessionField[0].select();
             sessionField[0].focus();
@@ -48,7 +53,9 @@
             return setPanelExpanded(panel, true);
           }), 1);
         }
-        return hasSession = !hasSession;
+        return createSessionButton.data({
+          hasSession: !createSessionButton.data().hasSession
+        });
       });
     };
     return $(document).ready(function() {
@@ -70,6 +77,9 @@
       data.processDefaults(Defaults);
       createStructureDisplay(data);
       window.ED = fancyEditDiv($("[maindoc]"), data);
+      if (useP2P) {
+        window.PEER.setEditor(ED);
+      }
       createEditorDisplay(ED);
       if (document.location.search) {
         ref = getDocumentParams(), load = ref.load, theme = ref.theme;

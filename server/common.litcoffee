@@ -9,3 +9,7 @@ Common client/server code
         code: 2
         type: 'error'
         error: "Bad message type: #{msg.type}"
+      disapprovedError: ->
+        code: 3
+        type: 'error'
+        error: "The master does not approve"
