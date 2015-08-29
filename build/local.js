@@ -37,7 +37,7 @@
           peer.createSession(hostField.val(), function(con) {
             var url;
             url = new URL("", document.location);
-            url.search = "?join=" + con.connectUrl;
+            url.search = "?join=" + peer.connectUrl;
             sessionField.val(url.toString());
             setPanelExpanded(panel, true);
             sessionField[0].select();

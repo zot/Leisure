@@ -1097,11 +1097,10 @@
       };
 
       BasicEditingOptions.prototype.makeStructureChange = function(start, end, text, arg, verbatim) {
-        var newBlocks, offset, oldBlocks, oldFirst, prev, ref;
+        var newBlocks, offset, oldBlocks, prev;
         oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks, offset = arg.offset, prev = arg.prev;
         try {
           if (oldBlocks.length || newBlocks.length) {
-            oldFirst = (ref = oldBlocks[0]) != null ? ref._id : void 0;
             return this.edit(prev, oldBlocks.slice(), newBlocks.slice(), verbatim);
           }
         } finally {

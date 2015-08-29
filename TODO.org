@@ -1,3 +1,4 @@
+* TODO factor collaboration & emacs connection up into main editor
 * TODO fix list parsing
 - make indented lines following a list item part of the list
 - lines starting without indent terminate all pending lists

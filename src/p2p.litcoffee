@@ -16,6 +16,7 @@ are complete and only the document changes need be replicated.
         DataStore
         preserveSelection
         blockText
+        computeNewStructure
       } = Editor
       {
         OrgData
@@ -37,6 +38,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @data = new HamtOrgData()
           @changedBlocks = new Set()
           @checkPendingData()
+          @pendingReplaces = []
         checkPendingData: ->
           if !@con?.hasPendingReplaces() && @changedBlocks.isEmpty()
             @incomingData = @data.snapshot()
@@ -44,37 +46,22 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         disconnect: ->
           @con?.close()
           @con = null
-        createSession: (host, connected)->
-          @con = new MasterConnection()
-          @con.setConnection this, host, connected
-        connectToSession: (url, connected)->
-          @con = new SlaveConnection()
-          @con.setConnection this, url, connected
-
-      class MessageHandler
-        constructor: ->
-          @overriding = false
-          @pendingReplaces = []
         hasPendingReplaces: -> @pendingReplaces.length
-        setConnection: (@peer, @url, @connectedFunc)->
+        connect: (@url, @connectedFunc)->
           @con = new SockJS @url
           @con.onmessage = (msg)=> @handleMessage JSON.parse msg.data
           @con.onclose = => @closed()
-          editor = @peer.editor
           handler = this
-          changeAdvice @peer.editor.options, true,
+          changeAdvice @editor.options, true,
             changesFor: p2p: (parent)->(first, oldBlocks, newBlocks, verbatim)->
-              changes = parent first, oldBlocks, newBlocks, verbatim
-              if !handler.overriding
-                handler.sendReplace changes
-                null
-              else changes
+              handler.sendReplace parent first, oldBlocks, newBlocks, verbatim
+              null
         type: 'Unknown Handler'
         close: ->
           console.log "CLOSING: #{@type}"
           @con.close()
         closed: ->
-          changeAdvice @peer.editor.options, false,
+          changeAdvice @editor.options, false,
             changesFor: p2p: true
         send: (type, msg)->
           msg.type = type
@@ -82,9 +69,9 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @con.send JSON.stringify msg
         sendReplace: ({oldBlocks, newBlocks})->
           #batch and throttle at one send every 100-125 millis
-          offset = @peer.data.offsetForBlock oldBlocks[0]
+          offset = @data.offsetForBlock oldBlocks[0]
           repl = replacementFor offset, blockText(oldBlocks), blockText(newBlocks)
-          repl.context = @peer.editor.options.changeContext
+          repl.context = @editor.options.changeContext
           repl.type = 'replace'
           @pendingReplaces.push repl
           @send 'replace', repl
@@ -111,28 +98,50 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             @handleMessage msg
           replace: (msg)->
             {start, end, text} = msg
-            {blocks} = @peer.data.blockOverlapsForReplacement start, end, text
-            offset = @peer.data.blockOffsetForDocOffset(start).offset
+            {blocks} = @data.blockOverlapsForReplacement start, end, text
+            offset = @data.blockOffsetForDocOffset(start).offset
             if msg.context
-              @peer.editor.options.mergeChangeContext msg.context
+              @editor.options.mergeChangeContext msg.context
             if msg.connectionId == @connectionId
-              range = @peer.editor.getSelectedDocRange()
-              @replaceContent blocks, offset, end - start, text, true
+              range = @editor.getSelectedDocRange()
+              @replaceContent blocks, offset, end - start, text
               range.start = start + text.length
               range.length = 0
-              @peer.editor.selectDocRange range
+              @editor.selectDocRange range
             else preserveSelection (range)=>
               if end <= range.start
                 range.start += text.length - end + start
               else if start <= range.start < end
                 range.start = start + text.length
-              @replaceContent blocks, offset, end - start, text, true
+              @replaceContent blocks, offset, end - start, text
         replaceContent: (blocks, start, length, text)->
-          @overriding = true
-          try
-            @peer.editor.options.replaceContent blocks, start, length, text
-          finally
-            @overriding = false
+          oldText = blockText blocks
+          newText = oldText.substring(0, start) + text + oldText.substring start + length
+          pos = @data.docOffsetForBlockOffset blocks[0]._id, start
+          {oldBlocks, newBlocks, offset, prev} = computeNewStructure @data, blocks, newText
+          if oldBlocks.length || newBlocks.length
+            @data.change @data.changesFor prev, oldBlocks.slice(), newBlocks.slice()
+
+        createSession: (@host, @connectedFunc)->
+          @type = 'Master'
+          @handler =
+            __proto__: Peer::handler
+            connect: (msg)->
+              @connectUrl = new URL("slave-#{msg.id}", @url)
+              Peer::handler.connect.call this, msg
+              @send 'initDoc', doc: @data.getText()
+            slaveConnect: (msg)->
+              @send 'slaveApproval', slaveId: msg.slaveId, approval: true
+            slaveDisconnect: (msg)->
+          @connect "http://#{@host}/Leisure/master", @connectedFunc
+        connectToSession: (@url, connected)->
+          @type = 'Slave'
+          @handler =
+            __proto__: Peer::handler
+            connect: (msg)->
+              Peer::handler.connect.call this, msg
+              @editor.options.load msg.doc
+          @connect @url, connected
 
       replacementFor = (start, oldText, newText)->
         end = start + (oldText.length ? 0)
@@ -147,28 +156,6 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           end: end - endOff
           text: (if startOff || endOff then newText.substring startOff, newText.length - endOff else '')
         }
-
-      class MasterConnection extends MessageHandler
-        setConnection: (@peer, @host, @connectedFunc)->
-          super @peer, "http://#{@host}/Leisure/master", @connectedFunc
-        type: 'Master'
-        handler:
-          __proto__: MessageHandler::handler
-          connect: (msg)->
-            @connectUrl = new URL("slave-#{msg.id}", @url)
-            MessageHandler::handler.connect.call this, msg
-            @send 'initDoc', doc: @peer.data.getText()
-          slaveConnect: (msg)->
-            @send 'slaveApproval', slaveId: msg.slaveId, approval: true
-          slaveDisconnect: (msg)->
-
-      class SlaveConnection extends MessageHandler
-        type: 'Slave'
-        handler:
-          __proto__: MessageHandler::handler
-          connect: (msg)->
-            MessageHandler::handler.connect.call this, msg
-            @peer.editor.options.load msg.doc
 
       $(document).ready ->
         if document.location.search.length > 1 && !connected

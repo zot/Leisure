@@ -836,7 +836,6 @@ Factored out because the Emacs connection calls MakeStructureChange.
         makeStructureChange: (start, end, text, {oldBlocks, newBlocks, offset, prev}, verbatim)->
           try
             if oldBlocks.length || newBlocks.length
-              oldFirst = oldBlocks[0]?._id
               @edit prev, oldBlocks.slice(), newBlocks.slice(), verbatim
           finally
             @changeContext = null
@@ -1031,10 +1030,6 @@ Data model -- override/reset these if you want to change how the store accesses 
           @changeCount = 0
         newId: -> "block#{idCounter++}"
         setDiagEnabled: (flag)->
-          #changeAdvice this, flag,
-          #  setIndex: diag: wrapDiag
-          #  indexBlock: diag: wrapDiag
-          #  indexBlocks: diag: wrapDiag
           changeAdvice this, flag,
             makeChanges: diag: afterMethod (func)->
               if @changeCount == 0 then @diag()

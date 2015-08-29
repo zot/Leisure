@@ -61,7 +61,7 @@ Code for local-mode.  This will not be loaded under meteor.
             createSessionButton.closest('.contents').addClass 'connected'
             peer.createSession hostField.val(), (con)->
               url = new URL("", document.location)
-              url.search = "?join=#{con.connectUrl}"
+              url.search = "?join=#{peer.connectUrl}"
               sessionField.val url.toString()
               setPanelExpanded panel, true
               sessionField[0].select()
