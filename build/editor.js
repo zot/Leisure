@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable', 'cs!./advice.litcoffee'], function(jq, DOMCursor, Fingertree, Immutable, Advice) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, wrapDiag;
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
@@ -87,6 +87,7 @@
     Observable = (function() {
       function Observable() {
         this.listeners = {};
+        this.suppressTriggers = false;
       }
 
       Observable.prototype.on = function(type, callback) {
@@ -118,13 +119,26 @@
       Observable.prototype.trigger = function() {
         var args, j, len, listener, ref, results1, type;
         type = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
-        ref = this.listeners[type] || [];
-        results1 = [];
-        for (j = 0, len = ref.length; j < len; j++) {
-          listener = ref[j];
-          results1.push(listener.apply(null, args));
+        if (!this.suppressTriggers) {
+          ref = this.listeners[type] || [];
+          results1 = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            listener = ref[j];
+            results1.push(listener.apply(null, args));
+          }
+          return results1;
         }
-        return results1;
+      };
+
+      Observable.prototype.suppressChanges = function(func) {
+        var oldSuppress;
+        oldSuppress = this.suppressTriggers;
+        this.suppressTriggers = true;
+        try {
+          return func();
+        } finally {
+          this.suppressTriggers = oldSuppress;
+        }
       };
 
       return Observable;
@@ -1034,6 +1048,18 @@
         return this.data.newId();
       };
 
+      BasicEditingOptions.prototype.batchReplace = function(replacementFunc, contFunc, errorFunc) {
+        var err, replacements;
+        try {
+          replacements = validateBatch(replacementFunc());
+          this.data.batchReplace(replacements);
+          return contFunc();
+        } catch (_error) {
+          err = _error;
+          return errorFunc(err);
+        }
+      };
+
       BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks, verbatim) {
         return this.change(this.data.changesFor(prev, oldBlocks, newBlocks));
       };
@@ -1086,6 +1112,10 @@
         return this.changeContext = _.merge((ref = this.changeContext) != null ? ref : {}, obj);
       };
 
+      BasicEditingOptions.prototype.clearChangeContext = function() {
+        return this.changeContext = null;
+      };
+
       BasicEditingOptions.prototype.replaceContent = function(blocks, start, length, newContent, verbatim) {
         var newText, oldText, pos;
         oldText = blockText(blocks);
@@ -1104,7 +1134,7 @@
             return this.edit(prev, oldBlocks.slice(), newBlocks.slice(), verbatim);
           }
         } finally {
-          this.changeContext = null;
+          this.clearChangeContext();
         }
       };
 
@@ -1356,7 +1386,7 @@
       DataStore.prototype.setDiagEnabled = function(flag) {
         changeAdvice(this, flag, {
           makeChanges: {
-            diag: afterMethod(function(func) {
+            diag: afterMethod(function() {
               if (this.changeCount === 0) {
                 return this.diag();
               }
@@ -1374,6 +1404,31 @@
           return func();
         } finally {
           this.changeCount--;
+        }
+      };
+
+      DataStore.prototype.batchReplace = function(replacements) {
+        var j, len, offset, repl, results1;
+        offset = 0;
+        results1 = [];
+        for (j = 0, len = replacements.length; j < len; j++) {
+          repl = replacements[j];
+          this.replaceText(repl.start + offset, repl.end + offset, repl.text);
+          results1.push(offset += repl.text.length - repl.end + repl.start);
+        }
+        return results1;
+      };
+
+      DataStore.prototype.replaceText = function(start, end, text) {
+        var blocks, newBlocks, newText, offset, oldBlocks, oldText, pos, prev, ref;
+        blocks = this.blockOverlapsForReplacement(start, end, text).blocks;
+        offset = this.blockOffsetForDocOffset(start).offset;
+        oldText = blockText(blocks);
+        newText = oldText.substring(0, offset) + text + oldText.substring(end - start + offset);
+        pos = this.docOffsetForBlockOffset(blocks[0]._id, start);
+        ref = computeNewStructure(this, blocks, newText), oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks, offset = ref.offset, prev = ref.prev;
+        if (oldBlocks.length || newBlocks.length) {
+          return this.change(this.changesFor(prev, oldBlocks.slice(), newBlocks.slice()));
         }
       };
 
@@ -1563,19 +1618,19 @@
       };
 
       DataStore.prototype.indexBlock = function(block) {
-        var first, ref, ref1, ref2, ref3, rest, split;
-        this.checkChanges();
+        var first, next, ref, rest, split;
         if (block) {
-          if (block.prev === ((ref = this.getBlock(block.prev)) != null ? ref._id : void 0) || block.next === ((ref1 = this.getBlock(block.next)) != null ? ref1._id : void 0)) {
-            ref2 = this.splitBlockIndexOnId(block._id), first = ref2[0], rest = ref2[1];
-            if ((!rest.isEmpty() && rest.peekFirst().id === block._id) && (!block.next || ((ref3 = rest.removeFirst().peekFirst()) != null ? ref3.id : void 0) === block.next) && (!block.prev || !first.isEmpty() && first.peekLast().id === block.prev)) {
-              return this.setIndex(first.addLast(indexNode(block)).concat(rest.removeFirst()));
-            }
+          this.checkChanges();
+          ref = this.splitBlockIndexOnId(block._id), first = ref[0], rest = ref[1];
+          if (!rest.isEmpty() && rest.peekFirst().id === block._id && (next = rest.removeFirst()) && (next.isEmpty() ? !block.next : next.peekFirst().id === block.next) && (first.isEmpty() ? !block.prev : first.peekLast().id === block.prev)) {
+            return this.setIndex(first.addLast(indexNode(block)).concat(next));
+          }
+          if (!rest.isEmpty()) {
             this.unindexBlock(block._id);
-            if (split = this.fingerNodeOrder(block.prev, block.next)) {
-              first = split[0], rest = split[1];
-              return this.setIndex(first.addLast(indexNode(block)).concat(rest));
-            }
+          }
+          if ((split = this.fingerNodeOrder(block.prev, block.next)) && _.isArray(split)) {
+            first = split[0], rest = split[1];
+            return this.setIndex(first.addLast(indexNode(block)).concat(rest));
           }
           return this.insertAndRepairIndex(block);
         }
@@ -1914,6 +1969,21 @@
       return DataStore;
 
     })(Observable);
+    validateBatch = function(replacements) {
+      var j, last, len, repl;
+      replacements = _.sortBy(replacements, function(x) {
+        return x.start;
+      });
+      last = 0;
+      for (j = 0, len = replacements.length; j < len; j++) {
+        repl = replacements[j];
+        if (repl.start < last) {
+          throw new Error("Attempt to perform overlapping replacements in batch");
+        }
+        last = repl.end;
+      }
+      return replacements;
+    };
     BlockErrors = (function() {
       function BlockErrors() {
         this.order = [];
@@ -2241,7 +2311,8 @@
       copyBlock: copyBlock,
       preserveSelection: preserveSelection,
       treeToArray: treeToArray,
-      computeNewStructure: computeNewStructure
+      computeNewStructure: computeNewStructure,
+      validateBatch: validateBatch
     };
   });
 

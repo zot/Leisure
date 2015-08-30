@@ -17,17 +17,20 @@ are complete and only the document changes need be replicated.
         preserveSelection
         blockText
         computeNewStructure
+        validateBatch
       } = Editor
       {
         OrgData
         getDocumentParams
         editorToolbar
+        basicDataFilter
       } = Support
       {
         HamtOrgData
       } = HamtData
       {
         changeAdvice
+        afterMethod
         callOriginal
       } = Advice
 
@@ -36,12 +39,33 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
       class Peer
         constructor: ->
           @data = new HamtOrgData()
+          @clearChanges()
+          @dataFilter =
+            __proto__: basicDataFilter
+            endChange: => @dataFinishedChange
+            clear: => @dataClear
+            replaceBlock: (data, oldBlock, newBlock)=>
+              if !newBlock
+                @peerChanges.removes[oldBlock._id] = true
+                delete @peerChanges.sets[oldBlock._id]
+              else
+                delete @peerChanges.removes[newBlock._id]
+                @peerChanges.sets[newBlock._id] = true
+          @change = -1
+        clearChanges: ->
           @changedBlocks = new Set()
-          @checkPendingData()
           @pendingReplaces = []
+          @batchCallbacks = []
+          @localChanges =
+            sets: {}
+            removes: {}
+          @peerChanges =
+            sets: {}
+            removes: {}
         checkPendingData: ->
-          if !@con?.hasPendingReplaces() && @changedBlocks.isEmpty()
+          if !@hasPendingReplaces() && @changedBlocks.isEmpty()
             @incomingData = @data.snapshot()
+            @incomingData.addFilter @dataFilter
         setEditor: (@editor)->
         disconnect: ->
           @con?.close()
@@ -51,12 +75,24 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @con = new SockJS @url
           @con.onmessage = (msg)=> @handleMessage JSON.parse msg.data
           @con.onclose = => @closed()
-          handler = this
+          peer = this
           changeAdvice @editor.options, true,
             changesFor: p2p: (parent)->(first, oldBlocks, newBlocks, verbatim)->
-              handler.sendReplace parent first, oldBlocks, newBlocks, verbatim
+              peer.sendReplace parent first, oldBlocks, newBlocks, verbatim
+              peer.recordLocalChange oldBlocks, newBlocks
               null
+            batchReplace: p2p: (parent)->(replacementsFunc, contFunc, errFunc)->
+              peer.runBatchReplace replacementsFunc, contFunc, errFunc
         type: 'Unknown Handler'
+        recordLocalChange: (oldBlocks, newBlocks)->
+          newIds = _.indexBy newBlocks, '_id'
+          for id of _.indexBy oldBlocks, '_id'
+            if !newIds[id]
+              @localChanges.removes[id] = true
+              delete @localChanges.sets[id]
+          for id, block of newIds
+            delete @localChanges.removes[id]
+            @localChanges.sets[id] = true
         close: ->
           console.log "CLOSING: #{@type}"
           @con.close()
@@ -67,6 +103,19 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           msg.type = type
           #console.log "Sending message", msg
           @con.send JSON.stringify msg
+        runBatchReplace: (replacementsFunc, contFunc, errFunc)->
+          try
+            replacements = validateBatch replacementsFunc()
+            msg = type: 'conditionalReplace', replacements: replacements, targetChange: @change
+            @pendingReplaces.push msg
+            pushedReplaces = true
+            @batchCallbacks.push [contFunc, (=> @runBatchReplace replacementsFunc, contFunc, errFunc), errFunc]
+            pushedCallbacks = true
+            @send 'conditionalReplace', msg
+          catch err
+            if pushedReplaces then @pendingReplaces.pop()
+            if pushedCallbacks then @batchCallbacks.pop()
+            errFunc err
         sendReplace: ({oldBlocks, newBlocks})->
           #batch and throttle at one send every 100-125 millis
           offset = @data.offsetForBlock oldBlocks[0]
@@ -84,27 +133,47 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         handler:
           log: (msg)-> console.log msg.msg
           connect: (msg)->
-            @id = msg.id
-            @connectionId = msg.connectionId
+            {@id, @connectionId, @change} = msg
             #console.log "Connected, id: #{@id}"
             @connectedFunc?(this)
             @connectedFunc = null
           error: (msg)->
             console.log "Received error: #{msg.error}", msg
             @close()
+          rejectChange: ->
+            @pendingReplaces.shift()
+            @batchCallbacks.pop()[1]()
           echo: (msg)->
-            msg = @pendingReplaces.shift()
-            msg.connectionId = @connectionId
-            @handleMessage msg
-          replace: (msg)->
-            {start, end, text} = msg
-            {blocks} = @data.blockOverlapsForReplacement start, end, text
-            offset = @data.blockOffsetForDocOffset(start).offset
-            if msg.context
-              @editor.options.mergeChangeContext msg.context
-            if msg.connectionId == @connectionId
+            @change = msg.change
+            pending = @pendingReplaces.shift()
+            if pending.type == 'conditionalReplace'
+              try
+                @replaceBatch pending.replacements
+                @batchCallbacks.pop()[0]()
+              catch err
+                @batchCallbacks.pop()[2](err)
+            else
+              pending.connectionId = @connectionId
+              pending.change = @change
+              @handleMessage pending
+          conditionalReplace: ({replacements, @change})->
+            preserveSelection (range)=>
+              offset = 0
+              for repl in replacements
+                {start, end} = repl
+                start += offset
+                end += offset
+                if end <= range.start
+                  range.start += text.length - end + start
+                else if start <= range.start < end
+                  range.start = start + text.length
+                offset += repl.text.length - repl.end + repl.start
+              @replaceBatch replacements
+          replace: ({start, end, text, context, connectionId, @change})->
+            if context then @editor.options.mergeChangeContext context
+            if connectionId == @connectionId
               range = @editor.getSelectedDocRange()
-              @replaceContent blocks, offset, end - start, text
+              @replaceText start, end, text
               range.start = start + text.length
               range.length = 0
               @editor.selectDocRange range
@@ -113,16 +182,16 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 range.start += text.length - end + start
               else if start <= range.start < end
                 range.start = start + text.length
-              @replaceContent blocks, offset, end - start, text
-        replaceContent: (blocks, start, length, text)->
-          oldText = blockText blocks
-          newText = oldText.substring(0, start) + text + oldText.substring start + length
-          pos = @data.docOffsetForBlockOffset blocks[0]._id, start
-          {oldBlocks, newBlocks, offset, prev} = computeNewStructure @data, blocks, newText
-          if oldBlocks.length || newBlocks.length
-            @data.change @data.changesFor prev, oldBlocks.slice(), newBlocks.slice()
-
+              @replaceText start, end, text
+            @editor.options.clearChangeContext()
+        replaceBatch: (replacements)->
+          @data.batchReplace replacements
+          @incomingData.batchReplace replacements
+        replaceText: (start, end, text)->
+          @data.replaceText start, end, text
+          @incomingData.replaceText start, end, text
         createSession: (@host, @connectedFunc)->
+          @checkPendingData()
           @type = 'Master'
           @handler =
             __proto__: Peer::handler
@@ -141,6 +210,8 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             connect: (msg)->
               Peer::handler.connect.call this, msg
               @editor.options.load msg.doc
+              @clearChanges()
+              @checkPendingData()
           @connect @url, connected
 
       replacementFor = (start, oldText, newText)->

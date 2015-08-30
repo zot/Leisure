@@ -105,6 +105,7 @@ Code for local-mode.  This will not be loaded under meteor.
           bubba
 
           [[leisure:bubba]][[leisure:bubba]]
+
           #+NAME: bubba
           #+BEGIN_SRC yaml
           type: rotator

@@ -240,6 +240,7 @@ Observable class
       class Observable
         constructor: ->
           @listeners = {}
+          @suppressTriggers = false
         on: (type, callback)->
           if !@listeners[type] then @listeners[type] = []
           @listeners[type].push callback
@@ -248,8 +249,16 @@ Observable class
           if @listeners[type]
             @listeners[type] = (l for l in @listeners[type] when l != callback)
         trigger: (type, args...)->
-          for listener in @listeners[type] || []
-            listener.apply null, args
+          if !@suppressTriggers
+            for listener in @listeners[type] || []
+              listener.apply null, args
+        suppressChanges: (func)->
+          oldSuppress = @suppressTriggers
+          @suppressTriggers = true
+          try
+            func()
+          finally
+            @suppressTriggers = oldSuppress
 
 LeisureEditCore class
 =====================
@@ -789,6 +798,27 @@ Main code
         setEditor: (@editor)->
         newId: -> @data.newId()
 
+batchReplace is a potentially asynchronous operation that performs a
+list of non-overlapping replacements produced by replacementFunc().
+replacementFunc() should be stateless because it may potentially be
+called more than one time.  The replacements it returns should be an
+array of objects with "start", "end", and "text" properties where
+start and end all refer to the current document (i.e. they are not
+based on the replacement order).
+
+After the replacements succeed, it calls the continuation function.
+
+Variations of this code may want to override this in collaborative
+situations to provide STM-like change management.
+
+        batchReplace: (replacementFunc, contFunc, errorFunc)->
+          try
+            replacements = validateBatch replacementFunc()
+            @data.batchReplace replacements
+            contFunc()
+          catch err
+            errorFunc err
+
 `replaceBlocks(oldBlocks, newBlocks) -> removedBlocks`: override this if you need to link up the blocks, etc., like so that `renderBlock()` can return the proper next id, for instance.
 
         replaceBlocks: (prev, oldBlocks, newBlocks, verbatim)-> @change @data.changesFor prev, oldBlocks, newBlocks
@@ -824,6 +854,7 @@ Main code
             newBlocks.pop()
           oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
         mergeChangeContext: (obj)-> @changeContext = _.merge (@changeContext ? {}), obj
+        clearChangeContext: -> @changeContext = null
         replaceContent: (blocks, start, length, newContent, verbatim)->
           oldText = blockText blocks
           newText = oldText.substring(0, start) + newContent + oldText.substring start + length
@@ -838,7 +869,7 @@ Factored out because the Emacs connection calls MakeStructureChange.
             if oldBlocks.length || newBlocks.length
               @edit prev, oldBlocks.slice(), newBlocks.slice(), verbatim
           finally
-            @changeContext = null
+            @clearChangeContext()
         change: (changes)->
           if changes
             {first, removes, sets} = changes
@@ -1031,7 +1062,7 @@ Data model -- override/reset these if you want to change how the store accesses 
         newId: -> "block#{idCounter++}"
         setDiagEnabled: (flag)->
           changeAdvice this, flag,
-            makeChanges: diag: afterMethod (func)->
+            makeChanges: diag: afterMethod ->
               if @changeCount == 0 then @diag()
           if flag then @diag()
         makeChanges: (func)->
@@ -1040,6 +1071,20 @@ Data model -- override/reset these if you want to change how the store accesses 
             func()
           finally
             @changeCount--
+        batchReplace: (replacements)->
+          offset = 0
+          for repl in replacements
+            @replaceText repl.start + offset, repl.end + offset, repl.text
+            offset += repl.text.length - repl.end + repl.start
+        replaceText: (start, end, text)->
+          {blocks} = @blockOverlapsForReplacement start, end, text
+          offset = @blockOffsetForDocOffset(start).offset
+          oldText = blockText blocks
+          newText = oldText.substring(0, offset) + text + oldText.substring end - start + offset
+          pos = @docOffsetForBlockOffset blocks[0]._id, start
+          {oldBlocks, newBlocks, offset, prev} = computeNewStructure this, blocks, newText
+          if oldBlocks.length || newBlocks.length
+            @change @changesFor prev, oldBlocks.slice(), newBlocks.slice()
         computeRemovesAndNewBlockIds: (oldBlocks, newBlocks, newBlockMap, removes)->
           for oldBlock in oldBlocks[newBlocks.length...oldBlocks.length]
             removes[oldBlock._id] = oldBlock
@@ -1128,23 +1173,22 @@ Data model -- override/reset these if you want to change how the store accesses 
           @setIndex Fingertree.fromArray items, @emptyIndexMeasure
         splitBlockIndexOnId: (id)-> @blockIndex.split (m)-> m.ids.contains id
         splitBlockIndexOnOffset: (offset)-> @blockIndex.split (m)-> m.length > offset
-        indexBlock: (block)->
+        indexBlock: (block)-> if block
           @checkChanges()
-          if block
-            if block.prev == @getBlock(block.prev)?._id || block.next == @getBlock(block.next)?._id
-              # if the block is indexed, it might be fine, otherwise unindex it
-              [first, rest] = @splitBlockIndexOnId block._id
-              if (!rest.isEmpty() && rest.peekFirst().id == block._id) &&
-                (!block.next || rest.removeFirst().peekFirst()?.id == block.next) &&
-                (!block.prev || !first.isEmpty() && first.peekLast().id == block.prev)
-                  return @setIndex first.addLast(indexNode block).concat rest.removeFirst()
-                @unindexBlock block._id
-              # if next is followed by prev, just insert the block in between
-              if split = @fingerNodeOrder(block.prev, block.next)
-                [first, rest] = split
-                return @setIndex first.addLast(indexNode block).concat rest
-              # repair as much of the index as possible and insert the block
-            @insertAndRepairIndex block
+          # if the block is indexed, it might be an easy case, otherwise unindex it
+          [first, rest] = @splitBlockIndexOnId block._id
+          if !rest.isEmpty() && rest.peekFirst().id == block._id &&
+            (next = rest.removeFirst()) &&
+            (if next.isEmpty() then !block.next else next.peekFirst().id == block.next) &&
+            (if first.isEmpty() then !block.prev else first.peekLast().id == block.prev)
+              return @setIndex first.addLast(indexNode block).concat next
+          if !rest.isEmpty() then @unindexBlock block._id
+          # if next is followed by prev, just insert the block in between
+          if (split = @fingerNodeOrder(block.prev, block.next)) && _.isArray split
+            [first, rest] = split
+            return @setIndex first.addLast(indexNode block).concat rest
+          # repair as much of the index as possible and insert the block
+          @insertAndRepairIndex block
         fingerNode: (id)->
           id && (node = @splitBlockIndexOnId(id)[1].peekFirst()) && node.id == id && node
         fingerNodeOrder: (a, b)->
@@ -1336,6 +1380,14 @@ Data model -- override/reset these if you want to change how the store accesses 
           blockText: fullText
           newText: fullText.substring(0, start - offset) + text + (fullText.substring end - offset)
           
+      validateBatch = (replacements)->
+        replacements = _.sortBy replacements, (x)-> x.start
+        last = 0
+        for repl in replacements
+          if repl.start < last then throw new Error "Attempt to perform overlapping replacements in batch"
+          last = repl.end
+        replacements
+
       class BlockErrors
         constructor: ->
           @order = []
@@ -1558,4 +1610,5 @@ Exports
         preserveSelection
         treeToArray
         computeNewStructure
+        validateBatch
       }

@@ -4,6 +4,7 @@ SockJS relay server
     sockjsUtil = require 'sockjs/lib/utils'
     http = require 'http'
     crypto = require 'crypto'
+    _ = require './lib/lodash.min'
 
     {
       badIdError
@@ -57,7 +58,24 @@ Handle a message from the connected browser
       handler:
         log: (msg)-> console.log msg.msg
         replace: (msg)-> @master.relay msg
-      sendEcho: -> @send type: 'echo'
+        conditionalReplace: (msg)->
+          if msg.targetChange == @master.changeCount then @master.relay msg
+          else @send type: 'rejectChange', change: msg.targetChange
+      sendEcho: (change, target)->
+        msg = type: 'echo', change: change
+        if target? then msg.targetChange = target
+        @send msg
+      shouldEcho: (msg)-> isTextMsg(msg) && msg.connectionId == @connectionId
+
+    isTextMsg = (msg)-> msg.type in ['replace', 'conditionalReplace']
+
+    validateBatch = (replacements)->
+      replacements = _.sortBy replacements, (x)-> x.start
+      last = 0
+      for repl in replacements
+        if repl.start < last then throw new Error "Attempt to perform overlapping replacements in batch"
+        last = repl.end
+      replacements
 
     class MasterHandler extends MessageHandler
       constructor: ->
@@ -69,11 +87,12 @@ Handle a message from the connected browser
         @pendingSlaves = {}
         @doc = ''
         @peerCount = 0
+        @changeCount = 0
       type: 'Master'
       setConnection: (con)->
         masters[@id] = this
         super con
-        @send type: 'connect', id: @id, connectionId: @connectionId
+        @send type: 'connect', id: @id, connectionId: @connectionId, change: @changeCount
       addSlave: (slave)->
         slave.connectionId = "peer-#{++@peerCount}"
         @pendingSlaves[slave.connectionId] = slave
@@ -89,15 +108,26 @@ Handle a message from the connected browser
         @slaves = {}
         super()
       relay: (msg)->
+        replId = msg.connectionId
+        if target = msg.targetChange then delete msg.targetChange
         if msg.type == 'replace'
-          {start, end, text, connectionId: replId} = msg
-          @doc = @doc.substring(0, start) + text + @doc.substring(end)
-          if msg.connectionId == @connectionId then @sendEcho()
-          else @slaves[replId].sendEcho()
+          {start, end, text} = msg
+          @doc = @doc.substring(0, start) + text + @doc.substring end
+        else if msg.type == 'conditionalReplace'
+          msg.replacements = validateBatch msg.replacements
+          offset = 0
+          for repl in msg.replacements
+            @doc = @doc.substring(0, repl.start + offset) + repl.text + @doc.substring repl.end + offset
+            offset += repl.text.length - repl.end + repl.start
+        msg.change = ++@changeCount
         msg.msgCount = @msgCount++
-        if replId != @connectionId then @send msg
+        if @shouldEcho msg then @sendEcho msg.change, target
+        else
+          @send msg
+          if (slave = @slaves[replId]).shouldEcho msg
+            slave.sendEcho msg.change, target
         for id, slave of @slaves
-          if replId != slave.connectionId then slave.send msg
+          if !slave.shouldEcho msg then slave.send msg
       handler:
         __proto__: MessageHandler::handler
         initDoc: ({@doc})->

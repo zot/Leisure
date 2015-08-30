@@ -4,8 +4,8 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, trickyChange, updateSelection, withContext;
+  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice', 'lib/js-yaml', 'lib/bluebird.min'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird) {
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -15,6 +15,7 @@
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
     mergeExports = BrowserExports.mergeExports;
+    safeLoad = Yaml.safeLoad, dump = Yaml.dump;
     selectionActive = true;
     headlineRE = /^(\*+ *)(.*)(\n)$/;
     documentParams = null;
@@ -44,8 +45,8 @@
       }
 
       OrgData.prototype.makeChanges = function(func) {
-        var err, filter, j, l, len, len1, ref, ref1;
-        if (!this.changeCount) {
+        var filter, j, l, len, len1, newChange, ref, ref1;
+        if (newChange = !this.changeCount) {
           ref = this.filters;
           for (j = 0, len = ref.length; j < len; j++) {
             filter = ref[j];
@@ -54,14 +55,14 @@
         }
         try {
           return OrgData.__super__.makeChanges.call(this, func);
-        } catch (_error) {
-          err = _error;
-          ref1 = this.filters;
-          for (l = 0, len1 = ref1.length; l < len1; l++) {
-            filter = ref1[l];
-            filter.endChange(this);
+        } finally {
+          if (newChange) {
+            ref1 = this.filters;
+            for (l = 0, len1 = ref1.length; l < len1; l++) {
+              filter = ref1[l];
+              filter.endChange(this);
+            }
           }
-          throw err;
         }
       };
 
@@ -335,6 +336,26 @@
         }
       };
 
+      OrgData.prototype.getBlockNamed = function(name) {
+        return this.getBlock(this.namedBlocks[name]);
+      };
+
+      OrgData.prototype.textForDataNamed = function(name, data, attrs) {
+        var k, v;
+        return "#+NAME: " + name + "\n#+BEGIN_SRC yaml " + (((function() {
+          var results1;
+          results1 = [];
+          for (k in attrs) {
+            v = attrs[k];
+            results1.push(":" + k + " " + v);
+          }
+          return results1;
+        })()).join(' ')) + "\n" + (dump(data, _.merge({
+          sortKeys: true,
+          flowLevel: 2
+        }, attrs != null ? attrs : {})).trim()) + "\n#+END_SRC\n";
+      };
+
       OrgData.prototype.checkViewChange = function(oldBlock, newBlock, isDefault) {
         var ov, source, view, vt;
         removeView(ov = blockViewType(oldBlock));
@@ -452,6 +473,7 @@
         this.hiding = true;
         this.setMode(Leisure.plainMode);
         this.toggledSlides = {};
+        this.dataCommands = null;
       }
 
       OrgEditing.prototype.renderBlocks = function() {
@@ -476,6 +498,91 @@
       OrgEditing.prototype.rerenderAll = function() {
         OrgEditing.__super__.rerenderAll.call(this);
         return initializePendingViews();
+      };
+
+      OrgEditing.prototype.changeData = function(replaceFunc) {
+        var dataCommands;
+        dataCommands = this.dataCommands = [];
+        try {
+          replaceFunc();
+          return new Promise((function(_this) {
+            return function(succeed, fail) {
+              return _this.batchReplace((function() {
+                return dataCommands.map(function(x) {
+                  return x();
+                });
+              }), succeed, fail);
+            };
+          })(this));
+        } finally {
+          this.dataCommands = null;
+        }
+      };
+
+      OrgEditing.prototype.addDataChangeCommand = function(func) {
+        if (!this.dataCommands) {
+          return this.batchReplace((function() {
+            return [func()];
+          }), function() {});
+        } else {
+          return this.dataCommands.push(func);
+        }
+      };
+
+      OrgEditing.prototype.addData = function(parent, name, value, codeOpts) {
+        return this.addDataChangeCommand((function(_this) {
+          return function() {
+            var pre, ref, start;
+            if (!(parent = _this.data.getBlock(parent))) {
+              throw new Error("No parent block " + parent);
+            } else {
+              pre = (ref = _this.data.lastChild(parent)) != null ? ref : parent;
+              start = _this.data.offsetForBlock(pre) + pre.text.length;
+              return {
+                start: start,
+                end: start,
+                text: _this.data.textForDataNamed(name, value, codeOpts)
+              };
+            }
+          };
+        })(this));
+      };
+
+      OrgEditing.prototype.setData = function(name, value, codeOpts) {
+        return this.addDataChangeCommand((function(_this) {
+          return function() {
+            var block, ref, start;
+            if (!(block = _this.data.getBlockNamed(name))) {
+              throw new Error("No block named " + name);
+            } else {
+              start = _this.data.offsetForBlock(block);
+              codeOpts = _.merge({}, (ref = block.codeAttributes) != null ? ref : {}, codeOpts != null ? codeOpts : {});
+              return {
+                start: start,
+                end: start + block.text.length,
+                text: _this.data.textForDataNamed(name, value, codeOpts)
+              };
+            }
+          };
+        })(this));
+      };
+
+      OrgEditing.prototype.removeData = function(name) {
+        return this.addDataChangeCommand((function(_this) {
+          return function() {
+            var block, start;
+            if (!(block = _this.data.getBlockNamed(name))) {
+              throw new Error("No block named " + name);
+            } else {
+              start = _this.data.offsetForBlock(block);
+              return {
+                start: start,
+                end: start + block.text.length,
+                text: ''
+              };
+            }
+          };
+        })(this));
       };
 
       OrgEditing.prototype.changed = function(changes) {

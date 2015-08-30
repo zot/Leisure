@@ -194,7 +194,7 @@ Low Level Code
         else object.ADVICE?.unadvise method, name
 
       callOriginal = (object, method, args...)->
-        (object.ADVICE?.originals ? object)[method].apply object, args
+        (object.ADVICE?.originals?[method] ? object[method]).apply object, args
 
       {
         changeAdvice

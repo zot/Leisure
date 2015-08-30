@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice)->
+    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice', 'lib/js-yaml', 'lib/bluebird.min'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird)->
 
       {
         defaultEnv
@@ -59,6 +59,10 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       {
         mergeExports
       } = BrowserExports
+      {
+        safeLoad
+        dump
+      } = Yaml
 
       selectionActive = true
       headlineRE = /^(\*+ *)(.*)(\n)$/
@@ -88,15 +92,14 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
           @namedBlocks = {}
           @filters = []
         makeChanges: (func)->
-          if !@changeCount
+          if newChange = !@changeCount
             for filter in @filters
               filter.startChange this
           try
             super func
-          catch err
-            for filter in @filters
+          finally
+            if newChange then for filter in @filters
               filter.endChange this
-            throw err
         getBlock: (thing, changes)->
           if typeof thing == 'string' then changes?.sets[thing] ? super(thing) else thing
         changesFor: (first, oldBlocks, newBlocks)->
@@ -226,6 +229,15 @@ that must be done regardless of the source of changes
           if oldBlock?.codeName != newBlock?.codeName
             if oldBlock?.codeName then delete @namedBlocks[oldBlock.codeName]
             if newBlock?.codeName then @namedBlocks[newBlock.codeName] = newBlock._id
+        getBlockNamed: (name)-> @getBlock @namedBlocks[name]
+        textForDataNamed: (name, data, attrs)->
+          """
+          #+NAME: #{name}
+          #+BEGIN_SRC yaml #{(":#{k} #{v}" for k, v of attrs).join ' '}
+          #{dump(data, _.merge {sortKeys: true, flowLevel: 2}, attrs ? {}).trim()}
+          #+END_SRC
+          
+          """
         checkViewChange: (oldBlock, newBlock, isDefault)->
           removeView ov = blockViewType oldBlock
           if vt = blockViewType newBlock
@@ -300,6 +312,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           @hiding = true
           @setMode Leisure.plainMode
           @toggledSlides = {}
+          @dataCommands = null
         renderBlocks: -> @mode.renderBlocks this, super()
         setTheme: (theme)->
           if @theme then @editor.node.removeClass @theme
@@ -309,6 +322,49 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         rerenderAll: ->
           super()
           initializePendingViews()
+
+changeData(func) -- make data changes in func using addData(),
+setData(), and removeData().  Func should not have side effects
+(addData, setData, and removeData are monadic operations) because it
+may be called more than once.  changeData() returns a promise.
+
+        changeData: (replaceFunc)->
+          dataCommands = @dataCommands = []
+          try
+            replaceFunc()
+            new Promise (succeed, fail)=>
+              @batchReplace (=> dataCommands.map((x)-> x())), succeed, fail
+           finally
+             @dataCommands = null 
+        addDataChangeCommand: (func)->
+          if !@dataCommands then @batchReplace (-> [func()]), ->
+          else @dataCommands.push func
+        addData: (parent, name, value, codeOpts)-> @addDataChangeCommand =>
+          if !(parent = @data.getBlock parent)
+            throw new Error "No parent block #{parent}"
+          else
+            pre = @data.lastChild(parent) ? parent
+            start = @data.offsetForBlock(pre) + pre.text.length
+            start: start
+            end: start
+            text: @data.textForDataNamed(name, value, codeOpts)
+        setData: (name, value, codeOpts)-> @addDataChangeCommand =>
+          if !(block = @data.getBlockNamed name)
+            throw new Error "No block named #{name}"
+          else
+            start = @data.offsetForBlock block
+            codeOpts = _.merge {}, block.codeAttributes ? {}, codeOpts ? {}
+            start: start
+            end: start + block.text.length
+            text: @data.textForDataNamed name, value, codeOpts
+        removeData: (name)-> @addDataChangeCommand =>
+          if !(block = @data.getBlockNamed name)
+            throw new Error "No block named #{name}"
+          else
+            start = @data.offsetForBlock block
+            start: start
+            end: start + block.text.length
+            text: ''
         changed: (changes)->
           {newBlocks, oldBlocks} = changes
           if newBlocks.length == oldBlocks.length == 1

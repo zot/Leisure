@@ -241,9 +241,9 @@
       }
     };
     callOriginal = function() {
-      var args, method, object, ref, ref1;
+      var args, method, object, ref, ref1, ref2;
       object = arguments[0], method = arguments[1], args = 3 <= arguments.length ? slice.call(arguments, 2) : [];
-      return ((ref = (ref1 = object.ADVICE) != null ? ref1.originals : void 0) != null ? ref : object)[method].apply(object, args);
+      return ((ref = (ref1 = object.ADVICE) != null ? (ref2 = ref1.originals) != null ? ref2[method] : void 0 : void 0) != null ? ref : object[method]).apply(object, args);
     };
     return {
       changeAdvice: changeAdvice,
