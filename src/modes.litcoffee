@@ -171,7 +171,7 @@
               node.attr 'data-observe', blocks
             if controllerName = @block.codeAttributes.controller
               if !(controller = singleControllers[controllerName])
-                if block = opts.getBlock opts.data.namedBlocks[controllerName]
+                if block = opts.getBlock opts.data.namedBlocks.get controllerName
                   controller = singleControllers[controllerName] = {}
                   env = blockEnvMaker(block) __proto__: defaultEnv
                   env.eval = (text)-> controllerEval.call controller, text
@@ -510,9 +510,9 @@
             objectName = leisureMatch[1]
             viewName = leisureMatch[2]
             data = UI.context.opts.data
-            error = if !obj = data.getBlock(data.namedBlocks[objectName])
+            error = if !obj = data.getBlock(data.namedBlocks.get objectName)
               "No object named #{objectName}"
-            else if !obj = (block = data.getBlock(data.namedBlocks[objectName]))?.yaml
+            else if !obj = (block = data.getBlock(data.namedBlocks.get objectName))?.yaml
               "Object #{objectName} isn't yaml"
             else if !(type = obj?.type)
               "No type field in object #{objectName}"

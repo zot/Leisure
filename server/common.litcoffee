@@ -13,3 +13,9 @@ Common client/server code
         code: 3
         type: 'error'
         error: "The master does not approve"
+      badVersionError: (current, msg)->
+        errMsg = "Bad version, current version is #{current} but got #{msg.version}"
+        console.log errMsg
+        code: 1
+        type: 'error'
+        error: errMsg

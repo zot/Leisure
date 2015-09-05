@@ -22,6 +22,16 @@
           type: 'error',
           error: "The master does not approve"
         };
+      },
+      badVersionError: function(current, msg) {
+        var errMsg;
+        errMsg = "Bad version, current version is " + current + " but got " + msg.version;
+        console.log(errMsg);
+        return {
+          code: 1,
+          type: 'error',
+          error: errMsg
+        };
       }
     };
   });

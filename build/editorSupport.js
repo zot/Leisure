@@ -4,8 +4,8 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice', 'lib/js-yaml', 'lib/bluebird.min'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, trickyChange, updateSelection, withContext;
+  define(['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -16,6 +16,7 @@
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
     mergeExports = BrowserExports.mergeExports;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
+    Map = Immutable.Map;
     selectionActive = true;
     headlineRE = /^(\*+ *)(.*)(\n)$/;
     documentParams = null;
@@ -40,7 +41,7 @@
 
       function OrgData() {
         DataStore.apply(this, arguments);
-        this.namedBlocks = {};
+        this.namedBlocks = new Map();
         this.filters = [];
       }
 
@@ -328,16 +329,16 @@
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
         if ((oldBlock != null ? oldBlock.codeName : void 0) !== (newBlock != null ? newBlock.codeName : void 0)) {
           if (oldBlock != null ? oldBlock.codeName : void 0) {
-            delete this.namedBlocks[oldBlock.codeName];
+            this.namedBlocks = this.namedBlocks["delete"](oldBlock.codeName);
           }
           if (newBlock != null ? newBlock.codeName : void 0) {
-            return this.namedBlocks[newBlock.codeName] = newBlock._id;
+            return this.namedBlocks = this.namedBlocks.set(newBlock.codeName, newBlock._id);
           }
         }
       };
 
       OrgData.prototype.getBlockNamed = function(name) {
-        return this.getBlock(this.namedBlocks[name]);
+        return this.getBlock(this.namedBlocks.get(name));
       };
 
       OrgData.prototype.textForDataNamed = function(name, data, attrs) {

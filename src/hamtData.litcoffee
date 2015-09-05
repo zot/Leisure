@@ -19,9 +19,12 @@ to make it easier to handle merges.
           @blocks = new Map()
         snapshot: ->
           data = new HamtOrgData()
-          data.blocks = @blocks
-          data.blockIndex = @blockIndex
+          data.installSnapshot this
           data
+        installSnapshot: (data)->
+          @blocks = data.blocks
+          @blockIndex = data.blockIndex
+          @namedBlocks = data.namedBlocks
         getFirst: -> getFirst @blocks
         setFirst: (firstId)-> @blocks = setFirst @blocks, firstId
         getBlock: (id, changes)->

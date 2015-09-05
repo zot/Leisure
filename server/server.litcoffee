@@ -1,15 +1,20 @@
 SockJS relay server
 
+    require('source-map-support').install()
     sockjs = require 'sockjs'
     sockjsUtil = require 'sockjs/lib/utils'
     http = require 'http'
     crypto = require 'crypto'
     _ = require './lib/lodash.min'
+    requirejs = require('requirejs').config baseUrl: path.dirname(module.filename)
 
     {
       badIdError
       badMsgTypeError
-    } = require('requirejs').config(baseUrl: path.dirname(module.filename))('./common')
+      disapprovedError
+      badVersionError
+    } = requirejs './common'
+    OT = requirejs './ot'
 
     masters = {}
     slaves = {}
@@ -29,6 +34,7 @@ Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/10503
     class MessageHandler
       constructor: ->
         @id = guid()
+        @ot = new OT()
       setConnection: (@con)->
         console.log "#{@type} connection: #{@id}"
         @con.leisure = this
@@ -39,7 +45,7 @@ Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/10503
       closed: ->
         console.log "#{@type} closed: #{@id}"
       send: (msg)->
-        #console.log "Sending message", msg
+        console.log "S    #{JSON.stringify msg}"
         @con.write JSON.stringify msg
       sendError: (msg)->
         msg.type = 'error'
@@ -50,7 +56,7 @@ Handle a message from the connected browser
 
       handleMessage: (msg)->
         msg.connectionId = @connectionId
-        #console.log "#{@type} received: #{JSON.stringify msg}"
+        console.log "R    #{JSON.stringify msg}"
         if !(msg.type of @handler)
           console.log "Received bad message #{msg.type}", msg
           @close()
@@ -59,12 +65,10 @@ Handle a message from the connected browser
         log: (msg)-> console.log msg.msg
         replace: (msg)-> @master.relay msg
         conditionalReplace: (msg)->
-          if msg.targetChange == @master.changeCount then @master.relay msg
-          else @send type: 'rejectChange', change: msg.targetChange
-      sendEcho: (change, target)->
-        msg = type: 'echo', change: change
-        if target? then msg.targetChange = target
-        @send msg
+          if msg.version != @master.version && @master.versionDirty
+            @send type: 'rejectChange', targetVersion: msg.targetVersion, version: @version
+          else @master.relay msg
+        ack: (msg)-> @master.peerAcknowledgedVersion msg
       shouldEcho: (msg)-> isTextMsg(msg) && msg.connectionId == @connectionId
 
     isTextMsg = (msg)-> msg.type in ['replace', 'conditionalReplace']
@@ -81,18 +85,21 @@ Handle a message from the connected browser
       constructor: ->
         super()
         @master = this
-        @msgCount = 0
         @connectionId = "peer-0"
         @slaves = {}
         @pendingSlaves = {}
         @doc = ''
         @peerCount = 0
-        @changeCount = 0
+        @version = 0
+        @nextVersionCallbacks = []
+        @pendingVersionAcks = {}
+        @remainingVersionAcks = 0
+        @versionDirty = false
       type: 'Master'
       setConnection: (con)->
         masters[@id] = this
         super con
-        @send type: 'connect', id: @id, connectionId: @connectionId, change: @changeCount
+        @send type: 'connect', id: @id, connectionId: @connectionId, version: @version
       addSlave: (slave)->
         slave.connectionId = "peer-#{++@peerCount}"
         @pendingSlaves[slave.connectionId] = slave
@@ -107,27 +114,72 @@ Handle a message from the connected browser
           slave.close()
         @slaves = {}
         super()
-      relay: (msg)->
-        replId = msg.connectionId
-        if target = msg.targetChange then delete msg.targetChange
-        if msg.type == 'replace'
-          {start, end, text} = msg
-          @doc = @doc.substring(0, start) + text + @doc.substring end
-        else if msg.type == 'conditionalReplace'
-          msg.replacements = validateBatch msg.replacements
-          offset = 0
-          for repl in msg.replacements
-            @doc = @doc.substring(0, repl.start + offset) + repl.text + @doc.substring repl.end + offset
-            offset += repl.text.length - repl.end + repl.start
-        msg.change = ++@changeCount
-        msg.msgCount = @msgCount++
-        if @shouldEcho msg then @sendEcho msg.change, target
+      versionClean: -> !@versionDirty && !@remainingVersionAcks
+      startVersionInc: ->
+        if @versionDirty && !@remainingVersionAcks
+          @pendingVersionAcks = _.clone slaves
+          @pendingVersionAcks[@connectionId] = this
+          @remainingVersionAcks = _.size @pendingVersionAcks
+          @broadcast type: 'newVersion', version: @version + 1
+      setDoc: (@doc)-> @versionDirty = true
+      peerAcknowledgedVersion: (msg)->
+        console.log "RECEIVED VERSION ACK"
+        if @pendingVersionAcks[msg.connectionId]
+          delete @pendingVersionAcks[msg.connectionId]
+          @remainingVersionAcks--
+          if !@remainingVersionAcks
+            @versionDirty = false
+            @version++
+            console.log "VERSION INC: #{@version}"
+            @ot = new OT()
+            for cb in @nextVersionCallbacks
+              cb()
+            @nextVersionCallbacks = []
+      connection: (msg)->
+        if msg.connectionId == @connectionId then this else @slaves[msg.connectionId]
+      upgradeMsg: (msg)->
+        offset = @ot.floatFor msg.start
+        msg.start += offset
+        msg.end += offset
+        msg.version = @version + 1
+        msg.upgraded = true
+        console.log "PUSH #{JSON.stringify msg}"
+        @nextVersionCallbacks.push =>
+          console.log "RUN  #{JSON.stringify msg}"
+          @relay msg, true
+      relay: (msg, suppressVersionInc)->
+        if @remainingVersionAcks
+          if msg.version == @version
+            @upgradeMsg msg
+          else if msg.version == @version + 1
+            console.log "PUSH #{JSON.stringify msg}"
+            @nextVersionCallbacks.push =>
+              console.log "RUN  #{JSON.stringify msg}"
+              @relay msg, true
+          else @sendError badVersionError @version, msg
+        else if msg.version != @version
+          @sendError badVersionError @version, msg
         else
-          @send msg
-          if (slave = @slaves[replId]).shouldEcho msg
-            slave.sendEcho msg.change, target
+          if msg.type == 'replace'
+            {start, end, text} = msg
+            @ot.replace msg
+            @setDoc @doc.substring(0, start) + text + @doc.substring end
+          else if msg.type == 'conditionalReplace'
+            msg.replacements = validateBatch msg.replacements
+            offset = 0
+            for repl in msg.replacements
+              @setDoc = @doc.substring(0, repl.start + offset) + repl.text + @doc.substring repl.end + offset
+              offset += repl.text.length - repl.end + repl.start
+          @broadcast msg
+          if !suppressVersionInc then @startVersionInc()
+      sendEchoIfNeeded: (msg)->
+        if isTextMsg(msg) && !msg.upgraded && con = @connection msg
+          con.send type: 'echo', version: @version
+          con
+      broadcast: (msg)->
+        if (echoer = @sendEchoIfNeeded(msg)) != this then @send msg
         for id, slave of @slaves
-          if !slave.shouldEcho msg then slave.send msg
+          if echoer != slave then slave.send msg
       handler:
         __proto__: MessageHandler::handler
         initDoc: ({@doc})->
@@ -136,7 +188,7 @@ Handle a message from the connected browser
             delete @pendingSlaves[slaveId]
             if approval
               @slaves[slaveId] = slave
-              slave.send type: 'connect', id: @id, connectionId: slave.connectionId, doc: @doc
+              slave.send type: 'connect', id: @id, connectionId: slave.connectionId, doc: @doc, version: @version
             else slave.sendError disapprovedError()
 
     class SlaveHandler extends MessageHandler

@@ -19,9 +19,14 @@
       HamtOrgData.prototype.snapshot = function() {
         var data;
         data = new HamtOrgData();
-        data.blocks = this.blocks;
-        data.blockIndex = this.blockIndex;
+        data.installSnapshot(this);
         return data;
+      };
+
+      HamtOrgData.prototype.installSnapshot = function(data) {
+        this.blocks = data.blocks;
+        this.blockIndex = data.blockIndex;
+        return this.namedBlocks = data.namedBlocks;
       };
 
       HamtOrgData.prototype.getFirst = function() {

@@ -160,7 +160,7 @@
             }
             if (controllerName = _this.block.codeAttributes.controller) {
               if (!(controller = singleControllers[controllerName])) {
-                if (block = opts.getBlock(opts.data.namedBlocks[controllerName])) {
+                if (block = opts.getBlock(opts.data.namedBlocks.get(controllerName))) {
                   controller = singleControllers[controllerName] = {};
                   env = blockEnvMaker(block)({
                     __proto__: defaultEnv
@@ -664,7 +664,7 @@
           objectName = leisureMatch[1];
           viewName = leisureMatch[2];
           data = UI.context.opts.data;
-          error = !(obj = data.getBlock(data.namedBlocks[objectName])) ? "No object named " + objectName : !(obj = (ref = (block = data.getBlock(data.namedBlocks[objectName]))) != null ? ref.yaml : void 0) ? "Object " + objectName + " isn't yaml" : !(type = obj != null ? obj.type : void 0) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
+          error = !(obj = data.getBlock(data.namedBlocks.get(objectName))) ? "No object named " + objectName : !(obj = (ref = (block = data.getBlock(data.namedBlocks.get(objectName)))) != null ? ref.yaml : void 0) ? "Object " + objectName + " isn't yaml" : !(type = obj != null ? obj.type : void 0) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
           if (error) {
             return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'><b>✖</b></span>" + (escapeHtml(org.allText()));
           } else {

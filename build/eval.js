@@ -273,9 +273,9 @@
             value = v.substring(eq + 1).trim();
             if (ref1 = value[0], indexOf.call("'\"0123456789", ref1) >= 0) {
               value = JSON.parse(value);
-            } else if (bl = data.namedBlocks[value]) {
+            } else if (bl = data.namedBlocks.get(value)) {
               blockIds[bl] = true;
-              value = (ref2 = DATA.getBlock(bl)) != null ? ref2.yaml : void 0;
+              value = (ref2 = data.getBlock(bl)) != null ? ref2.yaml : void 0;
             } else {
               value = value.trim();
             }

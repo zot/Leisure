@@ -1,3 +1,12 @@
+* TODO block wiring
+make "plug bay" in code blocks
+- lets you drag a plug to another block
+- adds a var code attribute referring to the plug block
+* TODO code scope inspector
+inspector button on code scope
+- highlight view under mouse
+- show data, viewdef, & controller
+- allow linking codeviews
 * TODO factor collaboration & emacs connection up into main editor
 * TODO fix list parsing
 - make indented lines following a list item part of the list
@@ -249,11 +258,6 @@ Need this for the game so you can see things as you play
 ** TODO fix game.lorg's layout
 ** TODO support multiple imports per headline
 add support for multiple property values
-** TODO code scope inspector
-- inspector button on code scope
-  - highlight view under mouse
-  - show data, viewdef, & controller
-  - allow linking codeviews
 ** TODO headline blocks should contain their properties
 Right now, properties are stored in chunks following headlines
 ** TODO add editor objects

@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice', 'lib/js-yaml', 'lib/bluebird.min'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird)->
+    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable)->
 
       {
         defaultEnv
@@ -63,6 +63,9 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         safeLoad
         dump
       } = Yaml
+      {
+        Map
+      } = Immutable
 
       selectionActive = true
       headlineRE = /^(\*+ *)(.*)(\n)$/
@@ -89,7 +92,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       class OrgData extends DataStore
         constructor: ->
           DataStore.apply this, arguments
-          @namedBlocks = {}
+          @namedBlocks = new Map()
           @filters = []
         makeChanges: (func)->
           if newChange = !@changeCount
@@ -227,9 +230,9 @@ that must be done regardless of the source of changes
             $('head').append "<style id='css-#{blockElementId newBlock}'>#{blockSource newBlock}</style>"
         checkCodeChange: (oldBlock, newBlock, isDefault)->
           if oldBlock?.codeName != newBlock?.codeName
-            if oldBlock?.codeName then delete @namedBlocks[oldBlock.codeName]
-            if newBlock?.codeName then @namedBlocks[newBlock.codeName] = newBlock._id
-        getBlockNamed: (name)-> @getBlock @namedBlocks[name]
+            if oldBlock?.codeName then @namedBlocks = @namedBlocks.delete oldBlock.codeName
+            if newBlock?.codeName then @namedBlocks = @namedBlocks.set newBlock.codeName, newBlock._id
+        getBlockNamed: (name)-> @getBlock @namedBlocks.get name
         textForDataNamed: (name, data, attrs)->
           """
           #+NAME: #{name}
@@ -334,8 +337,8 @@ may be called more than once.  changeData() returns a promise.
             replaceFunc()
             new Promise (succeed, fail)=>
               @batchReplace (=> dataCommands.map((x)-> x())), succeed, fail
-           finally
-             @dataCommands = null 
+          finally
+            @dataCommands = null 
         addDataChangeCommand: (func)->
           if !@dataCommands then @batchReplace (-> [func()]), ->
           else @dataCommands.push func
