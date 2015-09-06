@@ -36,7 +36,10 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         constructor: ->
           @data = new HamtOrgData()
           @clearChanges()
+          @versionReplaces = []
           @pendingReplaces = []
+          @pendingCount = 0
+          @pendingUnreplacements = []
           @unreplacements = []
           @batchCallbacks = []
           @messageCount = 0
@@ -66,39 +69,56 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         disconnect: ->
           @con?.close()
           @con = null
-        hasPendingReplaces: -> @pendingReplaces.length
+        subsumesIncoming: (cur, next)->
+          next.mine && (!cur ||
+          (next.pendingCount ? -1) > (cur.pendingCount ? -1) ||
+          (next.messageCount ? -1) > (cur.messageCount ? -1))
         applyIncomingChanges: ->
+          #console.log "UNREPLACE: "+('('+r.start+', '+r.end+', '+r.text+')' for r in @unreplacements).join(' ')
           for repl in @unreplacements by -1
-            @replaceText repl.start, repl.end, repl.text
+            @logReplacement "VER U ", repl.start, repl.end, repl.text
+            @data.replaceText repl.start, repl.end, repl.text
           @unreplacements = []
+          @pendingUnreplacements = []
+          ot = @ot.snapshot()
           for repl in @pendingReplaces
-            if !(repl.type == 'conditionalReplace')
-              @ot.replace repl
+            if repl.type == 'replace'
+              ot.replace repl
           myPos = -1
           preserveSelection (range)=>
-            @ot.eachOperation (start, end, text, offset, effect)=>
+            ot.eachOperation (start, end, text, offset, effect)=>
               myLatest = null
               myLast = _.last @pendingReplaces
-              myRepl = null
-              if effect.replCount <= 1
-                tmpOff = offset
-                for repl in effect.activeOperations
-                  if repl == myLast || (!myLast && repl.mine && repl.messageCount? && (!myLatest || myLatest.messageCount < repl.messageCount))
-                    myLatest = repl
-                    myPos = start + tmpOff + repl.text.length
-                    myRepl = repl
-                  if myRepl && !myRepl.messageCount?
-                    @pushUnreplacement start + tmpOff, myRepl.end + offset + tmpOff, text
-                  tmpOff += repl.text.length
-              if end <= range.start then range.start += text.length - end + start
-              else if start <= range.start < end
-                range.start = start + text.length
-              @replaceText repl.start, repl.end, repl.text
+              tmpOff = offset
+              for repl in effect.activeOperations
+                tmpStart = repl.start + tmpOff
+                tmpEnd = repl.end + tmpOff
+                if repl == myLast || (repl != myLast && @subsumesIncoming myLatest, repl)
+                  myPos = tmpStart + repl.text.length
+                if repl.pendingCount
+                  @pushUnreplacement @pendingUnreplacements, tmpStart, tmpEnd, repl.text
+                @pushUnreplacement @unreplacements, tmpStart, tmpEnd, repl.text
+                @logReplacement "#{@nodeLabel effect} R ", tmpStart, tmpEnd, repl.text
+                @data.replaceText tmpStart, tmpEnd, repl.text
+                if tmpEnd <= range.start
+                  range.start += repl.text.length - tmpEnd + tmpStart
+                else if tmpStart <= range.start < tmpEnd
+                  range.start = tmpStart + repl.text.length
+                tmpOff += repl.text.length
           if myPos > -1
             range = @editor.getSelectedDocRange()
             range.start = myPos
             range.length = 0
             @editor.selectDocRange range
+        nodeLabel: (node)->
+          hasPending = false
+          hasIncoming = false
+          for op in node.activeOperations
+            if op.pendingCount then hasPending = true
+            else hasIncoming = true
+          if hasIncoming && hasPending then "P/I"
+          else if hasIncoming then "IN "
+          else "PEN"
         connect: (@url, @connectedFunc)->
           @con = new SockJS @url
           @con.onmessage = (msg)=> @handleMessage JSON.parse msg.data
@@ -120,7 +140,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             changesFor: p2p: true
         send: (type, msg)->
           msg.type = type
-          console.log "SEND #{JSON.stringify msg}"
+          #console.log "SEND #{JSON.stringify msg}"
           @con.send JSON.stringify msg
         runBatchReplace: (replacementsFunc, contFunc, errFunc)->
           try
@@ -144,22 +164,27 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           repl = replacementFor offset, blockText(oldBlocks), blockText(newBlocks)
           repl.type = 'replace'
           repl.version = @version
-          @pushUnreplacement repl.start, repl.end, repl.text
-          for r in @pendingReplaces
+          @pushUnreplacement @pendingUnreplacements, repl.start, repl.end, repl.text
+          @pushUnreplacement @unreplacements, repl.start, repl.end, repl.text
+          @logReplacement "OUT R ", repl.start, repl.end, repl.text
+          for r in @versionReplaces
             if r.end < repl.start
               offset = r.text.length - r.end + r.start
               repl.start -= offset
               repl.end -= offset
-          @pendingReplaces.push _.merge (mine: true), repl
+          @pendingReplaces.push newRepl = _.merge (mine: true, pendingCount: ++@pendingCount), repl
+          @versionReplaces.push newRepl
           @send 'replace', repl
-        pushUnreplacement: (start, end, text)->
-          @unreplacements.push
+        logReplacement: (label, start, end, text)->
+          console.log "#{label} #{start} '#{@data.getDocSubstring start, end}' -> '#{text}'"
+        pushUnreplacement: (unrepl, start, end, text)->
+          unrepl.push
             start: start
             end: start + text.length
             text: @data.getDocSubstring start, end
-        mine: (msg)-> msg.connectionId == @connectionId
         handleMessage: (msg)->
-          console.log "RECEIVE #{JSON.stringify msg}"
+          msg.mine = msg.connectionId == @connectionId || msg.type == 'echo'
+          #console.log "RECEIVE #{JSON.stringify msg}"
           msg.messageCount = @messageCount++
           if !(msg.type of @handler)
             console.log "Received bad message #{msg.type}", msg
@@ -199,6 +224,9 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
               msg.start += offset
               msg.end += offset
               msg.version = @version
+            while @versionReplaces.length > @pendingReplaces.length
+              @versionReplaces.shift()
+            @unreplacements = @pendingUnreplacements.slice()
             @clearChanges()
             @send 'ack', {}
           rejectChange: ->
@@ -208,6 +236,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             pending = @pendingReplaces.shift()
             pending.messageCount = msg.messageCount
             pending.version = @version
+            pending.pendingCount = null
             if pending.type == 'conditionalReplace'
               try
                 @replaceBatch pending.replacements
@@ -231,13 +260,11 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 offset += repl.text.length - repl.end + repl.start
               @replaceBatch replacements
           replace: (msg)->
-            if msg.upgraded && @mine msg then @pendingReplaces.shift()
+            if msg.upgraded && msg.mine then @pendingReplaces.shift()
             @ot.replace msg
             @applyIncomingChanges()
         replaceBatch: (replacements)->
           @data.batchReplace replacements
-        replaceText: (start, end, text)->
-          @data.replaceText start, end, text
         createSession: (@host, @connectedFunc)->
           @type = 'Master'
           @handler =

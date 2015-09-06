@@ -47,7 +47,7 @@
   MessageHandler = (function() {
     function MessageHandler() {
       this.id = guid();
-      this.ot = new OT();
+      this.messageCount = 0;
     }
 
     MessageHandler.prototype.setConnection = function(con1) {
@@ -77,6 +77,7 @@
     };
 
     MessageHandler.prototype.send = function(msg) {
+      msg.messageCount = ++this.messageCount;
       console.log("S    " + (JSON.stringify(msg)));
       return this.con.write(JSON.stringify(msg));
     };
@@ -170,6 +171,7 @@
       this.pendingVersionAcks = {};
       this.remainingVersionAcks = 0;
       this.versionDirty = false;
+      this.ot = new OT();
     }
 
     MasterHandler.prototype.type = 'Master';
@@ -252,7 +254,10 @@
             cb = ref1[i];
             cb();
           }
-          return this.nextVersionCallbacks = [];
+          this.nextVersionCallbacks = [];
+          if (this.versionDirty) {
+            return this.startVersionInc();
+          }
         }
       }
     };
@@ -267,7 +272,7 @@
 
     MasterHandler.prototype.upgradeMsg = function(msg) {
       var offset;
-      offset = this.ot.floatFor(msg.start);
+      offset = this.ot.floatFor(msg);
       msg.start += offset;
       msg.end += offset;
       msg.version = this.version + 1;

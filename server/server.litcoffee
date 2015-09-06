@@ -34,7 +34,7 @@ Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/10503
     class MessageHandler
       constructor: ->
         @id = guid()
-        @ot = new OT()
+        @messageCount = 0
       setConnection: (@con)->
         console.log "#{@type} connection: #{@id}"
         @con.leisure = this
@@ -45,6 +45,7 @@ Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/10503
       closed: ->
         console.log "#{@type} closed: #{@id}"
       send: (msg)->
+        msg.messageCount = ++@messageCount
         console.log "S    #{JSON.stringify msg}"
         @con.write JSON.stringify msg
       sendError: (msg)->
@@ -95,6 +96,7 @@ Handle a message from the connected browser
         @pendingVersionAcks = {}
         @remainingVersionAcks = 0
         @versionDirty = false
+        @ot = new OT()
       type: 'Master'
       setConnection: (con)->
         masters[@id] = this
@@ -135,10 +137,11 @@ Handle a message from the connected browser
             for cb in @nextVersionCallbacks
               cb()
             @nextVersionCallbacks = []
+            if @versionDirty then @startVersionInc()
       connection: (msg)->
         if msg.connectionId == @connectionId then this else @slaves[msg.connectionId]
       upgradeMsg: (msg)->
-        offset = @ot.floatFor msg.start
+        offset = @ot.floatFor msg
         msg.start += offset
         msg.end += offset
         msg.version = @version + 1

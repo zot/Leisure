@@ -11,7 +11,10 @@
       function Peer() {
         this.data = new HamtOrgData();
         this.clearChanges();
+        this.versionReplaces = [];
         this.pendingReplaces = [];
+        this.pendingCount = 0;
+        this.pendingUnreplacements = [];
         this.unreplacements = [];
         this.batchCallbacks = [];
         this.messageCount = 0;
@@ -80,55 +83,60 @@
         return this.con = null;
       };
 
-      Peer.prototype.hasPendingReplaces = function() {
-        return this.pendingReplaces.length;
+      Peer.prototype.subsumesIncoming = function(cur, next) {
+        var ref1, ref2, ref3, ref4;
+        return next.mine && (!cur || ((ref1 = next.pendingCount) != null ? ref1 : -1) > ((ref2 = cur.pendingCount) != null ? ref2 : -1) || ((ref3 = next.messageCount) != null ? ref3 : -1) > ((ref4 = cur.messageCount) != null ? ref4 : -1));
       };
 
       Peer.prototype.applyIncomingChanges = function() {
-        var i, j, len, myPos, range, ref1, ref2, repl;
+        var i, j, len, myPos, ot, range, ref1, ref2, repl;
         ref1 = this.unreplacements;
         for (i = ref1.length - 1; i >= 0; i += -1) {
           repl = ref1[i];
-          this.replaceText(repl.start, repl.end, repl.text);
+          this.logReplacement("VER U ", repl.start, repl.end, repl.text);
+          this.data.replaceText(repl.start, repl.end, repl.text);
         }
         this.unreplacements = [];
+        this.pendingUnreplacements = [];
+        ot = this.ot.snapshot();
         ref2 = this.pendingReplaces;
         for (j = 0, len = ref2.length; j < len; j++) {
           repl = ref2[j];
-          if (!(repl.type === 'conditionalReplace')) {
-            this.ot.replace(repl);
+          if (repl.type === 'replace') {
+            ot.replace(repl);
           }
         }
         myPos = -1;
         preserveSelection((function(_this) {
           return function(range) {
-            return _this.ot.eachOperation(function(start, end, text, offset, effect) {
-              var k, len1, myLast, myLatest, myRepl, ref3, ref4, tmpOff;
+            return ot.eachOperation(function(start, end, text, offset, effect) {
+              var k, len1, myLast, myLatest, ref3, ref4, results, tmpEnd, tmpOff, tmpStart;
               myLatest = null;
               myLast = _.last(_this.pendingReplaces);
-              myRepl = null;
-              if (effect.replCount <= 1) {
-                tmpOff = offset;
-                ref3 = effect.activeOperations;
-                for (k = 0, len1 = ref3.length; k < len1; k++) {
-                  repl = ref3[k];
-                  if (repl === myLast || (!myLast && repl.mine && (repl.messageCount != null) && (!myLatest || myLatest.messageCount < repl.messageCount))) {
-                    myLatest = repl;
-                    myPos = start + tmpOff + repl.text.length;
-                    myRepl = repl;
-                  }
-                  if (myRepl && (myRepl.messageCount == null)) {
-                    _this.pushUnreplacement(start + tmpOff, myRepl.end + offset + tmpOff, text);
-                  }
-                  tmpOff += repl.text.length;
+              tmpOff = offset;
+              ref3 = effect.activeOperations;
+              results = [];
+              for (k = 0, len1 = ref3.length; k < len1; k++) {
+                repl = ref3[k];
+                tmpStart = repl.start + tmpOff;
+                tmpEnd = repl.end + tmpOff;
+                if (repl === myLast || (repl !== myLast && _this.subsumesIncoming(myLatest, repl))) {
+                  myPos = tmpStart + repl.text.length;
                 }
+                if (repl.pendingCount) {
+                  _this.pushUnreplacement(_this.pendingUnreplacements, tmpStart, tmpEnd, repl.text);
+                }
+                _this.pushUnreplacement(_this.unreplacements, tmpStart, tmpEnd, repl.text);
+                _this.logReplacement((_this.nodeLabel(effect)) + " R ", tmpStart, tmpEnd, repl.text);
+                _this.data.replaceText(tmpStart, tmpEnd, repl.text);
+                if (tmpEnd <= range.start) {
+                  range.start += repl.text.length - tmpEnd + tmpStart;
+                } else if ((tmpStart <= (ref4 = range.start) && ref4 < tmpEnd)) {
+                  range.start = tmpStart + repl.text.length;
+                }
+                results.push(tmpOff += repl.text.length);
               }
-              if (end <= range.start) {
-                range.start += text.length - end + start;
-              } else if ((start <= (ref4 = range.start) && ref4 < end)) {
-                range.start = start + text.length;
-              }
-              return _this.replaceText(repl.start, repl.end, repl.text);
+              return results;
             });
           };
         })(this));
@@ -137,6 +145,28 @@
           range.start = myPos;
           range.length = 0;
           return this.editor.selectDocRange(range);
+        }
+      };
+
+      Peer.prototype.nodeLabel = function(node) {
+        var hasIncoming, hasPending, i, len, op, ref1;
+        hasPending = false;
+        hasIncoming = false;
+        ref1 = node.activeOperations;
+        for (i = 0, len = ref1.length; i < len; i++) {
+          op = ref1[i];
+          if (op.pendingCount) {
+            hasPending = true;
+          } else {
+            hasIncoming = true;
+          }
+        }
+        if (hasIncoming && hasPending) {
+          return "P/I";
+        } else if (hasIncoming) {
+          return "IN ";
+        } else {
+          return "PEN";
         }
       };
 
@@ -194,7 +224,6 @@
 
       Peer.prototype.send = function(type, msg) {
         msg.type = type;
-        console.log("SEND " + (JSON.stringify(msg)));
         return this.con.send(JSON.stringify(msg));
       };
 
@@ -233,14 +262,16 @@
       };
 
       Peer.prototype.sendReplace = function(arg) {
-        var i, len, newBlocks, offset, oldBlocks, r, ref1, repl;
+        var i, len, newBlocks, newRepl, offset, oldBlocks, r, ref1, repl;
         oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks;
         offset = this.data.offsetForBlock(oldBlocks[0]);
         repl = replacementFor(offset, blockText(oldBlocks), blockText(newBlocks));
         repl.type = 'replace';
         repl.version = this.version;
-        this.pushUnreplacement(repl.start, repl.end, repl.text);
-        ref1 = this.pendingReplaces;
+        this.pushUnreplacement(this.pendingUnreplacements, repl.start, repl.end, repl.text);
+        this.pushUnreplacement(this.unreplacements, repl.start, repl.end, repl.text);
+        this.logReplacement("OUT R ", repl.start, repl.end, repl.text);
+        ref1 = this.versionReplaces;
         for (i = 0, len = ref1.length; i < len; i++) {
           r = ref1[i];
           if (r.end < repl.start) {
@@ -249,26 +280,28 @@
             repl.end -= offset;
           }
         }
-        this.pendingReplaces.push(_.merge({
-          mine: true
+        this.pendingReplaces.push(newRepl = _.merge({
+          mine: true,
+          pendingCount: ++this.pendingCount
         }, repl));
+        this.versionReplaces.push(newRepl);
         return this.send('replace', repl);
       };
 
-      Peer.prototype.pushUnreplacement = function(start, end, text) {
-        return this.unreplacements.push({
+      Peer.prototype.logReplacement = function(label, start, end, text) {
+        return console.log(label + " " + start + " '" + (this.data.getDocSubstring(start, end)) + "' -> '" + text + "'");
+      };
+
+      Peer.prototype.pushUnreplacement = function(unrepl, start, end, text) {
+        return unrepl.push({
           start: start,
           end: start + text.length,
           text: this.data.getDocSubstring(start, end)
         });
       };
 
-      Peer.prototype.mine = function(msg) {
-        return msg.connectionId === this.connectionId;
-      };
-
       Peer.prototype.handleMessage = function(msg) {
-        console.log("RECEIVE " + (JSON.stringify(msg)));
+        msg.mine = msg.connectionId === this.connectionId || msg.type === 'echo';
         msg.messageCount = this.messageCount++;
         if (!(msg.type in this.handler)) {
           console.log("Received bad message " + msg.type, msg);
@@ -330,6 +363,10 @@
             msg.end += offset;
             msg.version = this.version;
           }
+          while (this.versionReplaces.length > this.pendingReplaces.length) {
+            this.versionReplaces.shift();
+          }
+          this.unreplacements = this.pendingUnreplacements.slice();
           this.clearChanges();
           return this.send('ack', {});
         },
@@ -342,6 +379,7 @@
           pending = this.pendingReplaces.shift();
           pending.messageCount = msg.messageCount;
           pending.version = this.version;
+          pending.pendingCount = null;
           if (pending.type === 'conditionalReplace') {
             try {
               this.replaceBatch(pending.replacements);
@@ -379,7 +417,7 @@
           })(this));
         },
         replace: function(msg) {
-          if (msg.upgraded && this.mine(msg)) {
+          if (msg.upgraded && msg.mine) {
             this.pendingReplaces.shift();
           }
           this.ot.replace(msg);
@@ -389,10 +427,6 @@
 
       Peer.prototype.replaceBatch = function(replacements) {
         return this.data.batchReplace(replacements);
-      };
-
-      Peer.prototype.replaceText = function(start, end, text) {
-        return this.data.replaceText(start, end, text);
       };
 
       Peer.prototype.createSession = function(host, connectedFunc) {

@@ -639,17 +639,17 @@
         setTimeout (->currentSlider?.sliding = flag), 1
 
       slideValue = ->
-        cs = currentSlider
-        block = cs.editor.options.getBlock cs.blockId
-        m = block.text.substring(cs.start).match numPat
-        newText = String currentSlider.widget.slider 'value'
-        if m[0] != newText
-          cs.editor.replace null,
-            block: block
-            offset: cs.start
-            length: m[0].length
-            type: 'Range',
-            newText
+        if cs = currentSlider
+          block = cs.editor.options.getBlock cs.blockId
+          m = block.text.substring(cs.start).match numPat
+          newText = String currentSlider.widget.slider 'value'
+          if m[0] != newText
+            cs.editor.replace null,
+              block: block
+              offset: cs.start
+              length: m[0].length
+              type: 'Range',
+              newText
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding

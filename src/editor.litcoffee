@@ -412,7 +412,7 @@ Events:
         blockRangeForOffsets: (start, length)->
           {block, offset} = @options.getBlockOffsetForPosition start
           {block, offset, length, type: if length == 0 then 'Caret' else 'Range'}
-        replace: (e, br, text, select)->
+        replace: (e, br, text, select)-> if br.type != 'None'
           @editWith =>
             blocks = [br.block]
             endOffset = br.offset

@@ -882,17 +882,18 @@
     };
     slideValue = function() {
       var block, cs, m, newText;
-      cs = currentSlider;
-      block = cs.editor.options.getBlock(cs.blockId);
-      m = block.text.substring(cs.start).match(numPat);
-      newText = String(currentSlider.widget.slider('value'));
-      if (m[0] !== newText) {
-        return cs.editor.replace(null, {
-          block: block,
-          offset: cs.start,
-          length: m[0].length,
-          type: 'Range'
-        }, newText);
+      if (cs = currentSlider) {
+        block = cs.editor.options.getBlock(cs.blockId);
+        m = block.text.substring(cs.start).match(numPat);
+        newText = String(currentSlider.widget.slider('value'));
+        if (m[0] !== newText) {
+          return cs.editor.replace(null, {
+            block: block,
+            offset: cs.start,
+            length: m[0].length,
+            type: 'Range'
+          }, newText);
+        }
       }
     };
     mayHideValueSlider = function() {

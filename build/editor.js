@@ -413,24 +413,26 @@
       };
 
       LeisureEditCore.prototype.replace = function(e, br, text, select) {
-        return this.editWith((function(_this) {
-          return function() {
-            var blocks, cur, endOffset, tot;
-            blocks = [br.block];
-            endOffset = br.offset;
-            if (br.type === 'Range') {
-              cur = br.block;
-              tot = br.length - br.offset - cur.text.length;
-              while (tot > 0 && cur) {
-                blocks.push(cur = _this.options.getBlock(cur.next));
-                if (cur) {
-                  tot -= cur.text.length;
+        if (br.type !== 'None') {
+          return this.editWith((function(_this) {
+            return function() {
+              var blocks, cur, endOffset, tot;
+              blocks = [br.block];
+              endOffset = br.offset;
+              if (br.type === 'Range') {
+                cur = br.block;
+                tot = br.length - br.offset - cur.text.length;
+                while (tot > 0 && cur) {
+                  blocks.push(cur = _this.options.getBlock(cur.next));
+                  if (cur) {
+                    tot -= cur.text.length;
+                  }
                 }
               }
-            }
-            return _this.options.editBlocks(blocks, br.offset, br.length, text != null ? text : getEventChar(e), select);
-          };
-        })(this));
+              return _this.options.editBlocks(blocks, br.offset, br.length, text != null ? text : getEventChar(e), select);
+            };
+          })(this));
+        }
       };
 
       LeisureEditCore.prototype.backspace = function(event, sel, r) {
