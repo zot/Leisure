@@ -1,6 +1,6 @@
 Evaulation support for Leisure
 
-    define ['cs!./base', 'cs!./ast', 'cs!./runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = null

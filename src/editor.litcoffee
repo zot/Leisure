@@ -135,7 +135,7 @@ Code
 ====
 Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEditCore).
 
-    define ['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable', 'cs!./advice.litcoffee'], (jq, DOMCursor, Fingertree, Immutable, Advice)->
+    define ['jquery', './domCursor', './lib/fingertree', 'immutable', './advice'], (jq, DOMCursor, Fingertree, Immutable, Advice)->
       {
         selectRange,
       } = DOMCursor
@@ -1570,13 +1570,17 @@ adapted from Vega on [StackOverflow](http://stackoverflow.com/a/13127566/1026782
 work better for you than LeisureEditCore.savePosition because it always preserves the
 selection, regardless of the current value of LeisureEditCore.editing.
 
+      preservingSelection = null
+
       preserveSelection = (func)->
         if editor = findEditor getSelection().anchorNode
-          range = editor.getSelectedDocRange()
+          oldPreservingSelection = preservingSelection
+          range = preservingSelection ? editor.getSelectedDocRange()
           try
             func range
           finally
             editor.selectDocRange range
+            preservingSelection = oldPreservingSelection
         else func
           type: 'None'
           scrollTop: 0

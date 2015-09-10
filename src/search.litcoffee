@@ -1,4 +1,4 @@
-    define ['cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], (Editor, EditorSupport, UI, BrowserExports)->
+    define ['./editor', './editorSupport', './ui', './export'], (Editor, EditorSupport, UI, BrowserExports)->
       {
         findEditor
         LeisureEditCore

@@ -1,4 +1,4 @@
-    define ['cs!./org', 'lib/js-yaml', 'lib/lazy'], (Org, Yaml, Lazy)->
+    define ['./org', 'lib/js-yaml', 'lib/lazy'], (Org, Yaml, Lazy)->
 
       {
         Headline

@@ -1,4 +1,4 @@
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./editorSupport.litcoffee'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport)->
+    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport)->
 
       {
         defaultEnv

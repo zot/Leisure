@@ -3,7 +3,7 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./ui.litcoffee', 'cs!./export.litcoffee'], function(Editor, EditorSupport, UI, BrowserExports) {
+  define(['./editor', './editorSupport', './ui', './export'], function(Editor, EditorSupport, UI, BrowserExports) {
     var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
     findEditor = Editor.findEditor, LeisureEditCore = Editor.LeisureEditCore;
     OrgEditing = EditorSupport.OrgEditing, fancyMode = EditorSupport.fancyMode, editorForToolbar = EditorSupport.editorForToolbar, basicDataFilter = EditorSupport.basicDataFilter;

@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['cs!./base', 'cs!./org', 'cs!./docOrg.litcoffee', 'cs!./ast', 'cs!./eval.litcoffee', 'cs!./editor.litcoffee', 'lib/lodash.min', 'jquery', 'cs!./ui.litcoffee', 'handlebars', 'cs!./export.litcoffee', './lib/prism', 'cs!./advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable)->
+    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable)->
 
       {
         defaultEnv

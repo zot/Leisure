@@ -477,22 +477,16 @@
     # @param {Object.<string, function>} m Measurer
     # @param {Array} xs
     # @return {Array}
-    nodes = (m, xs)->
+    nodes = (m, xs, res)->
+      res = res ? []
       switch xs.length
-        when 2 then  [new Node(m, xs)]
-        when 3 then [new Node(m, xs)]
-        when 4 then [new Node(m, [xs[0], xs[1]]), new Node(m, [xs[2], xs[3]])]
-        when 5 then [new Node(m, [xs[0], xs[1], xs[2]]),
-                     new Node(m, [xs[3], xs[4]])]
-        when 6 then [new Node(m, [xs[0], xs[1], xs[2]]),
-                     new Node(m, [xs[3], xs[4], xs[5]])]
-        when 7 then [new Node(m, [xs[0], xs[1], xs[2]]),
-                     new Node(m, [xs[3], xs[4]]),
-                     new Node(m, [xs[5], xs[6]])]
-        when 8 then [new Node(m, [xs[0], xs[1], xs[2]]),
-                     new Node(m, [xs[3], xs[4], xs[5]]),
-                     new Node(m, [xs[6], xs[7]])]
-        else throw new Error 'invalid number of nodes'
+        when 2 then res.push new Node(m, xs)
+        when 3 then res.push new Node(m, xs)
+        when 4 then res.push new Node(m, [xs[0], xs[1]]), new Node(m, [xs[2], xs[3]])
+        else
+          res.push new Node m, [xs[0], xs[1], xs[2]]
+          nodes m, xs.slice(3), res
+      res
 
     # Construct a derived measurer which will return the memoized
     # measurement of a node instead of evaluting the node.

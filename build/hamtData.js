@@ -3,7 +3,7 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['immutable', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], function(immutable, Editor, Support) {
+  define(['immutable', './editor', './editorSupport'], function(immutable, Editor, Support) {
     var DataStore, HamtOrgData, Map, OrgData, getFirst, preserveSelection, setFirst;
     Map = (window.Immutable = immutable).Map;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection;

@@ -1,7 +1,7 @@
 Leisure's UI system uses a piece of data's "type" and the "context" (a string) to
 choose a handlebars template.
 
-    define ['handlebars', 'cs!./export.litcoffee', 'cs!./editor.litcoffee'], (Handlebars, Exports, Editor)->
+    define ['handlebars', './export', './editor'], (Handlebars, Exports, Editor)->
       {
         compile
         create

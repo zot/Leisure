@@ -1,6 +1,6 @@
 Emacs connection
 
-    define ['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./eval.litcoffee', 'cs!./advice.litcoffee'], (_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice)->
+    define ['./lib/lodash.min', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], (_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice)->
 
       {
         mergeExports

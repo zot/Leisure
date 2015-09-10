@@ -2,7 +2,7 @@
 (function() {
   var slice = [].slice;
 
-  define(['./lib/lodash.min', 'cs!./export.litcoffee', 'cs!./ui.litcoffee', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee', 'cs!./eval.litcoffee', 'cs!./advice.litcoffee'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
+  define(['./lib/lodash.min', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
     var basicDataFilter, blockRangeFor, c, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;

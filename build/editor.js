@@ -4,8 +4,8 @@
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['jquery', 'cs!./domCursor.litcoffee', './lib/fingertree', 'immutable', 'cs!./advice.litcoffee'], function(jq, DOMCursor, Fingertree, Immutable, Advice) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
+  define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice'], function(jq, DOMCursor, Fingertree, Immutable, Advice) {
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
@@ -2268,14 +2268,17 @@
       }
       return (ref = target.data()) != null ? ref.editor : void 0;
     };
+    preservingSelection = null;
     preserveSelection = function(func) {
-      var editor, range;
+      var editor, oldPreservingSelection, range;
       if (editor = findEditor(getSelection().anchorNode)) {
-        range = editor.getSelectedDocRange();
+        oldPreservingSelection = preservingSelection;
+        range = preservingSelection != null ? preservingSelection : editor.getSelectedDocRange();
         try {
           return func(range);
         } finally {
           editor.selectDocRange(range);
+          preservingSelection = oldPreservingSelection;
         }
       } else {
         return func({

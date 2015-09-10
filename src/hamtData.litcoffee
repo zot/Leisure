@@ -1,4 +1,4 @@
-    define ['immutable', 'cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee'], (immutable, Editor, Support)->
+    define ['immutable', './editor', './editorSupport'], (immutable, Editor, Support)->
       {
         Map
       } = window.Immutable = immutable

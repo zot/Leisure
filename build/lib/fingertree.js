@@ -550,25 +550,23 @@
         }), t2.right);
       }
     };
-    nodes = function(m, xs) {
+    nodes = function(m, xs, res) {
+      res = res != null ? res : [];
       switch (xs.length) {
         case 2:
-          return [new Node(m, xs)];
+          res.push(new Node(m, xs));
+          break;
         case 3:
-          return [new Node(m, xs)];
+          res.push(new Node(m, xs));
+          break;
         case 4:
-          return [new Node(m, [xs[0], xs[1]]), new Node(m, [xs[2], xs[3]])];
-        case 5:
-          return [new Node(m, [xs[0], xs[1], xs[2]]), new Node(m, [xs[3], xs[4]])];
-        case 6:
-          return [new Node(m, [xs[0], xs[1], xs[2]]), new Node(m, [xs[3], xs[4], xs[5]])];
-        case 7:
-          return [new Node(m, [xs[0], xs[1], xs[2]]), new Node(m, [xs[3], xs[4]]), new Node(m, [xs[5], xs[6]])];
-        case 8:
-          return [new Node(m, [xs[0], xs[1], xs[2]]), new Node(m, [xs[3], xs[4], xs[5]]), new Node(m, [xs[6], xs[7]])];
+          res.push(new Node(m, [xs[0], xs[1]]), new Node(m, [xs[2], xs[3]]));
+          break;
         default:
-          throw new Error('invalid number of nodes');
+          res.push(new Node(m, [xs[0], xs[1], xs[2]]));
+          nodes(m, xs.slice(3), res);
       }
+      return res;
     };
     makeNodeMeasurer = function(measurer) {
       return {

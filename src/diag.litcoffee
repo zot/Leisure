@@ -1,4 +1,4 @@
-    define ['cs!./editor.litcoffee', 'cs!./editorSupport.litcoffee', 'cs!./export.litcoffee'], (Editor, EditorSupport, Exports)->
+    define ['./editor', './editorSupport', './export'], (Editor, EditorSupport, Exports)->
       bindCount = 0
 
       {

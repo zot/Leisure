@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['cs!./base', 'cs!./ast', 'cs!./runtime', 'lib/lodash.min', 'lib/source-map'], (Base, Ast, Runtime, _, SourceMap)->
+define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Base, Ast, Runtime, _, SourceMap)->
   {
     simpyCons,
     resolve,

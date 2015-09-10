@@ -1,4 +1,4 @@
-    define ['cs!./org', 'cs!./docOrg.litcoffee', 'lib/lodash.min', 'cs!./editorSupport.litcoffee', 'cs!./diag.litcoffee'], (Org, DocOrg, _, EditorSupport, Diag)->
+    define ['./org', './docOrg', 'lib/lodash.min', './editorSupport', './diag', './testing'], (Org, DocOrg, _, EditorSupport, Diag, Testing)->
       {
         parseOrgMode
       } = Org
@@ -11,6 +11,10 @@
       {
         structureInfo
       } = Diag
+      {
+        assert
+        assertEq
+      } = Testing
 
       set1 =
         text: """
@@ -47,9 +51,6 @@
           block6: 1
           block7: 2
 
-      assert = (errStr, bool)-> if !bool then throw new Error errStr
-      assertEq = (errStr, a, b)-> assert errStr, _.isEqual a, b
-
       runTests = ->
         test1()
 
@@ -70,4 +71,6 @@
 
       {
         runTests
+        assert
+        assertEq
       }
