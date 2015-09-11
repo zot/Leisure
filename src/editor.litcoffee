@@ -248,6 +248,7 @@ Observable class
         off: (type, callback)->
           if @listeners[type]
             @listeners[type] = (l for l in @listeners[type] when l != callback)
+          this
         trigger: (type, args...)->
           if !@suppressTriggers
             for listener in @listeners[type] || []
@@ -1307,12 +1308,7 @@ Data model -- override/reset these if you want to change how the store accesses 
             bl = @getBlock next
             next = bl.next
             bl
-        change: (changes)->
-          @currentChanges = changes
-          try
-            @trigger 'change', @makeChange changes
-          finally
-            @currentChanges = null
+        change: (changes)-> @trigger 'change', @makeChange changes
         makeChange: ({first, sets, removes, oldBlocks, newBlocks})->
           @makeChanges =>
             {adds, updates, old} = result = {adds: {}, updates: {}, removes, old: {}, sets, oldFirst: @getFirst(), first: first, oldBlocks, newBlocks}
@@ -1573,14 +1569,14 @@ selection, regardless of the current value of LeisureEditCore.editing.
       preservingSelection = null
 
       preserveSelection = (func)->
-        if editor = findEditor getSelection().anchorNode
-          oldPreservingSelection = preservingSelection
-          range = preservingSelection ? editor.getSelectedDocRange()
+        if preservingSelection then func preservingSelection
+        else if editor = findEditor getSelection().anchorNode
+          preservingSelection = editor.getSelectedDocRange()
           try
-            func range
+            func preservingSelection
           finally
-            editor.selectDocRange range
-            preservingSelection = oldPreservingSelection
+            editor.selectDocRange preservingSelection
+            preservingSelection = null
         else func
           type: 'None'
           scrollTop: 0

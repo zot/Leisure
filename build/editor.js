@@ -101,7 +101,7 @@
       Observable.prototype.off = function(type, callback) {
         var l;
         if (this.listeners[type]) {
-          return this.listeners[type] = (function() {
+          this.listeners[type] = (function() {
             var j, len, ref, results1;
             ref = this.listeners[type];
             results1 = [];
@@ -114,6 +114,7 @@
             return results1;
           }).call(this);
         }
+        return this;
       };
 
       Observable.prototype.trigger = function() {
@@ -1838,12 +1839,7 @@
       };
 
       DataStore.prototype.change = function(changes) {
-        this.currentChanges = changes;
-        try {
-          return this.trigger('change', this.makeChange(changes));
-        } finally {
-          this.currentChanges = null;
-        }
+        return this.trigger('change', this.makeChange(changes));
       };
 
       DataStore.prototype.makeChange = function(arg) {
@@ -2270,15 +2266,16 @@
     };
     preservingSelection = null;
     preserveSelection = function(func) {
-      var editor, oldPreservingSelection, range;
-      if (editor = findEditor(getSelection().anchorNode)) {
-        oldPreservingSelection = preservingSelection;
-        range = preservingSelection != null ? preservingSelection : editor.getSelectedDocRange();
+      var editor;
+      if (preservingSelection) {
+        return func(preservingSelection);
+      } else if (editor = findEditor(getSelection().anchorNode)) {
+        preservingSelection = editor.getSelectedDocRange();
         try {
-          return func(range);
+          return func(preservingSelection);
         } finally {
-          editor.selectDocRange(range);
-          preservingSelection = oldPreservingSelection;
+          editor.selectDocRange(preservingSelection);
+          preservingSelection = null;
         }
       } else {
         return func({

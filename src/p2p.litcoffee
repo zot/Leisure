@@ -2,7 +2,7 @@ Peer-to-peer connection between Leisure instances.  They send "final"
 document changes to each other, meaning that all document computations
 are complete and only the document changes need be replicated.
 
-    define ['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './hamtData', './advice', './ot'], (jq, immutable, Editor, Support, SockJS, HamtData, Advice, OperationTransformation)->
+    define ['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './ot'], (jq, immutable, Editor, Support, SockJS, Advice, OperationTransformation)->
       {
         Map
         Set
@@ -20,9 +20,6 @@ are complete and only the document changes need be replicated.
         editorToolbar
         basicDataFilter
       } = Support
-      {
-        HamtOrgData
-      } = HamtData
       {
         changeAdvice
         afterMethod
@@ -43,7 +40,8 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
 
       class Peer
         constructor: ->
-          @data = new HamtOrgData()
+          #@data = new HamtOrgData()
+          @data = new OrgData()
           @clearChanges()
           @pendingReplaces = []
           @pendingCount = 0
@@ -92,7 +90,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             #console.log "OLD TEXT: #{oldText.text}"
           else oldText = null
           for repl in @unreplacements by -1
-            @logReplacement "VER U ", repl.start, repl.end, repl.text
+            #@logReplacement "VER U ", repl.start, repl.end, repl.text
             @data.replaceText repl.start, repl.end, repl.text
           @unreplacements = []
           #if oldText
@@ -108,14 +106,18 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           reps = changes || @incomingReplaces.concat @pendingReplaces
           preserveSelection (range)=>
             oldText = @rollback true
-            if !changes
-              seq = sequentialReplacements reps
-              o = seq.initialBounds()
-              #console.log "REPLACING #{@data.getDocSubstring o.start, o.end}:\n#{replacementsString reps}"
+            #@rollback()
+            #if !changes
+            #  seq = sequentialReplacements reps
+            #  o = seq.initialBounds()
+            #  console.log "REPLACING #{@data.getDocSubstring o.start, o.end}:\n#{replacementsString reps}"
             runReplacements reps, (start, end, text, cookies, node)=>
               @pushUnreplacement start, end, text
-              @logReplacement "#{@nodeLabel node} R ", start, end, text
-              @data.replaceText start, end, text
+              #@logReplacement "#{@nodeLabel node} R ", start, end, text
+              try
+                @data.replaceText start, end, text
+              catch err
+                console.log err
               if !changes
                 for inRepl in cookies
                   if inRepl == myLast || (inRepl != myLast && @subsumesIncoming myLatest, inRepl)
@@ -168,21 +170,21 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           #diag "SEND #{JSON.stringify msg}"
           @con.send JSON.stringify msg
         runBatchReplace: (replacementsFunc, contFunc, errFunc)->
-          try
-            replacements = validateBatch replacementsFunc()
-            msg = type: 'conditionalReplace', replacements: replacements, targetVersion: @version
-            @pendingReplaces.push msg
-            pushedReplaces = true
-            @batchCallbacks.push
-              cont: contFunc
-              error: errFunc
-              replay: => @runBatchReplace replacementsFunc, contFunc, errFunc
-            pushedCallbacks = true
-            @send 'conditionalReplace', msg
-          catch err
-            if pushedReplaces then @pendingReplaces.pop()
-            if pushedCallbacks then @batchCallbacks.pop()
-            errFunc err
+          #try
+          #  replacements = validateBatch replacementsFunc()
+          #  msg = type: 'conditionalReplace', replacements: replacements, targetVersion: @version
+          #  @pendingReplaces.push msg
+          #  pushedReplaces = true
+          #  @batchCallbacks.push
+          #    cont: contFunc
+          #    error: errFunc
+          #    replay: => @runBatchReplace replacementsFunc, contFunc, errFunc
+          #  pushedCallbacks = true
+          #  @send 'conditionalReplace', msg
+          #catch err
+          #  if pushedReplaces then @pendingReplaces.pop()
+          #  if pushedCallbacks then @batchCallbacks.pop()
+          #  errFunc err
         sendReplace: ({oldBlocks, newBlocks})->
           #batch and throttle at one send every 100-125 millis
           offset = @data.offsetForBlock oldBlocks[0]
@@ -221,21 +223,21 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             console.log "Received error: #{msg.error}", msg
             @close()
           rejectChange: ->
-            @pendingReplaces.shift()
-            @batchCallbacks.pop().replay()
+            #@pendingReplaces.shift()
+            #@batchCallbacks.pop().replay()
           echo: (msg)->
             pending = @pendingReplaces.shift()
             pending.messageCount = msg.messageCount
             #pending.version = @version
-            if pending.type == 'conditionalReplace'
-              try
-                @replaceBatch pending.replacements
-                @batchCallbacks.pop().cont()
-              catch err
-                @batchCallbacks.pop().error(err)
-            else
-              pending.connectionId = @connectionId
-              @handleMessage pending
+            #if pending.type == 'conditionalReplace'
+            #  try
+            #    @replaceBatch pending.replacements
+            #    @batchCallbacks.pop().cont()
+            #  catch err
+            #    @batchCallbacks.pop().error(err)
+            #else
+            pending.connectionId = @connectionId
+            @handleMessage pending
           conditionalReplace: ({replacements, version})->
             preserveSelection (range)=>
               offset = 0

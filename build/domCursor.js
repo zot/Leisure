@@ -35,7 +35,7 @@
   });
 
   define(function() {
-    var DOMCursor, EmptyDOMCursor, MutableDOMCursor, chooseLower, chooseUpper, debug, differentLines, differentPosition, emptyDOMCursor, emptyRect, getClientRect, getTextPosition, isCollapsed, positioner, reject, selectRange, spareRange;
+    var DOMCursor, EmptyDOMCursor, MutableDOMCursor, chooseLower, chooseUpper, debug, differentLines, differentPosition, emptyDOMCursor, emptyRect, getClientRect, getTextPosition, isCollapsed, positioner, reject, sameRanges, selectRange, spareRange;
     DOMCursor = (function() {
       function DOMCursor(node1, pos3, filter) {
         var ref;
@@ -891,9 +891,16 @@
       if (r) {
         debug("select range", r, new Error('trace').stack);
         sel = getSelection();
-        sel.removeAllRanges();
-        return sel.addRange(r);
+        if (!(sel.rangeCount === 1 && sameRanges(sel.getRangeAt(0), r))) {
+          if (sel.rangeCount > 0) {
+            sel.removeAllRanges();
+          }
+          return sel.addRange(r);
+        }
       }
+    };
+    sameRanges = function(r1, r2) {
+      return r1.compareBoundaryPoints(Range.START_TO_START, r2) === 0 && r1.compareBoundaryPoints(Range.endOfLine, r2) === 0;
     };
     debug = function() {
       var args;

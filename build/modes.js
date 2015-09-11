@@ -47,7 +47,7 @@
       },
       render: function(opts, block, prefix, replace) {
         var attrs, error, pos, ref, ref1, ref2, ref3, result, results, source, text;
-        opts.trigger('render', block);
+        opts.trigger('render', opts.editor, block);
         ref = blockCodeItems(this, block), source = ref.source, error = ref.error, results = ref.results;
         attrs = "id='" + prefix + block._id + "' data-block='" + block.type + "'";
         if (block.type === 'headline') {

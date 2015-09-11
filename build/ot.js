@@ -321,20 +321,24 @@
       connectionOps = new SequentialReplacements();
       versionOps = new ConcurrentReplacements();
       prepConnection = function(id) {
-        connectionOps.eachOperation(function(start, end, text, cookies, node) {
-          return versionOps.replace({
-            start: start,
-            end: end,
-            text: text,
-            cookies: cookies
+        if (!connectionOps.isEmpty()) {
+          connectionOps.eachOperation(function(start, end, text, cookies, node) {
+            return versionOps.replace({
+              start: start,
+              end: end,
+              text: text,
+              cookies: cookies
+            });
           });
-        });
-        connectionOps = new SequentialReplacements();
+          connectionOps = new SequentialReplacements();
+        }
         return curId = id;
       };
       prepVersion = function(v) {
-        versionOps.eachOperation(func);
-        versionOps = new ConcurrentReplacements();
+        if (!versionOps.isEmpty()) {
+          versionOps.eachOperation(func);
+          versionOps = new ConcurrentReplacements();
+        }
         return curVersion = v;
       };
       for (i = 0, len = reps.length; i < len; i++) {

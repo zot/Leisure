@@ -2,12 +2,11 @@
 (function() {
   var slice = [].slice;
 
-  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './hamtData', './advice', './ot'], function(jq, immutable, Editor, Support, SockJS, HamtData, Advice, OperationTransformation) {
-    var DataStore, HamtOrgData, Map, OrgData, Peer, SequentialReplacements, Set, afterMethod, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, concurrentReplacements, diag, editorToolbar, getDocumentParams, preserveSelection, ref, replacementFor, replacementsString, runReplacements, sequentialReplacements, validateBatch;
+  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './ot'], function(jq, immutable, Editor, Support, SockJS, Advice, OperationTransformation) {
+    var DataStore, Map, OrgData, Peer, SequentialReplacements, Set, afterMethod, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, concurrentReplacements, diag, editorToolbar, getDocumentParams, preserveSelection, ref, replacementFor, replacementsString, runReplacements, sequentialReplacements, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
     OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter;
-    HamtOrgData = HamtData.HamtOrgData;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod, callOriginal = Advice.callOriginal;
     SequentialReplacements = OperationTransformation.SequentialReplacements, runReplacements = OperationTransformation.runReplacements, replacementsString = OperationTransformation.replacementsString, sequentialReplacements = OperationTransformation.sequentialReplacements, concurrentReplacements = OperationTransformation.concurrentReplacements;
     diag = function() {
@@ -17,7 +16,7 @@
     };
     Peer = (function() {
       function Peer() {
-        this.data = new HamtOrgData();
+        this.data = new OrgData();
         this.clearChanges();
         this.pendingReplaces = [];
         this.pendingCount = 0;
@@ -116,7 +115,6 @@
         ref1 = this.unreplacements;
         for (i = ref1.length - 1; i >= 0; i += -1) {
           repl = ref1[i];
-          this.logReplacement("VER U ", repl.start, repl.end, repl.text);
           this.data.replaceText(repl.start, repl.end, repl.text);
         }
         this.unreplacements = [];
@@ -131,17 +129,17 @@
         reps = changes || this.incomingReplaces.concat(this.pendingReplaces);
         preserveSelection((function(_this) {
           return function(range) {
-            var o, oldText, seq, txt;
+            var oldText, txt;
             oldText = _this.rollback(true);
-            if (!changes) {
-              seq = sequentialReplacements(reps);
-              o = seq.initialBounds();
-            }
             runReplacements(reps, function(start, end, text, cookies, node) {
-              var i, inRepl, len, ref1;
+              var err, i, inRepl, len, ref1;
               _this.pushUnreplacement(start, end, text);
-              _this.logReplacement((_this.nodeLabel(node)) + " R ", start, end, text);
-              _this.data.replaceText(start, end, text);
+              try {
+                _this.data.replaceText(start, end, text);
+              } catch (_error) {
+                err = _error;
+                console.log(err);
+              }
               if (!changes) {
                 for (i = 0, len = cookies.length; i < len; i++) {
                   inRepl = cookies[i];
@@ -255,39 +253,7 @@
         return this.con.send(JSON.stringify(msg));
       };
 
-      Peer.prototype.runBatchReplace = function(replacementsFunc, contFunc, errFunc) {
-        var err, msg, pushedCallbacks, pushedReplaces, replacements;
-        try {
-          replacements = validateBatch(replacementsFunc());
-          msg = {
-            type: 'conditionalReplace',
-            replacements: replacements,
-            targetVersion: this.version
-          };
-          this.pendingReplaces.push(msg);
-          pushedReplaces = true;
-          this.batchCallbacks.push({
-            cont: contFunc,
-            error: errFunc,
-            replay: (function(_this) {
-              return function() {
-                return _this.runBatchReplace(replacementsFunc, contFunc, errFunc);
-              };
-            })(this)
-          });
-          pushedCallbacks = true;
-          return this.send('conditionalReplace', msg);
-        } catch (_error) {
-          err = _error;
-          if (pushedReplaces) {
-            this.pendingReplaces.pop();
-          }
-          if (pushedCallbacks) {
-            this.batchCallbacks.pop();
-          }
-          return errFunc(err);
-        }
-      };
+      Peer.prototype.runBatchReplace = function(replacementsFunc, contFunc, errFunc) {};
 
       Peer.prototype.sendReplace = function(arg) {
         var newBlocks, newRepl, offset, oldBlocks, repl;
@@ -342,26 +308,13 @@
           console.log("Received error: " + msg.error, msg);
           return this.close();
         },
-        rejectChange: function() {
-          this.pendingReplaces.shift();
-          return this.batchCallbacks.pop().replay();
-        },
+        rejectChange: function() {},
         echo: function(msg) {
-          var err, pending;
+          var pending;
           pending = this.pendingReplaces.shift();
           pending.messageCount = msg.messageCount;
-          if (pending.type === 'conditionalReplace') {
-            try {
-              this.replaceBatch(pending.replacements);
-              return this.batchCallbacks.pop().cont();
-            } catch (_error) {
-              err = _error;
-              return this.batchCallbacks.pop().error(err);
-            }
-          } else {
-            pending.connectionId = this.connectionId;
-            return this.handleMessage(pending);
-          }
+          pending.connectionId = this.connectionId;
+          return this.handleMessage(pending);
         },
         conditionalReplace: function(arg) {
           var replacements, version;

@@ -100,7 +100,7 @@
           for id, block of opts.slidesFor blocks
             @render opts, block, prefix, replace
         render: (opts, block, prefix, replace)->
-          opts.trigger 'render', block
+          opts.trigger 'render', opts.editor, block
           {source, error, results} = blockCodeItems this, block
           attrs = "id='#{prefix}#{block._id}' data-block='#{block.type}'"
           if block.type == 'headline' then attrs += " data-headline='#{block.level}'"

@@ -186,13 +186,15 @@ Merge reps array and run func on the resulting changes
         connectionOps = new SequentialReplacements()
         versionOps = new ConcurrentReplacements()
         prepConnection = (id)->
-          connectionOps.eachOperation (start, end, text, cookies, node)->
-            versionOps.replace {start, end, text, cookies}
-          connectionOps = new SequentialReplacements()
+          if !connectionOps.isEmpty()
+            connectionOps.eachOperation (start, end, text, cookies, node)->
+              versionOps.replace {start, end, text, cookies}
+            connectionOps = new SequentialReplacements()
           curId = id
         prepVersion = (v)->
-          versionOps.eachOperation func
-          versionOps = new ConcurrentReplacements()
+          if !versionOps.isEmpty()
+            versionOps.eachOperation func
+            versionOps = new ConcurrentReplacements()
           curVersion = v
         for repl in reps
           if repl.version != curVersion || repl.connectionId != curId

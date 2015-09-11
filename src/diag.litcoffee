@@ -19,6 +19,7 @@
 
       showDiag = (node, state)->
         editor = editorForToolbar(node)
+        data = editor.options.data
         node = editor?.node
         editor.diag = state
         if state
@@ -27,36 +28,54 @@
           $(node).nextAll(".structure").addClass 'diag'
           setTimeout (-> editor.options.setDiagEnabled true), 1
           setTimeout (-> editor.options.data.setDiagEnabled true), 1
+          editor.on 'moved', statusUpdate
+          editor.on 'selection', statusUpdate
+          editor.options
+            .on 'diag', diagOptions
+            .on 'render', diagRender
+          data
+            .on 'change', observeDataChange
+            .on 'load', observeDataLoad
+            .on 'diag', observeDataDiag
         else
           $(node).removeClass 'diag'
           $(node).nextAll(".editorDiag").removeClass 'diag'
           $(node).nextAll(".structure").removeClass 'diag'
           editor.options.setDiagEnabled false
           editor.options.data.setDiagEnabled false
+          editor.off 'moved', statusUpdate
+          editor.off 'selection', statusUpdate
+          editor.options
+            .off 'diag', diagOptions
+            .off 'render', diagRender
+          data
+            .off 'change', observeDataChange
+            .off 'load', observeDataLoad
+            .off 'diag', observeDataDiag
 
       createEditorDisplay = (editor)->
         status = $("<div class='editorDiag'><div class='editorErrors'></div><div class='selectionInfo'>No selection</div></div>")
         editor.node.after(status)
         errors = status.find '.editorErrors'
         selection = status.find '.selectionInfo'
-        statusUpdate = =>
-          {block, offset} = editor.getSelectedBlockRange()
-          if block
-            {line, col, blockLine, top, left} = lineInfo editor.options, block, offset
-            if line
-              return selection.html "line: #{numSpan line} col: #{numSpan col} block: #{block._id}:#{numSpan blockLine} top: #{numSpan top} left: #{numSpan left}"
-          selection.html "No selection"
-        editor.on 'moved', statusUpdate
-        editor.on 'selection', statusUpdate
-        editor.options
-          .on 'diag', (badBlocks)->
-            $(editor.node).find('.error').removeClass 'error'
-            for id in badBlocks ? []
-              $(editor.options.nodeForId(id)).addClass 'error'
-            if badBlocks?.length then errors.html "BAD BLOCKS: #{JSON.stringify badBlocks}"
-            else errors.html ''
-          .on 'render', (block)->
-            if editor.diag then console.log "RENDER: #{block._id}"
+
+      statusUpdate = (editor)->
+        {block, offset} = editor.getSelectedBlockRange()
+        if block
+          {line, col, blockLine, top, left} = lineInfo editor.options, block, offset
+          if line
+            return selection.html "line: #{numSpan line} col: #{numSpan col} block: #{block._id}:#{numSpan blockLine} top: #{numSpan top} left: #{numSpan left}"
+        selection.html "No selection"
+
+      diagOptions = (badBlocks)->
+        $(editor.node).find('.error').removeClass 'error'
+        for id in badBlocks ? []
+          $(editor.options.nodeForId(id)).addClass 'error'
+        if badBlocks?.length then errors.html "BAD BLOCKS: #{JSON.stringify badBlocks}"
+        else errors.html ''
+
+      diagRender = (editor, block)->
+        if editor.diag then console.log "RENDER: #{block._id}"
 
       numSpan = (n)-> "<span class='status-num'>#{n}</span>"
 
@@ -90,12 +109,14 @@
           $(document.body).append div
           errorDisplay = div.find '.dataErrors'
           blockDisplay = div.find '.blocks'
-          data
-            .on 'change', (changes)-> displayStructure data, blockDisplay
-            .on 'load', -> displayStructure data, blockDisplay
-            .on 'diag', (badBlocks)->
-              $(".structure").data badBlocks: badBlocks
-              showStructureErrors()
+
+      observeDataChange = (changes)-> displayStructure data, blockDisplay
+
+      observeDataLoad = -> displayStructure data, blockDisplay
+
+      observeDataDiag = (badBlocks)->
+        $(".structure").data badBlocks: badBlocks
+        showStructureErrors()
 
       showStructureErrors = ->
         if errorDisplay
