@@ -43,6 +43,11 @@
         this.version = -1;
         this.successiveChanges = 0;
         this.lastReplace = null;
+        this.localChangeLimit = 3;
+        this.replacementAckLimit = 5;
+        this.incomingReplacementCount = 0;
+        this.docSnap = null;
+        this.solo = true;
       }
 
       Peer.prototype.clearChanges = function() {
@@ -122,15 +127,15 @@
       };
 
       Peer.prototype.applyIncomingChanges = function(changes) {
-        var myLast, myLatest, myPos, range, reps;
+        var myLast, myLatest, myPos, reps;
         myPos = -1;
         myLatest = null;
         myLast = _.last(this.pendingReplaces);
         reps = changes || this.incomingReplaces.concat(this.pendingReplaces);
-        preserveSelection((function(_this) {
+        return preserveSelection((function(_this) {
           return function(range) {
-            var oldText, txt;
-            oldText = _this.rollback(true);
+            var act, bounds, exp, oldText, seq, txt;
+            oldText = _this.rollback(_this.solo);
             runReplacements(reps, function(start, end, text, cookies, node) {
               var err, i, inRepl, len, ref1;
               _this.pushUnreplacement(start, end, text);
@@ -155,19 +160,34 @@
                 }
               }
             });
-            if (!changes && oldText && (txt = _this.data.getDocSubstring(oldText.start, oldText.end)) !== oldText.text) {
-              console.log("BAD REPLACEMENT, EXPECTED:\n" + (oldText.text.replace(/$/, '$')) + "\n BUT GOT:\n" + (txt.replace(/$/, '$')));
-              console.log("REPLACEMENT DUMP FOLLOWS...\n" + (replacementsString(reps)));
-              return console.log("Replacements:", reps);
+            if (_this.solo && !changes) {
+              if (oldText && (txt = _this.data.getDocSubstring(oldText.start, oldText.end)) !== oldText.text) {
+                console.log("BAD REPLACEMENT, EXPECTED:\n" + (oldText.text.replace(/$/, '$')) + "\n BUT GOT:\n" + (txt.replace(/$/, '$')));
+                console.log("REPLACEMENT DUMP FOLLOWS...\n" + (replacementsString(reps)));
+                console.log("Replacements:", reps);
+              } else {
+                seq = new SequentialReplacements();
+                runReplacements(reps, function(start, end, text) {
+                  return seq.replace({
+                    start: start,
+                    end: end,
+                    text: text
+                  });
+                });
+                bounds = seq.finalBounds();
+                if ((exp = _this.docSnap.substring(bounds.start, bounds.end)) !== (act = _this.data.getDocSubstring(bounds.start, bounds.end))) {
+                  console.log("BAD REPLACEMENT, EXPECTED:\n" + (exp.replace(/$/, '$')) + "\n BUT GOT:\n" + (act.replace(/$/, '$')));
+                  console.log("REPLACEMENT DUMP FOLLOWS...\n" + (replacementsString(reps)));
+                  console.log("Replacements:", reps);
+                }
+              }
+            }
+            if (myPos > -1) {
+              range.start = myPos;
+              return range.length = 0;
             }
           };
         })(this));
-        if (myPos > -1) {
-          range = this.editor.getSelectedDocRange();
-          range.start = myPos;
-          range.length = 0;
-          return this.editor.selectDocRange(range);
-        }
       };
 
       Peer.prototype.nodeLabel = function(node) {
@@ -213,6 +233,22 @@
         })(this);
         peer = this;
         return changeAdvice(this.editor.options, true, {
+          editBlocks: {
+            p2p: (function(_this) {
+              return function(parent) {
+                return function(blocks, start, length, newContent, select) {
+                  _this.editingReplacement = {
+                    blocks: blocks,
+                    start: start,
+                    length: length,
+                    text: newContent
+                  };
+                  parent(blocks, start, length, newContent, select);
+                  return _this.editingReplacement = null;
+                };
+              };
+            })(this)
+          },
           changesFor: {
             p2p: function(parent) {
               return function(first, oldBlocks, newBlocks, verbatim) {
@@ -256,10 +292,15 @@
       Peer.prototype.runBatchReplace = function(replacementsFunc, contFunc, errFunc) {};
 
       Peer.prototype.sendReplace = function(arg) {
-        var newBlocks, newRepl, offset, oldBlocks, repl;
+        var newBlocks, newRepl, offset, oldBlocks, repl, start;
         oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks;
+        this.incomingReplacementCount = 0;
         offset = this.data.offsetForBlock(oldBlocks[0]);
-        repl = replacementFor(offset, blockText(oldBlocks), blockText(newBlocks));
+        repl = this.editingReplacement ? (start = offset + this.editingReplacement.start, {
+          start: start,
+          end: start + this.editingReplacement.length,
+          text: this.editingReplacement.text
+        }) : replacementFor(offset, blockText(oldBlocks), blockText(newBlocks));
         repl.type = 'replace';
         repl.version = this.version;
         repl.connectionId = this.connectionId;
@@ -269,7 +310,10 @@
           mine: true,
           pendingCount: ++this.pendingCount
         }, repl));
-        return this.send('replace', repl);
+        this.send('replace', repl);
+        if (this.solo) {
+          return this.docSnap = this.docSnap.substring(0, repl.start) + repl.text + this.docSnap.substring(repl.end);
+        }
       };
 
       Peer.prototype.logReplacement = function(label, start, end, text) {};
@@ -341,11 +385,21 @@
         },
         replace: function(msg) {
           var ref1;
+          if (msg.connectionId !== this.connectionId) {
+            this.solo = false;
+            this.docSnap = null;
+          }
           if (this.successiveChanges < 2 && msg.mine && ((ref1 = this.lastReplace) != null ? ref1.mine : void 0)) {
             this.successiveChanges++;
           } else {
             this.version = msg.messageCount;
             this.successiveChanges = 0;
+          }
+          if (!msg.mine && ++this.incomingReplacementCount > this.replacementAckLimit) {
+            this.incomingReplacementCount = 0;
+            this.send('ack', {
+              version: this.version
+            });
           }
           this.lastReplace = msg;
           this.incomingReplaces.push(msg);
@@ -404,7 +458,8 @@
           },
           slaveDisconnect: function(msg) {}
         };
-        return this.connect("http://" + this.host + "/Leisure/master", this.connectedFunc);
+        this.connect("http://" + this.host + "/Leisure/master", this.connectedFunc);
+        return this.docSnap = this.data.getText();
       };
 
       Peer.prototype.connectToSession = function(url, connected) {
@@ -414,7 +469,8 @@
           __proto__: Peer.prototype.handler,
           connect: function(msg) {
             Peer.prototype.handler.connect.call(this, msg);
-            return this.editor.options.load(msg.doc);
+            this.editor.options.load(msg.doc);
+            return this.docSnap = msg.doc;
           }
         };
         return this.connect(this.url, connected);

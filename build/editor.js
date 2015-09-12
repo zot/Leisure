@@ -368,20 +368,14 @@
       LeisureEditCore.prototype.getSelectedBlockRange = function() {
         var p, s;
         s = getSelection();
-        if (s.type === 'None') {
+        if (s.type !== 'None' && (p = this.blockOffset(s.getRangeAt(0)))) {
+          p.type = s.type;
+          p.length = this.selectedText(s).length;
+          return p;
+        } else {
           return {
             type: 'None'
           };
-        } else {
-          if (p = this.blockOffset(s.getRangeAt(0))) {
-            p.type = s.type;
-            p.length = this.selectedText(s).length;
-            return p;
-          } else {
-            return {
-              type: 'None'
-            };
-          }
         }
       };
 

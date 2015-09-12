@@ -635,7 +635,7 @@
         widget.slider 'value', val
 
       setSliding = (flag)->
-        if !flag then setSliderValue currentSlider.widget.slider 'value'
+        if !flag && currentSlider then setSliderValue currentSlider.widget.slider 'value'
         setTimeout (->currentSlider?.sliding = flag), 1
 
       slideValue = ->

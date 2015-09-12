@@ -393,13 +393,11 @@ Events:
             @node[0].scrollLeft = range.scrollLeft
         getSelectedBlockRange: ->
           s = getSelection()
-          if s.type == 'None' then type: 'None'
-          else
-            if p = @blockOffset s.getRangeAt(0)
-              p.type = s.type
-              p.length = @selectedText(s).length
-              p
-            else type: 'None'
+          if s.type != 'None' && p = @blockOffset s.getRangeAt(0)
+            p.type = s.type
+            p.length = @selectedText(s).length
+            p
+          else type: 'None'
         blockOffset: (node, offset)->
           if node instanceof Range
             offset = node.startOffset

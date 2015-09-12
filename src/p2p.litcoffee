@@ -56,8 +56,12 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @version = -1
           @successiveChanges = 0
           @lastReplace = null
+          @localChangeLimit = 3
+          @replacementAckLimit = 5
+          @incomingReplacementCount = 0
           #docSnap is for diagnostic purposes only!
-          #@docSnap = null
+          @docSnap = null
+          @solo = true
         clearChanges: ->
           @incomingReplaces = []
         recordChange: (changes, oldBlock, newBlock)->
@@ -105,12 +109,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           myLast = _.last @pendingReplaces
           reps = changes || @incomingReplaces.concat @pendingReplaces
           preserveSelection (range)=>
-            oldText = @rollback true
-            #@rollback()
-            #if !changes
-            #  seq = sequentialReplacements reps
-            #  o = seq.initialBounds()
-            #  console.log "REPLACING #{@data.getDocSubstring o.start, o.end}:\n#{replacementsString reps}"
+            oldText = @rollback @solo
             runReplacements reps, (start, end, text, cookies, node)=>
               @pushUnreplacement start, end, text
               #@logReplacement "#{@nodeLabel node} R ", start, end, text
@@ -127,15 +126,23 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                   range.start += text.length - end + start
                 else if start <= range.start < end
                   range.start = start + text.length
-            if !changes && oldText && (txt = @data.getDocSubstring(oldText.start, oldText.end)) != oldText.text
-              console.log "BAD REPLACEMENT, EXPECTED:\n#{oldText.text.replace /$/, '$'}\n BUT GOT:\n#{txt.replace /$/, '$'}"
-              console.log "REPLACEMENT DUMP FOLLOWS...\n#{replacementsString reps}"
-              console.log "Replacements:", reps
-          if myPos > -1
-            range = @editor.getSelectedDocRange()
-            range.start = myPos
-            range.length = 0
-            @editor.selectDocRange range
+            if @solo && !changes
+              if oldText && (txt = @data.getDocSubstring(oldText.start, oldText.end)) != oldText.text
+                console.log "BAD REPLACEMENT, EXPECTED:\n#{oldText.text.replace /$/, '$'}\n BUT GOT:\n#{txt.replace /$/, '$'}"
+                console.log "REPLACEMENT DUMP FOLLOWS...\n#{replacementsString reps}"
+                console.log "Replacements:", reps
+              else
+                seq = new SequentialReplacements()
+                runReplacements reps, (start, end, text)=>
+                  seq.replace {start, end, text}
+                bounds = seq.finalBounds()
+                if (exp = @docSnap.substring(bounds.start, bounds.end)) != (act = @data.getDocSubstring(bounds.start, bounds.end))
+                  console.log "BAD REPLACEMENT, EXPECTED:\n#{exp.replace /$/, '$'}\n BUT GOT:\n#{act.replace /$/, '$'}"
+                  console.log "REPLACEMENT DUMP FOLLOWS...\n#{replacementsString reps}"
+                  console.log "Replacements:", reps
+            if myPos > -1
+              range.start = myPos
+              range.length = 0
         nodeLabel: (node)->
           hasPending = false
           hasIncoming = false
@@ -152,6 +159,15 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @con.onclose = => @closed()
           peer = this
           changeAdvice @editor.options, true,
+            editBlocks: p2p: (parent)=> (blocks, start, length, newContent, select)=>
+              @editingReplacement = {
+                blocks
+                start
+                length
+                text: newContent
+              }
+              parent blocks, start, length, newContent, select
+              @editingReplacement = null
             changesFor: p2p: (parent)->(first, oldBlocks, newBlocks, verbatim)->
               changes = parent first, oldBlocks, newBlocks, verbatim
               peer.sendReplace changes
@@ -187,8 +203,14 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           #  errFunc err
         sendReplace: ({oldBlocks, newBlocks})->
           #batch and throttle at one send every 100-125 millis
+          @incomingReplacementCount = 0
           offset = @data.offsetForBlock oldBlocks[0]
-          repl = replacementFor offset, blockText(oldBlocks), blockText(newBlocks)
+          repl = if @editingReplacement
+            start = offset + @editingReplacement.start
+            start: start
+            end: start + @editingReplacement.length
+            text: @editingReplacement.text
+          else replacementFor offset, blockText(oldBlocks), blockText(newBlocks)
           repl.type = 'replace'
           repl.version = @version
           repl.connectionId = @connectionId
@@ -196,6 +218,8 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @logReplacement "OUT R ", repl.start, repl.end, repl.text
           @pendingReplaces.push newRepl = _.merge (mine: true, pendingCount: ++@pendingCount), repl
           @send 'replace', repl
+          if @solo
+            @docSnap = @docSnap.substring(0, repl.start) + repl.text + @docSnap.substring repl.end
         logReplacement: (label, start, end, text)->
           #diag "#{label} #{start} '#{@data.getDocSubstring start, end}' -> '#{text}'"
         pushUnreplacement: (start, end, text)->
@@ -252,11 +276,17 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 offset += repl.text.length - repl.end + repl.start
               @replaceBatch replacements
           replace: (msg)->
+            if msg.connectionId != @connectionId
+              @solo = false
+              @docSnap = null
             if @successiveChanges < 2 && msg.mine && @lastReplace?.mine
               @successiveChanges++
             else
               @version = msg.messageCount
               @successiveChanges = 0
+            if !msg.mine && ++@incomingReplacementCount > @replacementAckLimit
+              @incomingReplacementCount = 0
+              @send 'ack', version: @version
             @lastReplace = msg
             @incomingReplaces.push msg
             @applyIncomingChanges()
@@ -285,6 +315,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
               @send 'slaveApproval', slaveId: msg.slaveId, approval: true
             slaveDisconnect: (msg)->
           @connect "http://#{@host}/Leisure/master", @connectedFunc
+          @docSnap = @data.getText()
         connectToSession: (@url, connected)->
           @type = 'Slave'
           @handler =
@@ -292,6 +323,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             connect: (msg)->
               Peer::handler.connect.call this, msg
               @editor.options.load msg.doc
+              @docSnap = msg.doc
           @connect @url, connected
 
       replacementFor = (start, oldText, newText)->

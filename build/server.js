@@ -85,7 +85,6 @@
     };
 
     MessageHandler.prototype.send = function(msg) {
-      diag("S    " + (JSON.stringify(msg)));
       return this.con.write(JSON.stringify(msg));
     };
 
@@ -101,7 +100,6 @@
 
     MessageHandler.prototype.handleMessage = function(msg) {
       msg.connectionId = this.connectionId;
-      diag("R    " + (JSON.stringify(msg)));
       if (!(msg.type in this.handler)) {
         console.log("Received bad message " + msg.type, msg);
         return this.close();
@@ -245,7 +243,6 @@
     };
 
     MasterHandler.prototype.peerAcknowledgedVersion = function(msg) {
-      diag("RECEIVED VERSION ACK");
       return this.trimVersions();
     };
 

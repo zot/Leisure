@@ -873,7 +873,7 @@
       return widget.slider('value', val);
     };
     setSliding = function(flag) {
-      if (!flag) {
+      if (!flag && currentSlider) {
         setSliderValue(currentSlider.widget.slider('value'));
       }
       return setTimeout((function() {

@@ -62,10 +62,9 @@ Code for local-mode.  This will not be loaded under meteor.
             peer.createSession hostField.val(), (con)->
               url = new URL("", document.location)
               url.search = "?join=#{peer.connectUrl}"
-              sessionField.val url.toString()
+              sessionField.attr 'href', url.toString()
+              sessionField.text url.toString()
               setPanelExpanded panel, true
-              sessionField[0].select()
-              sessionField[0].focus()
               createSessionButton.button('option', 'label', 'Disconnect')
           else
             createSessionButton.closest('.contents').removeClass 'connected'
@@ -100,6 +99,8 @@ Code for local-mode.  This will not be loaded under meteor.
           if theme then ED.options.setTheme theme
         else
           ED.options.load """
+          Create a bad replacement with collaboration: asdf<-<-<-as
+
           burp
           * top
           bubba

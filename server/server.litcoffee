@@ -50,7 +50,7 @@ Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/10503
       closed: ->
         console.log "#{@type} closed: #{@id}"
       send: (msg)->
-        diag "S    #{JSON.stringify msg}"
+        #diag "S    #{JSON.stringify msg}"
         @con.write JSON.stringify msg
       sendError: (msg)->
         msg.type = 'error'
@@ -61,7 +61,7 @@ Handle a message from the connected browser
 
       handleMessage: (msg)->
         msg.connectionId = @connectionId
-        diag "R    #{JSON.stringify msg}"
+        #diag "R    #{JSON.stringify msg}"
         if !(msg.type of @handler)
           console.log "Received bad message #{msg.type}", msg
           @close()
@@ -134,7 +134,7 @@ Handle a message from the connected browser
           @remainingVersionAcks = _.size @pendingVersionAcks
           @broadcast type: 'newVersion', version: @version + 1
       peerAcknowledgedVersion: (msg)->
-        diag "RECEIVED VERSION ACK"
+        #diag "RECEIVED VERSION ACK"
         @trimVersions()
       connection: (msg)->
         if msg.connectionId == @connectionId then this else @slaves[msg.connectionId]

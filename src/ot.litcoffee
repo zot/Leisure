@@ -187,8 +187,10 @@ Merge reps array and run func on the resulting changes
         versionOps = new ConcurrentReplacements()
         prepConnection = (id)->
           if !connectionOps.isEmpty()
+            float = 0
             connectionOps.eachOperation (start, end, text, cookies, node)->
-              versionOps.replace {start, end, text, cookies}
+              versionOps.replace {start: start - float, end: end - float, text, cookies}
+              float += text.length - end + start
             connectionOps = new SequentialReplacements()
           curId = id
         prepVersion = (v)->

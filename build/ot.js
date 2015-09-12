@@ -321,14 +321,17 @@
       connectionOps = new SequentialReplacements();
       versionOps = new ConcurrentReplacements();
       prepConnection = function(id) {
+        var float;
         if (!connectionOps.isEmpty()) {
+          float = 0;
           connectionOps.eachOperation(function(start, end, text, cookies, node) {
-            return versionOps.replace({
-              start: start,
-              end: end,
+            versionOps.replace({
+              start: start - float,
+              end: end - float,
               text: text,
               cookies: cookies
             });
+            return float += text.length - end + start;
           });
           connectionOps = new SequentialReplacements();
         }

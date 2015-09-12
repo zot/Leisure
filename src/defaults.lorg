@@ -61,7 +61,7 @@ in as long as you mark it as data-noncontent, etc.
         <button name='createSession'>Create Session</button>
         <span class='when-not-connected'>Relay Host: <input name="p2pHost"></span>
         <span class='when-connected'>
-          Connection URL: <input name="sessionKey">
+          Connection URL: <a name="sessionKey">NO SESSION</a>
           Connections: <span name='connections'></span>
         </span>
       </span>
