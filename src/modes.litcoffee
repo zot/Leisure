@@ -609,16 +609,17 @@
 
       showValueSlider = (number)->
         editor = findEditor(number)
+        data = editor.options.data
         widget = editor.node.find('[name=valueSlider]')
         blockOff = editor.blockOffset number, 0
         currentSlider =
-          blockId: blockOff.block._id
-          start: blockOff.offset
           editor: editor
+          data: data
           widget: widget
           sliding: true
         widget.removeClass 'hidden'
         widget.position my: 'center top', at: 'center bottom', of: number
+        data.addMark '__slider__', data.docOffsetForBlockOffset blockOff
         setSliderValue Number number.textContent
 
       setSliderValue = (val)->
@@ -640,19 +641,17 @@
 
       slideValue = ->
         if cs = currentSlider
-          block = cs.editor.options.getBlock cs.blockId
-          m = block.text.substring(cs.start).match numPat
+          start = cs.data.getMarkLocation '__slider__'
+          blockOff = cs.data.blockOffsetForDocOffset start
+          block = cs.editor.options.getBlock blockOff.block
+          m = block.text.substring(blockOff.offset).match numPat
           newText = String currentSlider.widget.slider 'value'
           if m[0] != newText
-            cs.editor.replace null,
-              block: block
-              offset: cs.start
-              length: m[0].length
-              type: 'Range',
-              newText
+            cs.editor.options.replaceText start, start + m[0].length, newText
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding
+          currentSlider.data.removeMark '__slider__'
           currentSlider.widget.addClass 'hidden'
           currentSlider = null
 

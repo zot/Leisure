@@ -732,7 +732,7 @@ Hook methods (required)
 
 `edit(prev, oldBlocks, newBlocks)`: The editor calls this after the user has attempted an edit.  It should make the requested change (probably by calling `replaceBlocks`, below) and rerender the appropriate DOM.
 
-        edit: (prev, oldBlocks, newBlocks, verbatim)-> throw new Error "options.edit(func) is not implemented"
+        edit: (prev, oldBlocks, newBlocks)-> throw new Error "options.edit(func) is not implemented"
 
 Hook methods (optional)
 -----------------------
@@ -820,7 +820,8 @@ situations to provide STM-like change management.
 
 `replaceBlocks(oldBlocks, newBlocks) -> removedBlocks`: override this if you need to link up the blocks, etc., like so that `renderBlock()` can return the proper next id, for instance.
 
-        replaceBlocks: (prev, oldBlocks, newBlocks, verbatim)-> @change @data.changesFor prev, oldBlocks, newBlocks
+        replaceBlocks: (prev, oldBlocks, newBlocks)->
+          @change @data.changesFor prev, oldBlocks, newBlocks
 
 
 `changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
@@ -854,19 +855,21 @@ situations to provide STM-like change management.
           oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
         mergeChangeContext: (obj)-> @changeContext = _.merge (@changeContext ? {}), obj
         clearChangeContext: -> @changeContext = null
-        replaceContent: (blocks, start, length, newContent, verbatim)->
+        replaceContent: (blocks, start, length, newContent)->
           oldText = blockText blocks
           newText = oldText.substring(0, start) + newContent + oldText.substring start + length
           pos = @data.docOffsetForBlockOffset blocks[0]._id, start
-          if @makeStructureChange pos, pos + length, newContent, computeNewStructure(this, blocks, newText), verbatim
-            pos + newContent.length
+          #if @makeStructureChange pos, pos + length, newContent, computeNewStructure(this, blocks, newText)
+          #  pos + newContent.length
+          @replaceText pos, pos + length, newContent
+          pos + newContent.length
 
 Factored out because the Emacs connection calls MakeStructureChange.
 
-        makeStructureChange: (start, end, text, {oldBlocks, newBlocks, offset, prev}, verbatim)->
+        makeStructureChange: (start, end, text, {oldBlocks, newBlocks, offset, prev})->
           try
             if oldBlocks.length || newBlocks.length
-              @edit prev, oldBlocks.slice(), newBlocks.slice(), verbatim
+              @edit prev, oldBlocks.slice(), newBlocks.slice()
           finally
             @clearChangeContext()
         change: (changes)->
@@ -1056,8 +1059,10 @@ Data model -- override/reset these if you want to change how the store accesses 
         constructor: ->
           super()
           @blocks = {}
-          @blockIndex = Fingertree.fromArray [], @emptyIndexMeasure
+          @blockIndex = Fingertree.fromArray [], indexMeasure
           @changeCount = 0
+          @clearMarks()
+          @markNames = {}
         newId: -> "block#{idCounter++}"
         setDiagEnabled: (flag)->
           changeAdvice this, flag,
@@ -1070,20 +1075,60 @@ Data model -- override/reset these if you want to change how the store accesses 
             func()
           finally
             @changeCount--
+        clearMarks: -> @marks = Fingertree.fromArray [], markMeasure
+        addMark: (name, offset)->
+          if @markNames[name] then @deleteMark name
+          @markNames[name] = true
+          [first, rest] = @marks.split (m)-> m.length >= offset
+          l = first.measure().length
+          if !rest.isEmpty() && n = rest.peekFirst()
+            rest = rest.removeFirst().addFirst
+              offset: l + n.offset - offset
+              name: n.name
+          @marks = first.concat rest.addFirst
+            offset: offset - l
+            name: name
+        removeMark: (name)-> if @markNames[name]
+          delete @markNames[name]
+          [first, rest] = @marks.split (m)-> m.names.contains name
+          @marks = first.concat rest.removeFirst()
+        listMarks: ->
+          m = []
+          t = @marks
+          while !t.isEmpty()
+            n = t.peekFirst()
+            m.push _.merge {location: @getMarkLocation n.name}, n
+            t = t.removeFirst()
+          m
+        getMarkLocation: (name)-> if @markNames[name]
+          [first, rest] = @marks.split (m)-> m.names.contains name
+          first.measure().length + rest.peekFirst().offset
+        blockOffsetForMark: (name)-> if offset = @getMarkLocation name
+          @blockOffsetForDocOffset offset
+        floatMarks: (start, end, newLength)-> if newLength != oldLength = end - start
+          [first, rest] = @marks.split (m)-> m.length >= end
+          if !rest.isEmpty() && n = rest.peekFirst()
+            @marks = first.concat rest.removeFirst().addFirst
+              name: n.name
+              offset: n.offset + newLength - oldLength
         batchReplace: (replacements)->
           offset = 0
           for repl in replacements
             @replaceText repl.start + offset, repl.end + offset, repl.text
             offset += repl.text.length - repl.end + repl.start
         replaceText: (start, end, text)->
+          {prev, oldBlocks, newBlocks} = @changesForReplacement start, end, text
+          if oldBlocks
+            @change @changesFor prev, oldBlocks.slice(), newBlocks.slice()
+            @floatMarks start, end, text.length
+        changesForReplacement: (start, end, text)->
           {blocks} = @blockOverlapsForReplacement start, end, text
           offset = @blockOffsetForDocOffset(start).offset
           oldText = blockText blocks
           newText = oldText.substring(0, offset) + text + oldText.substring end - start + offset
           pos = @docOffsetForBlockOffset blocks[0]._id, start
-          {oldBlocks, newBlocks, offset, prev} = computeNewStructure this, blocks, newText
-          if oldBlocks.length || newBlocks.length
-            @change @changesFor prev, oldBlocks.slice(), newBlocks.slice()
+          {oldBlocks, newBlocks, offset, prev} = change = computeNewStructure this, blocks, newText
+          if oldBlocks.length || newBlocks.length then change else {}
         computeRemovesAndNewBlockIds: (oldBlocks, newBlocks, newBlockMap, removes)->
           for oldBlock in oldBlocks[newBlocks.length...oldBlocks.length]
             removes[oldBlock._id] = oldBlock
@@ -1161,15 +1206,11 @@ Data model -- override/reset these if you want to change how the store accesses 
           while block && func(block, block._id) != false
             block = @getBlock block.next
           null
-        emptyIndexMeasure:
-          identity: -> ids: Set(), length: 0
-          measure: (v)-> ids: Set([v.id]), length: v.length
-          sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
         indexBlocks: ->
           @checkChanges()
           items = []
           @eachBlock (block)=> items.push indexNode block
-          @setIndex Fingertree.fromArray items, @emptyIndexMeasure
+          @setIndex Fingertree.fromArray items, indexMeasure
         splitBlockIndexOnId: (id)-> @blockIndex.split (m)-> m.ids.contains id
         splitBlockIndexOnOffset: (offset)-> @blockIndex.split (m)-> m.length > offset
         indexBlock: (block)-> if block
@@ -1212,7 +1253,7 @@ Data model -- override/reset these if you want to change how the store accesses 
           else if block.prev
             [first, rest] = @splitBlockIndexOnId block.prev
             @setIndex first.addLast(node).concat rest
-          else @setIndex FingerTree.fromArray [node], @emptyIndexMeasure
+          else @setIndex FingerTree.fromArray [node], indexMeasure
           mark = block
           cur = @getBlock block.next
           while cur && !@fingerNodeOrder mark._id, cur._id
@@ -1374,6 +1415,16 @@ Data model -- override/reset these if you want to change how the store accesses 
           blockText: fullText
           newText: fullText.substring(0, start - offset) + text + (fullText.substring end - offset)
           
+      indexMeasure =
+        identity: -> ids: Set(), length: 0
+        measure: (v)-> ids: Set([v.id]), length: v.length
+        sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
+
+      markMeasure =
+        identity: -> names: Set(), length: 0
+        measure: (n)-> names: Set([n.name]), length: n.offset
+        sum: (a, b)-> names: a.names.union(b.names), length: a.length + b.length
+
       validateBatch = (replacements)->
         replacements = _.sortBy replacements, (x)-> x.start
         last = 0
@@ -1432,7 +1483,8 @@ DataStoreEditingOptions
               prev.next = block._id
               block.prev = prev._id
           @data.load newBlocks[0]?._id, blockMap
-        edit: (prev, oldBlocks, newBlocks, verbatim)-> @replaceBlocks prev, oldBlocks, newBlocks, verbatim
+        edit: (prev, oldBlocks, newBlocks)-> @replaceBlocks prev, oldBlocks, newBlocks
+        replaceText: (start, end, text)-> @data.replaceText start, end, text
         getBlock: (id)-> @data.getBlock id
         getFirst: (first)-> @data.getFirst()
         change: (changes)-> if changes then @data.change changes

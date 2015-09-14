@@ -20,6 +20,7 @@ Simple operational transformation engine
           @eachOperation (start, end, text)->
             ops.push "(#{start}, #{end}, #{JSON.stringify text})"
           ops.join ' '
+        dump: -> console.log @toString()
         snapshot: -> new ConcurrentReplacements @replacements
         floatFor: (repl)->
           [first, rest] = @replacements.split (m)-> m.maxOffset >= repl.start
@@ -33,14 +34,14 @@ Simple operational transformation engine
           else m.float
         replace: (repl)->
           [first, rest] = @replacements.split (m)-> m.maxOffset >= repl.start
-          if !first.isEmpty() && (prev = first.peekLast()).end > repl.start - 2
+          if !first.isEmpty() && (prev = first.peekLast()).end >= repl.start
             first = first.removeLast()
             node = addOperation prev, repl
           else node = if !rest.isEmpty() && (target = rest.peekFirst()).start == repl.start
             rest = rest.removeFirst()
             addOperation target, repl
           else newNode repl
-          while !rest.isEmpty() && node.end > (next = rest.peekFirst()).start - 2
+          while !rest.isEmpty() && node.end >= (next = rest.peekFirst()).start
             rest = rest.removeFirst()
             node = addOperations node, next.operations
           @replacements = first.concat rest.addFirst node
@@ -56,15 +57,11 @@ can subtract offset to get the original start and end if you need to.
           offset = 0
           t = @replacements
           while !t.isEmpty()
-            tmpOff = offset
-            node = t.peekFirst()
-            float = 0
+            node = t.peekLast()
             for repl in node.activeOperations
-              func repl.start + tmpOff, repl.end + tmpOff, repl.text, repl.cookies ? [repl], node
-              tmpOff += repl.text.length
-              float += repl.text.length - repl.end + repl.start
-            offset += float
-            t = t.removeFirst()
+              func repl.start, repl.end, repl.text, repl.cookies ? [repl], node
+            t = t.removeLast()
+
 
       isReplace = (repl)-> repl.end > repl.start && repl.text.length
 
@@ -147,15 +144,18 @@ SequentialReplacements captures successive replacements within a version
           @eachOperation (start, end, text)->
             strs.push "#{start}, #{end}, #{JSON.stringify text}"
           strs.join '\n'
+        toConcurrent: (conc)->
+          conc = conc ? new ConcurrentReplacements()
+          @eachOperation (start, end, text, cookies)->
+            conc.replace {start, end, text, cookies}
+          conc
         eachOperation: (func)->
           t = @replacements
-          offset = 0
           while !t.isEmpty()
-            n = t.peekFirst()
-            start = offset + n.leading
+            n = t.peekLast()
+            t = t.removeLast()
+            start = t.measure().initial + n.leading
             func start, start + n.length, n.text, n.cookies, n
-            offset += n.leading + n.text.length
-            t = t.removeFirst()
           null
         merge: (replacements)->
           newReps = @snapshot()
@@ -187,10 +187,8 @@ Merge reps array and run func on the resulting changes
         versionOps = new ConcurrentReplacements()
         prepConnection = (id)->
           if !connectionOps.isEmpty()
-            float = 0
             connectionOps.eachOperation (start, end, text, cookies, node)->
-              versionOps.replace {start: start - float, end: end - float, text, cookies}
-              float += text.length - end + start
+              versionOps.replace {start: start, end: end, text, cookies}
             connectionOps = new SequentialReplacements()
           curId = id
         prepVersion = (v)->
@@ -226,32 +224,62 @@ Merge reps array and run func on the resulting changes
         runReplacements reps, (start, end, text)-> strs.push "#{start}, #{end}, #{JSON.stringify text}"
         strs.join '\n'
 
+      buildReplacementTest = ->
+        reps = []
+        version = 0
+        connectionId = 'connection-1'
+        replace: (start, end, text)->
+          reps.push {start, end, text, version: version, connectionId: connectionId}
+          this
+        assertEq: (expected)->
+          if (given = replacementsString(reps)) != expected
+            throw new Error "Bad replacement, expected <#{expected}> but got <#{given}>"
+          this
+        incVersion: ->
+          version++
+          this
+        setConnection: (con)->
+          connectionId = con
+          this
+        dump: -> console.log replacementsString reps
+
       tests = ->
-        r = new SequentialReplacements()
-        r.replace start: 100, end: 109, text: 'duh'
-        r.replace start: 101, end: 102, text: 'HELLO'
-        assertEq ((a, b)-> "Bad replacement, expected <#{b}> but got <#{a}>"), r.toString(), """
-          100, 109, "dHELLOh"
-        """
-        r.replace start: 100, end: 109, text: 'poop'
-        assertEq ((a, b)-> "Bad replacement, expected <#{b}> but got <#{a}>"), r.toString(), """
-          100, 111, "poop"
-        """
-        r.replace start: 95, end: 100, text: ''
-        assertEq ((a, b)-> "Bad replacement, expected <#{b}> but got <#{a}>"), r.toString(), """
-          95, 111, "poop"
-        """
-        r.replace start: 30, end: 35, text: 'smeg'
-        assertEq ((a, b)-> "Bad replacement, expected <#{b}> but got <#{a}>"), r.toString(), """
-          30, 35, "smeg"
-          94, 110, "poop"
-        """
-        r.replace start: 25, end: 33, text: 'blorfl'
-        assertEq ((a, b)-> "Bad replacement, expected <#{b}> but got <#{a}>"), r.toString(), """
-          25, 35, "blorflg"
-          92, 108, "poop"
-        """
-        r
+        buildReplacementTest()
+          .replace 4, 4, 'X'
+          .replace 0, 0, 'Y'
+          .assertEq """
+            4, 4, "X"
+            0, 0, "Y"
+          """
+        buildReplacementTest()
+          .replace 100, 109, 'duh'
+          .replace 101, 102, 'HELLO'
+          .assertEq """
+            100, 109, "dHELLOh"
+          """
+          .replace 100, 109, 'poop'
+          .assertEq """
+            100, 111, "poop"
+          """
+          .replace 95, 100, ''
+          .assertEq """
+            95, 111, "poop"
+          """
+          .replace 30, 35, 'smeg'
+          .assertEq """
+            95, 111, "poop"
+            30, 35, "smeg"
+          """
+          .replace 25, 33, 'blorfl'
+          .assertEq """
+            95, 111, "poop"
+            25, 35, "blorflg"
+          """
+        buildReplacementTest()
+          .replace 63, 63, "a"
+          .replace 60, 60, "a"
+          .replace 59, 59, "a"
+          .dump()
 
       {
         ConcurrentReplacements

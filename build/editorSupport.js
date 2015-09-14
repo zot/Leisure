@@ -5,7 +5,7 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -833,13 +833,31 @@
         return this.mode.render(this, block, this.idPrefix);
       };
 
-      OrgEditing.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks, verbatim) {
-        return this.change(this.changesFor(prev, oldBlocks, newBlocks, verbatim));
+      OrgEditing.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks) {
+        return this.change(this.changesFor(prev, oldBlocks, newBlocks));
       };
 
-      OrgEditing.prototype.changesFor = function(first, oldBlocks, newBlocks, verbatim) {
+      OrgEditing.prototype.replaceText = function(start, end, text) {
+        var changes, j, len, newBlocks, oldBlocks, prev, ref, ref1, repl, results1;
+        ref = this.data.changesForReplacement(start, end, text), prev = ref.prev, oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks;
+        if (oldBlocks) {
+          changes = this.changesFor(prev, oldBlocks, newBlocks);
+          this.mode.handleChanges(this, changes);
+          OrgEditing.__super__.replaceText.call(this, start, end, text);
+          ref1 = changes.repls;
+          results1 = [];
+          for (j = 0, len = ref1.length; j < len; j++) {
+            repl = ref1[j];
+            results1.push(OrgEditing.__super__.replaceText.call(this, repl.start, repl.end, repl.text));
+          }
+          return results1;
+        }
+      };
+
+      OrgEditing.prototype.changesFor = function(first, oldBlocks, newBlocks) {
         var change, changedProperties, changes, child, computedProperties, id, j, l, len, len1, oldBlock, parent, props, ref, ref1, ref2;
         changes = this.data.changesFor(first, oldBlocks, newBlocks);
+        changes.repls = [];
         computedProperties = {};
         changedProperties = [];
         ref = changes.sets;
@@ -849,9 +867,7 @@
           if (this.checkPropertyChange(changes, change, oldBlock)) {
             changedProperties.push(change._id);
           }
-          if (!verbatim) {
-            this.checkCodeChange(changes, change, oldBlock);
-          }
+          this.checkCodeChange(changes, change, oldBlock, oldBlocks, newBlocks);
         }
         for (j = 0, len = changedProperties.length; j < len; j++) {
           change = changedProperties[j];
@@ -911,8 +927,8 @@
         return change.type === 'chunk' && !_.isEqual(change.properties, (ref = this.getBlock(change._id)) != null ? ref.properties : void 0);
       };
 
-      OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock) {
-        var block, env, envM, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, result, sync;
+      OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock, oldBlocks, newBlocks) {
+        var block, env, envM, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, result, start, sync;
         if (change.type === 'code' && isDynamic(change) && (envM = blockEnvMaker(change))) {
           ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
           hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? (oldSource = blockSource(oldBlock), newSource.content !== oldSource.content) : void 0);
@@ -949,17 +965,34 @@
             })(change);
             env.executeText(newSource.content, Nil, function() {});
             newBlock = setResult(newBlock, result);
-            changes.sets[newBlock._id] = newBlock;
-            ref1 = changes.newBlocks;
-            for (i = j = 0, len = ref1.length; j < len; i = ++j) {
-              block = ref1[i];
-              if (block._id === newBlock._id) {
-                changes.newBlocks[i] = newBlock;
+            if (newBlock.text !== change.text) {
+              changes.sets[newBlock._id] = newBlock;
+              ref1 = changes.newBlocks;
+              for (i = j = 0, len = ref1.length; j < len; i = ++j) {
+                block = ref1[i];
+                if (block._id === newBlock._id) {
+                  changes.newBlocks[i] = newBlock;
+                }
               }
+              start = this.offsetForNewBlock(newBlock, oldBlocks, newBlocks);
+              changes.repls.push(replacementFor(start, change.text, newBlock.text));
             }
             return sync = false;
           }
         }
+      };
+
+      OrgEditing.prototype.offsetForNewBlock = function(newBlock, oldBlocks, newBlocks) {
+        var block, j, len, start;
+        start = oldBlocks.length === 0 ? 0 : this.data.offsetForBlock(oldBlocks[0]);
+        for (j = 0, len = newBlocks.length; j < len; j++) {
+          block = newBlocks[j];
+          if (block._id === newBlock._id) {
+            return start;
+          }
+          start += block.text.length;
+        }
+        return -1;
       };
 
       OrgEditing.prototype.execute = function() {
@@ -1168,6 +1201,26 @@
       var ref;
       return ((ref = Leisure.findEditor(e.target)) != null ? ref.options.followLink(e) : void 0) || false;
     };
+    replacementFor = function(start, oldText, newText) {
+      var end, endOff, j, l, ref, ref1, ref2, startOff;
+      end = start + ((ref = oldText.length) != null ? ref : 0);
+      for (startOff = j = 0, ref1 = Math.min(oldText.length, newText.length); 0 <= ref1 ? j < ref1 : j > ref1; startOff = 0 <= ref1 ? ++j : --j) {
+        if (oldText[startOff] !== newText[startOff]) {
+          break;
+        }
+      }
+      start += startOff;
+      for (endOff = l = 0, ref2 = Math.min(oldText.length - startOff - 1, newText.length - startOff - 1); l <= ref2; endOff = l += 1) {
+        if (oldText[oldText.length - endOff - 1] !== newText[newText.length - endOff - 1]) {
+          break;
+        }
+      }
+      return {
+        start: start,
+        end: end - endOff,
+        text: (startOff || endOff ? newText.substring(startOff, newText.length - endOff) : '')
+      };
+    };
     mergeExports({
       findEditor: findEditor,
       showHide: showHide,
@@ -1196,7 +1249,8 @@
       blockEnvMaker: blockEnvMaker,
       controllerEval: controllerEval,
       getDocumentParams: getDocumentParams,
-      basicDataFilter: basicDataFilter
+      basicDataFilter: basicDataFilter,
+      replacementFor: replacementFor
     };
   });
 

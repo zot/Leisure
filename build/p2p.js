@@ -3,10 +3,10 @@
   var slice = [].slice;
 
   define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './ot'], function(jq, immutable, Editor, Support, SockJS, Advice, OperationTransformation) {
-    var DataStore, Map, OrgData, Peer, SequentialReplacements, Set, afterMethod, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, concurrentReplacements, diag, editorToolbar, getDocumentParams, preserveSelection, ref, replacementFor, replacementsString, runReplacements, sequentialReplacements, validateBatch;
+    var DataStore, Map, OrgData, Peer, SequentialReplacements, Set, afterMethod, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, concurrentReplacements, diag, editorToolbar, getDocumentParams, preserveSelection, ref, replacementFor, replacementsString, runReplacements, sequentialReplacements, testMsg, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
-    OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter;
+    OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod, callOriginal = Advice.callOriginal;
     SequentialReplacements = OperationTransformation.SequentialReplacements, runReplacements = OperationTransformation.runReplacements, replacementsString = OperationTransformation.replacementsString, sequentialReplacements = OperationTransformation.sequentialReplacements, concurrentReplacements = OperationTransformation.concurrentReplacements;
     diag = function() {
@@ -99,48 +99,34 @@
         return next.mine && (!cur || next.pendingCount > ((ref1 = cur.pendingCount) != null ? ref1 : -1) || ((cur.pendingCount == null) && next.messageCount > cur.messageCount));
       };
 
-      Peer.prototype.rollback = function(track) {
-        var i, oldText, ref1, repl, seq;
-        if (track) {
-          seq = sequentialReplacements((function() {
-            var i, ref1, results;
-            ref1 = this.unreplacements;
-            results = [];
-            for (i = ref1.length - 1; i >= 0; i += -1) {
-              repl = ref1[i];
-              results.push(repl);
-            }
-            return results;
-          }).call(this));
-          oldText = seq.initialBounds();
-          oldText.text = this.data.getDocSubstring(oldText.start, oldText.end);
-        } else {
-          oldText = null;
-        }
+      Peer.prototype.rollback = function() {
+        var i, ref1, repl;
         ref1 = this.unreplacements;
         for (i = ref1.length - 1; i >= 0; i += -1) {
           repl = ref1[i];
           this.data.replaceText(repl.start, repl.end, repl.text);
         }
-        this.unreplacements = [];
-        return oldText;
+        return this.unreplacements = [];
       };
 
       Peer.prototype.applyIncomingChanges = function(changes) {
-        var myLast, myLatest, myPos, reps;
+        var myLast, myLatest, myPos, offset, reps;
         myPos = -1;
         myLatest = null;
         myLast = _.last(this.pendingReplaces);
         reps = changes || this.incomingReplaces.concat(this.pendingReplaces);
+        offset = 0;
         return preserveSelection((function(_this) {
           return function(range) {
-            var act, bounds, exp, oldText, seq, txt;
-            oldText = _this.rollback(_this.solo);
+            var act, bounds, exp, seq;
+            _this.rollback();
             runReplacements(reps, function(start, end, text, cookies, node) {
               var err, i, inRepl, len, ref1;
               _this.pushUnreplacement(start, end, text);
+              _this.logReplacement((_this.nodeLabel(node)) + " R ", start, end, text);
               try {
                 _this.data.replaceText(start, end, text);
+                offset += text.length - start + end;
               } catch (_error) {
                 err = _error;
                 console.log(err);
@@ -151,6 +137,7 @@
                   if (inRepl === myLast || (inRepl !== myLast && _this.subsumesIncoming(myLatest, inRepl))) {
                     myPos = start + text.length;
                     myLatest = inRepl;
+                    offset = 0;
                   }
                 }
                 if (end <= range.start) {
@@ -161,29 +148,23 @@
               }
             });
             if (_this.solo && !changes) {
-              if (oldText && (txt = _this.data.getDocSubstring(oldText.start, oldText.end)) !== oldText.text) {
-                console.log("BAD REPLACEMENT, EXPECTED:\n" + (oldText.text.replace(/$/, '$')) + "\n BUT GOT:\n" + (txt.replace(/$/, '$')));
+              seq = new SequentialReplacements();
+              runReplacements(reps, function(start, end, text) {
+                return seq.replace({
+                  start: start,
+                  end: end,
+                  text: text
+                });
+              });
+              bounds = seq.finalBounds();
+              if ((exp = _this.docSnap.substring(bounds.start, bounds.end)) !== (act = _this.data.getDocSubstring(bounds.start, bounds.end))) {
+                console.log("BAD REPLACEMENT, EXPECTED:\n" + (exp.replace(/$/, '$')) + "\n BUT GOT:\n" + (act.replace(/$/, '$')));
                 console.log("REPLACEMENT DUMP FOLLOWS...\n" + (replacementsString(reps)));
                 console.log("Replacements:", reps);
-              } else {
-                seq = new SequentialReplacements();
-                runReplacements(reps, function(start, end, text) {
-                  return seq.replace({
-                    start: start,
-                    end: end,
-                    text: text
-                  });
-                });
-                bounds = seq.finalBounds();
-                if ((exp = _this.docSnap.substring(bounds.start, bounds.end)) !== (act = _this.data.getDocSubstring(bounds.start, bounds.end))) {
-                  console.log("BAD REPLACEMENT, EXPECTED:\n" + (exp.replace(/$/, '$')) + "\n BUT GOT:\n" + (act.replace(/$/, '$')));
-                  console.log("REPLACEMENT DUMP FOLLOWS...\n" + (replacementsString(reps)));
-                  console.log("Replacements:", reps);
-                }
               }
             }
             if (myPos > -1) {
-              range.start = myPos;
+              range.start = myPos + offset;
               return range.length = 0;
             }
           };
@@ -251,9 +232,9 @@
           },
           changesFor: {
             p2p: function(parent) {
-              return function(first, oldBlocks, newBlocks, verbatim) {
+              return function(first, oldBlocks, newBlocks) {
                 var changes;
-                changes = parent(first, oldBlocks, newBlocks, verbatim);
+                changes = parent(first, oldBlocks, newBlocks);
                 peer.sendReplace(changes);
                 return changes;
               };
@@ -316,7 +297,9 @@
         }
       };
 
-      Peer.prototype.logReplacement = function(label, start, end, text) {};
+      Peer.prototype.logReplacement = function(label, start, end, text) {
+        return diag(label + " " + start + " '" + (this.data.getDocSubstring(start, end)) + "' -> '" + text + "'");
+      };
 
       Peer.prototype.pushUnreplacement = function(start, end, text) {
         return this.unreplacements.push({
@@ -384,12 +367,11 @@
           })(this));
         },
         replace: function(msg) {
-          var ref1;
           if (msg.connectionId !== this.connectionId) {
             this.solo = false;
             this.docSnap = null;
           }
-          if (this.successiveChanges < 2 && msg.mine && ((ref1 = this.lastReplace) != null ? ref1.mine : void 0)) {
+          if (this.successiveChanges < 2 && msg.mine && (!this.lastReplace || this.lastReplace.mine)) {
             this.successiveChanges++;
           } else {
             this.version = msg.messageCount;
@@ -479,26 +461,6 @@
       return Peer;
 
     })();
-    replacementFor = function(start, oldText, newText) {
-      var end, endOff, i, j, ref1, ref2, ref3, startOff;
-      end = start + ((ref1 = oldText.length) != null ? ref1 : 0);
-      for (startOff = i = 0, ref2 = Math.min(oldText.length, newText.length); 0 <= ref2 ? i < ref2 : i > ref2; startOff = 0 <= ref2 ? ++i : --i) {
-        if (oldText[startOff] !== newText[startOff]) {
-          break;
-        }
-      }
-      start += startOff;
-      for (endOff = j = 0, ref3 = Math.min(oldText.length - startOff - 1, newText.length - startOff - 1); j <= ref3; endOff = j += 1) {
-        if (oldText[oldText.length - endOff - 1] !== newText[newText.length - endOff - 1]) {
-          break;
-        }
-      }
-      return {
-        start: start,
-        end: end - endOff,
-        text: (startOff || endOff ? newText.substring(startOff, newText.length - endOff) : '')
-      };
-    };
     $(document).ready(function() {
       var connected, join;
       if (document.location.search.length > 1 && !connected) {
@@ -522,6 +484,23 @@
         }
       }
     });
+    Peer.prototype.test = function(count) {
+      var v;
+      v = count = count != null ? count : 0;
+      return this.handleMessage(testMsg(63, 63, 'a', v, ++count));
+    };
+    testMsg = function(start, end, text, version, messageCount) {
+      return {
+        start: start,
+        end: end,
+        text: text,
+        version: version,
+        messageCount: messageCount,
+        type: 'replace',
+        connectionId: 'test-peer',
+        mine: false
+      };
+    };
     return {
       Peer: Peer
     };

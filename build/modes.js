@@ -838,14 +838,14 @@
       return results1;
     };
     showValueSlider = function(number) {
-      var blockOff, editor, widget;
+      var blockOff, data, editor, widget;
       editor = findEditor(number);
+      data = editor.options.data;
       widget = editor.node.find('[name=valueSlider]');
       blockOff = editor.blockOffset(number, 0);
       currentSlider = {
-        blockId: blockOff.block._id,
-        start: blockOff.offset,
         editor: editor,
+        data: data,
         widget: widget,
         sliding: true
       };
@@ -855,6 +855,7 @@
         at: 'center bottom',
         of: number
       });
+      data.addMark('__slider__', data.docOffsetForBlockOffset(blockOff));
       return setSliderValue(Number(number.textContent));
     };
     setSliderValue = function(val) {
@@ -881,23 +882,21 @@
       }), 1);
     };
     slideValue = function() {
-      var block, cs, m, newText;
+      var block, blockOff, cs, m, newText, start;
       if (cs = currentSlider) {
-        block = cs.editor.options.getBlock(cs.blockId);
-        m = block.text.substring(cs.start).match(numPat);
+        start = cs.data.getMarkLocation('__slider__');
+        blockOff = cs.data.blockOffsetForDocOffset(start);
+        block = cs.editor.options.getBlock(blockOff.block);
+        m = block.text.substring(blockOff.offset).match(numPat);
         newText = String(currentSlider.widget.slider('value'));
         if (m[0] !== newText) {
-          return cs.editor.replace(null, {
-            block: block,
-            offset: cs.start,
-            length: m[0].length,
-            type: 'Range'
-          }, newText);
+          return cs.editor.options.replaceText(start, start + m[0].length, newText);
         }
       }
     };
     mayHideValueSlider = function() {
       if (currentSlider && !(currentSlider != null ? currentSlider.sliding : void 0)) {
+        currentSlider.data.removeMark('__slider__');
         currentSlider.widget.addClass('hidden');
         return currentSlider = null;
       }

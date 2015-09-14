@@ -473,20 +473,29 @@ may be called more than once.  changeData() returns a promise.
         idForNode: (node)-> $(node).closest('[data-block]')[0]?.id.match(@idPattern)?[1]
         parseBlocks: (text)-> @data.parseBlocks text
         renderBlock: (block)-> @mode.render this, block, @idPrefix
-
-        replaceBlocks: (prev, oldBlocks, newBlocks, verbatim)-> @change @changesFor prev, oldBlocks, newBlocks, verbatim
+        replaceBlocks: (prev, oldBlocks, newBlocks)->
+          @change @changesFor prev, oldBlocks, newBlocks
+        replaceText: (start, end, text)->
+          {prev, oldBlocks, newBlocks} = @data.changesForReplacement start, end, text
+          if oldBlocks
+            changes = @changesFor prev, oldBlocks, newBlocks
+            @mode.handleChanges this, changes
+            super start, end, text
+            for repl in changes.repls
+              super repl.start, repl.end, repl.text
 
 `changesFor(first, oldBlocks, newBlocks)` -- compute some effects immediately
 
-        changesFor: (first, oldBlocks, newBlocks, verbatim)->
+        changesFor: (first, oldBlocks, newBlocks)->
           changes = @data.changesFor first, oldBlocks, newBlocks
+          changes.repls = []
           computedProperties = {}
           changedProperties = []
           for id, change of changes.sets
             oldBlock = @getBlock change._id
             if @checkPropertyChange changes, change, oldBlock
               changedProperties.push change._id
-            if !verbatim then @checkCodeChange changes, change, oldBlock
+            @checkCodeChange changes, change, oldBlock, oldBlocks, newBlocks
           for change in changedProperties
             if parent = @data.parent(change, changes)?._id
               if !computedProperties[parent]
@@ -518,7 +527,7 @@ may be called more than once.  changeData() returns a promise.
           false
         checkPropertyChange: (changes, change, oldBlock)->
           change.type == 'chunk' && !_.isEqual change.properties, @getBlock(change._id)?.properties
-        checkCodeChange: (changes, change, oldBlock)->
+        checkCodeChange: (changes, change, oldBlock, oldBlocks, newBlocks)->
           if change.type == 'code' && isDynamic(change) && envM = blockEnvMaker(change)
             {source: newSource, results: newResults} = blockCodeItems this, change
             hasChange = !oldBlock || oldBlock.type != 'code' || oldBlock.codeAttributes.results != 'dynamic' || if oldBlock
@@ -549,10 +558,19 @@ may be called more than once.  changeData() returns a promise.
                       sets: change._id, newBlock
               env.executeText newSource.content, Nil, ->
               newBlock = setResult newBlock, result
-              changes.sets[newBlock._id] = newBlock
-              for block, i in changes.newBlocks
-                if block._id == newBlock._id then changes.newBlocks[i] = newBlock
+              if newBlock.text != change.text
+                changes.sets[newBlock._id] = newBlock
+                for block, i in changes.newBlocks
+                  if block._id == newBlock._id then changes.newBlocks[i] = newBlock
+                start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
+                changes.repls.push replacementFor start, change.text, newBlock.text
               sync = false
+        offsetForNewBlock: (newBlock, oldBlocks, newBlocks)->
+          start = if oldBlocks.length == 0 then 0 else @data.offsetForBlock oldBlocks[0]
+          for block in newBlocks
+            if block._id == newBlock._id then return start
+            start += block.text.length
+          -1
         execute: ->
           block = @editor.blockForCaret()
           if block.type == 'code' && envM = blockEnvMaker block
@@ -738,6 +756,20 @@ may be called more than once.  changeData() returns a promise.
 
       followLink = (e)-> Leisure.findEditor(e.target)?.options.followLink(e) || false
 
+      replacementFor = (start, oldText, newText)->
+        end = start + (oldText.length ? 0)
+        for startOff in [0...Math.min oldText.length, newText.length]
+          if oldText[startOff] != newText[startOff] then break
+        start += startOff
+        for endOff in [0..Math.min oldText.length - startOff - 1, newText.length - startOff - 1] by 1
+          if oldText[oldText.length - endOff - 1] != newText[newText.length - endOff - 1]
+            break
+        {
+          start
+          end: end - endOff
+          text: (if startOff || endOff then newText.substring startOff, newText.length - endOff else '')
+        }
+
 Exports
 
       mergeExports {
@@ -770,4 +802,5 @@ Exports
         controllerEval
         getDocumentParams
         basicDataFilter
+        replacementFor
       }

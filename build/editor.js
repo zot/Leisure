@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice'], function(jq, DOMCursor, Fingertree, Immutable, Advice) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexMeasure, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, markMeasure, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
@@ -969,7 +969,7 @@
         throw new Error("options.renderBlock(block) is not implemented");
       };
 
-      BasicEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks, verbatim) {
+      BasicEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks) {
         throw new Error("options.edit(func) is not implemented");
       };
 
@@ -1057,7 +1057,7 @@
         }
       };
 
-      BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks, verbatim) {
+      BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks) {
         return this.change(this.data.changesFor(prev, oldBlocks, newBlocks));
       };
 
@@ -1113,22 +1113,21 @@
         return this.changeContext = null;
       };
 
-      BasicEditingOptions.prototype.replaceContent = function(blocks, start, length, newContent, verbatim) {
+      BasicEditingOptions.prototype.replaceContent = function(blocks, start, length, newContent) {
         var newText, oldText, pos;
         oldText = blockText(blocks);
         newText = oldText.substring(0, start) + newContent + oldText.substring(start + length);
         pos = this.data.docOffsetForBlockOffset(blocks[0]._id, start);
-        if (this.makeStructureChange(pos, pos + length, newContent, computeNewStructure(this, blocks, newText), verbatim)) {
-          return pos + newContent.length;
-        }
+        this.replaceText(pos, pos + length, newContent);
+        return pos + newContent.length;
       };
 
-      BasicEditingOptions.prototype.makeStructureChange = function(start, end, text, arg, verbatim) {
+      BasicEditingOptions.prototype.makeStructureChange = function(start, end, text, arg) {
         var newBlocks, offset, oldBlocks, prev;
         oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks, offset = arg.offset, prev = arg.prev;
         try {
           if (oldBlocks.length || newBlocks.length) {
-            return this.edit(prev, oldBlocks.slice(), newBlocks.slice(), verbatim);
+            return this.edit(prev, oldBlocks.slice(), newBlocks.slice());
           }
         } finally {
           this.clearChangeContext();
@@ -1372,8 +1371,10 @@
       function DataStore() {
         DataStore.__super__.constructor.call(this);
         this.blocks = {};
-        this.blockIndex = Fingertree.fromArray([], this.emptyIndexMeasure);
+        this.blockIndex = Fingertree.fromArray([], indexMeasure);
         this.changeCount = 0;
+        this.clearMarks();
+        this.markNames = {};
       }
 
       DataStore.prototype.newId = function() {
@@ -1404,6 +1405,89 @@
         }
       };
 
+      DataStore.prototype.clearMarks = function() {
+        return this.marks = Fingertree.fromArray([], markMeasure);
+      };
+
+      DataStore.prototype.addMark = function(name, offset) {
+        var first, l, n, ref, rest;
+        if (this.markNames[name]) {
+          this.deleteMark(name);
+        }
+        this.markNames[name] = true;
+        ref = this.marks.split(function(m) {
+          return m.length >= offset;
+        }), first = ref[0], rest = ref[1];
+        l = first.measure().length;
+        if (!rest.isEmpty() && (n = rest.peekFirst())) {
+          rest = rest.removeFirst().addFirst({
+            offset: l + n.offset - offset,
+            name: n.name
+          });
+        }
+        return this.marks = first.concat(rest.addFirst({
+          offset: offset - l,
+          name: name
+        }));
+      };
+
+      DataStore.prototype.removeMark = function(name) {
+        var first, ref, rest;
+        if (this.markNames[name]) {
+          delete this.markNames[name];
+          ref = this.marks.split(function(m) {
+            return m.names.contains(name);
+          }), first = ref[0], rest = ref[1];
+          return this.marks = first.concat(rest.removeFirst());
+        }
+      };
+
+      DataStore.prototype.listMarks = function() {
+        var m, n, t;
+        m = [];
+        t = this.marks;
+        while (!t.isEmpty()) {
+          n = t.peekFirst();
+          m.push(_.merge({
+            location: this.getMarkLocation(n.name)
+          }, n));
+          t = t.removeFirst();
+        }
+        return m;
+      };
+
+      DataStore.prototype.getMarkLocation = function(name) {
+        var first, ref, rest;
+        if (this.markNames[name]) {
+          ref = this.marks.split(function(m) {
+            return m.names.contains(name);
+          }), first = ref[0], rest = ref[1];
+          return first.measure().length + rest.peekFirst().offset;
+        }
+      };
+
+      DataStore.prototype.blockOffsetForMark = function(name) {
+        var offset;
+        if (offset = this.getMarkLocation(name)) {
+          return this.blockOffsetForDocOffset(offset);
+        }
+      };
+
+      DataStore.prototype.floatMarks = function(start, end, newLength) {
+        var first, n, oldLength, ref, rest;
+        if (newLength !== (oldLength = end - start)) {
+          ref = this.marks.split(function(m) {
+            return m.length >= end;
+          }), first = ref[0], rest = ref[1];
+          if (!rest.isEmpty() && (n = rest.peekFirst())) {
+            return this.marks = first.concat(rest.removeFirst().addFirst({
+              name: n.name,
+              offset: n.offset + newLength - oldLength
+            }));
+          }
+        }
+      };
+
       DataStore.prototype.batchReplace = function(replacements) {
         var j, len, offset, repl, results1;
         offset = 0;
@@ -1417,15 +1501,26 @@
       };
 
       DataStore.prototype.replaceText = function(start, end, text) {
-        var blocks, newBlocks, newText, offset, oldBlocks, oldText, pos, prev, ref;
+        var newBlocks, oldBlocks, prev, ref;
+        ref = this.changesForReplacement(start, end, text), prev = ref.prev, oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks;
+        if (oldBlocks) {
+          this.change(this.changesFor(prev, oldBlocks.slice(), newBlocks.slice()));
+          return this.floatMarks(start, end, text.length);
+        }
+      };
+
+      DataStore.prototype.changesForReplacement = function(start, end, text) {
+        var blocks, change, newBlocks, newText, offset, oldBlocks, oldText, pos, prev, ref;
         blocks = this.blockOverlapsForReplacement(start, end, text).blocks;
         offset = this.blockOffsetForDocOffset(start).offset;
         oldText = blockText(blocks);
         newText = oldText.substring(0, offset) + text + oldText.substring(end - start + offset);
         pos = this.docOffsetForBlockOffset(blocks[0]._id, start);
-        ref = computeNewStructure(this, blocks, newText), oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks, offset = ref.offset, prev = ref.prev;
+        ref = change = computeNewStructure(this, blocks, newText), oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks, offset = ref.offset, prev = ref.prev;
         if (oldBlocks.length || newBlocks.length) {
-          return this.change(this.changesFor(prev, oldBlocks.slice(), newBlocks.slice()));
+          return change;
+        } else {
+          return {};
         }
       };
 
@@ -1569,27 +1664,6 @@
         return null;
       };
 
-      DataStore.prototype.emptyIndexMeasure = {
-        identity: function() {
-          return {
-            ids: Set(),
-            length: 0
-          };
-        },
-        measure: function(v) {
-          return {
-            ids: Set([v.id]),
-            length: v.length
-          };
-        },
-        sum: function(a, b) {
-          return {
-            ids: a.ids.union(b.ids),
-            length: a.length + b.length
-          };
-        }
-      };
-
       DataStore.prototype.indexBlocks = function() {
         var items;
         this.checkChanges();
@@ -1599,7 +1673,7 @@
             return items.push(indexNode(block));
           };
         })(this));
-        return this.setIndex(Fingertree.fromArray(items, this.emptyIndexMeasure));
+        return this.setIndex(Fingertree.fromArray(items, indexMeasure));
       };
 
       DataStore.prototype.splitBlockIndexOnId = function(id) {
@@ -1659,7 +1733,7 @@
           ref1 = this.splitBlockIndexOnId(block.prev), first = ref1[0], rest = ref1[1];
           this.setIndex(first.addLast(node).concat(rest));
         } else {
-          this.setIndex(FingerTree.fromArray([node], this.emptyIndexMeasure));
+          this.setIndex(FingerTree.fromArray([node], indexMeasure));
         }
         mark = block;
         cur = this.getBlock(block.next);
@@ -1961,6 +2035,46 @@
       return DataStore;
 
     })(Observable);
+    indexMeasure = {
+      identity: function() {
+        return {
+          ids: Set(),
+          length: 0
+        };
+      },
+      measure: function(v) {
+        return {
+          ids: Set([v.id]),
+          length: v.length
+        };
+      },
+      sum: function(a, b) {
+        return {
+          ids: a.ids.union(b.ids),
+          length: a.length + b.length
+        };
+      }
+    };
+    markMeasure = {
+      identity: function() {
+        return {
+          names: Set(),
+          length: 0
+        };
+      },
+      measure: function(n) {
+        return {
+          names: Set([n.name]),
+          length: n.offset
+        };
+      },
+      sum: function(a, b) {
+        return {
+          names: a.names.union(b.names),
+          length: a.length + b.length
+        };
+      }
+    };
     validateBatch = function(replacements) {
       var j, last, len, repl;
       replacements = _.sortBy(replacements, function(x) {
@@ -2082,8 +2196,12 @@
         return this.data.load((ref = newBlocks[0]) != null ? ref._id : void 0, blockMap);
       };
 
-      DataStoreEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks, verbatim) {
-        return this.replaceBlocks(prev, oldBlocks, newBlocks, verbatim);
+      DataStoreEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks) {
+        return this.replaceBlocks(prev, oldBlocks, newBlocks);
+      };
+
+      DataStoreEditingOptions.prototype.replaceText = function(start, end, text) {
+        return this.data.replaceText(start, end, text);
       };
 
       DataStoreEditingOptions.prototype.getBlock = function(id) {
