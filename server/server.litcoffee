@@ -9,7 +9,7 @@ SockJS relay server
     requirejs = require('requirejs').config baseUrl: path.dirname(module.filename)
 
     {
-      badIdError
+      badMasterIdError
       badMsgTypeError
       disapprovedError
       badVersionError
@@ -69,7 +69,7 @@ Handle a message from the connected browser
       handler:
         log: (msg)-> console.log msg.msg
         replace: (msg)->
-          @lastVersionAck = msg.version
+          @lastVersionAck = msg.knownVersion
           @master.relay msg
         conditionalReplace: (msg)->
           if msg.version != @master.version && @master.versionDirty
@@ -120,6 +120,7 @@ Handle a message from the connected browser
         delete @slaves[slave.connectionId]
         delete @pendingSlaves[slave.connectionId]
         @send type: 'slaveDisconnect', slaveId: slave.connectionId
+        @broadcast type: 'connections', count: 1 + _.size @slaves
       closed: ->
         delete masters[@con.leisure.id]
         for id, slave of @slaves
@@ -163,13 +164,15 @@ Handle a message from the connected browser
               @updateDoc()
               @broadcast type: 'trimVersions', version: minVersion
             break
+      replace: (start, end, text)->
+        @doc = @doc.substring(0, start) + text + @doc.substring end
       updateDoc: (changes)->
         for repl in @unreplacements by -1
-          @doc = @doc.substring(0, repl.start) + repl.text + @doc.substring repl.end
+          @replace repl.start, repl.end, repl.text
         @unreplacements = []
         runReplacements changes || @versionOps, (start, end, text)=>
           @unreplacements.push start: start, end: start + text.length, text: @doc.substring start, end
-          @doc = @doc.substring(0, start) + text + @doc.substring end
+          @replace start, end, text
       sendEchoIfNeeded: (msg)->
         if isTextMsg(msg) && con = @connection msg
           con.send type: 'echo', version: @version, messageCount: @messageCount
@@ -189,6 +192,7 @@ Handle a message from the connected browser
             if approval
               @slaves[slaveId] = slave
               slave.send type: 'connect', id: @id, connectionId: slave.connectionId, doc: @doc, version: @messageCount
+              @broadcast type: 'connections', count: 1 + _.size @slaves
             else slave.sendError disapprovedError()
 
     class SlaveHandler extends MessageHandler

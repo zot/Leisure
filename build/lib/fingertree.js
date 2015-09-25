@@ -175,6 +175,37 @@
 
       FingerTree.prototype.toJSON = notImplemented;
 
+      FingerTree.prototype.each = function(func) {
+        var results, t;
+        t = this;
+        results = [];
+        while (!t.isEmpty()) {
+          func(t.peekFirst());
+          results.push(t = t.removeFirst());
+        }
+        return results;
+      };
+
+      FingerTree.prototype.eachReverse = function(func) {
+        var results, t;
+        t = this;
+        results = [];
+        while (!t.isEmpty()) {
+          func(t.peekLast());
+          results.push(t = t.removeLast());
+        }
+        return results;
+      };
+
+      FingerTree.prototype.toArray = function() {
+        var a;
+        a = [];
+        this.each(function(n) {
+          return a.push(n);
+        });
+        return a;
+      };
+
       return FingerTree;
 
     })();

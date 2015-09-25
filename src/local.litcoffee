@@ -6,6 +6,7 @@ Code for local-mode.  This will not be loaded under meteor.
         OrgData
         installSelectionMenu
         getDocumentParams
+        editorToolbar
       } = EditorSupport
       {
         plainEditDiv
@@ -49,23 +50,29 @@ Code for local-mode.  This will not be loaded under meteor.
       useHamt = false
       peer = null
       p2pPanel = null
+      p2pConnections = null
 
       Leisure.configureP2P = ({panel, hostField, sessionField, createSessionButton, connections})->
         p2pPanel = panel
+        p2pConnections = connections
         if !useP2P then panel.css 'display', 'none'
         hostField.val document.location.host || "localhost:8080"
         createSessionButton.data hasSession: false
+        Leisure.createSession = (url, doneFunc)->
+          createSessionButton.closest('.contents').removeClass 'not-connected'
+          createSessionButton.closest('.contents').addClass 'connected'
+          peer.createSession hostField.val(), ((con)->
+            url = new URL("", document.location)
+            url.search = "?join=#{peer.connectUrl}"
+            sessionField.attr 'href', url.toString()
+            sessionField.text url.toString()
+            setPanelExpanded panel, true
+            createSessionButton.button('option', 'label', 'Disconnect')
+            doneFunc?()), (n)->
+              connections.html n
         createSessionButton.click ->
           if !createSessionButton.data().hasSession
-            createSessionButton.closest('.contents').removeClass 'not-connected'
-            createSessionButton.closest('.contents').addClass 'connected'
-            peer.createSession hostField.val(), (con)->
-              url = new URL("", document.location)
-              url.search = "?join=#{peer.connectUrl}"
-              sessionField.attr 'href', url.toString()
-              sessionField.text url.toString()
-              setPanelExpanded panel, true
-              createSessionButton.button('option', 'label', 'Disconnect')
+            Leisure.createSession hostField.val()
           else
             createSessionButton.closest('.contents').removeClass 'connected'
             createSessionButton.closest('.contents').addClass 'not-connected'
@@ -92,11 +99,22 @@ Code for local-mode.  This will not be loaded under meteor.
         if useP2P then window.PEER.setEditor ED
         createEditorDisplay ED
         if document.location.search
-          {load, theme} = getDocumentParams()
+          {load, theme, join} = getDocumentParams()
           if load
             $.get(load, (data)-> ED.options.load data)
             ED.options.loadName = new URL(load, document.location).toString()
           if theme then ED.options.setTheme theme
+          if join
+            setTimeout (->
+              createSessionButton = $(editorToolbar window.PEER.editor.node).find('[name=p2pConnector] [name=createSession]')
+              createSessionButton.data hasSession: true
+              createSessionButton.closest('.contents').removeClass 'not-connected'
+              createSessionButton.closest('.contents').addClass 'connected'
+              createSessionButton.button 'option', 'label', 'Disconnect'
+              console.log "CREATE SESSION:", createSessionButton[0]
+              u = new URL join
+              console.log "JOIN SESSION: #{u}"
+              window.PEER.connectToSession u.toString(), null, (n)-> p2pConnections.html n), 1
         else
           ED.options.load """
           Create a bad replacement with collaboration: asdf<-<-<-as

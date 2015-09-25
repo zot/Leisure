@@ -3,8 +3,8 @@
   var init;
 
   init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, HamtData) {
-    var HamtOrgData, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, createEditorDisplay, createStructureDisplay, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, mergeExports, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, useHamt, useP2P, withContext;
-    OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams;
+    var HamtOrgData, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, useHamt, useP2P, withContext;
+    OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams, editorToolbar = EditorSupport.editorToolbar;
     plainEditDiv = Modes.plainEditDiv, fancyEditDiv = Modes.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
     Peer = P2P.Peer;
@@ -19,10 +19,12 @@
     useHamt = false;
     peer = null;
     p2pPanel = null;
+    p2pConnections = null;
     Leisure.configureP2P = function(arg) {
       var connections, createSessionButton, hostField, panel, sessionField;
       panel = arg.panel, hostField = arg.hostField, sessionField = arg.sessionField, createSessionButton = arg.createSessionButton, connections = arg.connections;
       p2pPanel = panel;
+      p2pConnections = connections;
       if (!useP2P) {
         panel.css('display', 'none');
       }
@@ -30,19 +32,24 @@
       createSessionButton.data({
         hasSession: false
       });
+      Leisure.createSession = function(url, doneFunc) {
+        createSessionButton.closest('.contents').removeClass('not-connected');
+        createSessionButton.closest('.contents').addClass('connected');
+        return peer.createSession(hostField.val(), (function(con) {
+          url = new URL("", document.location);
+          url.search = "?join=" + peer.connectUrl;
+          sessionField.attr('href', url.toString());
+          sessionField.text(url.toString());
+          setPanelExpanded(panel, true);
+          createSessionButton.button('option', 'label', 'Disconnect');
+          return typeof doneFunc === "function" ? doneFunc() : void 0;
+        }), function(n) {
+          return connections.html(n);
+        });
+      };
       return createSessionButton.click(function() {
         if (!createSessionButton.data().hasSession) {
-          createSessionButton.closest('.contents').removeClass('not-connected');
-          createSessionButton.closest('.contents').addClass('connected');
-          peer.createSession(hostField.val(), function(con) {
-            var url;
-            url = new URL("", document.location);
-            url.search = "?join=" + peer.connectUrl;
-            sessionField.attr('href', url.toString());
-            sessionField.text(url.toString());
-            setPanelExpanded(panel, true);
-            return createSessionButton.button('option', 'label', 'Disconnect');
-          });
+          Leisure.createSession(hostField.val());
         } else {
           createSessionButton.closest('.contents').removeClass('connected');
           createSessionButton.closest('.contents').addClass('not-connected');
@@ -58,7 +65,7 @@
       });
     };
     return $(document).ready(function() {
-      var data, load, ref, theme;
+      var data, join, load, ref, theme;
       runTests();
       installSelectionMenu();
       if (useP2P) {
@@ -81,7 +88,7 @@
       }
       createEditorDisplay(ED);
       if (document.location.search) {
-        ref = getDocumentParams(), load = ref.load, theme = ref.theme;
+        ref = getDocumentParams(), load = ref.load, theme = ref.theme, join = ref.join;
         if (load) {
           $.get(load, function(data) {
             return ED.options.load(data);
@@ -90,6 +97,24 @@
         }
         if (theme) {
           ED.options.setTheme(theme);
+        }
+        if (join) {
+          setTimeout((function() {
+            var createSessionButton, u;
+            createSessionButton = $(editorToolbar(window.PEER.editor.node)).find('[name=p2pConnector] [name=createSession]');
+            createSessionButton.data({
+              hasSession: true
+            });
+            createSessionButton.closest('.contents').removeClass('not-connected');
+            createSessionButton.closest('.contents').addClass('connected');
+            createSessionButton.button('option', 'label', 'Disconnect');
+            console.log("CREATE SESSION:", createSessionButton[0]);
+            u = new URL(join);
+            console.log("JOIN SESSION: " + u);
+            return window.PEER.connectToSession(u.toString(), null, function(n) {
+              return p2pConnections.html(n);
+            });
+          }), 1);
         }
       } else {
         ED.options.load("Create a bad replacement with collaboration: asdf<-<-<-as\n\nburp\n* top\nbubba\n\n[[leisure:bubba]][[leisure:bubba]]\n\n#+NAME: bubba\n#+BEGIN_SRC yaml\ntype: rotator\ndegrees: 45\n#+END_SRC\n\n#+BEGIN_HTML\n<b>hello</b>\n#+END_HTML\n\n#+BEGIN_SRC html :defview rotator\n<div style='padding: 25px; display: inline-block'>\n  <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>\n</div>\n#+END_SRC\n\n#+BEGIN_SRC cs :control rotator\n@initializeView = (view)-> #console.log \"initialize\", view\n#+END_SRC\n\n#+BEGIN_SRC html :defview leisure-headlineX\n<span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop\n}}</span>{{#each children}}{{{render this}}}{{/each}}</span>\n#+END_SRC\n\n#+BEGIN_SRC css\n[data-block='headline'] .maintext {\n  font-weight: bold;\n  color: blue;\n}\n.custom-headline {\n  font-weight: bold;\n  color: green;\n}\n[data-block='headline'] {\n  color: orangeX;\n}\n#+END_SRC\n* Test properties > splunge\n#+BEGIN_SRC lisp :results dynamic\n(+ 3 4)\n#+END_SRC\n ** sub 1\n*/duh/*\n:properties:\n:hidden: true\n:a: 1\n:end:\n#+BEGIN_SRC js :results dynamic\n3 + 4\n#+END_SRC\n#+RESULTS:\n: 7\n\n#+BEGIN_SRC cs :results dynamic\n'<b>duh</b>'\nhtml '<b>duh</b>'\n37/3333\nhtml '<img src=\"https://imgs.xkcd.com/comics/lisp_cycles.png\">'\n#+END_SRC\n#+RESULTS:\n: &lt;b&gt;duh&lt;/b&gt;\n: <b>duh</b>\n: 0.0111011101110111\n: <img src=\"https://imgs.xkcd.com/comics/lisp_cycles.png\">\n\nimage link\n[[https://imgs.xkcd.com/comics/lisp_cycles.png]]\n\npeep\n:properties:\n:b: 2\n:end:\n** sub 2\nasdf" + '\n');

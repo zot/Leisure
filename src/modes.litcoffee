@@ -84,7 +84,7 @@
       } = EditorSupport
 
       singleControllers = {}
-      numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/g
+      numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/
       currentSlider = null
 
       plainMode =
@@ -644,10 +644,16 @@
           start = cs.data.getMarkLocation '__slider__'
           blockOff = cs.data.blockOffsetForDocOffset start
           block = cs.editor.options.getBlock blockOff.block
-          m = block.text.substring(blockOff.offset).match numPat
-          newText = String currentSlider.widget.slider 'value'
-          if m[0] != newText
-            cs.editor.options.replaceText start, start + m[0].length, newText
+          m = numPat.exec block.text.substring blockOff.offset
+          m2 = if blockOff.offset > 0
+            numPat.exec block.text.substring blockOff.offset - 1
+          if m?.index != 0 || m2?.index == 0
+            console.log "NUMBER SHIFTED"
+            mayHideValueSlider()
+          else
+            newText = String currentSlider.widget.slider 'value'
+            if m[0] != newText
+              cs.editor.options.replaceText start, start + m[0].length, newText
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding

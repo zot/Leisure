@@ -219,6 +219,25 @@
       # @return the JSON representation of the tree.
       toJSON: notImplemented
 
+      # iterate over the nodes
+      each: (func)->
+        t = this
+        while !t.isEmpty()
+          func t.peekFirst()
+          t = t.removeFirst()
+
+      # iterate over the nodes
+      eachReverse: (func)->
+        t = this
+        while !t.isEmpty()
+          func t.peekLast()
+          t = t.removeLast()
+
+      toArray: ->
+        a = []
+        @each (n)-> a.push n
+        a
+
     # An empty finger-tree.
     class Empty extends FingerTree
       constructor: (@measurer)-> @measure_ = @measurer.identity()

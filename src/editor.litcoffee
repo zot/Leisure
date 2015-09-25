@@ -1059,10 +1059,14 @@ Data model -- override/reset these if you want to change how the store accesses 
         constructor: ->
           super()
           @blocks = {}
-          @blockIndex = Fingertree.fromArray [], indexMeasure
+          @blockIndex = @newBlockIndex()
           @changeCount = 0
           @clearMarks()
           @markNames = {}
+        newBlockIndex: (contents)-> Fingertree.fromArray contents ? [],
+          identity: -> ids: Set(), length: 0
+          measure: (v)-> ids: Set([v.id]), length: v.length
+          sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
         newId: -> "block#{idCounter++}"
         setDiagEnabled: (flag)->
           changeAdvice this, flag,
@@ -1075,7 +1079,10 @@ Data model -- override/reset these if you want to change how the store accesses 
             func()
           finally
             @changeCount--
-        clearMarks: -> @marks = Fingertree.fromArray [], markMeasure
+        clearMarks: -> @marks = Fingertree.fromArray [],
+          identity: -> names: Set(), length: 0
+          measure: (n)-> names: Set([n.name]), length: n.offset
+          sum: (a, b)-> names: a.names.union(b.names), length: a.length + b.length
         addMark: (name, offset)->
           if @markNames[name] then @deleteMark name
           @markNames[name] = true
@@ -1106,7 +1113,7 @@ Data model -- override/reset these if you want to change how the store accesses 
         blockOffsetForMark: (name)-> if offset = @getMarkLocation name
           @blockOffsetForDocOffset offset
         floatMarks: (start, end, newLength)-> if newLength != oldLength = end - start
-          [first, rest] = @marks.split (m)-> m.length >= end
+          [first, rest] = @marks.split (m)-> m.length > start
           if !rest.isEmpty() && n = rest.peekFirst()
             @marks = first.concat rest.removeFirst().addFirst
               name: n.name
@@ -1210,7 +1217,7 @@ Data model -- override/reset these if you want to change how the store accesses 
           @checkChanges()
           items = []
           @eachBlock (block)=> items.push indexNode block
-          @setIndex Fingertree.fromArray items, indexMeasure
+          @setIndex @newBlockIndex items
         splitBlockIndexOnId: (id)-> @blockIndex.split (m)-> m.ids.contains id
         splitBlockIndexOnOffset: (offset)-> @blockIndex.split (m)-> m.length > offset
         indexBlock: (block)-> if block
@@ -1253,7 +1260,7 @@ Data model -- override/reset these if you want to change how the store accesses 
           else if block.prev
             [first, rest] = @splitBlockIndexOnId block.prev
             @setIndex first.addLast(node).concat rest
-          else @setIndex FingerTree.fromArray [node], indexMeasure
+          else @setIndex @newBlockIndex [node]
           mark = block
           cur = @getBlock block.next
           while cur && !@fingerNodeOrder mark._id, cur._id
@@ -1415,16 +1422,6 @@ Data model -- override/reset these if you want to change how the store accesses 
           blockText: fullText
           newText: fullText.substring(0, start - offset) + text + (fullText.substring end - offset)
           
-      indexMeasure =
-        identity: -> ids: Set(), length: 0
-        measure: (v)-> ids: Set([v.id]), length: v.length
-        sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
-
-      markMeasure =
-        identity: -> names: Set(), length: 0
-        measure: (n)-> names: Set([n.name]), length: n.offset
-        sum: (a, b)-> names: a.names.union(b.names), length: a.length + b.length
-
       validateBatch = (replacements)->
         replacements = _.sortBy replacements, (x)-> x.start
         last = 0

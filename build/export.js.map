@@ -1,9 +1,9 @@
 {
   "version": 3,
   "file": "export.js",
-  "sourceRoot": "..",
+  "sourceRoot": "..\\src",
   "sources": [
-    "src\\export.litcoffee"
+    "export.litcoffee"
   ],
   "names": [],
   "mappings": ";AAEI;EAAA,MAAA,CAAO,SAAA;AACL,QAAA;IAAA,IAAA,GAAO,MAAM,CAAC,OAAP,0CAAkC;IAEzC,YAAA,GAAe,SAAC,OAAD;AACb,UAAA;AAAA,WAAA,YAAA;;QACE,IAAK,CAAA,CAAA,CAAL,GAAU;AADZ;aAEA;IAHa;IAKf,MAAM,CAAC,OAAP,GAAiB;IAEjB,IAAI,CAAC,YAAL,GAAoB;WAEpB;MACE,cAAA,YADF;;EAZK,CAAP;AAAA"

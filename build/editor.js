@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice'], function(jq, DOMCursor, Fingertree, Immutable, Advice) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexMeasure, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, markMeasure, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
@@ -1371,11 +1371,34 @@
       function DataStore() {
         DataStore.__super__.constructor.call(this);
         this.blocks = {};
-        this.blockIndex = Fingertree.fromArray([], indexMeasure);
+        this.blockIndex = this.newBlockIndex();
         this.changeCount = 0;
         this.clearMarks();
         this.markNames = {};
       }
+
+      DataStore.prototype.newBlockIndex = function(contents) {
+        return Fingertree.fromArray(contents != null ? contents : [], {
+          identity: function() {
+            return {
+              ids: Set(),
+              length: 0
+            };
+          },
+          measure: function(v) {
+            return {
+              ids: Set([v.id]),
+              length: v.length
+            };
+          },
+          sum: function(a, b) {
+            return {
+              ids: a.ids.union(b.ids),
+              length: a.length + b.length
+            };
+          }
+        });
+      };
 
       DataStore.prototype.newId = function() {
         return "block" + (idCounter++);
@@ -1406,7 +1429,26 @@
       };
 
       DataStore.prototype.clearMarks = function() {
-        return this.marks = Fingertree.fromArray([], markMeasure);
+        return this.marks = Fingertree.fromArray([], {
+          identity: function() {
+            return {
+              names: Set(),
+              length: 0
+            };
+          },
+          measure: function(n) {
+            return {
+              names: Set([n.name]),
+              length: n.offset
+            };
+          },
+          sum: function(a, b) {
+            return {
+              names: a.names.union(b.names),
+              length: a.length + b.length
+            };
+          }
+        });
       };
 
       DataStore.prototype.addMark = function(name, offset) {
@@ -1477,7 +1519,7 @@
         var first, n, oldLength, ref, rest;
         if (newLength !== (oldLength = end - start)) {
           ref = this.marks.split(function(m) {
-            return m.length >= end;
+            return m.length > start;
           }), first = ref[0], rest = ref[1];
           if (!rest.isEmpty() && (n = rest.peekFirst())) {
             return this.marks = first.concat(rest.removeFirst().addFirst({
@@ -1673,7 +1715,7 @@
             return items.push(indexNode(block));
           };
         })(this));
-        return this.setIndex(Fingertree.fromArray(items, indexMeasure));
+        return this.setIndex(this.newBlockIndex(items));
       };
 
       DataStore.prototype.splitBlockIndexOnId = function(id) {
@@ -1733,7 +1775,7 @@
           ref1 = this.splitBlockIndexOnId(block.prev), first = ref1[0], rest = ref1[1];
           this.setIndex(first.addLast(node).concat(rest));
         } else {
-          this.setIndex(FingerTree.fromArray([node], indexMeasure));
+          this.setIndex(this.newBlockIndex([node]));
         }
         mark = block;
         cur = this.getBlock(block.next);
@@ -2035,46 +2077,6 @@
       return DataStore;
 
     })(Observable);
-    indexMeasure = {
-      identity: function() {
-        return {
-          ids: Set(),
-          length: 0
-        };
-      },
-      measure: function(v) {
-        return {
-          ids: Set([v.id]),
-          length: v.length
-        };
-      },
-      sum: function(a, b) {
-        return {
-          ids: a.ids.union(b.ids),
-          length: a.length + b.length
-        };
-      }
-    };
-    markMeasure = {
-      identity: function() {
-        return {
-          names: Set(),
-          length: 0
-        };
-      },
-      measure: function(n) {
-        return {
-          names: Set([n.name]),
-          length: n.offset
-        };
-      },
-      sum: function(a, b) {
-        return {
-          names: a.names.union(b.names),
-          length: a.length + b.length
-        };
-      }
-    };
     validateBatch = function(replacements) {
       var j, last, len, repl;
       replacements = _.sortBy(replacements, function(x) {

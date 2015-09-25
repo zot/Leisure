@@ -14,7 +14,7 @@
     mergeExports = BrowserExports.mergeExports;
     OrgEditing = EditorSupport.OrgEditing, blockOrg = EditorSupport.blockOrg, blockCodeItems = EditorSupport.blockCodeItems, blockIsHidden = EditorSupport.blockIsHidden, blockEnvMaker = EditorSupport.blockEnvMaker, controllerEval = EditorSupport.controllerEval;
     singleControllers = {};
-    numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/g;
+    numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/;
     currentSlider = null;
     plainMode = {
       name: 'plain',
@@ -882,15 +882,21 @@
       }), 1);
     };
     slideValue = function() {
-      var block, blockOff, cs, m, newText, start;
+      var block, blockOff, cs, m, m2, newText, start;
       if (cs = currentSlider) {
         start = cs.data.getMarkLocation('__slider__');
         blockOff = cs.data.blockOffsetForDocOffset(start);
         block = cs.editor.options.getBlock(blockOff.block);
-        m = block.text.substring(blockOff.offset).match(numPat);
-        newText = String(currentSlider.widget.slider('value'));
-        if (m[0] !== newText) {
-          return cs.editor.options.replaceText(start, start + m[0].length, newText);
+        m = numPat.exec(block.text.substring(blockOff.offset));
+        m2 = blockOff.offset > 0 ? numPat.exec(block.text.substring(blockOff.offset - 1)) : void 0;
+        if ((m != null ? m.index : void 0) !== 0 || (m2 != null ? m2.index : void 0) === 0) {
+          console.log("NUMBER SHIFTED");
+          return mayHideValueSlider();
+        } else {
+          newText = String(currentSlider.widget.slider('value'));
+          if (m[0] !== newText) {
+            return cs.editor.options.replaceText(start, start + m[0].length, newText);
+          }
         }
       }
     };

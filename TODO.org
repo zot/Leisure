@@ -1,3 +1,4 @@
+* BUG PEER.testReplay3() doesn't work
 * TODO block wiring
 make "plug bay" in code blocks
 - lets you drag a plug to another block

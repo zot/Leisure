@@ -1,9 +1,9 @@
 {
   "version": 3,
   "file": "config.js",
-  "sourceRoot": "..",
+  "sourceRoot": "..\\src",
   "sources": [
-    "src\\config.litcoffee"
+    "config.litcoffee"
   ],
   "names": [],
   "mappings": ";AAEI;EAAA,SAAS,CAAC,MAAV,CAKE;IAAA,mBAAA,EAAqB,SAAS,CAAC,eAA/B;IACA,KAAA,EASE;MAAA,MAAA,EAAQ,sBAAR;MAEA,QAAA,EAAU,0BAFV;MAIA,UAAA,EAAY,oBAJZ;MAKA,KAAA,EAAO,iBALP;MAMA,WAAA,EAAa,uBANb;MAOA,UAAA,EAAY,sBAPZ;MAQA,SAAA,EAAW,yBARX;MASA,UAAA,EAAY,uBATZ;MAUA,MAAA,EAAQ,sBAVR;KAVF;GALF;;EA2BA,OAAO,CAAC,GAAR,CAAY,aAAZ;AA3BA"
