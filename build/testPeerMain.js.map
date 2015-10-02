@@ -1,9 +1,9 @@
 {
   "version": 3,
   "file": "testPeerMain.js",
-  "sourceRoot": "..",
+  "sourceRoot": "..\\src",
   "sources": [
-    "server\\testPeerMain.litcoffee"
+    "..\\server\\testPeerMain.litcoffee"
   ],
   "names": [],
   "mappings": ";AAAI;EAAA,OAAA,CAAQ,CAAC,UAAD,EAAa,YAAb,CAAR,EAAoC,SAAA,GAAA,CAApC;AAAA"

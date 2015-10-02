@@ -35,6 +35,9 @@ are complete and only the document changes need be replicated.
         concurrentReplacements
       } = OperationTransformation
 
+      noTrim = true
+      #noTrim = false
+
       diag = (args...)-> console.log args...
 
 Peer is the top-level object for a peer-to-peer-capable Leisure instance.
@@ -94,6 +97,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           myLatest = null
           myLast = _.last @pendingReplaces
           reps = changes || @incomingReplaces.concat @pendingReplaces
+          #reps = changes || @incomingReplaces
           if @solo && !changes && @docSnap? then seq = new SequentialReplacements()
           preserveSelection (range)=>
             @rollback()
@@ -236,6 +240,19 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           rejectChange: ->
             #@pendingReplaces.shift()
             #@batchCallbacks.pop().replay()
+          Xecho: (msg)->
+            if @history then @history.push incoming: msg
+            pending = @pendingReplaces.shift()
+            pending.messageCount = msg.messageCount
+            #pending.version = @version
+            #if pending.type == 'conditionalReplace'
+            #  try
+            #    @replaceBatch pending.replacements
+            #    @batchCallbacks.pop().cont()
+            #  catch err
+            #    @batchCallbacks.pop().error(err)
+            #else
+            @handleMessage pending
           echo: (msg)->
             if @history then @history.push incoming: msg
             pending = @pendingReplaces.shift()
@@ -278,7 +295,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             @lastReplace = msg
             @incomingReplaces.push msg
             @applyIncomingChanges()
-          trimVersions: (msg)->
+          XtrimVersions: (msg)->
             {version} = msg
             console.log "TRIM VERSIONS: #{version}"
             for op, pos in @incomingReplaces
@@ -298,6 +315,22 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 @applyIncomingChanges @incomingReplaces.slice(0, pos)
                 @unreplacements = []
                 @incomingReplaces = @incomingReplaces.slice pos
+                if @incomingReplaces.length then @applyIncomingChanges()
+              @version = Math.max @version, version
+          trimVersions: (msg)->
+            if noTrim then return
+            {version} = msg
+            console.log "TRIM VERSIONS: #{version}"
+            for op, pos in @incomingReplaces
+              if op.version >= version then break
+            if pos > 0
+              if @history then @history.push trimVersions: msg
+              preserveSelection =>
+                console.log "TRIMMING #{pos} versions"
+                @applyIncomingChanges @incomingReplaces.slice(0, pos)
+                @unreplacements = []
+                repls = runReplacements @incomingReplaces.concat(@pendingReplaces), (->), version
+                @incomingReplaces = _.filter repls, (r)-> r.messageCount?
                 if @incomingReplaces.length then @applyIncomingChanges()
               @version = Math.max @version, version
         replaceBatch: (replacements)->
@@ -958,6 +991,161 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           {incoming: {messageCount: 9, mine: true, type: "echo", version: 0}},
           {incoming: {connectionId: "peer-1", end: 32, knownVersion: 3, messageCount: 10, mine: false, start: 32, text: "f", type: "replace", version: 3}},
           {trimVersions: {messageCount: 11, mine: false, type: "trimVersions", version: 3}},
+        ]
+        if !@con
+          Leisure.createSession document.location.host || "localhost:8080", replay
+        else replay()
+
+      Peer::testReplay15 = ->
+        replay = => @replayHistory [
+          {outgoing: {connectionId: "peer-0", end: 30, knownVersion: 0, start: 30, text: "a", type: "replace", version: 0}},
+          {incoming: {messageCount: 1, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 31, knownVersion: 1, start: 31, text: "s", type: "replace", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 32, knownVersion: 1, start: 32, text: "d", type: "replace", version: 0}},
+          {incoming: {messageCount: 2, mine: true, type: "echo", version: 0}},
+          #{incoming: {messageCount: 3, mine: true, type: "echo", version: 0}},
+          #{outgoing: {connectionId: "peer-0", end: 33, knownVersion: 3, start: 33, text: "f", type: "replace", version: 3}},
+          #{incoming: {messageCount: 5, mine: true, type: "echo", version: 0}},
+        ]
+        if !@con
+          Leisure.createSession document.location.host || "localhost:8080", replay
+        else replay()
+
+      Peer::testReplay16 = ->
+        replay = => @replayHistory [
+          {outgoing: {connectionId: "peer-0", end: 169, knownVersion: 1, start: 168, text: "4", type: "replace", version: 1}},
+          {incoming: {messageCount: 3, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 169, knownVersion: 3, start: 168, text: "1", type: "replace", version: 1}},
+          {outgoing: {connectionId: "peer-0", end: 169, knownVersion: 3, start: 167, text: "34", type: "replace", version: 1}},
+          {incoming: {messageCount: 4, mine: true, type: "echo", version: 0}},
+        ]
+        if !@con
+          Leisure.createSession document.location.host || "localhost:8080", replay
+        else replay()
+
+      Peer::testReplay17 = ->
+        replay = => @replayHistory [
+          {outgoing: {connectionId: "peer-0", end: 9, knownVersion: 1, start: 9, text: "a", type: "replace", version: 1}},
+          {incoming: {messageCount: 2, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 10, knownVersion: 2, start: 10, text: "s", type: "replace", version: 1}},
+          {outgoing: {connectionId: "peer-0", end: 11, knownVersion: 2, start: 11, text: "d", type: "replace", version: 1}},
+          {incoming: {messageCount: 3, mine: true, type: "echo", version: 0}},
+          #{incoming: {messageCount: 4, mine: true, type: "echo", version: 0}},
+          #{outgoing: {connectionId: "peer-0", end: 12, knownVersion: 4, start: 12, text: "f", type: "replace", version: 4}},
+          #{trimVersions: {messageCount: 5, mine: false, type: "trimVersions", version: 4}},
+          #{incoming: {messageCount: 6, mine: true, type: "echo", version: 0}},
+        ]
+        if !@con
+          Leisure.createSession document.location.host || "localhost:8080", replay
+        else replay()
+
+      Peer::testReplay18 = ->
+        replay = => @replayHistory [
+          {outgoing: {connectionId: "peer-0", end: 9, knownVersion: 1, start: 9, text: "a", type: "replace", version: 1}},
+          {incoming: {messageCount: 2, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 10, knownVersion: 2, start: 10, text: "s", type: "replace", version: 1}},
+          {incoming: {messageCount: 3, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 11, knownVersion: 3, start: 11, text: "d", type: "replace", version: 1}},
+          {trimVersions: {messageCount: 4, mine: false, type: "trimVersions", version: 3}},
+          {incoming: {messageCount: 5, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 12, knownVersion: 5, start: 12, text: "f", type: "replace", version: 5}},
+          {trimVersions: {messageCount: 6, mine: false, type: "trimVersions", version: 5}},
+          {incoming: {messageCount: 7, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 13, knownVersion: 7, start: 13, text: "a", type: "replace", version: 5}},
+          {trimVersions: {messageCount: 8, mine: false, type: "trimVersions", version: 7}},
+          {incoming: {messageCount: 9, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 14, knownVersion: 9, start: 14, text: "s", type: "replace", version: 7}},
+          {trimVersions: {messageCount: 10, mine: false, type: "trimVersions", version: 9}},
+          {incoming: {messageCount: 11, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 15, knownVersion: 11, start: 15, text: "d", type: "replace", version: 11}},
+          {trimVersions: {messageCount: 12, mine: false, type: "trimVersions", version: 11}},
+        ]
+        if !@con
+          Leisure.createSession document.location.host || "localhost:8080", replay
+        else replay()
+
+      Peer::testReplay19 = ->
+        replay = => @replayHistory [
+          {incoming: {connectionId: "peer-1", end: 30, knownVersion: 1, lockedDelta: 0, messageCount: 3, mine: false, start: 30, text: "a", type: "replace", version: 1}},
+          {incoming: {connectionId: "peer-1", end: 31, knownVersion: 3, lockedDelta: 0, messageCount: 4, mine: false, start: 31, text: "s", type: "replace", version: 1}},
+          {incoming: {connectionId: "peer-1", end: 32, knownVersion: 4, lockedDelta: 0, messageCount: 5, mine: false, start: 32, text: "d", type: "replace", version: 1}},
+          {incoming: {connectionId: "peer-1", end: 33, knownVersion: 4, lockedDelta: 0, messageCount: 6, mine: false, start: 33, text: "f", type: "replace", version: 1}},
+          {outgoing: {connectionId: "peer-0", end: 173, knownVersion: 6, start: 172, text: "4", type: "replace", version: 6}},
+          {trimVersions: {messageCount: 7, mine: false, type: "trimVersions", version: 4}},
+          {outgoing: {connectionId: "peer-0", end: 173, knownVersion: 6, start: 172, text: "3", type: "replace", version: 6}},
+          {incoming: {messageCount: 8, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 173, knownVersion: 8, start: 171, text: "37", type: "replace", version: 8}},
+          {incoming: {messageCount: 9, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 173, knownVersion: 9, start: 171, text: "29", type: "replace", version: 8}},
+          {incoming: {messageCount: 10, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 173, knownVersion: 10, start: 171, text: "16", type: "replace", version: 8}},
+          {trimVersions: {messageCount: 11, mine: false, type: "trimVersions", version: 8}},
+          {outgoing: {connectionId: "peer-0", end: 173, knownVersion: 10, start: 171, text: "8", type: "replace", version: 8}},
+          {incoming: {connectionId: "peer-1", end: 34, knownVersion: 9, lockedDelta: 0, messageCount: 12, mine: false, start: 34, text: "a", type: "replace", version: 9}},
+          {outgoing: {connectionId: "peer-0", end: 173, knownVersion: 12, start: 172, text: "5", type: "replace", version: 12}},
+          {trimVersions: {messageCount: 13, mine: false, type: "trimVersions", version: 9}},
+          {outgoing: {connectionId: "peer-0", end: 173, knownVersion: 12, start: 171, text: "2", type: "replace", version: 12}},
+          {incoming: {messageCount: 14, mine: true, type: "echo", version: 0}},
+        ]
+        if !@con
+          Leisure.createSession document.location.host || "localhost:8080", replay
+        else replay()
+
+      Peer::testReplay20 = ->
+        noTrim = true
+        replay = => @replayHistory [
+          {incoming: {connectionId: "peer-1", end: 30, knownVersion: 1, messageCount: 3, mine: false, start: 30, text: "a", type: "replace", version: 1}},
+          {outgoing: {connectionId: "peer-0", end: 170, knownVersion: 3, start: 169, text: "4", type: "replace", version: 3}},
+          {incoming: {messageCount: 4, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 170, knownVersion: 4, start: 169, text: "1", type: "replace", version: 4}},
+          {incoming: {connectionId: "peer-1", end: 31, knownVersion: 4, messageCount: 5, mine: false, start: 31, text: "f", type: "replace", version: 4}},
+          {outgoing: {connectionId: "peer-0", end: 171, knownVersion: 5, start: 170, text: "0", type: "replace", version: 5}},
+          {outgoing: {connectionId: "peer-0", end: 171, knownVersion: 5, start: 169, text: "34", type: "replace", version: 5}},
+          {incoming: {messageCount: 7, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 171, knownVersion: 7, start: 169, text: "27", type: "replace", version: 7}},
+          {incoming: {messageCount: 8, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 171, knownVersion: 8, start: 170, text: "6", type: "replace", version: 7}},
+          {incoming: {messageCount: 9, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 170, knownVersion: 9, start: 169, text: "1", type: "replace", version: 7}},
+          {incoming: {messageCount: 10, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 171, knownVersion: 10, start: 170, text: "3", type: "replace", version: 10}},
+          {outgoing: {connectionId: "peer-0", end: 171, knownVersion: 10, start: 169, text: "5", type: "replace", version: 10}},
+          {incoming: {connectionId: "peer-1", end: 32, knownVersion: 9, messageCount: 12, mine: false, start: 32, text: "a", type: "replace", version: 9}},
+        ]
+        if !@con
+          Leisure.createSession document.location.host || "localhost:8080", replay
+        else replay()
+
+      Peer::testReplay21 = ->
+        replay = => @replayHistory [
+          {outgoing: {connectionId: "peer-0", end: 169, knownVersion: 1, start: 168, text: "4", type: "replace", version: 1}},
+          {incoming: {connectionId: "peer-1", end: 30, knownVersion: 1, messageCount: 3, mine: false, start: 30, text: "a", type: "replace", version: 1}},
+          {outgoing: {connectionId: "peer-0", end: 170, knownVersion: 3, start: 169, text: "1", type: "replace", version: 3}},
+          {incoming: {messageCount: 4, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 170, knownVersion: 4, start: 168, text: "16", type: "replace", version: 4}},
+          {outgoing: {connectionId: "peer-0", end: 170, knownVersion: 4, start: 168, text: "8", type: "replace", version: 4}},
+          {incoming: {connectionId: "peer-1", end: 31, knownVersion: 3, messageCount: 5, mine: false, start: 31, text: "s", type: "replace", version: 1}},
+          {outgoing: {connectionId: "peer-0", end: 170, knownVersion: 5, start: 169, text: "-1", type: "replace", version: 5}},
+          {incoming: {messageCount: 6, mine: true, type: "echo", version: 0}},
+          {incoming: {connectionId: "peer-1", end: 32, knownVersion: 4, messageCount: 7, mine: false, start: 32, text: "d", type: "replace", version: 4}},
+          {incoming: {messageCount: 9, mine: true, type: "echo", version: 0}},
+        ]
+        if !@con
+          Leisure.createSession document.location.host || "localhost:8080", replay
+        else replay()
+
+      Peer::testReplay22 = ->
+        replay = => @replayHistory [
+          {incoming: {connectionId: "peer-1", end: 30, knownVersion: 1, messageCount: 3, mine: false, start: 30, text: "a", type: "replace", version: 1}},
+          {incoming: {connectionId: "peer-1", end: 31, knownVersion: 3, messageCount: 4, mine: false, start: 31, text: "s", type: "replace", version: 1}},
+          {outgoing: {connectionId: "peer-0", end: 171, knownVersion: 4, start: 170, text: "4", type: "replace", version: 4}},
+          {incoming: {messageCount: 5, mine: true, type: "echo", version: 0}},
+          {outgoing: {connectionId: "peer-0", end: 171, knownVersion: 5, start: 170, text: "3", type: "replace", version: 5}},
+          {outgoing: {connectionId: "peer-0", end: 171, knownVersion: 5, start: 169, text: "34", type: "replace", version: 5}},
+          {incoming: {connectionId: "peer-1", end: 32, knownVersion: 4, messageCount: 7, mine: false, start: 32, text: "d", type: "replace", version: 1}},
+          {incoming: {connectionId: "peer-1", end: 33, knownVersion: 4, messageCount: 8, mine: false, start: 33, text: "f", type: "replace", version: 1}},
+          {incoming: {messageCount: 9, mine: true, type: "echo", version: 0}},
+          {incoming: {messageCount: 10, mine: true, type: "echo", version: 0}},
         ]
         if !@con
           Leisure.createSession document.location.host || "localhost:8080", replay

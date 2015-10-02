@@ -40,6 +40,7 @@ Simple operational transformation engine
                 float += op.text.length - op.end + op.start
             float
           else m.float
+        measure: -> @replacements.measure()
         replace: (repl)->
           [first, rest] = @replacements.split (m)-> m.maxOffset >= repl.start
           if !first.isEmpty() && (prev = first.peekLast()).end >= repl.start
@@ -139,6 +140,7 @@ SequentialReplacements captures successive replacements within a version
         finalBounds: ->
           if @isEmpty() then start: 0, end: 0
           else start: @replacements.peekFirst().leading, end: @replacements.measure().final
+        measure: -> @replacements.measure()
         replace: (repl)->
           {start, end, text} = repl
           [first, rest] = @replacements.split (m)-> m.final >= start
@@ -208,7 +210,7 @@ Merge overlapping repl with node
 Merge reps array and run func on the resulting changes
 
       XrunReplacements = (reps, func)->
-        reps = reps.slice()
+        reps = reps[..]
         curVersion = -1
         curId = null
         reps = sortReplacements reps
@@ -270,7 +272,7 @@ runReplacements
 - store reps in FT measuring by version and knownVersion (sorted on these)
 - for each rep, sorted by version, 
 
-      runReplacements = (reps, func)->
+      XrunReplacements = (reps, func)->
         diag "START REPLACING -----------"
         reps = for repl, i in _.sortByAll(reps, ['version', 'connectionId'])
           newRepl = _.clone repl
@@ -330,49 +332,118 @@ runReplacements
             condenseVersions(vinfo).eachOperation func
         diag "END REPLACING -----------\n\n"
 
-Ops will be sorted by knownVersion, version.  Return a new value for
-ops, transforming each op whose version is larger than newOp's version
-and whose knownVersion is less than newOp's messageCount.
+We'll start with an expensive version first, then optimize after it works.
+* first need to sort the repls to mimick the original order
+  so knownVersions occur before higher messageCounts of different peers
 
-      addOp = (ops, newOp, func)->
-        insertIndex = _.sortedLastIndex ops, [newOp.version, newOp.knownVersion], (op)-> [op.version, op.knownVersion]
-        transformIndex = _.sortedLastIndex ops, [newOp.version, newOp.messageCount], (op)-> [op.version, op.knownVersion]
-        ret = ops.slice(0, insertIndex)
-        ret.push newOp
-        if (delta = newOp.text.length - newOp.start + newOp.end) == 0
-          ret = ret.concat ops.slice.insertIndex
-        else for op in ops.slice insertIndex
-          if op.knownVersion < newOp.messageCount && newOp.start < op.start
-            transOp = _.clone op
-            if !op.cookies then transOp.cookies = [op]
-            transOp.start += delta
-            transOp.end += delta
-            op = transOp
-          ret.push op
-        ret
-
-      runOps = (reps, func)->
+      runReplacements = (reps, func, limit)->
+        reps = sortReplacements reps
+        maxCount = 0
+        for repl, i in reps
+          repl.index = i
+          repl.delta = repl.original.lockedDelta ? 0
+          if repl.messageCount? then maxCount = Math.max maxCount, repl.messageCount
+        transformable = reps[..]
+        minTrans = 0
+        versionInfo = {}
+        versionInfo = versionList: [], versions: {}
+        vinfo = rinfo = curVersion = null
         diag "START REPLACING -----------"
-        for repl in reps
-          if curVersion != repl.version
-            curVersion = repl.version
-            versionInfo.versionList.push String repl.version
-            #if vinfo then condenseVersions vinfo
-            if !vinfo = versionInfo.versions[String repl.version]
-              vinfo = versionInfo.versions[String repl.version] = repls: null, cons: {}
-          if !rinfo = vinfo.cons[repl.connectionId]
-            rinfo = vinfo.cons[repl.connectionId] = new SequentialReplacements()
-          rinfo.replace repl
-          vinfo.repls = null
+        #for repl, i in vReps = _.sortByAll(reps, [((e)-> e.version), ((e)->e.connectionId), ((e)->e.pendingCount ? e.messageCount)])
+        #for repl, i in vReps = _.sortByAll(reps, [((e)-> e.version), ((e)->e.connectionId), ((e)-> e.messageCount ? e.knownVersion)])
+        for repl, i in vReps = _.sortByAll(reps, [((e)-> e.version), ((e)-> e.knownVersion), ((e)->e.connectionId)])
+          if limit? && repl.version > limit
+            vReps = vReps.slice i
+            break
+          transformable[repl.index] = null
+          targets = []
+          count = repl.messageCount || maxCount + repl.index
+          for j in [minTrans...reps.length]
+            t = transformable[j]
+            if t && t.knownVersion >= count then break
+            if t && repl.version < t.version
+              targets.push t
+            else if !t && j == minTrans then minTrans++
+          addVersionRepl repl, versionInfo, targets
+          if limit? then repl.original.lockedDelta = repl.delta
           diag "  ADD REPL v #{repl.version}, known: #{repl.knownVersion}, #{if repl.messageCount then 'count: ' + repl.messageCount else '[pending]'}, #{repl.start}, #{repl.end}, '#{repl.text}'"
-          versionInfo.allOps.push repl
-        if vinfo
-          results = new SequentialReplacements()
-          for vName in _.sortBy(_.uniq _.map versionInfo.versionList, (i)-> Number i)
-            vinfo = versionInfo.versions[String vName]
-            diag "  CONDENSING VERSIONS #{vName}:\n#{condenseVersions(vinfo).toString()}"
-            condenseVersions(vinfo).eachOperation func
+        for vName in _.sortBy(_.keys(versionInfo.versions), (v)-> Number v)
+          vinfo = versionInfo.versions[vName]
+          diag "  CONDENSING VERSIONS #{vName}:\n#{condenseVersions2(vinfo).toString()}"
+          condenseVersions2(vinfo).eachOperation func 
         diag "END REPLACING -----------\n\n"
+        vReps
+
+Sort replacements such that replacements are before other ones that have
+messageCounts larger than their known versions
+
+      sortReplacements = (reps)->
+        #sorted = []
+        reps = for repl, i in reps
+          r = _.clone repl
+          r.original = repl.original || repl
+          r.index = i
+          r
+        #  for s, j in sorted
+        #    if comesBefore r, s then break
+        #  sorted.splice j, 0, r
+        #sorted
+        _.sortByAll reps, [((x)-> x.knownVersion), ((x)-> x.messageCount || x.knownVersion)]
+        #_.sortBy reps, (x)-> x.messageCount || x.knownVersion
+        #_.sortBy reps, (x)-> x.knownVersion
+        #_.sortByAll reps, ['knownVersion', 'version']
+        #reps.sort (a, b)->
+        #  aC = a.messageCount || a.knownVersion
+        #  bC = b.messageCount || b.knownVersion
+        #  if a.knownVersion < bC && aC < b.knownVersion then -1
+        #  else if b.knownVersion < aC && bC < a.knownVersion then 1
+        #  else if a.knownVersion == b.knownVersion || aC == bC then a.index - b.index
+        #  else aC - bC
+        #reps
+
+      comesBefore = (a, b)->
+        aC = a.messageCount || a.knownVersion
+        bC = b.messageCount || b.knownVersion
+        a.knownVersion < bC && (aC < b.knownVersion || (b.knownVersion < aC && a.index < b.index))
+
+      addVersionRepl = (repl, versionInfo, transformTargets)->
+        if !vinfo = versionInfo.versions[String repl.version]
+          vinfo = versionInfo.versions[String repl.version] = repls: null, cons: {}
+        if !rinfo = vinfo.cons[repl.connectionId]
+          rinfo = vinfo.cons[repl.connectionId] = []
+        if transformTargets.length
+          applyDelta repl
+          oldRepl = condenseVersions2(vinfo).replacementsAt(repl.start)?.measure() ?
+            initial: 0
+            final: 0
+          vinfo.repls = null
+          rinfo.push repl
+          newRepl = condenseVersions2(vinfo).replacementsAt(repl.start).measure()
+          if float = newRepl.final - newRepl.initial - (oldRepl.final - oldRepl.initial)
+            for target in transformTargets
+              target.delta += float
+              console.log "ADJUSTING OPERATION #{if float < 0 then '' else '+'}#{float}: #{target.original.start + float}, #{target.original.end + target.delta}, #{JSON.stringify target.text}"
+        else
+          rinfo.push repl
+          vinfo.repls = null
+        diag "  ADD REPL v #{repl.version}, known: #{repl.knownVersion}, #{if repl.messageCount then 'count: ' + repl.messageCount else '[pending]'}, #{repl.start}, #{repl.end}, '#{repl.text}'"
+
+      condenseVersions2 = (vinfo)->
+        if !vinfo.repls
+          results = vinfo.repls = new ConcurrentReplacements()
+          for con in _.keys(vinfo.cons).sort()
+            seq = new SequentialReplacements()
+            for repl in vinfo.cons[con]
+              seq.replace applyDelta repl
+            seq.eachOperation (start, end, text, cookies)->
+              results.replace {start, end, text, cookies}
+        vinfo.repls
+
+      applyDelta = (repl)->
+        start: repl.original.start + repl.delta
+        end: repl.original.end + repl.delta
+        text: repl.text
+        cookies: repl.cookies || [repl.original]
 
       condenseVersions = (vinfo)->
         if !vinfo.repls
@@ -466,13 +537,13 @@ Reintegration will move smaller knownVersions
 
       #sortReplacements = (reps)-> _.sortBy reps, (i)-> i.knownVersion
 
-      sortReplacements = (reps)->
-        stableSort reps, (a, b)->
-          if a.messageCount? && b.messageCount? then a.messageCount - b.messageCount
-          else if (a.mine && b.mine) || !(a.messageCount? || b.messageCount?)
-            a.knownVersion - b.knownVersion
-          else if a.messageCount then a.messageCount - b.knownVersion
-          else a.knownVersion - b.messageCount
+      ##sortReplacements = (reps)->
+      ##  stableSort reps, (a, b)->
+      ##    if a.messageCount? && b.messageCount? then a.messageCount - b.messageCount
+      ##    else if (a.mine && b.mine) || !(a.messageCount? || b.messageCount?)
+      ##      a.knownVersion - b.knownVersion
+      ##    else if a.messageCount then a.messageCount - b.knownVersion
+      ##    else a.knownVersion - b.messageCount
 
       #sortReplacements = (reps)->
       #  stableSort reps, (a, b)->
@@ -707,7 +778,7 @@ Reintegration will move smaller knownVersions
           {start: 33, end: 33, text: "a", type: "replace", version: 9, connectionId: "peer-1", knownVersion: 9, messageCount: 22, i: 17}
         ]
 
-      window.replacementsString = replacementsString
+      window?.replacementsString = replacementsString
 
       {
         ConcurrentReplacements
@@ -719,6 +790,4 @@ Reintegration will move smaller knownVersions
         concurrentReplacements
         tests
         testData2
-        addOp
-        runOps
       }

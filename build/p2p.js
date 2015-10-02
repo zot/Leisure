@@ -3,12 +3,13 @@
   var slice = [].slice;
 
   define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './ot'], function(jq, immutable, Editor, Support, SockJS, Advice, OperationTransformation) {
-    var DataStore, Map, OrgData, Peer, SequentialReplacements, Set, afterMethod, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, concurrentReplacements, diag, editorToolbar, getDocumentParams, preserveSelection, pretty, ref, replacementFor, replacementsString, runReplacements, sequentialReplacements, testMsg, validateBatch;
+    var DataStore, Map, OrgData, Peer, SequentialReplacements, Set, afterMethod, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, concurrentReplacements, diag, editorToolbar, getDocumentParams, noTrim, preserveSelection, pretty, ref, replacementFor, replacementsString, runReplacements, sequentialReplacements, testMsg, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
     OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod, callOriginal = Advice.callOriginal;
     SequentialReplacements = OperationTransformation.SequentialReplacements, runReplacements = OperationTransformation.runReplacements, replacementsString = OperationTransformation.replacementsString, sequentialReplacements = OperationTransformation.sequentialReplacements, concurrentReplacements = OperationTransformation.concurrentReplacements;
+    noTrim = true;
     diag = function() {
       var args;
       args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -335,6 +336,17 @@
           return this.close();
         },
         rejectChange: function() {},
+        Xecho: function(msg) {
+          var pending;
+          if (this.history) {
+            this.history.push({
+              incoming: msg
+            });
+          }
+          pending = this.pendingReplaces.shift();
+          pending.messageCount = msg.messageCount;
+          return this.handleMessage(pending);
+        },
         echo: function(msg) {
           var pending;
           if (this.history) {
@@ -395,7 +407,7 @@
           this.incomingReplaces.push(msg);
           return this.applyIncomingChanges();
         },
-        trimVersions: function(msg) {
+        XtrimVersions: function(msg) {
           var j, k, len, len1, minKnownVersion, op, pos, ref1, ref2, version;
           version = msg.version;
           console.log("TRIM VERSIONS: " + version);
@@ -428,6 +440,44 @@
                 _this.applyIncomingChanges(_this.incomingReplaces.slice(0, pos));
                 _this.unreplacements = [];
                 _this.incomingReplaces = _this.incomingReplaces.slice(pos);
+                if (_this.incomingReplaces.length) {
+                  return _this.applyIncomingChanges();
+                }
+              };
+            })(this));
+            return this.version = Math.max(this.version, version);
+          }
+        },
+        trimVersions: function(msg) {
+          var j, len, op, pos, ref1, version;
+          if (noTrim) {
+            return;
+          }
+          version = msg.version;
+          console.log("TRIM VERSIONS: " + version);
+          ref1 = this.incomingReplaces;
+          for (pos = j = 0, len = ref1.length; j < len; pos = ++j) {
+            op = ref1[pos];
+            if (op.version >= version) {
+              break;
+            }
+          }
+          if (pos > 0) {
+            if (this.history) {
+              this.history.push({
+                trimVersions: msg
+              });
+            }
+            preserveSelection((function(_this) {
+              return function() {
+                var repls;
+                console.log("TRIMMING " + pos + " versions");
+                _this.applyIncomingChanges(_this.incomingReplaces.slice(0, pos));
+                _this.unreplacements = [];
+                repls = runReplacements(_this.incomingReplaces.concat(_this.pendingReplaces), (function() {}), version);
+                _this.incomingReplaces = _.filter(repls, function(r) {
+                  return r.messageCount != null;
+                });
                 if (_this.incomingReplaces.length) {
                   return _this.applyIncomingChanges();
                 }
@@ -2758,6 +2808,967 @@
                 mine: false,
                 type: "trimVersions",
                 version: 3
+              }
+            }
+          ]);
+        };
+      })(this);
+      if (!this.con) {
+        return Leisure.createSession(document.location.host || "localhost:8080", replay);
+      } else {
+        return replay();
+      }
+    };
+    Peer.prototype.testReplay15 = function() {
+      var replay;
+      replay = (function(_this) {
+        return function() {
+          return _this.replayHistory([
+            {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 30,
+                knownVersion: 0,
+                start: 30,
+                text: "a",
+                type: "replace",
+                version: 0
+              }
+            }, {
+              incoming: {
+                messageCount: 1,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 31,
+                knownVersion: 1,
+                start: 31,
+                text: "s",
+                type: "replace",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 32,
+                knownVersion: 1,
+                start: 32,
+                text: "d",
+                type: "replace",
+                version: 0
+              }
+            }, {
+              incoming: {
+                messageCount: 2,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }
+          ]);
+        };
+      })(this);
+      if (!this.con) {
+        return Leisure.createSession(document.location.host || "localhost:8080", replay);
+      } else {
+        return replay();
+      }
+    };
+    Peer.prototype.testReplay16 = function() {
+      var replay;
+      replay = (function(_this) {
+        return function() {
+          return _this.replayHistory([
+            {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 169,
+                knownVersion: 1,
+                start: 168,
+                text: "4",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                messageCount: 3,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 169,
+                knownVersion: 3,
+                start: 168,
+                text: "1",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 169,
+                knownVersion: 3,
+                start: 167,
+                text: "34",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                messageCount: 4,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }
+          ]);
+        };
+      })(this);
+      if (!this.con) {
+        return Leisure.createSession(document.location.host || "localhost:8080", replay);
+      } else {
+        return replay();
+      }
+    };
+    Peer.prototype.testReplay17 = function() {
+      var replay;
+      replay = (function(_this) {
+        return function() {
+          return _this.replayHistory([
+            {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 9,
+                knownVersion: 1,
+                start: 9,
+                text: "a",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                messageCount: 2,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 10,
+                knownVersion: 2,
+                start: 10,
+                text: "s",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 11,
+                knownVersion: 2,
+                start: 11,
+                text: "d",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                messageCount: 3,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }
+          ]);
+        };
+      })(this);
+      if (!this.con) {
+        return Leisure.createSession(document.location.host || "localhost:8080", replay);
+      } else {
+        return replay();
+      }
+    };
+    Peer.prototype.testReplay18 = function() {
+      var replay;
+      replay = (function(_this) {
+        return function() {
+          return _this.replayHistory([
+            {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 9,
+                knownVersion: 1,
+                start: 9,
+                text: "a",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                messageCount: 2,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 10,
+                knownVersion: 2,
+                start: 10,
+                text: "s",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                messageCount: 3,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 11,
+                knownVersion: 3,
+                start: 11,
+                text: "d",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              trimVersions: {
+                messageCount: 4,
+                mine: false,
+                type: "trimVersions",
+                version: 3
+              }
+            }, {
+              incoming: {
+                messageCount: 5,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 12,
+                knownVersion: 5,
+                start: 12,
+                text: "f",
+                type: "replace",
+                version: 5
+              }
+            }, {
+              trimVersions: {
+                messageCount: 6,
+                mine: false,
+                type: "trimVersions",
+                version: 5
+              }
+            }, {
+              incoming: {
+                messageCount: 7,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 13,
+                knownVersion: 7,
+                start: 13,
+                text: "a",
+                type: "replace",
+                version: 5
+              }
+            }, {
+              trimVersions: {
+                messageCount: 8,
+                mine: false,
+                type: "trimVersions",
+                version: 7
+              }
+            }, {
+              incoming: {
+                messageCount: 9,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 14,
+                knownVersion: 9,
+                start: 14,
+                text: "s",
+                type: "replace",
+                version: 7
+              }
+            }, {
+              trimVersions: {
+                messageCount: 10,
+                mine: false,
+                type: "trimVersions",
+                version: 9
+              }
+            }, {
+              incoming: {
+                messageCount: 11,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 15,
+                knownVersion: 11,
+                start: 15,
+                text: "d",
+                type: "replace",
+                version: 11
+              }
+            }, {
+              trimVersions: {
+                messageCount: 12,
+                mine: false,
+                type: "trimVersions",
+                version: 11
+              }
+            }
+          ]);
+        };
+      })(this);
+      if (!this.con) {
+        return Leisure.createSession(document.location.host || "localhost:8080", replay);
+      } else {
+        return replay();
+      }
+    };
+    Peer.prototype.testReplay19 = function() {
+      var replay;
+      replay = (function(_this) {
+        return function() {
+          return _this.replayHistory([
+            {
+              incoming: {
+                connectionId: "peer-1",
+                end: 30,
+                knownVersion: 1,
+                lockedDelta: 0,
+                messageCount: 3,
+                mine: false,
+                start: 30,
+                text: "a",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 31,
+                knownVersion: 3,
+                lockedDelta: 0,
+                messageCount: 4,
+                mine: false,
+                start: 31,
+                text: "s",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 32,
+                knownVersion: 4,
+                lockedDelta: 0,
+                messageCount: 5,
+                mine: false,
+                start: 32,
+                text: "d",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 33,
+                knownVersion: 4,
+                lockedDelta: 0,
+                messageCount: 6,
+                mine: false,
+                start: 33,
+                text: "f",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 173,
+                knownVersion: 6,
+                start: 172,
+                text: "4",
+                type: "replace",
+                version: 6
+              }
+            }, {
+              trimVersions: {
+                messageCount: 7,
+                mine: false,
+                type: "trimVersions",
+                version: 4
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 173,
+                knownVersion: 6,
+                start: 172,
+                text: "3",
+                type: "replace",
+                version: 6
+              }
+            }, {
+              incoming: {
+                messageCount: 8,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 173,
+                knownVersion: 8,
+                start: 171,
+                text: "37",
+                type: "replace",
+                version: 8
+              }
+            }, {
+              incoming: {
+                messageCount: 9,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 173,
+                knownVersion: 9,
+                start: 171,
+                text: "29",
+                type: "replace",
+                version: 8
+              }
+            }, {
+              incoming: {
+                messageCount: 10,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 173,
+                knownVersion: 10,
+                start: 171,
+                text: "16",
+                type: "replace",
+                version: 8
+              }
+            }, {
+              trimVersions: {
+                messageCount: 11,
+                mine: false,
+                type: "trimVersions",
+                version: 8
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 173,
+                knownVersion: 10,
+                start: 171,
+                text: "8",
+                type: "replace",
+                version: 8
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 34,
+                knownVersion: 9,
+                lockedDelta: 0,
+                messageCount: 12,
+                mine: false,
+                start: 34,
+                text: "a",
+                type: "replace",
+                version: 9
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 173,
+                knownVersion: 12,
+                start: 172,
+                text: "5",
+                type: "replace",
+                version: 12
+              }
+            }, {
+              trimVersions: {
+                messageCount: 13,
+                mine: false,
+                type: "trimVersions",
+                version: 9
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 173,
+                knownVersion: 12,
+                start: 171,
+                text: "2",
+                type: "replace",
+                version: 12
+              }
+            }, {
+              incoming: {
+                messageCount: 14,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }
+          ]);
+        };
+      })(this);
+      if (!this.con) {
+        return Leisure.createSession(document.location.host || "localhost:8080", replay);
+      } else {
+        return replay();
+      }
+    };
+    Peer.prototype.testReplay20 = function() {
+      var replay;
+      noTrim = true;
+      replay = (function(_this) {
+        return function() {
+          return _this.replayHistory([
+            {
+              incoming: {
+                connectionId: "peer-1",
+                end: 30,
+                knownVersion: 1,
+                messageCount: 3,
+                mine: false,
+                start: 30,
+                text: "a",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 170,
+                knownVersion: 3,
+                start: 169,
+                text: "4",
+                type: "replace",
+                version: 3
+              }
+            }, {
+              incoming: {
+                messageCount: 4,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 170,
+                knownVersion: 4,
+                start: 169,
+                text: "1",
+                type: "replace",
+                version: 4
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 31,
+                knownVersion: 4,
+                messageCount: 5,
+                mine: false,
+                start: 31,
+                text: "f",
+                type: "replace",
+                version: 4
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 171,
+                knownVersion: 5,
+                start: 170,
+                text: "0",
+                type: "replace",
+                version: 5
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 171,
+                knownVersion: 5,
+                start: 169,
+                text: "34",
+                type: "replace",
+                version: 5
+              }
+            }, {
+              incoming: {
+                messageCount: 7,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 171,
+                knownVersion: 7,
+                start: 169,
+                text: "27",
+                type: "replace",
+                version: 7
+              }
+            }, {
+              incoming: {
+                messageCount: 8,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 171,
+                knownVersion: 8,
+                start: 170,
+                text: "6",
+                type: "replace",
+                version: 7
+              }
+            }, {
+              incoming: {
+                messageCount: 9,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 170,
+                knownVersion: 9,
+                start: 169,
+                text: "1",
+                type: "replace",
+                version: 7
+              }
+            }, {
+              incoming: {
+                messageCount: 10,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 171,
+                knownVersion: 10,
+                start: 170,
+                text: "3",
+                type: "replace",
+                version: 10
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 171,
+                knownVersion: 10,
+                start: 169,
+                text: "5",
+                type: "replace",
+                version: 10
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 32,
+                knownVersion: 9,
+                messageCount: 12,
+                mine: false,
+                start: 32,
+                text: "a",
+                type: "replace",
+                version: 9
+              }
+            }
+          ]);
+        };
+      })(this);
+      if (!this.con) {
+        return Leisure.createSession(document.location.host || "localhost:8080", replay);
+      } else {
+        return replay();
+      }
+    };
+    Peer.prototype.testReplay21 = function() {
+      var replay;
+      replay = (function(_this) {
+        return function() {
+          return _this.replayHistory([
+            {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 169,
+                knownVersion: 1,
+                start: 168,
+                text: "4",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 30,
+                knownVersion: 1,
+                messageCount: 3,
+                mine: false,
+                start: 30,
+                text: "a",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 170,
+                knownVersion: 3,
+                start: 169,
+                text: "1",
+                type: "replace",
+                version: 3
+              }
+            }, {
+              incoming: {
+                messageCount: 4,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 170,
+                knownVersion: 4,
+                start: 168,
+                text: "16",
+                type: "replace",
+                version: 4
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 170,
+                knownVersion: 4,
+                start: 168,
+                text: "8",
+                type: "replace",
+                version: 4
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 31,
+                knownVersion: 3,
+                messageCount: 5,
+                mine: false,
+                start: 31,
+                text: "s",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 170,
+                knownVersion: 5,
+                start: 169,
+                text: "-1",
+                type: "replace",
+                version: 5
+              }
+            }, {
+              incoming: {
+                messageCount: 6,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 32,
+                knownVersion: 4,
+                messageCount: 7,
+                mine: false,
+                start: 32,
+                text: "d",
+                type: "replace",
+                version: 4
+              }
+            }, {
+              incoming: {
+                messageCount: 9,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }
+          ]);
+        };
+      })(this);
+      if (!this.con) {
+        return Leisure.createSession(document.location.host || "localhost:8080", replay);
+      } else {
+        return replay();
+      }
+    };
+    Peer.prototype.testReplay22 = function() {
+      var replay;
+      replay = (function(_this) {
+        return function() {
+          return _this.replayHistory([
+            {
+              incoming: {
+                connectionId: "peer-1",
+                end: 30,
+                knownVersion: 1,
+                messageCount: 3,
+                mine: false,
+                start: 30,
+                text: "a",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 31,
+                knownVersion: 3,
+                messageCount: 4,
+                mine: false,
+                start: 31,
+                text: "s",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 171,
+                knownVersion: 4,
+                start: 170,
+                text: "4",
+                type: "replace",
+                version: 4
+              }
+            }, {
+              incoming: {
+                messageCount: 5,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 171,
+                knownVersion: 5,
+                start: 170,
+                text: "3",
+                type: "replace",
+                version: 5
+              }
+            }, {
+              outgoing: {
+                connectionId: "peer-0",
+                end: 171,
+                knownVersion: 5,
+                start: 169,
+                text: "34",
+                type: "replace",
+                version: 5
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 32,
+                knownVersion: 4,
+                messageCount: 7,
+                mine: false,
+                start: 32,
+                text: "d",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                end: 33,
+                knownVersion: 4,
+                messageCount: 8,
+                mine: false,
+                start: 33,
+                text: "f",
+                type: "replace",
+                version: 1
+              }
+            }, {
+              incoming: {
+                messageCount: 9,
+                mine: true,
+                type: "echo",
+                version: 0
+              }
+            }, {
+              incoming: {
+                messageCount: 10,
+                mine: true,
+                type: "echo",
+                version: 0
               }
             }
           ]);

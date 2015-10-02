@@ -16,6 +16,12 @@ Common client/server code
       badVersionError: (current, msg)->
         errMsg = "Bad version, current version is #{current} but got #{msg.version}"
         console.log errMsg
-        code: 1
+        code: 4
+        type: 'error'
+        error: errMsg
+      invalidOperationError: (client, err)->
+        errMsg = "Invalid operation received from #{client}: #{err}"
+        console.log errMsg
+        code: 5
         type: 'error'
         error: errMsg

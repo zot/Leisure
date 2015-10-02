@@ -5,6 +5,9 @@ SockJS relay server
     sockjsUtil = require 'sockjs/lib/utils'
     http = require 'http'
     crypto = require 'crypto'
+    serveStatic = require 'serve-static'
+    finalhandler = require 'finalhandler'
+    path = require 'path'
     _ = require './lib/lodash.min'
     requirejs = require('requirejs').config baseUrl: path.dirname(module.filename)
 
@@ -38,7 +41,7 @@ Thanks to [Broofa's stackoverflow post](http://stackoverflow.com/questions/10503
     class MessageHandler
       constructor: ->
         @id = guid()
-        @messageCount = 0
+        @messageCount = 1
         @lastVersionAck = -1
       setConnection: (@con)->
         console.log "#{@type} connection: #{@id}"
@@ -208,7 +211,10 @@ Handle a message from the connected browser
         super()
 
     startServer = (port)->
-      http_server = http.createServer()
+      console.log 'serve: ' + path.dirname(process.cwd())
+      fileServer = serveStatic path.dirname(process.cwd()), index: ['index.html']
+      http_server = http.createServer (req, res)->
+        fileServer req, res, finalhandler req, res
       sockjs.createServer(
         sockjs_url: 'http://cdn.jsdelivr.net/sockjs/1.0.1/sockjs.min.js'
         prefix: socketPrefix)
