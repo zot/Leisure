@@ -9,13 +9,17 @@ SockJS relay server
     finalhandler = require 'finalhandler'
     path = require 'path'
     _ = require './lib/lodash.min'
-    requirejs = require('requirejs').config baseUrl: path.dirname(module.filename)
+    requirejs = require('requirejs').config
+      baseUrl: path.dirname(module.filename)
+      paths:
+        immutable: 'lib/immutable-3.7.4.min'
 
     {
       badMasterIdError
       badMsgTypeError
       disapprovedError
       badVersionError
+      noTrim
     } = requirejs './common'
     {
       runReplacements
@@ -72,7 +76,7 @@ Handle a message from the connected browser
       handler:
         log: (msg)-> console.log msg.msg
         replace: (msg)->
-          @lastVersionAck = msg.knownVersion
+          @lastVersionAck = msg.parent
           @master.relay msg
         conditionalReplace: (msg)->
           if msg.version != @master.version && @master.versionDirty
@@ -151,15 +155,16 @@ Handle a message from the connected browser
           msg.replacements = validateBatch msg.replacements
           offset = 0
           for repl in msg.replacements
-            @setDoc = @doc.substring(0, repl.start + offset) + repl.text + @doc.substring repl.end + offset
+            @doc = @doc.substring(0, repl.start + offset) + repl.text + @doc.substring repl.end + offset
             offset += repl.text.length - repl.end + repl.start
         @broadcast msg
       trimVersions: ->
+        if noTrim then return
         minVersion = @lastVersionAck
         for id, slave of @slaves
           minVersion = Math.min minVersion, slave.lastVersionAck
         for op, pos in @versionOps
-          if op.messageCount >= minVersion
+          if op.version >= minVersion
             if pos > 0
               @updateDoc @versionOps.slice 0, pos
               @unreplacements = []
@@ -178,11 +183,10 @@ Handle a message from the connected browser
           @replace start, end, text
       sendEchoIfNeeded: (msg)->
         if isTextMsg(msg) && con = @connection msg
-          con.send type: 'echo', version: @version, messageCount: @messageCount
+          con.send type: 'echo', version: msg.version
           con
       broadcast: (msg)->
-        ++@messageCount
-        msg.messageCount = @messageCount
+        msg.version = ++@messageCount
         if (echoer = @sendEchoIfNeeded(msg)) != this then @send msg
         for id, slave of @slaves
           if echoer != slave then slave.send msg

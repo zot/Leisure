@@ -25,3 +25,5 @@ Common client/server code
         code: 5
         type: 'error'
         error: errMsg
+      noTrim: true
+      #noTrim: false

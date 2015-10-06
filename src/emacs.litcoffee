@@ -120,9 +120,7 @@ Emacs connection
         con.onerror = (evt)-> showMessage opts.editor.node, "Connection error", "Could not open connection to emacs",
           position: my: 'center top', at: 'center top'
           buttons: OK: -> $(this).dialog 'close'
-        _.merge opts, {
-          renderImage
-        }
+        _.defaults opts, {renderImage}
         changeAdvice opts, true,
           followLink: emacs: (parent)->(e)->
             if e.target.href.match /^elisp/

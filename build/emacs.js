@@ -152,7 +152,7 @@
           }
         });
       };
-      _.merge(opts, {
+      _.defaults(opts, {
         renderImage: renderImage
       });
       return changeAdvice(opts, true, {

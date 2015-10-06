@@ -878,7 +878,7 @@
               ref2 = this.data.children(parent, changes);
               for (l = 0, len1 = ref2.length; l < len1; l++) {
                 child = ref2[l];
-                props = _.merge(props, child.properties);
+                props = _.defaults(props, child.properties);
               }
               addChange(this.data.getBlock(parent, changes), changes).properties = props;
             }

@@ -2,9 +2,10 @@
 (function() {
   var slice = [].slice;
 
-  define(['./lib/fingertree', './lib/lodash.min', './testing'], function(Fingertree, _, Testing) {
-    var ConcurrentReplacements, SequentialReplacements, XrunReplacements, addOperation, addOperations, addVersionRepl, applyDelta, assert, assertEq, buildReplacementTest, comesBefore, computeNodeEffect, concurrentReplacements, condenseVersions, condenseVersions2, diag, isReplace, mergeRepl, newNode, reintegrateRepl, replacementsString, runReplacements, sequentialReplacements, sortReplacements, stableSort, testData, testData2, testSort1, testSort2, testSort3, tests;
+  define(['./lib/fingertree', './lib/lodash.min', './testing', 'immutable'], function(Fingertree, _, Testing, Immutable) {
+    var ConcurrentReplacements, SequentialReplacements, Set, XcomputeReplacements, addOperation, allReplacements, assert, assertEq, buildReplacementTest, computeNodeEffect, computeReplacements, concurrentReplacements, createNode, diag, eachReplacement, isReplace, mergeRepl, replacementsString, runReplacements, sequentialReplacements, testData, testData2, tests;
     assert = Testing.assert, assertEq = Testing.assertEq;
+    Set = Immutable.Set;
     diag = function() {
       var args;
       args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -16,23 +17,20 @@
           this.replacements = Fingertree.fromArray([], {
             identity: function() {
               return {
-                maxOffset: -1,
-                length: 0,
+                offset: 0,
                 float: 0
               };
             },
             measure: function(v) {
               return {
-                maxOffset: v.start,
-                float: v.float,
-                length: v.float + v.end
+                offset: v.offset,
+                float: v.float
               };
             },
             sum: function(a, b) {
               return {
-                maxOffset: Math.max(a.maxOffset, b.maxOffset),
-                float: a.float + b.float,
-                length: a.length + b.length
+                offset: a.offset + b.offset,
+                float: a.float + b.float
               };
             }
           });
@@ -60,60 +58,35 @@
         return new ConcurrentReplacements(this.replacements);
       };
 
-      ConcurrentReplacements.prototype.floatFor = function(repl) {
-        var first, float, k, len, m, n, op, ref, ref1, rest;
-        ref = this.replacements.split(function(m) {
-          return m.maxOffset >= repl.start;
-        }), first = ref[0], rest = ref[1];
-        m = first.measure();
-        if (!rest.isEmpty() && (n = rest.peekFirst()).start === repl.start) {
-          float = m.float;
-          ref1 = n.operations;
-          for (k = 0, len = ref1.length; k < len; k++) {
-            op = ref1[k];
-            if (op.start <= repl.start && !isReplace(op)) {
-              float += op.text.length - op.end + op.start;
-            }
-          }
-          return float;
-        } else {
-          return m.float;
-        }
-      };
-
       ConcurrentReplacements.prototype.measure = function() {
         return this.replacements.measure();
       };
 
       ConcurrentReplacements.prototype.replace = function(repl) {
-        var first, next, node, prev, ref, rest, target;
+        var first, m, newNext, node, old, oldNext, ref, rest;
         ref = this.replacements.split(function(m) {
-          return m.maxOffset >= repl.start;
+          return m.offset >= repl.start;
         }), first = ref[0], rest = ref[1];
-        if (!first.isEmpty() && (prev = first.peekLast()).end >= repl.start) {
-          first = first.removeLast();
-          node = addOperation(prev, repl);
-        } else {
-          node = !rest.isEmpty() && (target = rest.peekFirst()).start === repl.start ? (rest = rest.removeFirst(), addOperation(target, repl)) : newNode(repl);
-        }
-        while (!rest.isEmpty() && node.end >= (next = rest.peekFirst()).start) {
-          rest = rest.removeFirst();
-          node = addOperations(node, next.operations);
-        }
-        return this.replacements = first.concat(rest.addFirst(node));
+        m = first.measure();
+        node = !rest.isEmpty() && m.offset + (old = rest.peekFirst()).offset === repl.start ? (rest = rest.removeFirst(), addOperation(old, repl)) : (old = null, !rest.isEmpty() ? (oldNext = rest.peekFirst(), newNext = _.defaults({
+          offset: oldNext.offset + m.offset - repl.start
+        }, oldNext), rest = rest.removeFirst().addFirst(newNext)) : void 0, createNode(repl.start - m.offset, repl));
+        this.replacements = first.concat(rest.addFirst(node));
+        return [old, node];
       };
 
       ConcurrentReplacements.prototype.replacementsAt = function(start) {
-        var first, k, len, merged, node, ref, ref1, repl, rest, results;
+        var first, j, len, m, merged, node, ref, ref1, repl, rest, results;
         ref = this.replacements.split(function(m) {
           return m.length >= start;
         }), first = ref[0], rest = ref[1];
-        if (!rest.isEmpty() && (node = rest.peekFirst()).start <= start) {
+        m = first.measure();
+        if (!rest.isEmpty() && m.offset + (node = rest.peekFirst()).offset <= start) {
           merged = new SequentialReplacements();
           results = [];
           ref1 = node.activeOperations;
-          for (k = 0, len = ref1.length; k < len; k++) {
-            repl = ref1[k];
+          for (j = 0, len = ref1.length; j < len; j++) {
+            repl = ref1[j];
             merged.replace(repl);
           }
           merged.eachOperation(function(start, end, text, cookies) {
@@ -128,19 +101,62 @@
         }
       };
 
+      ConcurrentReplacements.prototype.floatFor = function(start) {
+        var first, ref, rest;
+        ref = this.replacements.split(function(m) {
+          return m.offset > start;
+        }), first = ref[0], rest = ref[1];
+        return first.measure().float;
+      };
+
+      ConcurrentReplacements.prototype.addFloat = function(start, float) {
+        var first, newNode, node, ref, rest;
+        if (float) {
+          ref = this.replacements.split(function(m) {
+            return m.offset >= start;
+          }), first = ref[0], rest = ref[1];
+          if (!rest.isEmpty()) {
+            node = rest.peekFirst();
+            newNode = _.defaults({
+              offset: node.offset + float
+            }, node);
+            return this.replacements = first.concat(rest.removeFirst().addFirst(newNode));
+          }
+        }
+      };
+
       ConcurrentReplacements.prototype.eachOperation = function(func) {
-        var k, len, node, offset, ref, ref1, repl, results1, t;
+        var prevEnd;
+        prevEnd = 0;
+        return this.eachNode(function(node, offset, start) {
+          var j, ref, ref1, repl;
+          if (prevEnd <= offset) {
+            ref = node.activeOperations;
+            for (j = ref.length - 1; j >= 0; j += -1) {
+              repl = ref[j];
+              func(start, repl.end - repl.start + start, repl.text, [], (ref1 = repl.original) != null ? ref1 : repl, node);
+            }
+            prevEnd = offset + node.length;
+          }
+          if (node.labels && node.labels.length) {
+            return func(start, start, '', node.labels, null, node);
+          }
+        });
+      };
+
+      ConcurrentReplacements.prototype.eachNode = function(func) {
+        var float, node, offset, results1, t;
         offset = 0;
         t = this.replacements;
+        float = 0;
+        offset = 0;
         results1 = [];
         while (!t.isEmpty()) {
-          node = t.peekLast();
-          ref = node.activeOperations;
-          for (k = 0, len = ref.length; k < len; k++) {
-            repl = ref[k];
-            func(repl.start, repl.end, repl.text, (ref1 = repl.cookies) != null ? ref1 : [repl], node);
-          }
-          results1.push(t = t.removeLast());
+          node = t.peekFirst();
+          t = t.removeFirst();
+          offset += node.offset;
+          func(node, offset, offset + float);
+          results1.push(float += node.float);
         }
         return results1;
       };
@@ -148,59 +164,60 @@
       return ConcurrentReplacements;
 
     })();
+    ConcurrentReplacements.fromArray = function(reps) {
+      var j, len, repl, t;
+      t = new ConcurrentReplacements();
+      for (j = 0, len = reps.length; j < len; j++) {
+        repl = reps[j];
+        t.replace(repl);
+      }
+      return t;
+    };
     isReplace = function(repl) {
       return repl.end > repl.start && repl.text.length;
     };
     computeNodeEffect = function(node) {
-      var del, end, float, insertionText, k, len, len1, o, op, operation, operations, ref, repl;
+      var float, insertionText, j, len, length, op, operations, ref, repl;
       insertionText = '';
       repl = null;
-      del = null;
       operations = [];
       float = 0;
-      end = node.start;
+      length = 0;
       ref = node.operations;
-      for (k = 0, len = ref.length; k < len; k++) {
-        op = ref[k];
+      for (j = 0, len = ref.length; j < len; j++) {
+        op = ref[j];
         if (op.end === op.start) {
           operations.push(op);
           float += op.text.length;
-        } else if (!op.text.length) {
-          del = op;
-        } else {
+        } else if (!repl || op.end - op.start > repl.end - repl.start) {
           repl = op;
         }
       }
-      if (del) {
-        operations.unshift(del);
-      } else if (repl) {
+      if (repl) {
         operations.push(repl);
-      }
-      if (operation = del || repl) {
-        float += operation.text.length - operation.end + operation.start;
-      }
-      for (o = 0, len1 = operations.length; o < len1; o++) {
-        op = operations[o];
-        end = Math.max(end, op.end);
+        node.length = repl.end - repl.start;
+        float += repl.text.length - node.length;
+      } else {
+        node.length = 0;
       }
       node.float = float;
-      node.end = end;
       node.activeOperations = operations;
       return node;
     };
     addOperation = function(node, record) {
-      return addOperations(node, [record]);
-    };
-    addOperations = function(node, records) {
+      var ref;
       return computeNodeEffect({
-        start: node.start,
-        operations: node.operations.concat(records)
+        offset: node.offset,
+        operations: node.operations.concat([record]),
+        labels: node.labels.concat((ref = record.labels) != null ? ref : [])
       });
     };
-    newNode = function(repl) {
+    createNode = function(offset, repl) {
+      var ref;
       return computeNodeEffect({
-        start: repl.start,
-        operations: [repl]
+        offset: offset,
+        operations: [repl],
+        labels: (ref = repl.labels) != null ? ref : []
       });
     };
     SequentialReplacements = (function() {
@@ -209,19 +226,22 @@
           identity: function() {
             return {
               initial: 0,
-              final: 0
+              final: 0,
+              float: 0
             };
           },
           measure: function(n) {
             return {
-              initial: n.leading + n.length,
-              final: n.leading + n.text.length
+              initial: n.offset + n.length,
+              final: n.offset + n.text.length,
+              float: n.text.length - n.length
             };
           },
           sum: function(a, b) {
             return {
               initial: a.initial + b.initial,
-              final: a.final + b.final
+              final: a.final + b.final,
+              float: a.float + b.float
             };
           }
         });
@@ -243,7 +263,7 @@
           };
         } else {
           return {
-            start: this.replacements.peekFirst().leading,
+            start: this.replacements.peekFirst().offset,
             end: this.replacements.measure().initial
           };
         }
@@ -257,7 +277,7 @@
           };
         } else {
           return {
-            start: this.replacements.peekFirst().leading,
+            start: this.replacements.peekFirst().offset,
             end: this.replacements.measure().final
           };
         }
@@ -267,6 +287,27 @@
         return this.replacements.measure();
       };
 
+      SequentialReplacements.prototype.floatFor = function(offset) {
+        return this.replacements.split(function(m) {
+          return m.initial > offset;
+        })[0].measure().float;
+      };
+
+      SequentialReplacements.prototype.addFloat = function(start, float) {
+        var first, l, n, ref, rest;
+        ref = this.replacements.split(function(m) {
+          return m.final >= start;
+        }), first = ref[0], rest = ref[1];
+        l = first.measure().final;
+        if (!rest.isEmpty()) {
+          n = rest.peekFirst();
+          rest = rest.removeFirst().addFirst(_.defaults({
+            offset: n.offset + float
+          }, n));
+          return this.replacements = first.concat(rest);
+        }
+      };
+
       SequentialReplacements.prototype.replace = function(repl) {
         var end, first, l, next, node, old, ref, ref1, rest, start, text;
         start = repl.start, end = repl.end, text = repl.text;
@@ -274,22 +315,21 @@
           return m.final >= start;
         }), first = ref[0], rest = ref[1];
         l = first.measure().final;
-        if (!rest.isEmpty() && l + (old = rest.peekFirst()).leading <= end) {
+        if (!rest.isEmpty() && l + (old = rest.peekFirst()).offset <= end) {
           node = mergeRepl(l, old, repl);
           rest = rest.removeFirst();
         } else {
           node = {
-            leading: repl.start - l,
+            offset: repl.start - l,
             length: repl.end - repl.start,
             text: text,
-            float: 0,
-            cookies: (ref1 = repl.cookies) != null ? ref1 : [repl]
+            labels: (ref1 = repl.labels) != null ? ref1 : []
           };
           if (!rest.isEmpty()) {
             next = rest.peekFirst();
-            rest = rest.removeFirst().addFirst(_.merge({}, next, {
-              leading: next.leading + l - repl.end
-            }));
+            rest = rest.removeFirst().addFirst(_.defaults({
+              offset: next.offset + l - repl.end
+            }, next));
           }
         }
         this.replacements = first.concat(rest.addFirst(node));
@@ -328,513 +368,280 @@
         while (!t.isEmpty()) {
           n = t.peekLast();
           t = t.removeLast();
-          start = t.measure().initial + n.leading;
-          func(start, start + n.length, n.text, n.cookies, n);
+          start = t.measure().initial + n.offset;
+          func(start, start + n.length, n.text, n.labels, n);
         }
         return null;
       };
 
       SequentialReplacements.prototype.merge = function(replacements) {
-        var newReps;
-        newReps = this.snapshot();
-        replacements.eachOperation(function(start, end, text, cookies, node) {
-          return newReps.replace({
-            start: start,
-            end: end,
-            text: text,
-            cookies: cookies
-          });
-        });
-        return newReps;
+        return replacements.eachOperation((function(_this) {
+          return function(start, end, text, labels) {
+            return _this.replace({
+              start: start,
+              end: end,
+              text: text,
+              labels: labels
+            });
+          };
+        })(this));
       };
 
-      SequentialReplacements.prototype.addFloat = function(start, float) {
-        var first, l, n, ref, rest;
-        ref = this.replacements.split(function(m) {
-          return m.final >= start;
-        }), first = ref[0], rest = ref[1];
-        l = first.measure().final;
-        if (!rest.isEmpty()) {
-          n = rest.peekFirst();
-          rest = rest.removeFirst().addFirst(_.merge({}, n, {
-            leading: n.leading + float
-          }));
-          return this.replacements = first.concat(rest);
+      SequentialReplacements.prototype.toArray = function() {
+        var j, label, len, n, ref, results, start, t;
+        results = [];
+        t = this.replacements;
+        while (!t.isEmpty()) {
+          n = t.peekFirst();
+          t = t.removeFirst();
+          start = t.measure().initial + n.offset;
+          results.push(start, start + n.length, n.text);
+          ref = n.labels;
+          for (j = 0, len = ref.length; j < len; j++) {
+            label = ref[j];
+            results.push(label);
+          }
         }
+        return results;
       };
 
       return SequentialReplacements;
 
     })();
+    eachReplacement = function(reps, func) {
+      var end, i, labels, results1, start, text;
+      i = 0;
+      results1 = [];
+      while (i < reps.length) {
+        start = reps[i++];
+        end = reps[i++];
+        text = reps[i++];
+        labels = [];
+        while (typeof reps[i] === 'object') {
+          labels.push(reps[i++]);
+        }
+        results1.push(func(start, end, text, labels));
+      }
+      return results1;
+    };
+    SequentialReplacements.fromArray = function(reps) {
+      var seq;
+      seq = new SequentialReplacements();
+      eachReplacement(reps, function(start, end, text, labels) {
+        return seq.replace({
+          start: start,
+          end: end,
+          text: text,
+          labels: labels
+        });
+      });
+      return seq;
+    };
     mergeRepl = function(offset, node, repl) {
-      var end, newStart, rEnd, rStart, ref, start;
-      start = offset + node.leading;
+      var end, j, label, labels, len, newStart, rEnd, rStart, ref, start;
+      start = offset + node.offset;
       end = start + node.length;
       rStart = Math.max(0, repl.start - start);
       rEnd = repl.end - start;
       newStart = Math.min(start, repl.start);
+      labels = (function() {
+        var j, len, ref, results1;
+        if (rStart === node.text.length) {
+          return node.labels.slice(0);
+        } else {
+          ref = node.labels;
+          results1 = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            label = ref[j];
+            results1.push({
+              name: label.name,
+              offset: rStart >= label.offset ? label.offset : label.offset + repl.text.length - repl.start + repl.end
+            });
+          }
+          return results1;
+        }
+      })();
+      if (repl.labels != null) {
+        ref = repl.labels;
+        for (j = 0, len = ref.length; j < len; j++) {
+          label = ref[j];
+          labels.push({
+            name: label.name,
+            offset: label.offset + rStart
+          });
+        }
+      }
       return {
-        leading: newStart - offset,
+        offset: newStart - offset,
         length: end + Math.max(0, repl.end - start - node.text.length) - Math.min(repl.start, start),
         text: node.text.substring(0, rStart) + repl.text + node.text.substring(rEnd),
-        cookies: node.cookies.concat((ref = repl.cookies) != null ? ref : [repl])
+        labels: labels
       };
     };
-    XrunReplacements = function(reps, func) {
-      var connectionOps, curId, curVersion, k, len, prepConnection, prepVersion, repl, versionOps;
-      reps = reps.slice(0);
-      curVersion = -1;
-      curId = null;
-      reps = sortReplacements(reps);
-      connectionOps = new SequentialReplacements();
-      versionOps = new ConcurrentReplacements();
-      prepConnection = function(id) {
-        if (!connectionOps.isEmpty()) {
-          connectionOps.eachOperation(function(start, end, text, cookies, node) {
-            return versionOps.replace({
-              start: start,
-              end: end,
-              text: text,
-              cookies: cookies
-            });
-          });
-          connectionOps = new SequentialReplacements();
-        }
-        return curId = id;
-      };
-      prepVersion = function(v) {
-        if (!versionOps.isEmpty()) {
-          versionOps.eachOperation(func);
-          versionOps = new ConcurrentReplacements();
-        }
-        return curVersion = v;
-      };
-      for (k = 0, len = reps.length; k < len; k++) {
-        repl = reps[k];
-        if (repl.version !== curVersion || repl.connectionId !== curId) {
-          prepConnection(repl.connectionId);
-        }
-        if (repl.version > curVersion) {
-          prepVersion(repl.version);
-        }
-        connectionOps.replace(repl);
+    allReplacements = function(reps) {
+      var all, firstVersion, j, len, ref, v, versionInfo, vinfo;
+      ref = computeReplacements(reps), firstVersion = ref.firstVersion, versionInfo = ref.versionInfo;
+      all = new SequentialReplacements();
+      for (v = j = 0, len = versionInfo.length; j < len; v = ++j) {
+        vinfo = versionInfo[v];
+        all.merge(vinfo);
       }
-      if (!connectionOps.isEmpty()) {
-        prepConnection();
-      }
-      if (!versionOps.isEmpty()) {
-        return prepVersion();
-      }
+      return all;
     };
-    XrunReplacements = function(reps, func) {
-      var curVersion, k, len, len1, o, ref, repl, results, results1, rinfo, vName, versionInfo, vinfo;
-      reps = sortReplacements(reps);
-      versionInfo = {
-        versionList: [],
-        allOps: [],
-        versions: {}
-      };
-      vinfo = null;
-      curVersion = -1;
-      for (k = 0, len = reps.length; k < len; k++) {
-        repl = reps[k];
-        if (repl.version < curVersion) {
-          reintegrateRepl(repl, versionInfo);
-        } else {
-          if (curVersion !== repl.version) {
-            curVersion = repl.version;
-            versionInfo.versionList.push(String(repl.version));
-            if (vinfo) {
-              condenseVersions(vinfo);
-            }
-            if (!(vinfo = versionInfo.versions[String(repl.version)])) {
-              vinfo = versionInfo.versions[String(repl.version)] = {
-                repls: null,
-                cons: {}
-              };
-            }
-          }
-          if (!(rinfo = vinfo.cons[repl.connectionId])) {
-            rinfo = vinfo.cons[repl.connectionId] = new SequentialReplacements();
-          }
-          rinfo.replace(repl);
-        }
-        versionInfo.allOps.push(repl);
-      }
-      if (vinfo) {
-        results = new SequentialReplacements();
-        ref = _.sortBy(_.uniq(_.map(versionInfo.versionList, function(i) {
-          return Number(i);
-        })));
-        results1 = [];
-        for (o = 0, len1 = ref.length; o < len1; o++) {
-          vName = ref[o];
-          vinfo = versionInfo.versions[String(vName)];
-          results1.push(condenseVersions(vinfo).eachOperation(func));
-        }
-        return results1;
-      }
+    runReplacements = function(reps, func) {
+      return allReplacements(reps).eachOperation(func);
     };
-    XrunReplacements = function(reps, func) {
-      var adjRepl, candidates, conRepl, curVersion, first, float, ft, i, k, len, len1, newRepl, o, oldRepl, ref, ref1, ref2, ref3, ref4, remainder, repl, rest, results, rinfo, vName, versionInfo, vinfo;
-      diag("START REPLACING -----------");
-      reps = (function() {
-        var k, len, ref, results1;
-        ref = _.sortByAll(reps, ['version', 'connectionId']);
-        results1 = [];
-        for (i = k = 0, len = ref.length; k < len; i = ++k) {
-          repl = ref[i];
-          newRepl = _.clone(repl);
-          newRepl.index = i;
-          if (!newRepl.cookies) {
-            newRepl.cookies = [repl];
-          }
-          results1.push(newRepl);
-        }
-        return results1;
-      })();
-      ft = Fingertree.fromArray(_.sortByAll(reps, ['version', 'knownVersion']), {
-        identity: function() {
-          return {
-            version: 0,
-            knownVersion: 0
-          };
-        },
-        measure: function(n) {
-          return n;
-        },
-        sum: function(a, b) {
-          return {
-            version: Math.max(a.version, b.version),
-            knownVersion: Math.max(a.knownVersion, b.knownVersion)
-          };
-        }
-      });
-      versionInfo = {
-        versionList: [],
-        allOps: [],
-        versions: {}
-      };
-      vinfo = rinfo = curVersion = null;
-      for (k = 0, len = reps.length; k < len; k++) {
-        repl = reps[k];
-        if (repl.messageCount != null) {
-          ref = ft.split(function(m) {
-            return m.knownVersion >= repl.messageCount;
-          }), candidates = ref[0], remainder = ref[1];
-          ref1 = candidates.split(function(m) {
-            return m.version > repl.version;
-          }), first = ref1[0], rest = ref1[1];
-        }
-        if ((repl.messageCount != null) && !rest.isEmpty()) {
-          if (!(vinfo = versionInfo.versions[String(repl.version)])) {
-            vinfo = versionInfo.versions[String(repl.version)] = {
-              repls: null,
-              cons: {}
-            };
-            versionInfo.versionList.push(String(repl.version));
-          }
-          oldRepl = (ref2 = (ref3 = condenseVersions(vinfo).replacementsAt(repl.start)) != null ? ref3.replacements.measure() : void 0) != null ? ref2 : {
-            initial: 0,
-            final: 0
-          };
-          if (!(conRepl = vinfo.cons[repl.connectionId])) {
-            conRepl = vinfo.cons[repl.connectionId] = new SequentialReplacements();
-          }
-          conRepl.replace(repl);
-          vinfo.repls = null;
-          newRepl = condenseVersions(vinfo).replacementsAt(repl.start).replacements.measure();
-          if (float = newRepl.final - newRepl.initial - (oldRepl.final - oldRepl.initial)) {
-            while (!rest.isEmpty()) {
-              adjRepl = rest.peekFirst();
-              rest = rest.removeFirst();
-              if (adjRepl.connectionId !== repl.connectionId) {
-                adjRepl.start += float;
-                adjRepl.end += float;
-                diag("  ADJUST REPL v " + adjRepl.version + ", known: " + adjRepl.knownVersion);
-              }
-            }
-          }
-        } else {
-          if (curVersion !== repl.version) {
-            curVersion = repl.version;
-            versionInfo.versionList.push(String(repl.version));
-            if (!(vinfo = versionInfo.versions[String(repl.version)])) {
-              vinfo = versionInfo.versions[String(repl.version)] = {
-                repls: null,
-                cons: {}
-              };
-            }
-          }
-          if (!(rinfo = vinfo.cons[repl.connectionId])) {
-            rinfo = vinfo.cons[repl.connectionId] = new SequentialReplacements();
-          }
-          rinfo.replace(repl);
-          vinfo.repls = null;
-          diag("  ADD REPL v " + repl.version + ", known: " + repl.knownVersion + ", " + (repl.messageCount ? 'count: ' + repl.messageCount : '[pending]') + ", " + repl.start + ", " + repl.end + ", '" + repl.text + "'");
-        }
-        versionInfo.allOps.push(repl);
-      }
-      if (vinfo) {
-        results = new SequentialReplacements();
-        ref4 = _.sortBy(_.uniq(_.map(versionInfo.versionList, function(i) {
-          return Number(i);
-        })));
-        for (o = 0, len1 = ref4.length; o < len1; o++) {
-          vName = ref4[o];
-          vinfo = versionInfo.versions[String(vName)];
-          diag("  CONDENSING VERSIONS " + vName + ":\n" + (condenseVersions(vinfo).toString()));
-          condenseVersions(vinfo).eachOperation(func);
-        }
-      }
-      return diag("END REPLACING -----------\n\n");
-    };
-    runReplacements = function(reps, func, limit) {
-      var count, curVersion, i, j, k, len, len1, len2, maxCount, minTrans, o, p, q, ref, ref1, ref2, ref3, ref4, repl, rinfo, t, targets, transformable, vName, vReps, versionInfo, vinfo;
-      reps = sortReplacements(reps);
-      maxCount = 0;
-      for (i = k = 0, len = reps.length; k < len; i = ++k) {
-        repl = reps[i];
-        repl.index = i;
-        repl.delta = (ref = repl.original.lockedDelta) != null ? ref : 0;
-        if (repl.messageCount != null) {
-          maxCount = Math.max(maxCount, repl.messageCount);
-        }
-      }
-      transformable = reps.slice(0);
-      minTrans = 0;
-      versionInfo = {};
-      versionInfo = {
-        versionList: [],
-        versions: {}
-      };
-      vinfo = rinfo = curVersion = null;
-      diag("START REPLACING -----------");
-      ref1 = vReps = _.sortByAll(reps, [
-        (function(e) {
-          return e.version;
-        }), (function(e) {
-          return e.knownVersion;
-        }), (function(e) {
-          return e.connectionId;
-        })
-      ]);
-      for (i = o = 0, len1 = ref1.length; o < len1; i = ++o) {
-        repl = ref1[i];
-        if ((limit != null) && repl.version > limit) {
-          vReps = vReps.slice(i);
-          break;
-        }
-        transformable[repl.index] = null;
-        targets = [];
-        count = repl.messageCount || maxCount + repl.index;
-        for (j = p = ref2 = minTrans, ref3 = reps.length; ref2 <= ref3 ? p < ref3 : p > ref3; j = ref2 <= ref3 ? ++p : --p) {
-          t = transformable[j];
-          if (t && t.knownVersion >= count) {
-            break;
-          }
-          if (t && repl.version < t.version) {
-            targets.push(t);
-          } else if (!t && j === minTrans) {
-            minTrans++;
-          }
-        }
-        addVersionRepl(repl, versionInfo, targets);
-        if (limit != null) {
-          repl.original.lockedDelta = repl.delta;
-        }
-        diag("  ADD REPL v " + repl.version + ", known: " + repl.knownVersion + ", " + (repl.messageCount ? 'count: ' + repl.messageCount : '[pending]') + ", " + repl.start + ", " + repl.end + ", '" + repl.text + "'");
-      }
-      ref4 = _.sortBy(_.keys(versionInfo.versions), function(v) {
-        return Number(v);
-      });
-      for (q = 0, len2 = ref4.length; q < len2; q++) {
-        vName = ref4[q];
-        vinfo = versionInfo.versions[vName];
-        diag("  CONDENSING VERSIONS " + vName + ":\n" + (condenseVersions2(vinfo).toString()));
-        condenseVersions2(vinfo).eachOperation(func);
-      }
-      diag("END REPLACING -----------\n\n");
-      return vReps;
-    };
-    sortReplacements = function(reps) {
-      var i, r, repl;
-      reps = (function() {
-        var k, len, results1;
-        results1 = [];
-        for (i = k = 0, len = reps.length; k < len; i = ++k) {
-          repl = reps[i];
-          r = _.clone(repl);
-          r.original = repl.original || repl;
-          r.index = i;
-          results1.push(r);
-        }
-        return results1;
-      })();
-      return _.sortByAll(reps, [
-        (function(x) {
-          return x.knownVersion;
-        }), (function(x) {
-          return x.messageCount || x.knownVersion;
-        })
-      ]);
-    };
-    comesBefore = function(a, b) {
-      var aC, bC;
-      aC = a.messageCount || a.knownVersion;
-      bC = b.messageCount || b.knownVersion;
-      return a.knownVersion < bC && (aC < b.knownVersion || (b.knownVersion < aC && a.index < b.index));
-    };
-    addVersionRepl = function(repl, versionInfo, transformTargets) {
-      var float, k, len, newRepl, oldRepl, ref, ref1, rinfo, target, vinfo;
-      if (!(vinfo = versionInfo.versions[String(repl.version)])) {
-        vinfo = versionInfo.versions[String(repl.version)] = {
-          repls: null,
-          cons: {}
+    XcomputeReplacements = function(reps) {
+      var firstVersion, i, index, j, len, repl, versionInfo, vinfo;
+      if (!reps.length) {
+        return {
+          firstVersion: 0,
+          versionInfo: []
         };
-      }
-      if (!(rinfo = vinfo.cons[repl.connectionId])) {
-        rinfo = vinfo.cons[repl.connectionId] = [];
-      }
-      if (transformTargets.length) {
-        applyDelta(repl);
-        oldRepl = (ref = (ref1 = condenseVersions2(vinfo).replacementsAt(repl.start)) != null ? ref1.measure() : void 0) != null ? ref : {
-          initial: 0,
-          final: 0
-        };
-        vinfo.repls = null;
-        rinfo.push(repl);
-        newRepl = condenseVersions2(vinfo).replacementsAt(repl.start).measure();
-        if (float = newRepl.final - newRepl.initial - (oldRepl.final - oldRepl.initial)) {
-          for (k = 0, len = transformTargets.length; k < len; k++) {
-            target = transformTargets[k];
-            target.delta += float;
-            console.log("ADJUSTING OPERATION " + (float < 0 ? '' : '+') + float + ": " + (target.original.start + float) + ", " + (target.original.end + target.delta) + ", " + (JSON.stringify(target.text)));
-          }
-        }
       } else {
-        rinfo.push(repl);
-        vinfo.repls = null;
-      }
-      return diag("  ADD REPL v " + repl.version + ", known: " + repl.knownVersion + ", " + (repl.messageCount ? 'count: ' + repl.messageCount : '[pending]') + ", " + repl.start + ", " + repl.end + ", '" + repl.text + "'");
-    };
-    condenseVersions2 = function(vinfo) {
-      var con, k, len, len1, o, ref, ref1, repl, results, seq;
-      if (!vinfo.repls) {
-        results = vinfo.repls = new ConcurrentReplacements();
-        ref = _.keys(vinfo.cons).sort();
-        for (k = 0, len = ref.length; k < len; k++) {
-          con = ref[k];
-          seq = new SequentialReplacements();
-          ref1 = vinfo.cons[con];
-          for (o = 0, len1 = ref1.length; o < len1; o++) {
-            repl = ref1[o];
-            seq.replace(applyDelta(repl));
+        firstVersion = reps.reduce((function(a, el) {
+          return Math.min(a, el.parent);
+        }), reps[0].parent);
+        versionInfo = (function() {
+          var j, ref, ref1, results1;
+          results1 = [];
+          for (i = j = ref = firstVersion, ref1 = reps[0].version; ref <= ref1 ? j < ref1 : j > ref1; i = ref <= ref1 ? ++j : --j) {
+            results1.push(new ConcurrentReplacements());
           }
-          seq.eachOperation(function(start, end, text, cookies) {
-            return results.replace({
-              start: start,
-              end: end,
-              text: text,
-              cookies: cookies
+          return results1;
+        })();
+        diag("START REPLACING -----------");
+        for (i = j = 0, len = reps.length; j < len; i = ++j) {
+          repl = reps[i];
+          versionInfo.push(new ConcurrentReplacements());
+          if (!repl.parent) {
+            eachReplacement(repl.replacements, function(start, end, text) {
+              return versionInfo[i].replace({
+                start: start,
+                end: end,
+                text: text
+              });
             });
-          });
-        }
-      }
-      return vinfo.repls;
-    };
-    applyDelta = function(repl) {
-      return {
-        start: repl.original.start + repl.delta,
-        end: repl.original.end + repl.delta,
-        text: repl.text,
-        cookies: repl.cookies || [repl.original]
-      };
-    };
-    condenseVersions = function(vinfo) {
-      var con, k, len, ref, results;
-      if (!vinfo.repls) {
-        results = vinfo.repls = new ConcurrentReplacements();
-        ref = _.keys(vinfo.cons).sort();
-        for (k = 0, len = ref.length; k < len; k++) {
-          con = ref[k];
-          vinfo.cons[con].eachOperation(function(start, end, text, cookies) {
-            return results.replace({
-              start: start,
-              end: end,
-              text: text,
-              cookies: cookies
-            });
-          });
-        }
-      }
-      return vinfo.repls;
-    };
-    reintegrateRepl = function(repl, versionInfo) {
-      var affectedVersions, con, conRepl, err, float, k, len, newRepl, o, oldRepl, op, ref, ref1, ref2, repls, results1, v, vinfo;
-      if (!(vinfo = versionInfo.versions[String(repl.version)])) {
-        vinfo = versionInfo.versions[String(repl.version)] = {
-          repls: null,
-          cons: {}
-        };
-        versionInfo.versionList.push(String(repl.version));
-      }
-      oldRepl = (ref = (ref1 = condenseVersions(vinfo).replacementsAt(repl.start)) != null ? ref1.replacements.measure() : void 0) != null ? ref : {
-        initial: 0,
-        final: 0
-      };
-      if (!(conRepl = vinfo.cons[repl.connectionId])) {
-        conRepl = vinfo.cons[repl.connectionId] = new SequentialReplacements();
-      }
-      conRepl.replace(repl);
-      vinfo.repls = null;
-      try {
-        if (true || oldRepl) {
-          newRepl = condenseVersions(vinfo).replacementsAt(repl.start).replacements.measure();
-          if (float = newRepl.final - newRepl.initial - (oldRepl.final - oldRepl.initial)) {
-            diag("REINTEGRATION FLOAT: " + float);
-            affectedVersions = [];
-            ref2 = versionInfo.allOps;
-            for (k = ref2.length - 1; k >= 0; k += -1) {
-              op = ref2[k];
-              if (op.version > repl.version) {
-                affectedVersions.push(Number(op.version));
-              } else {
-                break;
-              }
-            }
-            affectedVersions = _.sortBy(_.uniq(affectedVersions));
-            results1 = [];
-            for (o = 0, len = affectedVersions.length; o < len; o++) {
-              v = affectedVersions[o];
-              vinfo = versionInfo.versions[String(v)];
-              vinfo.repls = null;
-              results1.push((function() {
-                var ref3, results2;
-                ref3 = vinfo.cons;
-                results2 = [];
-                for (con in ref3) {
-                  repls = ref3[con];
-                  results2.push(repls.addFloat(repl.start, float));
+          } else {
+            index = Math.max(0, repl.parent - firstVersion);
+            vinfo = versionInfo[index];
+            eachReplacement(repl.replacements, function(start, end, text) {
+              var float, k, len1, modInfo, node, old, ref, ref1, results1;
+              ref = vinfo.replace({
+                start: start,
+                end: end,
+                text: text
+              }), old = ref[0], node = ref[1];
+              if (index + 1 < i) {
+                float = node.float;
+                if (old) {
+                  float -= old.float;
                 }
-                return results2;
-              })());
-            }
-            return results1;
+                if (float) {
+                  console.log("OUT OF DATE OPERATION FLOAT: v" + repl.version + " " + start + ", " + float);
+                  ref1 = versionInfo.slice(index + 1, i);
+                  results1 = [];
+                  for (k = 0, len1 = ref1.length; k < len1; k++) {
+                    modInfo = ref1[k];
+                    results1.push(modInfo.addFloat(start, float));
+                  }
+                  return results1;
+                }
+              }
+            });
           }
         }
-      } catch (_error) {
-        err = _error;
-        console.log(err.stack);
-        console.log("versions: " + (vinfo.repls.toString()));
-        return console.log("repl: " + repl.start + ", " + repl.end + ", " + repl.text);
+        diag("END REPLACING -----------\n\n");
+        return {
+          firstVersion: firstVersion,
+          versionInfo: versionInfo
+        };
+      }
+    };
+    computeReplacements = function(reps) {
+      var firstVersion, i, index, j, len, repl, versionInfo, vinfo;
+      if (!reps.length) {
+        return {
+          firstVersion: 0,
+          versionInfo: []
+        };
+      } else {
+        reps = _.cloneDeep(reps);
+        firstVersion = reps.reduce((function(a, el) {
+          return Math.min(a, el.parent);
+        }), reps[0].parent);
+        versionInfo = (function() {
+          var j, ref, ref1, results1;
+          results1 = [];
+          for (i = j = ref = firstVersion, ref1 = reps[0].version; ref <= ref1 ? j < ref1 : j > ref1; i = ref <= ref1 ? ++j : --j) {
+            results1.push(new ConcurrentReplacements());
+          }
+          return results1;
+        })();
+        diag("START REPLACING -----------");
+        for (i = j = 0, len = reps.length; j < len; i = ++j) {
+          repl = reps[i];
+          versionInfo.push(new ConcurrentReplacements());
+          index = Math.max(0, repl.parent - firstVersion);
+          vinfo = versionInfo[index];
+          eachReplacement(repl.replacements, function(start, end, text) {
+            var float, k, len1, len2, modInfo, modRep, node, o, old, rIndex, ref, ref1, ref2, ref3, results1;
+            ref = vinfo.replace({
+              start: start,
+              end: end,
+              text: text
+            }), old = ref[0], node = ref[1];
+            float = node.float;
+            if (old) {
+              float -= old.float;
+            }
+            if (float) {
+              ref1 = versionInfo.slice(index + 1, +(repl.version - firstVersion) + 1 || 9e9);
+              for (k = 0, len1 = ref1.length; k < len1; k++) {
+                modInfo = ref1[k];
+                modInfo.addFloat(start, float);
+              }
+              ref2 = reps.slice(i + 1);
+              results1 = [];
+              for (o = 0, len2 = ref2.length; o < len2; o++) {
+                modRep = ref2[o];
+                if ((repl.parent < (ref3 = modRep.parent) && ref3 < repl.version)) {
+                  rIndex = 0;
+                  results1.push((function() {
+                    var results2;
+                    results2 = [];
+                    while (rIndex < modRep.replacements.length) {
+                      if (typeof modRep.replacements[rIndex] !== 'number') {
+                        results2.push(rIndex++);
+                      } else if (modRep.replacements[rIndex] >= start) {
+                        modRep.replacements[rIndex++] += float;
+                        results2.push(modRep.replacements[rIndex++] += float);
+                      } else {
+                        results2.push(rIndex += 2);
+                      }
+                    }
+                    return results2;
+                  })());
+                } else {
+                  results1.push(void 0);
+                }
+              }
+              return results1;
+            }
+          });
+        }
+        diag("END REPLACING -----------\n\n");
+        return {
+          firstVersion: firstVersion,
+          versionInfo: versionInfo
+        };
       }
     };
     sequentialReplacements = function(reps) {
-      var k, len, repl, s;
+      var j, len, repl, s;
       s = new SequentialReplacements();
-      for (k = 0, len = reps.length; k < len; k++) {
-        repl = reps[k];
+      for (j = 0, len = reps.length; j < len; j++) {
+        repl = reps[j];
         s.replace(repl);
       }
       return s;
@@ -850,22 +657,6 @@
         }, repls);
       });
       return s;
-    };
-    stableSort = function(array, func) {
-      var el, i, k, len;
-      for (i = k = 0, len = array.length; k < len; i = ++k) {
-        el = array[i];
-        el.i = i;
-      }
-      return array.sort(function(a, b) {
-        var r;
-        r = func(a, b);
-        if (r === 0) {
-          return a.i - b.i;
-        } else {
-          return r;
-        }
-      });
     };
     replacementsString = function(reps) {
       var strs;
@@ -1184,568 +975,66 @@
         connectionId: "peer-0"
       }
     ];
-    testSort1 = function() {
-      var reps, sorted;
-      reps = [
+    window.OT_TEST_REPL = function() {
+      var rep;
+      rep = allReplacements([
         {
-          "mine": true,
-          "pendingCount": 1,
-          "start": 168,
-          "end": 169,
-          "text": "4",
-          "type": "replace",
-          "version": 0,
-          "connectionId": "peer-0",
-          "knownVersion": 0,
-          "messageCount": 2
+          parent: 1,
+          replacements: [30, 30, "a"],
+          version: 3
         }, {
-          "mine": true,
-          "pendingCount": 2,
-          "start": 168,
-          "end": 169,
-          "text": "3",
-          "type": "replace",
-          "version": 0,
-          "connectionId": "peer-0",
-          "knownVersion": 0,
-          "messageCount": 3
+          parent: 3,
+          replacements: [31, 31, "s"],
+          version: 4
         }, {
-          "mine": true,
-          "pendingCount": 3,
-          "start": 167,
-          "end": 169,
-          "text": "37",
-          "type": "replace",
-          "version": 0,
-          "connectionId": "peer-0",
-          "knownVersion": 0,
-          "messageCount": 4
+          version: 5,
+          parent: 3,
+          replacements: [60, 60, "q"]
         }, {
-          "mine": true,
-          "pendingCount": 4,
-          "start": 168,
-          "end": 169,
-          "text": "0",
-          "type": "replace",
-          "version": 0,
-          "connectionId": "peer-0",
-          "knownVersion": 0,
-          "messageCount": 5
+          parent: 4,
+          replacements: [32, 32, "d"],
+          version: 6
         }, {
-          "start": 30,
-          "end": 30,
-          "text": "a",
-          "type": "replace",
-          "version": 0,
-          "connectionId": "peer-1",
-          "knownVersion": 0,
-          "messageCount": 6,
-          "mine": false
-        }, {
-          "mine": true,
-          "pendingCount": 5,
-          "start": 167,
-          "end": 169,
-          "text": "24",
-          "type": "replace",
-          "version": 0,
-          "connectionId": "peer-0",
-          "knownVersion": 0,
-          "messageCount": 7
-        }, {
-          "mine": true,
-          "pendingCount": 6,
-          "start": 168,
-          "end": 169,
-          "text": "3",
-          "type": "replace",
-          "version": 0,
-          "connectionId": "peer-0",
-          "knownVersion": 0,
-          "messageCount": 8
-        }, {
-          "mine": true,
-          "pendingCount": 7,
-          "start": 168,
-          "end": 169,
-          "text": "2",
-          "type": "replace",
-          "version": 0,
-          "connectionId": "peer-0",
-          "knownVersion": 2,
-          "messageCount": 9
-        }, {
-          "mine": true,
-          "pendingCount": 8,
-          "start": 168,
-          "end": 169,
-          "text": "0",
-          "type": "replace",
-          "version": 0,
-          "connectionId": "peer-0",
-          "knownVersion": 3,
-          "messageCount": 10
-        }, {
-          "start": 31,
-          "end": 31,
-          "text": "s",
-          "type": "replace",
-          "version": 3,
-          "connectionId": "peer-1",
-          "knownVersion": 3,
-          "messageCount": 12,
-          "mine": false
-        }, {
-          "mine": true,
-          "pendingCount": 9,
-          "start": 168,
-          "end": 170,
-          "text": "11",
-          "type": "replace",
-          "version": 6,
-          "connectionId": "peer-0",
-          "knownVersion": 6
-        }, {
-          "mine": true,
-          "pendingCount": 10,
-          "start": 168,
-          "end": 170,
-          "text": "9",
-          "type": "replace",
-          "version": 7,
-          "connectionId": "peer-0",
-          "knownVersion": 7
-        }, {
-          "mine": true,
-          "pendingCount": 11,
-          "start": 168,
-          "end": 169,
-          "text": "8",
-          "type": "replace",
-          "version": 7,
-          "connectionId": "peer-0",
-          "knownVersion": 8
-        }, {
-          "mine": true,
-          "pendingCount": 12,
-          "start": 168,
-          "end": 169,
-          "text": "-1",
-          "type": "replace",
-          "version": 7,
-          "connectionId": "peer-0",
-          "knownVersion": 8
-        }, {
-          "mine": true,
-          "pendingCount": 13,
-          "start": 169,
-          "end": 170,
-          "text": "2",
-          "type": "replace",
-          "version": 7,
-          "connectionId": "peer-0",
-          "knownVersion": 9
-        }, {
-          "mine": true,
-          "pendingCount": 14,
-          "start": 169,
-          "end": 170,
-          "text": "5",
-          "type": "replace",
-          "version": 10,
-          "connectionId": "peer-0",
-          "knownVersion": 10
-        }, {
-          "mine": true,
-          "pendingCount": 15,
-          "start": 169,
-          "end": 170,
-          "text": "10",
-          "type": "replace",
-          "version": 10,
-          "connectionId": "peer-0",
-          "knownVersion": 10
-        }
-      ];
-      sorted = sortReplacements(reps);
-      return require(['lib/js-yaml'], function(yaml) {
-        console.log(yaml.dump(reps, {
-          flowLevel: 1
-        }));
-        return console.log(yaml.dump(sorted, {
-          flowLevel: 1
-        }));
-      });
-    };
-    testSort2 = function() {
-      var reps;
-      return reps = [
-        {
-          start: 168,
-          end: 169,
-          text: "4",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          messageCount: 2
-        }, {
-          start: 168,
-          end: 169,
-          text: "3",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          messageCount: 3
-        }, {
-          start: 167,
-          end: 169,
-          text: "37",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          messageCount: 4
-        }, {
-          start: 168,
-          end: 169,
-          text: "0",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          messageCount: 5
-        }, {
-          start: 30,
-          end: 30,
-          text: "a",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-1",
-          knownVersion: 0,
-          messageCount: 6
-        }, {
-          start: 167,
-          end: 169,
-          text: "24",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          messageCount: 7
-        }, {
-          start: 168,
-          end: 169,
-          text: "3",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          messageCount: 8
-        }, {
-          start: 168,
-          end: 169,
-          text: "2",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 2,
-          messageCount: 9
-        }, {
-          start: 168,
-          end: 169,
-          text: "0",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 3,
-          messageCount: 10
-        }, {
-          start: 168,
-          end: 170,
-          text: "11",
-          type: "replace",
-          version: 6,
-          connectionId: "peer-0",
-          knownVersion: 6,
-          messageCount: 13
-        }, {
-          start: 168,
-          end: 170,
-          text: "9",
-          type: "replace",
           version: 7,
-          connectionId: "peer-0",
-          knownVersion: 7,
-          messageCount: 14
+          parent: 5,
+          replacements: [62, 62, "w"]
         }, {
-          start: 168,
-          end: 169,
-          text: "8",
-          type: "replace",
-          version: 7,
-          connectionId: "peer-0",
-          knownVersion: 8,
-          messageCount: 15
+          parent: 6,
+          replacements: [33, 33, "f"],
+          version: 8
         }, {
-          start: 168,
-          end: 169,
-          text: "-1",
-          type: "replace",
-          version: 7,
-          connectionId: "peer-0",
-          knownVersion: 8,
-          messageCount: 16
-        }, {
-          start: 169,
-          end: 170,
-          text: "2",
-          type: "replace",
-          version: 7,
-          connectionId: "peer-0",
-          knownVersion: 9,
-          messageCount: 19
-        }, {
-          start: 169,
-          end: 170,
-          text: "5",
-          type: "replace",
-          version: 10,
-          connectionId: "peer-0",
-          knownVersion: 10,
-          messageCount: 20
-        }, {
-          start: 169,
-          end: 170,
-          text: "10",
-          type: "replace",
-          version: 10,
-          connectionId: "peer-0",
-          knownVersion: 10
-        }, {
-          start: 31,
-          end: 31,
-          text: "s",
-          type: "replace",
-          version: 3,
-          connectionId: "peer-1",
-          knownVersion: 3,
-          messageCount: 12
-        }, {
-          start: 32,
-          end: 32,
-          text: "f",
-          type: "replace",
-          version: 8,
-          connectionId: "peer-1",
-          knownVersion: 8,
-          messageCount: 18
-        }, {
-          start: 33,
-          end: 33,
-          text: "a",
-          type: "replace",
           version: 9,
-          connectionId: "peer-1",
-          knownVersion: 9,
-          messageCount: 22
+          parent: 7,
+          replacements: [64, 64, "e"]
+        }, {
+          parent: 9,
+          replacements: [34, 34, "a"],
+          version: 10
+        }, {
+          parent: 10,
+          replacements: [35, 35, "s"],
+          version: 11
+        }, {
+          version: 12,
+          parent: 10,
+          replacements: [67, 67, "q"]
+        }, {
+          parent: 11,
+          replacements: [36, 36, "f"],
+          version: 13
+        }, {
+          version: 14,
+          parent: 12,
+          replacements: [69, 69, "w"]
+        }, {
+          version: 15,
+          parent: 14,
+          replacements: [71, 71, "e"]
         }
-      ];
-    };
-    testSort3 = function() {
-      return [
-        {
-          start: 168,
-          end: 169,
-          text: "4",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          messageCount: 2,
-          i: 0
-        }, {
-          start: 168,
-          end: 169,
-          text: "3",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          i: 1,
-          messageCount: 3
-        }, {
-          start: 167,
-          end: 169,
-          text: "37",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          i: 2,
-          messageCount: 4
-        }, {
-          start: 168,
-          end: 169,
-          text: "0",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          i: 3,
-          messageCount: 5
-        }, {
-          start: 30,
-          end: 30,
-          text: "a",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-1",
-          knownVersion: 0,
-          messageCount: 6,
-          i: 4
-        }, {
-          start: 167,
-          end: 169,
-          text: "24",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          i: 5,
-          messageCount: 7
-        }, {
-          start: 168,
-          end: 169,
-          text: "3",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 0,
-          i: 6,
-          messageCount: 8
-        }, {
-          start: 168,
-          end: 169,
-          text: "2",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 2,
-          i: 7,
-          messageCount: 9
-        }, {
-          start: 168,
-          end: 169,
-          text: "0",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-0",
-          knownVersion: 3,
-          i: 8,
-          messageCount: 10
-        }, {
-          start: 168,
-          end: 170,
-          text: "11",
-          type: "replace",
-          version: 6,
-          connectionId: "peer-0",
-          knownVersion: 6,
-          i: 10,
-          messageCount: 13
-        }, {
-          start: 168,
-          end: 170,
-          text: "9",
-          type: "replace",
-          version: 7,
-          connectionId: "peer-0",
-          knownVersion: 7,
-          i: 11,
-          messageCount: 14
-        }, {
-          start: 168,
-          end: 169,
-          text: "8",
-          type: "replace",
-          version: 7,
-          connectionId: "peer-0",
-          knownVersion: 8,
-          i: 12,
-          messageCount: 15
-        }, {
-          start: 168,
-          end: 169,
-          text: "-1",
-          type: "replace",
-          version: 7,
-          connectionId: "peer-0",
-          knownVersion: 8,
-          i: 13,
-          messageCount: 16
-        }, {
-          start: 169,
-          end: 170,
-          text: "2",
-          type: "replace",
-          version: 7,
-          connectionId: "peer-0",
-          knownVersion: 9,
-          i: 15,
-          messageCount: 19
-        }, {
-          start: 169,
-          end: 170,
-          text: "5",
-          type: "replace",
-          version: 10,
-          connectionId: "peer-0",
-          knownVersion: 10,
-          i: 16,
-          messageCount: 20
-        }, {
-          start: 169,
-          end: 170,
-          text: "10",
-          type: "replace",
-          version: 10,
-          connectionId: "peer-0",
-          knownVersion: 10,
-          i: 18
-        }, {
-          start: 31,
-          end: 31,
-          text: "s",
-          type: "replace",
-          version: 3,
-          connectionId: "peer-1",
-          knownVersion: 3,
-          messageCount: 12,
-          i: 9
-        }, {
-          start: 32,
-          end: 32,
-          text: "f",
-          type: "replace",
-          version: 8,
-          connectionId: "peer-1",
-          knownVersion: 8,
-          messageCount: 18,
-          i: 14
-        }, {
-          start: 33,
-          end: 33,
-          text: "a",
-          type: "replace",
-          version: 9,
-          connectionId: "peer-1",
-          knownVersion: 9,
-          messageCount: 22,
-          i: 17
-        }
-      ];
+      ]);
+      return assertEq((function(exp, act) {
+        return "Expected " + exp + " but got " + act;
+      }), "59, 59, \"qweqwe\"\n30, 30, \"asdfasf\"", rep.toString());
     };
     if (typeof window !== "undefined" && window !== null) {
       window.replacementsString = replacementsString;
@@ -1754,10 +1043,11 @@
       ConcurrentReplacements: ConcurrentReplacements,
       SequentialReplacements: SequentialReplacements,
       runReplacements: runReplacements,
+      computeReplacements: computeReplacements,
       replacementsString: replacementsString,
-      sortReplacements: sortReplacements,
       sequentialReplacements: sequentialReplacements,
       concurrentReplacements: concurrentReplacements,
+      allReplacements: allReplacements,
       tests: tests,
       testData2: testData2
     };

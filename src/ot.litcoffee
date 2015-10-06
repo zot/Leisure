@@ -1,10 +1,13 @@
 Simple operational transformation engine
 
-    define ['./lib/fingertree', './lib/lodash.min', './testing'], (Fingertree, _, Testing)->
+    define ['./lib/fingertree', './lib/lodash.min', './testing', 'immutable'], (Fingertree, _, Testing, Immutable)->
       {
         assert
         assertEq
       } = Testing
+      {
+        Set
+      } = Immutable
 
       #diag = (args...)-> console.log args...
       diag = (args...)->
@@ -13,15 +16,13 @@ Simple operational transformation engine
         constructor: (@replacements)->
           if !@replacements
             @replacements = Fingertree.fromArray [],
-              identity: -> maxOffset: -1, length: 0, float: 0
+              identity: -> offset: 0, float: 0
               measure: (v)->
-                maxOffset: v.start
+                offset: v.offset
                 float: v.float
-                length: v.float + v.end
               sum: (a, b)->
-                maxOffset: Math.max a.maxOffset, b.maxOffset
+                offset: a.offset + b.offset
                 float: a.float + b.float
-                length: a.length + b.length
         isEmpty: -> @replacements.isEmpty()
         toString: ->
           ops = []
@@ -30,33 +31,26 @@ Simple operational transformation engine
           ops.join ' '
         dump: -> console.log @toString()
         snapshot: -> new ConcurrentReplacements @replacements
-        floatFor: (repl)->
-          [first, rest] = @replacements.split (m)-> m.maxOffset >= repl.start
-          m = first.measure()
-          if !rest.isEmpty() && (n = rest.peekFirst()).start == repl.start
-            float = m.float
-            for op in n.operations
-              if op.start <= repl.start && !isReplace op
-                float += op.text.length - op.end + op.start
-            float
-          else m.float
         measure: -> @replacements.measure()
         replace: (repl)->
-          [first, rest] = @replacements.split (m)-> m.maxOffset >= repl.start
-          if !first.isEmpty() && (prev = first.peekLast()).end >= repl.start
-            first = first.removeLast()
-            node = addOperation prev, repl
-          else node = if !rest.isEmpty() && (target = rest.peekFirst()).start == repl.start
+          [first, rest] = @replacements.split (m)-> m.offset >= repl.start
+          m = first.measure()
+          node = if !rest.isEmpty() && m.offset + (old = rest.peekFirst()).offset == repl.start
             rest = rest.removeFirst()
-            addOperation target, repl
-          else newNode repl
-          while !rest.isEmpty() && node.end >= (next = rest.peekFirst()).start
-            rest = rest.removeFirst()
-            node = addOperations node, next.operations
+            addOperation old, repl
+          else
+            old = null
+            if !rest.isEmpty()
+              oldNext = rest.peekFirst()
+              newNext = _.defaults (offset: oldNext.offset + m.offset - repl.start), oldNext
+              rest = rest.removeFirst().addFirst newNext
+            createNode repl.start - m.offset, repl
           @replacements = first.concat rest.addFirst node
+          [old, node]
         replacementsAt: (start)->
           [first, rest] = @replacements.split (m)-> m.length >= start
-          if !rest.isEmpty() && (node = rest.peekFirst()).start <= start
+          m = first.measure()
+          if !rest.isEmpty() && m.offset + (node = rest.peekFirst()).offset <= start
             merged = new SequentialReplacements()
             results = []
             for repl in node.activeOperations
@@ -64,102 +58,133 @@ Simple operational transformation engine
             merged.eachOperation (start, end, text, cookies)->
               results.push {start, end, text, cookies}
             merged
+        floatFor: (start)->
+          [first, rest] = @replacements.split (m)-> m.offset > start
+          first.measure().float
+        addFloat: (start, float)-> if float
+          [first, rest] = @replacements.split (m)-> m.offset >= start
+          if !rest.isEmpty()
+            node = rest.peekFirst()
+            newNode = _.defaults {offset: node.offset + float}, node
+            @replacements = first.concat rest.removeFirst().addFirst newNode
 
-Call func for each operation, adjusted by what the prefious effect
-would be on the document.
+Call func for each concurrent operation, but ignore overlapping ones.
+Also call func for each label.
 
-Func is called with: (start, end, text, offset), where offset is the
-calculated offset that was added to the original start and end.  You
-can subtract offset to get the original start and end if you need to.
+Func is called with: (start, end, text, labels, original)
 
         eachOperation: (func)->
+          prevEnd = 0
+          @eachNode (node, offset, start)->
+            if prevEnd <= offset
+              for repl in node.activeOperations by -1
+                func start, repl.end - repl.start + start, repl.text, [], repl.original ? repl, node
+              prevEnd = offset + node.length
+            if node.labels && node.labels.length
+              func start, start, '', node.labels, null, node
+
+        eachNode: (func)->
           offset = 0
           t = @replacements
+          float = 0
+          offset = 0
           while !t.isEmpty()
-            node = t.peekLast()
-            for repl in node.activeOperations
-              func repl.start, repl.end, repl.text, repl.cookies ? [repl], node
-            t = t.removeLast()
+            node = t.peekFirst()
+            t = t.removeFirst()
+            offset += node.offset
+            func node, offset, offset + float
+            float += node.float
 
+      ConcurrentReplacements.fromArray = (reps)->
+        t = new ConcurrentReplacements()
+        for repl in reps
+          t.replace repl
+        t
 
       isReplace = (repl)-> repl.end > repl.start && repl.text.length
 
       computeNodeEffect = (node)->
         insertionText = ''
         repl = null
-        del = null
         operations = []
         float = 0
-        end = node.start
+        length = 0
         for op in node.operations
           if op.end == op.start
             operations.push op
             float += op.text.length
-          else if !op.text.length then del = op
-          else repl = op
-        if del then operations.unshift del
-        else if repl then operations.push repl
-        if operation = del || repl
-          float += operation.text.length - operation.end + operation.start
-        for op in operations
-          end = Math.max end, op.end
+          else if !repl || op.end - op.start > repl.end - repl.start
+            repl = op
+        if repl
+          operations.push repl
+          node.length = repl.end - repl.start
+          float += repl.text.length - node.length
+        else node.length = 0
         node.float = float
-        node.end = end
         node.activeOperations = operations
         node
 
-      addOperation = (node, record)-> addOperations node, [record]
-
-      addOperations = (node, records)->
+      addOperation = (node, record)->
         computeNodeEffect
-          start: node.start
-          operations: node.operations.concat records
+          offset: node.offset
+          operations: node.operations.concat [record]
+          labels: node.labels.concat record.labels ? []
 
-      newNode = (repl)->
-        computeNodeEffect
-          start: repl.start
+      createNode = (offset, repl)->
+        computeNodeEffect {
+          offset
           operations: [repl]
+          labels: repl.labels ? []
+        }
 
 SequentialReplacements captures successive replacements within a version
 
       class SequentialReplacements
         constructor: (reps)->
           @replacements = reps ? Fingertree.fromArray [],
-            identity: -> initial: 0, final: 0
+            identity: -> initial: 0, final: 0, float: 0
             measure: (n)->
-              initial: n.leading + n.length
-              final: n.leading + n.text.length
+              initial: n.offset + n.length
+              final: n.offset + n.text.length
+              float: n.text.length - n.length
             sum: (a, b)->
               initial: a.initial + b.initial
               final: a.final + b.final
+              float: a.float + b.float
         snapshot: -> new SequentialReplacements @replacements
         isEmpty: -> @replacements.isEmpty()
         initialBounds: ->
           if @isEmpty() then start: 0, end: 0
-          else start: @replacements.peekFirst().leading, end: @replacements.measure().initial
+          else start: @replacements.peekFirst().offset, end: @replacements.measure().initial
         finalBounds: ->
           if @isEmpty() then start: 0, end: 0
-          else start: @replacements.peekFirst().leading, end: @replacements.measure().final
+          else start: @replacements.peekFirst().offset, end: @replacements.measure().final
         measure: -> @replacements.measure()
+        floatFor: (offset)->
+          @replacements.split((m)-> m.initial > offset)[0].measure().float
+        addFloat: (start, float)->
+          [first, rest] = @replacements.split (m)-> m.final >= start
+          l = first.measure().final
+          if !rest.isEmpty()
+            n = rest.peekFirst()
+            rest = rest.removeFirst().addFirst _.defaults {offset: n.offset + float}, n
+            @replacements = first.concat rest
         replace: (repl)->
           {start, end, text} = repl
           [first, rest] = @replacements.split (m)-> m.final >= start
           l = first.measure().final
-          if !rest.isEmpty() && l + (old = rest.peekFirst()).leading <= end
+          if !rest.isEmpty() && l + (old = rest.peekFirst()).offset <= end
             node = mergeRepl l, old, repl
             rest = rest.removeFirst()
           else
             node =
-              leading: repl.start - l
+              offset: repl.start - l
               length: repl.end - repl.start
               text: text
-              float: 0
-              cookies: repl.cookies ? [repl]
+              labels: repl.labels ? []
             if !rest.isEmpty()
               next = rest.peekFirst()
-              #rest = rest.removeFirst().addFirst _.merge {}, next, {leading: next.leading - repl.end + text.length - repl.end + repl.start}
-              #rest = rest.removeFirst().addFirst _.merge {}, next, {leading: next.leading - repl.end}
-              rest = rest.removeFirst().addFirst _.merge {}, next, {leading: next.leading + l - repl.end}
+              rest = rest.removeFirst().addFirst _.defaults {offset: next.offset + l - repl.end}, next
           @replacements = first.concat rest.addFirst node
           old?.repl
         dump: -> console.log @toString()
@@ -178,312 +203,144 @@ SequentialReplacements captures successive replacements within a version
           while !t.isEmpty()
             n = t.peekLast()
             t = t.removeLast()
-            start = t.measure().initial + n.leading
-            func start, start + n.length, n.text, n.cookies, n
+            start = t.measure().initial + n.offset
+            func start, start + n.length, n.text, n.labels, n
           null
         merge: (replacements)->
-          newReps = @snapshot()
-          replacements.eachOperation (start, end, text, cookies, node)->
-            newReps.replace {start, end, text, cookies}
-          newReps
-        addFloat: (start, float)->
-          [first, rest] = @replacements.split (m)-> m.final >= start
-          l = first.measure().final
-          if !rest.isEmpty()
-            n = rest.peekFirst()
-            rest = rest.removeFirst().addFirst _.merge {}, n, {leading: n.leading + float}
-            @replacements = first.concat rest
+          replacements.eachOperation (start, end, text, labels)=>
+            @replace {start, end, text, labels}
+        toArray: ->
+          results = []
+          t = @replacements
+          while !t.isEmpty()
+            n = t.peekFirst()
+            t = t.removeFirst()
+            start = t.measure().initial + n.offset
+            results.push start, start + n.length, n.text
+            for label in n.labels
+              results.push label
+          results
+
+      eachReplacement = (reps, func)->
+        i = 0
+        while i < reps.length
+          start = reps[i++]
+          end = reps[i++]
+          text = reps[i++]
+          labels = []
+          while typeof reps[i] == 'object'
+            labels.push reps[i++]
+          func start, end, text, labels
+
+      SequentialReplacements.fromArray = (reps)->
+        seq = new SequentialReplacements()
+        eachReplacement reps, (start, end, text, labels)-> seq.replace {start, end, text, labels}
+        seq
 
 Merge overlapping repl with node
 
       mergeRepl = (offset, node, repl)->
-        start = offset + node.leading
+        start = offset + node.offset
         end = start + node.length
         rStart = Math.max 0, repl.start - start
         rEnd = repl.end - start
         newStart = Math.min(start, repl.start)
-        leading: newStart - offset
+        labels = if rStart == node.text.length then node.labels[..]
+        else for label in node.labels
+          name: label.name
+          offset: if rStart >= label.offset then label.offset
+          else label.offset + repl.text.length - repl.start + repl.end
+        if repl.labels? then for label in repl.labels
+          labels.push
+            name: label.name
+            offset: label.offset + rStart
+        offset: newStart - offset
         length: end + Math.max(0, repl.end - start - node.text.length) - Math.min repl.start, start
         text: node.text.substring(0, rStart) + repl.text + node.text.substring rEnd
-        cookies: node.cookies.concat repl.cookies ? [repl]
+        labels: labels
 
-Merge reps array and run func on the resulting changes
+      #labelNames = (n)-> new Set (label.name for label in n.labels)
 
-      XrunReplacements = (reps, func)->
-        reps = reps[..]
-        curVersion = -1
-        curId = null
-        reps = sortReplacements reps
-        connectionOps = new SequentialReplacements()
-        versionOps = new ConcurrentReplacements()
-        prepConnection = (id)->
-          if !connectionOps.isEmpty()
-            connectionOps.eachOperation (start, end, text, cookies, node)->
-              versionOps.replace {start: start, end: end, text, cookies}
-            connectionOps = new SequentialReplacements()
-          curId = id
-        prepVersion = (v)->
-          if !versionOps.isEmpty()
-            versionOps.eachOperation func
-            versionOps = new ConcurrentReplacements()
-          curVersion = v
-        for repl in reps
-          if repl.version != curVersion || repl.connectionId != curId
-            prepConnection repl.connectionId
-          if repl.version > curVersion then prepVersion repl.version
-          connectionOps.replace repl
-        if !connectionOps.isEmpty() then prepConnection()
-        if !versionOps.isEmpty() then prepVersion()
-        
-      XrunReplacements = (reps, func)->
-        reps = sortReplacements reps
-        versionInfo = versionList: [], allOps: [], versions: {}
-        vinfo = null
-        curVersion = -1
-        for repl in reps
-          if repl.version < curVersion
-            reintegrateRepl repl, versionInfo
-          else
-            if curVersion != repl.version
-              curVersion = repl.version
-              versionInfo.versionList.push String repl.version
-              if vinfo then condenseVersions vinfo
-              if !vinfo = versionInfo.versions[String repl.version]
-                vinfo = versionInfo.versions[String repl.version] = repls: null, cons: {}
-            if !rinfo = vinfo.cons[repl.connectionId]
-              rinfo = vinfo.cons[repl.connectionId] = new SequentialReplacements()
-            rinfo.replace repl
-          versionInfo.allOps.push repl
-        if vinfo
-          results = new SequentialReplacements()
-          for vName in _.sortBy(_.uniq _.map versionInfo.versionList, (i)-> Number i)
-            vinfo = versionInfo.versions[String vName]
-            #condenseVersions(vinfo).eachOperation (start, end, text, cookies)->
-            #  results.replace {start, end, text, cookies}
-            condenseVersions(vinfo).eachOperation func
-          #results.eachOperation func
-          #results.eachOperation (start, end, text)->
-          #  if start < 0
-          #    console.log "NEGATIVE REPL: #{start}, #{end}, #{JSON.stringify text}"
-          #  func arguments...
+      allReplacements = (reps)->
+        {firstVersion, versionInfo} = computeReplacements(reps)
+        all = new SequentialReplacements()
+        for vinfo, v in versionInfo
+          all.merge vinfo
+        all
 
-runReplacements
+      runReplacements = (reps, func)-> allReplacements(reps).eachOperation func
 
-- store reps in FT measuring by version and knownVersion (sorted on these)
-- for each rep, sorted by version, 
+computeReplacements: compute the transformed replacements for a list
+of replacements, REPS.  Each replacement has the following properties:
 
-      XrunReplacements = (reps, func)->
-        diag "START REPLACING -----------"
-        reps = for repl, i in _.sortByAll(reps, ['version', 'connectionId'])
-          newRepl = _.clone repl
-          newRepl.index = i
-          if !newRepl.cookies then newRepl.cookies = [repl]
-          newRepl
-        ft = Fingertree.fromArray _.sortByAll(reps, ['version', 'knownVersion']),
-          identity: -> version: 0, knownVersion: 0
-          measure: (n)-> n
-          sum: (a, b)->
-            version: Math.max a.version, b.version
-            knownVersion: Math.max a.knownVersion, b.knownVersion
-        versionInfo = versionList: [], allOps: [], versions: {}
-        vinfo = rinfo = curVersion = null
-        for repl in reps
-          if repl.messageCount?
-            [candidates, remainder] = ft.split (m)-> m.knownVersion >= repl.messageCount
-            [first, rest] = candidates.split (m)-> m.version > repl.version
-          if repl.messageCount? && !rest.isEmpty()
-            if !vinfo = versionInfo.versions[String repl.version]
-              vinfo = versionInfo.versions[String repl.version] = repls: null, cons: {}
-              versionInfo.versionList.push String repl.version
-            oldRepl = condenseVersions(vinfo).replacementsAt(repl.start)?.replacements.measure() ?
-              initial: 0
-              final: 0
-            if !conRepl = vinfo.cons[repl.connectionId]
-              conRepl = vinfo.cons[repl.connectionId] = new SequentialReplacements()
-            conRepl.replace repl
-            vinfo.repls = null
-            newRepl = condenseVersions(vinfo).replacementsAt(repl.start).replacements.measure()
-            if float = newRepl.final - newRepl.initial - (oldRepl.final - oldRepl.initial)
-              while !rest.isEmpty()
-                adjRepl = rest.peekFirst()
-                rest = rest.removeFirst()
-                if adjRepl.connectionId != repl.connectionId
-                  adjRepl.start += float
-                  adjRepl.end += float
-                  diag "  ADJUST REPL v #{adjRepl.version}, known: #{adjRepl.knownVersion}"
-          else
-            if curVersion != repl.version
-              curVersion = repl.version
-              versionInfo.versionList.push String repl.version
-              #if vinfo then condenseVersions vinfo
-              if !vinfo = versionInfo.versions[String repl.version]
-                vinfo = versionInfo.versions[String repl.version] = repls: null, cons: {}
-            if !rinfo = vinfo.cons[repl.connectionId]
-              rinfo = vinfo.cons[repl.connectionId] = new SequentialReplacements()
-            rinfo.replace repl
-            vinfo.repls = null
-            diag "  ADD REPL v #{repl.version}, known: #{repl.knownVersion}, #{if repl.messageCount then 'count: ' + repl.messageCount else '[pending]'}, #{repl.start}, #{repl.end}, '#{repl.text}'"
-          versionInfo.allOps.push repl
-        if vinfo
-          results = new SequentialReplacements()
-          for vName in _.sortBy(_.uniq _.map versionInfo.versionList, (i)-> Number i)
-            vinfo = versionInfo.versions[String vName]
-            diag "  CONDENSING VERSIONS #{vName}:\n#{condenseVersions(vinfo).toString()}"
-            condenseVersions(vinfo).eachOperation func
-        diag "END REPLACING -----------\n\n"
+- version: n, these are sequential with no gaps
+- parent(opt): version, the parent version for this replacement
+- replacements: array of replacement commands, [start, end, text, label..., ...]
 
-We'll start with an expensive version first, then optimize after it works.
-* first need to sort the repls to mimick the original order
-  so knownVersions occur before higher messageCounts of different peers
-
-      runReplacements = (reps, func, limit)->
-        reps = sortReplacements reps
-        maxCount = 0
-        for repl, i in reps
-          repl.index = i
-          repl.delta = repl.original.lockedDelta ? 0
-          if repl.messageCount? then maxCount = Math.max maxCount, repl.messageCount
-        transformable = reps[..]
-        minTrans = 0
-        versionInfo = {}
-        versionInfo = versionList: [], versions: {}
-        vinfo = rinfo = curVersion = null
-        diag "START REPLACING -----------"
-        #for repl, i in vReps = _.sortByAll(reps, [((e)-> e.version), ((e)->e.connectionId), ((e)->e.pendingCount ? e.messageCount)])
-        #for repl, i in vReps = _.sortByAll(reps, [((e)-> e.version), ((e)->e.connectionId), ((e)-> e.messageCount ? e.knownVersion)])
-        for repl, i in vReps = _.sortByAll(reps, [((e)-> e.version), ((e)-> e.knownVersion), ((e)->e.connectionId)])
-          if limit? && repl.version > limit
-            vReps = vReps.slice i
-            break
-          transformable[repl.index] = null
-          targets = []
-          count = repl.messageCount || maxCount + repl.index
-          for j in [minTrans...reps.length]
-            t = transformable[j]
-            if t && t.knownVersion >= count then break
-            if t && repl.version < t.version
-              targets.push t
-            else if !t && j == minTrans then minTrans++
-          addVersionRepl repl, versionInfo, targets
-          if limit? then repl.original.lockedDelta = repl.delta
-          diag "  ADD REPL v #{repl.version}, known: #{repl.knownVersion}, #{if repl.messageCount then 'count: ' + repl.messageCount else '[pending]'}, #{repl.start}, #{repl.end}, '#{repl.text}'"
-        for vName in _.sortBy(_.keys(versionInfo.versions), (v)-> Number v)
-          vinfo = versionInfo.versions[vName]
-          diag "  CONDENSING VERSIONS #{vName}:\n#{condenseVersions2(vinfo).toString()}"
-          condenseVersions2(vinfo).eachOperation func 
-        diag "END REPLACING -----------\n\n"
-        vReps
-
-Sort replacements such that replacements are before other ones that have
-messageCounts larger than their known versions
-
-      sortReplacements = (reps)->
-        #sorted = []
-        reps = for repl, i in reps
-          r = _.clone repl
-          r.original = repl.original || repl
-          r.index = i
-          r
-        #  for s, j in sorted
-        #    if comesBefore r, s then break
-        #  sorted.splice j, 0, r
-        #sorted
-        _.sortByAll reps, [((x)-> x.knownVersion), ((x)-> x.messageCount || x.knownVersion)]
-        #_.sortBy reps, (x)-> x.messageCount || x.knownVersion
-        #_.sortBy reps, (x)-> x.knownVersion
-        #_.sortByAll reps, ['knownVersion', 'version']
-        #reps.sort (a, b)->
-        #  aC = a.messageCount || a.knownVersion
-        #  bC = b.messageCount || b.knownVersion
-        #  if a.knownVersion < bC && aC < b.knownVersion then -1
-        #  else if b.knownVersion < aC && bC < a.knownVersion then 1
-        #  else if a.knownVersion == b.knownVersion || aC == bC then a.index - b.index
-        #  else aC - bC
-        #reps
-
-      comesBefore = (a, b)->
-        aC = a.messageCount || a.knownVersion
-        bC = b.messageCount || b.knownVersion
-        a.knownVersion < bC && (aC < b.knownVersion || (b.knownVersion < aC && a.index < b.index))
-
-      addVersionRepl = (repl, versionInfo, transformTargets)->
-        if !vinfo = versionInfo.versions[String repl.version]
-          vinfo = versionInfo.versions[String repl.version] = repls: null, cons: {}
-        if !rinfo = vinfo.cons[repl.connectionId]
-          rinfo = vinfo.cons[repl.connectionId] = []
-        if transformTargets.length
-          applyDelta repl
-          oldRepl = condenseVersions2(vinfo).replacementsAt(repl.start)?.measure() ?
-            initial: 0
-            final: 0
-          vinfo.repls = null
-          rinfo.push repl
-          newRepl = condenseVersions2(vinfo).replacementsAt(repl.start).measure()
-          if float = newRepl.final - newRepl.initial - (oldRepl.final - oldRepl.initial)
-            for target in transformTargets
-              target.delta += float
-              console.log "ADJUSTING OPERATION #{if float < 0 then '' else '+'}#{float}: #{target.original.start + float}, #{target.original.end + target.delta}, #{JSON.stringify target.text}"
+      XcomputeReplacements = (reps)->
+        if !reps.length then firstVersion: 0, versionInfo: []
         else
-          rinfo.push repl
-          vinfo.repls = null
-        diag "  ADD REPL v #{repl.version}, known: #{repl.knownVersion}, #{if repl.messageCount then 'count: ' + repl.messageCount else '[pending]'}, #{repl.start}, #{repl.end}, '#{repl.text}'"
+          firstVersion = reps.reduce ((a, el)-> Math.min a, el.parent), reps[0].parent
+          versionInfo = (new ConcurrentReplacements() for i in [firstVersion ... reps[0].version])
+          diag "START REPLACING -----------"
+          for repl, i in reps
+            versionInfo.push new ConcurrentReplacements()
+            if !repl.parent then eachReplacement repl.replacements, (start, end, text)->
+              versionInfo[i].replace {start, end, text}
+            else
+              index = Math.max 0, repl.parent - firstVersion
+              vinfo = versionInfo[index]
+              eachReplacement repl.replacements, (start, end, text)->
+                [old, node] = vinfo.replace {start, end, text}
+                if index + 1 < i
+                  float = node.float
+                  if old then float -= old.float
+                  if float
+                    console.log "OUT OF DATE OPERATION FLOAT: v#{repl.version} #{start}, #{float}"
+                    for modInfo in versionInfo[index + 1...i]
+                      modInfo.addFloat start, float
+          diag "END REPLACING -----------\n\n"
+          {firstVersion, versionInfo}
 
-      condenseVersions2 = (vinfo)->
-        if !vinfo.repls
-          results = vinfo.repls = new ConcurrentReplacements()
-          for con in _.keys(vinfo.cons).sort()
-            seq = new SequentialReplacements()
-            for repl in vinfo.cons[con]
-              seq.replace applyDelta repl
-            seq.eachOperation (start, end, text, cookies)->
-              results.replace {start, end, text, cookies}
-        vinfo.repls
+      computeReplacements = (reps)->
+        if !reps.length then firstVersion: 0, versionInfo: []
+        else
+          reps = _.cloneDeep reps
+          firstVersion = reps.reduce ((a, el)-> Math.min a, el.parent), reps[0].parent
+          versionInfo = (new ConcurrentReplacements() for i in [firstVersion ... reps[0].version])
+          diag "START REPLACING -----------"
+          for repl, i in reps
+            versionInfo.push new ConcurrentReplacements()
+            index = Math.max 0, repl.parent - firstVersion
+            vinfo = versionInfo[index]
+            eachReplacement repl.replacements, (start, end, text)->
+              [old, node] = vinfo.replace {start, end, text}
+              float = node.float
+              if old then float -= old.float
+              if float
+                #console.log "OUT OF DATE OPERATION FLOAT: v#{repl.version} #{start}, #{float}"
+                for modInfo in versionInfo[index + 1..repl.version - firstVersion]
+                  modInfo.addFloat start, float
+                for modRep in reps[i + 1..]
+                  if repl.parent < modRep.parent < repl.version
+                    rIndex = 0
+                    while rIndex < modRep.replacements.length
+                      if typeof modRep.replacements[rIndex] != 'number' then rIndex++
+                      else if modRep.replacements[rIndex] >= start
+                        modRep.replacements[rIndex++] += float
+                        modRep.replacements[rIndex++] += float
+                      else rIndex += 2
+          diag "END REPLACING -----------\n\n"
+          {firstVersion, versionInfo}
 
-      applyDelta = (repl)->
-        start: repl.original.start + repl.delta
-        end: repl.original.end + repl.delta
-        text: repl.text
-        cookies: repl.cookies || [repl.original]
-
-      condenseVersions = (vinfo)->
-        if !vinfo.repls
-          results = vinfo.repls = new ConcurrentReplacements()
-          for con in _.keys(vinfo.cons).sort()
-            vinfo.cons[con].eachOperation (start, end, text, cookies)->
-              results.replace {start, end, text, cookies}
-        vinfo.repls
-
-      reintegrateRepl = (repl, versionInfo)->
-        if !vinfo = versionInfo.versions[String repl.version]
-          vinfo = versionInfo.versions[String repl.version] = repls: null, cons: {}
-          versionInfo.versionList.push String repl.version
-        oldRepl = condenseVersions(vinfo).replacementsAt(repl.start)?.replacements.measure() ?
-          initial: 0
-          final: 0
-        if !conRepl = vinfo.cons[repl.connectionId]
-          conRepl = vinfo.cons[repl.connectionId] = new SequentialReplacements()
-        conRepl.replace repl
-        vinfo.repls = null
-        try
-          if true || oldRepl
-            newRepl = condenseVersions(vinfo).replacementsAt(repl.start).replacements.measure()
-            if float = newRepl.final - newRepl.initial - (oldRepl.final - oldRepl.initial)
-              diag "REINTEGRATION FLOAT: #{float}"
-              affectedVersions = []
-              for op in versionInfo.allOps by -1
-                if op.version > repl.version
-                  affectedVersions.push Number op.version
-                else break
-              affectedVersions = _.sortBy _.uniq affectedVersions
-              for v in affectedVersions
-                vinfo = versionInfo.versions[String v]
-                vinfo.repls = null
-                for con, repls of vinfo.cons
-                  repls.addFloat repl.start, float
-        catch err
-          console.log err.stack
-          console.log "versions: #{vinfo.repls.toString()}"
-          console.log "repl: #{repl.start}, #{repl.end}, #{repl.text}"
+      #computeReplacements = (reps)->
+      #  reps = _.cloneDeep reps
+      #  firstVersion = reps[0].version - 1
+      #  versionInfo = [[]]
+      #  for repl, i in reps
+      #    versionInfo.push []
+      #    for modRepl in reps[0...i]
+      #      if modRepl.parent > repl.parent
 
       sequentialReplacements = (reps)->
         s = new SequentialReplacements()
@@ -496,61 +353,6 @@ messageCounts larger than their known versions
         runReplacements reps, (start, end, text, repls)->
           s.replace {start, end, text}, repls
         s
-
-sortReplacements should sort the replacements so they are consistently represent
-the inputs to all of the peers, so known version N should occur before messageCount > N
-but not before their own message count.
-
-Reintegration will move smaller knownVersions
-
-      #sortReplacements = (reps)->
-      #  _.sortByAll reps, ['version', 'connectionId']
-
-      stableSort = (array, func)->
-        for el, i in array
-          el.i = i
-        array.sort (a, b)->
-          r = func a, b
-          if r == 0 then a.i - b.i else r
-
-      #sortReplacements = (reps)->
-      #  stableSort reps, (a, b)->
-      #    if b.messageCount? && b.messageCount? then a.messageCount - b.messageCount
-      #    else if a.messageCount then a.messageCount - b.knownVersion
-
-      #sortReplacements = (reps)->
-      #  stableSort reps, (a, b)->
-      #    if b.messageCount? && a.version < b.messageCount then -1
-      #    else if a.messageCount? && b.version < a.messageCount then 1
-      #    else if a.version < b.version then -1
-      #    else if b.version < a.version then 1
-      #    else if a.connectionId < b.connectionId then -1
-      #    else if b.connectionId < a.connectionId then 1
-      #    else 0
-
-      #sortReplacements = (reps)->
-      #  stableSort reps, (a, b)->
-      #    if a.messageCount? && b.messageCount? then a.messageCount - b.messageCount
-      #    else a.knownVersion - b.knownVersion
-
-      #sortReplacements = (reps)-> _.sortBy reps, (i)-> i.messageCount ? i.knownVersion
-
-      #sortReplacements = (reps)-> _.sortBy reps, (i)-> i.knownVersion
-
-      ##sortReplacements = (reps)->
-      ##  stableSort reps, (a, b)->
-      ##    if a.messageCount? && b.messageCount? then a.messageCount - b.messageCount
-      ##    else if (a.mine && b.mine) || !(a.messageCount? || b.messageCount?)
-      ##      a.knownVersion - b.knownVersion
-      ##    else if a.messageCount then a.messageCount - b.knownVersion
-      ##    else a.knownVersion - b.messageCount
-
-      #sortReplacements = (reps)->
-      #  stableSort reps, (a, b)->
-      #    if a.messageCount? && b.messageCount? then a.messageCount - b.messageCount
-      #    else if a.messageCount? then (a.messageCount <= b.knownVersion && -1) || 1
-      #    else if b.messageCount? then (b.messageCount <= a.knownVersion && 1) || -1
-      #    else 0
 
       replacementsString = (reps)->
         strs = []
@@ -698,85 +500,26 @@ Reintegration will move smaller knownVersions
         {start: 154, end: 154, text: "j", type: "replace", version: 7, connectionId: "peer-0"}, 
       ]
 
-      #Leisure.testSort1 = testSort1 = ->
-      testSort1 = ->
-        reps = [
-          {"mine":true,"pendingCount":1,"start":168,"end":169,"text":"4","type":"replace","version":0,"connectionId":"peer-0","knownVersion":0,"messageCount":2},
-          {"mine":true,"pendingCount":2,"start":168,"end":169,"text":"3","type":"replace","version":0,"connectionId":"peer-0","knownVersion":0,"messageCount":3},
-          {"mine":true,"pendingCount":3,"start":167,"end":169,"text":"37","type":"replace","version":0,"connectionId":"peer-0","knownVersion":0,"messageCount":4},
-          {"mine":true,"pendingCount":4,"start":168,"end":169,"text":"0","type":"replace","version":0,"connectionId":"peer-0","knownVersion":0,"messageCount":5},
-          {"start":30,"end":30,"text":"a","type":"replace","version":0,"connectionId":"peer-1","knownVersion":0,"messageCount":6,"mine":false},
-          {"mine":true,"pendingCount":5,"start":167,"end":169,"text":"24","type":"replace","version":0,"connectionId":"peer-0","knownVersion":0,"messageCount":7},
-          {"mine":true,"pendingCount":6,"start":168,"end":169,"text":"3","type":"replace","version":0,"connectionId":"peer-0","knownVersion":0,"messageCount":8},
-          {"mine":true,"pendingCount":7,"start":168,"end":169,"text":"2","type":"replace","version":0,"connectionId":"peer-0","knownVersion":2,"messageCount":9},
-          {"mine":true,"pendingCount":8,"start":168,"end":169,"text":"0","type":"replace","version":0,"connectionId":"peer-0","knownVersion":3,"messageCount":10},
-          {"start":31,"end":31,"text":"s","type":"replace","version":3,"connectionId":"peer-1","knownVersion":3,"messageCount":12,"mine":false},
-          {"mine":true,"pendingCount":9,"start":168,"end":170,"text":"11","type":"replace","version":6,"connectionId":"peer-0","knownVersion":6},
-          {"mine":true,"pendingCount":10,"start":168,"end":170,"text":"9","type":"replace","version":7,"connectionId":"peer-0","knownVersion":7},
-          {"mine":true,"pendingCount":11,"start":168,"end":169,"text":"8","type":"replace","version":7,"connectionId":"peer-0","knownVersion":8},
-          {"mine":true,"pendingCount":12,"start":168,"end":169,"text":"-1","type":"replace","version":7,"connectionId":"peer-0","knownVersion":8},
-          {"mine":true,"pendingCount":13,"start":169,"end":170,"text":"2","type":"replace","version":7,"connectionId":"peer-0","knownVersion":9},
-          {"mine":true,"pendingCount":14,"start":169,"end":170,"text":"5","type":"replace","version":10,"connectionId":"peer-0","knownVersion":10},
-          {"mine":true,"pendingCount":15,"start":169,"end":170,"text":"10","type":"replace","version":10,"connectionId":"peer-0","knownVersion":10},
+      window.OT_TEST_REPL = ->
+        rep = allReplacements [
+          {parent:1, replacements:[30, 30, "a"], version:3},
+          {parent:3, replacements:[31, 31, "s"], version:4},
+          {version:5, parent:3, replacements:[60, 60, "q"]},
+          {parent:4, replacements:[32, 32, "d"], version:6},
+          {version:7, parent:5, replacements:[62, 62, "w"]},
+          {parent:6, replacements:[33, 33, "f"], version:8},
+          {version:9, parent:7, replacements:[64, 64, "e"]},
+          {parent:9, replacements:[34, 34, "a"], version:10},
+          {parent:10, replacements:[35, 35, "s"], version:11},
+          {version:12, parent:10, replacements:[67, 67, "q"]},
+          {parent:11, replacements:[36, 36, "f"], version:13},
+          {version:14, parent:12, replacements:[69, 69, "w"]},
+          {version:15, parent:14, replacements:[71, 71, "e"]},
         ]
-        sorted = sortReplacements reps
-        require ['lib/js-yaml'], (yaml)->
-          console.log yaml.dump(reps, flowLevel: 1)
-          console.log yaml.dump(sorted, flowLevel: 1)
-
-      #Leisure.testSort2 = testSort2 = ->
-      testSort2 = ->
-        reps = [
-          {start: 168, end: 169, text: "4", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, messageCount: 2}, 
-          {start: 168, end: 169, text: "3", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, messageCount: 3}, 
-          {start: 167, end: 169, text: "37", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, messageCount: 4}, 
-          {start: 168, end: 169, text: "0", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, messageCount: 5}, 
-          {start: 30, end: 30, text: "a", type: "replace", version: 0, connectionId: "peer-1", knownVersion: 0, messageCount: 6}, 
-          {start: 167, end: 169, text: "24", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, messageCount: 7}, 
-          {start: 168, end: 169, text: "3", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, messageCount: 8}, 
-          {start: 168, end: 169, text: "2", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 2, messageCount: 9}, 
-          {start: 168, end: 169, text: "0", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 3, messageCount: 10}, 
-          {start: 168, end: 170, text: "11", type: "replace", version: 6, connectionId: "peer-0", knownVersion: 6, messageCount: 13}, 
-          {start: 168, end: 170, text: "9", type: "replace", version: 7, connectionId: "peer-0", knownVersion: 7, messageCount: 14}, 
-          {start: 168, end: 169, text: "8", type: "replace", version: 7, connectionId: "peer-0", knownVersion: 8, messageCount: 15}, 
-          {start: 168, end: 169, text: "-1", type: "replace", version: 7, connectionId: "peer-0", knownVersion: 8, messageCount: 16}, 
-          {start: 169, end: 170, text: "2", type: "replace", version: 7, connectionId: "peer-0", knownVersion: 9, messageCount: 19}, 
-          {start: 169, end: 170, text: "5", type: "replace", version: 10, connectionId: "peer-0", knownVersion: 10, messageCount: 20}, 
-          {start: 169, end: 170, text: "10", type: "replace", version: 10, connectionId: "peer-0", knownVersion: 10}, 
-          {start: 31, end: 31, text: "s", type: "replace", version: 3, connectionId: "peer-1", knownVersion: 3, messageCount: 12}, 
-          {start: 32, end: 32, text: "f", type: "replace", version: 8, connectionId: "peer-1", knownVersion: 8, messageCount: 18}, 
-          {start: 33, end: 33, text: "a", type: "replace", version: 9, connectionId: "peer-1", knownVersion: 9, messageCount: 22}
-        ]
-
-      #Leisure.testSort3 = testSort3 = ->
-      testSort3 = ->
-        [
-          {start: 168, end: 169, text: "4", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, messageCount: 2, i: 0}, 
-          {start: 168, end: 169, text: "3", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, i: 1, messageCount: 3}, 
-          {start: 167, end: 169, text: "37", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, i: 2, messageCount: 4}, 
-          {start: 168, end: 169, text: "0", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, i: 3, messageCount: 5}, 
-          {start: 30, end: 30, text: "a", type: "replace", version: 0, connectionId: "peer-1", knownVersion: 0, messageCount: 6, i: 4}, 
-          {start: 167, end: 169, text: "24", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, i: 5, messageCount: 7}, 
-          {start: 168, end: 169, text: "3", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 0, i: 6, messageCount: 8}, 
-          {start: 168, end: 169, text: "2", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 2, i: 7, messageCount: 9}, 
-          {start: 168, end: 169, text: "0", type: "replace", version: 0, connectionId: "peer-0", knownVersion: 3, i: 8, messageCount: 10}, 
-
-          {start: 168, end: 170, text: "11", type: "replace", version: 6, connectionId: "peer-0", knownVersion: 6, i: 10, messageCount: 13}, 
-          {start: 168, end: 170, text: "9", type: "replace", version: 7, connectionId: "peer-0", knownVersion: 7, i: 11, messageCount: 14}, 
-          {start: 168, end: 169, text: "8", type: "replace", version: 7, connectionId: "peer-0", knownVersion: 8, i: 12, messageCount: 15}, 
-          {start: 168, end: 169, text: "-1", type: "replace", version: 7, connectionId: "peer-0", knownVersion: 8, i: 13, messageCount: 16}, 
-
-          {start: 169, end: 170, text: "2", type: "replace", version: 7, connectionId: "peer-0", knownVersion: 9, i: 15, messageCount: 19}, 
-          {start: 169, end: 170, text: "5", type: "replace", version: 10, connectionId: "peer-0", knownVersion: 10, i: 16, messageCount: 20}, 
-
-          {start: 169, end: 170, text: "10", type: "replace", version: 10, connectionId: "peer-0", knownVersion: 10, i: 18}, 
-
-          {start: 31, end: 31, text: "s", type: "replace", version: 3, connectionId: "peer-1", knownVersion: 3, messageCount: 12, i: 9}, 
-
-          {start: 32, end: 32, text: "f", type: "replace", version: 8, connectionId: "peer-1", knownVersion: 8, messageCount: 18, i: 14}, 
-
-          {start: 33, end: 33, text: "a", type: "replace", version: 9, connectionId: "peer-1", knownVersion: 9, messageCount: 22, i: 17}
-        ]
+        assertEq ((exp, act)-> "Expected #{exp} but got #{act}"), """
+          59, 59, "qweqwe"
+          30, 30, "asdfasf"
+        """, rep.toString()
 
       window?.replacementsString = replacementsString
 
@@ -784,10 +527,11 @@ Reintegration will move smaller knownVersions
         ConcurrentReplacements
         SequentialReplacements
         runReplacements
+        computeReplacements
         replacementsString
-        sortReplacements
         sequentialReplacements
         concurrentReplacements
+        allReplacements
         tests
         testData2
       }

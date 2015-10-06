@@ -1106,7 +1106,7 @@
 
       BasicEditingOptions.prototype.mergeChangeContext = function(obj) {
         var ref;
-        return this.changeContext = _.merge((ref = this.changeContext) != null ? ref : {}, obj);
+        return this.changeContext = _.merge({}, (ref = this.changeContext) != null ? ref : {}, obj);
       };
 
       BasicEditingOptions.prototype.clearChangeContext = function() {
@@ -1490,7 +1490,7 @@
         t = this.marks;
         while (!t.isEmpty()) {
           n = t.peekFirst();
-          m.push(_.merge({
+          m.push(_.defaults({
             location: this.getMarkLocation(n.name)
           }, n));
           t = t.removeFirst();

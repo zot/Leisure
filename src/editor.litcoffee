@@ -853,7 +853,7 @@ situations to provide STM-like change management.
             oldBlocks.pop()
             newBlocks.pop()
           oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
-        mergeChangeContext: (obj)-> @changeContext = _.merge (@changeContext ? {}), obj
+        mergeChangeContext: (obj)-> @changeContext = _.merge {}, @changeContext ? {}, obj
         clearChangeContext: -> @changeContext = null
         replaceContent: (blocks, start, length, newContent)->
           oldText = blockText blocks
@@ -1104,7 +1104,7 @@ Data model -- override/reset these if you want to change how the store accesses 
           t = @marks
           while !t.isEmpty()
             n = t.peekFirst()
-            m.push _.merge {location: @getMarkLocation n.name}, n
+            m.push _.defaults {location: @getMarkLocation n.name}, n
             t = t.removeFirst()
           m
         getMarkLocation: (name)-> if @markNames[name]

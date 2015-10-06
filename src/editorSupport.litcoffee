@@ -502,7 +502,7 @@ may be called more than once.  changeData() returns a promise.
                 computedProperties[parent] = true
                 props = {}
                 for child in @data.children parent, changes
-                  props = _.merge props, child.properties
+                  props = _.defaults props, child.properties
                 addChange(@data.getBlock(parent, changes), changes).properties = props
           changes
 

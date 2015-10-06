@@ -42,7 +42,8 @@
           type: 'error',
           error: errMsg
         };
-      }
+      },
+      noTrim: true
     };
   });
 

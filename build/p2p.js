@@ -2,14 +2,14 @@
 (function() {
   var slice = [].slice;
 
-  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './ot'], function(jq, immutable, Editor, Support, SockJS, Advice, OperationTransformation) {
-    var DataStore, Map, OrgData, Peer, SequentialReplacements, Set, afterMethod, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, concurrentReplacements, diag, editorToolbar, getDocumentParams, noTrim, preserveSelection, pretty, ref, replacementFor, replacementsString, runReplacements, sequentialReplacements, testMsg, validateBatch;
+  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './ot', './common'], function(jq, immutable, Editor, Support, SockJS, Advice, OperationTransformation, Common) {
+    var ConcurrentReplacements, DataStore, Map, OrgData, Peer, Replacement, SequentialReplacements, Set, afterMethod, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, computeReplacements, concurrentReplacements, diag, editorToolbar, getDocumentParams, noTrim, preserveSelection, pretty, ref, replacement, replacementFor, replacementsString, runReplacements, sequentialReplacements, testMsg, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
     OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod, callOriginal = Advice.callOriginal;
-    SequentialReplacements = OperationTransformation.SequentialReplacements, runReplacements = OperationTransformation.runReplacements, replacementsString = OperationTransformation.replacementsString, sequentialReplacements = OperationTransformation.sequentialReplacements, concurrentReplacements = OperationTransformation.concurrentReplacements;
-    noTrim = true;
+    ConcurrentReplacements = OperationTransformation.ConcurrentReplacements, SequentialReplacements = OperationTransformation.SequentialReplacements, runReplacements = OperationTransformation.runReplacements, computeReplacements = OperationTransformation.computeReplacements, replacementsString = OperationTransformation.replacementsString, sequentialReplacements = OperationTransformation.sequentialReplacements, concurrentReplacements = OperationTransformation.concurrentReplacements;
+    noTrim = Common.noTrim;
     diag = function() {
       var args;
       args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -19,14 +19,13 @@
       function Peer() {
         this.data = new OrgData();
         this.clearChanges();
-        this.pendingReplaces = [];
-        this.pendingCount = 0;
+        this.pendingReplace = null;
+        this.pendingReplaceFloat = 0;
+        this.pendingReplaceTree = new SequentialReplacements();
+        this.localReplacements = [];
         this.unreplacements = [];
         this.batchCallbacks = [];
         this.version = -1;
-        this.successiveChanges = 0;
-        this.lastReplace = null;
-        this.localChangeLimit = 3;
         this.replacementAckLimit = 5;
         this.incomingReplacementCount = 0;
         this.connectionCount = 0;
@@ -34,6 +33,7 @@
         this.docSnap = null;
         this.solo = true;
         this.history = [];
+        this.replayingHistory = false;
       }
 
       Peer.prototype.clearChanges = function() {
@@ -54,104 +54,226 @@
 
       Peer.prototype.subsumesIncoming = function(cur, next) {
         var ref1;
-        return next.mine && (!cur || next.pendingCount > ((ref1 = cur.pendingCount) != null ? ref1 : -1) || ((cur.pendingCount == null) && next.messageCount > cur.messageCount));
+        return next.mine && (!cur || next.pendingCount > ((ref1 = cur.pendingCount) != null ? ref1 : -1) || ((cur.pendingCount == null) && next.version > cur.version));
       };
 
       Peer.prototype.replayHistory = function(items) {
-        var end, i, item, j, len, msg, ref1, results, start, text, type;
-        this.history = [];
-        results = [];
-        for (i = j = 0, len = items.length; j < len; i = ++j) {
-          item = items[i];
-          ref1 = _.pairs(item)[0], type = ref1[0], msg = ref1[1];
-          if (type === 'incoming') {
-            results.push(this.handleMessage(msg));
-          } else if (type === 'outgoing') {
-            start = msg.start, end = msg.end, text = msg.text;
-            this.localReplace(msg);
-            results.push(this.data.replaceText(start, end, text));
-          } else if (type === 'trimVersions') {
-            results.push(this.handleMessage(msg));
-          } else {
-            results.push(void 0);
+        var bounds, end, i, item, j, len, msg, ref1, results1, snap, start, text, type;
+        this.replayingHistory = true;
+        try {
+          results1 = [];
+          for (i = j = 0, len = items.length; j < len; i = ++j) {
+            item = items[i];
+            ref1 = _.pairs(item)[0], type = ref1[0], msg = ref1[1];
+            if (type === 'incoming') {
+              msg.mine = msg.type === 'echo';
+              results1.push(this.handleMessage(msg));
+            } else if (type === 'edit') {
+              start = msg.start, end = msg.end, text = msg.text;
+              this.localReplace(msg);
+              this.replaceText(start, end, text);
+              snap = this.docSnap;
+              bounds = this.applyIncomingChanges();
+              results1.push(this.checkReplacement(snap, bounds, this.repsForChanges()));
+            } else if (type === 'trimVersions') {
+              results1.push(this.handleMessage(msg));
+            } else {
+              results1.push(void 0);
+            }
           }
+          return results1;
+        } finally {
+          this.replayingHistory = false;
         }
-        return results;
       };
 
       Peer.prototype.dumpReplay = function() {
         return console.log("PEER.replayHistory(" + (JSON.stringify(this.history)) + ")");
       };
 
-      Peer.prototype.rollback = function() {
+      Peer.prototype.replaceText = function(start, end, text, skipData) {
+        if (this.docSnap) {
+          this.docSnap = this.docSnap.substring(0, start) + text + this.docSnap.substring(end);
+        }
+        if (!skipData) {
+          return this.data.replaceText(start, end, text);
+        }
+      };
+
+      Peer.prototype.rollback = function(selections) {
         var j, ref1, repl;
         ref1 = this.unreplacements;
         for (j = ref1.length - 1; j >= 0; j += -1) {
           repl = ref1[j];
-          this.data.replaceText(repl.start, repl.end, repl.text);
+          this.replaceText(repl.start, repl.end, repl.text);
+          selections.addFloat(repl.start, repl.text.length - repl.end + repl.start);
         }
         return this.unreplacements = [];
       };
 
-      Peer.prototype.applyIncomingChanges = function(changes) {
-        var myLast, myLatest, myPos, reps, seq;
-        myPos = -1;
-        myLatest = null;
-        myLast = _.last(this.pendingReplaces);
-        reps = changes || this.incomingReplaces.concat(this.pendingReplaces);
-        if (this.solo && !changes && (this.docSnap != null)) {
-          seq = new SequentialReplacements();
+      Peer.prototype.replacementForLocal = function() {
+        var all, firstVersion, float, fv, j, k, l, len, len1, len2, locals, m, ref1, ref2, rep, repl, reps, results, v, version, versionInfo, vinfo;
+        if (this.pendingReplace) {
+          reps = this.incomingReplaces.slice(0);
+          reps.push(_.defaults({
+            version: this.version + 1
+          }, this.pendingReplace));
+        } else {
+          reps = this.incomingReplaces;
         }
-        return preserveSelection((function(_this) {
-          return function(range) {
-            var act, bounds, exp;
-            _this.rollback();
-            runReplacements(reps, function(start, end, text, cookies, node) {
-              var err, inRepl, j, len, ref1;
-              _this.pushUnreplacement(start, end, text);
-              _this.logReplacement((_this.nodeLabel(node)) + " R ", start, end, text);
-              if (_this.solo && !changes && (_this.docSnap != null)) {
-                seq.replace({
-                  start: start,
-                  end: end,
-                  text: text
-                });
-              }
-              try {
-                _this.data.replaceText(start, end, text);
-              } catch (_error) {
-                err = _error;
-                console.log(err);
-              }
-              if (!changes) {
-                for (j = 0, len = cookies.length; j < len; j++) {
-                  inRepl = cookies[j];
-                  if (inRepl === myLast || (inRepl !== myLast && _this.subsumesIncoming(myLatest, inRepl))) {
-                    myPos = start + text.length;
-                    myLatest = inRepl;
-                  }
-                }
-                if (end <= range.start) {
-                  return range.start += text.length - end + start;
-                } else if ((start <= (ref1 = range.start) && ref1 < end)) {
-                  return range.start = start + text.length;
-                }
-              }
-            });
-            if (_this.solo && !changes && (_this.docSnap != null)) {
-              bounds = seq.finalBounds();
-              if ((exp = _this.docSnap.substring(bounds.start, bounds.end)) !== (act = _this.data.getDocSubstring(bounds.start, bounds.end))) {
-                console.log("BAD REPLACEMENT, EXPECTED:\n" + (exp.replace(/$/, '$')) + "\n BUT GOT:\n" + (act.replace(/$/, '$')));
-                console.log("REPLACEMENT DUMP FOLLOWS...\n" + (replacementsString(reps)));
-                console.log("Replacements:", reps);
+        locals = _.cloneDeep(this.localReplacements);
+        ref1 = computeReplacements(reps), firstVersion = ref1.firstVersion, versionInfo = ref1.versionInfo;
+        l = locals.slice(0);
+        all = new SequentialReplacements();
+        fv = locals[0].parent - firstVersion;
+        ref2 = versionInfo.slice(fv + 1);
+        for (v = j = 0, len = ref2.length; j < len; v = ++j) {
+          vinfo = ref2[v];
+          version = v + fv + firstVersion;
+          all.merge(vinfo);
+          while (l.length && version >= l[0].parent) {
+            l.shift();
+          }
+          if (!l.length) {
+            break;
+          } else {
+            for (k = 0, len1 = l.length; k < len1; k++) {
+              repl = l[k];
+              if (float = all.floatFor(repl.start)) {
+                repl.start += float;
+                repl.end += float;
               }
             }
-            if (myPos > -1) {
-              range.start = myPos;
-              return range.length = 0;
+          }
+        }
+        results = new SequentialReplacements();
+        for (m = 0, len2 = locals.length; m < len2; m++) {
+          repl = locals[m];
+          results.replace(repl);
+        }
+        rep = replacement({
+          type: 'replace',
+          version: this.version + (this.pendingReplace ? 2 : 1),
+          parent: this.version + (this.pendingReplace ? 1 : 0),
+          replacements: results.toArray()
+        });
+        return [rep, results];
+      };
+
+      Peer.prototype.repsForChanges = function() {
+        var pending, reps;
+        reps = this.incomingReplaces;
+        if (this.pendingReplace) {
+          pending = _.defaults({
+            version: this.version + 1
+          }, this.pendingReplace);
+          reps = this.incomingReplaces.concat([pending]);
+          if (this.localReplacements.length) {
+            reps.push(this.replacementForLocal()[0]);
+          }
+        }
+        return reps;
+      };
+
+      Peer.prototype.repsDiag = function(reps) {
+        var rep;
+        reps = reps != null ? reps : this.repsForChanges();
+        return ((function() {
+          var j, len, results1;
+          results1 = [];
+          for (j = 0, len = reps.length; j < len; j++) {
+            rep = reps[j];
+            results1.push(REPSTR(rep));
+          }
+          return results1;
+        })()).join('\n') + '\n---\n' + replacementsString(reps);
+      };
+
+      Peer.prototype.dumpReps = function(reps) {
+        return console.log(this.repsDiag(reps));
+      };
+
+      Peer.prototype.applyIncomingChanges = function(changes) {
+        var bounds, reps, seq;
+        reps = changes ? changes : this.repsForChanges();
+        if (!changes) {
+          seq = new SequentialReplacements();
+        }
+        bounds = null;
+        preserveSelection((function(_this) {
+          return function(range) {
+            var float, selections;
+            float = _this.pendingReplaceTree.floatFor(range.start);
+            selections = new SequentialReplacements();
+            if (range.start != null) {
+              selections.replace({
+                start: range.start,
+                end: range.start,
+                text: '',
+                labels: [
+                  {
+                    name: 'caret',
+                    offset: 0
+                  }
+                ]
+              });
+            }
+            _this.rollback(selections);
+            runReplacements(reps, function(start, end, text, labels, node) {
+              selections.addFloat(start, text.length - start + end);
+              return _this.makeChange(start, end, text, !changes, seq);
+            });
+            selections.eachOperation(function(start, end, text, labels) {
+              var j, label, len, results1;
+              if (labels != null ? labels.length : void 0) {
+                results1 = [];
+                for (j = 0, len = labels.length; j < len; j++) {
+                  label = labels[j];
+                  if (label.name === 'caret') {
+                    range.start = start + label.offset;
+                    results1.push(range.length = 0);
+                  } else {
+                    results1.push(void 0);
+                  }
+                }
+                return results1;
+              }
+            });
+            bounds = seq != null ? seq.finalBounds() : void 0;
+            if (_this.solo && !changes && (_this.docSnap != null)) {
+              return _this.checkReplacement(_this.docSnap, bounds, reps);
             }
           };
         })(this));
+        return bounds;
+      };
+
+      Peer.prototype.checkReplacement = function(snap, bounds, reps) {
+        var act, exp;
+        if ((exp = snap.substring(bounds.start, bounds.end)) !== (act = this.data.getDocSubstring(bounds.start, bounds.end))) {
+          console.log("BAD REPLACEMENT, EXPECTED:\n" + (exp.replace(/$/, '$')) + "\n BUT GOT:\n" + (act.replace(/$/, '$')));
+          return console.log("REPLACEMENT DUMP...\n" + (this.repsDiag(reps)));
+        }
+      };
+
+      Peer.prototype.makeChange = function(start, end, text, check, seq) {
+        var err;
+        if (start !== end || text.length !== 0) {
+          this.pushUnreplacement(start, end, text);
+          if (check) {
+            seq.replace({
+              start: start,
+              end: end,
+              text: text
+            });
+          }
+          try {
+            return this.replaceText(start, end, text);
+          } catch (_error) {
+            err = _error;
+            return console.log(err);
+          }
+        }
       };
 
       Peer.prototype.nodeLabel = function(node) {
@@ -249,16 +371,14 @@
       };
 
       Peer.prototype.send = function(type, msg) {
-        var ref1, ref2;
         msg.type = type;
-        msg.knownVersion = (ref1 = (ref2 = this.lastReplace) != null ? ref2.messageCount : void 0) != null ? ref1 : this.version;
         return this.con.send(JSON.stringify(msg));
       };
 
       Peer.prototype.runBatchReplace = function(replacementsFunc, contFunc, errFunc) {};
 
       Peer.prototype.sendReplace = function(arg) {
-        var newBlocks, offset, oldBlocks, repl, start;
+        var newBlocks, offset, oldBlocks, ref1, repl, start, wasPending;
         oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks;
         this.incomingReplacementCount = 0;
         offset = this.data.offsetForBlock(oldBlocks[0]);
@@ -267,30 +387,31 @@
           end: start + this.editingReplacement.length,
           text: this.editingReplacement.text
         }) : replacementFor(offset, blockText(oldBlocks), blockText(newBlocks));
-        repl.type = 'replace';
-        repl.version = this.version;
-        repl.connectionId = this.connectionId;
-        this.send('replace', repl);
-        return this.localReplace(repl);
+        wasPending = this.pendingReplace;
+        if ((ref1 = this.history) != null) {
+          ref1.push({
+            edit: repl
+          });
+        }
+        this.localReplace(repl);
+        return this.replaceText(repl.start, repl.end, repl.text, true);
       };
 
       Peer.prototype.localReplace = function(repl) {
-        var newRepl;
-        if (this.history) {
-          this.history.push({
-            outgoing: repl
-          });
+        var float, newRepl;
+        if (!this.pendingReplace) {
+          repl.parent = this.version;
+          this.localReplacements.push(repl);
+          if (!this.pendingReplace) {
+            this.newPendingReplace();
+          }
+        } else {
+          float = this.pendingReplaceTree.floatFor(repl.start);
+          newRepl = _.clone(repl);
+          newRepl.parent = this.version;
+          this.localReplacements.push(newRepl);
         }
-        this.pushUnreplacement(repl.start, repl.end, repl.text);
-        this.logReplacement("OUT R ", repl.start, repl.end, repl.text);
-        this.pendingReplaces.push(newRepl = _.merge({
-          connectionId: this.connectionId,
-          mine: true,
-          pendingCount: ++this.pendingCount
-        }, repl));
-        if (this.solo && (this.docSnap != null)) {
-          return this.docSnap = this.docSnap.substring(0, repl.start) + repl.text + this.docSnap.substring(repl.end);
-        }
+        return this.pushUnreplacement(repl.start, repl.end, repl.text);
       };
 
       Peer.prototype.logReplacement = function(label, start, end, text) {};
@@ -310,6 +431,21 @@
           return this.close();
         } else {
           return this.handler[msg.type].call(this, msg);
+        }
+      };
+
+      Peer.prototype.newPendingReplace = function() {
+        var localTree, ref1, rep;
+        ref1 = this.replacementForLocal(), rep = ref1[0], localTree = ref1[1];
+        this.pendingReplace = replacement(_.defaults({
+          mine: true,
+          connectionId: this.connectionId
+        }, rep));
+        this.pendingReplaceTree = localTree;
+        this.pendingReplaceFloat = localTree.measure().float;
+        this.localReplacements = [];
+        if (!this.replayingHistory) {
+          return this.send('replace', rep);
         }
       };
 
@@ -335,161 +471,75 @@
           console.log("Received error: " + msg.error, msg);
           return this.close();
         },
-        rejectChange: function() {},
-        Xecho: function(msg) {
-          var pending;
-          if (this.history) {
-            this.history.push({
-              incoming: msg
-            });
-          }
-          pending = this.pendingReplaces.shift();
-          pending.messageCount = msg.messageCount;
-          return this.handleMessage(pending);
-        },
         echo: function(msg) {
-          var pending;
-          if (this.history) {
-            this.history.push({
+          var pending, ref1;
+          if ((ref1 = this.history) != null) {
+            ref1.push({
               incoming: msg
             });
           }
-          pending = this.pendingReplaces.shift();
-          pending.messageCount = msg.messageCount;
+          this.incomingReplacementCount = 0;
+          pending = this.pendingReplace;
+          pending.version = msg.version;
+          this.version = msg.version;
+          this.pendingReplace = null;
+          this.pendingReplaceFloat = 0;
+          this.pendingReplaceTree = new SequentialReplacements();
+          if (!this.localReplacements.length) {
+
+          } else {
+            this.incomingReplaces.push(pending);
+            this.newPendingReplace();
+            this.incomingReplaces.pop();
+          }
           return this.handleMessage(pending);
         },
+        replace: function(msg) {
+          var float, j, len, r, ref1, ref2, seq;
+          if (!msg.mine) {
+            if ((ref1 = this.history) != null) {
+              ref1.push({
+                incoming: msg
+              });
+            }
+          }
+          if (msg.connectionId !== this.connectionId || !msg.mine) {
+            this.solo = false;
+            if (!this.replayingHistory) {
+              this.docSnap = null;
+            }
+          }
+          this.version = msg.version;
+          if (++this.incomingReplacementCount > this.replacementAckLimit) {
+            this.incomingReplacementCount = 0;
+            this.send('ack', {
+              version: msg.version
+            });
+          }
+          this.incomingReplaces.push(msg);
+          if (!msg.mine && this.localReplacements.length) {
+            seq = SequentialReplacements.fromArray(msg.replacements);
+            ref2 = this.localReplacements;
+            for (j = 0, len = ref2.length; j < len; j++) {
+              r = ref2[j];
+              if (float = seq.floatFor(r.start)) {
+                r.start += float;
+                r.end += float;
+              }
+            }
+          }
+          return this.applyIncomingChanges();
+        },
+        trimVersions: function(msg) {
+          if (noTrim) {
+
+          }
+        },
+        rejectChange: function() {},
         conditionalReplace: function(arg) {
           var replacements, version;
           replacements = arg.replacements, version = arg.version;
-          return preserveSelection((function(_this) {
-            return function(range) {
-              var end, j, len, offset, ref1, repl, start;
-              offset = 0;
-              for (j = 0, len = replacements.length; j < len; j++) {
-                repl = replacements[j];
-                start = repl.start, end = repl.end;
-                start += offset;
-                end += offset;
-                if (end <= range.start) {
-                  range.start += text.length - end + start;
-                } else if ((start <= (ref1 = range.start) && ref1 < end)) {
-                  range.start = start + text.length;
-                }
-                offset += repl.text.length - repl.end + repl.start;
-              }
-              return _this.replaceBatch(replacements);
-            };
-          })(this));
-        },
-        replace: function(msg) {
-          if (this.history && !msg.mine) {
-            this.history.push({
-              incoming: msg
-            });
-          }
-          if (msg.connectionId !== this.connectionId) {
-            this.solo = false;
-            this.docSnap = null;
-          }
-          if (this.successiveChanges < 2 && msg.mine && (!this.lastReplace || this.lastReplace.mine)) {
-            this.successiveChanges++;
-          } else {
-            this.version = msg.messageCount;
-            this.successiveChanges = 0;
-          }
-          if (!msg.mine && ++this.incomingReplacementCount > this.replacementAckLimit) {
-            this.incomingReplacementCount = 0;
-            this.send('ack', {
-              version: msg.messageCount
-            });
-          }
-          this.lastReplace = msg;
-          this.incomingReplaces.push(msg);
-          return this.applyIncomingChanges();
-        },
-        XtrimVersions: function(msg) {
-          var j, k, len, len1, minKnownVersion, op, pos, ref1, ref2, version;
-          version = msg.version;
-          console.log("TRIM VERSIONS: " + version);
-          ref1 = this.incomingReplaces;
-          for (pos = j = 0, len = ref1.length; j < len; pos = ++j) {
-            op = ref1[pos];
-            if (op.version >= version) {
-              break;
-            }
-          }
-          minKnownVersion = _.reduce(this.incomingReplaces.slice(pos), (function(a, el) {
-            return Math.min(a, el.knownVersion);
-          }), this.incomingReplaces[pos - 1].messageCount);
-          ref2 = this.incomingReplaces;
-          for (pos = k = 0, len1 = ref2.length; k < len1; pos = ++k) {
-            op = ref2[pos];
-            if (op.messageCount >= minKnownVersion) {
-              break;
-            }
-          }
-          if (pos > 0 && this.incomingReplaces[pos - 1].version < version) {
-            if (this.history) {
-              this.history.push({
-                trimVersions: msg
-              });
-            }
-            preserveSelection((function(_this) {
-              return function() {
-                console.log("TRIMMING " + pos + " versions");
-                _this.applyIncomingChanges(_this.incomingReplaces.slice(0, pos));
-                _this.unreplacements = [];
-                _this.incomingReplaces = _this.incomingReplaces.slice(pos);
-                if (_this.incomingReplaces.length) {
-                  return _this.applyIncomingChanges();
-                }
-              };
-            })(this));
-            return this.version = Math.max(this.version, version);
-          }
-        },
-        trimVersions: function(msg) {
-          var j, len, op, pos, ref1, version;
-          if (noTrim) {
-            return;
-          }
-          version = msg.version;
-          console.log("TRIM VERSIONS: " + version);
-          ref1 = this.incomingReplaces;
-          for (pos = j = 0, len = ref1.length; j < len; pos = ++j) {
-            op = ref1[pos];
-            if (op.version >= version) {
-              break;
-            }
-          }
-          if (pos > 0) {
-            if (this.history) {
-              this.history.push({
-                trimVersions: msg
-              });
-            }
-            preserveSelection((function(_this) {
-              return function() {
-                var repls;
-                console.log("TRIMMING " + pos + " versions");
-                _this.applyIncomingChanges(_this.incomingReplaces.slice(0, pos));
-                _this.unreplacements = [];
-                repls = runReplacements(_this.incomingReplaces.concat(_this.pendingReplaces), (function() {}), version);
-                _this.incomingReplaces = _.filter(repls, function(r) {
-                  return r.messageCount != null;
-                });
-                if (_this.incomingReplaces.length) {
-                  return _this.applyIncomingChanges();
-                }
-              };
-            })(this));
-            return this.version = Math.max(this.version, version);
-          }
         }
-      };
-
-      Peer.prototype.replaceBatch = function(replacements) {
-        return this.data.batchReplace(replacements);
       };
 
       Peer.prototype.createSession = function(host, connectedFunc, newConnectionFunc) {
@@ -542,6 +592,20 @@
       return Peer;
 
     })();
+    Replacement = (function() {
+      function Replacement() {}
+
+      Replacement.prototype.toString = function() {
+        return "(p: " + this.parent + ", v: " + this.version + ") " + (this.replacements.join(', '));
+      };
+
+      return Replacement;
+
+    })();
+    replacement = function(repl) {
+      repl.__proto__ = Replacement.prototype;
+      return repl;
+    };
     $(document).ready(function() {
       var connected;
       if (document.location.search.length > 1 && !connected) {
@@ -553,13 +617,13 @@
       v = count = count != null ? count : 0;
       return this.handleMessage(testMsg(63, 63, 'a', v, ++count));
     };
-    testMsg = function(start, end, text, version, messageCount) {
+    testMsg = function(start, end, text, version, parent) {
       return {
         start: start,
         end: end,
         text: text,
         version: version,
-        messageCount: messageCount,
+        parent: parent,
         type: 'replace',
         connectionId: 'test-peer',
         mine: false
@@ -576,7 +640,7 @@
       } else if (!hist) {
         hist = this.history;
       }
-      dump = "      Peer::testReplay" + n + " = ->\n        replay = => @replayHistory [";
+      dump = "      Peer::testReplay" + n + " = ->\n        @history = null\n        replay = => @replayHistory [";
       for (j = 0, len = hist.length; j < len; j++) {
         repl = hist[j];
         dump += "\n          " + (pretty(repl)) + ",";
@@ -587,180 +651,162 @@
     pretty = function(obj) {
       var item, key;
       if (_.isArray(obj)) {
-        return '[{' + ((function() {
-          var j, len, results;
-          results = [];
+        return '[' + ((function() {
+          var j, len, results1;
+          results1 = [];
           for (j = 0, len = obj.length; j < len; j++) {
             item = obj[j];
-            results.push(item);
+            results1.push(pretty(item));
           }
-          return results;
+          return results1;
         })()).join(', ') + ']';
       } else if (typeof obj === 'object') {
         return '{' + ((function() {
-          var j, len, ref1, results;
+          var j, len, ref1, results1;
           ref1 = _.sortBy(_.keys(obj));
-          results = [];
+          results1 = [];
           for (j = 0, len = ref1.length; j < len; j++) {
             key = ref1[j];
-            results.push(key + ": " + (pretty(obj[key])));
+            results1.push(key + ": " + (pretty(obj[key])));
           }
-          return results;
+          return results1;
         })()).join(', ') + '}';
       } else {
         return JSON.stringify(obj);
       }
     };
-    Peer.prototype.testHistory = [
-      {
-        incoming: {
-          start: 31,
-          end: 31,
-          text: "a",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-1",
-          messageCount: 2,
-          mine: false,
-          knownVersion: 0
-        }
-      }, {
-        outgoing: {
-          start: 169,
-          end: 170,
-          text: "3",
-          type: "replace",
-          version: 2,
-          connectionId: "peer-0",
-          knownVersion: 2
-        }
-      }, {
-        incoming: {
-          start: 32,
-          end: 32,
-          text: "s",
-          type: "replace",
-          version: 0,
-          connectionId: "peer-1",
-          messageCount: 3,
-          mine: false,
-          knownVersion: 0
-        }
-      }, {
-        incoming: {
-          type: "echo",
-          version: 0,
-          connectionId: "peer-0",
-          messageCount: 4
-        }
-      }
-    ];
-    Peer.prototype.testReplay2 = function() {
+    Peer.prototype.testReplay1 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
-                start: 13,
-                end: 13,
-                text: "a",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
+              edit: {
+                end: 30,
+                parent: 1,
+                start: 30,
+                text: "a"
               }
             }, {
               incoming: {
+                mine: true,
                 type: "echo",
-                version: 0,
-                connectionId: "peer-0",
-                messageCount: 1
+                version: 2
               }
             }, {
-              outgoing: {
-                start: 14,
-                end: 14,
-                text: "s",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 1
+              edit: {
+                end: 31,
+                parent: 2,
+                start: 31,
+                text: "s"
+              }
+            }, {
+              edit: {
+                end: 32,
+                start: 32,
+                text: "d"
               }
             }, {
               incoming: {
+                mine: true,
                 type: "echo",
-                version: 0,
-                connectionId: "peer-0",
-                messageCount: 2
+                version: 3
               }
-            }, {
-              outgoing: {
-                start: 15,
-                end: 15,
-                text: "d",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 2
+            }
+          ]);
+        };
+      })(this);
+      if (!this.con) {
+        return Leisure.createSession(document.location.host || "localhost:8080", replay);
+      } else {
+        return replay();
+      }
+    };
+    Peer.prototype.testReplay2 = function() {
+      var replay;
+      this.history = null;
+      replay = (function(_this) {
+        return function() {
+          return _this.replayHistory([
+            {
+              edit: {
+                end: 30,
+                parent: 1,
+                start: 30,
+                text: "a"
               }
             }, {
               incoming: {
+                mine: true,
                 type: "echo",
-                version: 0,
-                connectionId: "peer-0",
-                messageCount: 4
+                version: 2
               }
             }, {
-              outgoing: {
-                start: 16,
-                end: 16,
-                text: "a",
-                type: "replace",
-                version: 4,
-                connectionId: "peer-0",
-                knownVersion: 4
+              edit: {
+                end: 31,
+                parent: 2,
+                start: 31,
+                text: "s"
               }
             }, {
               incoming: {
+                mine: true,
                 type: "echo",
-                version: 4,
-                connectionId: "peer-0",
-                messageCount: 6
+                version: 3
               }
             }, {
-              outgoing: {
-                start: 17,
-                end: 17,
-                text: "s",
-                type: "replace",
-                version: 4,
-                connectionId: "peer-0",
-                knownVersion: 6
+              edit: {
+                end: 32,
+                parent: 3,
+                start: 32,
+                text: "d"
               }
             }, {
-              outgoing: {
-                start: 18,
-                end: 18,
-                text: "d",
-                type: "replace",
-                version: 4,
-                connectionId: "peer-0",
-                knownVersion: 6
+              edit: {
+                end: 33,
+                parent: 3,
+                start: 33,
+                text: "f"
               }
             }, {
               incoming: {
+                mine: true,
                 type: "echo",
-                version: 4,
-                connectionId: "peer-0",
-                messageCount: 8
+                version: 4
               }
             }, {
               incoming: {
+                mine: true,
                 type: "echo",
-                version: 4,
-                connectionId: "peer-0",
-                messageCount: 9
+                version: 5
+              }
+            }, {
+              edit: {
+                end: 34,
+                parent: 5,
+                start: 34,
+                text: "a"
+              }
+            }, {
+              edit: {
+                end: 35,
+                parent: 5,
+                start: 35,
+                text: "s"
+              }
+            }, {
+              edit: {
+                end: 36,
+                parent: 5,
+                start: 36,
+                text: "d"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 6
               }
             }
           ]);
@@ -774,292 +820,129 @@
     };
     Peer.prototype.testReplay3 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "4",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "3",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
-              }
-            }, {
-              outgoing: {
-                start: 167,
-                end: 169,
-                text: "37",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "0",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
-              }
-            }, {
-              outgoing: {
-                start: 167,
-                end: 169,
-                text: "24",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "3",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
-              }
-            }, {
               incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 2,
-                mine: true
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "2",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 2
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 3,
-                mine: true
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "0",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 3
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 4,
-                mine: true
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 5,
-                mine: true
-              }
-            }, {
-              incoming: {
-                start: 30,
-                end: 30,
-                text: "a",
-                type: "replace",
-                version: 0,
                 connectionId: "peer-1",
-                knownVersion: 0,
-                messageCount: 6,
-                mine: false
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 170,
-                text: "11",
+                mine: false,
+                parent: 1,
+                replacements: [30, 30, 'a'],
                 type: "replace",
-                version: 6,
-                connectionId: "peer-0",
-                knownVersion: 6
+                version: 3
               }
             }, {
               incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 7,
-                mine: true
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 170,
-                text: "9",
-                type: "replace",
-                version: 7,
-                connectionId: "peer-0",
-                knownVersion: 7
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 8,
-                mine: true
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "8",
-                type: "replace",
-                version: 7,
-                connectionId: "peer-0",
-                knownVersion: 8
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "-1",
-                type: "replace",
-                version: 7,
-                connectionId: "peer-0",
-                knownVersion: 8
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 9,
-                mine: true
-              }
-            }, {
-              outgoing: {
-                start: 169,
-                end: 170,
-                text: "2",
-                type: "replace",
-                version: 7,
-                connectionId: "peer-0",
-                knownVersion: 9
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 10,
-                mine: true
-              }
-            }, {
-              outgoing: {
-                start: 169,
-                end: 170,
-                text: "5",
-                type: "replace",
-                version: 10,
-                connectionId: "peer-0",
-                knownVersion: 10
-              }
-            }, {
-              outgoing: {
-                start: 169,
-                end: 170,
-                text: "10",
-                type: "replace",
-                version: 10,
-                connectionId: "peer-0",
-                knownVersion: 10
-              }
-            }, {
-              incoming: {
-                start: 31,
-                end: 31,
-                text: "s",
-                type: "replace",
-                version: 3,
                 connectionId: "peer-1",
-                knownVersion: 3,
-                messageCount: 12,
-                mine: false
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 13,
-                mine: true
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 14,
-                mine: true
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 15,
-                mine: true
-              }
-            }, {
-              incoming: {
-                type: "echo",
-                version: 0,
-                messageCount: 16,
-                mine: true
-              }
-            }, {
-              incoming: {
-                start: 32,
-                end: 32,
-                text: "f",
+                mine: false,
+                parent: 2,
+                replacements: [31, 31, 's'],
                 type: "replace",
-                version: 8,
+                version: 4
+              }
+            }, {
+              edit: {
+                end: 61,
+                parent: 4,
+                start: 61,
+                text: "r"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 5
+              }
+            }, {
+              edit: {
+                end: 62,
+                parent: 5,
+                start: 62,
+                text: "e"
+              }
+            }, {
+              edit: {
+                end: 63,
+                start: 63,
+                text: "w"
+              }
+            }, {
+              edit: {
+                end: 64,
+                start: 64,
+                text: "q"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 6
+              }
+            }, {
+              incoming: {
                 connectionId: "peer-1",
-                knownVersion: 8,
-                messageCount: 18,
-                mine: false
+                mine: false,
+                parent: 4,
+                replacements: [31, 31, 'f'],
+                type: "replace",
+                version: 7
               }
             }, {
               incoming: {
+                mine: true,
                 type: "echo",
-                version: 0,
-                messageCount: 19,
-                mine: true
+                version: 8
               }
             }, {
               incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 7,
+                replacements: [32, 32, 'd'],
+                type: "replace",
+                version: 9
+              }
+            }, {
+              edit: {
+                end: 66,
+                parent: 9,
+                start: 66,
+                text: "r"
+              }
+            }, {
+              edit: {
+                end: 67,
+                start: 67,
+                text: "e"
+              }
+            }, {
+              incoming: {
+                mine: true,
                 type: "echo",
-                version: 0,
-                messageCount: 20,
-                mine: true
+                version: 10
+              }
+            }, {
+              edit: {
+                end: 68,
+                start: 68,
+                text: "w"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 11
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 9,
+                replacements: [32, 32, 'sa'],
+                type: "replace",
+                version: 12
               }
             }
           ]);
@@ -1073,52 +956,49 @@
     };
     Peer.prototype.testReplay4 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "4",
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 1,
+                replacements: [30, 30, "a"],
                 type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
+                version: 3
               }
             }, {
               incoming: {
-                start: 30,
-                end: 30,
-                text: "a",
-                type: "replace",
-                version: 0,
                 connectionId: "peer-1",
-                knownVersion: 0,
-                messageCount: 2,
-                mine: false
+                mine: false,
+                parent: 2,
+                replacements: [31, 31, "s"],
+                type: "replace",
+                version: 4
               }
             }, {
-              outgoing: {
-                start: 169,
-                end: 170,
-                text: "1",
-                type: "replace",
-                version: 2,
-                connectionId: "peer-0",
-                knownVersion: 2
+              edit: {
+                end: 171,
+                parent: 4,
+                start: 171,
+                text: "3"
               }
             }, {
               incoming: {
-                start: 31,
-                end: 31,
-                text: "s",
-                type: "replace",
-                version: 0,
+                mine: true,
+                type: "echo",
+                version: 5
+              }
+            }, {
+              incoming: {
                 connectionId: "peer-1",
-                knownVersion: 0,
-                messageCount: 3,
-                mine: false
+                mine: false,
+                parent: 4,
+                replacements: [31, 31, "fd"],
+                type: "replace",
+                version: 6
               }
             }
           ]);
@@ -1132,67 +1012,61 @@
     };
     Peer.prototype.testReplay5 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "4",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "1",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-0",
-                knownVersion: 0
-              }
-            }, {
-              incoming: {
-                start: 30,
+              edit: {
                 end: 30,
-                text: "a",
-                type: "replace",
-                version: 0,
-                connectionId: "peer-1",
-                knownVersion: 0,
-                messageCount: 2,
-                mine: false
+                parent: 1,
+                start: 30,
+                text: "a"
               }
             }, {
-              outgoing: {
-                start: 168,
-                end: 169,
-                text: "1",
-                type: "replace",
-                version: 2,
-                connectionId: "peer-0",
-                knownVersion: 2
-              }
-            }, {
-              outgoing: {
-                start: 168,
-                end: 170,
-                text: "2",
-                type: "replace",
-                version: 2,
-                connectionId: "peer-0",
-                knownVersion: 2
+              edit: {
+                end: 31,
+                start: 31,
+                text: "s"
               }
             }, {
               incoming: {
+                mine: true,
                 type: "echo",
-                version: 0,
-                messageCount: 3,
-                mine: true
+                version: 3
+              }
+            }, {
+              edit: {
+                end: 32,
+                start: 32,
+                text: "f"
+              }
+            }, {
+              edit: {
+                end: 33,
+                start: 33,
+                text: "d"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 4
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-0",
+                mine: false,
+                parent: 4,
+                replacements: [171, 171, "3"],
+                type: "replace",
+                version: 5
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 6
               }
             }
           ]);
@@ -1206,67 +1080,74 @@
     };
     Peer.prototype.testReplay6 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 0,
-                start: 168,
-                text: "4",
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 1,
+                replacements: [30, 30, "a"],
                 type: "replace",
-                version: 0
+                version: 3
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 0,
-                start: 167,
-                text: "36",
-                type: "replace",
-                version: 0
+              edit: {
+                end: 60,
+                parent: 3,
+                start: 60,
+                text: "q"
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 0,
-                start: 167,
-                text: "22",
-                type: "replace",
-                version: 0
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 4
               }
             }, {
               incoming: {
                 connectionId: "peer-1",
-                end: 30,
-                knownVersion: 0,
-                messageCount: 2,
                 mine: false,
-                start: 30,
-                text: "a",
+                parent: 3,
+                replacements: [31, 31, "s"],
                 type: "replace",
-                version: 0
+                version: 5
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 2,
-                start: 168,
-                text: "16",
-                type: "replace",
-                version: 2
+              edit: {
+                end: 62,
+                parent: 5,
+                start: 62,
+                text: "w"
+              }
+            }, {
+              edit: {
+                end: 63,
+                start: 63,
+                text: "e"
               }
             }, {
               incoming: {
-                messageCount: 3,
                 mine: true,
                 type: "echo",
-                version: 0
+                version: 6
+              }
+            }, {
+              edit: {
+                end: 64,
+                start: 64,
+                text: "r"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 5,
+                replacements: [31, 31, "d"],
+                type: "replace",
+                version: 7
               }
             }
           ]);
@@ -1280,347 +1161,152 @@
     };
     Peer.prototype.testReplay7 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              incoming: {
-                connectionId: "peer-1",
-                end: 30,
-                knownVersion: 0,
-                messageCount: 2,
-                mine: false,
-                start: 30,
-                text: "a",
-                type: "replace",
-                version: 0
+              edit: {
+                end: 169,
+                parent: 1,
+                start: 169,
+                text: "3"
               }
             }, {
               incoming: {
-                connectionId: "peer-1",
-                end: 31,
-                knownVersion: 0,
-                messageCount: 3,
-                mine: false,
-                start: 31,
-                text: "s",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 32,
-                knownVersion: 0,
-                messageCount: 4,
-                mine: false,
-                start: 32,
-                text: "d",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 4,
-                start: 171,
-                text: "4",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 4,
-                start: 171,
-                text: "1",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 4,
-                start: 171,
-                text: "0",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 33,
-                knownVersion: 2,
-                messageCount: 5,
-                mine: false,
-                start: 33,
-                text: "f",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 5,
-                start: 171,
-                text: "38",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 5,
-                start: 172,
-                text: "7",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              incoming: {
-                messageCount: 6,
                 mine: true,
                 type: "echo",
-                version: 0
+                version: 3
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 6,
+              edit: {
+                end: 170,
+                parent: 3,
+                start: 170,
+                text: "2"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 3,
+                replacements: [30, 30, "s"],
+                type: "replace",
+                version: 4
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 5
+              }
+            }, {
+              edit: {
+                end: 172,
+                parent: 5,
                 start: 172,
-                text: "4",
+                text: "3"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 4,
+                replacements: [31, 31, "adf"],
                 type: "replace",
                 version: 6
               }
             }, {
               incoming: {
-                connectionId: "peer-1",
-                end: 34,
-                knownVersion: 4,
-                messageCount: 8,
-                mine: false,
-                start: 34,
-                text: "a",
-                type: "replace",
-                version: 4
+                mine: true,
+                type: "echo",
+                version: 7
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 174,
-                knownVersion: 8,
-                start: 173,
-                text: "0",
-                type: "replace",
+              edit: {
+                end: 176,
+                parent: 7,
+                start: 176,
+                text: "2"
+              }
+            }, {
+              edit: {
+                end: 176,
+                parent: 7,
+                start: 176,
+                text: "3"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
                 version: 8
               }
             }, {
               incoming: {
-                messageCount: 9,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 174,
-                knownVersion: 9,
-                start: 172,
-                text: "19",
+                connectionId: "peer-1",
+                mine: false,
+                parent: 6,
+                replacements: [34, 34, "s"],
                 type: "replace",
                 version: 9
               }
             }, {
               incoming: {
-                connectionId: "peer-1",
-                end: 35,
-                knownVersion: 4,
-                messageCount: 10,
-                mine: false,
-                start: 35,
-                text: "s",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 175,
-                knownVersion: 10,
-                start: 174,
-                text: "6",
-                type: "replace",
+                mine: true,
+                type: "echo",
                 version: 10
               }
             }, {
-              incoming: {
-                messageCount: 11,
-                mine: true,
-                type: "echo",
-                version: 0
+              edit: {
+                end: 179,
+                parent: 10,
+                start: 179,
+                text: "2"
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 175,
-                knownVersion: 11,
-                start: 174,
-                text: "3",
-                type: "replace",
-                version: 11
+              edit: {
+                end: 179,
+                parent: 10,
+                start: 179,
+                text: "3"
               }
             }, {
-              incoming: {
-                messageCount: 12,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 175,
-                knownVersion: 12,
-                start: 174,
-                text: "1",
-                type: "replace",
-                version: 11
-              }
-            }, {
-              incoming: {
-                messageCount: 13,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 175,
-                knownVersion: 13,
-                start: 173,
-                text: "8",
-                type: "replace",
-                version: 11
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 174,
-                knownVersion: 13,
-                start: 173,
-                text: "4",
-                type: "replace",
-                version: 11
+              edit: {
+                end: 180,
+                parent: 10,
+                start: 180,
+                text: "2"
               }
             }, {
               incoming: {
                 connectionId: "peer-1",
-                end: 37,
-                knownVersion: 5,
-                messageCount: 15,
                 mine: false,
-                start: 37,
-                text: "f",
+                parent: 9,
+                replacements: [34, 34, "adf"],
                 type: "replace",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 175,
-                knownVersion: 15,
-                start: 174,
-                text: "-1",
-                type: "replace",
-                version: 15
+                version: 11
               }
             }, {
               incoming: {
-                messageCount: 16,
                 mine: true,
                 type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 176,
-                knownVersion: 16,
-                start: 175,
-                text: "5",
-                type: "replace",
-                version: 16
-              }
-            }, {
-              incoming: {
-                messageCount: 17,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 176,
-                knownVersion: 17,
-                start: 175,
-                text: "6",
-                type: "replace",
-                version: 16
-              }
-            }, {
-              incoming: {
-                messageCount: 18,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 176,
-                knownVersion: 18,
-                start: 175,
-                text: "9",
-                type: "replace",
-                version: 16
-              }
-            }, {
-              incoming: {
-                messageCount: 19,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 176,
-                knownVersion: 19,
-                start: 175,
-                text: "3",
-                type: "replace",
-                version: 19
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 42,
-                knownVersion: 12,
-                messageCount: 21,
-                mine: false,
-                start: 42,
-                text: "a",
-                type: "replace",
                 version: 12
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 11,
+                replacements: [41, 41, "sad", 3, 3, "fsad"],
+                type: "replace",
+                version: 13
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 14
               }
             }
           ]);
@@ -1634,46 +1320,106 @@
     };
     Peer.prototype.testReplay8 = function() {
       var replay;
-      this.connectionId = 'peer-1';
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
+              incoming: {
                 connectionId: "peer-1",
-                end: 30,
-                knownVersion: 0,
-                start: 30,
-                text: "a",
+                mine: false,
+                parent: 1,
+                replacements: [30, 30, "a"],
                 type: "replace",
-                version: 0
+                version: 3
               }
             }, {
-              outgoing: {
-                connectionId: "peer-1",
-                end: 31,
-                knownVersion: 0,
-                start: 31,
-                text: "s",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-1",
-                end: 32,
-                knownVersion: 0,
-                start: 32,
-                text: "d",
-                type: "replace",
-                version: 0
+              edit: {
+                end: 170,
+                parent: 3,
+                start: 170,
+                text: "4"
               }
             }, {
               incoming: {
-                messageCount: 2,
                 mine: true,
                 type: "echo",
-                version: 0
+                version: 4
+              }
+            }, {
+              edit: {
+                end: 171,
+                parent: 4,
+                start: 171,
+                text: "3"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 3,
+                replacements: [31, 31, "s"],
+                type: "replace",
+                version: 5
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 6
+              }
+            }, {
+              edit: {
+                end: 173,
+                parent: 6,
+                start: 173,
+                text: "4"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 5,
+                replacements: [33, 33, "f", 1, 1, "d"],
+                type: "replace",
+                version: 7
+              }
+            }, {
+              edit: {
+                end: 175,
+                parent: 7,
+                start: 175,
+                text: "3"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 8
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 9
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 7,
+                replacements: [31, 31, "sda"],
+                type: "replace",
+                version: 10
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 10,
+                replacements: [36, 36, "f"],
+                type: "replace",
+                version: 11
               }
             }
           ]);
@@ -1687,151 +1433,82 @@
     };
     Peer.prototype.testReplay9 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 9,
-                knownVersion: 0,
-                start: 9,
-                text: "a",
-                type: "replace",
-                version: 0
-              }
-            }, {
               incoming: {
-                messageCount: 1,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 10,
-                knownVersion: 1,
-                start: 10,
-                text: "s",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 11,
-                knownVersion: 1,
-                start: 11,
-                text: "d",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              incoming: {
-                messageCount: 2,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              incoming: {
-                messageCount: 3,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 12,
-                knownVersion: 3,
-                start: 12,
-                text: "f",
-                type: "replace",
-                version: 3
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 13,
-                knownVersion: 3,
-                start: 13,
-                text: ";",
-                type: "replace",
-                version: 3
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 14,
-                knownVersion: 3,
-                start: 14,
-                text: "l",
-                type: "replace",
-                version: 3
-              }
-            }, {
-              trimVersions: {
-                messageCount: 4,
+                connectionId: "peer-1",
                 mine: false,
-                type: "trimVersions",
-                version: 3
-              }
-            }, {
-              incoming: {
-                messageCount: 5,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 15,
-                knownVersion: 5,
-                start: 15,
-                text: "k",
+                parent: 1,
+                replacements: [30, 30, "a"],
                 type: "replace",
                 version: 3
               }
             }, {
-              incoming: {
-                messageCount: 6,
-                mine: true,
-                type: "echo",
-                version: 0
+              edit: {
+                end: 60,
+                parent: 3,
+                start: 60,
+                text: "q"
               }
             }, {
               incoming: {
-                messageCount: 7,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 16,
-                knownVersion: 7,
-                start: 16,
-                text: "j",
-                type: "replace",
-                version: 7
-              }
-            }, {
-              trimVersions: {
-                messageCount: 8,
+                connectionId: "peer-1",
                 mine: false,
-                type: "trimVersions",
+                parent: 3,
+                replacements: [31, 31, "s"],
+                type: "replace",
+                version: 4
+              }
+            }, {
+              edit: {
+                end: 62,
+                start: 62,
+                text: "w"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 4,
+                replacements: [32, 32, "d"],
+                type: "replace",
                 version: 5
               }
             }, {
+              edit: {
+                end: 64,
+                start: 64,
+                text: "e"
+              }
+            }, {
               incoming: {
-                messageCount: 9,
+                connectionId: "peer-1",
+                mine: false,
+                parent: 5,
+                replacements: [33, 33, "f"],
+                type: "replace",
+                version: 6
+              }
+            }, {
+              edit: {
+                end: 65,
+                start: 65,
+                text: "r"
+              }
+            }, {
+              incoming: {
                 mine: true,
                 type: "echo",
-                version: 0
+                version: 7
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 8
               }
             }
           ]);
@@ -1845,120 +1522,146 @@
     };
     Peer.prototype.testReplay10 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 9,
-                knownVersion: 0,
-                start: 9,
-                text: "a",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 10,
-                knownVersion: 0,
-                start: 10,
-                text: "s",
-                type: "replace",
-                version: 0
-              }
-            }, {
               incoming: {
-                messageCount: 1,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 11,
-                knownVersion: 1,
-                start: 11,
-                text: "d",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              incoming: {
-                messageCount: 2,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 12,
-                knownVersion: 2,
-                start: 12,
-                text: "f",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              incoming: {
-                messageCount: 3,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 13,
-                knownVersion: 3,
-                start: 13,
-                text: ";",
+                connectionId: "peer-1",
+                mine: false,
+                parent: 1,
+                replacements: [30, 30, "a"],
                 type: "replace",
                 version: 3
               }
             }, {
-              trimVersions: {
-                messageCount: 4,
-                mine: false,
-                type: "trimVersions",
-                version: 2
+              edit: {
+                end: 60,
+                parent: 3,
+                start: 60,
+                text: "q"
               }
             }, {
               incoming: {
-                messageCount: 5,
+                connectionId: "peer-1",
+                mine: false,
+                parent: 3,
+                replacements: [31, 31, "s"],
+                type: "replace",
+                version: 4
+              }
+            }, {
+              incoming: {
                 mine: true,
                 type: "echo",
-                version: 0
+                version: 5
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 14,
-                knownVersion: 5,
-                start: 14,
-                text: "l",
-                type: "replace",
-                version: 2
+              edit: {
+                end: 62,
+                parent: 5,
+                start: 62,
+                text: "w"
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 15,
-                knownVersion: 5,
-                start: 15,
-                text: "k",
-                type: "replace",
-                version: 2
-              }
-            }, {
-              trimVersions: {
-                messageCount: 6,
+              incoming: {
+                connectionId: "peer-1",
                 mine: false,
-                type: "trimVersions",
-                version: 3
+                parent: 4,
+                replacements: [32, 32, "d"],
+                type: "replace",
+                version: 6
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 7
+              }
+            }, {
+              edit: {
+                end: 64,
+                parent: 7,
+                start: 64,
+                text: "e"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 6,
+                replacements: [33, 33, "f"],
+                type: "replace",
+                version: 8
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 9
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 9,
+                replacements: [34, 34, "a"],
+                type: "replace",
+                version: 10
+              }
+            }, {
+              edit: {
+                end: 67,
+                parent: 10,
+                start: 67,
+                text: "q"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 10,
+                replacements: [35, 35, "s"],
+                type: "replace",
+                version: 11
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 12
+              }
+            }, {
+              edit: {
+                end: 69,
+                parent: 12,
+                start: 69,
+                text: "w"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 11,
+                replacements: [36, 36, "f"],
+                type: "replace",
+                version: 13
+              }
+            }, {
+              edit: {
+                end: 71,
+                start: 71,
+                text: "e"
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 13,
+                replacements: [36, 36, "d"],
+                type: "replace",
+                version: 14
               }
             }
           ]);
@@ -1972,144 +1675,213 @@
     };
     Peer.prototype.testReplay11 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              incoming: {
-                connectionId: "peer-1",
+              edit: {
                 end: 30,
-                knownVersion: 0,
-                messageCount: 2,
-                mine: false,
+                parent: 1,
                 start: 30,
-                text: "a",
-                type: "replace",
-                version: 0
+                text: "a"
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 2,
-                start: 169,
-                text: "4",
-                type: "replace",
+              incoming: {
+                mine: true,
+                type: "echo",
                 version: 2
               }
             }, {
-              incoming: {
-                connectionId: "peer-1",
+              edit: {
                 end: 31,
-                knownVersion: 0,
-                messageCount: 3,
-                mine: false,
+                parent: 2,
                 start: 31,
-                text: "s",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 3,
-                start: 170,
-                text: "1",
-                type: "replace",
-                version: 3
+                text: "s"
               }
             }, {
               incoming: {
-                connectionId: "peer-1",
+                mine: true,
+                type: "echo",
+                version: 3
+              }
+            }, {
+              edit: {
                 end: 32,
-                knownVersion: 0,
-                messageCount: 4,
-                mine: false,
+                parent: 3,
                 start: 32,
-                text: "f",
-                type: "replace",
-                version: 0
+                text: "d"
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 4,
-                start: 170,
-                text: "29",
-                type: "replace",
+              incoming: {
+                mine: true,
+                type: "echo",
                 version: 4
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 4,
-                start: 171,
-                text: "2",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              incoming: {
-                messageCount: 5,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 5,
-                start: 170,
-                text: "18",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              incoming: {
-                messageCount: 6,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              trimVersions: {
-                messageCount: 7,
-                mine: false,
-                type: "trimVersions",
-                version: 3
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 6,
-                start: 171,
-                text: "6",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
+              edit: {
                 end: 33,
-                knownVersion: 4,
-                messageCount: 8,
-                mine: false,
+                parent: 4,
                 start: 33,
-                text: "a",
-                type: "replace",
-                version: 4
+                text: "f"
               }
             }, {
-              trimVersions: {
-                messageCount: 9,
-                mine: false,
-                type: "trimVersions",
-                version: 4
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 5
+              }
+            }, {
+              edit: {
+                end: 34,
+                parent: 5,
+                start: 34,
+                text: ";"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 6
+              }
+            }, {
+              edit: {
+                end: 35,
+                parent: 6,
+                start: 35,
+                text: "l"
+              }
+            }, {
+              edit: {
+                end: 36,
+                start: 36,
+                text: "k"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 7
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 8
+              }
+            }, {
+              edit: {
+                end: 37,
+                parent: 8,
+                start: 37,
+                text: "j"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 9
+              }
+            }, {
+              edit: {
+                end: 38,
+                parent: 9,
+                start: 38,
+                text: "a"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 10
+              }
+            }, {
+              edit: {
+                end: 39,
+                parent: 10,
+                start: 39,
+                text: "s"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 11
+              }
+            }, {
+              edit: {
+                end: 40,
+                parent: 11,
+                start: 40,
+                text: "d"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 12
+              }
+            }, {
+              edit: {
+                end: 41,
+                parent: 12,
+                start: 41,
+                text: "f"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 13
+              }
+            }, {
+              edit: {
+                end: 42,
+                parent: 13,
+                start: 42,
+                text: ";"
+              }
+            }, {
+              edit: {
+                end: 43,
+                start: 43,
+                text: "l"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 14
+              }
+            }, {
+              edit: {
+                end: 44,
+                start: 44,
+                text: "k"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 15
+              }
+            }, {
+              edit: {
+                end: 45,
+                start: 45,
+                text: "j"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 16
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 17
               }
             }
           ]);
@@ -2123,273 +1895,249 @@
     };
     Peer.prototype.testReplay12 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
               incoming: {
                 connectionId: "peer-1",
-                end: 30,
-                knownVersion: 0,
-                messageCount: 2,
                 mine: false,
-                start: 30,
-                text: "a",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 2,
-                start: 169,
-                text: "4",
-                type: "replace",
-                version: 2
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 31,
-                knownVersion: 0,
-                messageCount: 3,
-                mine: false,
-                start: 31,
-                text: "s",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 3,
-                start: 170,
-                text: "3",
+                parent: 1,
+                replacements: [30, 30, "a"],
                 type: "replace",
                 version: 3
               }
             }, {
+              edit: {
+                end: 60,
+                parent: 3,
+                start: 60,
+                text: "q"
+              }
+            }, {
               incoming: {
-                connectionId: "peer-1",
-                end: 32,
-                knownVersion: 0,
-                messageCount: 4,
-                mine: false,
-                start: 32,
-                text: "d",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 4,
-                start: 170,
-                text: "37",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 4,
-                start: 170,
-                text: "2",
-                type: "replace",
+                mine: true,
+                type: "echo",
                 version: 4
               }
             }, {
               incoming: {
                 connectionId: "peer-1",
-                end: 33,
-                knownVersion: 0,
-                messageCount: 5,
                 mine: false,
-                start: 33,
-                text: "f",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 5,
-                start: 171,
-                text: "19",
+                parent: 2,
+                replacements: [31, 31, "s"],
                 type: "replace",
                 version: 5
               }
             }, {
+              edit: {
+                end: 62,
+                parent: 5,
+                start: 62,
+                text: "w"
+              }
+            }, {
+              edit: {
+                end: 63,
+                start: 63,
+                text: "e"
+              }
+            }, {
               incoming: {
-                messageCount: 6,
                 mine: true,
                 type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 6,
-                start: 172,
-                text: "6",
-                type: "replace",
-                version: 6
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 6,
-                start: 172,
-                text: "5",
-                type: "replace",
                 version: 6
               }
             }, {
               incoming: {
                 connectionId: "peer-1",
-                end: 34,
-                knownVersion: 4,
-                messageCount: 7,
                 mine: false,
-                start: 34,
-                text: "a",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 7,
-                start: 172,
-                text: "",
+                parent: 5,
+                replacements: [30, 30, "f"],
                 type: "replace",
                 version: 7
               }
             }, {
-              trimVersions: {
-                messageCount: 8,
-                mine: false,
-                type: "trimVersions",
-                version: 3
-              }
-            }, {
               incoming: {
-                messageCount: 9,
                 mine: true,
                 type: "echo",
-                version: 0
+                version: 8
+              }
+            }, {
+              edit: {
+                end: 65,
+                parent: 8,
+                start: 65,
+                text: "q"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 9
               }
             }, {
               incoming: {
                 connectionId: "peer-1",
-                end: 35,
-                knownVersion: 5,
-                messageCount: 10,
                 mine: false,
-                start: 35,
-                text: "s",
+                parent: 8,
+                replacements: [32, 32, "a"],
                 type: "replace",
-                version: 4
+                version: 10
+              }
+            }, {
+              edit: {
+                end: 67,
+                parent: 10,
+                start: 67,
+                text: "w"
               }
             }, {
               incoming: {
                 connectionId: "peer-1",
-                end: 36,
-                knownVersion: 5,
-                messageCount: 11,
                 mine: false,
-                start: 36,
-                text: "d",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              trimVersions: {
-                messageCount: 12,
-                mine: false,
-                type: "trimVersions",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 175,
-                knownVersion: 11,
-                start: 174,
-                text: "4",
+                parent: 10,
+                replacements: [34, 34, "sd", 1, 1, "f"],
                 type: "replace",
                 version: 11
               }
             }, {
               incoming: {
-                messageCount: 13,
                 mine: true,
                 type: "echo",
-                version: 0
+                version: 12
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 175,
-                knownVersion: 13,
-                start: 174,
-                text: "6",
-                type: "replace",
+              edit: {
+                end: 71,
+                parent: 12,
+                start: 71,
+                text: "e"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
                 version: 13
               }
             }, {
               incoming: {
                 connectionId: "peer-1",
-                end: 37,
-                knownVersion: 5,
-                messageCount: 14,
                 mine: false,
-                start: 37,
-                text: "f",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 176,
-                knownVersion: 14,
-                start: 175,
-                text: "13",
+                parent: 12,
+                replacements: [34, 34, "a"],
                 type: "replace",
                 version: 14
               }
             }, {
-              incoming: {
-                messageCount: 15,
-                mine: true,
-                type: "echo",
-                version: 0
+              edit: {
+                end: 73,
+                parent: 14,
+                start: 73,
+                text: "q"
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 177,
-                knownVersion: 15,
-                start: 176,
-                text: "9",
-                type: "replace",
+              incoming: {
+                mine: true,
+                type: "echo",
                 version: 15
               }
             }, {
-              trimVersions: {
-                messageCount: 16,
+              edit: {
+                end: 74,
+                parent: 15,
+                start: 74,
+                text: "w"
+              }
+            }, {
+              edit: {
+                end: 75,
+                start: 75,
+                text: "e"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 16
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
                 mine: false,
-                type: "trimVersions",
-                version: 5
+                parent: 14,
+                replacements: [34, 34, "sdf"],
+                type: "replace",
+                version: 17
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 18
+              }
+            }, {
+              edit: {
+                end: 79,
+                parent: 18,
+                start: 79,
+                text: "q"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 19
+              }
+            }, {
+              edit: {
+                end: 80,
+                parent: 19,
+                start: 80,
+                text: "w"
+              }
+            }, {
+              edit: {
+                end: 81,
+                start: 81,
+                text: "e"
+              }
+            }, {
+              edit: {
+                end: 82,
+                start: 82,
+                text: "e"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 20
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 18,
+                replacements: [38, 38, "s"],
+                type: "replace",
+                version: 21
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 22
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 21,
+                replacements: [39, 39, "adf"],
+                type: "replace",
+                version: 23
               }
             }
           ]);
@@ -2403,191 +2151,200 @@
     };
     Peer.prototype.testReplay13 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 0,
-                start: 168,
-                text: "4",
-                type: "replace",
-                version: 0
+              edit: {
+                end: 59,
+                parent: 1,
+                start: 59,
+                text: "q"
               }
             }, {
               incoming: {
-                connectionId: "peer-1",
-                end: 30,
-                knownVersion: 0,
-                messageCount: 2,
-                mine: false,
-                start: 30,
-                text: "a",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 2,
-                start: 169,
-                text: "3",
-                type: "replace",
-                version: 2
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 31,
-                knownVersion: 0,
-                messageCount: 3,
-                mine: false,
-                start: 31,
-                text: "s",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 3,
-                start: 169,
-                text: "37",
-                type: "replace",
+                type: "echo",
                 version: 3
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 3,
-                start: 170,
-                text: "0",
-                type: "replace",
-                version: 3
+              edit: {
+                end: 60,
+                parent: 3,
+                start: 60,
+                text: "w"
               }
             }, {
               incoming: {
-                connectionId: "peer-1",
-                end: 32,
-                knownVersion: 0,
-                messageCount: 4,
-                mine: false,
-                start: 32,
-                text: "d",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 4,
-                start: 170,
-                text: "22",
-                type: "replace",
+                type: "echo",
                 version: 4
               }
             }, {
-              incoming: {
-                messageCount: 5,
-                mine: true,
-                type: "echo",
-                version: 0
+              edit: {
+                end: 61,
+                parent: 4,
+                start: 61,
+                text: "e"
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 5,
-                start: 171,
-                text: "0",
-                type: "replace",
+              incoming: {
+                type: "echo",
                 version: 5
               }
             }, {
               incoming: {
-                connectionId: "peer-1",
-                end: 33,
-                knownVersion: 0,
-                messageCount: 6,
-                mine: false,
-                start: 33,
-                text: "f",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 6,
-                start: 171,
-                text: "11",
-                type: "replace",
-                version: 6
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 6,
-                start: 171,
-                text: "9",
+                parent: 1,
+                replacements: [30, 30, "a"],
                 type: "replace",
                 version: 6
               }
             }, {
               incoming: {
-                messageCount: 7,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 7,
-                start: 171,
-                text: "4",
+                parent: 6,
+                replacements: [30, 30, "sdf"],
                 type: "replace",
                 version: 7
               }
             }, {
-              incoming: {
-                messageCount: 8,
-                mine: true,
-                type: "echo",
-                version: 0
+              edit: {
+                end: 66,
+                parent: 7,
+                start: 66,
+                text: "q"
               }
             }, {
               incoming: {
-                messageCount: 9,
-                mine: true,
                 type: "echo",
-                version: 0
+                version: 8
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 172,
-                knownVersion: 9,
-                start: 171,
-                text: "2",
+              edit: {
+                end: 67,
+                parent: 8,
+                start: 67,
+                text: "w"
+              }
+            }, {
+              incoming: {
+                parent: 7,
+                replacements: [34, 34, "a"],
                 type: "replace",
-                version: 7
+                version: 9
               }
             }, {
-              trimVersions: {
-                messageCount: 10,
-                mine: false,
-                type: "trimVersions",
-                version: 3
+              incoming: {
+                type: "echo",
+                version: 10
+              }
+            }, {
+              edit: {
+                end: 69,
+                parent: 10,
+                start: 69,
+                text: "e"
+              }
+            }, {
+              incoming: {
+                type: "echo",
+                version: 11
+              }
+            }, {
+              incoming: {
+                parent: 9,
+                replacements: [36, 36, "s", 1, 1, "df"],
+                type: "replace",
+                version: 12
+              }
+            }, {
+              edit: {
+                end: 73,
+                parent: 12,
+                start: 73,
+                text: "q"
+              }
+            }, {
+              incoming: {
+                type: "echo",
+                version: 13
+              }
+            }, {
+              edit: {
+                end: 74,
+                parent: 13,
+                start: 74,
+                text: "w"
+              }
+            }, {
+              edit: {
+                end: 75,
+                start: 75,
+                text: "e"
+              }
+            }, {
+              incoming: {
+                type: "echo",
+                version: 14
+              }
+            }, {
+              incoming: {
+                type: "echo",
+                version: 15
+              }
+            }, {
+              edit: {
+                end: 76,
+                parent: 15,
+                start: 76,
+                text: "q"
+              }
+            }, {
+              incoming: {
+                type: "echo",
+                version: 16
+              }
+            }, {
+              incoming: {
+                parent: 12,
+                replacements: [37, 37, "a"],
+                type: "replace",
+                version: 17
+              }
+            }, {
+              edit: {
+                end: 78,
+                parent: 17,
+                start: 78,
+                text: "w"
+              }
+            }, {
+              edit: {
+                end: 79,
+                start: 79,
+                text: "e"
+              }
+            }, {
+              incoming: {
+                type: "echo",
+                version: 18
+              }
+            }, {
+              incoming: {
+                type: "echo",
+                version: 19
+              }
+            }, {
+              incoming: {
+                parent: 17,
+                replacements: [41, 41, "fd", 3, 3, "sdfa"],
+                type: "replace",
+                version: 20
+              }
+            }, {
+              incoming: {
+                parent: 20,
+                replacements: [40, 40, "sa"],
+                type: "replace",
+                version: 21
               }
             }
           ]);
@@ -2601,213 +2358,86 @@
     };
     Peer.prototype.testReplay14 = function() {
       var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 0,
-                start: 168,
-                text: "4",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 0,
-                start: 168,
-                text: "3",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 0,
-                start: 168,
-                text: "0",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 0,
-                start: 167,
-                text: "38",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 0,
-                start: 168,
-                text: "7",
-                type: "replace",
-                version: 0
+              edit: {
+                end: 30,
+                parent: 1,
+                start: 30,
+                text: "a"
               }
             }, {
               incoming: {
-                connectionId: "peer-1",
-                end: 30,
-                knownVersion: 0,
-                messageCount: 2,
-                mine: false,
-                start: 30,
-                text: "a",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 2,
-                start: 169,
-                text: "6",
-                type: "replace",
+                mine: true,
+                type: "echo",
                 version: 2
               }
             }, {
-              incoming: {
-                messageCount: 3,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 3,
-                start: 169,
-                text: "4",
-                type: "replace",
-                version: 3
-              }
-            }, {
-              incoming: {
-                messageCount: 4,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 4,
-                start: 169,
-                text: "3",
-                type: "replace",
-                version: 3
-              }
-            }, {
-              incoming: {
-                messageCount: 5,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 5,
-                start: 169,
-                text: "0",
-                type: "replace",
-                version: 3
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
+              edit: {
                 end: 31,
-                knownVersion: 0,
-                messageCount: 6,
-                mine: false,
+                parent: 2,
                 start: 31,
-                text: "s",
-                type: "replace",
-                version: 0
+                text: "s"
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 6,
-                start: 169,
-                text: "27",
-                type: "replace",
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 3
+              }
+            }, {
+              edit: {
+                end: 32,
+                parent: 3,
+                start: 32,
+                text: "d"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 4
+              }
+            }, {
+              edit: {
+                end: 33,
+                parent: 4,
+                start: 33,
+                text: "a"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 5
+              }
+            }, {
+              edit: {
+                end: 34,
+                parent: 5,
+                start: 34,
+                text: "s"
+              }
+            }, {
+              edit: {
+                end: 35,
+                start: 35,
+                text: "d"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
                 version: 6
               }
             }, {
               incoming: {
-                messageCount: 7,
                 mine: true,
                 type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 7,
-                start: 170,
-                text: "6",
-                type: "replace",
                 version: 7
-              }
-            }, {
-              incoming: {
-                messageCount: 8,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 8,
-                start: 170,
-                text: "4",
-                type: "replace",
-                version: 7
-              }
-            }, {
-              incoming: {
-                messageCount: 9,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 32,
-                knownVersion: 3,
-                messageCount: 10,
-                mine: false,
-                start: 32,
-                text: "f",
-                type: "replace",
-                version: 3
-              }
-            }, {
-              trimVersions: {
-                messageCount: 11,
-                mine: false,
-                type: "trimVersions",
-                version: 3
               }
             }
           ]);
@@ -2821,718 +2451,140 @@
     };
     Peer.prototype.testReplay15 = function() {
       var replay;
-      replay = (function(_this) {
-        return function() {
-          return _this.replayHistory([
-            {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 30,
-                knownVersion: 0,
-                start: 30,
-                text: "a",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              incoming: {
-                messageCount: 1,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 31,
-                knownVersion: 1,
-                start: 31,
-                text: "s",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 32,
-                knownVersion: 1,
-                start: 32,
-                text: "d",
-                type: "replace",
-                version: 0
-              }
-            }, {
-              incoming: {
-                messageCount: 2,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }
-          ]);
-        };
-      })(this);
-      if (!this.con) {
-        return Leisure.createSession(document.location.host || "localhost:8080", replay);
-      } else {
-        return replay();
-      }
-    };
-    Peer.prototype.testReplay16 = function() {
-      var replay;
-      replay = (function(_this) {
-        return function() {
-          return _this.replayHistory([
-            {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 1,
-                start: 168,
-                text: "4",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                messageCount: 3,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 3,
-                start: 168,
-                text: "1",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 3,
-                start: 167,
-                text: "34",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                messageCount: 4,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }
-          ]);
-        };
-      })(this);
-      if (!this.con) {
-        return Leisure.createSession(document.location.host || "localhost:8080", replay);
-      } else {
-        return replay();
-      }
-    };
-    Peer.prototype.testReplay17 = function() {
-      var replay;
-      replay = (function(_this) {
-        return function() {
-          return _this.replayHistory([
-            {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 9,
-                knownVersion: 1,
-                start: 9,
-                text: "a",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                messageCount: 2,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 10,
-                knownVersion: 2,
-                start: 10,
-                text: "s",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 11,
-                knownVersion: 2,
-                start: 11,
-                text: "d",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                messageCount: 3,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }
-          ]);
-        };
-      })(this);
-      if (!this.con) {
-        return Leisure.createSession(document.location.host || "localhost:8080", replay);
-      } else {
-        return replay();
-      }
-    };
-    Peer.prototype.testReplay18 = function() {
-      var replay;
-      replay = (function(_this) {
-        return function() {
-          return _this.replayHistory([
-            {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 9,
-                knownVersion: 1,
-                start: 9,
-                text: "a",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                messageCount: 2,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 10,
-                knownVersion: 2,
-                start: 10,
-                text: "s",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                messageCount: 3,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 11,
-                knownVersion: 3,
-                start: 11,
-                text: "d",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              trimVersions: {
-                messageCount: 4,
-                mine: false,
-                type: "trimVersions",
-                version: 3
-              }
-            }, {
-              incoming: {
-                messageCount: 5,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 12,
-                knownVersion: 5,
-                start: 12,
-                text: "f",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              trimVersions: {
-                messageCount: 6,
-                mine: false,
-                type: "trimVersions",
-                version: 5
-              }
-            }, {
-              incoming: {
-                messageCount: 7,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 13,
-                knownVersion: 7,
-                start: 13,
-                text: "a",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              trimVersions: {
-                messageCount: 8,
-                mine: false,
-                type: "trimVersions",
-                version: 7
-              }
-            }, {
-              incoming: {
-                messageCount: 9,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 14,
-                knownVersion: 9,
-                start: 14,
-                text: "s",
-                type: "replace",
-                version: 7
-              }
-            }, {
-              trimVersions: {
-                messageCount: 10,
-                mine: false,
-                type: "trimVersions",
-                version: 9
-              }
-            }, {
-              incoming: {
-                messageCount: 11,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 15,
-                knownVersion: 11,
-                start: 15,
-                text: "d",
-                type: "replace",
-                version: 11
-              }
-            }, {
-              trimVersions: {
-                messageCount: 12,
-                mine: false,
-                type: "trimVersions",
-                version: 11
-              }
-            }
-          ]);
-        };
-      })(this);
-      if (!this.con) {
-        return Leisure.createSession(document.location.host || "localhost:8080", replay);
-      } else {
-        return replay();
-      }
-    };
-    Peer.prototype.testReplay19 = function() {
-      var replay;
+      this.history = null;
       replay = (function(_this) {
         return function() {
           return _this.replayHistory([
             {
               incoming: {
                 connectionId: "peer-1",
-                end: 30,
-                knownVersion: 1,
-                lockedDelta: 0,
-                messageCount: 3,
                 mine: false,
-                start: 30,
-                text: "a",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 31,
-                knownVersion: 3,
-                lockedDelta: 0,
-                messageCount: 4,
-                mine: false,
-                start: 31,
-                text: "s",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 32,
-                knownVersion: 4,
-                lockedDelta: 0,
-                messageCount: 5,
-                mine: false,
-                start: 32,
-                text: "d",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 33,
-                knownVersion: 4,
-                lockedDelta: 0,
-                messageCount: 6,
-                mine: false,
-                start: 33,
-                text: "f",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 6,
-                start: 172,
-                text: "4",
-                type: "replace",
-                version: 6
-              }
-            }, {
-              trimVersions: {
-                messageCount: 7,
-                mine: false,
-                type: "trimVersions",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 6,
-                start: 172,
-                text: "3",
-                type: "replace",
-                version: 6
-              }
-            }, {
-              incoming: {
-                messageCount: 8,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 8,
-                start: 171,
-                text: "37",
-                type: "replace",
-                version: 8
-              }
-            }, {
-              incoming: {
-                messageCount: 9,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 9,
-                start: 171,
-                text: "29",
-                type: "replace",
-                version: 8
-              }
-            }, {
-              incoming: {
-                messageCount: 10,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 10,
-                start: 171,
-                text: "16",
-                type: "replace",
-                version: 8
-              }
-            }, {
-              trimVersions: {
-                messageCount: 11,
-                mine: false,
-                type: "trimVersions",
-                version: 8
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 10,
-                start: 171,
-                text: "8",
-                type: "replace",
-                version: 8
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 34,
-                knownVersion: 9,
-                lockedDelta: 0,
-                messageCount: 12,
-                mine: false,
-                start: 34,
-                text: "a",
-                type: "replace",
-                version: 9
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 12,
-                start: 172,
-                text: "5",
-                type: "replace",
-                version: 12
-              }
-            }, {
-              trimVersions: {
-                messageCount: 13,
-                mine: false,
-                type: "trimVersions",
-                version: 9
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 173,
-                knownVersion: 12,
-                start: 171,
-                text: "2",
-                type: "replace",
-                version: 12
-              }
-            }, {
-              incoming: {
-                messageCount: 14,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }
-          ]);
-        };
-      })(this);
-      if (!this.con) {
-        return Leisure.createSession(document.location.host || "localhost:8080", replay);
-      } else {
-        return replay();
-      }
-    };
-    Peer.prototype.testReplay20 = function() {
-      var replay;
-      noTrim = true;
-      replay = (function(_this) {
-        return function() {
-          return _this.replayHistory([
-            {
-              incoming: {
-                connectionId: "peer-1",
-                end: 30,
-                knownVersion: 1,
-                messageCount: 3,
-                mine: false,
-                start: 30,
-                text: "a",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 3,
-                start: 169,
-                text: "4",
+                parent: 1,
+                replacements: [30, 30, "a"],
                 type: "replace",
                 version: 3
               }
             }, {
               incoming: {
-                messageCount: 4,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 4,
-                start: 169,
-                text: "1",
+                connectionId: "peer-1",
+                mine: false,
+                parent: 3,
+                replacements: [31, 31, "s"],
                 type: "replace",
                 version: 4
+              }
+            }, {
+              edit: {
+                end: 171,
+                parent: 4,
+                start: 170,
+                text: "4"
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 5
+              }
+            }, {
+              edit: {
+                end: 171,
+                parent: 5,
+                start: 170,
+                text: "3"
               }
             }, {
               incoming: {
                 connectionId: "peer-1",
-                end: 31,
-                knownVersion: 4,
-                messageCount: 5,
                 mine: false,
-                start: 31,
-                text: "f",
+                parent: 4,
+                replacements: [32, 32, "d"],
                 type: "replace",
-                version: 4
+                version: 6
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 5,
+              edit: {
+                end: 172,
                 start: 170,
-                text: "0",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 5,
-                start: 169,
-                text: "34",
-                type: "replace",
-                version: 5
+                text: "31"
               }
             }, {
               incoming: {
-                messageCount: 7,
                 mine: true,
                 type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 7,
-                start: 169,
-                text: "27",
-                type: "replace",
                 version: 7
               }
             }, {
-              incoming: {
-                messageCount: 8,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 8,
+              edit: {
+                end: 172,
                 start: 170,
-                text: "6",
-                type: "replace",
-                version: 7
+                text: "15"
               }
             }, {
               incoming: {
-                messageCount: 9,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 9,
-                start: 169,
-                text: "1",
+                connectionId: "peer-1",
+                mine: false,
+                parent: 6,
+                replacements: [33, 33, "f"],
                 type: "replace",
-                version: 7
+                version: 8
               }
             }, {
               incoming: {
-                messageCount: 10,
                 mine: true,
                 type: "echo",
-                version: 0
+                version: 9
               }
             }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 10,
-                start: 170,
-                text: "3",
-                type: "replace",
-                version: 10
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 10,
-                start: 169,
-                text: "5",
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 8,
+                replacements: [34, 34, "a"],
                 type: "replace",
                 version: 10
               }
             }, {
               incoming: {
                 connectionId: "peer-1",
-                end: 32,
-                knownVersion: 9,
-                messageCount: 12,
                 mine: false,
-                start: 32,
-                text: "a",
+                parent: 10,
+                replacements: [35, 35, "s"],
                 type: "replace",
-                version: 9
+                version: 11
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 11,
+                replacements: [36, 36, "f"],
+                type: "replace",
+                version: 12
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 12,
+                replacements: [37, 37, "a"],
+                type: "replace",
+                version: 13
+              }
+            }, {
+              incoming: {
+                connectionId: "peer-1",
+                mine: false,
+                parent: 13,
+                replacements: [38, 38, "sf"],
+                type: "replace",
+                version: 14
+              }
+            }, {
+              incoming: {
+                mine: true,
+                type: "echo",
+                version: 15
               }
             }
           ]);
@@ -3544,241 +2596,12 @@
         return replay();
       }
     };
-    Peer.prototype.testReplay21 = function() {
-      var replay;
-      replay = (function(_this) {
-        return function() {
-          return _this.replayHistory([
-            {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 169,
-                knownVersion: 1,
-                start: 168,
-                text: "4",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 30,
-                knownVersion: 1,
-                messageCount: 3,
-                mine: false,
-                start: 30,
-                text: "a",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 3,
-                start: 169,
-                text: "1",
-                type: "replace",
-                version: 3
-              }
-            }, {
-              incoming: {
-                messageCount: 4,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 4,
-                start: 168,
-                text: "16",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 4,
-                start: 168,
-                text: "8",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 31,
-                knownVersion: 3,
-                messageCount: 5,
-                mine: false,
-                start: 31,
-                text: "s",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 170,
-                knownVersion: 5,
-                start: 169,
-                text: "-1",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              incoming: {
-                messageCount: 6,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 32,
-                knownVersion: 4,
-                messageCount: 7,
-                mine: false,
-                start: 32,
-                text: "d",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              incoming: {
-                messageCount: 9,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }
-          ]);
-        };
-      })(this);
-      if (!this.con) {
-        return Leisure.createSession(document.location.host || "localhost:8080", replay);
-      } else {
-        return replay();
-      }
+    window.Replacement = Replacement;
+    window.REPSTR = function(r) {
+      return Replacement.prototype.toString.call(r);
     };
-    Peer.prototype.testReplay22 = function() {
-      var replay;
-      replay = (function(_this) {
-        return function() {
-          return _this.replayHistory([
-            {
-              incoming: {
-                connectionId: "peer-1",
-                end: 30,
-                knownVersion: 1,
-                messageCount: 3,
-                mine: false,
-                start: 30,
-                text: "a",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 31,
-                knownVersion: 3,
-                messageCount: 4,
-                mine: false,
-                start: 31,
-                text: "s",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 4,
-                start: 170,
-                text: "4",
-                type: "replace",
-                version: 4
-              }
-            }, {
-              incoming: {
-                messageCount: 5,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 5,
-                start: 170,
-                text: "3",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              outgoing: {
-                connectionId: "peer-0",
-                end: 171,
-                knownVersion: 5,
-                start: 169,
-                text: "34",
-                type: "replace",
-                version: 5
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 32,
-                knownVersion: 4,
-                messageCount: 7,
-                mine: false,
-                start: 32,
-                text: "d",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                connectionId: "peer-1",
-                end: 33,
-                knownVersion: 4,
-                messageCount: 8,
-                mine: false,
-                start: 33,
-                text: "f",
-                type: "replace",
-                version: 1
-              }
-            }, {
-              incoming: {
-                messageCount: 9,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }, {
-              incoming: {
-                messageCount: 10,
-                mine: true,
-                type: "echo",
-                version: 0
-              }
-            }
-          ]);
-        };
-      })(this);
-      if (!this.con) {
-        return Leisure.createSession(document.location.host || "localhost:8080", replay);
-      } else {
-        return replay();
-      }
+    window.REP = function(r) {
+      return console.log(REPSTR(r));
     };
     return {
       Peer: Peer
