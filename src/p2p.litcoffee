@@ -873,6 +873,18 @@ Produce a replacement message from the transformed pending local operations
 
       window.REP = (r)-> console.log REPSTR r
 
+      ajaxGet = (url)-> new Promise (resolve, reject)->
+        xhr = new XMLHttpRequest
+        xhr.onerror = reject
+        xhr.onload = resolve
+        xhr.open "GET", url
+        xhr.send null
+
+      window.randomUserName = (done)->
+        Promise
+          .all(ajaxGet 'http://randomword.setgetgo.com/get.php' for i in [0...3])
+          .then (events)-> done (e.target.responseText.trim() for e in events)
+
       {
         Peer
       }

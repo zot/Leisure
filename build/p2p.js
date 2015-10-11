@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './ot', './common'], function(jq, immutable, Editor, Support, SockJS, Advice, OperationTransformation, Common) {
-    var ConcurrentReplacements, DataStore, Map, OrgData, Peer, Replacement, SequentialReplacements, Set, afterMethod, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, computeReplacements, concurrentReplacements, diag, editorToolbar, getDocumentParams, noTrim, preserveSelection, pretty, ref, replacement, replacementFor, replacementsString, runReplacements, sequentialReplacements, testMsg, validateBatch;
+    var ConcurrentReplacements, DataStore, Map, OrgData, Peer, Replacement, SequentialReplacements, Set, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, computeReplacements, concurrentReplacements, diag, editorToolbar, getDocumentParams, noTrim, preserveSelection, pretty, ref, replacement, replacementFor, replacementsString, runReplacements, sequentialReplacements, testMsg, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
     OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor;
@@ -302,9 +302,9 @@
         }
       };
 
-      Peer.prototype.connect = function(url, connectedFunc) {
+      Peer.prototype.connect = function(url1, connectedFunc) {
         var peer;
-        this.url = url;
+        this.url = url1;
         this.connectedFunc = connectedFunc;
         this.con = new SockJS(this.url);
         this.con.onmessage = (function(_this) {
@@ -572,9 +572,9 @@
         return this.docSnap = this.data.getText();
       };
 
-      Peer.prototype.connectToSession = function(url, connected, newConnectionFunc) {
+      Peer.prototype.connectToSession = function(url1, connected, newConnectionFunc) {
         var ref1;
-        this.url = url;
+        this.url = url1;
         this.newConnectionFunc = newConnectionFunc;
         this.type = 'Slave';
         this.newConnectionFunc = (ref1 = this.newConnectionFunc) != null ? ref1 : function() {};
@@ -2602,6 +2602,38 @@
     };
     window.REP = function(r) {
       return console.log(REPSTR(r));
+    };
+    ajaxGet = function(url) {
+      return new Promise(function(resolve, reject) {
+        var xhr;
+        xhr = new XMLHttpRequest;
+        xhr.onerror = reject;
+        xhr.onload = resolve;
+        xhr.open("GET", url);
+        return xhr.send(null);
+      });
+    };
+    window.randomUserName = function(done) {
+      var i;
+      return Promise.all((function() {
+        var j, results1;
+        results1 = [];
+        for (i = j = 0; j < 3; i = ++j) {
+          results1.push(ajaxGet('http://randomword.setgetgo.com/get.php'));
+        }
+        return results1;
+      })()).then(function(events) {
+        var e;
+        return done((function() {
+          var j, len, results1;
+          results1 = [];
+          for (j = 0, len = events.length; j < len; j++) {
+            e = events[j];
+            results1.push(e.target.responseText.trim());
+          }
+          return results1;
+        })());
+      });
     };
     return {
       Peer: Peer

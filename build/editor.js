@@ -4,11 +4,12 @@
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice'], function(jq, DOMCursor, Fingertree, Immutable, Advice) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
+  define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'lib/bluebird.min'], function(jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird) {
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activateScripts, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, selectRange, setHtml, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
+    Promise = Bluebird.Promise;
     maxLastKeys = 4;
     BS = 8;
     ENTER = 13;
@@ -1256,6 +1257,10 @@
         return this.data.getText();
       };
 
+      BasicEditingOptions.prototype.getLength = function() {
+        return this.data.getLength();
+      };
+
       return BasicEditingOptions;
 
     })(Observable);
@@ -1419,6 +1424,10 @@
         }
       };
 
+      DataStore.prototype.getLength = function() {
+        return this.blockIndex.measure().length;
+      };
+
       DataStore.prototype.makeChanges = function(func) {
         this.changeCount++;
         try {
@@ -1454,14 +1463,15 @@
       DataStore.prototype.addMark = function(name, offset) {
         var first, l, n, ref, rest;
         if (this.markNames[name]) {
-          this.deleteMark(name);
+          this.removeMark(name);
         }
         this.markNames[name] = true;
         ref = this.marks.split(function(m) {
           return m.length >= offset;
         }), first = ref[0], rest = ref[1];
         l = first.measure().length;
-        if (!rest.isEmpty() && (n = rest.peekFirst())) {
+        if (!rest.isEmpty()) {
+          n = rest.peekFirst();
           rest = rest.removeFirst().addFirst({
             offset: l + n.offset - offset,
             name: n.name
@@ -1474,13 +1484,24 @@
       };
 
       DataStore.prototype.removeMark = function(name) {
-        var first, ref, rest;
+        var first, n, ref, removed, rest;
         if (this.markNames[name]) {
           delete this.markNames[name];
           ref = this.marks.split(function(m) {
             return m.names.contains(name);
           }), first = ref[0], rest = ref[1];
-          return this.marks = first.concat(rest.removeFirst());
+          if (!rest.isEmpty()) {
+            removed = rest.peekFirst();
+            rest = rest.removeFirst();
+            if (!rest.isEmpty()) {
+              n = rest.peekFirst();
+              rest = rest.removeFirst().addFirst({
+                offset: removed.offset + n.offset,
+                name: n.name
+              });
+            }
+          }
+          return this.marks = first.concat(rest);
         }
       };
 
@@ -1504,7 +1525,9 @@
           ref = this.marks.split(function(m) {
             return m.names.contains(name);
           }), first = ref[0], rest = ref[1];
-          return first.measure().length + rest.peekFirst().offset;
+          if (!rest.isEmpty()) {
+            return first.measure().length + rest.peekFirst().offset;
+          }
         }
       };
 
@@ -1521,7 +1544,8 @@
           ref = this.marks.split(function(m) {
             return m.length > start;
           }), first = ref[0], rest = ref[1];
-          if (!rest.isEmpty() && (n = rest.peekFirst())) {
+          if (!rest.isEmpty()) {
+            n = rest.peekFirst();
             return this.marks = first.concat(rest.removeFirst().addFirst({
               name: n.name,
               offset: n.offset + newLength - oldLength
@@ -1540,6 +1564,11 @@
           results1.push(offset += repl.text.length - repl.end + repl.start);
         }
         return results1;
+      };
+
+      DataStore.prototype.guardedReplaceText = function(start, end, text, gStart, gEnd) {
+        this.replaceText(start, end, text);
+        return Promise.resolve();
       };
 
       DataStore.prototype.replaceText = function(start, end, text) {

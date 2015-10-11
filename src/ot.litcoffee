@@ -500,7 +500,7 @@ of replacements, REPS.  Each replacement has the following properties:
         {start: 154, end: 154, text: "j", type: "replace", version: 7, connectionId: "peer-0"}, 
       ]
 
-      window.OT_TEST_REPL = ->
+      window?.OT_TEST_REPL = ->
         rep = allReplacements [
           {parent:1, replacements:[30, 30, "a"], version:3},
           {parent:3, replacements:[31, 31, "s"], version:4},

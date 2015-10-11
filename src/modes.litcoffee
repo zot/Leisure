@@ -640,20 +640,19 @@
         setTimeout (->currentSlider?.sliding = flag), 1
 
       slideValue = ->
-        if cs = currentSlider
+        if (cs = currentSlider) && !cs.editor.options.awaitingGuard
           start = cs.data.getMarkLocation '__slider__'
           blockOff = cs.data.blockOffsetForDocOffset start
           block = cs.editor.options.getBlock blockOff.block
           m = numPat.exec block.text.substring blockOff.offset
           m2 = if blockOff.offset > 0
             numPat.exec block.text.substring blockOff.offset - 1
-          if m?.index != 0 || m2?.index == 0
-            console.log "NUMBER SHIFTED"
-            mayHideValueSlider()
-          else
-            newText = String currentSlider.widget.slider 'value'
-            if m[0] != newText
-              cs.editor.options.replaceText start, start + m[0].length, newText
+          newText = String currentSlider.widget.slider 'value'
+          if m[0] != newText
+            cs.editor.options.awaitingGuard = true
+            blockStart = cs.editor.options.data.offsetForBlock block
+            cs.editor.options.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length
+              .finally -> cs.editor.options.awaitingGuard = false
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding

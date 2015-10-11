@@ -975,67 +975,69 @@
         connectionId: "peer-0"
       }
     ];
-    window.OT_TEST_REPL = function() {
-      var rep;
-      rep = allReplacements([
-        {
-          parent: 1,
-          replacements: [30, 30, "a"],
-          version: 3
-        }, {
-          parent: 3,
-          replacements: [31, 31, "s"],
-          version: 4
-        }, {
-          version: 5,
-          parent: 3,
-          replacements: [60, 60, "q"]
-        }, {
-          parent: 4,
-          replacements: [32, 32, "d"],
-          version: 6
-        }, {
-          version: 7,
-          parent: 5,
-          replacements: [62, 62, "w"]
-        }, {
-          parent: 6,
-          replacements: [33, 33, "f"],
-          version: 8
-        }, {
-          version: 9,
-          parent: 7,
-          replacements: [64, 64, "e"]
-        }, {
-          parent: 9,
-          replacements: [34, 34, "a"],
-          version: 10
-        }, {
-          parent: 10,
-          replacements: [35, 35, "s"],
-          version: 11
-        }, {
-          version: 12,
-          parent: 10,
-          replacements: [67, 67, "q"]
-        }, {
-          parent: 11,
-          replacements: [36, 36, "f"],
-          version: 13
-        }, {
-          version: 14,
-          parent: 12,
-          replacements: [69, 69, "w"]
-        }, {
-          version: 15,
-          parent: 14,
-          replacements: [71, 71, "e"]
-        }
-      ]);
-      return assertEq((function(exp, act) {
-        return "Expected " + exp + " but got " + act;
-      }), "59, 59, \"qweqwe\"\n30, 30, \"asdfasf\"", rep.toString());
-    };
+    if (typeof window !== "undefined" && window !== null) {
+      window.OT_TEST_REPL = function() {
+        var rep;
+        rep = allReplacements([
+          {
+            parent: 1,
+            replacements: [30, 30, "a"],
+            version: 3
+          }, {
+            parent: 3,
+            replacements: [31, 31, "s"],
+            version: 4
+          }, {
+            version: 5,
+            parent: 3,
+            replacements: [60, 60, "q"]
+          }, {
+            parent: 4,
+            replacements: [32, 32, "d"],
+            version: 6
+          }, {
+            version: 7,
+            parent: 5,
+            replacements: [62, 62, "w"]
+          }, {
+            parent: 6,
+            replacements: [33, 33, "f"],
+            version: 8
+          }, {
+            version: 9,
+            parent: 7,
+            replacements: [64, 64, "e"]
+          }, {
+            parent: 9,
+            replacements: [34, 34, "a"],
+            version: 10
+          }, {
+            parent: 10,
+            replacements: [35, 35, "s"],
+            version: 11
+          }, {
+            version: 12,
+            parent: 10,
+            replacements: [67, 67, "q"]
+          }, {
+            parent: 11,
+            replacements: [36, 36, "f"],
+            version: 13
+          }, {
+            version: 14,
+            parent: 12,
+            replacements: [69, 69, "w"]
+          }, {
+            version: 15,
+            parent: 14,
+            replacements: [71, 71, "e"]
+          }
+        ]);
+        return assertEq((function(exp, act) {
+          return "Expected " + exp + " but got " + act;
+        }), "59, 59, \"qweqwe\"\n30, 30, \"asdfasf\"", rep.toString());
+      };
+    }
     if (typeof window !== "undefined" && window !== null) {
       window.replacementsString = replacementsString;
     }

@@ -17,5 +17,5 @@ require(['./config', 'lib/bluebird.min'], function(bluebird) {
             });
         });
     };
-    require(['cs!local.litcoffee'])
+    require(['./local']);
 });

@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "otserver.js",
+  "sourceRoot": "..\\src",
+  "sources": [
+    "..\\server\\otserver.litcoffee"
+  ],
+  "names": [],
+  "mappings": ";AA2BI;AAAA,MAAA;;EAAA,OAAO,CAAC,GAAR,CAAY,QAAA,GAAQ,CAAC,OAAO,CAAC,IAAI,CAAC,IAAb,CAAkB,GAAlB,CAAD,CAApB;;EACA,IAAA,GAAO,MAAA,yCAAyB,IAAzB;;EACP,OAAO,CAAC,GAAR,CAAY,QAAA,GAAS,IAArB;;EACA,OAAA,CAAQ,wBAAR,CAAiC,CAAC,WAAlC,CAA8C,IAA9C;AAHA"
+}

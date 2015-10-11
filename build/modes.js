@@ -882,21 +882,20 @@
       }), 1);
     };
     slideValue = function() {
-      var block, blockOff, cs, m, m2, newText, start;
-      if (cs = currentSlider) {
+      var block, blockOff, blockStart, cs, m, m2, newText, start;
+      if ((cs = currentSlider) && !cs.editor.options.awaitingGuard) {
         start = cs.data.getMarkLocation('__slider__');
         blockOff = cs.data.blockOffsetForDocOffset(start);
         block = cs.editor.options.getBlock(blockOff.block);
         m = numPat.exec(block.text.substring(blockOff.offset));
         m2 = blockOff.offset > 0 ? numPat.exec(block.text.substring(blockOff.offset - 1)) : void 0;
-        if ((m != null ? m.index : void 0) !== 0 || (m2 != null ? m2.index : void 0) === 0) {
-          console.log("NUMBER SHIFTED");
-          return mayHideValueSlider();
-        } else {
-          newText = String(currentSlider.widget.slider('value'));
-          if (m[0] !== newText) {
-            return cs.editor.options.replaceText(start, start + m[0].length, newText);
-          }
+        newText = String(currentSlider.widget.slider('value'));
+        if (m[0] !== newText) {
+          cs.editor.options.awaitingGuard = true;
+          blockStart = cs.editor.options.data.offsetForBlock(block);
+          return cs.editor.options.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length)["finally"](function() {
+            return cs.editor.options.awaitingGuard = false;
+          });
         }
       }
     };

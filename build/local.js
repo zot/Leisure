@@ -124,7 +124,7 @@
   };
 
   require(['jquery'], function() {
-    return require(['jqueryui', './editorSupport', './modes', './diag', './p2p', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './hamtData'], init);
+    return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './hamtData'], init);
   });
 
 }).call(this);

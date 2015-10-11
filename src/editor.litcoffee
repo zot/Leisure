@@ -135,7 +135,7 @@ Code
 ====
 Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEditCore).
 
-    define ['jquery', './domCursor', './lib/fingertree', 'immutable', './advice'], (jq, DOMCursor, Fingertree, Immutable, Advice)->
+    define ['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'lib/bluebird.min'], (jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird)->
       {
         selectRange,
       } = DOMCursor
@@ -147,6 +147,9 @@ Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEd
         afterMethod
         changeAdvice
       } = Advice
+      {
+        Promise
+      } = Bluebird
       maxLastKeys = 4
       BS = 8
       ENTER = 13
@@ -955,6 +958,7 @@ Factored out because the Emacs connection calls MakeStructureChange.
             result += html
           result
         getText: -> @data.getText()
+        getLength: -> @data.getLength()
 
       computeNewStructure = (access, oldBlocks, newText)->
         prev = oldBlocks[0]?.prev ? 0
@@ -1073,6 +1077,7 @@ Data model -- override/reset these if you want to change how the store accesses 
             makeChanges: diag: afterMethod ->
               if @changeCount == 0 then @diag()
           if flag then @diag()
+        getLength: -> @blockIndex.measure().length
         makeChanges: (func)->
           @changeCount++
           try
@@ -1084,11 +1089,12 @@ Data model -- override/reset these if you want to change how the store accesses 
           measure: (n)-> names: Set([n.name]), length: n.offset
           sum: (a, b)-> names: a.names.union(b.names), length: a.length + b.length
         addMark: (name, offset)->
-          if @markNames[name] then @deleteMark name
+          if @markNames[name] then @removeMark name
           @markNames[name] = true
           [first, rest] = @marks.split (m)-> m.length >= offset
           l = first.measure().length
-          if !rest.isEmpty() && n = rest.peekFirst()
+          if !rest.isEmpty()
+            n = rest.peekFirst()
             rest = rest.removeFirst().addFirst
               offset: l + n.offset - offset
               name: n.name
@@ -1098,7 +1104,14 @@ Data model -- override/reset these if you want to change how the store accesses 
         removeMark: (name)-> if @markNames[name]
           delete @markNames[name]
           [first, rest] = @marks.split (m)-> m.names.contains name
-          @marks = first.concat rest.removeFirst()
+          if !rest.isEmpty()
+            removed = rest.peekFirst()
+            rest = rest.removeFirst()
+            if !rest.isEmpty()
+              n = rest.peekFirst()
+              rest = rest.removeFirst()
+                .addFirst offset: removed.offset + n.offset, name: n.name
+          @marks = first.concat rest
         listMarks: ->
           m = []
           t = @marks
@@ -1109,12 +1122,13 @@ Data model -- override/reset these if you want to change how the store accesses 
           m
         getMarkLocation: (name)-> if @markNames[name]
           [first, rest] = @marks.split (m)-> m.names.contains name
-          first.measure().length + rest.peekFirst().offset
+          if !rest.isEmpty() then first.measure().length + rest.peekFirst().offset
         blockOffsetForMark: (name)-> if offset = @getMarkLocation name
           @blockOffsetForDocOffset offset
         floatMarks: (start, end, newLength)-> if newLength != oldLength = end - start
           [first, rest] = @marks.split (m)-> m.length > start
-          if !rest.isEmpty() && n = rest.peekFirst()
+          if !rest.isEmpty()
+            n = rest.peekFirst()
             @marks = first.concat rest.removeFirst().addFirst
               name: n.name
               offset: n.offset + newLength - oldLength
@@ -1123,6 +1137,9 @@ Data model -- override/reset these if you want to change how the store accesses 
           for repl in replacements
             @replaceText repl.start + offset, repl.end + offset, repl.text
             offset += repl.text.length - repl.end + repl.start
+        guardedReplaceText: (start, end, text, gStart, gEnd)->
+          @replaceText start, end, text
+          Promise.resolve()
         replaceText: (start, end, text)->
           {prev, oldBlocks, newBlocks} = @changesForReplacement start, end, text
           if oldBlocks

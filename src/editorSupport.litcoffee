@@ -66,6 +66,9 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       {
         Map
       } = Immutable
+      {
+        Promise
+      } = Bluebird
 
       selectionActive = true
       headlineRE = /^(\*+ *)(.*)(\n)$/
