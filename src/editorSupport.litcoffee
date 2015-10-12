@@ -546,27 +546,37 @@ may be called more than once.  changeData() returns a promise.
                 env.errorAt = (offset, msg)->
                   newBlock = setError change, offset, msg
                   if newBlock != change && !sync
+                    sets = {}
+                    sets[change._id] = newBlock
                     opts.change
                       first: opts.data.getFirst()
                       removes: {}
-                      sets: change._id, newBlock
+                      sets: sets
+                      newBlocks: [newBlock]
+                      oldBlocks: [change]
                 env.write = (str)->
                   #result += ': ' + (if str instanceof Html then str.content else escapeHtml String(str).replace(/\r?\n/g, '\n: ')) + '\n'
                   result += str
+                  if str[str.length - 1] != '\n' then str += '\n'
                   if !sync
                     newBlock = setResult change, str
+                    sets = {}
+                    sets[change._id] = newBlock
                     opts.change
                       first: opts.data.getFirst()
                       removes: {}
-                      sets: change._id, newBlock
-              env.executeText newSource.content, Nil, ->
-              newBlock = setResult newBlock, result
-              if newBlock.text != change.text
-                changes.sets[newBlock._id] = newBlock
-                for block, i in changes.newBlocks
-                  if block._id == newBlock._id then changes.newBlocks[i] = newBlock
-                start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
-                changes.repls.push replacementFor start, change.text, newBlock.text
+                      sets: sets
+                      newBlocks: [newBlock]
+                      oldBlocks: [change]
+              finished = {}
+              if finished == env.executeText newSource.content, Nil, (-> finished)
+                newBlock = setResult newBlock, result
+                if newBlock.text != change.text
+                  changes.sets[newBlock._id] = newBlock
+                  for block, i in changes.newBlocks
+                    if block._id == newBlock._id then changes.newBlocks[i] = newBlock
+                  start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
+                  changes.repls.push replacementFor start, change.text, newBlock.text
               sync = false
         offsetForNewBlock: (newBlock, oldBlocks, newBlocks)->
           start = if oldBlocks.length == 0 then 0 else @data.offsetForBlock oldBlocks[0]

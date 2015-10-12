@@ -131,6 +131,12 @@ Code for local-mode.  This will not be loaded under meteor.
           degrees: 45
           #+END_SRC
 
+          #+BEGIN_SRC leisure :results dynamic
+          3 + 4
+          #+END_SRC
+          #+RESULTS:
+          : 7
+
           #+BEGIN_HTML
           <b>hello</b>
           #+END_HTML

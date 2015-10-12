@@ -17,15 +17,18 @@
         "npm": ">= 1.0.0"
     },
     "dependencies": {
-        "xmlhttprequest": "*",
-        "underscore": "*",
+        "browserify": "*",
+        "btoa": "*",
+        "coffee-script": "*",
+        "coffeeify": "*",
+        "collections": "*",
+        "js-yaml": "3.x",
         "persistent-hash-trie": "*",
         "source-map": "*",
-        "utf8": "*",
-        "js-yaml": "3.x",
-        "browserify": "*",
         "source-map-support": "*",
-        "btoa": "*"
+        "underscore": "*",
+        "utf8": "*",
+        "xmlhttprequest": "*"
     },
     "devDependencies": {
         "coffee-script": "*",

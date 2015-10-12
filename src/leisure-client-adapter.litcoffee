@@ -76,7 +76,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
       class Peer
         constructor: ->
           @data = new OrgData()
-          @namePromise = randomUserName (@name)->
+          @namePromise = randomUserName (@name)=>
           @guardedChangeId = 0
           @guardPromises = {}
         setEditor: (@editor)->
@@ -84,6 +84,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @con?.close()
           @con = null
         connect: (@url, @connectedFunc)->
+          console.log "CONNECTED"
           @con = new SockJS @url
           opened = false
           @namePromise
@@ -271,17 +272,20 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           new Promise((success, failure)=> @guardPromises[guardId] = [success, failure])
             .catch(->)
 
-      ajaxGet = (url)-> new Promise (resolve, reject)->
-        xhr = new XMLHttpRequest
-        xhr.onerror = reject
-        xhr.onload = (e)-> resolve e.target.responseText.trim()
-        xhr.open "GET", url
-        xhr.send null
+      ajaxGet = (url)->
+        console.log "ajaxGet #{url}"
+        new Promise (resolve, reject)->
+          xhr = new XMLHttpRequest
+          xhr.onerror = reject
+          xhr.onload = (e)-> resolve e.target.responseText.trim()
+          xhr.open "GET", url
+          xhr.send null
 
       window.randomUserName = randomUserName = (done)->
         Promise
           .all(ajaxGet 'http://randomword.setgetgo.com/get.php' for i in [0...2])
-          .then (names)-> done names.join ' '
+          .then (names)->
+            done names.join ' '
 
       {
         Peer

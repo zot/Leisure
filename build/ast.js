@@ -29,8 +29,8 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['./base', 'lib/lodash.min'], function(base, _) {
-    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nakedDefine, nameFunc, nameSub, nsLog, primCons, primFoldLeft, rangeToJson, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError;
-    resolve = base.resolve, lazy = base.lazy, nsLog = base.nsLog;
+    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nakedDefine, nameFunc, nameSub, nsLog, primCons, primFoldLeft, rangeToJson, ref, ref1, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError;
+    ref1 = root = base, resolve = ref1.resolve, lazy = ref1.lazy, nsLog = ref1.nsLog;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
@@ -66,9 +66,9 @@ misrepresented as being the original software.
       ' ': '$S'
     };
     nameSub = function(name) {
-      var code, i, j, ref1, s;
+      var code, i, j, ref2, s;
       s = '';
-      for (i = j = 0, ref1 = name.length; 0 <= ref1 ? j < ref1 : j > ref1; i = 0 <= ref1 ? ++j : --j) {
+      for (i = j = 0, ref2 = name.length; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
         code = charCodes[name[i]];
         s += code != null ? code : name[i];
       }
@@ -100,7 +100,6 @@ misrepresented as being the original software.
     }
     global.Leisure_Object = LeisureObject;
     supertypes = {};
-    root = {};
     root.leisureClassChange = 0;
     ensureLeisureClass = function(leisureClass) {
       var cl;
@@ -159,7 +158,7 @@ misrepresented as being the original software.
     makeSuper('let', 'ast');
     makeSuper('anno', 'ast');
     astString = function(ast) {
-      var argStr, funcStr, ref1;
+      var argStr, funcStr, ref2;
       switch (getType(ast)) {
         case 'lit':
           return getLitVal(ast);
@@ -167,7 +166,7 @@ misrepresented as being the original software.
           return getRefName(ast);
         case 'apply':
           funcStr = astString(getApplyFunc(ast));
-          if ((ref1 = getType(getApplyFunc(ast))) === 'lambda' || ref1 === 'let') {
+          if ((ref2 = getType(getApplyFunc(ast))) === 'lambda' || ref2 === 'let') {
             funcStr = "(" + funcStr + ")";
           }
           argStr = astString(getApplyArg(ast));
@@ -282,8 +281,8 @@ misrepresented as being the original software.
       };
 
       Leisure_BaseCons.prototype.elementString = function() {
-        var ref1;
-        return "" + (((ref1 = this.head()) != null ? ref1.constructor : void 0) === this.constructor || this.head() instanceof Leisure_nil ? '[' + this.head().elementString() + ']' : this.head()) + (this.tail() instanceof Leisure_nil ? '' : this.tail() instanceof Leisure_BaseCons ? " " + (this.tail().elementString()) : " | " + (this.tail()));
+        var ref2;
+        return "" + (((ref2 = this.head()) != null ? ref2.constructor : void 0) === this.constructor || this.head() instanceof Leisure_nil ? '[' + this.head().elementString() + ']' : this.head()) + (this.tail() instanceof Leisure_nil ? '' : this.tail() instanceof Leisure_BaseCons ? " " + (this.tail().elementString()) : " | " + (this.tail()));
       };
 
       Leisure_BaseCons.prototype.equals = function(other) {
@@ -590,7 +589,7 @@ misrepresented as being the original software.
       };
     }), 'anno');
     getType = function(f) {
-      var ref1, t;
+      var ref2, t;
       t = typeof f;
       if (t === 'null') {
         return "*null";
@@ -599,7 +598,7 @@ misrepresented as being the original software.
       } else if (f.leisureType) {
         return f.leisureType;
       } else {
-        return (t === 'function' && (f != null ? f.type : void 0)) || ("*" + (((t === 'object') && ((ref1 = f.constructor) != null ? ref1.name : void 0)) || t));
+        return (t === 'function' && (f != null ? f.type : void 0)) || ("*" + (((t === 'object') && ((ref2 = f.constructor) != null ? ref2.name : void 0)) || t));
       }
     };
     define('getType', (function(value) {
@@ -649,12 +648,12 @@ misrepresented as being the original software.
       }
     };
     firstRange = function(a, b) {
-      var colA, colB, lineA, lineB, ref1, ref2;
+      var colA, colB, lineA, lineB, ref2, ref3;
       if (!a || !b) {
         console.log("NIL = " + Nil);
       }
-      ref1 = a.toArray(), lineA = ref1[0], colA = ref1[1];
-      ref2 = b.toArray(), lineB = ref2[0], colB = ref2[1];
+      ref2 = a.toArray(), lineA = ref2[0], colA = ref2[1];
+      ref3 = b.toArray(), lineB = ref3[0], colB = ref3[1];
       if ((lineA != null) && (lineB != null)) {
         if (lineA < lineB || (lineA === lineB && colA < colB)) {
           return a;
@@ -920,8 +919,8 @@ misrepresented as being the original software.
       }
     };
     ast2Json = function(ast) {
-      var ref1;
-      if (ast2JsonEncodings[(ref1 = ast.constructor) != null ? ref1.name : void 0]) {
+      var ref2;
+      if (ast2JsonEncodings[(ref2 = ast.constructor) != null ? ref2.name : void 0]) {
         return ast2JsonEncodings[ast.constructor.name](ast);
       } else {
         return ast;

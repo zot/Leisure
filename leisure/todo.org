@@ -1,0 +1,2 @@
+* change leisure coffee files to use AMD
+** check current build

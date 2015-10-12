@@ -61,7 +61,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     functionInfo,
     getPos,
     isNil,
-  } = Ast
+  } = root = Ast
   {
     makeSyncMonad,
     runMonad,
@@ -78,8 +78,8 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
   {
     SourceNode,
     SourceMapConsumer,
-  } = SourceMap.sourceMap
-  
+  } = SourceMap
+
   varNameSub = (n)-> "L_#{nameSub n}"
   
   useArity = true

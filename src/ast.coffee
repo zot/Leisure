@@ -29,7 +29,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     resolve,
     lazy,
     nsLog,
-  } = base
+  } = root = base
   
   rz = resolve
   lz = lazy
@@ -102,8 +102,6 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   
   supertypes = {}
   
-  root = {}
-
   root.leisureClassChange = 0
   
   ensureLeisureClass = (leisureClass)->

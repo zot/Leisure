@@ -1,6 +1,13 @@
 Evaulation support for Leisure
 
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS)->
+    loadLeisure = (cont)-> 
+      require ['./leisure/generatedPrelude'], ->
+        require ['./leisure/std'], ->
+          require ['./leisure/parseAst'], ->
+            require ['./leisure/svg'], -> cont()
+
+
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', './gen'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = null
@@ -9,7 +16,6 @@ Evaulation support for Leisure
       {
         getType
         cons
-        define
         unescapePresentationHtml
       } = Ast
       {
@@ -33,7 +39,14 @@ Evaulation support for Leisure
         jsonConvert
       } = Runtime
 
+      loadLeisure ->
+
       defaultEnv.write = (str)-> console.log str
+
+      id = lz (x)-> rz x
+      getLeft = (x)-> x(id)(id)
+      getRight = (x)-> x(id)(id)
+      show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
       leisureEnv = (env)->
         env.presentValue = (v)-> rz(L_showHtml) lz v
@@ -68,8 +81,7 @@ Evaulation support for Leisure
             writeValues env, value = jsEval(env, text)
           catch err
             @errorAt 0, err.message
-          finally
-            cont? value
+          cont? value
         env
 
       jsEval = (env, text)->
@@ -126,8 +138,7 @@ Evaulation support for Leisure
             if typeof value != 'undefined' then writeValues env, [value]
           catch err
             @errorAt 0, err.message
-          finally
-            cont? env
+          cont? env
         env
 
       csEnv = (env)->
@@ -136,8 +147,7 @@ Evaulation support for Leisure
             writeValues env, values = jsEval env, CS.compile text, bare: true
           catch err
             @errorAt 0, err.message
-          finally
-            cont? values
+          cont? values
         env
 
       class Html

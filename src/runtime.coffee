@@ -36,7 +36,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     lazy,
     nsLog,
     funcInfo,
-  } = Base
+  } = root = Base
   {
     define,
     nakedDefine,
@@ -398,7 +398,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     constructor: (@name, @cmd, @cmdToString)->
       if typeof @name == 'function'
         @cmdToString = @cmd
-        @cmd = name
+        @cmd = @name
         @name = null
       if !@cmdToString then @cmdToString = => (if name then "#{name}: " else '') + @cmd.toString()
     toString: -> "Monad2: #{@cmdToString()}"

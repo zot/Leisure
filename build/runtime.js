@@ -31,8 +31,8 @@ misrepresented as being the original software.
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], function(Base, Ast, _, Immutable, Yaml) {
-    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind2, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, jsonConvert, lacons, lazy, lc, left, lz, makeHamt, makeMonad, makeSyncMonad, mkProto, monadModeSync, nakedDefine, nameSub, newRunMonad, newbind, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, replaceErr, requireFiles, resolve, right, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
-    readFile = Base.readFile, statFile = Base.statFile, readDir = Base.readDir, writeFile = Base.writeFile, defaultEnv = Base.defaultEnv, SimpyCons = Base.SimpyCons, simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, nsLog = Base.nsLog, funcInfo = Base.funcInfo;
+    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind2, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, jsonConvert, lacons, lazy, lc, left, lz, makeHamt, makeMonad, makeSyncMonad, mkProto, monadModeSync, nakedDefine, nameSub, newRunMonad, newbind, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
+    ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
     define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub;
     Map = Immutable.Map;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
@@ -51,11 +51,11 @@ misrepresented as being the original software.
       return basicCall(args, env, cont);
     };
     basicCall = function(args, env, cont) {
-      var arg, j, len, ref, res;
+      var arg, j, len, ref1, res;
       res = rz(global["L_" + args[0]]);
-      ref = args.slice(1);
-      for (j = 0, len = ref.length; j < len; j++) {
-        arg = ref[j];
+      ref1 = args.slice(1);
+      for (j = 0, len = ref1.length; j < len; j++) {
+        arg = ref1[j];
         res = (function(arg) {
           return res(lz(arg));
         })(arg);
@@ -296,8 +296,8 @@ misrepresented as being the original software.
       return Number(n);
     });
     define('_show', function(data) {
-      var ref;
-      if ((ref = typeof rz(data)) === 'string' || ref === 'number' || ref === 'boolean') {
+      var ref1;
+      if ((ref1 = typeof rz(data)) === 'string' || ref1 === 'number' || ref1 === 'boolean') {
         return JSON.stringify(rz(data));
       } else if (getType(rz(data)) === 'err') {
         return rz(L_errMsg)(data);
@@ -458,8 +458,8 @@ misrepresented as being the original software.
       };
     });
     define('getProperties', function(func) {
-      var ref;
-      if ((ref = rz(func)) != null ? ref.properties : void 0) {
+      var ref1;
+      if ((ref1 = rz(func)) != null ? ref1.properties : void 0) {
         return rz(func).properties;
       } else {
         return rz(L_nil);
@@ -469,9 +469,9 @@ misrepresented as being the original software.
       return function(name) {
         return function(value) {
           return makeSyncMonad(function(env, cont) {
-            var f, ref;
+            var f, ref1;
             f = rz(func);
-            f.properties = rz(L_aconsf)(name)(value)(lz((ref = f.properties) != null ? ref : rz(L_nil)));
+            f.properties = rz(L_aconsf)(name)(value)(lz((ref1 = f.properties) != null ? ref1 : rz(L_nil)));
             return cont(f.properties);
           });
         };
@@ -520,8 +520,8 @@ misrepresented as being the original software.
       return process.stdout.write(str);
     };
     defaultEnv.err = function(err) {
-      var ref;
-      return this.write("ENV Error: " + ((ref = err.stack) != null ? ref : err));
+      var ref1;
+      return this.write("ENV Error: " + ((ref1 = err.stack) != null ? ref1 : err));
     };
     defaultEnv.prompt = function() {
       throw new Error("Environment does not support prompting!");
@@ -531,14 +531,14 @@ misrepresented as being the original software.
       return monadModeSync;
     };
     withSyncModeDo = function(newMode, block) {
-      var err, oldMode, ref;
+      var err, oldMode, ref1;
       oldMode = monadModeSync;
       monadModeSync = newMode;
       try {
         return block();
       } catch (_error) {
         err = _error;
-        return console.log("ERR: " + ((ref = err.stack) != null ? ref : err));
+        return console.log("ERR: " + ((ref1 = err.stack) != null ? ref1 : err));
       } finally {
 
       }
@@ -569,7 +569,7 @@ misrepresented as being the original software.
       return warnAsync = state;
     };
     newRunMonad = function(monad, env, cont, contStack) {
-      var err, ref, result;
+      var err, ref1, result;
       if (cont) {
         contStack.push(cont);
       }
@@ -607,7 +607,7 @@ misrepresented as being the original software.
       } catch (_error) {
         err = _error;
         err = replaceErr(err, "\nERROR RUNNING MONAD, MONAD: " + monad + ", ENV: " + env + "...\n" + err.message);
-        console.log((ref = err.stack) != null ? ref : err);
+        console.log((ref1 = err.stack) != null ? ref1 : err);
         if (env.errorHandlers.length) {
           return env.errorHandlers.pop()(err);
         }
@@ -706,7 +706,7 @@ misrepresented as being the original software.
         this.cmdToString = cmdToString;
         if (typeof this.name === 'function') {
           this.cmdToString = this.cmd;
-          this.cmd = name;
+          this.cmd = this.name;
           this.name = null;
         }
         if (!this.cmdToString) {
@@ -774,9 +774,9 @@ misrepresented as being the original software.
       return makeMonad(function(env, cont) {
         var hnd;
         hnd = function(err) {
-          var ref, ref1;
-          console.log("PROTECTED ERROR: " + ((ref = err.stack) != null ? ref : err));
-          return cont(left((ref1 = err.stack) != null ? ref1 : err));
+          var ref1, ref2;
+          console.log("PROTECTED ERROR: " + ((ref1 = err.stack) != null ? ref1 : err));
+          return cont(left((ref2 = err.stack) != null ? ref2 : err));
         };
         env.errorHandlers.push(hnd);
         return runMonad(rz(value), env, (function(result) {
@@ -818,8 +818,8 @@ misrepresented as being the original software.
     define('getValueOr', function(name) {
       return function(defaultValue) {
         return makeSyncMonad(function(env, cont) {
-          var ref;
-          return cont((ref = values[rz(name)]) != null ? ref : rz(defaultValue));
+          var ref1;
+          return cont((ref1 = values[rz(name)]) != null ? ref1 : rz(defaultValue));
         });
       };
     });
@@ -859,8 +859,8 @@ misrepresented as being the original software.
     define('envGetOr', function(name) {
       return function(defaultValue) {
         return makeSyncMonad(function(env, cont) {
-          var ref;
-          return cont((ref = env.values[rz(name)]) != null ? ref : rz(defaultValue));
+          var ref1;
+          return cont((ref1 = env.values[rz(name)]) != null ? ref1 : rz(defaultValue));
         });
       };
     });
@@ -975,16 +975,16 @@ misrepresented as being the original software.
     define('readFile', function(name) {
       return makeMonad(function(env, cont) {
         return env.readFile(rz(name), function(err, contents) {
-          var ref;
-          return cont((err ? left((ref = err.stack) != null ? ref : err) : right(contents)));
+          var ref1;
+          return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(contents)));
         });
       });
     });
     define('readDir', function(dir) {
       return makeMonad(function(env, cont) {
         return env.readDir(rz(dir), function(err, files) {
-          var ref;
-          return cont((err ? left((ref = err.stack) != null ? ref : err) : right(files)));
+          var ref1;
+          return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(files)));
         });
       });
     });
@@ -992,8 +992,8 @@ misrepresented as being the original software.
       return function(data) {
         return makeMonad(function(env, cont) {
           return env.writeFile(rz(name), rz(data), function(err, contents) {
-            var ref;
-            return cont((err ? left((ref = err.stack) != null ? ref : err) : right(contents)));
+            var ref1;
+            return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(contents)));
           });
         });
       };
@@ -1001,8 +1001,8 @@ misrepresented as being the original software.
     define('statFile', function(file) {
       return makeMonad(function(env, cont) {
         return env.statFile(rz(file), function(err, stats) {
-          var ref;
-          return cont((err ? left((ref = err.stack) != null ? ref : err) : right(stats)));
+          var ref1;
+          return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(stats)));
         });
       });
     });
@@ -1071,11 +1071,11 @@ misrepresented as being the original software.
               }
               info.alts[rz(alt)] = rz(def);
               alts = (function() {
-                var j, len, ref, results;
-                ref = info.altList;
+                var j, len, ref1, results;
+                ref1 = info.altList;
                 results = [];
-                for (j = 0, len = ref.length; j < len; j++) {
-                  i = ref[j];
+                for (j = 0, len = ref1.length; j < len; j++) {
+                  i = ref1[j];
                   results.push(info.alts[i]);
                 }
                 return results;
@@ -1361,8 +1361,8 @@ misrepresented as being the original software.
     }));
     define('setNameSpaceInfo', function(info) {
       return makeSyncMonad(function(env, cont) {
-        var ref;
-        ref = rz(info), root.nameSpacePath = ref[0], root.currentNameSpace = ref[1];
+        var ref1;
+        ref1 = rz(info), root.nameSpacePath = ref1[0], root.currentNameSpace = ref1[1];
         nsLog("SETTING NAME SPACE: " + root.currentNameSpace);
         return cont(_unit);
       });

@@ -929,7 +929,7 @@
       };
 
       OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock, oldBlocks, newBlocks) {
-        var block, env, envM, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, result, start, sync;
+        var block, env, envM, finished, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, result, start, sync;
         if (change.type === 'code' && isDynamic(change) && (envM = blockEnvMaker(change))) {
           ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
           hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? (oldSource = blockSource(oldBlock), newSource.content !== oldSource.content) : void 0);
@@ -943,40 +943,57 @@
             opts = this;
             (function(change) {
               env.errorAt = function(offset, msg) {
+                var sets;
                 newBlock = setError(change, offset, msg);
                 if (newBlock !== change && !sync) {
+                  sets = {};
+                  sets[change._id] = newBlock;
                   return opts.change({
                     first: opts.data.getFirst(),
                     removes: {},
-                    sets: change._id
-                  }, newBlock);
+                    sets: sets,
+                    newBlocks: [newBlock],
+                    oldBlocks: [change]
+                  });
                 }
               };
               return env.write = function(str) {
+                var sets;
                 result += str;
+                if (str[str.length - 1] !== '\n') {
+                  str += '\n';
+                }
                 if (!sync) {
                   newBlock = setResult(change, str);
+                  sets = {};
+                  sets[change._id] = newBlock;
                   return opts.change({
                     first: opts.data.getFirst(),
                     removes: {},
-                    sets: change._id
-                  }, newBlock);
+                    sets: sets,
+                    newBlocks: [newBlock],
+                    oldBlocks: [change]
+                  });
                 }
               };
             })(change);
-            env.executeText(newSource.content, Nil, function() {});
-            newBlock = setResult(newBlock, result);
-            if (newBlock.text !== change.text) {
-              changes.sets[newBlock._id] = newBlock;
-              ref1 = changes.newBlocks;
-              for (i = j = 0, len = ref1.length; j < len; i = ++j) {
-                block = ref1[i];
-                if (block._id === newBlock._id) {
-                  changes.newBlocks[i] = newBlock;
+            finished = {};
+            if (finished === env.executeText(newSource.content, Nil, (function() {
+              return finished;
+            }))) {
+              newBlock = setResult(newBlock, result);
+              if (newBlock.text !== change.text) {
+                changes.sets[newBlock._id] = newBlock;
+                ref1 = changes.newBlocks;
+                for (i = j = 0, len = ref1.length; j < len; i = ++j) {
+                  block = ref1[i];
+                  if (block._id === newBlock._id) {
+                    changes.newBlocks[i] = newBlock;
+                  }
                 }
+                start = this.offsetForNewBlock(newBlock, oldBlocks, newBlocks);
+                changes.repls.push(replacementFor(start, change.text, newBlock.text));
               }
-              start = this.offsetForNewBlock(newBlock, oldBlocks, newBlocks);
-              changes.repls.push(replacementFor(start, change.text, newBlock.text));
             }
             return sync = false;
           }

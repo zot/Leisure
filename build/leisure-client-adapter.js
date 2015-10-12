@@ -20,9 +20,11 @@
     Peer = (function() {
       function Peer() {
         this.data = new OrgData();
-        this.namePromise = randomUserName(function(name1) {
-          this.name = name1;
-        });
+        this.namePromise = randomUserName((function(_this) {
+          return function(name1) {
+            _this.name = name1;
+          };
+        })(this));
         this.guardedChangeId = 0;
         this.guardPromises = {};
       }
@@ -43,6 +45,7 @@
         var opened, peer;
         this.url = url1;
         this.connectedFunc = connectedFunc1;
+        console.log("CONNECTED");
         this.con = new SockJS(this.url);
         opened = false;
         this.namePromise["finally"]((function(_this) {
@@ -436,6 +439,7 @@
 
     })();
     ajaxGet = function(url) {
+      console.log("ajaxGet " + url);
       return new Promise(function(resolve, reject) {
         var xhr;
         xhr = new XMLHttpRequest;
