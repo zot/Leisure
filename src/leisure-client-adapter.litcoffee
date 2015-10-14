@@ -27,7 +27,7 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 
-    define ['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot'], (jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT)->
+    define ['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements'], (jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep)->
       {
         Map
         Set
@@ -68,6 +68,10 @@ misrepresented as being the original software.
         isInsert
         isDelete
       } = TextOperation
+      {
+        Replacements
+        replacements
+      } = Rep
 
       diag = (args...)-> console.log args...
 
@@ -101,13 +105,26 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           peer = this
           changeAdvice @editor.options, true,
             guardedReplaceText: p2p: (parent)-> (start, end, text, gStart, gEnd)->
-              peer.sendGuardedOperation(peer.editorClient.revision, peer.opFor({start, end, text}, @getLength()), [gStart, gEnd])
-            replaceText: p2p: (parent)-> (start, end, text)->
+              reps = Replacements.fromArray [start, end, text]
+              {offset, block} = @data.blockOffsetForDocOffset start
+              oldBlock = @data.getBlock block
+              for repl in @replaceTextEffects(start, end, text, true).repls
+                reps.replace repl
+              p = peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, @getLength()), [gStart, gEnd])
+              p.then ((op)=>
+                #console.log "Promise:", p
+                repls = peer.replsForTextOp TextOperation.fromJSON op
+                #console.log "Guarded operation: ", repls
+                for repl in Replacements.fromArray(repls).getRepls()
+                  @replaceTextEffects repl.start, repl.end, text)
+                .catch(->)
+
+            replaceText: p2p: (parent)-> (start, end, text, skip)->
               oldLen = @getLength()
               repl = {start, end, text}
               newLen = oldLen + text.length - end + start
               peer.editorCallbacks.change peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen)
-              parent start, end, text
+              parent start, end, text, skip
           @editor.on 'selection', => @getSelection()
         opFor: ({start, end, text}, length)->
           op = new TextOperation()
@@ -115,6 +132,19 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           if end > start then op = op.delete end - start
           if text.length then op = op.insert text
           if length > end then op = op.retain length - end
+          op
+        opsFor: (repls, totalLength)->
+          op = new TextOperation()
+          t = repls.replacements
+          cursor = 0
+          while !t.isEmpty()
+            {offset, length, text} = t.peekFirst()
+            t = t.removeFirst()
+            if offset > 0 then op = op.retain offset
+            if length > 0 then op = op.delete length
+            if text.length then op = op.insert text
+            cursor += offset + length
+          if totalLength > cursor then op = op.retain totalLength - cursor
           op
         inverseOpFor: ({start, end, text}, len)->
           @opFor (
@@ -156,12 +186,12 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             console.log "Received error: #{msg.error}", msg
             @close()
           ack: -> @serverCallbacks.ack()
-          ackGuard: ({guardId})->
-            #console.log "ACKNOWLEDGED GUARD"
-            @guardPromises[guardId][0]()
+          ackGuard: ({guardId, operation})->
+            #console.log "GUARD ACKNOWLEDGED"
+            @guardPromises[guardId][0](operation)
             delete @guardPromises[guardId]
           rejectGuard: ({guardId})->
-            #console.log "REJECTED GUARD"
+            #console.log "GUARD REJECTED"
             @guardPromises[guardId][1]()
             delete @guardPromises[guardId]
           operation: ({peerId, operation, meta})->
@@ -266,14 +296,13 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         sendSelection: (sel)-> @send 'selection', selection: sel
         sendOperation: (revision, operation, selection)-> @send 'operation', {revision, operation, selection}
         sendGuardedOperation: (revision, operation, guards)->
-          #console.log "SENDING GUARDED OPERATION"
+          #console.log "GUARD SENT"
           guardId = "guard-#{@guardedChangeId++}"
           @send 'guardedOperation', {revision, operation, guards, guardId, selection: @editorClient.selection}
           new Promise((success, failure)=> @guardPromises[guardId] = [success, failure])
-            .catch(->)
 
       ajaxGet = (url)->
-        console.log "ajaxGet #{url}"
+        #console.log "ajaxGet #{url}"
         new Promise (resolve, reject)->
           xhr = new XMLHttpRequest
           xhr.onerror = reject

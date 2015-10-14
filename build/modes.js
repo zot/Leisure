@@ -2,8 +2,8 @@
 (function() {
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Nil, OrgEditing, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+  define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird) {
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -13,6 +13,7 @@
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr, nextImageSrc = UI.nextImageSrc, prevImageSrc = UI.prevImageSrc, pushPendingInitialzation = UI.pushPendingInitialzation;
     mergeExports = BrowserExports.mergeExports;
     OrgEditing = EditorSupport.OrgEditing, blockOrg = EditorSupport.blockOrg, blockCodeItems = EditorSupport.blockCodeItems, blockIsHidden = EditorSupport.blockIsHidden, blockEnvMaker = EditorSupport.blockEnvMaker, controllerEval = EditorSupport.controllerEval;
+    Promise = Bluebird.Promise;
     singleControllers = {};
     numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/;
     currentSlider = null;
@@ -882,20 +883,19 @@
       }), 1);
     };
     slideValue = function() {
-      var block, blockOff, blockStart, cs, m, m2, newText, start;
+      var block, blockOff, blockStart, cs, m, newText, start;
       if ((cs = currentSlider) && !cs.editor.options.awaitingGuard) {
         start = cs.data.getMarkLocation('__slider__');
         blockOff = cs.data.blockOffsetForDocOffset(start);
         block = cs.editor.options.getBlock(blockOff.block);
         m = numPat.exec(block.text.substring(blockOff.offset));
-        m2 = blockOff.offset > 0 ? numPat.exec(block.text.substring(blockOff.offset - 1)) : void 0;
         newText = String(currentSlider.widget.slider('value'));
         if (m[0] !== newText) {
-          cs.editor.options.awaitingGuard = true;
           blockStart = cs.editor.options.data.offsetForBlock(block);
-          return cs.editor.options.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length)["finally"](function() {
+          cs.editor.options.awaitingGuard = true;
+          return Promise.using(Promise.resolve(0).disposer(function() {
             return cs.editor.options.awaitingGuard = false;
-          });
+          }), cs.editor.options.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (function() {}));
         }
       }
     };

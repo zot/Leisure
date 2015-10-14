@@ -821,6 +821,10 @@ situations to provide STM-like change management.
           catch err
             errorFunc err
 
+        guardedReplaceText: (start, end, text, gStart, gEnd)->
+          @replaceText start, end, text
+          Promise.resolve()
+
 `replaceBlocks(oldBlocks, newBlocks) -> removedBlocks`: override this if you need to link up the blocks, etc., like so that `renderBlock()` can return the proper next id, for instance.
 
         replaceBlocks: (prev, oldBlocks, newBlocks)->
@@ -1137,9 +1141,6 @@ Data model -- override/reset these if you want to change how the store accesses 
           for repl in replacements
             @replaceText repl.start + offset, repl.end + offset, repl.text
             offset += repl.text.length - repl.end + repl.start
-        guardedReplaceText: (start, end, text, gStart, gEnd)->
-          @replaceText start, end, text
-          Promise.resolve()
         replaceText: (start, end, text)->
           {prev, oldBlocks, newBlocks} = @changesForReplacement start, end, text
           if oldBlocks

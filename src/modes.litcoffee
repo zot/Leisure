@@ -1,4 +1,4 @@
-    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport)->
+    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird)->
 
       {
         defaultEnv
@@ -82,6 +82,9 @@
         blockEnvMaker
         controllerEval
       } = EditorSupport
+      {
+        Promise
+      } = Bluebird
 
       singleControllers = {}
       numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/
@@ -645,14 +648,12 @@
           blockOff = cs.data.blockOffsetForDocOffset start
           block = cs.editor.options.getBlock blockOff.block
           m = numPat.exec block.text.substring blockOff.offset
-          m2 = if blockOff.offset > 0
-            numPat.exec block.text.substring blockOff.offset - 1
           newText = String currentSlider.widget.slider 'value'
           if m[0] != newText
-            cs.editor.options.awaitingGuard = true
+            #console.log "REPLACE #{m[0]} with #{newText}"
             blockStart = cs.editor.options.data.offsetForBlock block
-            cs.editor.options.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length
-              .finally -> cs.editor.options.awaitingGuard = false
+            cs.editor.options.awaitingGuard = true
+            Promise.using(Promise.resolve(0).disposer(-> cs.editor.options.awaitingGuard = false), (cs.editor.options.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (->))
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding

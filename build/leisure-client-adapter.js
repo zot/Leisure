@@ -2,8 +2,8 @@
 (function() {
   var slice = [].slice;
 
-  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot'], function(jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT) {
-    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, diag, editorToolbar, getDocumentParams, isDelete, isInsert, isRetain, noTrim, preserveSelection, randomUserName, ref, replacementFor, validateBatch;
+  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements'], function(jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep) {
+    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, diag, editorToolbar, getDocumentParams, isDelete, isInsert, isRetain, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
     OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor;
@@ -12,6 +12,7 @@
     Promise = Bluebird.Promise;
     TextOperation = OT.TextOperation, Selection = OT.Selection, EditorClient = OT.EditorClient;
     isRetain = TextOperation.isRetain, isInsert = TextOperation.isInsert, isDelete = TextOperation.isDelete;
+    Replacements = Rep.Replacements, replacements = Rep.replacements;
     diag = function() {
       var args;
       args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -82,17 +83,35 @@
           guardedReplaceText: {
             p2p: function(parent) {
               return function(start, end, text, gStart, gEnd) {
-                return peer.sendGuardedOperation(peer.editorClient.revision, peer.opFor({
-                  start: start,
-                  end: end,
-                  text: text
-                }, this.getLength()), [gStart, gEnd]);
+                var block, j, len1, offset, oldBlock, p, ref1, ref2, repl, reps;
+                reps = Replacements.fromArray([start, end, text]);
+                ref1 = this.data.blockOffsetForDocOffset(start), offset = ref1.offset, block = ref1.block;
+                oldBlock = this.data.getBlock(block);
+                ref2 = this.replaceTextEffects(start, end, text, true).repls;
+                for (j = 0, len1 = ref2.length; j < len1; j++) {
+                  repl = ref2[j];
+                  reps.replace(repl);
+                }
+                p = peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, this.getLength()), [gStart, gEnd]);
+                return p.then(((function(_this) {
+                  return function(op) {
+                    var k, len2, ref3, repls, results;
+                    repls = peer.replsForTextOp(TextOperation.fromJSON(op));
+                    ref3 = Replacements.fromArray(repls).getRepls();
+                    results = [];
+                    for (k = 0, len2 = ref3.length; k < len2; k++) {
+                      repl = ref3[k];
+                      results.push(_this.replaceTextEffects(repl.start, repl.end, text));
+                    }
+                    return results;
+                  };
+                })(this)))["catch"](function() {});
               };
             }
           },
           replaceText: {
             p2p: function(parent) {
-              return function(start, end, text) {
+              return function(start, end, text, skip) {
                 var newLen, oldLen, repl;
                 oldLen = this.getLength();
                 repl = {
@@ -102,7 +121,7 @@
                 };
                 newLen = oldLen + text.length - end + start;
                 peer.editorCallbacks.change(peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen));
-                return parent(start, end, text);
+                return parent(start, end, text, skip);
               };
             }
           }
@@ -129,6 +148,31 @@
         }
         if (length > end) {
           op = op.retain(length - end);
+        }
+        return op;
+      };
+
+      Peer.prototype.opsFor = function(repls, totalLength) {
+        var cursor, length, offset, op, ref1, t, text;
+        op = new TextOperation();
+        t = repls.replacements;
+        cursor = 0;
+        while (!t.isEmpty()) {
+          ref1 = t.peekFirst(), offset = ref1.offset, length = ref1.length, text = ref1.text;
+          t = t.removeFirst();
+          if (offset > 0) {
+            op = op.retain(offset);
+          }
+          if (length > 0) {
+            op = op["delete"](length);
+          }
+          if (text.length) {
+            op = op.insert(text);
+          }
+          cursor += offset + length;
+        }
+        if (totalLength > cursor) {
+          op = op.retain(totalLength - cursor);
         }
         return op;
       };
@@ -210,9 +254,9 @@
           return this.serverCallbacks.ack();
         },
         ackGuard: function(arg) {
-          var guardId;
-          guardId = arg.guardId;
-          this.guardPromises[guardId][0]();
+          var guardId, operation;
+          guardId = arg.guardId, operation = arg.operation;
+          this.guardPromises[guardId][0](operation);
           return delete this.guardPromises[guardId];
         },
         rejectGuard: function(arg) {
@@ -432,14 +476,13 @@
           return function(success, failure) {
             return _this.guardPromises[guardId] = [success, failure];
           };
-        })(this))["catch"](function() {});
+        })(this));
       };
 
       return Peer;
 
     })();
     ajaxGet = function(url) {
-      console.log("ajaxGet " + url);
       return new Promise(function(resolve, reject) {
         var xhr;
         xhr = new XMLHttpRequest;

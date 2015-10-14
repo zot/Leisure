@@ -78,7 +78,7 @@
       if (results !== rz(L_nil)) {
         return runMonad2(getRight(results.head().tail()), env, function(res2) {
           if (getType(res2) !== 'unit') {
-            env.write(String(env.presentValue(res2)));
+            env.write(': ' + String(env.presentValue(res2)));
           }
           return runNextResult(results.tail(), env, cont);
         });

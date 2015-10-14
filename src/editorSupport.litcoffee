@@ -478,14 +478,21 @@ may be called more than once.  changeData() returns a promise.
         renderBlock: (block)-> @mode.render this, block, @idPrefix
         replaceBlocks: (prev, oldBlocks, newBlocks)->
           @change @changesFor prev, oldBlocks, newBlocks
-        replaceText: (start, end, text)->
+        replaceTextEffects: (start, end, text, skipMode)->
           {prev, oldBlocks, newBlocks} = @data.changesForReplacement start, end, text
+          if !oldBlocks
+            oldBlocks = []
+            newBlocks = [@data.blockForOffset start]
           if oldBlocks
             changes = @changesFor prev, oldBlocks, newBlocks
-            @mode.handleChanges this, changes
+            if !skipMode then @mode.handleChanges this, changes
+            changes
+        replaceText: (start, end, text, skipEffects)->
+          if !skipEffects && repls = @replaceTextEffects(start, end, text).repls
             super start, end, text
-            for repl in changes.repls
-              super repl.start, repl.end, repl.text
+            for repl in repls
+              @replaceText repl.start, repl.end, repl.text, true
+          else super start, end, text
 
 `changesFor(first, oldBlocks, newBlocks)` -- compute some effects immediately
 
@@ -542,7 +549,7 @@ may be called more than once.  changeData() returns a promise.
               sync = true
               env = envM __proto__: defaultEnv
               opts = this
-              do (change)->
+              do (change)=>
                 env.errorAt = (offset, msg)->
                   newBlock = setError change, offset, msg
                   if newBlock != change && !sync
@@ -554,20 +561,11 @@ may be called more than once.  changeData() returns a promise.
                       sets: sets
                       newBlocks: [newBlock]
                       oldBlocks: [change]
-                env.write = (str)->
+                env.write = (str)=>
                   #result += ': ' + (if str instanceof Html then str.content else escapeHtml String(str).replace(/\r?\n/g, '\n: ')) + '\n'
-                  result += str
                   if str[str.length - 1] != '\n' then str += '\n'
-                  if !sync
-                    newBlock = setResult change, str
-                    sets = {}
-                    sets[change._id] = newBlock
-                    opts.change
-                      first: opts.data.getFirst()
-                      removes: {}
-                      sets: sets
-                      newBlocks: [newBlock]
-                      oldBlocks: [change]
+                  result += str
+                  if !sync then @replaceResult change._id, result
               finished = {}
               if finished == env.executeText newSource.content, Nil, (-> finished)
                 newBlock = setResult newBlock, result
@@ -616,6 +614,18 @@ may be called more than once.  changeData() returns a promise.
             alert "Elisp links not supported:\n#{e.target.href}"
           else open e.target.href
           false
+        replaceResult: (block, str)->
+          if typeof block != 'string' then blockId = block._id
+          if current = @data.getBlock block
+            start = @data.offsetForBlock current
+            {results, last} = blockCodeItems this, current
+            if str[str.length - 1] != '\n' then str += '\n'
+            str = "#+RESULTS:\n" + str
+            if results
+              start += results.offset
+              end = start + results.text.length
+            else end = (start += last.end())
+            @replaceText start, end, str, true
 
       trickyChange = (oldBlock, newBlock)->
         oldBlock._id != newBlock._id ||

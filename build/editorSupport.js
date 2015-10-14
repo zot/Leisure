@@ -838,20 +838,34 @@
         return this.change(this.changesFor(prev, oldBlocks, newBlocks));
       };
 
-      OrgEditing.prototype.replaceText = function(start, end, text) {
-        var changes, j, len, newBlocks, oldBlocks, prev, ref, ref1, repl, results1;
+      OrgEditing.prototype.replaceTextEffects = function(start, end, text, skipMode) {
+        var changes, newBlocks, oldBlocks, prev, ref;
         ref = this.data.changesForReplacement(start, end, text), prev = ref.prev, oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks;
+        if (!oldBlocks) {
+          oldBlocks = [];
+          newBlocks = [this.data.blockForOffset(start)];
+        }
         if (oldBlocks) {
           changes = this.changesFor(prev, oldBlocks, newBlocks);
-          this.mode.handleChanges(this, changes);
+          if (!skipMode) {
+            this.mode.handleChanges(this, changes);
+          }
+          return changes;
+        }
+      };
+
+      OrgEditing.prototype.replaceText = function(start, end, text, skipEffects) {
+        var j, len, repl, repls, results1;
+        if (!skipEffects && (repls = this.replaceTextEffects(start, end, text).repls)) {
           OrgEditing.__super__.replaceText.call(this, start, end, text);
-          ref1 = changes.repls;
           results1 = [];
-          for (j = 0, len = ref1.length; j < len; j++) {
-            repl = ref1[j];
-            results1.push(OrgEditing.__super__.replaceText.call(this, repl.start, repl.end, repl.text));
+          for (j = 0, len = repls.length; j < len; j++) {
+            repl = repls[j];
+            results1.push(this.replaceText(repl.start, repl.end, repl.text, true));
           }
           return results1;
+        } else {
+          return OrgEditing.__super__.replaceText.call(this, start, end, text);
         }
       };
 
@@ -941,42 +955,34 @@
               __proto__: defaultEnv
             });
             opts = this;
-            (function(change) {
-              env.errorAt = function(offset, msg) {
-                var sets;
-                newBlock = setError(change, offset, msg);
-                if (newBlock !== change && !sync) {
-                  sets = {};
-                  sets[change._id] = newBlock;
-                  return opts.change({
-                    first: opts.data.getFirst(),
-                    removes: {},
-                    sets: sets,
-                    newBlocks: [newBlock],
-                    oldBlocks: [change]
-                  });
-                }
-              };
-              return env.write = function(str) {
-                var sets;
-                result += str;
-                if (str[str.length - 1] !== '\n') {
-                  str += '\n';
-                }
-                if (!sync) {
-                  newBlock = setResult(change, str);
-                  sets = {};
-                  sets[change._id] = newBlock;
-                  return opts.change({
-                    first: opts.data.getFirst(),
-                    removes: {},
-                    sets: sets,
-                    newBlocks: [newBlock],
-                    oldBlocks: [change]
-                  });
-                }
-              };
-            })(change);
+            (function(_this) {
+              return (function(change) {
+                env.errorAt = function(offset, msg) {
+                  var sets;
+                  newBlock = setError(change, offset, msg);
+                  if (newBlock !== change && !sync) {
+                    sets = {};
+                    sets[change._id] = newBlock;
+                    return opts.change({
+                      first: opts.data.getFirst(),
+                      removes: {},
+                      sets: sets,
+                      newBlocks: [newBlock],
+                      oldBlocks: [change]
+                    });
+                  }
+                };
+                return env.write = function(str) {
+                  if (str[str.length - 1] !== '\n') {
+                    str += '\n';
+                  }
+                  result += str;
+                  if (!sync) {
+                    return _this.replaceResult(change._id, result);
+                  }
+                };
+              });
+            })(this)(change);
             finished = {};
             if (finished === env.executeText(newSource.content, Nil, (function() {
               return finished;
@@ -1069,6 +1075,28 @@
           open(e.target.href);
         }
         return false;
+      };
+
+      OrgEditing.prototype.replaceResult = function(block, str) {
+        var blockId, current, end, ref, results, start;
+        if (typeof block !== 'string') {
+          blockId = block._id;
+        }
+        if (current = this.data.getBlock(block)) {
+          start = this.data.offsetForBlock(current);
+          ref = blockCodeItems(this, current), results = ref.results, last = ref.last;
+          if (str[str.length - 1] !== '\n') {
+            str += '\n';
+          }
+          str = "#+RESULTS:\n" + str;
+          if (results) {
+            start += results.offset;
+            end = start + results.text.length;
+          } else {
+            end = (start += last.end());
+          }
+          return this.replaceText(start, end, str, true);
+        }
       };
 
       return OrgEditing;

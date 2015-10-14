@@ -181,6 +181,7 @@ Handle a message from the connected browser
             TextOperation.fromJSON operation,
             selection && Selection.fromJSON(selection))
         catch exc
+          peer.send {type: 'rejectGuard', guardId}
           console.error "Invalid operation received: " + exc.stack
           return;
         try
@@ -191,8 +192,9 @@ Handle a message from the connected browser
             console.log "new guard operation: " + JSON.stringify wrapped
             peer.selection = wrappedPrime.meta
             @sendBroadcast null, type: 'operation', peerId: peer.connectionId, operation: wrappedPrime.wrapped.toJSON(), meta: wrappedPrime.meta
-            peer.send {type: 'ackGuard', guardId}
+            peer.send {type: 'ackGuard', guardId, operation: wrappedPrime.wrapped.toJSON()}
         catch exc
+          peer.send {type: 'rejectGuard', guardId}
           console.error exc.stack
       operation: (peer, {revision, operation, selection})->
         try

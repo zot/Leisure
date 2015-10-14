@@ -1058,6 +1058,11 @@
         }
       };
 
+      BasicEditingOptions.prototype.guardedReplaceText = function(start, end, text, gStart, gEnd) {
+        this.replaceText(start, end, text);
+        return Promise.resolve();
+      };
+
       BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks) {
         return this.change(this.data.changesFor(prev, oldBlocks, newBlocks));
       };
@@ -1564,11 +1569,6 @@
           results1.push(offset += repl.text.length - repl.end + repl.start);
         }
         return results1;
-      };
-
-      DataStore.prototype.guardedReplaceText = function(start, end, text, gStart, gEnd) {
-        this.replaceText(start, end, text);
-        return Promise.resolve();
       };
 
       DataStore.prototype.replaceText = function(start, end, text) {

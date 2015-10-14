@@ -283,6 +283,10 @@
         wrapped = new WrappedOperation(TextOperation.fromJSON(operation, selection && Selection.fromJSON(selection)));
       } catch (_error) {
         exc = _error;
+        peer.send({
+          type: 'rejectGuard',
+          guardId: guardId
+        });
         console.error("Invalid operation received: " + exc.stack);
         return;
       }
@@ -304,11 +308,16 @@
           });
           return peer.send({
             type: 'ackGuard',
-            guardId: guardId
+            guardId: guardId,
+            operation: wrappedPrime.wrapped.toJSON()
           });
         }
       } catch (_error) {
         exc = _error;
+        peer.send({
+          type: 'rejectGuard',
+          guardId: guardId
+        });
         return console.error(exc.stack);
       }
     };
