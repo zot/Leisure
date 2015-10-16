@@ -3,14 +3,14 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
-    var basicDataFilter, blockRangeFor, c, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, e, error, escapeAttr, escapeString, escaped, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, slashed, specials, typeForFile, unescapeString, unescaped;
+    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, slashed, specials, typeForFile, unescapeString;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
     showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr;
     getDocumentParams = EditorSupport.getDocumentParams, basicDataFilter = EditorSupport.basicDataFilter;
     clearDiag = Diag.clearDiag, diagMessage = Diag.diagMessage;
-    knownLanguages = Eval.knownLanguages;
+    knownLanguages = Eval.knownLanguages, escapeString = Eval.escapeString, unescapeString = Eval.unescapeString;
     msgPat = /^([^ ]+)( (.*))?$/;
     replaceMsgPat = /^([^ ]+) ([^ ]+) ([^ ]+) (.*)$/;
     connected = false;
@@ -336,36 +336,6 @@
     };
     specials = /[\b\f\n\r\t\v\"\\]/g;
     slashed = /\\./g;
-    escaped = {
-      '\b': "\\b",
-      '\f': "\\f",
-      '\n': "\\n",
-      '\r': "\\r",
-      '\t': "\\t",
-      '\v': "\\v",
-      '\"': "\\\"",
-      '\\': "\\\\"
-    };
-    unescaped = _.zipObject((function() {
-      var results;
-      results = [];
-      for (c in escaped) {
-        e = escaped[c];
-        results.push([e, c]);
-      }
-      return results;
-    })());
-    escapeString = function(str) {
-      return str.replace(specials, function(c) {
-        return escaped[c];
-      });
-    };
-    unescapeString = function(str) {
-      return str.replace(slashed, function(c) {
-        var ref;
-        return (ref = unescaped[c]) != null ? ref : c[1];
-      });
-    };
     configureEmacs = function(panel) {
       var data, opts;
       opts = UI.context.opts;
@@ -402,10 +372,7 @@
       blockRangeFor: blockRangeFor,
       configureEmacs: configureEmacs
     });
-    return {
-      escapeString: escapeString,
-      unescapeString: unescapeString
-    };
+    return {};
   });
 
 }).call(this);

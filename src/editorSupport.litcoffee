@@ -25,6 +25,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       {
         languageEnvMaker
         Html
+        presentHtml
       } = Eval
       {
         LeisureEditCore
@@ -262,6 +263,7 @@ that must be done regardless of the source of changes
               env.write = (str)->
               env.errorAt = (offset, msg)-> console.log msg
               env.executeText blockSource(newBlock), Nil, (->)
+              env.data = this
 
       basicDataFilter =
         startChange: (data)->
@@ -547,7 +549,10 @@ may be called more than once.  changeData() returns a promise.
               result = ''
               newBlock = setError change
               sync = true
-              env = envM __proto__: defaultEnv
+              env = envM
+                __proto__: defaultEnv
+                options: this
+                data: @data
               opts = this
               do (change)=>
                 env.errorAt = (offset, msg)->
@@ -562,9 +567,8 @@ may be called more than once.  changeData() returns a promise.
                       newBlocks: [newBlock]
                       oldBlocks: [change]
                 env.write = (str)=>
-                  #result += ': ' + (if str instanceof Html then str.content else escapeHtml String(str).replace(/\r?\n/g, '\n: ')) + '\n'
-                  if str[str.length - 1] != '\n' then str += '\n'
-                  result += str
+                  result += presentHtml str
+                  if result[result.length - 1] != '\n' then result += '\n'
                   if !sync then @replaceResult change._id, result
               finished = {}
               if finished == env.executeText newSource.content, Nil, (-> finished)

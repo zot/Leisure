@@ -7,7 +7,7 @@ Evaulation support for Leisure
             require ['./leisure/svg'], -> cont()
 
 
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', './gen'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', './gen', './leisure-support'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = null
@@ -66,14 +66,15 @@ Evaulation support for Leisure
           results = results.tail()
         if results != rz(L_nil)
           runMonad2 getRight(results.head().tail()), env, (res2)->
-            if getType(res2) != 'unit' then env.write ': ' + String(env.presentValue res2)
+            if getType(res2) != 'unit' then env.write String(env.presentValue res2)
             runNextResult results.tail(), env, cont
         else cont()
 
-      presentHtml = (v)-> if v instanceof Html then v.content else escapeHtml v
-      writeValues = (env, values)->
-        for v in values ? []
-          env.write ": #{presentHtml v}\n"
+      presentHtml = (v)->
+        ': ' + (if v instanceof Html then escapeString v.content
+        else escapeHtml String(v).replace(/\r?\n/g, '\n: '))
+
+      writeValues = (env, values)-> env.write values.join '\n'
 
       jsEnv = (env)->
         env.executeText = (text, props, cont)->
@@ -196,6 +197,22 @@ Evaulation support for Leisure
               vars[v.substring(0, eq).trim()] = value
         [vars, _.keys blockIds]
 
+      escaped =
+        '\b': "\\b"
+        '\f': "\\f"
+        '\n': "\\n"
+        '\r': "\\r"
+        '\t': "\\t"
+        '\v': "\\v"
+        '\"': "\\\""
+        '\\': "\\\\"
+
+      unescaped = _.zipObject ([e, c] for c, e of escaped)
+
+      escapeString = (str)-> str.replace specials, (c)-> escaped[c]
+
+      unescapeString = (str)-> str.replace slashed, (c)-> unescaped[c] ? c[1]
+
       {
         languageEnvMaker
         html
@@ -203,4 +220,7 @@ Evaulation support for Leisure
         escapeHtml
         blockVars
         knownLanguages
+        presentHtml
+        escapeString
+        unescapeString
       }

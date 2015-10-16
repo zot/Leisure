@@ -332,7 +332,7 @@ data-lang='{{language}}'><span class='hidden'>{{beforeResults}}</span>{{{results
     Leisure.UI.refreshImage img
 #+END_SRC
 
-#+BEGIN_SRC html :defview leisure-code/js
+#+BEGIN_SRC html :defview leisure-code/jsX
 <span
 id='{{id}}'
 class='fancy codeblock'
@@ -343,18 +343,18 @@ data-lang='{{language}}'><table><tr><td class='code-controls' data-noncontent>
 </td><td class='code-text'>{{{text}}}</td><td></td></tr></table></span>
 #+END_SRC
 
-#+BEGIN_SRC cs :control leisure-code/js
+#+BEGIN_SRC cs :control leisure-code/jsX
 @initializeView = (view)-> Leisure.createValueSliders()
 #+END_SRC
 
-#+BEGIN_SRC html :defview leisure-code-source/js
+#+BEGIN_SRC html :defview leisure-code-source/jsX
 <span
 class='source'
 data-org-src='{{block.codeAttributes.results}}'
 contenteditable='true'><span class='hidden'>{{sourceHeader}}</span>{{{renderSource}}}<span class='hidden'>{{sourceFooter}}</span></span>
 #+END_SRC
 
-#+BEGIN_SRC html :defview leisure-code-results/js
+#+BEGIN_SRC html :defview leisure-code-results/jsX
 <span class='results coderesults'
 data-org-results='{{block.codeAttributes.results}}'
 data-org-type='results'

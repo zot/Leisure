@@ -1,14 +1,15 @@
+requirejs = require('requirejs')
 {
   defaultEnv,
-} = root = module.exports = require '15-base'
+} = root = module.exports = requirejs 'base'
 {
   consFrom,
   Nil,
   cons
-} = require '16-ast'
+} = requirejs 'ast'
 {
   booleanFor,
-} = require '17-runtime'
+} = requirejs 'runtime'
 
 fs = require 'fs'
 

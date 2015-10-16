@@ -247,9 +247,13 @@ Handle a message from the connected browser
 
     startServer = (port)->
       console.log 'serve: ' + path.dirname(process.cwd())
-      fileServer = serveStatic path.dirname(process.cwd()), index: ['index.html']
+      files = serveStatic path.dirname(process.cwd()), index: ['index.html']
+      docs = serveStatic path.resolve(path.dirname(process.cwd()), "../docs")
       http_server = http.createServer (req, res)->
-        fileServer req, res, finalhandler req, res
+        (if m = req.url.match /^\/docs(\/.*)$/
+          req.url = m[1]
+          docs
+        else files) req, res, finalhandler req, res
       sockjs.createServer(
         sockjs_url: 'http://cdn.jsdelivr.net/sockjs/1.0.1/sockjs.min.js'
         prefix: socketPrefix)

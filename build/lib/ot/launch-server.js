@@ -449,13 +449,15 @@
   })(MessageHandler);
 
   startServer = function(port) {
-    var fileServer, http_server;
+    var docs, files, http_server;
     console.log('serve: ' + path.dirname(process.cwd()));
-    fileServer = serveStatic(path.dirname(process.cwd()), {
+    files = serveStatic(path.dirname(process.cwd()), {
       index: ['index.html']
     });
+    docs = serveStatic(path.resolve(path.dirname(process.cwd()), "../docs"));
     http_server = http.createServer(function(req, res) {
-      return fileServer(req, res, finalhandler(req, res));
+      var m;
+      return ((m = req.url.match(/^\/docs(\/.*)$/)) ? (req.url = m[1], docs) : files)(req, res, finalhandler(req, res));
     });
     sockjs.createServer({
       sockjs_url: 'http://cdn.jsdelivr.net/sockjs/1.0.1/sockjs.min.js',

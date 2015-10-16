@@ -15,8 +15,8 @@
     });
   };
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', './gen'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS) {
-    var Html, Node, _true, acorn, acornLoose, acornWalk, blockVars, cons, csEnv, defaultEnv, errorDiv, escapeHtml, findError, getLeft, getRight, getType, getValue, handleErrors, html, id, isError, jsEnv, jsEval, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, presentHtml, replacements, resolve, runMonad, runMonad2, runNextResult, rz, setValue, show, unescapePresentationHtml, walk, writeValues;
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', './gen', './leisure-support'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS) {
+    var Html, Node, _true, acorn, acornLoose, acornWalk, blockVars, c, cons, csEnv, defaultEnv, e, errorDiv, escapeHtml, escapeString, escaped, findError, getLeft, getRight, getType, getValue, handleErrors, html, id, isError, jsEnv, jsEval, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, presentHtml, replacements, resolve, runMonad, runMonad2, runNextResult, rz, setValue, show, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = null;
@@ -78,7 +78,7 @@
       if (results !== rz(L_nil)) {
         return runMonad2(getRight(results.head().tail()), env, function(res2) {
           if (getType(res2) !== 'unit') {
-            env.write(': ' + String(env.presentValue(res2)));
+            env.write(String(env.presentValue(res2)));
           }
           return runNextResult(results.tail(), env, cont);
         });
@@ -87,21 +87,10 @@
       }
     };
     presentHtml = function(v) {
-      if (v instanceof Html) {
-        return v.content;
-      } else {
-        return escapeHtml(v);
-      }
+      return ': ' + (v instanceof Html ? escapeString(v.content) : escapeHtml(String(v).replace(/\r?\n/g, '\n: ')));
     };
     writeValues = function(env, values) {
-      var i, len, ref, results1, v;
-      ref = values != null ? values : [];
-      results1 = [];
-      for (i = 0, len = ref.length; i < len; i++) {
-        v = ref[i];
-        results1.push(env.write(": " + (presentHtml(v)) + "\n"));
-      }
-      return results1;
+      return env.write(values.join('\n'));
     };
     jsEnv = function(env) {
       env.executeText = function(text, props, cont) {
@@ -306,13 +295,46 @@
       }
       return [vars, _.keys(blockIds)];
     };
+    escaped = {
+      '\b': "\\b",
+      '\f': "\\f",
+      '\n': "\\n",
+      '\r': "\\r",
+      '\t': "\\t",
+      '\v': "\\v",
+      '\"': "\\\"",
+      '\\': "\\\\"
+    };
+    unescaped = _.zipObject((function() {
+      var results1;
+      results1 = [];
+      for (c in escaped) {
+        e = escaped[c];
+        results1.push([e, c]);
+      }
+      return results1;
+    })());
+    escapeString = function(str) {
+      return str.replace(specials, function(c) {
+        return escaped[c];
+      });
+    };
+    unescapeString = function(str) {
+      return str.replace(slashed, function(c) {
+        var ref;
+        return (ref = unescaped[c]) != null ? ref : c[1];
+      });
+    };
     return {
       languageEnvMaker: languageEnvMaker,
       html: html,
       Html: Html,
       escapeHtml: escapeHtml,
       blockVars: blockVars,
-      knownLanguages: knownLanguages
+      knownLanguages: knownLanguages,
+      presentHtml: presentHtml,
+      escapeString: escapeString,
+      unescapeString: unescapeString
     };
   });
 

@@ -137,6 +137,26 @@ Code for local-mode.  This will not be loaded under meteor.
           #+RESULTS:
           : 7
 
+          #+BEGIN_SRC js :results dynamic
+          3-4
+          #+END_SRC
+          #+RESULTS:
+          : 7
+          #+BEGIN_SRC lisp :results dynamic
+          (+ 3 4)
+          #+END_SRC
+          #+BEGIN_SRC cs :results dynamic
+          '<b>duh</b>'
+          html '<b>duh</b>'
+          37/3333
+          html '<img src="https://imgs.xkcd.com/comics/lisp_cycles.png">'
+          #+END_SRC
+          #+RESULTS:
+          : &lt;b&gt;duh&lt;/b&gt;
+          : <b>duh</b>
+          : 0.0111011101110111
+          : <img src="https://imgs.xkcd.com/comics/lisp_cycles.png">
+
           #+BEGIN_HTML
           <b>hello</b>
           #+END_HTML
@@ -170,32 +190,13 @@ Code for local-mode.  This will not be loaded under meteor.
           }
           #+END_SRC
           * Test properties > splunge
-          #+BEGIN_SRC lisp :results dynamic
-          (+ 3 4)
-          #+END_SRC
            ** sub 1
           */duh/*
           :properties:
           :hidden: true
           :a: 1
           :end:
-          #+BEGIN_SRC js :results dynamic
-          3 + 4
-          #+END_SRC
-          #+RESULTS:
-          : 7
 
-          #+BEGIN_SRC cs :results dynamic
-          '<b>duh</b>'
-          html '<b>duh</b>'
-          37/3333
-          html '<img src="https://imgs.xkcd.com/comics/lisp_cycles.png">'
-          #+END_SRC
-          #+RESULTS:
-          : &lt;b&gt;duh&lt;/b&gt;
-          : <b>duh</b>
-          : 0.0111011101110111
-          : <img src="https://imgs.xkcd.com/comics/lisp_cycles.png">
 
           image link
           [[https://imgs.xkcd.com/comics/lisp_cycles.png]]

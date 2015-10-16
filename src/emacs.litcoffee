@@ -28,6 +28,8 @@ Emacs connection
       } = Diag
       {
         knownLanguages
+        escapeString
+        unescapeString
       } = Eval
 
       msgPat = /^([^ ]+)( (.*))?$/
@@ -245,22 +247,6 @@ Emacs connection
 
       slashed = /\\./g
 
-      escaped =
-        '\b': "\\b"
-        '\f': "\\f"
-        '\n': "\\n"
-        '\r': "\\r"
-        '\t': "\\t"
-        '\v': "\\v"
-        '\"': "\\\""
-        '\\': "\\\\"
-
-      unescaped = _.zipObject ([e, c] for c, e of escaped)
-
-      escapeString = (str)-> str.replace specials, (c)-> escaped[c]
-
-      unescapeString = (str)-> str.replace slashed, (c)-> unescaped[c] ? c[1]
-
       configureEmacs = (panel)->
         opts = UI.context.opts
         data = opts.data
@@ -290,6 +276,4 @@ Emacs connection
       }
 
       {
-        escapeString
-        unescapeString
       }

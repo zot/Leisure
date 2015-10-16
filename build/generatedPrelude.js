@@ -1,4 +1,4 @@
-define ->
+//define(function(){
   L_runMonads([
     function(){return resolve(L_setNameSpace)("core")},
    function(){return resolve(L_newDefine)("asIO")(1)("asIO x = x")(lazy(function(L_x){return resolve(L_x)}))},
@@ -1174,6 +1174,7 @@ define ->
    function(){return resolve(L_defTokenPack)("do", function(){return resolve(L_cons)(function(){return resolve(L_cons)("<-", L_nil)}, function(){return resolve(L_cons)(L_nil, function(){return resolve(L_cons)(L_nil, L_nil)})})})},
    function(){return resolve(L_addStdTokenPacks)(function(){return resolve(L_cons)("list", function(){return resolve(L_cons)("infix", function(){return resolve(L_cons)("do", L_nil)})})})},
       function(){return resolve(L_resetStdTokenPacks)}]);
-  {}
+//    return {};
+//});
 
 //# sourceMappingURL=generatedPrelude.map

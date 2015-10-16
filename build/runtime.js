@@ -683,13 +683,28 @@ misrepresented as being the original software.
       };
     });
     runMonad2 = function(monad, env, cont) {
+      var inner, result, sync;
       if (monad instanceof Monad2) {
         return monad.cmd(env, cont);
       } else if (isMonad(monad)) {
         if (monad.binding != null) {
-          return runMonad2(rz(monad.monad), env, function(x) {
-            return runMonad2(rz(monad.binding)(lz(x)), env, cont);
+          sync = true;
+          inner = null;
+          result = runMonad2(rz(monad.monad), env, function(x) {
+            if (sync) {
+              return inner = function() {
+                return runMonad2(rz(monad.binding)(lz(x)), env, cont);
+              };
+            } else {
+              return runMonad2(rz(monad.binding)(lz(x)), env, cont);
+            }
           });
+          sync = false;
+          if (inner) {
+            return result = inner();
+          } else {
+            return result;
+          }
         } else {
           return monad.cmd(env, cont);
         }
@@ -740,9 +755,24 @@ misrepresented as being the original software.
         newM = rz(m);
         if ((newM instanceof Monad2) || (isMonad(newM))) {
           return new Monad2('bind', (function(env, cont) {
-            return runMonad2(newM, env, function(value) {
-              return runMonad2(rz(binding)(lz(value)), env, cont);
+            var inner, result, sync;
+            sync = true;
+            inner = null;
+            result = runMonad2(newM, env, function(value) {
+              if (sync) {
+                return inner = function() {
+                  return runMonad2(rz(binding)(lz(value)), env, cont);
+                };
+              } else {
+                return runMonad2(rz(binding)(lz(value)), env, cont);
+              }
             });
+            sync = false;
+            if (inner) {
+              return inner();
+            } else {
+              return result;
+            }
           }), function() {
             return "bind (" + (rz(m)) + ")";
           });

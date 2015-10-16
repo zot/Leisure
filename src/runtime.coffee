@@ -389,11 +389,16 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     #else if isMonad monad then newRunMonad monad, env, cont, []
     else if isMonad monad
       if monad.binding?
-        runMonad2 rz(monad.monad), env, (x)->
-          runMonad2 rz(monad.binding)(lz x), env, cont
+        sync = true
+        inner = null
+        result = runMonad2 rz(monad.monad), env, (x)->
+          if sync then inner = -> runMonad2 rz(monad.binding)(lz x), env, cont
+          else runMonad2 rz(monad.binding)(lz x), env, cont
+        sync = false
+        if inner then result = inner() else result
       else monad.cmd(env, cont)
     else cont monad
-  
+
   class Monad2 extends Monad
     constructor: (@name, @cmd, @cmdToString)->
       if typeof @name == 'function'
@@ -407,17 +412,21 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 
   define 'defer', (v)-> new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1), ->
     "defer #{rz v}"
-  
+
   define 'bind2', bind2 = (m)->(binding)->
     newM = rz m
     if (newM instanceof Monad2) || (isMonad newM)
       new Monad2 'bind', ((env, cont)->
-        runMonad2 newM, env, (value)->
+        sync = true
+        inner = null
+        result = runMonad2 newM, env, (value)->
           #runMonad2 rz(L_bind2)(lz value)(binding), env, cont), ->
-          runMonad2 rz(binding)(lz value), env, cont), ->
-        "bind (#{rz m})"
+          if sync then inner = -> runMonad2 rz(binding)(lz value), env, cont
+          else runMonad2 rz(binding)(lz value), env, cont
+        sync = false
+        if inner then inner() else result), -> "bind (#{rz m})"
     else rz(binding) m
-  
+
   newbind = false
   #newbind = true
 
@@ -430,7 +439,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
         bindMonad.binding = binding
         bindMonad
       else rz(binding) m
-  
+
   values = {}
 
 #

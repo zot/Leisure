@@ -24,7 +24,19 @@ misrepresented as being the original software.
 
 require('source-map-support').install()
 
-require '10-namespace'
+path = require 'path'
+
+baseDir = path.resolve path.dirname(module.filename) + '/../../../build'
+
+requirejs = require('requirejs').config
+  baseUrl: baseDir
+  paths:
+    lib: baseDir + '/lib'
+    immutable: baseDir + '/lib/immutable-3.7.4.min'
+
+((typeof window != 'undefined' && window) || global).Lazy = requirejs('lib/lazy')
+
+#require '10-namespace'
 
 Error.stackTraceLimit = Infinity
 #Error.stackTraceLimit = 50
@@ -32,14 +44,13 @@ Error.stackTraceLimit = Infinity
   newCall,
   resolve,
   lazy,
-} = root = module.exports = require '15-base'
+} = root = module.exports = requirejs './base'
 rz = resolve
 lz = lazy
 lc = Leisure_call
 _ = require 'lodash.min'
-path = require 'path'
 fs = require 'fs'
-compiler = require 'compiler'
+#compiler = require 'compiler'
 
 {
   getType,
@@ -48,7 +59,8 @@ compiler = require 'compiler'
   ast2Json,
   json2Ast,
   Nil,
-} = require '16-ast'
+} = requirejs './ast'
+global.btoa = require 'btoa'
 {
   gen,
   genMap,
@@ -56,11 +68,11 @@ compiler = require 'compiler'
   withFile,
   sourceNode,
   SourceNode,
-} = require '18-gen'
+} = requirejs './gen'
 {
   readFile,
   writeFile,
-} = require './node'
+} = requirejs './node'
 {
   identity,
   runMonad,
@@ -72,7 +84,8 @@ compiler = require 'compiler'
   getMonadSyncMode,
   setWarnAsync,
   requireFiles,
-} = require '17-runtime'
+  getValue
+} = requirejs './runtime'
 
 global.runMonad = runMonad
 global.setType = setType
@@ -161,7 +174,7 @@ leisureFunctions = null
 updateCompleter = (rl)->
   if root.functionCount != oldFunctionCount
     oldFunctionCount = root.functionCount
-    leisureFunctions = global.leisureFuncNames.toArray().concat (root.getValue('macroDefs')?.map((x)->x.head()).toArray() ? [])
+    leisureFunctions = global.leisureFuncNames.toArray().concat (getValue('macroDefs')?.map((x)->x.head()).toArray() ? [])
 
 tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
 rl = null
