@@ -1,0 +1,24 @@
+#!/bin/sh
+STACK=3000
+#STACK=4000
+#STACK=10000
+NODE=node
+
+if [ "$1" == -D ]; then
+    NODE=node-debug
+    shift
+fi
+
+if [ -n "$(expr "$(uname -s)" : '\(CYGWIN\|WIN\)')" ]; then
+    dir=$(echo $(dirname $(cygpath -a -d $0)) | sed 's/\\/\//g')
+    build=$(echo $(dirname $dir)/build | sed 's/\\/\//g')
+    export NODE_PATH="$build;$build/lib;$build/node_modules;$dir/build/node_modules;$dir/build/lib"
+    echo NODE_PATH="'$NODE_PATH'"
+    echo $NODE --stack-size=$STACK $dir/build/src/runRepl "$@"
+    $NODE --stack-size=$STACK $dir/build/src/runRepl "$@"
+else
+    dir=$(dirname $0)
+    inst=$dir/packages/leisure/build
+    export NODE_PATH="$dir/lib:$dir/client:$inst/lib:$dir/packages/org:$inst/src:$inst/node_modules"
+    $NODE --stack-size=$STACK $inst/src/runRepl "$@"
+fi
