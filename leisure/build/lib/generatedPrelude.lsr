@@ -1246,11 +1246,10 @@ defMacro '[' \list . list \h t . listify h
 # parse filter 'listFilter' gathers items after the '|' into a single argument
 
 listFilter code = bind (getValue 'listMacros')
-  \listMacros . defer
-    filterApplies code \list . list \h t .
-      and (isToken h) (contains listMacros (tokenString h))
-        listFilterTail list
-        list
+  \listMacros . filterApplies code \list . list \h t .
+    and (isToken h) (contains listMacros (tokenString h))
+      listFilterTail list
+      list
 
 listFilterTail list = list
   \h t D . isTokenString h '|'
@@ -1361,10 +1360,9 @@ defMacro 'concatFlat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
 infix code = bind (getValue 'infixPrecedence')
   \prec . bind (getValue 'infixRightAssociative')
     \right . bind (getValue 'tokenGroups')
-      \groups . defer
-        filterApplies
-          code
-          \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
+      \groups . filterApplies
+        code
+        \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
 
 infixRearrange prec right closes list = \\
   len = length list
