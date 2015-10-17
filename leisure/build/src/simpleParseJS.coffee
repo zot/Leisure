@@ -22,9 +22,21 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
+path = require 'path'
+
+baseDir = path.resolve path.dirname(module.filename) + '/../../../build'
+
+requirejs = require('requirejs').config
+  baseUrl: baseDir
+  paths:
+    lib: baseDir + '/lib'
+    immutable: baseDir + '/lib/immutable-3.7.4.min'
+
+((typeof window != 'undefined' && window) || global).Lazy = requirejs('lib/lazy')
+
 {
   newCall
-} = require '15-base'
+} = requirejs 'base'
 {
   cons,
   Nil,
@@ -45,7 +57,7 @@ misrepresented as being the original software.
   resolve,
   lazy,
   dummyPosition,
-} = root = module.exports = require '16-ast'
+} = root = module.exports = requirejs './ast'
 
 rz = resolve
 lz = lazy
@@ -54,9 +66,9 @@ lc = Leisure_call
   runMonad,
   defaultEnv,
   identity,
-} = require '17-runtime'
-{gen} = require '18-gen'
-_ = require('lodash.min')
+} = requirejs './runtime'
+{gen} = requirejs './gen'
+_ = requirejs 'lodash.min'
 
 delimiterListPrefix = /"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|\n *|#.*/.source
 

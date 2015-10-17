@@ -683,21 +683,21 @@ misrepresented as being the original software.
       };
     });
     runMonad2 = function(monad, env, cont) {
-      var inner, inner2, result, sync;
+      var inner, innerArg, result, sync;
       if (monad instanceof Monad2) {
         return monad.cmd(env, cont);
       } else if (isMonad(monad)) {
         if (monad.binding != null) {
           sync = true;
           inner = null;
-          inner2 = null;
+          innerArg = null;
           result = runMonad2(rz(monad.monad), env, function(x) {
             if (sync) {
               return inner = function() {
                 return runMonad2(rz(monad.binding)(lz(x)), env, function(y) {
                   if (sync) {
-                    return inner2 = function() {
-                      return cont(y);
+                    return innerArg = function() {
+                      return y;
                     };
                   } else {
                     return cont(y);
@@ -710,12 +710,8 @@ misrepresented as being the original software.
           });
           if (inner) {
             result = inner();
-            if (inner2) {
-              console.log('super-compress');
-              result = inner2();
-            } else {
-              console.log('compress');
-              result;
+            if (innerArg) {
+              result = cont(innerArg());
             }
           }
           sync = false;
@@ -770,17 +766,17 @@ misrepresented as being the original software.
         newM = rz(m);
         if ((newM instanceof Monad2) || (isMonad(newM))) {
           return new Monad2('bind', (function(env, cont) {
-            var inner, inner2, result, sync;
+            var inner, innerArg, result, sync;
             sync = true;
             inner = null;
-            inner2 = null;
+            innerArg = null;
             result = runMonad2(newM, env, function(value) {
               if (sync) {
                 return inner = function() {
                   return runMonad2(rz(binding)(lz(value)), env, function(y) {
                     if (sync) {
-                      return inner2 = function() {
-                        return cont(y);
+                      return innerArg = function() {
+                        return y;
                       };
                     } else {
                       return cont(y);
@@ -793,12 +789,8 @@ misrepresented as being the original software.
             });
             if (inner) {
               result = inner();
-              if (inner2) {
-                console.log('super-compress');
-                result = inner2();
-              } else {
-                console.log('compress');
-                result;
+              if (innerArg) {
+                result = cont(innerArg());
               }
             }
             sync = false;

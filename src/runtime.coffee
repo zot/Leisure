@@ -391,16 +391,17 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       if monad.binding?
         sync = true
         inner = null
-        inner2 = null
+        innerArg = null
         result = runMonad2 rz(monad.monad), env, (x)->
           if sync then inner = -> runMonad2 rz(monad.binding)(lz x), env, (y)->
-            if sync then inner2 = -> cont y
+            if sync then innerArg = -> y
             else cont y
           else runMonad2 rz(monad.binding)(lz x), env, cont
         if inner
           result = inner()
-          if inner2 then console.log 'super-compress'; result = inner2()
-          else console.log 'compress'; result
+          #if innerArg then console.log 'super-compress'; result = cont innerArg()
+          #else console.log 'compress'; result
+          if innerArg then result = cont innerArg()
         sync = false
         result
       else monad.cmd(env, cont)
@@ -426,17 +427,16 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       new Monad2 'bind', ((env, cont)->
         sync = true
         inner = null
-        inner2 = null
+        innerArg = null
         result = runMonad2 newM, env, (value)->
           #runMonad2 rz(L_bind2)(lz value)(binding), env, cont), ->
           if sync then inner = -> runMonad2 rz(binding)(lz value), env, (y)->
-            if sync then inner2 = -> cont y
+            if sync then innerArg = -> y
             else cont y
           else runMonad2 rz(binding)(lz value), env, cont
         if inner
           result = inner()
-          if inner2 then console.log 'super-compress'; result = inner2()
-          else console.log 'compress'; result
+          if innerArg then result = cont innerArg()
         sync = false
         result), -> "bind (#{rz m})"
     else rz(binding) m

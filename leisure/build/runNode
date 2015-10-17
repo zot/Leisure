@@ -1,9 +1,9 @@
 #!/bin/sh
-dir=$(dirname $(realpath $0))
-getDir() {
-    cygpath -d $dir/$1
-}
-export NODE_PATH="$(getDir lib);$(getDir src);$(getDir node_modules);$(getDir ../../../client);$(getDir ../../../lib);$(getDir ../../../packages/org)"
+#dir=$(dirname $(realpath $0))
+#getDir() {
+#    cygpath -d $dir/$1
+#}
+#export NODE_PATH="$(getDir lib);$(getDir src);$(getDir node_modules);$(getDir ../../../client);$(getDir ../../../lib);$(getDir ../../../packages/org)"
 #exec node --stack-size=3000 "$@"
 x=0
 r=0
@@ -11,7 +11,7 @@ while [ $x -lt 3 ]; do
     x=$((x + 1))
     node --stack-size=3000 "$@"
     r=$?
-    if [ $r != 3 -a $r != 7 ]; then
+    if [ $r != 3 -a $r != 7 -a $r != 139 ]; then
         if [ $r != 0 ]; then
             echo "node exited with $r"
         fi

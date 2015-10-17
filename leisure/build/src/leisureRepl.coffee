@@ -41,9 +41,10 @@ requirejs = require('requirejs').config
 Error.stackTraceLimit = Infinity
 #Error.stackTraceLimit = 50
 {
-  newCall,
-  resolve,
-  lazy,
+  newCall
+  resolve
+  lazy
+  defaultEnv
 } = root = module.exports = requirejs './base'
 rz = resolve
 lz = lazy
@@ -79,7 +80,6 @@ global.btoa = require 'btoa'
   newRunMonad,
   isMonad,
   asyncMonad,
-  defaultEnv,
   replaceErr,
   getMonadSyncMode,
   setWarnAsync,
@@ -313,7 +313,7 @@ runFile = (file, cont)->
     cont []
 
 compile = (file, cont)->
-  defaultEnv.errorHandlers.push (e)-> process.exit 1
+  defaultEnv.errorHandlers?.push (e)-> process.exit 1
   ext = path.extname file
   runMonad rz(L_baseLoad)(lz file), defaultEnv, (result)->
     if verbose then console.log "Preparing to write code for #{file}"

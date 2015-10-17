@@ -5,7 +5,8 @@ LEISURE_SRC=generatedPrelude std svg parseAst simpleParse
 LEISURE_FILES=$(LEISURE_SRC:%=lib/%.js)
 LEISURE_GEN=$(LEISURE_FILES) $(LEISURE_SRC:%=lib/%.ast) $(LEISURE_SRC:%=lib/%.map) lib/generatedPrelude.lsr
 NODE=$(CURDIR)/runNode
-REPL=$(NODE) src/runRepl
+#REPL=$(NODE) src/runRepl
+REPL=$(CURDIR)/../repl
 OUTPUT_DIR=../../build/leisure
 OUTPUT_GENERATED_PRELUDE=$(OUTPUT_DIR)/generatedPrelude.js
 OUTPUT_STD=$(OUTPUT_DIR)/std.js

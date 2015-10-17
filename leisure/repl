@@ -14,6 +14,7 @@ if [ -n "$(expr "$(uname -s)" : '\(CYGWIN\|WIN\)')" ]; then
     build=$(echo $(dirname $dir)/build | sed 's/\\/\//g')
     export NODE_PATH="$build;$build/lib;$build/node_modules;$dir/build/node_modules;$dir/build/lib"
     echo NODE_PATH="'$NODE_PATH'"
+    NODE=$dir/build/runNode
     echo $NODE --stack-size=$STACK $dir/build/src/runRepl "$@"
     $NODE --stack-size=$STACK $dir/build/src/runRepl "$@"
 else

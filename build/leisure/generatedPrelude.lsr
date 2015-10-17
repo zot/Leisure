@@ -825,8 +825,6 @@ namesForLines lines = foldl
 runParseFilters filters line = filters
   \h t D . bind (h line) \filtered . runParseFilters t filtered
   fakereturn line
-  #return line
-  #defer line
 
 isBlockStart tok = and
   or (isToken tok) (isString tok)
@@ -946,8 +944,7 @@ parseToAst str pat = createAst nil (testParse str pat) nil
 parseM str =
   bind2 (getValue 'tokenPat')
     \tokPat . bind2 (getValue 'tokenGroups')
-      \groups . defer
-        parseG str tokPat groups
+      \groups . parseG str tokPat groups
 
 scanLine str pat onDef onExpr = scanLineG str pat parenGroups onDef onExpr
 
@@ -955,13 +952,11 @@ parseLine str pat names onDef onExpr = parseLineG str pat names parenGroups onDe
 
 parseLineM str = bind2 (getValue 'tokenPat')
   \tokPat . bind2 (getValue 'tokenGroups')
-    \groups . defer
-      parseLineG str tokPat nil groups id id
+    \groups . parseLineG str tokPat nil groups id id
 
 macroSubM expr =
   bind2 (getValue 'macroDefs')
-    \macs . defer
-      macroSub macs expr
+    \macs . macroSub macs expr
 
 macroParse str =
   bind2 (parseM str)
@@ -969,21 +964,18 @@ macroParse str =
 
 tokensM str =
   bind2 (getValue 'tokenPat')
-    \delimiterPat . defer
-      tokens str delimiterPat
+    \delimiterPat . tokens str delimiterPat
 
 parseLines lines result = lines
   \h t D . bind2 (parseLineM h)
     \ast . parseLines t (cons ast result)
-  defer
-    reverse result
+  reverse result
 
 parseFile text = parseLines (linesForFile text) nil
 
 simpleScanLine line = bind2 (getValue 'tokenPat')
   \tokenPat . bind2 (getValue 'tokenGroups')
-    \groups . defer
-      scanLineG line tokenPat groups id id
+    \groups . scanLineG line tokenPat groups id id
 
 scanLineM line = countedScanLineM emptyLineStarts line
 
@@ -993,8 +985,7 @@ countedScanLineM lineStarts line = bind (getValue 'tokenPat')
       \filters . bind (getValue 'macroDefs')
         \macros . bind (getValue 'parser_funcProps')
           \props . bind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups props id id))
-            \scanned . defer
-              macroSub macros scanned
+            \scanned . macroSub macros scanned
 
 newline = regexp '\\r?\\n'
 
@@ -1008,19 +999,18 @@ findLines offset line = \\
     cons offset (findLines (+ offset idx) (strSubstring line idx 0))
 
 newParseLine offset names line = bind2 (scanLineM line)
-  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . defer ast
+  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) id
 
 countedParseLine names countedLine = bind2 (countedScanLineM (head countedLine) (tail countedLine))
-  \scanned . defer (createAst (head countedLine) scanned names)
+  \scanned . createAst (head countedLine) scanned names
 
 runLine offset names line = bind2 (newParseLine offset names line)
   \ast . bind2 (runAst line ast)
-    \result . defer
-      cons
-        ast
-        isErr result
-          left (errMsg result)
-          right result
+    \result . cons
+      ast
+      isErr result
+        left (errMsg result)
+        right result
 
 #countedRunLine file names countedLine = \\
 #  parsed = countedParseLine names countedLine
@@ -1058,12 +1048,11 @@ countedRunLine file names countedLine = bind2 (countedParseLine names countedLin
         \result . resultOfRun wrapped result
 
 resultOfRun wrapped result =
-  defer
-    cons
-      wrapped
-      isErr result
-        left (errMsg result)
-        right result
+  cons
+    wrapped
+    isErr result
+      left (errMsg result)
+      right result
 
 #astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast
 astFileWrap file ast = anno 'filename' (basename file) ast
@@ -1074,16 +1063,14 @@ basename file = strReplace file (regexp '^(.*/)?([^/]+)$') '$2'
 runLines names lines = lines
   \h t D . bind2 (runLine 0 names h)
     \line . bind2 (runLines names t)
-      \rest . defer
-        cons line rest
+      \rest . cons line rest
   nil
 
 # use doall for this?
 countedRunLines file names countedLines = countedLines
   \h t D . bind2 (countedRunLine file names h)
     \line . bind2 (countedRunLines file names t)
-      \rest . defer
-        cons line rest
+      \rest . cons line rest
   nil
 
 runFile text = runNamedFile "RUNFILE.lsr" text
@@ -1097,7 +1084,7 @@ runNamedFile name text = \\
 
 baseLoad file = bind2 (readFile file)
   \result . result
-    \err . defer err
+    \err . err
     \contents . baseLoadString file contents
 
 baseLoadString file contents = bind2 (getValue 'activeTokenPacks')
@@ -1106,27 +1093,25 @@ baseLoadString file contents = bind2 (getValue 'activeTokenPacks')
       \nsInfo . bind2 (runNamedFile file contents)
         \result . bind2 (setNameSpaceInfo nsInfo)
           \_ . isNil activePacks
-            bind2 resetStdTokenPacks \_ . defer result
-            bind2 (resetTokenPacks activePacks) \_ . defer result
+            bind2 resetStdTokenPacks \_ . result
+            bind2 (resetTokenPacks activePacks) \_ . result
 
 load file = bind2 (baseLoad file)
   \result . \\
     errs = foldr (\line results . tail line (\er . cons er results) (\x . results)) nil result
     .
-    defer
-      isNil errs
-        right true
-        left errs
+    isNil errs
+      right true
+      left errs
 
 require file = bind2 (getValue 'requiredFiles')
   \files . contains files file
     right false
     bind2 (setValue 'requiredFiles' (cons file files))
       \_. bind2 (load file)
-        \result . defer
-          result
-            \x . left x
-            \_ . right true
+        \result . result
+          \x . left x
+          \_ . right true
 
 scanFile file = bind2 (readFile file)
   \result . result
@@ -1141,8 +1126,7 @@ scanFile file = bind2 (readFile file)
 countedScanLines file names countedLines = countedLines
   \h t D . bind2 (countedScanLineM (head h) (tail h))
     \line . bind2 (countedScanLines file names t)
-      \rest . defer
-        cons line rest
+      \rest . cons line rest
   nil
 
 ################
