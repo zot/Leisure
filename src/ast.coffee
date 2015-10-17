@@ -284,10 +284,15 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     core: {}
     parser: {}
 
+  isPartial = (args)-> args.callee.length != args.length
+
+  partialCall = (args)-> Leisure_primCall args.callee, 0, args
+
 # use AST, instead of arity?
   define = (name, func, arity, src, method, namespace, isNew) ->
     func.leisureName = name
-    nakedDefine name, lz(func), arity, src, method, namespace, isNew
+    arity = arity ? ((typeof func == 'function' && func.length) || 0)
+    nakedDefine name, lz(func), arity, src, method, namespace, isNew || (arity > 1)
   
   nakedDefine = (name, func, arity, src, method, namespace, isNew) ->
     #can't use func(), because it might do something or might fail
@@ -539,5 +544,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   root.getPos = getPos
   root.dummyPosition = dummyPosition
   root.isNil = isNil
+  root.isPartial = isPartial
+  root.partialCall = partialCall
 
   root

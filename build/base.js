@@ -161,15 +161,16 @@ misrepresented as being the original software.
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_call = leisureCall = function(f) {
       return baseLeisureCall(f, 1, arguments);
     };
-    (typeof window !== "undefined" && window !== null ? window : global).Leisure_primCall = baseLeisureCall = function(f, pos, args) {
-      var oldF, partial, prev;
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure_primCall = baseLeisureCall = function(f, pos, args, len) {
+      var oldLen, partial, prev;
+      len = len != null ? len : f.length;
       while (pos < args.length) {
         if (typeof f !== 'function') {
           throw new Error("TypeError: " + (typeof f) + " is not a function: " + f);
         }
-        if (f.length <= args.length - pos) {
-          oldF = f;
-          switch (f.length) {
+        if (len <= args.length - pos) {
+          oldLen = len;
+          switch (len) {
             case 1:
               f = f(args[pos]);
               break;
@@ -183,21 +184,22 @@ misrepresented as being the original software.
               f = f(args[pos], args[pos + 1], args[pos + 2], args[pos + 3]);
               break;
             default:
-              if (f.leisureInfo || (pos === 0 && f.length === args.length)) {
+              if (f.leisureInfo || (pos === 0 && len === args.length)) {
                 return f.apply(null, (pos === 0 ? args : slice.call(args, pos)));
               }
-              f = f.apply(null, slice.call(args, pos, pos + f.length));
+              f = f.apply(null, slice.call(args, pos, pos + len));
+              len = f.length;
           }
-          pos += oldF.length;
+          pos += oldLen;
         } else {
           prev = slice.call(args, pos);
           partial = function() {
             var newArgs;
             newArgs = concat.call(prev, slice.call(arguments));
-            if (newArgs.length === f.length) {
+            if (newArgs.length === len) {
               return f.apply(null, newArgs);
             } else {
-              return baseLeisureCall(f, 0, newArgs);
+              return baseLeisureCall(f, 0, newArgs, len);
             }
           };
           partial.leisurePartial = true;
@@ -211,8 +213,8 @@ misrepresented as being the original software.
       return f;
     };
     genInfo = function(func, args, oldInfo) {
-      var arg, i, len;
-      for (i = 0, len = args.length; i < len; i++) {
+      var arg, i, len1;
+      for (i = 0, len1 = args.length; i < len1; i++) {
         arg = args[i];
         if (!oldInfo) {
           oldInfo = {

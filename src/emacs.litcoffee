@@ -243,10 +243,6 @@ Emacs connection
         bOff.type = if start == end then 'Caret' else 'Range'
         bOff
 
-      specials = /[\b\f\n\r\t\v\"\\]/g
-
-      slashed = /\\./g
-
       configureEmacs = (panel)->
         opts = UI.context.opts
         data = opts.data

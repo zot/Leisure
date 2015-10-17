@@ -116,27 +116,29 @@ define files, (btoa)->
   
   (window ? global).Leisure_call = leisureCall = (f)-> baseLeisureCall f, 1, arguments
 
-  (window ? global).Leisure_primCall = baseLeisureCall = (f, pos, args)->
+  (window ? global).Leisure_primCall = baseLeisureCall = (f, pos, args, len)->
+    len = len ? f.length
     while pos < args.length
       if typeof f != 'function' then throw new Error "TypeError: #{typeof f} is not a function: #{f}"
-      if f.length <= args.length - pos
-        oldF = f
-        switch f.length
+      if len <= args.length - pos
+        oldLen = len
+        switch len
           when 1 then f = f args[pos]
           when 2 then f = f args[pos], args[pos + 1]
           when 3 then f = f args[pos], args[pos + 1], args[pos + 2]
           when 4 then f = f args[pos], args[pos + 1], args[pos + 2], args[pos + 3]
           else
-            if f.leisureInfo || (pos == 0 && f.length == args.length)
+            if f.leisureInfo || (pos == 0 && len == args.length)
               return f.apply null, (if pos == 0 then args else slice.call(args, pos))
-            f = f.apply null, slice.call(args, pos, pos + f.length)
-        pos += oldF.length
+            f = f.apply null, slice.call(args, pos, pos + len)
+            len = f.length
+        pos += oldLen
       else
         prev = slice.call args, pos
         partial = ->
           newArgs = concat.call prev, slice.call arguments
-          if newArgs.length == f.length then f.apply null, newArgs
-          else baseLeisureCall f, 0, newArgs
+          if newArgs.length == len then f.apply null, newArgs
+          else baseLeisureCall f, 0, newArgs, len
         partial.leisurePartial = true
         partial.leisureInfo = genInfo f, args, f.leisureInfo
         return lazy partial

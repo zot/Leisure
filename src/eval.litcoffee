@@ -49,7 +49,7 @@ Evaulation support for Leisure
       show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
       leisureEnv = (env)->
-        env.presentValue = (v)-> rz(L_showHtml) lz v
+        env.presentValue = (v)-> html rz(L_showHtml) lz v
         env.executeText = (text, props, cont)->
           old = getValue 'parser_funcProps'
           setValue 'parser_funcProps', props
@@ -66,12 +66,12 @@ Evaulation support for Leisure
           results = results.tail()
         if results != rz(L_nil)
           runMonad2 getRight(results.head().tail()), env, (res2)->
-            if getType(res2) != 'unit' then env.write String(env.presentValue res2)
+            if getType(res2) != 'unit' then env.write env.presentValue res2
             runNextResult results.tail(), env, cont
         else cont()
 
       presentHtml = (v)->
-        ': ' + (if v instanceof Html then escapeString v.content
+        ': ' + (if v instanceof Html then v.content.replace(/\r?\n/g, '\\n')
         else escapeHtml String(v).replace(/\r?\n/g, '\n: '))
 
       writeValues = (env, values)-> env.write values.join '\n'
@@ -152,7 +152,7 @@ Evaulation support for Leisure
         env
 
       class Html
-        constructor: (@content)->
+        constructor: (content)-> @content = String(content)
       
       html = (content)-> new Html content
       
@@ -209,9 +209,13 @@ Evaulation support for Leisure
 
       unescaped = _.zipObject ([e, c] for c, e of escaped)
 
-      escapeString = (str)-> str.replace specials, (c)-> escaped[c]
+      specials = /[\b\f\n\r\t\v\"\\]/g
 
-      unescapeString = (str)-> str.replace slashed, (c)-> unescaped[c] ? c[1]
+      slashed = /\\./g
+
+      escapeString = (str)-> String(str).replace specials, (c)-> escaped[c]
+
+      unescapeString = (str)-> String(str).replace slashed, (c)-> unescaped[c] ? c[1]
 
       {
         languageEnvMaker

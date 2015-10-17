@@ -31,9 +31,9 @@ misrepresented as being the original software.
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], function(Base, Ast, _, Immutable, Yaml) {
-    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind2, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, jsonConvert, lacons, lazy, lc, left, lz, makeHamt, makeMonad, makeSyncMonad, mkProto, monadModeSync, nakedDefine, nameSub, newRunMonad, newbind, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
+    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind2, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, lz, makeHamt, makeMonad, makeSyncMonad, mkProto, monadModeSync, nakedDefine, nameSub, newRunMonad, newbind, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
     ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
-    define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub;
+    define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall;
     Map = Immutable.Map;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
     rz = resolve;
@@ -115,15 +115,19 @@ misrepresented as being the original software.
         return rz(noneCase);
       };
     }), 'none');
-    define('eq', function(a) {
-      return function(b) {
+    define('eq', function(a, b) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return booleanFor(rz(a) === rz(b));
-      };
+      }
     });
-    define('==', function(a) {
-      return function(b) {
+    define('==', function(a, b) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return booleanFor(rz(a) === rz(b));
-      };
+      }
     });
     booleanFor = function(bool) {
       if (bool) {
@@ -132,14 +136,16 @@ misrepresented as being the original software.
         return rz(L_false);
       }
     };
-    define('hasType', function(data) {
-      return function(func) {
+    define('hasType', function(data, func) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         if (typeof rz(func) === 'string') {
           return booleanFor(getType(rz(data)) === rz(func));
         } else {
           return booleanFor(getType(rz(data)) === getDataType(rz(func)));
         }
-      };
+      }
     });
     define('getDataType', function(func) {
       if (typeof rz(func) === 'string') {
@@ -182,50 +188,68 @@ misrepresented as being the original software.
     define('error', function(msg) {
       throw new Error(rz(msg));
     });
-    define('+', function(x) {
-      return function(y) {
+    define('+', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return rz(x) + rz(y);
-      };
+      }
     });
-    define('-', function(x) {
-      return function(y) {
+    define('-', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return rz(x) - rz(y);
-      };
+      }
     });
-    define('*', function(x) {
-      return function(y) {
+    define('*', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return rz(x) * rz(y);
-      };
+      }
     });
-    define('/', function(x) {
-      return function(y) {
+    define('/', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return rz(x) / rz(y);
-      };
+      }
     });
-    define('%', function(x) {
-      return function(y) {
+    define('%', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return rz(x) % rz(y);
-      };
+      }
     });
-    define('<', function(x) {
-      return function(y) {
+    define('<', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return booleanFor(rz(x) < rz(y));
-      };
+      }
     });
-    define('<=', function(x) {
-      return function(y) {
+    define('<=', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return booleanFor(rz(x) <= rz(y));
-      };
+      }
     });
-    define('>', function(x) {
-      return function(y) {
+    define('>', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return booleanFor(rz(x) > rz(y));
-      };
+      }
     });
-    define('>=', function(x) {
-      return function(y) {
+    define('>=', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return booleanFor(rz(x) >= rz(y));
-      };
+      }
     });
     define('floor', function(x) {
       return Math.floor(rz(x));
@@ -233,15 +257,19 @@ misrepresented as being the original software.
     define('ceil', function(x) {
       return Math.ceil(rz(x));
     });
-    define('min', function(x) {
-      return function(y) {
+    define('min', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return Math.min(rz(x), rz(y));
-      };
+      }
     });
-    define('max', function(x) {
-      return function(y) {
+    define('max', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return Math.max(rz(x), rz(y));
-      };
+      }
     });
     define('round', function(x) {
       return Math.round(rz(x));
@@ -261,10 +289,12 @@ misrepresented as being the original software.
     define('atan', function(x) {
       return Math.atan(rz(x));
     });
-    define('atan2', function(x) {
-      return function(y) {
+    define('atan2', function(x, y) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return Math.atan2(rz(x), rz(y));
-      };
+      }
     });
     define('cos', function(x) {
       return Math.cos(rz(x));
@@ -280,17 +310,17 @@ misrepresented as being the original software.
         return cont(Math.random());
       });
     });
-    define('randInt', function(low) {
-      return function(high) {
+    define('randInt', function(low, high) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return makeSyncMonad(function(env, cont) {
           return cont(Math.floor(rz(low) + Math.random() * rz(high)));
         });
-      };
+      }
     });
-    define('^', function(x) {
-      return function(y) {
-        return Math.pow(rz(x), rz(y));
-      };
+    define('^', function(x, y) {
+      return Math.pow(rz(x), rz(y));
     });
     define('number', function(n) {
       return Number(n);
@@ -314,15 +344,19 @@ misrepresented as being the original software.
     define('_strChr', function(i) {
       return String.fromCharCode(rz(i));
     });
-    define('_strAt', function(str) {
-      return function(index) {
+    define('_strAt', function(str, index) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return rz(str)[strCoord(rz(str), rz(index))];
-      };
+      }
     });
-    define('_strStartsWith', function(str) {
-      return function(prefix) {
+    define('_strStartsWith', function(str, prefix) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return booleanFor(rz(str).substring(0, rz(prefix).length) === rz(prefix));
-      };
+      }
     });
     define('_strLen', function(str) {
       return rz(str).length;
@@ -333,12 +367,12 @@ misrepresented as being the original software.
     define('_strToUpperCase', function(str) {
       return rz(str).toUpperCase();
     });
-    define('_strReplace', function(str) {
-      return function(pat) {
-        return function(repl) {
-          return rz(str).replace(rz(pat), rz(repl));
-        };
-      };
+    define('_strReplace', function(str, pat, repl) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        return rz(str).replace(rz(pat), rz(repl));
+      }
     });
     strCoord = function(str, coord) {
       if (coord < 0) {
@@ -347,23 +381,25 @@ misrepresented as being the original software.
         return coord;
       }
     };
-    define('_strSubstring', function(str) {
-      return function(start) {
-        return function(end) {
-          var a, b;
-          a = strCoord(rz(str), rz(start));
-          b = strCoord(rz(str), rz(end));
-          if (b < a && rz(end) === 0) {
-            b = rz(str).length;
-          }
-          return rz(str).substring(a, b);
-        };
-      };
+    define('_strSubstring', function(str, start, end) {
+      var a, b;
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        a = strCoord(rz(str), rz(start));
+        b = strCoord(rz(str), rz(end));
+        if (b < a && rz(end) === 0) {
+          b = rz(str).length;
+        }
+        return rz(str).substring(a, b);
+      }
     });
-    define('_strSplit', function(str) {
-      return function(pat) {
+    define('_strSplit', function(str, pat) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return consFrom(rz(str).split(rz(pat) instanceof RegExp ? rz(pat) : new RegExp(rz(pat))));
-      };
+      }
     });
     define('_strCat', function(list) {
       return _.map(rz(list).toArray(), function(el) {
@@ -374,14 +410,18 @@ misrepresented as being the original software.
         }
       }).join('');
     });
-    define('_strAdd', function(s1) {
-      return function(s2) {
+    define('_strAdd', function(s1, s2) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return rz(s1) + rz(s2);
-      };
+      }
     });
-    define('_strMatch', function(str) {
-      return function(pat) {
-        var groups, m, pos;
+    define('_strMatch', function(str, pat) {
+      var groups, m, pos;
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         m = rz(str).match((rz(pat) instanceof RegExp ? rz(pat) : new RegExp(rz(pat))));
         if (m) {
           groups = [];
@@ -399,7 +439,7 @@ misrepresented as being the original software.
         } else {
           return Nil;
         }
-      };
+      }
     });
     define('_strToList', function(str) {
       return strToList(rz(str));
@@ -424,38 +464,40 @@ misrepresented as being the original software.
     define('_regexp', function(str) {
       return new RegExp(rz(str));
     });
-    define('_regexpFlags', function(str) {
-      return function(flags) {
+    define('_regexpFlags', function(str, flags) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return new RegExp(rz(str), rz(flags));
-      };
+      }
     });
-    define('_jsonParse', function(str) {
-      return function(failCont) {
-        return function(successCont) {
-          var err, p;
-          try {
-            p = JSON.parse(rz(str));
-            return rz(successCont)(lz(p));
-          } catch (_error) {
-            err = _error;
-            return rz(failCont)(lz(err));
-          }
-        };
-      };
+    define('_jsonParse', function(str, failCont, successCont) {
+      var err, p;
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        try {
+          p = JSON.parse(rz(str));
+          return rz(successCont)(lz(p));
+        } catch (_error) {
+          err = _error;
+          return rz(failCont)(lz(err));
+        }
+      }
     });
-    define('jsonStringify', function(obj) {
-      return function(failCont) {
-        return function(successCont) {
-          var err, s;
-          try {
-            s = JSON.stringify(rz(obj));
-            return rz(successCont)(lz(s));
-          } catch (_error) {
-            err = _error;
-            return rz(failCont)(lz(err));
-          }
-        };
-      };
+    define('jsonStringify', function(obj, failCont, successCont) {
+      var err, s;
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        try {
+          s = JSON.stringify(rz(obj));
+          return rz(successCont)(lz(s));
+        } catch (_error) {
+          err = _error;
+          return rz(failCont)(lz(err));
+        }
+      }
     });
     define('getProperties', function(func) {
       var ref1;
@@ -465,29 +507,33 @@ misrepresented as being the original software.
         return rz(L_nil);
       }
     });
-    define('setProperty', function(func) {
-      return function(name) {
-        return function(value) {
-          return makeSyncMonad(function(env, cont) {
-            var f, ref1;
-            f = rz(func);
-            f.properties = rz(L_aconsf)(name)(value)(lz((ref1 = f.properties) != null ? ref1 : rz(L_nil)));
-            return cont(f.properties);
-          });
-        };
-      };
+    define('setProperty', function(func, name, value) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        return makeSyncMonad(function(env, cont) {
+          var f, ref1;
+          f = rz(func);
+          f.properties = rz(L_aconsf)(name, value, lz((ref1 = f.properties) != null ? ref1 : rz(L_nil)));
+          return cont(f.properties);
+        });
+      }
     });
-    define('log', function(str) {
-      return function(res) {
+    define('log', function(str, res) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         console.log(String(rz(str)));
         return rz(res);
-      };
+      }
     });
-    define('logStack', function(str) {
-      return function(res) {
+    define('logStack', function(str, res) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         console.log(new Error(rz(str)).stack);
         return rz(res);
-      };
+      }
     });
     define('breakpoint', function(x) {
       console.log('Break point ', rz(x));
@@ -658,47 +704,43 @@ misrepresented as being the original software.
     _unit = mkProto(Leisure_unit, setType((function(_x) {
       return rz(_x);
     }), 'unit'));
-    define('define', function(name) {
-      return function(arity) {
-        return function(src) {
-          return function(def) {
-            return makeSyncMonad(function(env, cont) {
-              nakedDefine(rz(name), def, rz(arity), rz(src));
-              return cont(_unit);
-            });
-          };
-        };
-      };
+    define('define', function(name, arity, src, def) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        return makeSyncMonad(function(env, cont) {
+          nakedDefine(rz(name), def, rz(arity), rz(src));
+          return cont(_unit);
+        });
+      }
     });
-    define('newDefine', function(name) {
-      return function(arity) {
-        return function(src) {
-          return function(def) {
-            return makeSyncMonad(function(env, cont) {
-              nakedDefine(rz(name), def, rz(arity), rz(src), null, null, true);
-              return cont(_unit);
-            });
-          };
-        };
-      };
+    define('newDefine', function(name, arity, src, def) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        return makeSyncMonad(function(env, cont) {
+          nakedDefine(rz(name), def, rz(arity), rz(src), null, null, true);
+          return cont(_unit);
+        });
+      }
     });
     runMonad2 = function(monad, env, cont) {
-      var inner, innerArg, result, sync;
+      var hasInnerArg, inner, innerArg, result, sync;
       if (monad instanceof Monad2) {
         return monad.cmd(env, cont);
       } else if (isMonad(monad)) {
         if (monad.binding != null) {
           sync = true;
           inner = null;
+          hasInnerArg = false;
           innerArg = null;
           result = runMonad2(rz(monad.monad), env, function(x) {
             if (sync) {
               return inner = function() {
                 return runMonad2(rz(monad.binding)(lz(x)), env, function(y) {
                   if (sync) {
-                    return innerArg = function() {
-                      return y;
-                    };
+                    hasInnerArg = true;
+                    return innerArg = y;
                   } else {
                     return cont(y);
                   }
@@ -710,8 +752,8 @@ misrepresented as being the original software.
           });
           if (inner) {
             result = inner();
-            if (innerArg) {
-              result = cont(innerArg());
+            if (hasInnerArg) {
+              result = cont(innerArg);
             }
           }
           sync = false;
@@ -760,24 +802,26 @@ misrepresented as being the original software.
         return "defer " + (rz(v));
       });
     });
-    define('bind2', bind2 = function(m) {
-      return function(binding) {
-        var newM;
+    define('bind2', bind2 = function(m, binding) {
+      var newM;
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         newM = rz(m);
         if ((newM instanceof Monad2) || (isMonad(newM))) {
           return new Monad2('bind', (function(env, cont) {
-            var inner, innerArg, result, sync;
+            var hasInnerArg, inner, innerArg, result, sync;
             sync = true;
             inner = null;
             innerArg = null;
+            hasInnerArg = false;
             result = runMonad2(newM, env, function(value) {
               if (sync) {
                 return inner = function() {
                   return runMonad2(rz(binding)(lz(value)), env, function(y) {
                     if (sync) {
-                      return innerArg = function() {
-                        return y;
-                      };
+                      hasInnerArg = true;
+                      return innerArg = y;
                     } else {
                       return cont(y);
                     }
@@ -789,8 +833,8 @@ misrepresented as being the original software.
             });
             if (inner) {
               result = inner();
-              if (innerArg) {
-                result = cont(innerArg());
+              if (hasInnerArg) {
+                result = cont(innerArg);
               }
             }
             sync = false;
@@ -801,15 +845,17 @@ misrepresented as being the original software.
         } else {
           return rz(binding)(m);
         }
-      };
+      }
     });
     newbind = false;
     if (newbind) {
       define('bind', bind2);
     } else {
-      define('bind', function(m) {
-        return function(binding) {
-          var bindMonad;
+      define('bind', function(m, binding) {
+        var bindMonad;
+        if (isPartial(arguments)) {
+          return partialCall(arguments);
+        } else {
           if (isMonad(rz(m))) {
             bindMonad = makeMonad(function(env, cont) {});
             bindMonad.monad = m;
@@ -818,7 +864,7 @@ misrepresented as being the original software.
           } else {
             return rz(binding)(m);
           }
-        };
+        }
       });
     }
     values = {};
@@ -846,34 +892,40 @@ misrepresented as being the original software.
       });
     });
     actors = {};
-    define('actor', function(name) {
-      return function(func) {
+    define('actor', function(name, func) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         actors[name] = func;
         func.env = {
           values: {}
         };
         return func.env.__proto__ = defaultEnv;
-      };
+      }
     });
-    define('send', function(name) {
-      return function(msg) {
+    define('send', function(name, msg) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return setTimeout((function() {
           return runMonad(rz(actors[name])(msg), rz(actors[name]).env);
         }), 1);
-      };
+      }
     });
     define('hasValue', function(name) {
       return makeSyncMonad(function(env, cont) {
         return cont(booleanFor(values[rz(name)] != null));
       });
     });
-    define('getValueOr', function(name) {
-      return function(defaultValue) {
+    define('getValueOr', function(name, defaultValue) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return makeSyncMonad(function(env, cont) {
           var ref1;
           return cont((ref1 = values[rz(name)]) != null ? ref1 : rz(defaultValue));
         });
-      };
+      }
     });
     define('getValue', function(name) {
       return makeSyncMonad(function(env, cont) {
@@ -883,13 +935,15 @@ misrepresented as being the original software.
         return cont(values[rz(name)]);
       });
     });
-    define('setValue', function(name) {
-      return function(value) {
+    define('setValue', function(name, value) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return makeSyncMonad(function(env, cont) {
           values[rz(name)] = rz(value);
           return cont(_unit);
         });
-      };
+      }
     });
     define('deleteValue', function(name) {
       return makeSyncMonad(function(env, cont) {
@@ -908,13 +962,15 @@ misrepresented as being the original software.
         return cont(booleanFor(env.values[rz(name)] != null));
       });
     });
-    define('envGetOr', function(name) {
-      return function(defaultValue) {
+    define('envGetOr', function(name, defaultValue) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return makeSyncMonad(function(env, cont) {
           var ref1;
           return cont((ref1 = env.values[rz(name)]) != null ? ref1 : rz(defaultValue));
         });
-      };
+      }
     });
     define('envGet', function(name) {
       return makeSyncMonad(function(env, cont) {
@@ -924,13 +980,15 @@ misrepresented as being the original software.
         return cont(env.values[rz(name)]);
       });
     });
-    define('envSet', function(name) {
-      return function(value) {
+    define('envSet', function(name, value) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return makeSyncMonad(function(env, cont) {
           env.values[rz(name)] = rz(value);
           return cont(_unit);
         });
-      };
+      }
     });
     define('envDelete', function(name) {
       return makeSyncMonad(function(env, cont) {
@@ -939,13 +997,15 @@ misrepresented as being the original software.
       });
     });
     setValue('macros', Nil);
-    define('defMacro', function(name) {
-      return function(def) {
+    define('defMacro', function(name, def) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return makeSyncMonad(function(env, cont) {
           values.macros = cons(cons(rz(name), rz(def)), values.macros);
           return cont(_unit);
         });
-      };
+      }
     });
     define('funcList', makeSyncMonad(function(env, cont) {
       return cont(consFrom(global.leisureFuncNames.toArray().sort()));
@@ -968,8 +1028,10 @@ misrepresented as being the original software.
     define('ast2Json', function(ast) {
       return JSON.stringify(ast2Json(rz(ast)));
     });
-    define('override', function(name) {
-      return function(newFunc) {
+    define('override', function(name, newFunc) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return makeSyncMonad(function(env, cont) {
           var n, oldDef;
           n = "L_" + (nameSub(rz(name)));
@@ -982,7 +1044,7 @@ misrepresented as being the original software.
           };
           return cont(_unit);
         });
-      };
+      }
     });
     define('gensym', makeSyncMonad(function(env, cont) {
       return cont("G" + (gensymCounter++));
@@ -1040,15 +1102,17 @@ misrepresented as being the original software.
         });
       });
     });
-    define('writeFile', function(name) {
-      return function(data) {
+    define('writeFile', function(name, data) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return makeMonad(function(env, cont) {
           return env.writeFile(rz(name), rz(data), function(err, contents) {
             var ref1;
             return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(contents)));
           });
         });
-      };
+      }
     });
     define('statFile', function(file) {
       return makeMonad(function(env, cont) {
@@ -1103,69 +1167,72 @@ misrepresented as being the original software.
         }
       };
     })()));
-    define('advise', function(name) {
-      return function(alt) {
-        return function(arity) {
-          return function(def) {
-            return makeMonad(function(env, cont) {
-              var alts, i, info, newDef, nm;
-              info = functionInfo[rz(name)];
-              if (!info) {
-                info = functionInfo[rz(name)] = {
-                  src: '',
-                  arity: -1,
-                  alts: {},
-                  altList: []
-                };
+    define('advise', function(name, alt, arity, def) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        return makeMonad(function(env, cont) {
+          var alts, i, info, newDef, nm;
+          info = functionInfo[rz(name)];
+          if (!info) {
+            info = functionInfo[rz(name)] = {
+              src: '',
+              arity: -1,
+              alts: {},
+              altList: []
+            };
+          }
+          if (!info.alts[rz(alt)]) {
+            info.altList.push(rz(alt));
+          }
+          info.alts[rz(alt)] = rz(def);
+          alts = (function() {
+            var j, len, ref1, results;
+            ref1 = info.altList;
+            results = [];
+            for (j = 0, len = ref1.length; j < len; j++) {
+              i = ref1[j];
+              results.push(info.alts[i]);
+            }
+            return results;
+          })();
+          alts.reverse();
+          nm = "L_" + (nameSub(rz(name)));
+          newDef = function() {
+            var arg, j, len, len1, len2, o, opt, q, res;
+            if (arguments.length !== rz(arity)) {
+              return Leisure_primCall(arguments.callee, 0, arguments, rz(arity));
+            } else {
+              for (j = 0, len = alts.length; j < len; j++) {
+                alt = alts[j];
+                opt = alt;
+                for (o = 0, len1 = arguments.length; o < len1; o++) {
+                  arg = arguments[o];
+                  opt = opt(arg);
+                }
+                if (getType(opt) === 'some') {
+                  return opt(lz(function(x) {
+                    return rz(x);
+                  }))(lz(_false));
+                }
               }
-              if (!info.alts[rz(alt)]) {
-                info.altList.push(rz(alt));
+              if (info.mainDef) {
+                res = rz(info.mainDef);
+                for (q = 0, len2 = arguments.length; q < len2; q++) {
+                  arg = arguments[q];
+                  res = res(arg);
+                }
+                return res;
               }
-              info.alts[rz(alt)] = rz(def);
-              alts = (function() {
-                var j, len, ref1, results;
-                ref1 = info.altList;
-                results = [];
-                for (j = 0, len = ref1.length; j < len; j++) {
-                  i = ref1[j];
-                  results.push(info.alts[i]);
-                }
-                return results;
-              })();
-              alts.reverse();
-              newDef = curry(rz(arity), function(args) {
-                var arg, j, len, len1, len2, o, opt, q, res;
-                for (j = 0, len = alts.length; j < len; j++) {
-                  alt = alts[j];
-                  opt = alt;
-                  for (o = 0, len1 = args.length; o < len1; o++) {
-                    arg = args[o];
-                    opt = opt(arg);
-                  }
-                  if (getType(opt) === 'some') {
-                    return opt(lz(function(x) {
-                      return rz(x);
-                    }))(lz(_false));
-                  }
-                }
-                if (info.mainDef) {
-                  res = rz(info.mainDef);
-                  for (q = 0, len2 = args.length; q < len2; q++) {
-                    arg = args[q];
-                    res = res(arg);
-                  }
-                  return res;
-                }
-                throw new Error("No default definition for " + (rz(name)));
-              });
-              nm = "L_" + (nameSub(rz(name)));
-              global[nm] = global.leisureFuncNames[nm] = newDef;
-              functionInfo[name].newArity = false;
-              return cont(def);
-            });
+              throw new Error("No default definition for " + (rz(name)));
+            }
           };
-        };
-      };
+          functionInfo[name].newArity = true;
+          newDef.leisureName = name;
+          global[nm] = global.leisureFuncNames[nm] = lz(newDef);
+          return cont(def);
+        });
+      }
     });
     curry = function(arity, func) {
       return function() {
@@ -1225,40 +1292,46 @@ misrepresented as being the original software.
     hamt = makeHamt(Map());
     hamt.leisureDataType = 'hamt';
     define('hamt', hamt);
-    define('hamtWith', function(key) {
-      return function(value) {
-        return function(hamt) {
-          return makeHamt(rz(hamt).set(rz(key), rz(value)));
-        };
-      };
+    define('hamtWith', function(key, value, hamt) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        return makeHamt(rz(hamt).set(rz(key), rz(value)));
+      }
     });
-    define('hamtSet', function(key) {
-      return function(value) {
-        return function(hamt) {
-          return makeHamt(rz(hamt).set(rz(key), rz(value)));
-        };
-      };
+    define('hamtSet', function(key, value, hamt) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        return makeHamt(rz(hamt).set(rz(key), rz(value)));
+      }
     });
-    define('hamtFetch', function(key) {
-      return function(hamt) {
+    define('hamtFetch', function(key, hamt) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return rz(hamt).get(rz(key));
-      };
+      }
     });
-    define('hamtGet', function(key) {
-      return function(hamt) {
-        var v;
+    define('hamtGet', function(key, hamt) {
+      var v;
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         v = rz(hamt).get(rz(key));
         if (v !== void 0) {
           return some(v);
         } else {
           return none;
         }
-      };
+      }
     });
-    define('hamtWithout', function(key) {
-      return function(hamt) {
+    define('hamtWithout', function(key, hamt) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
         return makeHamt(rz(hamt).remove(rz(key)));
-      };
+      }
     });
     define('hamtPairs', function(hamt) {
       return nextHamtPair(rz(hamt).entries());
@@ -1269,13 +1342,13 @@ misrepresented as being the original software.
         return rz(L_nil);
       } else {
         f = entries.first();
-        return rz(L_acons)(f[0])(f[1])(function() {
+        return rz(L_acons)(f[0], f[1], function() {
           return nextHamtPair(entries.rest);
         });
       }
     };
     lacons = function(k, v, list) {
-      return rz(L_acons)(lz(k))(lz(v))(lz(list));
+      return rz(L_acons)(lz(k), lz(v), lz(list));
     };
     jsonConvert = function(obj) {
       var i, k, t, v;

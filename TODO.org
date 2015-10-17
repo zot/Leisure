@@ -1,4 +1,5 @@
-* BUG PEER.testReplay3() doesn't work
+* TODO make sessions sticky so masters can reload and slaves can take over if master leaves
+Make "Become Master" button enable when master disconnects
 * TODO block wiring
 make "plug bay" in code blocks
 - lets you drag a plug to another block
@@ -1017,6 +1018,8 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE PEER.testReplay3() doesn't work
+   CLOSED: [2015-10-17 Sat 16:35]
 ** DONE expanded emacs server
   CLOSED: [2015-08-16 Sun 20:55]
 - file message for file links (images, etc.) and imports
