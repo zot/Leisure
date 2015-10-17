@@ -683,28 +683,43 @@ misrepresented as being the original software.
       };
     });
     runMonad2 = function(monad, env, cont) {
-      var inner, result, sync;
+      var inner, inner2, result, sync;
       if (monad instanceof Monad2) {
         return monad.cmd(env, cont);
       } else if (isMonad(monad)) {
         if (monad.binding != null) {
           sync = true;
           inner = null;
+          inner2 = null;
           result = runMonad2(rz(monad.monad), env, function(x) {
             if (sync) {
               return inner = function() {
-                return runMonad2(rz(monad.binding)(lz(x)), env, cont);
+                return runMonad2(rz(monad.binding)(lz(x)), env, function(y) {
+                  if (sync) {
+                    return inner2 = function() {
+                      return cont(y);
+                    };
+                  } else {
+                    return cont(y);
+                  }
+                });
               };
             } else {
               return runMonad2(rz(monad.binding)(lz(x)), env, cont);
             }
           });
-          sync = false;
           if (inner) {
-            return result = inner();
-          } else {
-            return result;
+            result = inner();
+            if (inner2) {
+              console.log('super-compress');
+              result = inner2();
+            } else {
+              console.log('compress');
+              result;
+            }
           }
+          sync = false;
+          return result;
         } else {
           return monad.cmd(env, cont);
         }
@@ -755,24 +770,39 @@ misrepresented as being the original software.
         newM = rz(m);
         if ((newM instanceof Monad2) || (isMonad(newM))) {
           return new Monad2('bind', (function(env, cont) {
-            var inner, result, sync;
+            var inner, inner2, result, sync;
             sync = true;
             inner = null;
+            inner2 = null;
             result = runMonad2(newM, env, function(value) {
               if (sync) {
                 return inner = function() {
-                  return runMonad2(rz(binding)(lz(value)), env, cont);
+                  return runMonad2(rz(binding)(lz(value)), env, function(y) {
+                    if (sync) {
+                      return inner2 = function() {
+                        return cont(y);
+                      };
+                    } else {
+                      return cont(y);
+                    }
+                  });
                 };
               } else {
                 return runMonad2(rz(binding)(lz(value)), env, cont);
               }
             });
-            sync = false;
             if (inner) {
-              return inner();
-            } else {
-              return result;
+              result = inner();
+              if (inner2) {
+                console.log('super-compress');
+                result = inner2();
+              } else {
+                console.log('compress');
+                result;
+              }
             }
+            sync = false;
+            return result;
           }), function() {
             return "bind (" + (rz(m)) + ")";
           });
