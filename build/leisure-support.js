@@ -10,9 +10,9 @@
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2;
     return define('getDataNamed', function(name) {
       return new Monad2(function(env, cont) {
-        var ref;
-        console.log("ENV:", env);
-        return cont((ref = env.data.getBlockNamed(rz(name))) != null ? ref.yaml : void 0);
+        var ref, ref1;
+        console.log("getDataNamed " + name + ": ENV: " + ((ref = env.data.getBlockNamed(rz(name))) != null ? ref.yaml : void 0));
+        return cont((ref1 = env.data.getBlockNamed(rz(name))) != null ? ref1.yaml : void 0);
       });
     });
   });

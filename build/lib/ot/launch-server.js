@@ -295,7 +295,8 @@
         if (wrappedPrime === RejectGuardedOperation) {
           return peer.send({
             type: 'rejectGuard',
-            guardId: guardId
+            guardId: guardId,
+            retryOK: true
           });
         } else {
           console.log("new guard operation: " + JSON.stringify(wrapped));

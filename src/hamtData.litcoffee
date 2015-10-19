@@ -17,6 +17,7 @@ to make it easier to handle merges.
         constructor: ->
           super()
           @blocks = new Map()
+          @namedBlocks = new Map()
         snapshot: ->
           data = new HamtOrgData()
           data.installSnapshot this
@@ -39,6 +40,9 @@ to make it easier to handle merges.
             @runFilters @getBlock(id), null
             @blocks = @blocks.delete id
             @unindexBlock id
+        getNamedBlockId: (name)-> @namedBlocks.get name
+        setBlockName: (name, blockId)-> @namedBlocks = @namedBlocks.set name, blockId
+        deleteBlockName: (name)-> @namedBlocks = @namedBlocks.delete name
         load: (first, newBlocks)->
           @makeChanges =>
             super first, setFirst((new Map newBlocks), first),

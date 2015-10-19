@@ -14,6 +14,7 @@
       function HamtOrgData() {
         HamtOrgData.__super__.constructor.call(this);
         this.blocks = new Map();
+        this.namedBlocks = new Map();
       }
 
       HamtOrgData.prototype.snapshot = function() {
@@ -64,6 +65,18 @@
             return _this.unindexBlock(id);
           };
         })(this));
+      };
+
+      HamtOrgData.prototype.getNamedBlockId = function(name) {
+        return this.namedBlocks.get(name);
+      };
+
+      HamtOrgData.prototype.setBlockName = function(name, blockId) {
+        return this.namedBlocks = this.namedBlocks.set(name, blockId);
+      };
+
+      HamtOrgData.prototype.deleteBlockName = function(name) {
+        return this.namedBlocks = this.namedBlocks["delete"](name);
       };
 
       HamtOrgData.prototype.load = function(first, newBlocks) {

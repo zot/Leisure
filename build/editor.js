@@ -1147,11 +1147,11 @@
           this.first = first;
           for (j = 0, len = removes.length; j < len; j++) {
             id = removes[j];
-            delete this.blocks[id];
+            this.deleteBlock(id);
           }
           for (id in sets) {
             block = sets[id];
-            this.blocks[id] = block;
+            this.setBlock(id, block);
           }
           return true;
         }
@@ -1559,14 +1559,12 @@
         }
       };
 
-      DataStore.prototype.batchReplace = function(replacements) {
-        var j, len, offset, repl, results1;
-        offset = 0;
+      DataStore.prototype.batchReplace = function(sortedReplacements) {
+        var j, len, repl, results1;
         results1 = [];
-        for (j = 0, len = replacements.length; j < len; j++) {
-          repl = replacements[j];
-          this.replaceText(repl.start + offset, repl.end + offset, repl.text);
-          results1.push(offset += repl.text.length - repl.end + repl.start);
+        for (j = 0, len = sortedReplacements.length; j < len; j++) {
+          repl = sortedReplacements[j];
+          results1.push(this.replaceText(repl.start, repl.end, repl.text));
         }
         return results1;
       };
@@ -2106,20 +2104,24 @@
       return DataStore;
 
     })(Observable);
-    validateBatch = function(replacements) {
-      var j, last, len, repl;
-      replacements = _.sortBy(replacements, function(x) {
-        return x.start;
-      });
-      last = 0;
-      for (j = 0, len = replacements.length; j < len; j++) {
-        repl = replacements[j];
-        if (repl.start < last) {
-          throw new Error("Attempt to perform overlapping replacements in batch");
+    validateBatch = function(guardedReplacements) {
+      var first, j, len, repl, repls;
+      if (!guardedReplacements.length) {
+        return guardedReplacements;
+      } else {
+        repls = _.sortBy(guardedReplacements, function(x) {
+          return -x.gEnd;
+        });
+        first = repls[0].gEnd;
+        for (j = 0, len = repls.length; j < len; j++) {
+          repl = repls[j];
+          if (first < repl.gEnd) {
+            throw new Error("Attempt to perform overlapping replacements in batch");
+          }
+          first = repl.gStart;
         }
-        last = repl.end;
+        return repls;
       }
-      return replacements;
     };
     BlockErrors = (function() {
       function BlockErrors() {

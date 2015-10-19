@@ -57,16 +57,21 @@
         return html(rz(L_showHtml)(lz(v)));
       };
       env.executeText = function(text, props, cont) {
-        var old, result;
-        old = getValue('parser_funcProps');
-        setValue('parser_funcProps', props);
-        result = rz(L_baseLoadString)('notebook')(text);
-        return runMonad2(result, env, function(results) {
-          return runNextResult(results, env, function() {
-            setValue('parser_funcProps', old);
-            return typeof cont === "function" ? cont(env, results) : void 0;
+        var err, old, result;
+        try {
+          old = getValue('parser_funcProps');
+          setValue('parser_funcProps', props);
+          result = rz(L_baseLoadString)('notebook')(text);
+          return runMonad2(result, env, function(results) {
+            return runNextResult(results, env, function() {
+              setValue('parser_funcProps', old);
+              return typeof cont === "function" ? cont(env, results) : void 0;
+            });
           });
-        });
+        } catch (_error) {
+          err = _error;
+          return this.errorAt(0, err.message);
+        }
       };
       return env;
     };
@@ -283,7 +288,7 @@
             value = v.substring(eq + 1).trim();
             if (ref1 = value[0], indexOf.call("'\"0123456789", ref1) >= 0) {
               value = JSON.parse(value);
-            } else if (bl = data.namedBlocks.get(value)) {
+            } else if (bl = data.getBlockNamed(value)) {
               blockIds[bl] = true;
               value = (ref2 = data.getBlock(bl)) != null ? ref2.yaml : void 0;
             } else {

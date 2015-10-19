@@ -174,7 +174,7 @@
               node.attr 'data-observe', blocks
             if controllerName = @block.codeAttributes.controller
               if !(controller = singleControllers[controllerName])
-                if block = opts.getBlock opts.data.namedBlocks.get controllerName
+                if block = opts.data.getBlockNamed controllerName
                   controller = singleControllers[controllerName] = {}
                   env = blockEnvMaker(block) __proto__: defaultEnv
                   env.eval = (text)-> controllerEval.call controller, text
@@ -513,9 +513,9 @@
             objectName = leisureMatch[1]
             viewName = leisureMatch[2]
             data = UI.context.opts.data
-            error = if !obj = data.getBlock(data.namedBlocks.get objectName)
+            error = if !obj = data.getBlockNamed objectName
               "No object named #{objectName}"
-            else if !obj = (block = data.getBlock(data.namedBlocks.get objectName))?.yaml
+            else if !obj = (block = data.getBlockNamed objectName)?.yaml
               "Object #{objectName} isn't yaml"
             else if !(type = obj?.type)
               "No type field in object #{objectName}"
@@ -524,7 +524,7 @@
             if error
               "<span class='error' data-noncontent title='#{escapeAttr error}'><b>✖</b></span>#{escapeHtml org.allText()}"
             else
-              "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block}</span>"
+              "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block, objectName}</span>"
           else if org.isImage()
             title = (if desc = org.descriptionText() then " title='#{escapeHtml desc}'" else "")
             src = escapeHtml org.path

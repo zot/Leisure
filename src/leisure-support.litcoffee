@@ -31,5 +31,5 @@ Support code for Leisure
 
       define 'getDataNamed', (name)->
         new Monad2 (env, cont)->
-          console.log "ENV:", env
+          console.log "getDataNamed #{name}: ENV: #{env.data.getBlockNamed(rz name)?.yaml}"
           cont env.data.getBlockNamed(rz name)?.yaml

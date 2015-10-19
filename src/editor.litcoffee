@@ -804,9 +804,9 @@ batchReplace is a potentially asynchronous operation that performs a
 list of non-overlapping replacements produced by replacementFunc().
 replacementFunc() should be stateless because it may potentially be
 called more than one time.  The replacements it returns should be an
-array of objects with "start", "end", and "text" properties where
-start and end all refer to the current document (i.e. they are not
-based on the replacement order).
+array of objects with "start", "end", "text", "gStart", "gEnd"
+properties where start and end all refer to the current document
+(i.e. they are not based on the replacement order).
 
 After the replacements succeed, it calls the continuation function.
 
@@ -884,9 +884,9 @@ Factored out because the Emacs connection calls MakeStructureChange.
             {first, removes, sets} = changes
             @first = first
             for id in removes
-              delete @blocks[id]
+              @deleteBlock id
             for id, block of sets
-              @blocks[id] = block
+              @setBlock id, block
             true
 
 `getBlock(id) -> block?`: get the current block for id
@@ -1136,11 +1136,13 @@ Data model -- override/reset these if you want to change how the store accesses 
             @marks = first.concat rest.removeFirst().addFirst
               name: n.name
               offset: n.offset + newLength - oldLength
-        batchReplace: (replacements)->
-          offset = 0
-          for repl in replacements
-            @replaceText repl.start + offset, repl.end + offset, repl.text
-            offset += repl.text.length - repl.end + repl.start
+
+BatchReplace expects sortedReplacements to be non-overlapping and
+sorted in reverse order by position.
+
+        batchReplace: (sortedReplacements)->
+          for repl in sortedReplacements
+            @replaceText repl.start, repl.end, repl.text
         replaceText: (start, end, text)->
           {prev, oldBlocks, newBlocks} = @changesForReplacement start, end, text
           if oldBlocks
@@ -1440,13 +1442,19 @@ Data model -- override/reset these if you want to change how the store accesses 
           blockText: fullText
           newText: fullText.substring(0, start - offset) + text + (fullText.substring end - offset)
           
-      validateBatch = (replacements)->
-        replacements = _.sortBy replacements, (x)-> x.start
-        last = 0
-        for repl in replacements
-          if repl.start < last then throw new Error "Attempt to perform overlapping replacements in batch"
-          last = repl.end
-        replacements
+ValidateBatch takes a set of guarded replacements and returns the
+replacements reverse-sorted by position and throws an error if the
+guard regions overlap.
+
+      validateBatch = (guardedReplacements)->
+        if !guardedReplacements.length then guardedReplacements
+        else
+          repls = _.sortBy guardedReplacements, (x)-> -x.gEnd
+          first = repls[0].gEnd
+          for repl in repls
+            if first < repl.gEnd then throw new Error "Attempt to perform overlapping replacements in batch"
+            first = repl.gStart
+          repls
 
       class BlockErrors
         constructor: ->

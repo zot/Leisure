@@ -2,8 +2,8 @@
 (function() {
   var init;
 
-  init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, HamtData) {
-    var HamtOrgData, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, useHamt, useP2P, withContext;
+  init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs) {
+    var OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams, editorToolbar = EditorSupport.editorToolbar;
     plainEditDiv = Modes.plainEditDiv, fancyEditDiv = Modes.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
@@ -14,9 +14,7 @@
     mergeExports = BrowserExports.mergeExports;
     addSearchDataFilter = Search.addSearchDataFilter;
     addEmacsDataFilter = Emacs.addEmacsDataFilter;
-    HamtOrgData = HamtData.HamtOrgData;
     useP2P = true;
-    useHamt = false;
     peer = null;
     p2pPanel = null;
     p2pConnections = null;
@@ -74,8 +72,6 @@
         if (p2pPanel != null) {
           p2pPanel.css('display', '');
         }
-      } else if (useHamt) {
-        window.DATA = data = new HamtOrgData();
       } else {
         window.DATA = data = new OrgData();
       }

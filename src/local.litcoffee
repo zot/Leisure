@@ -1,6 +1,6 @@
 Code for local-mode.  This will not be loaded under meteor.
 
-    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, HamtData)->
+    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs)->
 
       {
         OrgData
@@ -40,14 +40,9 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         addEmacsDataFilter
       } = Emacs
-      {
-        HamtOrgData
-      } = HamtData
 
       useP2P = true
       #useP2P = false
-      #useHamt = true
-      useHamt = false
       peer = null
       p2pPanel = null
       p2pConnections = null
@@ -88,8 +83,6 @@ Code for local-mode.  This will not be loaded under meteor.
           window.PEER = peer = new Peer
           window.DATA = data = peer.data
           p2pPanel?.css 'display', ''
-        else if useHamt
-          window.DATA = data = new HamtOrgData()
         else window.DATA = data = new OrgData()
         addSearchDataFilter data
         data.processDefaults Defaults

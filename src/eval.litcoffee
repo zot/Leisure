@@ -51,13 +51,16 @@ Evaulation support for Leisure
       leisureEnv = (env)->
         env.presentValue = (v)-> html rz(L_showHtml) lz v
         env.executeText = (text, props, cont)->
-          old = getValue 'parser_funcProps'
-          setValue 'parser_funcProps', props
-          result = rz(L_baseLoadString)('notebook')(text)
-          runMonad2 result, env, (results)->
-            runNextResult results, env, ->
-              setValue 'parser_funcProps', old
-              cont? env, results
+          try
+            old = getValue 'parser_funcProps'
+            setValue 'parser_funcProps', props
+            result = rz(L_baseLoadString)('notebook')(text)
+            runMonad2 result, env, (results)->
+              runNextResult results, env, ->
+                setValue 'parser_funcProps', old
+                cont? env, results
+          catch err
+            @errorAt 0, err.message
         env
 
       runNextResult = (results, env, cont)->
@@ -190,7 +193,7 @@ Evaulation support for Leisure
             if (eq = v.indexOf '=') > 0
               value = v.substring(eq + 1).trim()
               if value[0] in "'\"0123456789" then value = JSON.parse value
-              else if bl = data.namedBlocks.get value
+              else if bl = data.getBlockNamed value
                 blockIds[bl] = true
                 value = data.getBlock(bl)?.yaml
               else value = value.trim()

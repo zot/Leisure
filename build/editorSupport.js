@@ -4,8 +4,8 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, trickyChange, updateSelection, withContext;
+  define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -14,6 +14,7 @@
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
+    hasDatabase = DB.hasDatabase, transaction = DB.transaction;
     mergeExports = BrowserExports.mergeExports;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
     Map = Immutable.Map;
@@ -21,6 +22,10 @@
     selectionActive = true;
     headlineRE = /^(\*+ *)(.*)(\n)$/;
     documentParams = null;
+    localStoreName = 'leisureStorage';
+    localDb = null;
+    localStore = null;
+    deleteStore = false;
     defaults = {
       views: {},
       controls: {}
@@ -42,9 +47,32 @@
 
       function OrgData() {
         DataStore.apply(this, arguments);
-        this.namedBlocks = new Map();
+        this.namedBlocks = {};
+        this.localBlocks = {};
         this.filters = [];
+        this.populateLocalData();
       }
+
+      OrgData.prototype.populateLocalData = function() {
+        return transaction(this.localDocumentId()).getAll().then((function(_this) {
+          return function(allData) {
+            var deletes, j, len, name, results1;
+            _this.localBlocks = _.indexBy(allData, '_id');
+            deletes = [];
+            for (name in _this.localBlocks) {
+              if (!_this.namedBlocks[name] || !(_this.getBlockNamed(name)).local) {
+                deletes.push(name);
+              }
+            }
+            results1 = [];
+            for (j = 0, len = deletes.length; j < len; j++) {
+              name = deletes[j];
+              results1.push(_this.deleteLocalBlock(name));
+            }
+            return results1;
+          };
+        })(this));
+      };
 
       OrgData.prototype.makeChanges = function(func) {
         var filter, j, l, len, len1, newChange, ref, ref1;
@@ -70,10 +98,10 @@
 
       OrgData.prototype.getBlock = function(thing, changes) {
         var ref;
-        if (typeof thing === 'string') {
-          return (ref = changes != null ? changes.sets[thing] : void 0) != null ? ref : OrgData.__super__.getBlock.call(this, thing);
-        } else {
+        if (typeof thing === 'object') {
           return thing;
+        } else {
+          return (ref = changes != null ? changes.sets[thing] : void 0) != null ? ref : OrgData.__super__.getBlock.call(this, thing);
         }
       };
 
@@ -89,7 +117,7 @@
           return function() {
             var block, filter, id, j, len, ref, ref1;
             if (!first) {
-              return OrgData.__super__.load.call(_this, first, blocks);
+              OrgData.__super__.load.call(_this, first, blocks);
             } else {
               ref = _this.filters;
               for (j = 0, len = ref.length; j < len; j++) {
@@ -113,8 +141,9 @@
                 _this.runFilters(null, block);
                 _this.checkChange(null, block);
               }
-              return OrgData.__super__.load.call(_this, first, blocks);
+              OrgData.__super__.load.call(_this, first, blocks);
             }
+            return _this.populateLocalData();
           };
         })(this));
       };
@@ -330,16 +359,70 @@
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
         if ((oldBlock != null ? oldBlock.codeName : void 0) !== (newBlock != null ? newBlock.codeName : void 0)) {
           if (oldBlock != null ? oldBlock.codeName : void 0) {
-            this.namedBlocks = this.namedBlocks["delete"](oldBlock.codeName);
+            this.deleteBlockName(oldBlock.codeName);
           }
           if (newBlock != null ? newBlock.codeName : void 0) {
-            return this.namedBlocks = this.namedBlocks.set(newBlock.codeName, newBlock._id);
+            this.setBlockName(newBlock.codeName, newBlock._id);
           }
+        }
+        if ((oldBlock != null ? oldBlock.local : void 0) && !(newBlock != null ? newBlock.local : void 0)) {
+          return this.deleteLocalBlock(oldBlock.codeName);
         }
       };
 
+      OrgData.prototype.getNamedBlockId = function(name) {
+        return this.namedBlocks[name];
+      };
+
+      OrgData.prototype.setBlockName = function(name, blockId) {
+        return this.namedBlocks[name] = blockId;
+      };
+
+      OrgData.prototype.deleteBlockName = function(name) {
+        delete this.namedBlocks[name];
+        return this.deleteLocalBlock(name);
+      };
+
       OrgData.prototype.getBlockNamed = function(name) {
-        return this.getBlock(this.namedBlocks.get(name));
+        var id;
+        if (id = this.getNamedBlockId(name)) {
+          return this.getLocalBlock(id);
+        }
+      };
+
+      OrgData.prototype.localDocumentId = function() {
+        return document.location.href;
+      };
+
+      OrgData.prototype.getLocalBlock = function(thing) {
+        var blk, local, n;
+        if (!(blk = this.getBlock(thing))) {
+          return null;
+        } else if (!blk.local || !(n = blk.codeName) || blk._id !== this.getNamedBlockId(n)) {
+          return blk;
+        } else if (local = copyBlock(this.localBlocks[n])) {
+          local._id = blk._id;
+          return local;
+        } else {
+          return blk;
+        }
+      };
+
+      OrgData.prototype.storeLocalBlock = function(block) {
+        var name;
+        if (block.local && (name = block.codeName) && block._id === this.getNamedBlockId(name)) {
+          this.localBlocks[name] = block;
+          block = copyBlock(block);
+          block._id = name;
+          return transaction(this.localDocumentId()).put(block);
+        }
+      };
+
+      OrgData.prototype.deleteLocalBlock = function(name) {
+        if (this.localBlocks[name]) {
+          delete this.localBlocks[name];
+          return transaction(this.localDocumentId())["delete"](name);
+        }
       };
 
       OrgData.prototype.textForDataNamed = function(name, data, attrs) {
@@ -476,7 +559,8 @@
         this.hiding = true;
         this.setMode(Leisure.plainMode);
         this.toggledSlides = {};
-        this.dataCommands = null;
+        this.dataChanges = null;
+        this.pendingDataChanges = null;
       }
 
       OrgEditing.prototype.renderBlocks = function() {
@@ -498,98 +582,207 @@
         return this.mode.showingSlides(this);
       };
 
+      OrgEditing.prototype.getLocalBlock = function(thing) {
+        return this.data.getLocalBlock(thing);
+      };
+
       OrgEditing.prototype.rerenderAll = function() {
         OrgEditing.__super__.rerenderAll.call(this);
         return initializePendingViews();
       };
 
       OrgEditing.prototype.changeData = function(replaceFunc) {
-        var dataCommands;
-        dataCommands = this.dataCommands = [];
-        try {
-          replaceFunc();
-          return new Promise((function(_this) {
-            return function(succeed, fail) {
-              return _this.batchReplace((function() {
-                return dataCommands.map(function(x) {
-                  return x();
-                });
-              }), succeed, fail);
-            };
-          })(this));
-        } finally {
-          this.dataCommands = null;
-        }
-      };
-
-      OrgEditing.prototype.addDataChangeCommand = function(func) {
-        if (!this.dataCommands) {
-          return this.batchReplace((function() {
-            return [func()];
-          }), function() {});
-        } else {
-          return this.dataCommands.push(func);
-        }
-      };
-
-      OrgEditing.prototype.addData = function(parent, name, value, codeOpts) {
-        return this.addDataChangeCommand((function(_this) {
-          return function() {
-            var pre, ref, start;
-            if (!(parent = _this.data.getBlock(parent))) {
-              throw new Error("No parent block " + parent);
+        return new Promise((function(_this) {
+          return function(succeed, fail) {
+            if (_this.pendingDataChanges) {
+              return _this.pendingDataChanges.push(function() {
+                return _this.executeDataChange(replaceFunc, succeed, fail);
+              });
             } else {
-              pre = (ref = _this.data.lastChild(parent)) != null ? ref : parent;
-              start = _this.data.offsetForBlock(pre) + pre.text.length;
-              return {
-                start: start,
-                end: start,
-                text: _this.data.textForDataNamed(name, value, codeOpts)
-              };
+              _this.pendingDataChanges = [];
+              return _this.executeDataChange(replaceFunc, succeed, fail);
             }
           };
         })(this));
+      };
+
+      OrgEditing.prototype.executeDataChange = function(replaceFunc, succeed, fail) {
+        var dataChanges;
+        dataChanges = null;
+        return this.batchReplace(((function(_this) {
+          return function() {
+            var b, block, name, parent, parentType, ref, ref1, ref2, repls;
+            dataChanges = _this.dataChanges = {
+              sharedRemoves: {},
+              sharedInserts: {},
+              sharedSets: {},
+              localRemoves: {},
+              localSets: {}
+            };
+            try {
+              replaceFunc();
+              repls = [];
+              for (name in _this.dataChanges.sharedRemoves) {
+                b = _this.blockBounds(name);
+                b.text = '';
+                repls.push(b);
+              }
+              ref = _this.dataChanges.sharedInserts;
+              for (name in ref) {
+                ref1 = ref[name], parent = ref1.parent, parentType = ref1.parentType, block = ref1.block;
+                b = _this.blockBounds(name);
+                b.text = block.text;
+                repls.push(b);
+              }
+              ref2 = _this.dataChanges.sharedSets;
+              for (name in ref2) {
+                block = ref2[name];
+                b = _this.blockBounds(name);
+                b.text = block.text;
+                repls.push(b);
+              }
+              return repls;
+            } finally {
+              _this.dataChanges = null;
+            }
+          };
+        })(this)), ((function(_this) {
+          return function() {
+            var block, blocks, name, ref;
+            for (name in dataChanges.localRemoves) {
+              _this.data.deleteLocalBlock(name);
+            }
+            ref = dataChanges.localSets;
+            for (name in ref) {
+              block = ref[name];
+              _this.data.storeLocalBlock(block);
+            }
+            if (!_.isEmpty(dataChanges.localSets)) {
+              blocks = (function() {
+                var ref1, results1;
+                ref1 = dataChanges.localSets;
+                results1 = [];
+                for (name in ref1) {
+                  block = ref1[name];
+                  results1.push((block._id = this.data.getNamedBlockId(name), block));
+                }
+                return results1;
+              }).call(_this);
+              _this.changed({
+                oldBlocks: [],
+                newBlocks: blocks
+              });
+            }
+            succeed();
+            return _this.nextDataChange();
+          };
+        })(this)), (function(_this) {
+          return function(e) {
+            if (e.retryOK) {
+              return _this.executeDataChange(replaceFunc, succeed, fail);
+            } else {
+              fail(e);
+              return _this.nextDataChange();
+            }
+          };
+        })(this));
+      };
+
+      OrgEditing.prototype.nextDataChange = function() {
+        var ref;
+        if ((ref = this.pendingDataChanges) != null ? ref.length : void 0) {
+          return this.pendingDataChanges.shift()();
+        } else {
+          return this.pendingDataChanges = null;
+        }
+      };
+
+      OrgEditing.prototype.blockBounds = function(name) {
+        var block, end, start;
+        block = this.data.getBlockNamed(name);
+        start = this.data.offsetForBlock(block);
+        end = start + block.text.length;
+        return {
+          start: start,
+          end: end,
+          gStart: start,
+          gEnd: end
+        };
+      };
+
+      OrgEditing.prototype.checkChanging = function() {
+        if (!this.dataChanges) {
+          throw new Error("Attempt to access data outside of a change block");
+        }
+      };
+
+      OrgEditing.prototype.appendDataToHeadline = function(parent, name, value, codeOpts) {
+        return appendData('headline', parent, name, value, codeOpts);
+      };
+
+      OrgEditing.prototype.appendDataAfter = function(parent, name, value, codeOpts) {
+        return appendData('block', parent, name, value, codeOpts);
+      };
+
+      OrgEditing.prototype.appendData = function(parentType, parent, name, value, codeOpts) {
+        this.checkChanging();
+        if (this.getData(name)) {
+          throw new Error("Attempt to add block with duplicate name: " + name);
+        }
+        return this.dataChanges.sharedInserts[name] = {
+          parentType: parentType,
+          parent: parent,
+          block: this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0]
+        };
+      };
+
+      OrgEditing.prototype.getData = function(name, skipCheck) {
+        var block, info;
+        if (!skipCheck) {
+          this.checkChanging();
+        }
+        block = this.dataChanges.localRemoves[name] || this.dataChanges.sharedRemoves[name] ? null : (block = this.dataChanges.localSets[name] || this.dataChanges.sharedSets[name]) ? block : (info = this.dataChanges.sharedInserts[name]) ? info.block : this.data.getBlockNamed(name);
+        return block != null ? block.yaml : void 0;
       };
 
       OrgEditing.prototype.setData = function(name, value, codeOpts) {
-        return this.addDataChangeCommand((function(_this) {
-          return function() {
-            var block, ref, start;
-            if (!(block = _this.data.getBlockNamed(name))) {
-              throw new Error("No block named " + name);
-            } else {
-              start = _this.data.offsetForBlock(block);
-              codeOpts = _.merge({}, (ref = block.codeAttributes) != null ? ref : {}, codeOpts != null ? codeOpts : {});
-              return {
-                start: start,
-                end: start + block.text.length,
-                text: _this.data.textForDataNamed(name, value, codeOpts)
-              };
-            }
-          };
-        })(this));
+        var block, newBlock, ref;
+        this.checkChanging();
+        if (this.dataChanges.sharedRemoves[name]) {
+          delete this.dataChanges.sharedRemoves[name];
+        }
+        if (this.dataChanges.localRemoves[name]) {
+          delete this.dataChanges.localRemoves[name];
+        }
+        if (!(block = this.data.getBlockNamed(name))) {
+          throw new Error("No block named " + name);
+        } else {
+          codeOpts = _.merge({}, (ref = block.codeAttributes) != null ? ref : {}, codeOpts != null ? codeOpts : {});
+          newBlock = this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0];
+          newBlock._id = block._id;
+          if (block.local && this.getData(name)) {
+            return this.dataChanges.localSets[name] = newBlock;
+          } else {
+            return this.dataChanges.sharedSets[name] = newBlock;
+          }
+        }
       };
 
       OrgEditing.prototype.removeData = function(name) {
-        return this.addDataChangeCommand((function(_this) {
-          return function() {
-            var block, start;
-            if (!(block = _this.data.getBlockNamed(name))) {
-              throw new Error("No block named " + name);
-            } else {
-              start = _this.data.offsetForBlock(block);
-              return {
-                start: start,
-                end: start + block.text.length,
-                text: ''
-              };
-            }
-          };
-        })(this));
+        var block;
+        this.checkChanging();
+        if (!(block = this.data.getBlockNamed(name))) {
+          throw new Error("No block named " + name);
+        } else {
+          if (block.local) {
+            this.dataChanges.localRemoves[name] = true;
+          }
+          return this.dataChanges.sharedRemoves[name] = true;
+        }
       };
 
       OrgEditing.prototype.changed = function(changes) {
-        var block, i, id, j, l, len, len1, len2, nb, newBlock, newBlocks, node, o, oldBlock, oldBlocks, ref, ref1, viewNodes;
+        var block, i, id, j, l, len, len1, len2, nameNodes, nb, newBlock, newBlocks, node, o, oldBlock, oldBlocks, ref, ref1, viewNodes;
         newBlocks = changes.newBlocks, oldBlocks = changes.oldBlocks;
         if ((newBlocks.length === (ref = oldBlocks.length) && ref === 1)) {
           for (i = j = 0, len = newBlocks.length; j < len; i = ++j) {
@@ -601,9 +794,13 @@
           }
           nb = newBlocks.slice();
           viewNodes = $();
+          nameNodes = $();
           for (l = 0, len1 = newBlocks.length; l < len1; l++) {
             block = newBlocks[l];
             viewNodes = viewNodes.add(this.find("[data-view-block='" + block._id + "']"));
+            if (block.codeName) {
+              nameNodes = viewNodes.add(this.find("[data-view-block-name='" + block.codeName + "']"));
+            }
             viewNodes = this.findViewsForDefiner(block, viewNodes);
             viewNodes = this.findViewsForDefiner(changes.old[block._id], viewNodes);
             ref1 = this.find("[data-observe~=" + block._id + "]");
@@ -618,17 +815,28 @@
           this.mode.renderChanged(this, nb, this.idPrefix, true);
           return this.withNewContext((function(_this) {
             return function() {
-              var data, len3, name, q, ref2, ref3, ref4, ref5, results1, view;
+              var blk, blkName, data, len3, len4, name, q, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, results1, s, view;
               ref2 = viewNodes.filter(function(n) {
                 return !nb[_this.idForNode(n)];
               });
-              results1 = [];
               for (q = 0, len3 = ref2.length; q < len3; q++) {
                 node = ref2[q];
                 node = $(node);
                 if (data = (ref3 = (block = _this.getBlock(node.attr('data-view-block')))) != null ? ref3.yaml : void 0) {
                   ref5 = ((ref4 = $(node).attr('data-requested-view')) != null ? ref4 : '').split('/'), view = ref5[0], name = ref5[1];
-                  results1.push(renderView(view, name, data, node, block));
+                  renderView(view, name, data, node, block);
+                }
+              }
+              ref6 = nameNodes.filter(function(n) {
+                return !nb[_this.idForNode(n)];
+              });
+              results1 = [];
+              for (s = 0, len4 = ref6.length; s < len4; s++) {
+                node = ref6[s];
+                node = $(node);
+                if (data = (ref7 = (blk = _this.data.getBlockNamed(blkName = node.attr('data-view-block-name')))) != null ? ref7.yaml : void 0) {
+                  ref9 = ((ref8 = $(node).attr('data-requested-view')) != null ? ref8 : '').split('/'), view = ref9[0], name = ref9[1];
+                  results1.push(renderView(view, name, data, node, blk, blkName));
                 } else {
                   results1.push(void 0);
                 }
@@ -840,19 +1048,27 @@
       };
 
       OrgEditing.prototype.replaceTextEffects = function(start, end, text, skipMode) {
-        var changes, newBlocks, oldBlocks, prev, ref;
+        var changes, newBlocks, oldBlocks, prev, ref, sets;
         ref = this.data.changesForReplacement(start, end, text), prev = ref.prev, oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks;
         if (!oldBlocks) {
           oldBlocks = [];
-          newBlocks = [this.data.blockForOffset(start)];
-        }
-        if (oldBlocks) {
+          newBlocks = [this.data.getBlock(this.data.blockForOffset(start))];
+          sets = {};
+          sets[newBlocks._id] = newBlocks[0];
+          changes = {
+            first: this.data.getFirst(),
+            oldBlocks: oldBlocks,
+            newBlocks: newBlocks,
+            sets: sets,
+            removes: {}
+          };
+        } else if (oldBlocks) {
           changes = this.changesFor(prev, oldBlocks, newBlocks);
-          if (!skipMode) {
-            this.mode.handleChanges(this, changes);
-          }
-          return changes;
         }
+        if (!skipMode) {
+          this.mode.handleChanges(this, changes);
+        }
+        return changes;
       };
 
       OrgEditing.prototype.replaceText = function(start, end, text, skipEffects) {

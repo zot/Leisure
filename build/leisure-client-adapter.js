@@ -124,6 +124,20 @@
                 return parent(start, end, text, skip);
               };
             }
+          },
+          batchReplace: {
+            p2p: function(parent) {
+              return function(replacementFunc, cont, error) {
+                var guards, j, len1, ops, r, repls;
+                repls = validateBatch(replacementFunc()).reverse();
+                ops = peer.opsFor(repls, this.getLength());
+                for (j = 0, len1 = repls.length; j < len1; j++) {
+                  r = repls[j];
+                  guards = [r.gStart, r.end];
+                }
+                return peer.sendGuardedOperation(peer.editorClient.revision, ops, guards).then(cont, error)["catch"](error);
+              };
+            }
           }
         });
         return this.editor.on('selection', (function(_this) {
@@ -153,13 +167,38 @@
       };
 
       Peer.prototype.opsFor = function(repls, totalLength) {
-        var cursor, length, offset, op, ref1, t, text;
+        if (repls instanceof Replacements) {
+          return this.baseOpsFor(totalLength, function(f) {
+            var length, offset, ref1, results, t, text;
+            t = repls.replacements;
+            results = [];
+            while (!t.isEmpty()) {
+              ref1 = t.peekFirst(), offset = ref1.offset, length = ref1.length, text = ref1.text;
+              t = t.removeFirst();
+              results.push(f(offset, length, text));
+            }
+            return results;
+          });
+        } else if (_.isArray(repls)) {
+          return this.baseOpsFor(totalLength, function(f) {
+            var j, last, len1, repl, results;
+            last = 0;
+            results = [];
+            for (j = 0, len1 = repls.length; j < len1; j++) {
+              repl = repls[j];
+              f(repl.start - last, repl.end - repl.start, repl.text);
+              results.push(last = repl.end);
+            }
+            return results;
+          });
+        }
+      };
+
+      Peer.prototype.baseOpsFor = function(totalLength, iterate) {
+        var cursor, op;
         op = new TextOperation();
-        t = repls.replacements;
         cursor = 0;
-        while (!t.isEmpty()) {
-          ref1 = t.peekFirst(), offset = ref1.offset, length = ref1.length, text = ref1.text;
-          t = t.removeFirst();
+        iterate(function(offset, length, text) {
           if (offset > 0) {
             op = op.retain(offset);
           }
@@ -169,8 +208,8 @@
           if (text.length) {
             op = op.insert(text);
           }
-          cursor += offset + length;
-        }
+          return cursor += offset + length;
+        });
         if (totalLength > cursor) {
           op = op.retain(totalLength - cursor);
         }
@@ -259,11 +298,9 @@
           this.guardPromises[guardId][0](operation);
           return delete this.guardPromises[guardId];
         },
-        rejectGuard: function(arg) {
-          var guardId;
-          guardId = arg.guardId;
-          this.guardPromises[guardId][1]();
-          return delete this.guardPromises[guardId];
+        rejectGuard: function(ack) {
+          this.guardPromises[ack.guardId][1](ack);
+          return delete this.guardPromises[ack.guardId];
         },
         operation: function(arg) {
           var meta, operation, peerId;

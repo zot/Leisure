@@ -187,7 +187,7 @@ Handle a message from the connected browser
         try
           wrappedPrime = @otServer.receiveGuardedOperation revision, wrapped, guards
           if wrappedPrime == RejectGuardedOperation
-            peer.send {type: 'rejectGuard', guardId}
+            peer.send {type: 'rejectGuard', guardId, retryOK: true}
           else
             console.log "new guard operation: " + JSON.stringify wrapped
             peer.selection = wrappedPrime.meta

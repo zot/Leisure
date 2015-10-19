@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable)->
+    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable)->
 
       {
         defaultEnv
@@ -58,6 +58,10 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         escapeAttr
       } = UI
       {
+        hasDatabase
+        transaction
+      } = DB
+      {
         mergeExports
       } = BrowserExports
       {
@@ -74,6 +78,10 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       selectionActive = true
       headlineRE = /^(\*+ *)(.*)(\n)$/
       documentParams = null
+      localStoreName = 'leisureStorage'
+      localDb = null
+      localStore = null
+      deleteStore = false
       defaults =
         views: {}
         controls: {}
@@ -96,8 +104,18 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       class OrgData extends DataStore
         constructor: ->
           DataStore.apply this, arguments
-          @namedBlocks = new Map()
+          @namedBlocks = {}
+          @localBlocks = {}
           @filters = []
+          @populateLocalData()
+        populateLocalData: ->
+          transaction(@localDocumentId()).getAll().then (allData)=>
+            @localBlocks = _.indexBy allData, '_id'
+            deletes = []
+            for name of @localBlocks
+              if !@namedBlocks[name] || !(@getBlockNamed name).local then deletes.push name
+            for name in deletes
+              @deleteLocalBlock name
         makeChanges: (func)->
           if newChange = !@changeCount
             for filter in @filters
@@ -108,7 +126,8 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
             if newChange then for filter in @filters
               filter.endChange this
         getBlock: (thing, changes)->
-          if typeof thing == 'string' then changes?.sets[thing] ? super(thing) else thing
+          if typeof thing == 'object' then thing
+          else changes?.sets[thing] ? super thing
         changesFor: (first, oldBlocks, newBlocks)->
           changes = super first, oldBlocks, newBlocks
           @linkAllSiblings changes
@@ -131,6 +150,7 @@ Let's just call this poetic license for the time being...
                 @runFilters null, block
                 @checkChange null, block
               super first, blocks
+            @populateLocalData()
         setBlock: (id, block)->
           @makeChanges =>
             @runFilters @getBlock(id), block
@@ -234,9 +254,34 @@ that must be done regardless of the source of changes
             $('head').append "<style id='css-#{blockElementId newBlock}'>#{blockSource newBlock}</style>"
         checkCodeChange: (oldBlock, newBlock, isDefault)->
           if oldBlock?.codeName != newBlock?.codeName
-            if oldBlock?.codeName then @namedBlocks = @namedBlocks.delete oldBlock.codeName
-            if newBlock?.codeName then @namedBlocks = @namedBlocks.set newBlock.codeName, newBlock._id
-        getBlockNamed: (name)-> @getBlock @namedBlocks.get name
+            if oldBlock?.codeName then @deleteBlockName oldBlock.codeName
+            if newBlock?.codeName then @setBlockName newBlock.codeName, newBlock._id
+          if oldBlock?.local && !newBlock?.local then @deleteLocalBlock oldBlock.codeName
+        getNamedBlockId: (name)-> @namedBlocks[name]
+        setBlockName: (name, blockId)-> @namedBlocks[name] = blockId
+        deleteBlockName: (name)->
+          delete @namedBlocks[name]
+          @deleteLocalBlock name
+        getBlockNamed: (name)-> if id = @getNamedBlockId name then @getLocalBlock id
+        localDocumentId: -> document.location.href
+        getLocalBlock: (thing)->
+          if !(blk = @getBlock thing) then null
+          else if !blk.local || !(n = blk.codeName) || blk._id != @getNamedBlockId n
+            blk
+          else if local = copyBlock @localBlocks[n]
+            local._id = blk._id
+            local
+          else blk
+        storeLocalBlock: (block)->
+          if block.local && (name = block.codeName) && block._id == @getNamedBlockId name
+            @localBlocks[name] = block
+            block = copyBlock block
+            block._id = name
+            transaction(@localDocumentId()).put block
+        deleteLocalBlock: (name)->
+          if @localBlocks[name]
+            delete @localBlocks[name]
+            transaction(@localDocumentId()).delete name
         textForDataNamed: (name, data, attrs)->
           """
           #+NAME: #{name}
@@ -320,13 +365,15 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           @hiding = true
           @setMode Leisure.plainMode
           @toggledSlides = {}
-          @dataCommands = null
+          @dataChanges = null
+          @pendingDataChanges = null
         renderBlocks: -> @mode.renderBlocks this, super()
         setTheme: (theme)->
           if @theme then @editor.node.removeClass @theme
           @editor.node.addClass @theme = theme
         toggleSlides: -> @mode.setSlideMode this, !@showingSlides()
         showingSlides: -> @mode.showingSlides this
+        getLocalBlock: (thing)-> @data.getLocalBlock thing
         rerenderAll: ->
           super()
           initializePendingViews()
@@ -336,43 +383,108 @@ setData(), and removeData().  Func should not have side effects
 (addData, setData, and removeData are monadic operations) because it
 may be called more than once.  changeData() returns a promise.
 
-        changeData: (replaceFunc)->
-          dataCommands = @dataCommands = []
-          try
-            replaceFunc()
-            new Promise (succeed, fail)=>
-              @batchReplace (=> dataCommands.map((x)-> x())), succeed, fail
-          finally
-            @dataCommands = null 
-        addDataChangeCommand: (func)->
-          if !@dataCommands then @batchReplace (-> [func()]), ->
-          else @dataCommands.push func
-        addData: (parent, name, value, codeOpts)-> @addDataChangeCommand =>
-          if !(parent = @data.getBlock parent)
-            throw new Error "No parent block #{parent}"
+        changeData: (replaceFunc)-> new Promise (succeed, fail)=>
+          if @pendingDataChanges then @pendingDataChanges.push =>
+            @executeDataChange replaceFunc, succeed, fail
           else
-            pre = @data.lastChild(parent) ? parent
-            start = @data.offsetForBlock(pre) + pre.text.length
-            start: start
-            end: start
-            text: @data.textForDataNamed(name, value, codeOpts)
-        setData: (name, value, codeOpts)-> @addDataChangeCommand =>
+            @pendingDataChanges = []
+            @executeDataChange replaceFunc, succeed, fail
+        executeDataChange: (replaceFunc, succeed, fail)->
+          dataChanges = null
+          @batchReplace (=>
+            dataChanges = @dataChanges =
+              sharedRemoves: {}
+              sharedInserts: {}
+              sharedSets: {}
+              localRemoves: {}
+              localSets: {}
+            try
+              replaceFunc()
+              repls = []
+              for name of @dataChanges.sharedRemoves
+                b = @blockBounds name
+                b.text = ''
+                repls.push b
+              for name, {parent, parentType, block} of @dataChanges.sharedInserts
+                b = @blockBounds name
+                b.text = block.text
+                repls.push b
+              for name, block of @dataChanges.sharedSets
+                b = @blockBounds name
+                b.text = block.text
+                repls.push b
+              repls
+            finally
+              @dataChanges = null),
+            (=>
+              for name of dataChanges.localRemoves
+                @data.deleteLocalBlock name
+              for name, block of dataChanges.localSets
+                @data.storeLocalBlock block
+              if !_.isEmpty dataChanges.localSets
+                blocks = ((block._id = @data.getNamedBlockId name; block) for name, block of dataChanges.localSets)
+                #@mode.handleChanges this, sets: _.indexBy(blocks, '_id'), removes: {}, oldBlocks: [], newBlocks: blocks
+                #@mode.renderChanged this, blocks, @idPrefix, true
+                @changed oldBlocks: [], newBlocks: blocks
+              succeed()
+              @nextDataChange()),
+            (e)=>
+              if e.retryOK then @executeDataChange replaceFunc, succeed, fail
+              else
+                fail e
+                @nextDataChange()
+        nextDataChange: ->
+          if @pendingDataChanges?.length
+            @pendingDataChanges.shift()()
+          else @pendingDataChanges = null
+        blockBounds: (name)->
+          block = @data.getBlockNamed name
+          start = @data.offsetForBlock block
+          end = start + block.text.length
+          {start, end, gStart: start, gEnd: end}
+        checkChanging: -> if !@dataChanges
+          throw new Error "Attempt to access data outside of a change block"
+        appendDataToHeadline: (parent, name, value, codeOpts)->
+          appendData 'headline', parent, name, value, codeOpts
+        appendDataAfter: (parent, name, value, codeOpts)->
+          appendData 'block', parent, name, value, codeOpts
+        appendData: (parentType, parent, name, value, codeOpts)->
+          @checkChanging()
+          if @getData(name)
+            throw new Error "Attempt to add block with duplicate name: #{name}"
+          @dataChanges.sharedInserts[name] = {
+            parentType
+            parent
+            block: @data.parseBlocks(@data.textForDataNamed(name, value, codeOpts))[0]
+          }
+        getData: (name, skipCheck)->
+          if !skipCheck then @checkChanging()
+          block = if @dataChanges.localRemoves[name] || @dataChanges.sharedRemoves[name]
+            null
+          else if block = (@dataChanges.localSets[name] || @dataChanges.sharedSets[name])
+            block
+          else if info = @dataChanges.sharedInserts[name] then info.block
+          else @data.getBlockNamed name
+          block?.yaml
+        setData: (name, value, codeOpts)->
+          @checkChanging()
+          if @dataChanges.sharedRemoves[name] then delete @dataChanges.sharedRemoves[name]
+          if @dataChanges.localRemoves[name] then delete @dataChanges.localRemoves[name]
           if !(block = @data.getBlockNamed name)
             throw new Error "No block named #{name}"
           else
-            start = @data.offsetForBlock block
             codeOpts = _.merge {}, block.codeAttributes ? {}, codeOpts ? {}
-            start: start
-            end: start + block.text.length
-            text: @data.textForDataNamed name, value, codeOpts
-        removeData: (name)-> @addDataChangeCommand =>
+            [newBlock] = @data.parseBlocks @data.textForDataNamed name, value, codeOpts
+            newBlock._id = block._id
+            if block.local && @getData name then @dataChanges.localSets[name] = newBlock
+            else @dataChanges.sharedSets[name] = newBlock
+        removeData: (name)->
+          @checkChanging()
           if !(block = @data.getBlockNamed name)
             throw new Error "No block named #{name}"
           else
-            start = @data.offsetForBlock block
-            start: start
-            end: start + block.text.length
-            text: ''
+            if block.local then @dataChanges.localRemoves[name] = true
+            @dataChanges.sharedRemoves[name] = true
         changed: (changes)->
           {newBlocks, oldBlocks} = changes
           if newBlocks.length == oldBlocks.length == 1
@@ -384,8 +496,11 @@ may be called more than once.  changeData() returns a promise.
                 return super changes
             nb = newBlocks.slice()
             viewNodes = $()
+            nameNodes = $()
             for block in newBlocks
               viewNodes = viewNodes.add @find "[data-view-block='#{block._id}']"
+              if block.codeName
+                nameNodes = viewNodes.add @find "[data-view-block-name='#{block.codeName}']"
               viewNodes = @findViewsForDefiner block, viewNodes
               viewNodes = @findViewsForDefiner changes.old[block._id], viewNodes
               for node in @find "[data-observe~=#{block._id}]"
@@ -399,6 +514,11 @@ may be called more than once.  changeData() returns a promise.
                 if data = (block = @getBlock(node.attr 'data-view-block'))?.yaml
                   [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
                   renderView view, name, data, node, block
+              for node in nameNodes.filter((n)=> !nb[@idForNode n])
+                node = $(node)
+                if data = (blk = @data.getBlockNamed(blkName = node.attr 'data-view-block-name'))?.yaml
+                  [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
+                  renderView view, name, data, node, blk, blkName
           else super changes
         find: (sel)-> $(@editor.node).find sel
         findViewsForDefiner: (block, nodes)->
@@ -484,11 +604,20 @@ may be called more than once.  changeData() returns a promise.
           {prev, oldBlocks, newBlocks} = @data.changesForReplacement start, end, text
           if !oldBlocks
             oldBlocks = []
-            newBlocks = [@data.blockForOffset start]
-          if oldBlocks
+            newBlocks = [@data.getBlock @data.blockForOffset start]
+            sets = {}
+            sets[newBlocks._id] = newBlocks[0]
+            changes = {
+              first: @data.getFirst()
+              oldBlocks
+              newBlocks
+              sets: sets
+              removes: {}
+            }
+          else if oldBlocks
             changes = @changesFor prev, oldBlocks, newBlocks
-            if !skipMode then @mode.handleChanges this, changes
-            changes
+          if !skipMode then @mode.handleChanges this, changes
+          changes
         replaceText: (start, end, text, skipEffects)->
           if !skipEffects && repls = @replaceTextEffects(start, end, text).repls
             super start, end, text

@@ -88,7 +88,7 @@
     Handlebars.registerHelper('viewWrapper', function(name, data, opts) {
       return simpleRenderView("data-view='" + name + "' data-requested-view='" + name + "' class='view'", name, opts.fn, this);
     });
-    renderView = function(type, contextName, data, targets, block) {
+    renderView = function(type, contextName, data, targets, block, blockName) {
       var attr, attrs, classAttr, i, isTop, key, len, node, ref, ref1, ref2, requestedKey, results, settings, template, value;
       isTop = !((ref = root.context) != null ? ref.topView : void 0);
       requestedKey = key = viewKey(type, contextName);
@@ -121,7 +121,9 @@
         }
       }
       attrs += " class='" + classAttr + "'";
-      if (block) {
+      if (block && blockName) {
+        attrs += " data-view-block-name='" + blockName + "'";
+      } else if (block) {
         attrs += " data-view-block='" + block._id + "'";
       }
       if (targets) {

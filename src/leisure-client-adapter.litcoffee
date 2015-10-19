@@ -118,13 +118,19 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 for repl in Replacements.fromArray(repls).getRepls()
                   @replaceTextEffects repl.start, repl.end, text)
                 .catch(->)
-
             replaceText: p2p: (parent)-> (start, end, text, skip)->
               oldLen = @getLength()
               repl = {start, end, text}
               newLen = oldLen + text.length - end + start
               peer.editorCallbacks.change peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen)
               parent start, end, text, skip
+            batchReplace: p2p: (parent)-> (replacementFunc, cont, error)->
+              repls = validateBatch(replacementFunc()).reverse()
+              ops = peer.opsFor repls, @getLength()
+              guards = [r.gStart, r.end] for r in repls
+              peer.sendGuardedOperation(peer.editorClient.revision, ops, guards)
+                .then cont, error
+                .catch error
           @editor.on 'selection', => @getSelection()
         opFor: ({start, end, text}, length)->
           op = new TextOperation()
@@ -134,12 +140,22 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           if length > end then op = op.retain length - end
           op
         opsFor: (repls, totalLength)->
+          if repls instanceof Replacements
+            @baseOpsFor totalLength, (f)->
+              t = repls.replacements
+              while !t.isEmpty()
+                {offset, length, text} = t.peekFirst()
+                t = t.removeFirst()
+                f offset, length, text
+          else if _.isArray repls then @baseOpsFor totalLength, (f)->
+            last = 0
+            for repl in repls
+              f repl.start - last, repl.end - repl.start, repl.text
+              last = repl.end
+        baseOpsFor: (totalLength, iterate)->
           op = new TextOperation()
-          t = repls.replacements
           cursor = 0
-          while !t.isEmpty()
-            {offset, length, text} = t.peekFirst()
-            t = t.removeFirst()
+          iterate (offset, length, text)->
             if offset > 0 then op = op.retain offset
             if length > 0 then op = op.delete length
             if text.length then op = op.insert text
@@ -187,13 +203,11 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             @close()
           ack: -> @serverCallbacks.ack()
           ackGuard: ({guardId, operation})->
-            #console.log "GUARD ACKNOWLEDGED"
             @guardPromises[guardId][0](operation)
             delete @guardPromises[guardId]
-          rejectGuard: ({guardId})->
-            #console.log "GUARD REJECTED"
-            @guardPromises[guardId][1]()
-            delete @guardPromises[guardId]
+          rejectGuard: (ack)->
+            @guardPromises[ack.guardId][1](ack)
+            delete @guardPromises[ack.guardId]
           operation: ({peerId, operation, meta})->
             @fromServer = true
             @serverCallbacks.operation operation
@@ -299,7 +313,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           #console.log "GUARD SENT"
           guardId = "guard-#{@guardedChangeId++}"
           @send 'guardedOperation', {revision, operation, guards, guardId, selection: @editorClient.selection}
-          new Promise((success, failure)=> @guardPromises[guardId] = [success, failure])
+          new Promise (success, failure)=> @guardPromises[guardId] = [success, failure]
 
       ajaxGet = (url)->
         #console.log "ajaxGet #{url}"
