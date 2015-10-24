@@ -45,7 +45,8 @@ misrepresented as being the original software.
         editorToolbar
         basicDataFilter
         replacementFor
-      } = Support
+        ajaxGet
+     } = Support
       {
         changeAdvice
         afterMethod
@@ -314,15 +315,6 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           guardId = "guard-#{@guardedChangeId++}"
           @send 'guardedOperation', {revision, operation, guards, guardId, selection: @editorClient.selection}
           new Promise (success, failure)=> @guardPromises[guardId] = [success, failure]
-
-      ajaxGet = (url)->
-        #console.log "ajaxGet #{url}"
-        new Promise (resolve, reject)->
-          xhr = new XMLHttpRequest
-          xhr.onerror = reject
-          xhr.onload = (e)-> resolve e.target.responseText.trim()
-          xhr.open "GET", url
-          xhr.send null
 
       window.randomUserName = randomUserName = (done)->
         Promise

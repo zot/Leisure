@@ -153,10 +153,19 @@
         if opts = findEditor(slideDom)?.options
           block = opts.getBlock opts.idForNode slideDom[0]
           opts.toggleSlide block._id
-          blockHtml = opts.renderBlock(opts.getBlock block)[0]
+          blockHtml = opts.renderBlock(block)[0]
           preserveSelection ->
+            if !opts.isToggled(block)
+              next = block
+              while isSidebar(next = opts.data.nextSibling(next))
+                $(opts.nodeForId(next._id)).closest('.slideholder').closest('[data-view]').remove()
             (if block.type == 'headline' then slideDom.closest('[data-view]')
-            else slideDom.closest('[data-view="leisure-top-chunk"]')).replaceWith $(blockHtml)
+            else slideDom.closest('[data-view="leisure-top-chunk"]')).replaceWith prev = $(blockHtml)
+            next = block
+            if opts.isToggled(block)
+              while isSidebar(next = opts.data.nextSibling(next))
+                $(prev).after opts.renderBlock(next)[0]
+                prev = prev.nextSibling
           initializePendingViews()
 
       Handlebars.registerHelper 'render', (block)->
@@ -230,7 +239,7 @@
         {error, source} = @codeItems
         if error
           pos = Number(error.info.match(/([^,]*),/)[1]) - 1
-          escapeHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(source.content.substring(pos))
+          fancyHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + fancyHtml(source.content.substring(pos))
         else prismHighlight this.language, this.source
 
       Handlebars.registerHelper 'sourceFooter', ->
@@ -243,7 +252,7 @@
 
       Handlebars.registerHelper 'resultsContents', ->
         {results: res} = @codeItems
-        if @hideResults then "<span class='hidden'>#{escapeHtml res.text}</span>"
+        if @hideResults then "<span class='hidden'>#{fancyHtml res.text}</span>"
         else resultsArea UI.context.options, res.text.substring res.contentPos
 
       slideNode = (node)-> $(node).closest('slideHolder').closest('[data-view]')
@@ -277,6 +286,19 @@
               else org.middleItem = true
               lastItem = org
           closeList -1, lastItem, stack
+
+      fancyReplacements =
+        '<': '&lt;'
+        '>': '&gt;'
+        '&': '&amp;'
+        '"': '&quot;'
+        "'": '&#39;'
+        " ": '&nbsp;'
+
+      fancyHtml = (str)->
+        if typeof str == 'string' then str.replace /[<>&'" ]/g, (c)-> fancyReplacements[c]
+        else str
+
 
       fancyMode =
         name: 'fancy'
@@ -367,19 +389,31 @@
           if hasView viewName
             m = block.text.match headlineRE
             UI.context.currentView = targets = replacementTargets block, prefix, replace
+            if !opts.isToggled(block)
+              if block.level == 1 && isSidebar block
+                parent = block
+                while parent && isSidebar parent
+                  parent = opts.data.previousSibling parent
+                if !parent || !opts.isToggled(parent) then viewName = 'leisure-sidebar'
+              else if sidebars = @getSidebars opts, block
+                next = opts.data.nextRight(_.last sidebars)?._id
+                sidebars = for sblock in sidebars
+                  @render(opts, sblock, prefix)[0]
+                viewName += '-with-sidebar'
             @renderView viewName, null, next,
-               id: prefix + block._id
-               blockId: block._id
-               EOL: '\n'
-               topLevel: block.level == 1
-               level: block.level
-               stars: m[HL_LEVEL]
-               maintext: @renderOrg(opts, cleanOrg(block.text.substring(m[HL_LEVEL].length))) + optWrench(block)
-               children: (opts.data.children block),
-               targets
+              id: prefix + block._id
+              blockId: block._id
+              EOL: '\n'
+              topLevel: block.level == 1
+              level: block.level
+              stars: m[HL_LEVEL]
+              maintext: @renderOrg(opts, cleanOrg(block.text.substring(m[HL_LEVEL].length))) + optWrench(block)
+              children: (opts.data.children block)
+              sidebars: sidebars,
+              targets
           else
             text = "<span id='#{prefix}#{block._id}' data-block='#{block.type}'>"
-            text += escapeHtml block.text
+            text += fancyHtml block.text
             id = block.next
             while id && id != next
                [nextText, id] = @render opts, opts.data.getBlock(id), prefix
@@ -387,6 +421,12 @@
             text += "</span>"
             maybeReplaceHtml block, prefix, text, replace
             [text, next]
+        getSidebars: (opts, block)->
+          if block && (block.level == 1 || !block.prev) && !isSidebar(block)
+            sidebars = []
+            while isSidebar block = opts.data.nextSibling block
+              sidebars.push block
+            if sidebars.length then sidebars
         renderFirstBlocks: (opts, block, prefix, replace)->
           if hasView 'leisure-top-chunk'
             if plain = opts.isToggled block
@@ -445,7 +485,7 @@
               afterName: if name then @renderOrg opts, cleanOrg(block.text.substring name.end(), source.offset), true else ''
               inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
               results: if !results then ''
-              else if hideResults then "<span class='hidden'>#{escapeHtml results.text}</span>"
+              else if hideResults then "<span class='hidden'>#{fancyHtml results.text}</span>"
               else resultsArea opts, results.text
               beforeResults: block.text.substring 0, results?.offset ? source.end()
             sourceData.text = @renderCodeOrg opts, sourceData
@@ -464,14 +504,14 @@
           [pos, text] = @renderCodeSegment opts, 'source', pos, text, context
           [pos, text] = @renderCodeSegment opts, 'error', pos, text, context
           [pos, text] = @renderCodeSegment opts, 'results', pos, text, context
-          if pos < block.text.length then text += escapeHtml block.text.substring pos
+          if pos < block.text.length then text += fancyHtml block.text.substring pos
           text
         renderCodeSegment: (opts, name, pos, text, context)->
           if org = context.codeItems[name]
             block = context.block
             if hasView key = "leisure-code-#{name}", block.language
               if org.offset > pos
-                text += escapeHtml block.text.substring pos, org.offset
+                text += fancyHtml block.text.substring pos, org.offset
               text += (@renderView key, block.language, null, context)[0]
               [org.end(), text]
             else if name == 'results' then [org.end(), resultsArea opts, org.allText()]
@@ -488,7 +528,7 @@
               text: text
               end: end
               org: org)[0]
-          else "<span class='hidden'>#{escapeHtml start}</span><span class='example'>#{escapeHtml text}</span><span class='hidden'>#{escapeHtml end}</span>"
+          else "<span class='hidden'>#{fancyHtml start}</span><span class='example'>#{fancyHtml text}</span><span class='hidden'>#{fancyHtml end}</span>"
         renderOrg: (opts, org, start)->
           text = if org instanceof SimpleMarkup then @renderSimple opts, org
           else if org instanceof Link then @renderLink opts, org
@@ -497,14 +537,14 @@
           else if org instanceof ListItem then @renderList opts, org
           else if org instanceof Drawer then @renderDrawer opts, org
           else if org instanceof Example then @renderExample opts, org
-          else insertBreaks escapeHtml org.allText()
+          else insertBreaks fancyHtml org.allText()
           if start then prefixBreak text else text
         renderHtml: (opts, org)->
-          "<span class='hidden'>#{escapeHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{escapeHtml org.trailing}</span>"
+          "<span class='hidden'>#{fancyHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{fancyHtml org.trailing}</span>"
         renderList: (opts, org)->
           classifyListItems org
           text = if org.firstItem then '<ul>' else ''
-          text += "<li><span class='hidden'>#{escapeHtml org.text.substring 0, org.contentOffset}</span>#{(@renderOrg opts, child for child in org.children).join ''}"
+          text += "<li><span class='hidden'>#{fancyHtml org.text.substring 0, org.contentOffset}</span>#{(@renderOrg opts, child for child in org.children).join ''}"
           for i in [0...org.closeCount]
             text += '</ul>'
           text
@@ -522,14 +562,14 @@
             else if !hasView type, viewName
               "No view '#{viewKey type, viewName}'"
             if error
-              "<span class='error' data-noncontent title='#{escapeAttr error}'><b>✖</b></span>#{escapeHtml org.allText()}"
+              "<span class='error' data-noncontent title='#{escapeAttr error}'><b>✖</b></span>#{fancyHtml org.allText()}"
             else
-              "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block, objectName}</span>"
+              "<span class='hidden link'>#{fancyHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block, objectName}</span>"
           else if org.isImage()
-            title = (if desc = org.descriptionText() then " title='#{escapeHtml desc}'" else "")
-            src = escapeHtml org.path
+            title = (if desc = org.descriptionText() then " title='#{fancyHtml desc}'" else "")
+            src = fancyHtml org.path
             if org.path.indexOf('file:') == 0 then src = prevImageSrc src
-            "#{opts.renderImage src, title}<span class='hidden link'>#{escapeHtml org.allText()}</span>"
+            "#{opts.renderImage src, title}<span class='hidden link'>#{fancyHtml org.allText()}</span>"
           else
             guts = ''
             for c in org.children
@@ -550,8 +590,8 @@
             else guts
           "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{goodText org.text[0]}</span>"
         renderDrawer: (opts, org)->
-          if org.name == 'properties' then "<span class='hidden'>#{escapeHtml org.allText()}</span>"
-          else "<span class='org-properties'>#{escapeHtml org.allText}</span>"
+          if org.name == 'properties' then "<span class='hidden'>#{fancyHtml org.allText()}</span>"
+          else "<span class='org-properties'>#{fancyHtml org.allText}</span>"
         showingSlides: (opt)-> opt.editor.node.is '.slides'
         setSlideMode: (opt, flag)->
           if flag
@@ -591,6 +631,8 @@
                 if i > 0 then @showSlide opt, slides[i - 1]
                 return true
           false
+
+      isSidebar = (block)-> block?.properties?.note == 'sidebar'
 
       optWrench = (block)->
         if block.properties && !_.isEmpty block.properties
@@ -703,7 +745,7 @@
         if l = prismAliases[lang] then lang = l
         if Prism.languages[lang]
           Prism.highlight text, Prism.languages[lang], lang
-        else "<span class='unknown-language'>#{escapeHtml text}</span>"
+        else "<span class='unknown-language'>#{fancyHtml text}</span>"
 
       replacementTargets = (block, prefix, replace)->
         if replace && (targets = $("##{prefix}#{block._id}")) && targets.length

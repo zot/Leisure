@@ -253,7 +253,7 @@
       return ['', _L(), children];
     };
     createCodeBlockDoc = function(org) {
-      var err, expected, first, firstOffset, l, last, name, obj, ref, ref1, results, source, text;
+      var attr, err, expected, first, firstOffset, l, last, name, nm, obj, ref, ref1, ref2, results, source, text, val;
       text = '';
       ref = getCodeItems(org), first = ref.first, name = ref.name, source = ref.source, last = ref.last, expected = ref.expected, results = ref.results;
       if (!first) {
@@ -277,7 +277,17 @@
           type: 'code',
           offset: firstOffset
         };
-        obj.codeAttributes = source.attributes();
+        if (source.attributes()) {
+          attr = {};
+          ref1 = source.attributes();
+          for (nm in ref1) {
+            val = ref1[nm];
+            attr[nm.toLowerCase()] = val;
+          }
+        } else {
+          attr = null;
+        }
+        obj.codeAttributes = attr;
         obj.codePrelen = source.contentPos + source.offset - firstOffset;
         obj.codePostlen = text.length - obj.codePrelen - source.content.length;
         if (expected) {
@@ -289,7 +299,7 @@
         if (name) {
           obj.codeName = name.info.trim();
         }
-        if (((ref1 = obj.codeAttributes) != null ? ref1.local : void 0) != null) {
+        if (((ref2 = obj.codeAttributes) != null ? ref2.local : void 0) != null) {
           obj.local = true;
         }
         if (l = source.lead()) {

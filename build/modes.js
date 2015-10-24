@@ -3,7 +3,7 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './lib/prism-leisure'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyMode, findEditor, getCodeItems, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -133,9 +133,25 @@
       if (opts = (ref = findEditor(slideDom)) != null ? ref.options : void 0) {
         block = opts.getBlock(opts.idForNode(slideDom[0]));
         opts.toggleSlide(block._id);
-        blockHtml = opts.renderBlock(opts.getBlock(block))[0];
+        blockHtml = opts.renderBlock(block)[0];
         preserveSelection(function() {
-          return (block.type === 'headline' ? slideDom.closest('[data-view]') : slideDom.closest('[data-view="leisure-top-chunk"]')).replaceWith($(blockHtml));
+          var next, prev, results1;
+          if (!opts.isToggled(block)) {
+            next = block;
+            while (isSidebar(next = opts.data.nextSibling(next))) {
+              $(opts.nodeForId(next._id)).closest('.slideholder').closest('[data-view]').remove();
+            }
+          }
+          (block.type === 'headline' ? slideDom.closest('[data-view]') : slideDom.closest('[data-view="leisure-top-chunk"]')).replaceWith(prev = $(blockHtml));
+          next = block;
+          if (opts.isToggled(block)) {
+            results1 = [];
+            while (isSidebar(next = opts.data.nextSibling(next))) {
+              $(prev).after(opts.renderBlock(next)[0]);
+              results1.push(prev = prev.nextSibling);
+            }
+            return results1;
+          }
         });
         return initializePendingViews();
       }
@@ -241,7 +257,7 @@
       ref = this.codeItems, error = ref.error, source = ref.source;
       if (error) {
         pos = Number(error.info.match(/([^,]*),/)[1]) - 1;
-        return escapeHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(source.content.substring(pos));
+        return fancyHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + fancyHtml(source.content.substring(pos));
       } else {
         return prismHighlight(this.language, this.source);
       }
@@ -260,7 +276,7 @@
       var res;
       res = this.codeItems.results;
       if (this.hideResults) {
-        return "<span class='hidden'>" + (escapeHtml(res.text)) + "</span>";
+        return "<span class='hidden'>" + (fancyHtml(res.text)) + "</span>";
       } else {
         return resultsArea(UI.context.options, res.text.substring(res.contentPos));
       }
@@ -305,6 +321,23 @@
           }
         }
         return closeList(-1, lastItem, stack);
+      }
+    };
+    fancyReplacements = {
+      '<': '&lt;',
+      '>': '&gt;',
+      '&': '&amp;',
+      '"': '&quot;',
+      "'": '&#39;',
+      " ": '&nbsp;'
+    };
+    fancyHtml = function(str) {
+      if (typeof str === 'string') {
+        return str.replace(/[<>&'" ]/g, function(c) {
+          return fancyReplacements[c];
+        });
+      } else {
+        return str;
       }
     };
     fancyMode = {
@@ -452,7 +485,7 @@
         return [renderView(type, ctx, data, targets), next];
       },
       renderHeadline: function(opts, block, prefix, replace) {
-        var id, m, next, nextText, ref, ref1, ref2, targets, text, viewName;
+        var id, m, next, nextText, parent, ref, ref1, ref2, ref3, sblock, sidebars, targets, text, viewName;
         next = (ref = opts.data.nextRight(block)) != null ? ref._id : void 0;
         viewName = block.type === 'headline' && block.level === 1 ? opts.isToggled(block) ? (UI.context.viewAttrs = _.merge({
           "class": 'plain'
@@ -460,6 +493,29 @@
         if (hasView(viewName)) {
           m = block.text.match(headlineRE);
           UI.context.currentView = targets = replacementTargets(block, prefix, replace);
+          if (!opts.isToggled(block)) {
+            if (block.level === 1 && isSidebar(block)) {
+              parent = block;
+              while (parent && isSidebar(parent)) {
+                parent = opts.data.previousSibling(parent);
+              }
+              if (!parent || !opts.isToggled(parent)) {
+                viewName = 'leisure-sidebar';
+              }
+            } else if (sidebars = this.getSidebars(opts, block)) {
+              next = (ref2 = opts.data.nextRight(_.last(sidebars))) != null ? ref2._id : void 0;
+              sidebars = (function() {
+                var j, len, results1;
+                results1 = [];
+                for (j = 0, len = sidebars.length; j < len; j++) {
+                  sblock = sidebars[j];
+                  results1.push(this.render(opts, sblock, prefix)[0]);
+                }
+                return results1;
+              }).call(this);
+              viewName += '-with-sidebar';
+            }
+          }
           return this.renderView(viewName, null, next, {
             id: prefix + block._id,
             blockId: block._id,
@@ -468,19 +524,32 @@
             level: block.level,
             stars: m[HL_LEVEL],
             maintext: this.renderOrg(opts, cleanOrg(block.text.substring(m[HL_LEVEL].length))) + optWrench(block),
-            children: opts.data.children(block)
+            children: opts.data.children(block),
+            sidebars: sidebars
           }, targets);
         } else {
           text = "<span id='" + prefix + block._id + "' data-block='" + block.type + "'>";
-          text += escapeHtml(block.text);
+          text += fancyHtml(block.text);
           id = block.next;
           while (id && id !== next) {
-            ref2 = this.render(opts, opts.data.getBlock(id), prefix), nextText = ref2[0], id = ref2[1];
+            ref3 = this.render(opts, opts.data.getBlock(id), prefix), nextText = ref3[0], id = ref3[1];
             text += nextText;
           }
           text += "</span>";
           maybeReplaceHtml(block, prefix, text, replace);
           return [text, next];
+        }
+      },
+      getSidebars: function(opts, block) {
+        var sidebars;
+        if (block && (block.level === 1 || !block.prev) && !isSidebar(block)) {
+          sidebars = [];
+          while (isSidebar(block = opts.data.nextSibling(block))) {
+            sidebars.push(block);
+          }
+          if (sidebars.length) {
+            return sidebars;
+          }
         }
       },
       renderFirstBlocks: function(opts, block, prefix, replace) {
@@ -551,7 +620,7 @@
             name: name ? name.text.substring(name.info) : '',
             afterName: name ? this.renderOrg(opts, cleanOrg(block.text.substring(name.end(), source.offset)), true) : '',
             inter: results ? block.text.substring(source.end(), results != null ? results.offset : void 0) : block.text.substring(source.end()),
-            results: !results ? '' : hideResults ? "<span class='hidden'>" + (escapeHtml(results.text)) + "</span>" : resultsArea(opts, results.text),
+            results: !results ? '' : hideResults ? "<span class='hidden'>" + (fancyHtml(results.text)) + "</span>" : resultsArea(opts, results.text),
             beforeResults: block.text.substring(0, (ref3 = results != null ? results.offset : void 0) != null ? ref3 : source.end())
           };
           sourceData.text = this.renderCodeOrg(opts, sourceData);
@@ -577,7 +646,7 @@
         ref3 = this.renderCodeSegment(opts, 'error', pos, text, context), pos = ref3[0], text = ref3[1];
         ref4 = this.renderCodeSegment(opts, 'results', pos, text, context), pos = ref4[0], text = ref4[1];
         if (pos < block.text.length) {
-          text += escapeHtml(block.text.substring(pos));
+          text += fancyHtml(block.text.substring(pos));
         }
         return text;
       },
@@ -587,7 +656,7 @@
           block = context.block;
           if (hasView(key = "leisure-code-" + name, block.language)) {
             if (org.offset > pos) {
-              text += escapeHtml(block.text.substring(pos, org.offset));
+              text += fancyHtml(block.text.substring(pos, org.offset));
             }
             text += (this.renderView(key, block.language, null, context))[0];
             return [org.end(), text];
@@ -616,7 +685,7 @@
             org: org
           }))[0];
         } else {
-          return "<span class='hidden'>" + (escapeHtml(start)) + "</span><span class='example'>" + (escapeHtml(text)) + "</span><span class='hidden'>" + (escapeHtml(end)) + "</span>";
+          return "<span class='hidden'>" + (fancyHtml(start)) + "</span><span class='example'>" + (fancyHtml(text)) + "</span><span class='hidden'>" + (fancyHtml(end)) + "</span>";
         }
       },
       renderOrg: function(opts, org, start) {
@@ -630,7 +699,7 @@
             results1.push(this.renderOrg(opts, child));
           }
           return results1;
-        }).call(this)).join('') : org instanceof ListItem ? this.renderList(opts, org) : org instanceof Drawer ? this.renderDrawer(opts, org) : org instanceof Example ? this.renderExample(opts, org) : insertBreaks(escapeHtml(org.allText()));
+        }).call(this)).join('') : org instanceof ListItem ? this.renderList(opts, org) : org instanceof Drawer ? this.renderDrawer(opts, org) : org instanceof Example ? this.renderExample(opts, org) : insertBreaks(fancyHtml(org.allText()));
         if (start) {
           return prefixBreak(text);
         } else {
@@ -638,13 +707,13 @@
         }
       },
       renderHtml: function(opts, org) {
-        return "<span class='hidden'>" + (escapeHtml(org.leading)) + "</span>" + ($(org.content)[0].outerHTML) + "<span class='hidden'>" + (escapeHtml(org.trailing)) + "</span>";
+        return "<span class='hidden'>" + (fancyHtml(org.leading)) + "</span>" + ($(org.content)[0].outerHTML) + "<span class='hidden'>" + (fancyHtml(org.trailing)) + "</span>";
       },
       renderList: function(opts, org) {
         var child, i, j, ref, text;
         classifyListItems(org);
         text = org.firstItem ? '<ul>' : '';
-        text += "<li><span class='hidden'>" + (escapeHtml(org.text.substring(0, org.contentOffset))) + "</span>" + (((function() {
+        text += "<li><span class='hidden'>" + (fancyHtml(org.text.substring(0, org.contentOffset))) + "</span>" + (((function() {
           var j, len, ref, results1;
           ref = org.children;
           results1 = [];
@@ -667,17 +736,17 @@
           data = UI.context.opts.data;
           error = !(obj = data.getBlockNamed(objectName)) ? "No object named " + objectName : !(obj = (ref = (block = data.getBlockNamed(objectName))) != null ? ref.yaml : void 0) ? "Object " + objectName + " isn't yaml" : !(type = obj != null ? obj.type : void 0) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
           if (error) {
-            return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'><b>✖</b></span>" + (escapeHtml(org.allText()));
+            return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'><b>✖</b></span>" + (fancyHtml(org.allText()));
           } else {
-            return "<span class='hidden link'>" + (escapeHtml(org.allText())) + "</span><span data-noncontent contenteditable='false'>" + (renderView(type, viewName, obj, null, block, objectName)) + "</span>";
+            return "<span class='hidden link'>" + (fancyHtml(org.allText())) + "</span><span data-noncontent contenteditable='false'>" + (renderView(type, viewName, obj, null, block, objectName)) + "</span>";
           }
         } else if (org.isImage()) {
-          title = ((desc = org.descriptionText()) ? " title='" + (escapeHtml(desc)) + "'" : "");
-          src = escapeHtml(org.path);
+          title = ((desc = org.descriptionText()) ? " title='" + (fancyHtml(desc)) + "'" : "");
+          src = fancyHtml(org.path);
           if (org.path.indexOf('file:') === 0) {
             src = prevImageSrc(src);
           }
-          return (opts.renderImage(src, title)) + "<span class='hidden link'>" + (escapeHtml(org.allText())) + "</span>";
+          return (opts.renderImage(src, title)) + "<span class='hidden link'>" + (fancyHtml(org.allText())) + "</span>";
         } else {
           guts = '';
           ref1 = org.children;
@@ -722,9 +791,9 @@
       },
       renderDrawer: function(opts, org) {
         if (org.name === 'properties') {
-          return "<span class='hidden'>" + (escapeHtml(org.allText())) + "</span>";
+          return "<span class='hidden'>" + (fancyHtml(org.allText())) + "</span>";
         } else {
-          return "<span class='org-properties'>" + (escapeHtml(org.allText)) + "</span>";
+          return "<span class='org-properties'>" + (fancyHtml(org.allText)) + "</span>";
         }
       },
       showingSlides: function(opt) {
@@ -799,6 +868,10 @@
         }
         return false;
       }
+    };
+    isSidebar = function(block) {
+      var ref;
+      return (block != null ? (ref = block.properties) != null ? ref.note : void 0 : void 0) === 'sidebar';
     };
     optWrench = function(block) {
       var k, props, ref, v, wrench;
@@ -964,7 +1037,7 @@
       if (Prism.languages[lang]) {
         return Prism.highlight(text, Prism.languages[lang], lang);
       } else {
-        return "<span class='unknown-language'>" + (escapeHtml(text)) + "</span>";
+        return "<span class='unknown-language'>" + (fancyHtml(text)) + "</span>";
       }
     };
     replacementTargets = function(block, prefix, replace) {

@@ -923,7 +923,7 @@ Factored out because the Emacs connection calls MakeStructureChange.
 
 `load(el, text) -> void`: parse text into blocks and replace el's contents with rendered DOM
 
-        load: (text)->
+        load: (name, text)->
           @replaceBlocks @blockList(), @parseBlocks text
           @rerenderAll()
           @trigger 'load'
@@ -1338,7 +1338,7 @@ sorted in reverse order by position.
           text = ''
           @eachBlock (block)-> text += block.text
           text
-        load: (@first, @blocks)->
+        load: (name, @first, @blocks)->
           @makeChanges =>
             @indexBlocks()
             @trigger 'load'
@@ -1496,7 +1496,7 @@ DataStoreEditingOptions
           @data.on 'change', (changes)=> preserveSelection => @changed changes
           @data.on 'load', => @trigger 'load'
         initData: ->
-        load: (text)->
+        load: (name, text)->
           blockMap = {}
           newBlocks = @parseBlocks text
           for block, i in newBlocks
@@ -1505,7 +1505,7 @@ DataStoreEditingOptions
             if prev = newBlocks[i - 1]
               prev.next = block._id
               block.prev = prev._id
-          @data.load newBlocks[0]?._id, blockMap
+          @data.load name, newBlocks[0]?._id, blockMap
         edit: (prev, oldBlocks, newBlocks)-> @replaceBlocks prev, oldBlocks, newBlocks
         replaceText: (start, end, text)-> @data.replaceText start, end, text
         getBlock: (id)-> @data.getBlock id

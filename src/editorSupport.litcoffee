@@ -82,9 +82,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       localDb = null
       localStore = null
       deleteStore = false
-      defaults =
-        views: {}
-        controls: {}
 
       blockOrg = (data, blockOrText)->
         text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
@@ -108,6 +105,31 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
           @localBlocks = {}
           @filters = []
           @populateLocalData()
+          @pendingEvals = []
+          @importPromise = Promise.resolve()
+          @indexes = {}
+          @imported =
+            css: {}
+            view: {}
+            control: {}
+            data: {}
+            
+At this point, there is no conflict handling for imports that use the
+same names for blocks other than printing a warning.
+
+          @importedData = {}
+          @importRecords =
+            data: {}
+            view: {}
+            controller: {}
+            importedFiles: {}
+        addImported: (importFile, type, name)->
+          if typeof importFile == 'string'
+            if obj[type][name]
+              obj[type][name].push importFile
+              console.log "Warning, conflicting block of type: #{type} imported from #{obj[type][name]}"
+            else obj[type][name] = [importFile]
+          else typeof importFile == 'boolean'
         populateLocalData: ->
           transaction(@localDocumentId()).getAll().then (allData)=>
             @localBlocks = _.indexBy allData, '_id'
@@ -136,8 +158,10 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
 `load` -- not the best use of inheritance here, changes is specifically for P2POrgData :).
 Let's just call this poetic license for the time being...
 
-        load: (first, blocks, changes)->
+        load: (name, first, blocks, changes)->
+          @loadName = name
           @makeChanges =>
+            @populateLocalData()
             if !first then super first, blocks
             else
               for filter in @filters
@@ -147,10 +171,12 @@ Let's just call this poetic license for the time being...
               for block of @blockList()
                 @checkChange block, null
               for id, block of changes.sets
+                @checkImports block
+              for id, block of changes.sets
                 @runFilters null, block
                 @checkChange null, block
-              super first, blocks
-            @populateLocalData()
+              super name, first, blocks
+              @scheduleEvals()
         setBlock: (id, block)->
           @makeChanges =>
             @runFilters @getBlock(id), block
@@ -232,21 +258,40 @@ next sibling if there is one, otherwise it's the closest "right uncle" of this n
 that must be done regardless of the source of changes
 
         makeChange: (changes)->
-          {sets, removes} = changes
-          for id of removes
-            @checkChange @getBlock(id), null
-          for id, block of sets
-            @checkChange @getBlock(id), block
+          for id, block of changes.sets
+            @checkImports block
+          for id, block of @removesAndSets changes
+            @checkChange @getBlock(id), block || null
           super changes
+        removesAndSets: ({sets, removes})->
+          blocks = {}
+          for id of removes
+            blocks[id] = false
+          for id, block of sets
+            blocks[id] = block
+          blocks
         processDefaults: (lorgText)->
           viewBlocks = orgDoc parseOrgMode lorgText.replace /\r\n?/g, '\n'
           for block in viewBlocks
             @checkChange null, block, true
+          @scheduleEvals()
         checkChange: (oldBlock, newBlock, isDefault)->
           @checkCssChange oldBlock, newBlock, isDefault
           @checkCodeChange oldBlock, newBlock, isDefault
           @checkViewChange oldBlock, newBlock, isDefault
           @checkControlChange oldBlock, newBlock, isDefault
+        queueEval: (func)-> @pendingEvals.push func
+        runOnImport: (func)->
+          @importPromise = if @importPromise.isResolved()
+            p = func()
+            if p instanceof Promise then p else Promise.resolve()
+          else @importPromise.then => func()
+        scheduleEvals: -> @runOnImport =>
+          e = @pendingEvals
+          @pendingEvals = []
+          for func in e
+            func()
+          null
         checkCssChange: (oldBlock, newBlock, isDefault)->
           if isCss(oldBlock) || isCss(newBlock)
             $("#css-#{blockElementId(oldBlock) || blockElementId(newBlock)}").filter('style').remove()
@@ -255,10 +300,15 @@ that must be done regardless of the source of changes
         checkCodeChange: (oldBlock, newBlock, isDefault)->
           if oldBlock?.codeName != newBlock?.codeName
             if oldBlock?.codeName then @deleteBlockName oldBlock.codeName
-            if newBlock?.codeName then @setBlockName newBlock.codeName, newBlock._id
+            if newBlock?.codeName
+              if !isDefault || @addImported isDefault, 'data', newBlock.codeName
+                @setBlockName newBlock.codeName, newBlock._id, isDefault
           if oldBlock?.local && !newBlock?.local then @deleteLocalBlock oldBlock.codeName
-        getNamedBlockId: (name)-> @namedBlocks[name]
-        setBlockName: (name, blockId)-> @namedBlocks[name] = blockId
+          if newBlock.codeAttributes?.results == 'def'
+            @queueEval => @executeBlock newBlock
+        getNamedBlockId: (name)-> @namedBlocks[name] ? @importedData[name]
+        setBlockName: (name, blockId, isDefault)->
+          (if isDefault then @importedData else @namedBlocks)[name] = blockId
         deleteBlockName: (name)->
           delete @namedBlocks[name]
           @deleteLocalBlock name
@@ -294,21 +344,44 @@ that must be done regardless of the source of changes
           removeView ov = blockViewType oldBlock
           if vt = blockViewType newBlock
             source = blockSource newBlock
-            addView vt, null, source.substring 0, source.length - 1
-            if isDefault then defaults.views[vt] = source.substring 0, source.length - 1
-          if ov && ov != vt && view = defaults.views[ov] then addView ov, null, view
+            if !isDefault || @addImported isDefault, 'view', vt
+              addView vt, null, source.substring(0, source.length - 1), isDefault
         checkControlChange: (oldBlock, newBlock, isDefault)->
-          if oldBlock?.type != 'code' || blockSource(oldBlock) != blockSource(newBlock) || isControl(oldBlock) != isControl(newBlock)
-            removeController ov = blockViewType oldBlock, 'control'
-            if vt = blockViewType newBlock, 'control'
-              env = blockEnvMaker(newBlock) __proto__: defaultEnv
-              controller = {}
-              addController vt, null, controller
-              env.eval = (text)-> controllerEval.call controller, text
-              env.write = (str)->
-              env.errorAt = (offset, msg)-> console.log msg
-              env.executeText blockSource(newBlock), Nil, (->)
-              env.data = this
+          if (isControl(oldBlock) || isControl(newBlock)) && (oldBlock?.type != 'code' || blockSource(oldBlock) != blockSource(newBlock) || isControl(oldBlock) != isControl(newBlock))
+            @queueEval => @changeController oldBlock, newBlock, isDefault
+        changeController: (oldBlock, newBlock, isDefault)->
+          removeController ov = blockViewType oldBlock, 'control', isDefault
+          if vt = blockViewType newBlock, 'control'
+            controller = {}
+            if !isDefault || @addImported isDefault, 'controller', vt
+              addController vt, null, controller, isDefault
+              @executeBlock newBlock, (env)->
+                env.eval = (text)-> controllerEval.call controller, text
+        executeBlock: (block, envConf)->
+          env = blockEnvMaker(block) __proto__: defaultEnv
+          env.write = (str)->
+          env.errorAt = (offset, msg)-> console.log msg
+          env.data = this
+          envConf?(env)
+          env.executeText blockSource(block), Nil, (->)
+        checkImports: (block)->
+          if (i = block?.properties?.import) && !@importRecords.importedFiles[filename = block.properties.import]
+            console.log "Import: #{block?.properties?.import}"
+            @importRecords.importedFiles[filename] = true
+            @runOnImport => new Promise (resolve, reject)=>
+              ajaxGet(new URL(filename, @loadName).toString()).then (contents)=>
+                oldPromise = @importPromise
+                oldEvals = @pendingEvals
+                @pendingEvals = []
+                @importPromise = Promise.resolve()
+                id = 0
+                for block in @parseBlocks contents
+                  block._id = "imported-#{name}-#{id++}"
+                  @checkChange null, block, name
+                @scheduleEvals().then =>
+                  @pendingEvals = oldEvals
+                  @importPromise = oldPromise
+                  resolve()
 
       basicDataFilter =
         startChange: (data)->
@@ -926,6 +999,15 @@ may be called more than once.  changeData() returns a promise.
           text: (if startOff || endOff then newText.substring startOff, newText.length - endOff else '')
         }
 
+      ajaxGet = (url)->
+        #console.log "ajaxGet #{url}"
+        new Promise (resolve, reject)->
+          xhr = new XMLHttpRequest
+          xhr.onerror = reject
+          xhr.onload = (e)-> resolve e.target.responseText.trim()
+          xhr.open "GET", url
+          xhr.send null
+
 Exports
 
       mergeExports {
@@ -959,4 +1041,5 @@ Exports
         getDocumentParams
         basicDataFilter
         replacementFor
+        ajaxGet
       }

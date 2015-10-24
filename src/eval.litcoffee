@@ -1,12 +1,5 @@
 Evaulation support for Leisure
 
-    loadLeisure = (cont)-> 
-      require ['./leisure/generatedPrelude'], ->
-        require ['./leisure/std'], ->
-          require ['./leisure/parseAst'], ->
-            require ['./leisure/svg'], -> cont()
-
-
     define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', './gen', './leisure-support'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS)->
       acorn = Acorn
       acornWalk = AcornWalk
@@ -39,7 +32,11 @@ Evaulation support for Leisure
         jsonConvert
       } = Runtime
 
-      loadLeisure ->
+      leisurePromise = new Promise (resolve, reject)->
+        require ['./leisure/generatedPrelude'], ->
+          require ['./leisure/std'], ->
+            require ['./leisure/parseAst'], ->
+              require ['./leisure/svg'], -> resolve()
 
       defaultEnv.write = (str)-> console.log str
 
@@ -51,16 +48,17 @@ Evaulation support for Leisure
       leisureEnv = (env)->
         env.presentValue = (v)-> html rz(L_showHtml) lz v
         env.executeText = (text, props, cont)->
-          try
-            old = getValue 'parser_funcProps'
-            setValue 'parser_funcProps', props
-            result = rz(L_baseLoadString)('notebook')(text)
-            runMonad2 result, env, (results)->
-              runNextResult results, env, ->
-                setValue 'parser_funcProps', old
-                cont? env, results
-          catch err
-            @errorAt 0, err.message
+          leisurePromise.then (=>
+            try
+              old = getValue 'parser_funcProps'
+              setValue 'parser_funcProps', props
+              result = rz(L_baseLoadString)('notebook')(text)
+              runMonad2 result, env, (results)->
+                runNextResult results, env, ->
+                  setValue 'parser_funcProps', old
+                  cont? env, results
+            catch err
+              @errorAt 0, err.message), (err)=> @errorAt 0, err?.message ? err
         env
 
       runNextResult = (results, env, cont)->

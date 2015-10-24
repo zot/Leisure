@@ -242,6 +242,15 @@ updateButton = (view, hiding)->
 </span>{{{text}}}</div></div></div>
 #+END_SRC
 
+#+BEGIN_SRC html :defview leisure-top-chunk-with-sidebar
+<div class='slideholder'
+ ><div class='page'
+   ><div class='border'></div
+   ><table class='sidebar-table'><tr><td class='sidebar-main'><div id='{{id}}' class='fancy pagecontent' data-edit-mode='fancy'
+     ><span data-noncontent contenteditable='false'>{{> leisure-source-toggle}}
+</span>{{{text}}}</div></td><td class='sidebar-side'>{{> sidebars}}</td></tr></table></div></div>
+#+END_SRC
+
 #+BEGIN_SRC html :defview leisure-top-headline
 <div class='slideholder'
  ><div class='page'
@@ -250,9 +259,45 @@ updateButton = (view, hiding)->
 data-edit-mode='fancy'
 data-block='headline'
 data-org-headline='{{level}}'
-data-headline='{{level}}'><span class='maincontent'><span class='hidden'>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'><div class="textborder" contenteditable="false"></div><div class='headline-content'><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div></div></div></div><div>{{#each children}}{{{
+data-headline='{{level}}'><span class='maincontent'><span class='hidden'
+>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'
+><div class="textborder" contenteditable="false"></div><div class='headline-content'
+><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div></div></div></div><div>{{#each children}}{{{
 render this
-}}}{{/each}}</div></div></div><span></div></div>
+}}}{{/each}}</div></span></div></div></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-top-headline-with-sidebar
+<div class='slideholder'
+ ><div class='page'
+   ><div class='border'></div
+   ><table class='sidebar-table'><tr><td class='sidebar-main'><div id='{{id}}' class='fancy pagecontent'
+data-edit-mode='fancy'
+data-block='headline'
+data-org-headline='{{level}}'
+data-headline='{{level}}'><span class='maincontent'><span class='hidden'
+>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'
+><div class="textborder" contenteditable="false"></div><div class='headline-content'
+><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div></div></div></div><div>{{#each children}}{{{
+render this
+}}}{{/each}}</div></span></div></td><td class='sidebar-side'>{{> sidebars}}</td></tr></table></div></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-sidebar
+<div id='{{id}}' class='fancy pagecontent'
+data-edit-mode='fancy'
+data-block='headline'
+data-org-headline='{{level}}'
+data-headline='{{level}}'><span class='maincontent'><span class='hidden'
+>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'
+><div class="textborder" contenteditable="false"></div><div class='headline-content'
+><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div></div></div></div><div>{{#each children}}{{{
+render this
+}}}{{/each}}</div></span></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview sidebars
+{{#each sidebars}}{{{this}}}{{/each}}
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-headline
@@ -456,6 +501,15 @@ data-org-type='results'
   }
   .fancy .view [data-block] .maintext {
     white-space: normal;
+  }
+  .sidebar-table {
+    width: 100%;
+  }
+  .sidebar-main {
+    width: 60%;
+  }
+  .sidebar-side {
+    width: 40%;
   }
   span[data-block='code'].fancy {
     border: solid 3px black;

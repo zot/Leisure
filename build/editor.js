@@ -1185,7 +1185,7 @@
         }
       };
 
-      BasicEditingOptions.prototype.load = function(text) {
+      BasicEditingOptions.prototype.load = function(name, text) {
         this.replaceBlocks(this.blockList(), this.parseBlocks(text));
         this.rerenderAll();
         return this.trigger('load');
@@ -1907,7 +1907,7 @@
         return text;
       };
 
-      DataStore.prototype.load = function(first1, blocks1) {
+      DataStore.prototype.load = function(name, first1, blocks1) {
         this.first = first1;
         this.blocks = blocks1;
         return this.makeChanges((function(_this) {
@@ -2213,7 +2213,7 @@
 
       DataStoreEditingOptions.prototype.initData = function() {};
 
-      DataStoreEditingOptions.prototype.load = function(text) {
+      DataStoreEditingOptions.prototype.load = function(name, text) {
         var block, blockMap, i, j, len, newBlocks, prev, ref;
         blockMap = {};
         newBlocks = this.parseBlocks(text);
@@ -2226,7 +2226,7 @@
             block.prev = prev._id;
           }
         }
-        return this.data.load((ref = newBlocks[0]) != null ? ref._id : void 0, blockMap);
+        return this.data.load(name, (ref = newBlocks[0]) != null ? ref._id : void 0, blockMap);
       };
 
       DataStoreEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks) {

@@ -5,7 +5,7 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, defaults, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -26,10 +26,6 @@
     localDb = null;
     localStore = null;
     deleteStore = false;
-    defaults = {
-      views: {},
-      controls: {}
-    };
     blockOrg = function(data, blockOrText) {
       var frag, org, ref, text;
       text = typeof blockOrText === 'string' ? (ref = data.getBlock(blockOrText)) != null ? ref : blockOrText : blockOrText.text;
@@ -51,7 +47,36 @@
         this.localBlocks = {};
         this.filters = [];
         this.populateLocalData();
+        this.pendingEvals = [];
+        this.importPromise = Promise.resolve();
+        this.indexes = {};
+        this.imported = {
+          css: {},
+          view: {},
+          control: {},
+          data: {}
+        };
+        this.importedData = {};
+        this.importRecords = {
+          data: {},
+          view: {},
+          controller: {},
+          importedFiles: {}
+        };
       }
+
+      OrgData.prototype.addImported = function(importFile, type, name) {
+        if (typeof importFile === 'string') {
+          if (obj[type][name]) {
+            obj[type][name].push(importFile);
+            return console.log("Warning, conflicting block of type: " + type + " imported from " + obj[type][name]);
+          } else {
+            return obj[type][name] = [importFile];
+          }
+        } else {
+          return typeof importFile === 'boolean';
+        }
+      };
 
       OrgData.prototype.populateLocalData = function() {
         return transaction(this.localDocumentId()).getAll().then((function(_this) {
@@ -112,12 +137,14 @@
         return changes;
       };
 
-      OrgData.prototype.load = function(first, blocks, changes) {
+      OrgData.prototype.load = function(name, first, blocks, changes) {
+        this.loadName = name;
         return this.makeChanges((function(_this) {
           return function() {
-            var block, filter, id, j, len, ref, ref1;
+            var block, filter, id, j, len, ref, ref1, ref2;
+            _this.populateLocalData();
             if (!first) {
-              OrgData.__super__.load.call(_this, first, blocks);
+              return OrgData.__super__.load.call(_this, first, blocks);
             } else {
               ref = _this.filters;
               for (j = 0, len = ref.length; j < len; j++) {
@@ -138,12 +165,17 @@
               ref1 = changes.sets;
               for (id in ref1) {
                 block = ref1[id];
+                _this.checkImports(block);
+              }
+              ref2 = changes.sets;
+              for (id in ref2) {
+                block = ref2[id];
                 _this.runFilters(null, block);
                 _this.checkChange(null, block);
               }
-              OrgData.__super__.load.call(_this, first, blocks);
+              OrgData.__super__.load.call(_this, name, first, blocks);
+              return _this.scheduleEvals();
             }
-            return _this.populateLocalData();
           };
         })(this));
       };
@@ -317,27 +349,42 @@
       };
 
       OrgData.prototype.makeChange = function(changes) {
-        var block, id, removes, sets;
-        sets = changes.sets, removes = changes.removes;
-        for (id in removes) {
-          this.checkChange(this.getBlock(id), null);
+        var block, id, ref, ref1;
+        ref = changes.sets;
+        for (id in ref) {
+          block = ref[id];
+          this.checkImports(block);
         }
-        for (id in sets) {
-          block = sets[id];
-          this.checkChange(this.getBlock(id), block);
+        ref1 = this.removesAndSets(changes);
+        for (id in ref1) {
+          block = ref1[id];
+          this.checkChange(this.getBlock(id), block || null);
         }
         return OrgData.__super__.makeChange.call(this, changes);
       };
 
+      OrgData.prototype.removesAndSets = function(arg1) {
+        var block, blocks, id, removes, sets;
+        sets = arg1.sets, removes = arg1.removes;
+        blocks = {};
+        for (id in removes) {
+          blocks[id] = false;
+        }
+        for (id in sets) {
+          block = sets[id];
+          blocks[id] = block;
+        }
+        return blocks;
+      };
+
       OrgData.prototype.processDefaults = function(lorgText) {
-        var block, j, len, results1, viewBlocks;
+        var block, j, len, viewBlocks;
         viewBlocks = orgDoc(parseOrgMode(lorgText.replace(/\r\n?/g, '\n')));
-        results1 = [];
         for (j = 0, len = viewBlocks.length; j < len; j++) {
           block = viewBlocks[j];
-          results1.push(this.checkChange(null, block, true));
+          this.checkChange(null, block, true);
         }
-        return results1;
+        return this.scheduleEvals();
       };
 
       OrgData.prototype.checkChange = function(oldBlock, newBlock, isDefault) {
@@ -345,6 +392,34 @@
         this.checkCodeChange(oldBlock, newBlock, isDefault);
         this.checkViewChange(oldBlock, newBlock, isDefault);
         return this.checkControlChange(oldBlock, newBlock, isDefault);
+      };
+
+      OrgData.prototype.queueEval = function(func) {
+        return this.pendingEvals.push(func);
+      };
+
+      OrgData.prototype.runOnImport = function(func) {
+        var p;
+        return this.importPromise = this.importPromise.isResolved() ? (p = func(), p instanceof Promise ? p : Promise.resolve()) : this.importPromise.then((function(_this) {
+          return function() {
+            return func();
+          };
+        })(this));
+      };
+
+      OrgData.prototype.scheduleEvals = function() {
+        return this.runOnImport((function(_this) {
+          return function() {
+            var e, func, j, len;
+            e = _this.pendingEvals;
+            _this.pendingEvals = [];
+            for (j = 0, len = e.length; j < len; j++) {
+              func = e[j];
+              func();
+            }
+            return null;
+          };
+        })(this));
       };
 
       OrgData.prototype.checkCssChange = function(oldBlock, newBlock, isDefault) {
@@ -357,25 +432,36 @@
       };
 
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
+        var ref;
         if ((oldBlock != null ? oldBlock.codeName : void 0) !== (newBlock != null ? newBlock.codeName : void 0)) {
           if (oldBlock != null ? oldBlock.codeName : void 0) {
             this.deleteBlockName(oldBlock.codeName);
           }
           if (newBlock != null ? newBlock.codeName : void 0) {
-            this.setBlockName(newBlock.codeName, newBlock._id);
+            if (!isDefault || this.addImported(isDefault, 'data', newBlock.codeName)) {
+              this.setBlockName(newBlock.codeName, newBlock._id, isDefault);
+            }
           }
         }
         if ((oldBlock != null ? oldBlock.local : void 0) && !(newBlock != null ? newBlock.local : void 0)) {
-          return this.deleteLocalBlock(oldBlock.codeName);
+          this.deleteLocalBlock(oldBlock.codeName);
+        }
+        if (((ref = newBlock.codeAttributes) != null ? ref.results : void 0) === 'def') {
+          return this.queueEval((function(_this) {
+            return function() {
+              return _this.executeBlock(newBlock);
+            };
+          })(this));
         }
       };
 
       OrgData.prototype.getNamedBlockId = function(name) {
-        return this.namedBlocks[name];
+        var ref;
+        return (ref = this.namedBlocks[name]) != null ? ref : this.importedData[name];
       };
 
-      OrgData.prototype.setBlockName = function(name, blockId) {
-        return this.namedBlocks[name] = blockId;
+      OrgData.prototype.setBlockName = function(name, blockId, isDefault) {
+        return (isDefault ? this.importedData : this.namedBlocks)[name] = blockId;
       };
 
       OrgData.prototype.deleteBlockName = function(name) {
@@ -442,40 +528,88 @@
       };
 
       OrgData.prototype.checkViewChange = function(oldBlock, newBlock, isDefault) {
-        var ov, source, view, vt;
+        var ov, source, vt;
         removeView(ov = blockViewType(oldBlock));
         if (vt = blockViewType(newBlock)) {
           source = blockSource(newBlock);
-          addView(vt, null, source.substring(0, source.length - 1));
-          if (isDefault) {
-            defaults.views[vt] = source.substring(0, source.length - 1);
+          if (!isDefault || this.addImported(isDefault, 'view', vt)) {
+            return addView(vt, null, source.substring(0, source.length - 1), isDefault);
           }
-        }
-        if (ov && ov !== vt && (view = defaults.views[ov])) {
-          return addView(ov, null, view);
         }
       };
 
       OrgData.prototype.checkControlChange = function(oldBlock, newBlock, isDefault) {
-        var controller, env, ov, vt;
-        if ((oldBlock != null ? oldBlock.type : void 0) !== 'code' || blockSource(oldBlock) !== blockSource(newBlock) || isControl(oldBlock) !== isControl(newBlock)) {
-          removeController(ov = blockViewType(oldBlock, 'control'));
-          if (vt = blockViewType(newBlock, 'control')) {
-            env = blockEnvMaker(newBlock)({
-              __proto__: defaultEnv
+        if ((isControl(oldBlock) || isControl(newBlock)) && ((oldBlock != null ? oldBlock.type : void 0) !== 'code' || blockSource(oldBlock) !== blockSource(newBlock) || isControl(oldBlock) !== isControl(newBlock))) {
+          return this.queueEval((function(_this) {
+            return function() {
+              return _this.changeController(oldBlock, newBlock, isDefault);
+            };
+          })(this));
+        }
+      };
+
+      OrgData.prototype.changeController = function(oldBlock, newBlock, isDefault) {
+        var controller, ov, vt;
+        removeController(ov = blockViewType(oldBlock, 'control', isDefault));
+        if (vt = blockViewType(newBlock, 'control')) {
+          controller = {};
+          if (!isDefault || this.addImported(isDefault, 'controller', vt)) {
+            addController(vt, null, controller, isDefault);
+            return this.executeBlock(newBlock, function(env) {
+              return env["eval"] = function(text) {
+                return controllerEval.call(controller, text);
+              };
             });
-            controller = {};
-            addController(vt, null, controller);
-            env["eval"] = function(text) {
-              return controllerEval.call(controller, text);
-            };
-            env.write = function(str) {};
-            env.errorAt = function(offset, msg) {
-              return console.log(msg);
-            };
-            env.executeText(blockSource(newBlock), Nil, (function() {}));
-            return env.data = this;
           }
+        }
+      };
+
+      OrgData.prototype.executeBlock = function(block, envConf) {
+        var env;
+        env = blockEnvMaker(block)({
+          __proto__: defaultEnv
+        });
+        env.write = function(str) {};
+        env.errorAt = function(offset, msg) {
+          return console.log(msg);
+        };
+        env.data = this;
+        if (typeof envConf === "function") {
+          envConf(env);
+        }
+        return env.executeText(blockSource(block), Nil, (function() {}));
+      };
+
+      OrgData.prototype.checkImports = function(block) {
+        var filename, i, ref, ref1;
+        if ((i = block != null ? (ref = block.properties) != null ? ref["import"] : void 0 : void 0) && !this.importRecords.importedFiles[filename = block.properties["import"]]) {
+          console.log("Import: " + (block != null ? (ref1 = block.properties) != null ? ref1["import"] : void 0 : void 0));
+          this.importRecords.importedFiles[filename] = true;
+          return this.runOnImport((function(_this) {
+            return function() {
+              return new Promise(function(resolve, reject) {
+                return ajaxGet(new URL(filename, _this.loadName).toString()).then(function(contents) {
+                  var id, j, len, oldEvals, oldPromise, ref2;
+                  oldPromise = _this.importPromise;
+                  oldEvals = _this.pendingEvals;
+                  _this.pendingEvals = [];
+                  _this.importPromise = Promise.resolve();
+                  id = 0;
+                  ref2 = _this.parseBlocks(contents);
+                  for (j = 0, len = ref2.length; j < len; j++) {
+                    block = ref2[j];
+                    block._id = "imported-" + name + "-" + (id++);
+                    _this.checkChange(null, block, name);
+                  }
+                  return _this.scheduleEvals().then(function() {
+                    _this.pendingEvals = oldEvals;
+                    _this.importPromise = oldPromise;
+                    return resolve();
+                  });
+                });
+              });
+            };
+          })(this));
         }
       };
 
@@ -1486,6 +1620,18 @@
         text: (startOff || endOff ? newText.substring(startOff, newText.length - endOff) : '')
       };
     };
+    ajaxGet = function(url) {
+      return new Promise(function(resolve, reject) {
+        var xhr;
+        xhr = new XMLHttpRequest;
+        xhr.onerror = reject;
+        xhr.onload = function(e) {
+          return resolve(e.target.responseText.trim());
+        };
+        xhr.open("GET", url);
+        return xhr.send(null);
+      });
+    };
     mergeExports({
       findEditor: findEditor,
       showHide: showHide,
@@ -1515,7 +1661,8 @@
       controllerEval: controllerEval,
       getDocumentParams: getDocumentParams,
       basicDataFilter: basicDataFilter,
-      replacementFor: replacementFor
+      replacementFor: replacementFor,
+      ajaxGet: ajaxGet
     };
   });
 

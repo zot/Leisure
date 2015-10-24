@@ -1,3 +1,24 @@
+* TODO get [[http://textcraft.org:3000/#load=/demo/dice.lorg][dice]] and [[http://textcraft.org:3000/#load=/demo/lib/lenses.lorg][lenses]] pages working again: 
+* TODO documentation tooltips
+* TODO document version numbers (part of metadocument?)
+* TODO Preserve document settings
+- theme
+- searches
+* TODO confirm before disconnect
+* TODO tabs should collapse
+* TODO convert Lounge source to Lounge documents
+* BUG changing hidden from true to false is not updating properly
+* TODO infer data types
+* TODO show views by default
+* TODO single-document monoliths (base-64 inlined parts)
+- libraries
+- images
+- videos
+** Let people explode the documents into directories/zip files
+* TODO tags
+* TODO search is broken
+* TODO changes to view definitions don't cause updates
+* TODO bring back imports
 * TODO make sessions sticky so masters can reload and slaves can take over if master leaves
 Make "Become Master" button enable when master disconnects
 * TODO block wiring
@@ -24,10 +45,10 @@ inspector button on code scope
 * TODO on reload, add hash to preserve selection
 * TODO Tool to find defs and controllers from views
 * TODO nice text color against white bgnd: #4D4D4C
+* TODO time slider (use undo/redo)
 * BUG splitting a dynamic code block in Emacs causes problems in Leisure
 * BUG splitting a code block directly above a dynamic one in Emacs causes problems in Leisure
 * BUG toggling show/hide in slide mode dies
-* TODO get collaboration going again
 * TODO convert source to Leisure files
 * TODO announcement form
 - melpa package
@@ -43,7 +64,6 @@ Check [[https://github.com/fniessen/org-html-themes]]
 hides cruft so you can just look at the code
 * TODO indicate the age of each block
 * TODO make headlines bigger in plain mode
-* TODO Move advice into a separate file
 * TODO when diag is enabled, check inserted text
 * TODO slider stays up when you scroll and doesn't scroll with the page
 * TODO load parameter so people can view the example without Emacs
@@ -112,7 +132,7 @@ hides cruft so you can just look at the code
 - case sensitive, regexp
 - highlight results
 * TODO spreadsheet, table rendering
-* TODO restore value sliders and make more value editors
+* TODO make more value editors
 - colors
 - calendars
 - clocks
@@ -1018,6 +1038,12 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE get collaboration going again
+   CLOSED: [2015-10-19 Mon 13:42]
+** DONE restore value sliders and make more value editors
+   CLOSED: [2015-10-19 Mon 13:43]
+** DONE Move advice into a separate file
+   CLOSED: [2015-10-19 Mon 13:43]
 ** DONE PEER.testReplay3() doesn't work
    CLOSED: [2015-10-17 Sat 16:35]
 ** DONE expanded emacs server

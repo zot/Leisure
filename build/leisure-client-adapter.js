@@ -6,7 +6,7 @@
     var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, diag, editorToolbar, getDocumentParams, isDelete, isInsert, isRetain, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
-    OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor;
+    OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor, ajaxGet = Support.ajaxGet;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod, callOriginal = Advice.callOriginal;
     noTrim = Common.noTrim;
     Promise = Bluebird.Promise;
@@ -42,9 +42,9 @@
         return this.con = null;
       };
 
-      Peer.prototype.connect = function(url1, connectedFunc1) {
+      Peer.prototype.connect = function(url, connectedFunc1) {
         var opened, peer;
-        this.url = url1;
+        this.url = url;
         this.connectedFunc = connectedFunc1;
         console.log("CONNECTED");
         this.con = new SockJS(this.url);
@@ -358,9 +358,9 @@
         return this.docSnap = this.data.getText();
       };
 
-      Peer.prototype.connectToSession = function(url1, connected, newConnectionFunc) {
+      Peer.prototype.connectToSession = function(url, connected, newConnectionFunc) {
         var ref1;
-        this.url = url1;
+        this.url = url;
         this.newConnectionFunc = newConnectionFunc;
         this.type = 'Slave';
         this.newConnectionFunc = (ref1 = this.newConnectionFunc) != null ? ref1 : function() {};
@@ -519,18 +519,6 @@
       return Peer;
 
     })();
-    ajaxGet = function(url) {
-      return new Promise(function(resolve, reject) {
-        var xhr;
-        xhr = new XMLHttpRequest;
-        xhr.onerror = reject;
-        xhr.onload = function(e) {
-          return resolve(e.target.responseText.trim());
-        };
-        xhr.open("GET", url);
-        return xhr.send(null);
-      });
-    };
     window.randomUserName = randomUserName = function(done) {
       var i;
       return Promise.all((function() {

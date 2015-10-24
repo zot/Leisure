@@ -65,7 +65,7 @@
             blocks[i - 1].next = block._id
         blk = _.indexBy blocks, '_id'
         data.linkAllSiblings first: blocks[0]._id, sets: blk, oldBlocks: blk
-        data.load blocks[0]._id, blk
+        data.load '', blocks[0]._id, blk
         info = structureInfo data
         assertEq "Bad levels computed for set1", info.levels, set1.levels
 

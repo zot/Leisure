@@ -42,7 +42,7 @@
         sets: blk,
         oldBlocks: blk
       });
-      data.load(blocks[0]._id, blk);
+      data.load('', blocks[0]._id, blk);
       info = structureInfo(data);
       return assertEq("Bad levels computed for set1", info.levels, set1.levels);
     };

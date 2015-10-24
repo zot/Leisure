@@ -94,8 +94,8 @@ Code for local-mode.  This will not be loaded under meteor.
         if document.location.search
           {load, theme, join} = getDocumentParams()
           if load
-            $.get(load, (data)-> ED.options.load data)
-            ED.options.loadName = new URL(load, document.location).toString()
+            load = new URL(load, document.location).toString()
+            $.get(load, (data)-> ED.options.load load, data)
           if theme then ED.options.setTheme theme
           if join
             setTimeout (->
@@ -109,7 +109,7 @@ Code for local-mode.  This will not be loaded under meteor.
               console.log "JOIN SESSION: #{u}"
               window.PEER.connectToSession u.toString(), null, (n)-> p2pConnections.html n), 1
         else
-          ED.options.load """
+          ED.options.load 'default', """
           Create a bad replacement with collaboration: asdf<-<-<-as
 
           burp

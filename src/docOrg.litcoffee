@@ -156,7 +156,12 @@
             text += first.allText()
             first = first.next
           obj = text: text, type: 'code', offset: firstOffset
-          obj.codeAttributes = source.attributes()
+          if source.attributes()
+            attr = {}
+            for nm, val of source.attributes()
+              attr[nm.toLowerCase()] = val
+          else attr = null
+          obj.codeAttributes = attr
           obj.codePrelen = source.contentPos + source.offset - firstOffset
           obj.codePostlen = text.length - obj.codePrelen - source.content.length
           if expected

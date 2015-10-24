@@ -16,11 +16,24 @@ choose a handlebars template.
 
       templates = {}
       controllers = {}
+      defaults =
+        controllers: {}
+        templates: {}
       root = null
       activating = false
       viewIdCounter = 0
       pendingViews = []
       imageRefreshCounter = 0
+
+      getTemplates = (isDefault)-> if isDefault then defaults.templates
+      else templates
+
+      getTemplate = (type)-> templates[type] ? defaults.templates[type]
+
+      getControllers = (isDefault)-> if isDefault then defaults.controllers
+      else controllers
+
+      getController = (type)-> controllers[type] ? defaults.controllers[type]
 
       nextImageSrc = (src)->
         if (slide = root.context.currentView?.closest '.slideholder')?.length
@@ -44,15 +57,16 @@ choose a handlebars template.
       viewKey = (type, context)->
         if context then "#{type.trim()}/#{context.trim()}" else type?.trim()
 
-      addView = (type, context, template)->
-        templates[name = viewKey type, context] = compile template
+      addView = (type, context, template, isDefault)->
+        getTemplates(isDefault)[name = viewKey type, context] = compile template
         Handlebars.registerPartial name, "{{#viewWrapper '#{name}' this}}#{template}{{/viewWrapper}}"
 
-      removeView = (type, context, template)->
-        delete templates[name = viewKey type, context]
+      removeView = (type, context, template, isDefault)->
+        delete getTemplates(isDefault)[name = viewKey type, context]
         Handlebars.unregisterPartial name
 
-      getView = hasView = (type, context)-> templates[viewKey type, context] || templates[type]
+      getView = hasView = (type, context)->
+        getTemplate(viewKey type, context) || getTemplate(type)
 
       withContext = (context, func)->
         oldContext = root.context
@@ -88,10 +102,10 @@ choose a handlebars template.
       renderView = (type, contextName, data, targets, block, blockName)->
         isTop = !root.context?.topView
         requestedKey = key = viewKey type, contextName
-        if !(template = templates[key])
+        if !(template = getTemplate key)
           key = type
           contextName = null
-          if !(template = templates[key]) then return
+          if !(template = getTemplate key) then return
         settings =
           type: type
           contextName: contextName
@@ -155,16 +169,18 @@ choose a handlebars template.
               for script in $(el).find('script[type="text/coffeescript"]').add($(el).find 'script[type="text/literate-coffeescript"]')
                 root.currentScript = script
                 CoffeeScript.run script.innerHTML
-              controllers[$(el).attr 'data-view']?.initializeView(el, context.data)
+              getController($(el).attr 'data-view')?.initializeView(el, context.data)
               for img in el.find 'img'
                 refreshImage img
             finally
               root.currentScript = null
               activating = false
 
-      addController = (type, name, func)-> controllers[viewKey type, name] = func
+      addController = (type, name, func, isDefault)->
+        getControllers(isDefault)[viewKey type, name] = func
 
-      removeController = (type, name, func)-> delete controllers[viewKey type, name]
+      removeController = (type, name, isDefault)->
+        delete getControllers(isDefault)[viewKey type, name]
 
       getPendingViews = -> pendingViews
 
