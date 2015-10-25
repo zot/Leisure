@@ -507,9 +507,11 @@ data-org-type='results'
   }
   .sidebar-main {
     width: 60%;
+    vertical-align: top;
   }
   .sidebar-side {
     width: 40%;
+    vertical-align: top;
   }
   span[data-block='code'].fancy {
     border: solid 3px black;

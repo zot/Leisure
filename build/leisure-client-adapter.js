@@ -368,7 +368,7 @@
           __proto__: Peer.prototype.handler,
           connected: function(msg) {
             this.finishConnected(msg);
-            this.editor.options.load(msg.doc);
+            this.editor.options.load('shared', msg.doc);
             return this.docSnap = msg.doc;
           }
         };

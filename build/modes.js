@@ -545,7 +545,9 @@
         if (block && (block.level === 1 || !block.prev) && !isSidebar(block)) {
           sidebars = [];
           while (isSidebar(block = opts.data.nextSibling(block))) {
-            sidebars.push(block);
+            if (!opts.shouldHide(block)) {
+              sidebars.push(block);
+            }
           }
           if (sidebars.length) {
             return sidebars;

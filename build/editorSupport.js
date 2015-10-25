@@ -388,6 +388,7 @@
       };
 
       OrgData.prototype.checkChange = function(oldBlock, newBlock, isDefault) {
+        this.checkPropChange(oldBlock, newBlock, isDefault);
         this.checkCssChange(oldBlock, newBlock, isDefault);
         this.checkCodeChange(oldBlock, newBlock, isDefault);
         this.checkViewChange(oldBlock, newBlock, isDefault);
@@ -420,6 +421,29 @@
             return null;
           };
         })(this));
+      };
+
+      OrgData.prototype.checkPropChange = function(oldBlock, newBlock, isDefault) {
+        var newProperties, parent, ref, ref1, sets;
+        if (!isDefault && !newBlock.level && !_.isEqual(oldBlock != null ? oldBlock.properties : void 0, newBlock != null ? newBlock.properties : void 0) && (parent = this.parent(newBlock != null ? newBlock : oldBlock))) {
+          newProperties = _.defaults((ref = this.parseBlocks(parent.text).properties) != null ? ref : {}, (ref1 = newBlock.properties) != null ? ref1 : {});
+          if (!_.isEqual(parent.properties, newProperties)) {
+            sets = {};
+            sets[parent._id] = parent;
+            parent.properties = newProperties;
+            return setTimeout(((function(_this) {
+              return function() {
+                return _this.change({
+                  first: _this.getFirst(),
+                  sets: sets,
+                  removes: {},
+                  oldBlocks: [],
+                  newBlocks: [parent]
+                });
+              };
+            })(this)), 1);
+          }
+        }
       };
 
       OrgData.prototype.checkCssChange = function(oldBlock, newBlock, isDefault) {

@@ -276,6 +276,7 @@ that must be done regardless of the source of changes
             @checkChange null, block, true
           @scheduleEvals()
         checkChange: (oldBlock, newBlock, isDefault)->
+          @checkPropChange oldBlock, newBlock, isDefault
           @checkCssChange oldBlock, newBlock, isDefault
           @checkCodeChange oldBlock, newBlock, isDefault
           @checkViewChange oldBlock, newBlock, isDefault
@@ -292,6 +293,14 @@ that must be done regardless of the source of changes
           for func in e
             func()
           null
+        checkPropChange: (oldBlock, newBlock, isDefault)->
+          if !isDefault && !newBlock.level && !_.isEqual(oldBlock?.properties, newBlock?.properties) && parent = @parent newBlock ? oldBlock
+            newProperties = _.defaults @parseBlocks(parent.text).properties ? {}, newBlock.properties ? {}
+            if !_.isEqual parent.properties, newProperties
+              sets = {}
+              sets[parent._id] = parent
+              parent.properties = newProperties
+              setTimeout (=> @change {first: @getFirst(), sets, removes: {}, oldBlocks: [], newBlocks: [parent]}), 1
         checkCssChange: (oldBlock, newBlock, isDefault)->
           if isCss(oldBlock) || isCss(newBlock)
             $("#css-#{blockElementId(oldBlock) || blockElementId(newBlock)}").filter('style').remove()

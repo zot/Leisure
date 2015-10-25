@@ -425,7 +425,7 @@
           if block && (block.level == 1 || !block.prev) && !isSidebar(block)
             sidebars = []
             while isSidebar block = opts.data.nextSibling block
-              sidebars.push block
+              if !opts.shouldHide(block) then sidebars.push block
             if sidebars.length then sidebars
         renderFirstBlocks: (opts, block, prefix, replace)->
           if hasView 'leisure-top-chunk'

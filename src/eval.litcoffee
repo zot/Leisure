@@ -32,11 +32,13 @@ Evaulation support for Leisure
         jsonConvert
       } = Runtime
 
-      leisurePromise = new Promise (resolve, reject)->
-        require ['./leisure/generatedPrelude'], ->
-          require ['./leisure/std'], ->
-            require ['./leisure/parseAst'], ->
-              require ['./leisure/svg'], -> resolve()
+      requirePromise = (file...)-> new Promise (resolve, reject)->
+        require file, resolve
+
+      leisurePromise = requirePromise './leisure/generatedPrelude'
+        .then -> requirePromise './leisure/std'
+        .then -> requirePromise './leisure/parseAst'
+        .then -> requirePromise './leisure/svg'
 
       defaultEnv.write = (str)-> console.log str
 

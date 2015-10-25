@@ -244,7 +244,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             __proto__: Peer::handler
             connected: (msg)->
               @finishConnected msg
-              @editor.options.load msg.doc
+              @editor.options.load 'shared', msg.doc
               @docSnap = msg.doc
           @connect @url, =>
             @send 'intro', name: @name
