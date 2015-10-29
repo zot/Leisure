@@ -97,19 +97,15 @@ simplify exprString = do
 ## Monads
 #######################
 
-range a b = \f . runRepeat a b f
+range a b = \f . f a b
 
-upTo n = range 0 n
+upto n = range 0 n
 
-repeat n = \item . runRepeat 0 n \x . item
+repeat n = \f . f n
 
 isRepeat r = hasType r repeat
 
 isRange r = hasType r range
-
-runRepeat count limit f = count < limit
-  [(f count) | runRepeat (count + 1) limit f]
-  []
 
 requireJS file = bind2 (getValue 'requiredFiles')
   \files . contains files file
@@ -276,13 +272,10 @@ showConsElements func list = isCons list
     ''
     [' | ' (showBase func list)]
 
-defCase showBase.range func obj | hasType obj range -> do
-  l = obj id
-  concat['(range ' (head l) ' ' (last l) ')']
+defCase showBase.range func obj | hasType obj range -> obj \start end .
+  concat['(range ' start ' ' end ')']
 
-defCase showBase.repeat func obj | hasType obj repeat -> do
-  l = obj nil
-  concat['(repeat ' (length l) ')']
+defCase showBase.repeat func obj | hasType obj repeat -> concat['(repeat ' (obj id) ')']
 
 defCase showBase.hamt func obj | hasType obj hamt -> concatFlat[
   'hamt{'
@@ -379,9 +372,8 @@ defCase bind2.caseResult data cont | isCaseResult data -> data id
 # the first def is for if we can get IO to auto-convert values...
 #defCase bind.cons list cont | hasType list cons -> map cont list
 defCase bind2.cons list cont | hasType list cons -> map cont list
-
-#defCase bind2.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
-defCase bind2.repeat r cont | hasType r repeat -> r cont
+defCase bind2.range r cont | hasType r range -> map cont r
+defCase bind2.repeat r cont | hasType r repeat -> map (cont nil) r
 
 subbind m cont = bind2 (wrapped m) cont
 
@@ -394,15 +386,23 @@ defCase subbind.either m cont | hasType m left -> cont unit
 ## monadic iteration
 #######################
 
+runRepeat count limit f = count < limit
+  [(f count) | runRepeat (count + 1) limit f]
+  []
+
+defCase map.range func r | isRange r -> r \a b . runRepeat a b func
+
+defCase map.repeat item r | isRepeat r -> r \n . runRepeat 0 n \x . item
+
 wrappedForeach x = \f . f x
 testWrappedForeach f test = and (hasType f wrappedForeach) (f test)
 
 defCase bind2.wrappedForeachCons list cont | testWrappedForeach list isCons ->
   doall (map cont (list id))
 defCase bind2.wrappedForeachRep rep cont | testWrappedForeach rep isRepeat ->
-  doall ((rep id) (cont nil))
+  doall (map (cont nil) (rep id))
 defCase bind2.wrappedForeachRange r cont | testWrappedForeach r isRange ->
-  doall ((r id) cont)
+  doall (map cont (r id))
 
 defMacro 'foreach' \list . ['wrappedForeach' list]
 
