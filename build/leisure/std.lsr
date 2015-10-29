@@ -97,7 +97,15 @@ simplify exprString = do
 ## Monads
 #######################
 
-repeat n = \f . runRepeat 0 n f
+range a b = \f . runRepeat a b f
+
+upTo n = range 0 n
+
+repeat n = \item . runRepeat 0 n \x . item
+
+isRepeat r = hasType r repeat
+
+isRange r = hasType r range
 
 runRepeat count limit f = count < limit
   [(f count) | runRepeat (count + 1) limit f]
@@ -140,15 +148,6 @@ remove x l = removeIf (eq x) l
 
 # remove any elements where f evals to true, f must take exactly one argument
 removeIf f l = filter (compose not f) l
-
-## return true if any elements of l satisfy f, which takes exactly one arg
-## eg. any (eq 0) [1 2 0] gives true: true
-any f l = find f l (\el . true) false
-
-## return true if ALL elements of l satisfy f, which takes exactly one arg
-## eg. all (eq 0) [0 0 0] gives true: true
-## caveat!  return true for nil lists
-all f l = not (any (compose not f) l)
 
 take n list = positive n
   list
@@ -277,6 +276,14 @@ showConsElements func list = isCons list
     ''
     [' | ' (showBase func list)]
 
+defCase showBase.range func obj | hasType obj range -> do
+  l = obj id
+  concat['(range ' (head l) ' ' (last l) ')']
+
+defCase showBase.repeat func obj | hasType obj repeat -> do
+  l = obj nil
+  concat['(repeat ' (length l) ')']
+
 defCase showBase.hamt func obj | hasType obj hamt -> concatFlat[
   'hamt{'
   intersperse (map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) (hamtPairs obj)) ' '
@@ -339,12 +346,12 @@ defCase presentHtml.html obj | hasType obj html -> obj id
 #   x > 1
 #   x + 2
 
-#wrap -- make a value bindable without interpretation
-wrap x = \f . f x
+#wrapped -- make a value bindable without interpretation
+wrapped x = \f . f x
 
-defCase showBase.wrap func v | hasType v wrap -> concat['wrap ' (showBase func (v id))]
+defCase showBase.wrapped func v | hasType v wrapped -> concat['wrapped ' (showBase func (v id))]
 
-defCase bind2.wrap v cont | hasType v wrap -> cont (v id)
+defCase bind2.wrapped v cont | hasType v wrapped -> cont (v id)
 
 defCase bind2.bool opt cont | or (opt == true) (opt == false) -> opt
   cont true
@@ -376,7 +383,7 @@ defCase bind2.cons list cont | hasType list cons -> map cont list
 #defCase bind2.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
 defCase bind2.repeat r cont | hasType r repeat -> r cont
 
-subbind m cont = bind2 (wrap m) cont
+subbind m cont = bind2 (wrapped m) cont
 
 defCase subbind.monad m cont | or (hasType m '*Monad2') (hasType m 'monad') -> bind2 m cont
 defCase subbind.boolean m cont | m == false -> cont unit
@@ -384,15 +391,20 @@ defCase subbind.option m cont | hasType m none -> cont unit
 defCase subbind.either m cont | hasType m left -> cont unit
 
 #######################
-## lifting to IO
+## monadic iteration
 #######################
 
-wrapped x = \f . f x
+wrappedForeach x = \f . f x
+testWrappedForeach f test = and (hasType f wrappedForeach) (f test)
 
-defCase wrap.X value | true -> wrapped value
+defCase bind2.wrappedForeachCons list cont | testWrappedForeach list isCons ->
+  doall (map cont (list id))
+defCase bind2.wrappedForeachRep rep cont | testWrappedForeach rep isRepeat ->
+  doall ((rep id) (cont nil))
+defCase bind2.wrappedForeachRange r cont | testWrappedForeach r isRange ->
+  doall ((r id) cont)
 
-defCase asIO.cons list | hasType list cons -> doall list
-defCase asIO.option opt | isOption opt -> opt id unit
+defMacro 'foreach' \list . ['wrappedForeach' list]
 
 #######################
 ## pre/postconditions

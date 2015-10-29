@@ -43,7 +43,7 @@ tokenSource toks = tail
       tokStr = tokenString tok
       amount = (tokenPos tok) - (strLen str)
       lines = max 0 (fileposLine (tokenFilepos tok)) - line
-      newStr = strCat (flatten [str (do (repeat (max lines 0)) '\n') (do (repeat (max amount 0)) ' ') tokStr])
+      newStr = strCat (flatten [str (repeat (max lines 0) '\n') (repeat (max amount 0) ' ') tokStr])
       [line + lines | newStr]
     [1 | '']
     sortBy

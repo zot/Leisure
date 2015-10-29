@@ -30,7 +30,15 @@ L_runMonads([
   return resolve(L_isCons)(L_result_0)(function(){return resolve(L_result_0)(lazy(function(L_h){return function(L_t){return resolve(L_cons)(function(){return resolve(L_visit)(L_func, L_h)}, function(){return resolve(L_visit)(L_func, L_t)})}}))})(L_result_0)})();
 })))},
  function(){return resolve(L_newDefine)("simplify", 1, "simplify exprString = do\r\n  list <- scanLineM exprString\r\n  visit (\\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list", lazy(function(L_exprString){return resolve(L_bind2)(function(){return resolve(L_scanLineM)(L_exprString)}, lazy(function(L_list){return resolve(L_visit)(lazy(function(L_func){return function(L_x){return resolve(L_isToken)(L_x)(function(){return resolve(L_tokenString)(L_x)})(function(){return resolve(L_isParens)(L_x)(function(){return resolve(L_visit)(L_func, function(){return resolve(L_parensContent)(L_x)})})(L_x)})}}), L_list)}))}))},
- function(){return resolve(L_newDefine)("repeat", 1, "repeat n = \\f . runRepeat 0 n f", lazy(setDataType(function(L_n){return setType(function(L_f){return resolve(L_runRepeat)(0, L_n, L_f)}, 'repeat')}, 'repeat')))},
+ function(){return resolve(L_newDefine)("range", 2, "range a b = \\f . runRepeat a b f", lazy(setDataType((function(L_a, L_b) {
+    return arguments.callee.length != arguments.length
+        ? Leisure_primCall(arguments.callee, 0, arguments)
+        : setType(function(L_f){return resolve(L_runRepeat)(L_a, L_b, L_f)}, 'range');
+}), 'range')))},
+ function(){return resolve(L_newDefine)("upTo", 1, "upTo n = range 0 n", lazy(function(L_n){return resolve(L_range)(0, L_n)}))},
+ function(){return resolve(L_newDefine)("repeat", 1, "repeat n = \\item . runRepeat 0 n \\x . item", lazy(setDataType(function(L_n){return setType(function(L_item){return resolve(L_runRepeat)(0, L_n, lazy(function(L_x){return resolve(L_item)}))}, 'repeat')}, 'repeat')))},
+ function(){return resolve(L_newDefine)("isRepeat", 1, "isRepeat r = hasType r repeat", lazy(function(L_r){return resolve(L_hasType)(L_r, L_repeat)}))},
+ function(){return resolve(L_newDefine)("isRange", 1, "isRange r = hasType r range", lazy(function(L_r){return resolve(L_hasType)(L_r, L_range)}))},
  function(){return resolve(L_newDefine)("runRepeat", 3, "runRepeat count limit f = count < limit\r\n  [(f count) | runRepeat (count + 1) limit f]\r\n  []", lazy((function(L_count, L_limit, L_f) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)
@@ -68,16 +76,6 @@ L_runMonads([
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)
         : resolve(L_filter)(function(){return resolve(L_compose)(L_not, L_f)}, L_l);
-})))},
- function(){return resolve(L_newDefine)("any", 2, "any f l = find f l (\\el . true) false", lazy((function(L_f, L_l) {
-    return arguments.callee.length != arguments.length
-        ? Leisure_primCall(arguments.callee, 0, arguments)
-        : resolve(L_find)(L_f, L_l)(lazy(function(L_el){return resolve(L_true)}))(L_false);
-})))},
- function(){return resolve(L_newDefine)("all", 2, "all f l = not (any (compose not f) l)", lazy((function(L_f, L_l) {
-    return arguments.callee.length != arguments.length
-        ? Leisure_primCall(arguments.callee, 0, arguments)
-        : resolve(L_not)(function(){return resolve(L_any)(function(){return resolve(L_compose)(L_not, L_f)}, L_l)});
 })))},
  function(){return resolve(L_newDefine)("take", 2, "take n list = positive n\r\n  list\r\n    \\h t D . cons h (take (-- n) t)\r\n    nil\r\n  nil", lazy((function(L_n, L_list) {
     return arguments.callee.length != arguments.length
@@ -197,6 +195,16 @@ L_runMonads([
         ? Leisure_primCall(arguments.callee, 0, arguments)
         : resolve(L_isCons)(L_list)(function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func, function(){return resolve(L_head)(L_list)})}, function(){return resolve(L_cons)(function(){return resolve(L_showConsElements)(L_func, function(){return resolve(L_tail)(L_list)})}, L_nil)})})})(function(){return resolve(L_isNil)(L_list)("")(function(){return resolve(L_cons)(" | ", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func, L_list)}, L_nil)})})});
 })))},
+ function(){return resolve(L_advise)("showBase", "range", 2, lazy(function(L_func){return function(L_obj){return resolve(L_hasType)(L_obj, L_range)(function(){return resolve(L_some)(function(){return(function(){
+  var L_l_0;
+  L_l_0 = function(){return resolve(L_obj)(L_id)};
+
+  return resolve(L_strCat)(function(){return resolve(L_cons)("(range ", function(){return resolve(L_cons)(function(){return resolve(L_head)(L_l_0)}, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(function(){return resolve(L_last)(L_l_0)}, function(){return resolve(L_cons)(")", L_nil)})})})})})})();})})(L_none)}}))},
+ function(){return resolve(L_advise)("showBase", "repeat", 2, lazy(function(L_func){return function(L_obj){return resolve(L_hasType)(L_obj, L_repeat)(function(){return resolve(L_some)(function(){return(function(){
+  var L_l_0;
+  L_l_0 = function(){return resolve(L_obj)(L_nil)};
+
+  return resolve(L_strCat)(function(){return resolve(L_cons)("(repeat ", function(){return resolve(L_cons)(function(){return resolve(L_length)(L_l_0)}, function(){return resolve(L_cons)(")", L_nil)})})})})();})})(L_none)}}))},
  function(){return resolve(L_advise)("showBase", "hamt", 2, lazy(function(L_func){return function(L_obj){return resolve(L_hasType)(L_obj, L_hamt)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_flatten)(function(){return resolve(L_cons)("hamt{", function(){return resolve(L_cons)(function(){return resolve(L_intersperse)(function(){return resolve(L_map)(lazy(function(L_item){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func, function(){return resolve(L_head)(L_item)})}, function(){return resolve(L_cons)(":", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func, function(){return resolve(L_tail)(L_item)})}, L_nil)})})}), function(){return resolve(L_hamtPairs)(L_obj)})}, " ")}, function(){return resolve(L_cons)("}", L_nil)})})})})})})(L_none)}}))},
  function(){return resolve(L_advise)("showBase", "assoc", 2, lazy(function(L_func){return function(L_obj){return resolve(L_isAlist)(L_obj)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_flatten)(function(){return resolve(L_cons)("{", function(){return resolve(L_cons)(function(){return resolve(L_intersperse)(function(){return resolve(L_map)(lazy(function(L_item){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func, function(){return resolve(L_head)(L_item)})}, function(){return resolve(L_cons)(":", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func, function(){return resolve(L_tail)(L_item)})}, L_nil)})})}), L_obj)}, " ")}, function(){return resolve(L_cons)("}", L_nil)})})})})})})(L_none)}}))},
  function(){return resolve(L_advise)("showBase", "left", 2, lazy(function(L_func){return function(L_obj){return resolve(L_hasType)(L_obj, L_left)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("(left ", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func, function(){return resolve(L_obj)(L_id)(L_id)})}, function(){return resolve(L_cons)(")", L_nil)})})})})})(L_none)}}))},
@@ -217,9 +225,9 @@ L_runMonads([
  function(){return resolve(L_advise)("present", "nil", 1, lazy(function(L_obj){return resolve(L_hasType)(L_obj, L_nil)(function(){return resolve(L_some)("nil")})(L_none)}))},
  function(){return resolve(L_advise)("present", "none", 1, lazy(function(L_obj){return resolve(L_hasType)(L_obj, L_none)(function(){return resolve(L_some)("none")})(L_none)}))},
  function(){return resolve(L_advise)("presentHtml", "html", 1, lazy(function(L_obj){return resolve(L_hasType)(L_obj, L_html)(function(){return resolve(L_some)(function(){return resolve(L_obj)(L_id)})})(L_none)}))},
- function(){return resolve(L_newDefine)("wrap", 1, "wrap x = \\f . f x", lazy(setDataType(function(L_x){return setType(function(L_f){return resolve(L_f)(L_x)}, 'wrap')}, 'wrap')))},
- function(){return resolve(L_advise)("showBase", "wrap", 2, lazy(function(L_func){return function(L_v){return resolve(L_hasType)(L_v, L_wrap)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("wrap ", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func, function(){return resolve(L_v)(L_id)})}, L_nil)})})})})(L_none)}}))},
- function(){return resolve(L_advise)("bind2", "wrap", 2, lazy(function(L_v){return function(L_cont){return resolve(L_hasType)(L_v, L_wrap)(function(){return resolve(L_some)(function(){return resolve(L_cont)(function(){return resolve(L_v)(L_id)})})})(L_none)}}))},
+ function(){return resolve(L_newDefine)("wrapped", 1, "wrapped x = \\f . f x", lazy(setDataType(function(L_x){return setType(function(L_f){return resolve(L_f)(L_x)}, 'wrapped')}, 'wrapped')))},
+ function(){return resolve(L_advise)("showBase", "wrapped", 2, lazy(function(L_func){return function(L_v){return resolve(L_hasType)(L_v, L_wrapped)(function(){return resolve(L_some)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("wrapped ", function(){return resolve(L_cons)(function(){return resolve(L_showBase)(L_func, function(){return resolve(L_v)(L_id)})}, L_nil)})})})})(L_none)}}))},
+ function(){return resolve(L_advise)("bind2", "wrapped", 2, lazy(function(L_v){return function(L_cont){return resolve(L_hasType)(L_v, L_wrapped)(function(){return resolve(L_some)(function(){return resolve(L_cont)(function(){return resolve(L_v)(L_id)})})})(L_none)}}))},
  function(){return resolve(L_advise)("bind2", "bool", 2, lazy(function(L_opt){return function(L_cont){return resolve(L_or)(function(){return resolve(L_$p$p)(L_opt, L_true)}, function(){return resolve(L_$p$p)(L_opt, L_false)})(function(){return resolve(L_some)(function(){return resolve(L_opt)(function(){return resolve(L_cont)(L_true)})(L_unit)})})(L_none)}}))},
  function(){return resolve(L_advise)("bind2", "option", 2, lazy(function(L_opt){return function(L_cont){return resolve(L_isOption)(L_opt)(function(){return resolve(L_some)(function(){return resolve(L_opt)(lazy(function(L_value){return resolve(L_cont)(L_value)}))(L_unit)})})(L_none)}}))},
  function(){return resolve(L_advise)("bind2", "either", 2, lazy(function(L_either){return function(L_cont){return resolve(L_isEither)(L_either)(function(){return resolve(L_some)(function(){return resolve(L_either)(lazy(function(L__){return resolve(L_either)}))(lazy(function(L_value){return resolve(L_cont)(L_value)}))})})(L_none)}}))},
@@ -233,19 +241,25 @@ L_runMonads([
  function(){return resolve(L_advise)("bind2", "caseResult", 2, lazy(function(L_data){return function(L_cont){return resolve(L_isCaseResult)(L_data)(function(){return resolve(L_some)(function(){return resolve(L_data)(L_id)})})(L_none)}}))},
  function(){return resolve(L_advise)("bind2", "cons", 2, lazy(function(L_list){return function(L_cont){return resolve(L_hasType)(L_list, L_cons)(function(){return resolve(L_some)(function(){return resolve(L_map)(L_cont, L_list)})})(L_none)}}))},
  function(){return resolve(L_advise)("bind2", "repeat", 2, lazy(function(L_r){return function(L_cont){return resolve(L_hasType)(L_r, L_repeat)(function(){return resolve(L_some)(function(){return resolve(L_r)(L_cont)})})(L_none)}}))},
- function(){return resolve(L_newDefine)("subbind", 2, "subbind m cont = bind2 (wrap m) cont", lazy((function(L_m, L_cont) {
+ function(){return resolve(L_newDefine)("subbind", 2, "subbind m cont = bind2 (wrapped m) cont", lazy((function(L_m, L_cont) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)
-        : resolve(L_bind2)(function(){return resolve(L_wrap)(L_m)}, L_cont);
+        : resolve(L_bind2)(function(){return resolve(L_wrapped)(L_m)}, L_cont);
 })))},
  function(){return resolve(L_advise)("subbind", "monad", 2, lazy(function(L_m){return function(L_cont){return resolve(L_or)(function(){return resolve(L_hasType)(L_m, "*Monad2")}, function(){return resolve(L_hasType)(L_m, "monad")})(function(){return resolve(L_some)(function(){return resolve(L_bind2)(L_m, L_cont)})})(L_none)}}))},
  function(){return resolve(L_advise)("subbind", "boolean", 2, lazy(function(L_m){return function(L_cont){return resolve(L_$p$p)(L_m, L_false)(function(){return resolve(L_some)(function(){return resolve(L_cont)(L_unit)})})(L_none)}}))},
  function(){return resolve(L_advise)("subbind", "option", 2, lazy(function(L_m){return function(L_cont){return resolve(L_hasType)(L_m, L_none)(function(){return resolve(L_some)(function(){return resolve(L_cont)(L_unit)})})(L_none)}}))},
  function(){return resolve(L_advise)("subbind", "either", 2, lazy(function(L_m){return function(L_cont){return resolve(L_hasType)(L_m, L_left)(function(){return resolve(L_some)(function(){return resolve(L_cont)(L_unit)})})(L_none)}}))},
- function(){return resolve(L_newDefine)("wrapped", 1, "wrapped x = \\f . f x", lazy(setDataType(function(L_x){return setType(function(L_f){return resolve(L_f)(L_x)}, 'wrapped')}, 'wrapped')))},
- function(){return resolve(L_advise)("wrap", "X", 1, lazy(function(L_value){return resolve(L_true)(function(){return resolve(L_some)(function(){return resolve(L_wrapped)(L_value)})})(L_none)}))},
- function(){return resolve(L_advise)("asIO", "cons", 1, lazy(function(L_list){return resolve(L_hasType)(L_list, L_cons)(function(){return resolve(L_some)(function(){return resolve(L_doall)(L_list)})})(L_none)}))},
- function(){return resolve(L_advise)("asIO", "option", 1, lazy(function(L_opt){return resolve(L_isOption)(L_opt)(function(){return resolve(L_some)(function(){return resolve(L_opt)(L_id)(L_unit)})})(L_none)}))},
+ function(){return resolve(L_newDefine)("wrappedForeach", 1, "wrappedForeach x = \\f . f x", lazy(setDataType(function(L_x){return setType(function(L_f){return resolve(L_f)(L_x)}, 'wrappedForeach')}, 'wrappedForeach')))},
+ function(){return resolve(L_newDefine)("testWrappedForeach", 2, "testWrappedForeach f test = and (hasType f wrappedForeach) (f test)", lazy((function(L_f, L_test) {
+    return arguments.callee.length != arguments.length
+        ? Leisure_primCall(arguments.callee, 0, arguments)
+        : resolve(L_and)(function(){return resolve(L_hasType)(L_f, L_wrappedForeach)}, function(){return resolve(L_f)(L_test)});
+})))},
+ function(){return resolve(L_advise)("bind2", "wrappedForeachCons", 2, lazy(function(L_list){return function(L_cont){return resolve(L_testWrappedForeach)(L_list, L_isCons)(function(){return resolve(L_some)(function(){return resolve(L_doall)(function(){return resolve(L_map)(L_cont, function(){return resolve(L_list)(L_id)})})})})(L_none)}}))},
+ function(){return resolve(L_advise)("bind2", "wrappedForeachRep", 2, lazy(function(L_rep){return function(L_cont){return resolve(L_testWrappedForeach)(L_rep, L_isRepeat)(function(){return resolve(L_some)(function(){return resolve(L_doall)(function(){return resolve(L_rep)(L_id)(function(){return resolve(L_cont)(L_nil)})})})})(L_none)}}))},
+ function(){return resolve(L_advise)("bind2", "wrappedForeachRange", 2, lazy(function(L_r){return function(L_cont){return resolve(L_testWrappedForeach)(L_r, L_isRange)(function(){return resolve(L_some)(function(){return resolve(L_doall)(function(){return resolve(L_r)(L_id)(L_cont)})})})(L_none)}}))},
+ function(){return resolve(L_defMacro)("foreach", lazy(function(L_list){return resolve(L_cons)("wrappedForeach", function(){return resolve(L_cons)(L_list, L_nil)})}))},
  function(){return resolve(L_defMacro)("defWrapper", lazy(function(L_list){return resolve(L_grabLeftOfArrow)(L_list, L_nil, lazy(function(L_left){return function(L_right){return resolve(L_cons)("override", function(){return resolve(L_cons)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("'", function(){return resolve(L_cons)(function(){return resolve(L_strTokenString)(function(){return resolve(L_head)(L_left)})}, function(){return resolve(L_cons)("'", L_nil)})})})}, function(){return resolve(L_cons)(function(){return resolve(L_append)(function(){return resolve(L_cons)("\\", function(){return resolve(L_tail)(L_left)})}, function(){return resolve(L_cons)(".", L_right)})}, L_nil)})})}}))}))},
  function(){return resolve(L_newDefine)("grabLeftOfArrow", 3, "grabLeftOfArrow list left cont = isTokenString (head list) '->'\r\n  cont (reverse left) (tail list)\r\n  grabLeftOfArrow (tail list) (head list) : left cont", lazy((function(L_list, L_left, L_cont) {
     return arguments.callee.length != arguments.length

@@ -16,6 +16,15 @@ setNameSpace 'core'
 # Utilities
 #################
 
+## return true if any elements of l satisfy f, which takes exactly one arg
+## eg. any (eq 0) [1 2 0] gives true: true
+any f l = find f l (\el . true) false
+
+## return true if ALL elements of l satisfy f, which takes exactly one arg
+## eg. all (eq 0) [0 0 0] gives true: true
+## caveat!  return true for nil lists
+all f l = not (any (compose not f) l)
+
 # change this to return a list of results
 doall = foldr1 (\el res . bind2 el \_ . res)
 aconsf key value list = acons key value (aremove key list)
@@ -249,9 +258,11 @@ handleDo list inLet cont = list
 doClause steppingClause clause prefix inLet cont = \\
   makeBind var monad = cont false \rest . inLet (cons '.') id
     ['bind2' monad ['\\' var '.' | rest]]
+  h = head steppingClause
+  t = tail steppingClause
   .
   isCons steppingClause
-    steppingClause \h t . isTokenString h '='
+    isTokenString h '='
       inLet
         cont true \rest . [clause | rest]
         cont true \rest . ['\\\\' clause | rest]

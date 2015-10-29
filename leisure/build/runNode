@@ -11,13 +11,13 @@ while [ $x -lt 3 ]; do
     x=$((x + 1))
     node --stack-size=3000 "$@"
     r=$?
-    if [ $r != 3 -a $r != 7 -a $r != 139 ]; then
-        if [ $r != 0 ]; then
-            echo "node exited with $r"
-        fi
+    if [ $r = 0 ]; then
+        break
+    elif [ $r = 1 ]; then
+        echo Node exited with $r.
         break
     else
-        echo Retrying node after failure to start...
+        echo Node exited with $r, retrying...
         sleep 1
     fi
 done
