@@ -808,7 +808,7 @@ misrepresented as being the original software.
         return partialCall(arguments);
       } else {
         newM = rz(m);
-        if ((newM instanceof Monad2) || (isMonad(newM))) {
+        if (true || (newM instanceof Monad2) || (isMonad(newM))) {
           return new Monad2('bind', (function(env, cont) {
             var hasInnerArg, inner, innerArg, result, sync;
             sync = true;
@@ -856,7 +856,7 @@ misrepresented as being the original software.
         if (isPartial(arguments)) {
           return partialCall(arguments);
         } else {
-          if (isMonad(rz(m))) {
+          if (true || isMonad(rz(m))) {
             bindMonad = makeMonad(function(env, cont) {});
             bindMonad.monad = m;
             bindMonad.binding = binding;

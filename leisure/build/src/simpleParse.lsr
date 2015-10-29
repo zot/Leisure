@@ -901,7 +901,8 @@ postProcessMacro before after expr = isString expr
         expr
 
 # doesn't work with bind2
-defMacro name def = bind (getValue 'macroDefs') \macs . setValue 'macroDefs' (acons name def macs)
+defMacro name def = bind (getValue 'macroDefs')
+  \macs . setValue 'macroDefs' (acons name def macs)
 
 #################
 # Token Patterns
@@ -1143,36 +1144,33 @@ countedScanLines file names countedLines = countedLines
 
 #newGen
 
-# doesn't work with bind2
 # pack is (tokens groups filters)
-defTokenPack name pack = bind (getValue 'tokenPacks')
+defTokenPack name pack = bind2 (getValue 'tokenPacks')
   \packs . setValue 'tokenPacks' (acons name pack packs)
 
-# doesn't work with bind2
-useTokenPack name = bind (getValue 'tokenPacks')
-  \packs . bind (getValue 'tokenGroups')
-    \groups . bind (getValue 'tokenList')
-      \tokens . bind (getValue 'activeTokenPacks')
-        \activePacks . bind (getValue 'parseFilters')
+useTokenPack name = bind2 (getValue 'tokenPacks')
+  \packs . bind2 (getValue 'tokenGroups')
+    \groups . bind2 (getValue 'tokenList')
+      \tokens . bind2 (getValue 'activeTokenPacks')
+        \activePacks . bind2 (getValue 'parseFilters')
           \filters . assoc name packs
             \pack . \\
               groupToks = foldl (\value el . el \h t . cons h (cons t value)) nil (head (tail pack))
               newToks = mergeSort (\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
               .
-              bind (setValue 'tokenList' newToks)
-                \_ . bind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))
-                  \_ . bind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))
-                    \_ . bind (computeTokenPat newToks)
+              bind2 (setValue 'tokenList' newToks)
+                \_ . bind2 (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))
+                  \_ . bind2 (setValue 'parseFilters' (append filters (head (tail (tail pack)))))
+                    \_ . bind2 (computeTokenPat newToks)
                       \_ . setValue 'activeTokenPacks' (cons name activePacks)
             nil
 
-# doesn't work with bind2
-resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
-  \_ . bind (setValue 'tokenList' nil)
-    \_ . bind (setValue 'activeTokenPacks' nil)
-      \_ . bind (setValue 'parseFilters' nil)
+resetTokenPacks packs = bind2 (setValue 'tokenGroups' nil)
+  \_ . bind2 (setValue 'tokenList' nil)
+    \_ . bind2 (setValue 'activeTokenPacks' nil)
+      \_ . bind2 (setValue 'parseFilters' nil)
         \_ . foldr1
-          \packCmd result . bind packCmd \_ . result
+          \packCmd result . bind2 packCmd \_ . result
           map useTokenPack packs
 
 resetStdTokenPacks = bind2 (getValue 'stdTokenPacks')

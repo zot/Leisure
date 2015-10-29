@@ -409,10 +409,11 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 
   runMonad2 = (monad, env, cont)->
     #if !(monad instanceof Monad2) && !(isMonad monad) && L_asIO && L_show
+    #  #monad = rz(L_asIO)(lz monad)
     #  tmpMonad = rz(L_asIO)(lz monad)
     #  if monad != tmpMonad
     #    if getType(monad) == 'wrapped'
-    #      #monad = tmpMonad
+    #      monad = tmpMonad
     #    else console.log "WOULD HAVE CONVERTED #{rz(L_show) lz monad} to #{rz(L_show) lz tmpMonad}"
     if monad instanceof Monad2 then monad.cmd(env, cont)
     #else if isMonad monad then newRunMonad monad, env, cont, []
@@ -424,13 +425,11 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
         innerArg = null
         result = runMonad2 rz(monad.monad), env, (x)->
           if sync then inner = -> runMonad2 rz(monad.binding)(lz x), env, (y)->
-          #if sync then inner = -> rz(monad.binding) lz (y)->
             if sync
               hasInnerArg = true
               innerArg = y
             else cont y
           else runMonad2 rz(monad.binding)(lz x), env, cont
-          #else rz(monad.binding) cont
         if inner
           result = inner()
           if hasInnerArg then result = cont innerArg
@@ -455,14 +454,13 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 
   define 'bind2', bind2 = (m, binding)-> if isPartial arguments then partialCall arguments else
     newM = rz m
-    if (newM instanceof Monad2) || (isMonad newM)
+    if true || (newM instanceof Monad2) || (isMonad newM)
       new Monad2 'bind', ((env, cont)->
         sync = true
         inner = null
         innerArg = null
         hasInnerArg = false
         result = runMonad2 newM, env, (value)->
-          #runMonad2 rz(L_bind2)(lz value)(binding), env, cont), ->
           if sync then inner = -> runMonad2 rz(binding)(lz value), env, (y)->
             if sync
               hasInnerArg = true
@@ -482,7 +480,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
   if newbind then define 'bind', bind2
   else
     define 'bind', (m, binding)-> if isPartial arguments then partialCall arguments else
-      if isMonad rz m
+      if true || isMonad rz m
         bindMonad = makeMonad (env, cont)->
         bindMonad.monad = m
         bindMonad.binding = binding
