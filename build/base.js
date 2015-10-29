@@ -66,7 +66,7 @@ misrepresented as being the original software.
       prompt: function() {}
     };
     rz = (typeof window !== "undefined" && window !== null ? window : global).resolve = function(value) {
-      if (typeof value === 'function') {
+      if (typeof value === 'function' && value.length === 0) {
         if (typeof value.memo !== 'undefined') {
           return value.memo;
         } else {
@@ -158,6 +158,18 @@ misrepresented as being the original software.
     };
     slice = Array.prototype.slice;
     concat = Array.prototype.concat;
+    (typeof window !== "undefined" && window !== null ? window : global).L$ = function(f) {
+      f = rz(f);
+      if (f.length > 1) {
+        return f;
+      } else {
+        return function() {
+          var args;
+          args = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
+          return baseLeisureCall(f, 0, args);
+        };
+      }
+    };
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_call = leisureCall = function(f) {
       return baseLeisureCall(f, 1, arguments);
     };
@@ -188,7 +200,9 @@ misrepresented as being the original software.
                 return f.apply(null, (pos === 0 ? args : slice.call(args, pos)));
               }
               f = f.apply(null, slice.call(args, pos, pos + len));
-              len = f.length;
+          }
+          if (len < args.length - pos) {
+            len = f.length;
           }
           pos += oldLen;
         } else {
@@ -196,6 +210,9 @@ misrepresented as being the original software.
           partial = function() {
             var newArgs;
             newArgs = concat.call(prev, slice.call(arguments));
+            if (!f.apply) {
+              console.log("No apply! " + f + " " + newArgs[0]);
+            }
             if (newArgs.length === len) {
               return f.apply(null, newArgs);
             } else {

@@ -28,7 +28,7 @@ misrepresented as being the original software.
   var slice = [].slice;
 
   define(['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], function(Base, Ast, Runtime, _, SourceMap) {
-    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, _false, _true, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curryCall, define, dumpAnno, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, makeSyncMonad, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, sn, specialAnnotations, strRepeat, uniqName, useArity, varNameSub, verboseMsg, withFile;
+    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, _false, _true, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curryCall, define, dumpAnno, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, makeSyncMonad, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, right, root, runMonad, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, strRepeat, uniqName, useArity, varNameSub, verboseMsg, withFile;
     simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog;
     rz = resolve;
     lz = lazy;
@@ -41,6 +41,10 @@ misrepresented as being the original software.
       return "L_" + (nameSub(n));
     };
     useArity = true;
+    megaArity = false;
+    setMegaArity = function(setting) {
+      return megaArity = setting;
+    };
     collectArgs = function(args, result) {
       var i, j, len;
       for (j = 0, len = args.length; j < len; j++) {
@@ -232,7 +236,7 @@ misrepresented as being the original software.
       return cont(_true);
     }), null, null, null, 'parser');
     genArifiedApply = function(ast, names, uniq) {
-      var argCode, args, arity, func, i, info, j, m, ref2, ref3, ref4;
+      var argCode, args, arity, defaultArity, dmp, func, i, info, j, m, ref2, ref3, ref4;
       args = [];
       func = ast;
       while (dumpAnno(func) instanceof Leisure_apply) {
@@ -240,12 +244,22 @@ misrepresented as being the original software.
         func = getApplyFunc(dumpAnno(func));
       }
       args.reverse();
-      info = functionInfo[getRefName(func)];
-      if (dumpAnno(func) instanceof Leisure_ref && (info != null ? info.newArity : void 0) && (arity = info != null ? info.arity : void 0) && arity <= args.length) {
+      defaultArity = false;
+      if (((dmp = dumpAnno(func)) instanceof Leisure_ref && (info = functionInfo[getRefName(dmp)]) && (info != null ? info.newArity : void 0) && (arity = info != null ? info.arity : void 0) && (1 < arity && arity <= args.length)) || (!arity && megaArity && args.length > 1)) {
+        if (defaultArity = !arity) {
+          arity = args.length;
+        }
         argCode = [];
         argCode.push(ast);
+        if (defaultArity) {
+          argCode.push('L$(');
+        }
         argCode.push(genUniq(func, names, uniq));
-        argCode.push('(');
+        if (defaultArity) {
+          argCode.push(')(');
+        } else {
+          argCode.push('(');
+        }
         for (i = j = 0, ref2 = arity; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
           if (i > 0) {
             argCode.push(', ');
@@ -543,7 +557,8 @@ misrepresented as being the original software.
       withFile: withFile,
       curryCall: curryCall,
       SourceNode: SourceNode,
-      SourceMapConsumer: SourceMapConsumer
+      SourceMapConsumer: SourceMapConsumer,
+      setMegaArity: setMegaArity
     };
   });
 

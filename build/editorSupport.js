@@ -4,7 +4,7 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
+  define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
     var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, throttledUpdateSelection, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
@@ -425,7 +425,7 @@
 
       OrgData.prototype.checkPropChange = function(oldBlock, newBlock, isDefault) {
         var newProperties, parent, ref, ref1, sets;
-        if (!isDefault && !newBlock.level && !_.isEqual(oldBlock != null ? oldBlock.properties : void 0, newBlock != null ? newBlock.properties : void 0) && (parent = this.parent(newBlock != null ? newBlock : oldBlock))) {
+        if (!isDefault && !(newBlock != null ? newBlock.level : void 0) && !_.isEqual(oldBlock != null ? oldBlock.properties : void 0, newBlock != null ? newBlock.properties : void 0) && (parent = this.parent(newBlock != null ? newBlock : oldBlock))) {
           newProperties = _.defaults((ref = this.parseBlocks(parent.text).properties) != null ? ref : {}, (ref1 = newBlock.properties) != null ? ref1 : {});
           if (!_.isEqual(parent.properties, newProperties)) {
             sets = {};
@@ -456,21 +456,21 @@
       };
 
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
-        var ref;
-        if ((oldBlock != null ? oldBlock.codeName : void 0) !== (newBlock != null ? newBlock.codeName : void 0)) {
-          if (oldBlock != null ? oldBlock.codeName : void 0) {
-            this.deleteBlockName(oldBlock.codeName);
+        var newName, oldName, ref, ref1, ref2, ref3, ref4;
+        oldName = (ref = oldBlock != null ? oldBlock.codeName : void 0) != null ? ref : (oldBlock != null ? oldBlock.type : void 0) === 'headline' && (oldBlock != null ? (ref1 = oldBlock.properties) != null ? ref1.name : void 0 : void 0);
+        newName = (ref2 = newBlock != null ? newBlock.codeName : void 0) != null ? ref2 : (newBlock != null ? newBlock.type : void 0) === 'headline' && (newBlock != null ? (ref3 = newBlock.properties) != null ? ref3.name : void 0 : void 0);
+        if (oldName !== newName) {
+          if (oldName) {
+            this.deleteBlockName(oldName);
           }
-          if (newBlock != null ? newBlock.codeName : void 0) {
-            if (!isDefault || this.addImported(isDefault, 'data', newBlock.codeName)) {
-              this.setBlockName(newBlock.codeName, newBlock._id, isDefault);
-            }
+          if (newName && (!isDefault || this.addImported(isDefault, 'data', newName))) {
+            this.setBlockName(newName, newBlock._id, isDefault);
           }
         }
         if ((oldBlock != null ? oldBlock.local : void 0) && !(newBlock != null ? newBlock.local : void 0)) {
-          this.deleteLocalBlock(oldBlock.codeName);
+          this.deleteLocalBlock(oldName);
         }
-        if (((ref = newBlock.codeAttributes) != null ? ref.results : void 0) === 'def') {
+        if ((newBlock != null ? (ref4 = newBlock.codeAttributes) != null ? ref4.results : void 0 : void 0) === 'def') {
           return this.queueEval((function(_this) {
             return function() {
               return _this.executeBlock(newBlock);
@@ -537,7 +537,7 @@
 
       OrgData.prototype.textForDataNamed = function(name, data, attrs) {
         var k, v;
-        return "#+NAME: " + name + "\n#+BEGIN_SRC yaml " + (((function() {
+        return (name ? "#+NAME: " + name + "\n" : '') + "#+BEGIN_SRC yaml " + (((function() {
           var results1;
           results1 = [];
           for (k in attrs) {
@@ -593,11 +593,8 @@
         env = blockEnvMaker(block)({
           __proto__: defaultEnv
         });
-        env.write = function(str) {};
-        env.errorAt = function(offset, msg) {
-          return console.log(msg);
-        };
         env.data = this;
+        env.write = function() {};
         if (typeof envConf === "function") {
           envConf(env);
         }
@@ -721,6 +718,14 @@
         this.pendingDataChanges = null;
       }
 
+      OrgEditing.prototype.load = function(name, text) {
+        var oldOpts;
+        oldOpts = defaultEnv.opts;
+        defaultEnv.opts = this;
+        OrgEditing.__super__.load.call(this, name, text);
+        return defaultEnv.opts = oldOpts;
+      };
+
       OrgEditing.prototype.renderBlocks = function() {
         return this.mode.renderBlocks(this, OrgEditing.__super__.renderBlocks.call(this));
       };
@@ -788,9 +793,13 @@
               ref = _this.dataChanges.sharedInserts;
               for (name in ref) {
                 ref1 = ref[name], parent = ref1.parent, parentType = ref1.parentType, block = ref1.block;
-                b = _this.blockBounds(name);
-                b.text = block.text;
-                repls.push(b);
+                if (b = _this.blockBounds((parentType === 'block' ? parent : _this.data.lastChild(_this.data.getNamedBlockId(parent))))) {
+                  b.start = b.end;
+                  b.text = block.text;
+                  repls.push(b);
+                } else {
+                  throw new Error("Attempt to append a block after nonexistant block: " + parent);
+                }
               }
               ref2 = _this.dataChanges.sharedSets;
               for (name in ref2) {
@@ -855,17 +864,21 @@
         }
       };
 
+      OrgEditing.prototype.blockBoundsForHeadline = function(name) {};
+
       OrgEditing.prototype.blockBounds = function(name) {
         var block, end, start;
-        block = this.data.getBlockNamed(name);
-        start = this.data.offsetForBlock(block);
-        end = start + block.text.length;
-        return {
-          start: start,
-          end: end,
-          gStart: start,
-          gEnd: end
-        };
+        if (name) {
+          block = typeof name === 'string' ? this.data.getBlockNamed(name) : name;
+          start = this.data.offsetForBlock(block);
+          end = start + block.text.length;
+          return {
+            start: start,
+            end: end,
+            gStart: start,
+            gEnd: end
+          };
+        }
       };
 
       OrgEditing.prototype.checkChanging = function() {
@@ -875,16 +888,16 @@
       };
 
       OrgEditing.prototype.appendDataToHeadline = function(parent, name, value, codeOpts) {
-        return appendData('headline', parent, name, value, codeOpts);
+        return this.appendData('headline', parent, name, value, codeOpts);
       };
 
       OrgEditing.prototype.appendDataAfter = function(parent, name, value, codeOpts) {
-        return appendData('block', parent, name, value, codeOpts);
+        return this.appendData('block', parent, name, value, codeOpts);
       };
 
       OrgEditing.prototype.appendData = function(parentType, parent, name, value, codeOpts) {
         this.checkChanging();
-        if (this.getData(name)) {
+        if (name && this.getData(name)) {
           throw new Error("Attempt to add block with duplicate name: " + name);
         }
         return this.dataChanges.sharedInserts[name] = {
@@ -899,7 +912,7 @@
         if (!skipCheck) {
           this.checkChanging();
         }
-        block = this.dataChanges.localRemoves[name] || this.dataChanges.sharedRemoves[name] ? null : (block = this.dataChanges.localSets[name] || this.dataChanges.sharedSets[name]) ? block : (info = this.dataChanges.sharedInserts[name]) ? info.block : this.data.getBlockNamed(name);
+        block = skipCheck ? this.data.getBlockNamed(name) : this.dataChanges.localRemoves[name] || this.dataChanges.sharedRemoves[name] ? null : (block = this.dataChanges.localSets[name] || this.dataChanges.sharedSets[name]) ? block : (info = this.dataChanges.sharedInserts[name]) ? info.block : this.data.getBlockNamed(name);
         return block != null ? block.yaml : void 0;
       };
 
@@ -1328,6 +1341,7 @@
             sync = true;
             env = envM({
               __proto__: defaultEnv,
+              write: function() {},
               options: this,
               data: this.data
             });
@@ -1413,7 +1427,7 @@
           env = envM({
             __proto__: defaultEnv
           });
-          opts = this;
+          env.opts = opts = this;
           newBlock = setError(block);
           env.errorAt = function(offset, msg) {
             newBlock = setError(block, offset, msg);
@@ -1422,7 +1436,7 @@
             }
           };
           env.write = function(str) {
-            result += str;
+            result += presentHtml(str);
             if (!sync) {
               return opts.update(newBlock = setResult(block, str));
             }

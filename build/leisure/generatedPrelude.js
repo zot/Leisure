@@ -1,7 +1,9 @@
 L_runMonads([
   function(){return resolve(L_setNameSpace)("core")},
+ function(){return resolve(L_newDefine)("isMonad", 1, "isMonad x = or (eq (getType x) 'monad') (eq (getType x) 'monad2')", lazy(function(L_x){return resolve(L_or)(function(){return resolve(L_eq)(function(){return resolve(L_getType)(L_x)}, "monad")}, function(){return resolve(L_eq)(function(){return resolve(L_getType)(L_x)}, "monad2")})}))},
  function(){return resolve(L_newDefine)("asIO", 1, "asIO x = x", lazy(function(L_x){return resolve(L_x)}))},
  function(){return resolve(L_newDefine)("fakereturn", 1, "fakereturn x = x", lazy(function(L_x){return resolve(L_x)}))},
+ function(){return resolve(L_newDefine)("wrap", 1, "wrap x = x", lazy(function(L_x){return resolve(L_x)}))},
  function(){return resolve(L_newDefine)("true", 0, "true = \\a b . a", lazy(setDataType(setType(function(L_a){return function(L_b){return resolve(L_a)}}, 'true'), 'true')))},
  function(){return resolve(L_newDefine)("false", 0, "false = \\a b . b", lazy(setDataType(setType(function(L_a){return function(L_b){return resolve(L_b)}}, 'false'), 'false')))},
  function(){return resolve(L_newDefine)("not", 1, "not b = b false true", lazy(function(L_b){return resolve(L_b)(L_false)(L_true)}))},
@@ -10,11 +12,13 @@ L_runMonads([
         ? Leisure_primCall(arguments.callee, 0, arguments)
         : resolve(L_a)(L_b)(L_false);
 })))},
+ function(){return resolve(L_newDefine)("&&", 0, "&& = and", L_and)},
  function(){return resolve(L_newDefine)("or", 2, "or a b = a true b", lazy((function(L_a, L_b) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)
         : resolve(L_a)(L_true)(L_b);
 })))},
+ function(){return resolve(L_newDefine)("||", 0, "|| = or", L_or)},
  function(){return resolve(L_newDefine)("some", 1, "some x = \\someCase noneCase . someCase x", lazy(setDataType(function(L_x){return setType(function(L_someCase){return function(L_noneCase){return resolve(L_someCase)(L_x)}}, 'some')}, 'some')))},
  function(){return resolve(L_newDefine)("some2", 2, "some2 a b = \\someCase noneCase . someCase a b", lazy(setDataType((function(L_a, L_b) {
     return arguments.callee.length != arguments.length
@@ -1147,7 +1151,7 @@ L_runMonads([
   return resolve(L_and)(function(){return resolve(L_$z)(L_len, 2)}, function(){return resolve(L_and)(function(){return resolve(L_isInfix)(L_nextPrec_0, L_curArg, L_nextOp, L_len)}, function(){return resolve(L_and)(function(){return resolve(L_or)(function(){return resolve(L_$z)(L_opPrec, L_nextPrec_0)}, function(){return resolve(L_and)(function(){return resolve(L_$p$p)(L_opPrec, L_nextPrec_0)}, L_isRight)})}, function(){return resolve(L_and)(function(){return resolve(L_isInfixArg)(L_closes, L_nextArg)}, L_true)})})})})();
 })))},
  function(){return resolve(L_defMacro)(":", lazy(function(L_list){return resolve(L_cons)("cons", L_list)}))},
- function(){return resolve(L_newDefine)("iprec", 0, "iprec = [['*' '/' '%'] ['+' '-'] [':'] ['<' '>' '<=' '>='] ['==' '!=']]", function(){return resolve(L_cons)(function(){return resolve(L_cons)("*", function(){return resolve(L_cons)("/", function(){return resolve(L_cons)("%", L_nil)})})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("+", function(){return resolve(L_cons)("-", L_nil)})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)(":", L_nil)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("<", function(){return resolve(L_cons)(">", function(){return resolve(L_cons)("<=", function(){return resolve(L_cons)(">=", L_nil)})})})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("==", function(){return resolve(L_cons)("!=", L_nil)})}, L_nil)})})})})})},
+ function(){return resolve(L_newDefine)("iprec", 0, "iprec = [['*' '/' '%'] ['+' '-'] [':'] ['<' '>' '<=' '>='] ['==' '!='] ['&&' '||']]", function(){return resolve(L_cons)(function(){return resolve(L_cons)("*", function(){return resolve(L_cons)("/", function(){return resolve(L_cons)("%", L_nil)})})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("+", function(){return resolve(L_cons)("-", L_nil)})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)(":", L_nil)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("<", function(){return resolve(L_cons)(">", function(){return resolve(L_cons)("<=", function(){return resolve(L_cons)(">=", L_nil)})})})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("==", function(){return resolve(L_cons)("!=", L_nil)})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("&&", function(){return resolve(L_cons)("||", L_nil)})}, L_nil)})})})})})})},
  function(){return resolve(L_newDefine)("rightAssoc", 0, "rightAssoc = [':']", function(){return resolve(L_cons)(":", L_nil)})},
  function(){return resolve(L_newDefine)("setPrecedenceLevels", 1, "setPrecedenceLevels levels = bind\n  setValue 'infixPrecedence' levels\n  \\_ . doall (map addInfixProp (flatten levels))", lazy(function(L_levels){return resolve(L_bind)(function(){return resolve(L_setValue)("infixPrecedence", L_levels)}, lazy(function(L__){return resolve(L_doall)(function(){return resolve(L_map)(L_addInfixProp, function(){return resolve(L_flatten)(L_levels)})})}))}))},
  function(){return resolve(L_newDefine)("addInfixProp", 1, "addInfixProp funcName = getFunction funcName\n  \\func . setProperty func 'infix' true\n  nil", lazy(function(L_funcName){return resolve(L_getFunction)(L_funcName)(lazy(function(L_func){return resolve(L_setProperty)(L_func, "infix", L_true)}))(L_nil)}))},

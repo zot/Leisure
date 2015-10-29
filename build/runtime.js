@@ -1632,6 +1632,9 @@ misrepresented as being the original software.
       _true: _true,
       _false: _false,
       _unit: _unit,
+      _identity: _identity,
+      some: some,
+      none: none,
       stateValues: values,
       runMonad: runMonad,
       runMonad2: runMonad2,
@@ -1657,7 +1660,8 @@ misrepresented as being the original software.
       escapePresentationHtml: escapePresentationHtml,
       unescapePresentationHtml: unescapePresentationHtml,
       makeHamt: makeHamt,
-      jsonConvert: jsonConvert
+      jsonConvert: jsonConvert,
+      lacons: lacons
     };
   });
 

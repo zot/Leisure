@@ -27,6 +27,7 @@ require('source-map-support').install()
 path = require 'path'
 
 baseDir = path.resolve path.dirname(module.filename) + '/../../../build'
+baseLeisureDir = baseDir + '/leisure/'
 
 requirejs = require('requirejs').config
   baseUrl: baseDir
@@ -54,36 +55,37 @@ fs = require 'fs'
 #compiler = require 'compiler'
 
 {
-  getType,
-  setType,
-  setDataType,
-  ast2Json,
-  json2Ast,
-  Nil,
+  getType
+  setType
+  setDataType
+  ast2Json
+  json2Ast
+  Nil
 } = requirejs './ast'
 global.btoa = require 'btoa'
 {
-  gen,
-  genMap,
-  genSource,
-  withFile,
-  sourceNode,
-  SourceNode,
+  gen
+  genMap
+  genSource
+  withFile
+  sourceNode
+  SourceNode
+  setMegaArity
 } = requirejs './gen'
 {
-  readFile,
-  writeFile,
+  readFile
+  writeFile
 } = requirejs './node'
 {
-  identity,
-  runMonad,
-  newRunMonad,
-  isMonad,
-  asyncMonad,
-  replaceErr,
-  getMonadSyncMode,
-  setWarnAsync,
-  requireFiles,
+  identity
+  runMonad
+  newRunMonad
+  isMonad
+  asyncMonad
+  replaceErr
+  getMonadSyncMode
+  setWarnAsync
+  requireFiles
   getValue
 } = requirejs './runtime'
 
@@ -181,9 +183,9 @@ rl = null
 
 leisureCompleter = (line)->
   if newCall
-    tokens = lc(L_tokens, line, root.getValue 'tokenPat').toArray()
+    tokens = lc(L_tokens, line, getValue 'tokenPat').toArray()
   else
-    tokens = rz(L_tokens)(lz line)(lz root.getValue 'tokenPat').toArray()
+    tokens = rz(L_tokens)(lz line)(lz getValue 'tokenPat').toArray()
   if tokens.length > 0
     origLast = tokenString(tokens[tokens.length - 1])
     last = origLast.toLowerCase()
@@ -210,7 +212,10 @@ repl = (config)->
   lines = null
   leisureDir = path.join config.home, '.leisure'
   historyFile = path.join(leisureDir, 'history')
-  rl = readline.createInterface process.stdin, process.stdout, leisureCompleter
+  rl = readline.createInterface
+    input: process.stdin
+    output: process.stdout
+    completer: leisureCompleter
   fs.exists historyFile, (exists)->
     ((cont)->
       if exists then readFile historyFile, (err, contents)->
@@ -436,8 +441,7 @@ doRequirements = (cont)->
   if !loadedParser
     #if stage < 2 then root.shouldNsLog = false
     root.shouldNsLog = shouldNsLog
-    #console.log "REQUIRING #{stages[stage]}"
-    require stages[stage]
+    require baseLeisureDir + stages[stage]
     loadedParser = true
     if stage == 1 then root.lockGen = false
   #loadRequirements requireList, cont, verbose
@@ -488,6 +492,7 @@ processArg = (config, pos)->
         action = primCompile
         loadedParser = true
       else
+        #setMegaArity true
         action = compile
         createAstFile = createJsFile = true
     when '-d'
@@ -546,6 +551,7 @@ run = (args, config)->
   if args.length == 2
     #if stage < 2 then root.shouldNsLog = false
     root.shouldNsLog = shouldNsLog
+    #require baseLeisureDir + stages[stage]
     require stages[stage]
     repl config
   else processArg config, 2
@@ -567,4 +573,4 @@ else
       console.log "b"
       #if stage < 2 then root.shouldNsLog = false
       root.shouldNsLog = shouldNsLog
-      require stages[stage]
+      require baseLeisureDir + stages[stage]

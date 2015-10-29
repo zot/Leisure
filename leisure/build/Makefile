@@ -1,95 +1,98 @@
-BROWSERIFY_SRC=browserMain
+OUTPUT_DIR=../../build/leisure
 YAML_SRC=src/yamlBundle.js
 MODULES=persistent-hash-trie source-map utf8 js-yaml
 LEISURE_SRC=generatedPrelude std svg parseAst simpleParse
-LEISURE_FILES=$(LEISURE_SRC:%=lib/%.js)
-LEISURE_GEN=$(LEISURE_FILES) $(LEISURE_SRC:%=lib/%.ast) $(LEISURE_SRC:%=lib/%.map) lib/generatedPrelude.lsr
+LEISURE_JS=lib/simpleParseJS.js $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.js)
 NODE=$(CURDIR)/runNode
 #REPL=$(NODE) src/runRepl
 REPL=$(CURDIR)/../repl
-OUTPUT_DIR=../../build/leisure
-OUTPUT_GENERATED_PRELUDE=$(OUTPUT_DIR)/generatedPrelude.js
-OUTPUT_STD=$(OUTPUT_DIR)/std.js
-OUTPUT_SVG=$(OUTPUT_DIR)/svg.js
 OUTPUT_PARSE_AST=$(OUTPUT_DIR)/parseAst.js
-OUTPUT_BROWSER=$(OUTPUT_DIR)/browser.js
 BASE_LEISURE=std svg parseAst
 SRC_JS=source-map
-OUTPUT_SRC=lib/generatedPrelude $(BASE_LEISURE:%=src/%)
-OUTPUT_GEN=generatedPrelude std svg parseAst
-OUTPUT_JS=$(OUTPUT_GEN) browser
+#OUTPUT_SRC=$(OUTPUT_DIR)/generatedPrelude $(BASE_LEISURE:%=src/%)
+LEISURE_GEN=$(LEISURE_JS) $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.ast) $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.map) $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.lsr)
 
-all: node_modules $(OUTPUT_DIR) lib/generatedPrelude.js $(LEISURE_FILES) lib/browser.js
-	cp $(SRC_JS:%=src/%.js) $(OUTPUT_DIR)
-	cp $(OUTPUT_JS:%=lib/%.js) $(OUTPUT_DIR)
-	cp $(OUTPUT_GEN:%=lib/%.map) $(OUTPUT_DIR)
-	cp $(OUTPUT_SRC:%=%.lsr) $(OUTPUT_DIR)
+all: node_modules lib/leisureRepl.js $(OUTPUT_DIR) $(LEISURE_JS) $(SRC_JS:%=$(OUTPUT_DIR)/%.js) $(BASE_LESURE:%=$(OUTPUT_DIR)/%.lsr)
 
-repl: FRC
+tst: FRC
+	echo "LEISURE_JS:" $(LEISURE_JS)
+
+repl: all FRC
 	$(REPL)
 
 $(OUTPUT_DIR):
 	mkdir -p $(OUTPUT_DIR)
 
 clean: FRC
-	rm -rf $(LEISURE_GEN) lib/browserMain.*
+	rm -rf $(LEISURE_GEN) lib/leisureRepl.*
 
 FRC:
 
-lib/browser.js: node_modules $(BROWSERIFY_SRC:%=lib/%.js)
-	$(NODE) node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@ -d
-	cp $(@) $(OUTPUT_BROWSER)
+$(OUTPUT_DIR)/%.js: src/%.js
+	cp $< $@
 
-#	$(NODE) node_modules/browserify/bin/cmd.js src/yamlBundle.js --bare -o $@ -u buffer
-lib/yaml.js: node_modules $(YAML_SRC)
-	$(NODE) node_modules/browserify/bin/cmd.js src/yamlBundle.js -o $@ -s
+$(OUTPUT_DIR)/%.js: lib/%.js
+	cp $< $@
+
+$(OUTPUT_DIR)/%.map: lib/%.map
+	cp $< $@
+
+$(OUTPUT_DIR)/%.lsr: lib/%.lsr
+	cp $< $@
+
+$(OUTPUT_DIR)/%.lsr: src/%.lsr
+	cp $< $@
 
 node_modules:
 	npm install
 
-lib/generatedPrelude.lsr: src/simpleParse.lsr src/simpleParse2.lsr
+$(OUTPUT_DIR)/generatedPrelude.lsr: src/simpleParse.lsr src/simpleParse2.lsr
 	cat src/simpleParse.lsr src/simpleParse2.lsr > $@
 
-lib/generatedPrelude.js: lib/simpleParse.js lib/generatedPrelude.lsr
-	$(REPL) -d lib -1 -c lib/generatedPrelude.lsr
-	cp $(@) $(OUTPUT_GENERATED_PRELUDE)
-	cp lib/generatedPrelude.map $(OUTPUT_DIR)
+$(OUTPUT_DIR)/generatedPrelude.js: lib/leisureRepl.js $(OUTPUT_DIR)/simpleParse.js $(OUTPUT_DIR)/generatedPrelude.lsr
+	$(REPL) -d $(OUTPUT_DIR) -1 -c $(OUTPUT_DIR)/generatedPrelude.lsr
 
-lib/simpleParse.js: src/simpleParse.lsr
-	$(REPL) -d lib -0 -c src/simpleParse.lsr
-	sed -e 's!^//@.*$$!//# sourceURL=../src/simpleParse.lsr!' lib/simpleParse.js > /tmp/tmp
-	mv /tmp/tmp lib/simpleParse.js
+$(OUTPUT_DIR)/simpleParse.js: src/simpleParse.lsr lib/simpleParseJS.js
+	$(REPL) -d $(OUTPUT_DIR) -0 -c src/simpleParse.lsr
+	sed -e 's!^//@.*$$!//# sourceMappingURL=simpleParse.map!' $(OUTPUT_DIR)/simpleParse.js > /tmp/tmp
+	mv /tmp/tmp $(OUTPUT_DIR)/simpleParse.js
+	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
-lib/std.js: src/std.lsr lib/generatedPrelude.js
-	$(REPL) -d lib -c $(@:lib/%.js=src/%.lsr)
+$(OUTPUT_DIR)/std.js: src/std.lsr $(OUTPUT_DIR)/generatedPrelude.js
+	$(REPL) -d $(OUTPUT_DIR) -c src/std.lsr
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
-	cp $(@) $(OUTPUT_STD)
+	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
-lib/svg.js: src/svg.lsr lib/std.js
-	$(REPL) -d lib -c -r std $(@:lib/%.js=src/%.lsr)
+$(OUTPUT_DIR)/svg.js: src/svg.lsr $(OUTPUT_DIR)/std.js
+	$(REPL) -d $(OUTPUT_DIR) -c -r std src/svg.lsr
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
-	cp $(@) $(OUTPUT_SVG)
+	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
-lib/parseAst.js: src/parseAst.lsr lib/std.js
-	$(REPL) -d lib -c -r std -r svg $(@:lib/%.js=src/%.lsr)
+$(OUTPUT_DIR)/parseAst.js: src/parseAst.lsr $(OUTPUT_DIR)/std.js
+	$(REPL) -d $(OUTPUT_DIR) -c -r std -r svg src/parseAst.lsr
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
-	cp $(@) $(OUTPUT_PARSE_AST)
+	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
-lib/%.js: src/%.lsr
-	$(REPL) -d lib -c $(@:lib/%.js=src/%.lsr)
+$(OUTPUT_DIR)/%.js: src/%.lsr
+	$(REPL) -d $(OUTPUT_DIR) -c $<
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
+	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
 #sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > $(LIB)/temp
 #sleep 1
 
+$(OUTPUT_DIR)/%.js: src/%.coffee
+	./node_modules/coffee-script/bin/coffee -o $(OUTPUT_DIR) -mc $<
+	sleep 1
+
 lib/%.js: src/%.coffee
-	./node_modules/coffee-script/bin/coffee -o lib -mc $(@:lib/%.js=src/%.coffee)
+	./node_modules/coffee-script/bin/coffee -o lib -mc $<
 	sleep 1

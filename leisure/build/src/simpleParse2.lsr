@@ -217,7 +217,7 @@ infixShouldEatNext opPrec prec isRight curArg nextOp nextArg closes len = \\
 
 defMacro ':' \list . ['cons' | list]
 
-iprec = [['*' '/' '%'] ['+' '-'] [':'] ['<' '>' '<=' '>='] ['==' '!=']]
+iprec = [['*' '/' '%'] ['+' '-'] [':'] ['<' '>' '<=' '>='] ['==' '!='] ['&&' '||']]
 rightAssoc = [':']
 
 setPrecedenceLevels levels = bind

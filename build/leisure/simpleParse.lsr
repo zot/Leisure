@@ -18,8 +18,11 @@ setNameSpace 'core'
 # IO SUPPORT
 #############
 
+isMonad x = or (eq (getType x) 'monad') (eq (getType x) 'monad2')
+
 asIO x = x
 fakereturn x = x
+wrap x = x
 
 ############
 # LOGIC
@@ -29,7 +32,9 @@ true = \a b . a
 false = \a b . b
 not b = b false true
 and a b = a b false
+&& = and
 or a b = a true b
+|| = or
 some x = \someCase noneCase . someCase x
 some2 a b = \someCase noneCase . someCase a b
 none = \someCase noneCase . noneCase
@@ -671,7 +676,7 @@ getLetLambda pos def args names =
 ## Compiling
 #################
 
-scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
+#scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
 
 countedScanLineG lineStarts str pat groups props onDef onExpr = \\
   toks = countedTokens lineStarts str pat
@@ -692,6 +697,8 @@ countedScanLineG lineStarts str pat groups props onDef onExpr = \\
         ifNotErr (transformDef name rest) \def .
           parseIt (cons (token '\\' (addFilepos (position (head rest)) -1)) def)
     ifNotErr (parseToks toks groups) \list . onExpr list
+
+scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
 
 parseLineG str pat names groups onDef onExpr = \\
   astCallback cb = \list . ifNotErr (createAst nil list names) \ast . cb ast
@@ -823,8 +830,6 @@ namesForLines lines = foldl
 runParseFilters filters line = filters
   \h t D . bind (h line) \filtered . runParseFilters t filtered
   fakereturn line
-  #return line
-  #defer line
 
 isBlockStart tok = and
   or (isToken tok) (isString tok)
@@ -832,7 +837,6 @@ isBlockStart tok = and
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
-# macros can use the IO monad
 macroSub macs expr = postProcessMacro (emptyFor expr) (emptyFor expr) (baseMacroSub macs expr)
 
 consifyMacroValue value = isCons value value (cons value nil)
@@ -945,8 +949,7 @@ parseToAst str pat = createAst nil (testParse str pat) nil
 parseM str =
   bind2 (getValue 'tokenPat')
     \tokPat . bind2 (getValue 'tokenGroups')
-      \groups . defer
-        parseG str tokPat groups
+      \groups . parseG str tokPat groups
 
 scanLine str pat onDef onExpr = scanLineG str pat parenGroups onDef onExpr
 
@@ -954,13 +957,11 @@ parseLine str pat names onDef onExpr = parseLineG str pat names parenGroups onDe
 
 parseLineM str = bind2 (getValue 'tokenPat')
   \tokPat . bind2 (getValue 'tokenGroups')
-    \groups . defer
-      parseLineG str tokPat nil groups id id
+    \groups . parseLineG str tokPat nil groups id id
 
 macroSubM expr =
   bind2 (getValue 'macroDefs')
-    \macs . defer
-      macroSub macs expr
+    \macs . macroSub macs expr
 
 macroParse str =
   bind2 (parseM str)
@@ -968,21 +969,18 @@ macroParse str =
 
 tokensM str =
   bind2 (getValue 'tokenPat')
-    \delimiterPat . defer
-      tokens str delimiterPat
+    \delimiterPat . tokens str delimiterPat
 
 parseLines lines result = lines
   \h t D . bind2 (parseLineM h)
     \ast . parseLines t (cons ast result)
-  defer
-    reverse result
+  reverse result
 
 parseFile text = parseLines (linesForFile text) nil
 
 simpleScanLine line = bind2 (getValue 'tokenPat')
   \tokenPat . bind2 (getValue 'tokenGroups')
-    \groups . defer
-      scanLineG line tokenPat groups id id
+    \groups . scanLineG line tokenPat groups id id
 
 scanLineM line = countedScanLineM emptyLineStarts line
 
@@ -992,8 +990,7 @@ countedScanLineM lineStarts line = bind (getValue 'tokenPat')
       \filters . bind (getValue 'macroDefs')
         \macros . bind (getValue 'parser_funcProps')
           \props . bind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups props id id))
-            \scanned . defer
-              macroSub macros scanned
+            \scanned . macroSub macros scanned
 
 newline = regexp '\\r?\\n'
 
@@ -1007,19 +1004,18 @@ findLines offset line = \\
     cons offset (findLines (+ offset idx) (strSubstring line idx 0))
 
 newParseLine offset names line = bind2 (scanLineM line)
-  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . defer ast
+  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) id
 
 countedParseLine names countedLine = bind2 (countedScanLineM (head countedLine) (tail countedLine))
-  \scanned . defer (createAst (head countedLine) scanned names)
+  \scanned . createAst (head countedLine) scanned names
 
 runLine offset names line = bind2 (newParseLine offset names line)
   \ast . bind2 (runAst line ast)
-    \result . defer
-      cons
-        ast
-        isErr result
-          left (errMsg result)
-          right result
+    \result . cons
+      ast
+      isErr result
+        left (errMsg result)
+        right result
 
 #countedRunLine file names countedLine = \\
 #  parsed = countedParseLine names countedLine
@@ -1052,15 +1048,16 @@ countedRunLine file names countedLine = bind2 (countedParseLine names countedLin
     not (== (getType value) 'monad')
       resultOfRun wrapped value
       bind2 (runAst (tail countedLine) wrapped)
+        #\result . bind2 (resultOfRun wrapped result)
+        #  \r . d "ran line: " (tail countedLine) r
         \result . resultOfRun wrapped result
 
 resultOfRun wrapped result =
-  defer
-    cons
-      wrapped
-      isErr result
-        left (errMsg result)
-        right result
+  cons
+    wrapped
+    isErr result
+      left (errMsg result)
+      right result
 
 #astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast
 astFileWrap file ast = anno 'filename' (basename file) ast
@@ -1071,16 +1068,14 @@ basename file = strReplace file (regexp '^(.*/)?([^/]+)$') '$2'
 runLines names lines = lines
   \h t D . bind2 (runLine 0 names h)
     \line . bind2 (runLines names t)
-      \rest . defer
-        cons line rest
+      \rest . cons line rest
   nil
 
 # use doall for this?
 countedRunLines file names countedLines = countedLines
   \h t D . bind2 (countedRunLine file names h)
     \line . bind2 (countedRunLines file names t)
-      \rest . defer
-        cons line rest
+      \rest . cons line rest
   nil
 
 runFile text = runNamedFile "RUNFILE.lsr" text
@@ -1094,7 +1089,7 @@ runNamedFile name text = \\
 
 baseLoad file = bind2 (readFile file)
   \result . result
-    \err . defer err
+    \err . err
     \contents . baseLoadString file contents
 
 baseLoadString file contents = bind2 (getValue 'activeTokenPacks')
@@ -1103,27 +1098,25 @@ baseLoadString file contents = bind2 (getValue 'activeTokenPacks')
       \nsInfo . bind2 (runNamedFile file contents)
         \result . bind2 (setNameSpaceInfo nsInfo)
           \_ . isNil activePacks
-            bind2 resetStdTokenPacks \_ . defer result
-            bind2 (resetTokenPacks activePacks) \_ . defer result
+            bind2 resetStdTokenPacks \_ . result
+            bind2 (resetTokenPacks activePacks) \_ . result
 
 load file = bind2 (baseLoad file)
   \result . \\
     errs = foldr (\line results . tail line (\er . cons er results) (\x . results)) nil result
     .
-    defer
-      isNil errs
-        right true
-        left errs
+    isNil errs
+      right true
+      left errs
 
 require file = bind2 (getValue 'requiredFiles')
   \files . contains files file
     right false
     bind2 (setValue 'requiredFiles' (cons file files))
       \_. bind2 (load file)
-        \result . defer
-          result
-            \x . left x
-            \_ . right true
+        \result . result
+          \x . left x
+          \_ . right true
 
 scanFile file = bind2 (readFile file)
   \result . result
@@ -1138,8 +1131,7 @@ scanFile file = bind2 (readFile file)
 countedScanLines file names countedLines = countedLines
   \h t D . bind2 (countedScanLineM (head h) (tail h))
     \line . bind2 (countedScanLines file names t)
-      \rest . defer
-        cons line rest
+      \rest . cons line rest
   nil
 
 ################
@@ -1197,6 +1189,12 @@ d label value expr = log (strCat (cons label (cons value nil))) expr
 dd label arg = d label arg arg
 
 ############
+## TESTING
+############
+
+testParse str = countedParseLine nil (head (countedLinesForFile 'parse' str))
+
+############
 ## SETTINGS
 ############
 
@@ -1209,279 +1207,4 @@ setValue 'parser_funcProps' nil
 
 defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
 
-resetStdTokenPacks
-setNameSpace 'core'
-
-#######################################################################
-#                                                                     #
-#  This file doesn't use std parse filters, because it defines them   #
-#                                                                     #
-#######################################################################
-
-#######################################################################
-#                                                                     #
-# std parse filter, basic token groups, do macro                      #
-#                                                                     #
-#######################################################################
-
-#################
-# Utilities
-#################
-
-# change this to return a list of results
-#doall = foldr1 (\el res . bind el \_ . res)
-doall = foldr1 (\el res . bind2 el \_ . res)
-aconsf key value list = acons key value (aremove key list)
-aremove key list = isNil list
-  nil
-  eq (head (head list)) key
-    aremove key (tail list)
-    aconsPair (head list) (aremove key (tail list))
-addTokenGroup '[' ']'
-addToken '|'
-
-listifyOp op list = list
-  \h t D . isTokenString h '|'
-    cons t nil
-    cons (cons op (cons h (listifyOp op t))) nil
-  cons 'nil' nil
-
-listify list = listifyOp 'cons' list
-
-defMacro '[' \list . list \h t . listify h
-
-# parse filter 'listFilter' gathers items after the '|' into a single argument
-
-listFilter code = bind (getValue 'listMacros')
-  \listMacros . defer
-    filterApplies code \list . list \h t .
-      and (isToken h) (contains listMacros (tokenString h))
-        listFilterTail list
-        list
-
-listFilterTail list = list
-  \h t D . isTokenString h '|'
-    > (length t) 2
-      cons h (cons (removeLast t) (cons (last t) nil))
-      list
-    cons h (listFilterTail t)
-  nil
-
-filterApplies code func = isParens code
-  code \start end contents . parens start end (filterApplies contents func)
-  isCons code
-    \\
-      filtered = filterApplyElements code func
-      .
-      and (isCons filtered) (isBlockStart (head filtered))
-        filtered
-        func filtered
-    code
-
-filterApplyElements code func = code
-  \h t D . isBlockStart h
-    cons h (filterBlock h t func)
-    cons (filterApplies h func)
-      and (isCons t) (isBlockStart (head t))
-        cons (filterApplyElements t func) nil
-        filterApplyElements t func
-  nil
-
-filterBlock type code func = isTokenString type '\\'
-  filterLambda code func
-  filterLet code func
-
-filterLet code func = code \h t . isTokenString h '.'
-  cons h (filterApplies t func)
-  cons (filterLetBinding h func)
-    filterLet t func
-
-filterLetBinding code func = isParens code
-  setParens code \contents . filterLetBinding contents func
-  isCons code
-    code \h t . cons h
-      isTokenString h '='
-        filterApplies t func
-        filterLetBinding t func
-    code
-
-filterLambda code func = code \h t . cons h
-  isTokenString h '.'
-    filterApplies t func
-    filterLambda t func
-
-setValue 'listMacros' ['[' '{' 'hamt{']
-
-addParseFilter listFilter
-
-addTokenGroup '{' '}'
-
-defMacro '{' \list . list \h t . listifyOp 'aconsPair' h
-
-addTokenGroup 'hamt{' '}'
-
-defMacro 'hamt{' \list . list \h t . hamtify h
-
-hamtWithPair pair t = hamtWith (head pair) (tail pair) t
-
-hamtify list = list
-  \h t D . isTokenString h '|'
-    cons t nil
-    and (isCons h) (or (isTokenString (head h) 'cons') (isTokenString (head h) ':'))
-      [['hamtWith' (head (tail h)) (head (tail (tail h))) | hamtify t]]
-      [['hamtWithPair' h | hamtify t]]
-  ['hamt']
-
-defTokenPack 'list' [
-  #adding = here so so we don't need spaces around = in definitions
-  ['|' '=']
-  {['{' | '}'] ['hamt{' | '}'] ['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']'] ['print[' | ']'] ['concatFlat[' | ']']}
-  [listFilter]]
-
-### Yay!  From here down, we can use list constructors!
-
-addTokenGroup 'or[' ']'
-
-addTokenGroup 'and[' ']'
-
-addTokenGroup 'concat[' ']'
-
-addTokenGroup 'print[' ']'
-
-addTokenGroup 'concatFlat[' ']'
-
-listMacroFoldOp op emptyCase list = list \h t . foldr
-    \case result . [op case result]
-    emptyCase
-    h
-
-defMacro 'or[' \list . listMacroFoldOp 'or' 'false' list
-
-defMacro 'and[' \list . listMacroFoldOp 'and' 'true' list
-
-defMacro 'print[' \list . ['print' ['strCat' [(listify (head list))]]]
-
-defMacro 'concat[' \list . ['strCat' [(listify (head list))]]
-
-defMacro 'concatFlat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
-
-infix code = bind (getValue 'infixPrecedence')
-  \prec . bind (getValue 'infixRightAssociative')
-    \right . bind (getValue 'tokenGroups')
-      \groups . defer
-        filterApplies
-          code
-          \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
-
-infixRearrange prec right closes list = \\
-  len = length list
-  head1 = head list
-  tail1 = tail list
-  head2 = head tail1
-  tail2 = tail tail1
-  head3 = head tail2
-  opPrec = getPrec prec head2
-  .
-  < len 2
-    list
-    isInfix opPrec head1 head2 len
-      or (== len 2) (not (isInfixArg closes head3))
-        [[head2 head1] | tail2]
-        infixRearrange prec right closes (absorbArgument opPrec prec right closes head1 head2 tail2 head3 (- len 2))
-      [head1 | infixRearrange prec right closes tail1]
-
-absorbArgument opPrec prec right closes head1 head2 tail2 head3 len = \\
-  tail3 = tail tail2
-  head4 = head tail3
-  tail4 = tail tail3
-  head5 = head tail4
-  .
-  infixShouldEatNext opPrec prec (contains right (strTokenString head2)) head3 head4 head5 closes len
-    [head1 head2 | absorbArgument (getPrec prec head4) prec right closes head3 head4 tail4 head5 (- len 2)]
-    [[head2 head1 head3] | tail3]
-
-isInfixArg closes item = or[
-  isParens item
-  isCons item
-  and[
-    isToken item
-    not (contains closes (tokenString item))
-    not (isBlockStart item)]]
-
-isInfix opPrec head1 head2 len = and[
-  > len 1
-  > opPrec -1
-  isInfixArg nil head1]
-
-getPrec prec token = \\
-  str = tokenString token
-  .
-  isToken token
-    findIndex (\level . contains level str) prec
-    -1
-
-infixShouldEatNext opPrec prec isRight curArg nextOp nextArg closes len = \\
-  nextPrec = getPrec prec nextOp
-  .
-  and[
-    > len 2
-    isInfix nextPrec curArg nextOp len
-    or (> opPrec nextPrec) (and (== opPrec nextPrec) isRight)
-    isInfixArg closes nextArg]
-
-defMacro ':' \list . ['cons' | list]
-
-iprec = [['*' '/' '%'] ['+' '-'] [':'] ['<' '>' '<=' '>='] ['==' '!=']]
-rightAssoc = [':']
-
-setPrecedenceLevels levels = bind
-  setValue 'infixPrecedence' levels
-  \_ . doall (map addInfixProp (flatten levels))
-
-addInfixProp funcName = getFunction funcName
-  \func . setProperty func 'infix' true
-  nil
-
-setPrecedenceLevels iprec
-setValue 'infixRightAssociative' rightAssoc
-defTokenPack 'infix' [(flatten iprec) [] [infix]]
-
-useTokenPack 'infix'
-
-################
-## DO
-################
-
-defMacro 'do' \list . handleDo list false id
-
-handleDo list inLet cont = list
-  \h t D . isNil t
-    cont (inLet ['.' h] [h])
-    doClause (stripParens h) h nil inLet \newInLet chain .
-      handleDo t newInLet \rest . cont (chain rest)
-  cont nil
-
-doClause steppingClause clause prefix inLet cont = \\
-  makeBind var monad = cont false \rest . inLet (cons '.') id
-    ['bind2' monad ['\\' var '.' | rest]]
-  .
-  isCons steppingClause
-    steppingClause \h t . isTokenString h '='
-      inLet
-        cont true \rest . [clause | rest]
-        cont true \rest . ['\\\\' clause | rest]
-      isTokenString h '<-'
-        isNil t
-          parseErr "No monad in do-clause: " clause
-          prefix
-            \ph pt D . isNil pt
-              makeBind (isNil prefix '_' (head prefix)) t
-              parseErr "More than one variable in do-clause: " clause
-            makeBind '_' t
-        doClause t clause [h | prefix] inLet cont
-    makeBind '_' clause
-
-defTokenPack 'do' [['<-'] [] []]
-
-addStdTokenPacks ['list' 'infix' 'do']
 resetStdTokenPacks

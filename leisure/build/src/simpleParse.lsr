@@ -18,8 +18,11 @@ setNameSpace 'core'
 # IO SUPPORT
 #############
 
+isMonad x = or (eq (getType x) 'monad') (eq (getType x) 'monad2')
+
 asIO x = x
 fakereturn x = x
+wrap x = x
 
 ############
 # LOGIC
@@ -29,7 +32,9 @@ true = \a b . a
 false = \a b . b
 not b = b false true
 and a b = a b false
+&& = and
 or a b = a true b
+|| = or
 some x = \someCase noneCase . someCase x
 some2 a b = \someCase noneCase . someCase a b
 none = \someCase noneCase . noneCase

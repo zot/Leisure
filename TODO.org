@@ -1,3 +1,5 @@
+* TODO make a way to specify the "original contents" of a code block so you can reset it
+* TODO try to get megaArity working
 * TODO get [[http://textcraft.org:3000/#load=/demo/dice.lorg][dice]] and [[http://textcraft.org:3000/#load=/demo/lib/lenses.lorg][lenses]] pages working again: 
 * TODO documentation tooltips
 * TODO document version numbers (part of metadocument?)

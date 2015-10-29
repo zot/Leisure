@@ -3,8 +3,8 @@
   var slice = [].slice,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', './gen', './leisure-support'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS) {
-    var Html, Node, _true, acorn, acornLoose, acornWalk, blockVars, c, cons, csEnv, defaultEnv, e, errorDiv, escapeHtml, escapeString, escaped, findError, getLeft, getRight, getType, getValue, handleErrors, html, id, isError, jsEnv, jsEval, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, setValue, show, slashed, specials, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird) {
+    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, blockVars, c, cons, csEnv, defaultEnv, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, getLeft, getRight, getType, getValue, handleErrors, html, id, isError, jsEnv, jsEval, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, setValue, show, slashed, specials, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = null;
@@ -14,12 +14,13 @@
       });
     }), 1);
     lispyScript = lsrequire("lispyscript");
-    getType = Ast.getType, cons = Ast.cons, unescapePresentationHtml = Ast.unescapePresentationHtml;
+    getType = Ast.getType, cons = Ast.cons, unescapePresentationHtml = Ast.unescapePresentationHtml, Nil = Ast.Nil;
     Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
-    rz = resolve;
-    lz = lazy;
+    window.resolve = rz = resolve;
+    window.lazy = lz = lazy;
     lc = Leisure_call;
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert;
+    Promise = Bluebird.Promise;
     requirePromise = function() {
       var file;
       file = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -37,6 +38,9 @@
     defaultEnv.write = function(str) {
       return console.log(str);
     };
+    defaultEnv.errorAt = function(offset, msg) {
+      return console.log(msg);
+    };
     id = lz(function(x) {
       return rz(x);
     });
@@ -53,37 +57,80 @@
         return console.log(obj);
       }
     };
+    window.evalLeisure = evalLeisure = function(str, cont) {
+      var env;
+      env = leisureEnv({
+        __proto__: defaultEnv
+      });
+      env.presentValue = function(v) {
+        return v;
+      };
+      return env.executeText(str, Nil, cont);
+    };
     leisureEnv = function(env) {
       env.presentValue = function(v) {
         return html(rz(L_showHtml)(lz(v)));
       };
       env.executeText = function(text, props, cont) {
-        return leisurePromise.then(((function(_this) {
-          return function() {
-            var err, old, result;
-            try {
-              old = getValue('parser_funcProps');
-              setValue('parser_funcProps', props);
-              result = rz(L_baseLoadString)('notebook')(text);
-              return runMonad2(result, env, function(results) {
-                return runNextResult(results, env, function() {
-                  setValue('parser_funcProps', old);
-                  return typeof cont === "function" ? cont(env, results) : void 0;
-                });
-              });
-            } catch (_error) {
-              err = _error;
-              return _this.errorAt(0, err.message);
+        var opts;
+        if (!cont) {
+          cont = function(env, x) {
+            var r;
+            r = x.head().tail();
+            if (getType(r) === 'left') {
+              return new Error(getLeft(r));
+            } else {
+              return getRight(r);
             }
           };
-        })(this)), (function(_this) {
-          return function(err) {
-            var ref;
-            return _this.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
-          };
-        })(this));
+        }
+        if (leisurePromise.isResolved()) {
+          return leisureExec(env, text, props, cont, (function(_this) {
+            return function(err) {
+              var ref;
+              return _this.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
+            };
+          })(this));
+        } else {
+          if (opts = env.opts) {
+            console.log("OPTS:", opts);
+          }
+          return leisurePromise.then(((function(_this) {
+            return function() {
+              if (!env.opts) {
+                env.opts = opts;
+              }
+              return leisureExec(env, text, props, cont, function(err) {
+                var ref;
+                return _this.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
+              });
+            };
+          })(this)), (function(_this) {
+            return function(err) {
+              var ref;
+              return _this.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
+            };
+          })(this));
+        }
       };
       return env;
+    };
+    leisureExec = function(env, text, props, cont, errCont) {
+      var err, old, result;
+      try {
+        old = getValue('parser_funcProps');
+        setValue('parser_funcProps', props);
+        result = rz(L_baseLoadString)('notebook')(text);
+        return runMonad2(result, env, function(results) {
+          return runNextResult(results, env, function() {
+            setValue('parser_funcProps', old);
+            return typeof cont === "function" ? cont(env, results) : void 0;
+          });
+        });
+      } catch (_error) {
+        err = _error;
+        return errCont(err.message);
+      }
     };
     runNextResult = function(results, env, cont) {
       while (results !== rz(L_nil) && getType(results.head().tail()) === 'left') {
@@ -102,7 +149,13 @@
       }
     };
     presentHtml = function(v) {
-      return ': ' + (v instanceof Html ? v.content.replace(/\r?\n/g, '\\n') : escapeHtml(String(v).replace(/\r?\n/g, '\n: ')));
+      var str;
+      str = ': ' + (v instanceof Html ? v.content.replace(/\r?\n/g, '\\n') : escapeHtml(String(v).replace(/\r?\n/g, '\n: ')));
+      if (_.last(str) === '\n') {
+        return str;
+      } else {
+        return str + '\n';
+      }
     };
     writeValues = function(env, values) {
       return env.write(values.join('\n'));
@@ -351,7 +404,8 @@
       knownLanguages: knownLanguages,
       presentHtml: presentHtml,
       escapeString: escapeString,
-      unescapeString: unescapeString
+      unescapeString: unescapeString,
+      evalLeisure: evalLeisure
     };
   });
 

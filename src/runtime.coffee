@@ -69,17 +69,17 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
   lz = lazy
   lc = Leisure_call
   gensymCounter = 0
-  
+
   call = (args...)-> basicCall(args, defaultEnv, identity)
-  
+
   callMonad = (args..., env, cont)-> basicCall(args, env, cont)
-  
+
   basicCall = (args, env, cont)->
     res = rz global["L_#{args[0]}"]
     for arg in args[1..]
       res = do (arg)-> res(lz arg)
     runMonad res, env, cont
-  
+
   consFrom = (array, i)->
     i = i || 0
     if i < array.length then cons array[i], consFrom(array, i + 1) else rz L_nil
@@ -112,7 +112,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     console.log new Error(rz msg).stack
     console.log "LOGGED ERROR -- RESUMING EXECUTION..."
     rz expr)
-  
+
   define 'trace', (msg)->
     console.log "STACKTRACE: ", new Error(rz msg).stack
     msg
@@ -249,11 +249,11 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
   define 'log', (str, res)-> if isPartial arguments then partialCall arguments else
     console.log String rz str
     rz res
-  
+
   define 'logStack', (str, res)-> if isPartial arguments then partialCall arguments else
     console.log new Error(rz str).stack
     rz res
-  
+
   # an identity function you can put a breakpoint on
   define 'breakpoint', (x)->
     console.log 'Break point ', rz x
@@ -272,26 +272,26 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     m.cmd = guts
     m.type = 'monad'
     m
-  
+
   makeSyncMonad = (guts)->
     m = makeMonad guts
     m.sync = true
     m
-  
+
   nextMonad = (cont)-> cont
-  
+
   replaceErr = (err, msg)->
     err.message = msg
     err
-  
+
   defaultEnv.write = (str)-> process.stdout.write(str)
   defaultEnv.err = (err)-> @write "ENV Error: #{err.stack ? err}"
   defaultEnv.prompt = ->throw new Error "Environment does not support prompting!"
-  
+
   monadModeSync = false
-  
+
   getMonadSyncMode = -> monadModeSync
-  
+
   withSyncModeDo = (newMode, block)->
     oldMode = monadModeSync
     monadModeSync = newMode
@@ -302,20 +302,20 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     finally
       #if !monadModeSync && oldMode then console.log "REENABLING SYNC"
       #monadModeSync = oldMode
-  
+
   runMonad = (monad, env, cont)->
     env = env ? root.defaultEnv
     withSyncModeDo true, -> newRunMonad monad, env, cont, []
-  
+
   isMonad = (m)-> typeof m == 'function' && m.cmd?
-  
+
   continueMonads = (contStack, env)->
     (result)-> withSyncModeDo false, -> newRunMonad result, env, null, contStack
-  
+
   asyncMonad = {toString: -> "<asyncMonadResult>"}
-  
+
   warnAsync = false
-  
+
   setWarnAsync = (state)-> warnAsync = state
 
   newRunMonad = (monad, env, cont, contStack)->
@@ -349,7 +349,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}...\n#{err.message}"
       console.log err.stack ? err
       if env.errorHandlers.length then env.errorHandlers.pop() err
-  
+
   callBind = (value, contStack)->
     func = contStack.pop()
     val = lz value
@@ -359,7 +359,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       func value
     else tmp
     #if isMonad(tmp) && tmp?.binding? then func value else tmp
-  
+
   class Monad
     toString: -> "Monad: #{@cmd.toString()}"
 
@@ -379,18 +379,18 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 #    monadArray
 
   ensureLeisureClass 'unit'
-  
+
   class Leisure_unit extends LeisureObject
     toString: -> 'unit'
-  
+
   _unit = mkProto Leisure_unit, setType ((_x)-> rz(_x)), 'unit'
-  
+
   define 'define', (name, arity, src, def)-> if isPartial arguments then partialCall arguments else
     #console.log "DEFINE: #{name}"
     makeSyncMonad (env, cont)->
       nakedDefine rz(name), def, rz(arity), rz(src)
       cont _unit
-  
+
   define 'newDefine', (name, arity, src, def)-> if isPartial arguments then partialCall arguments else
     #console.log "NEW DEFINE: #{name}"
     makeSyncMonad (env, cont)->
@@ -408,6 +408,12 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 #    monadArray
 
   runMonad2 = (monad, env, cont)->
+    #if !(monad instanceof Monad2) && !(isMonad monad) && L_asIO && L_show
+    #  tmpMonad = rz(L_asIO)(lz monad)
+    #  if monad != tmpMonad
+    #    if getType(monad) == 'wrapped'
+    #      #monad = tmpMonad
+    #    else console.log "WOULD HAVE CONVERTED #{rz(L_show) lz monad} to #{rz(L_show) lz tmpMonad}"
     if monad instanceof Monad2 then monad.cmd(env, cont)
     #else if isMonad monad then newRunMonad monad, env, cont, []
     else if isMonad monad
@@ -418,11 +424,13 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
         innerArg = null
         result = runMonad2 rz(monad.monad), env, (x)->
           if sync then inner = -> runMonad2 rz(monad.binding)(lz x), env, (y)->
+          #if sync then inner = -> rz(monad.binding) lz (y)->
             if sync
               hasInnerArg = true
               innerArg = y
             else cont y
           else runMonad2 rz(monad.binding)(lz x), env, cont
+          #else rz(monad.binding) cont
         if inner
           result = inner()
           if hasInnerArg then result = cont innerArg
@@ -616,59 +624,59 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 #      cont (root.E = new Error(msg)).stack
 
   define 'gensym', makeSyncMonad (env, cont)-> cont "G#{gensymCounter++}"
-  
+
   define 'print', (msg)->
     makeSyncMonad (env, cont)->
       env.write env.presentValue rz msg
       cont _unit
-  
+
   define 'print2', (msg)->
     new Monad2 'print2', ((env, cont)->
       env.write env.presentValue rz msg
       cont _unit), -> "print2 #{rz msg}"
-  
+
   define 'write', (msg)->
     new Monad2 'write', ((env, cont)->
       env.write String(rz msg)
       cont _unit), -> "write #{rz msg}"
-  
+
   define 'prompt2', (msg)->
     new Monad2 ((env, cont)->
       env.prompt(String(rz msg), (input)-> cont input)), ->
       "prompt2 #{rz msg}"
-  
+
   define 'oldWrite', (msg)->
     makeSyncMonad (env, cont)->
       env.write String(rz msg)
       cont _unit
-  
+
   define 'readFile', (name)->
     makeMonad (env, cont)->
       env.readFile rz(name), (err, contents)->
         cont (if err then left err.stack ? err else right contents)
-  
+
   define 'readDir', (dir)->
     makeMonad (env, cont)->
       env.readDir rz(dir), (err, files)->
         cont (if err then left err.stack ? err else right files)
-  
+
   define 'writeFile', (name, data)-> if isPartial arguments then partialCall arguments else
     makeMonad (env, cont)->
       env.writeFile rz(name), rz(data), (err, contents)->
         cont (if err then left err.stack ? err else right contents)
-  
+
   define 'statFile', (file)->
     makeMonad (env, cont)->
       env.statFile rz(file), (err, stats)->
         cont (if err then left err.stack ? err else right stats)
-  
+
   define 'prompt', (msg)->
     makeMonad (env, cont)->
       env.prompt(String(rz msg), (input)-> cont(input))
 
   define 'rand', makeSyncMonad (env, cont)->
     cont(Math.random())
-  
+
   define 'js', (str)->
     makeSyncMonad (env, cont)->
       try
@@ -676,13 +684,13 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
         cont right result
       catch err
         cont left err
-  
+
   define 'delay', (timeout)->
     new Monad2 (env, cont)->
       setTimeout (-> cont _unit), rz(timeout)
-  
+
   define 'currentTime', new Monad2 (env, cont)-> cont Date.now
-  
+
   define 'once', makeSyncMonad (->
     ran = false
     (env, cont)->
@@ -726,9 +734,9 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       newDef.leisureName = name
       global[nm] = global.leisureFuncNames[nm] = lz newDef
       cont def
-  
+
   curry = (arity, func)-> -> lz (arg)-> lz (subcurry arity, func, null) arg
-  
+
   subcurry = (arity, func, args)->
     lz (arg)->
       #console.log "Got arg # #{arity}: #{rz arg}"
@@ -745,20 +753,20 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     '&': '&amp;'
     '\n': '\\n'
     '\\': '\\\\'
-  
+
   escapePresentationHtml = (str)->
     if typeof str == 'string' then str.replace /[<>&\n\\]/g, (c)-> presentationReplacements[c]
     else str
-  
+
   presentationToHtmlReplacements =
     '&lt;': '<'
     '&gt;': '>'
     '&amp;': '&'
     '\\n': '\n'
     '\\\\': '\\'
-  
+
   unescapePresentationHtml = (str)-> str.replace /&lt;|&gt;|&amp;|\\n|\\/g, (c)-> presentationToHtmlReplacements[c]
-  
+
   define 'escapeHtml', (h)-> escapePresentationHtml rz(h)
   define 'unescapeHtml', (h)-> unescapePresentationHtml rz(h)
 
@@ -769,24 +777,24 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
   makeHamt = (hamt)->
     hamt.leisureType = 'hamt'
     hamt
-  
+
   hamt = makeHamt Map()
   hamt.leisureDataType = 'hamt'
-  
+
   define 'hamt', hamt
-  
+
   define 'hamtWith', (key, value, hamt)-> if isPartial arguments then partialCall arguments else
     makeHamt rz(hamt).set rz(key), rz(value)
   define 'hamtSet', (key, value, hamt)-> if isPartial arguments then partialCall arguments else
     makeHamt rz(hamt).set rz(key), rz(value)
-  
+
   define 'hamtFetch', (key, hamt)-> if isPartial arguments then partialCall arguments else
     rz(hamt).get rz(key)
-  
+
   define 'hamtGet', (key, hamt)-> if isPartial arguments then partialCall arguments else
     v = rz(hamt).get rz(key)
     if v != undefined then some v else none
-  
+
   define 'hamtWithout', (key, hamt)-> if isPartial arguments then partialCall arguments else
     makeHamt rz(hamt).remove rz(key)
 
@@ -803,7 +811,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 #  define 'hamtDissocOpts', (hamt)->(key)->(opts)-> amt.dissoc(rz(hamt), rz(key), rz(opts))
 
   define 'hamtPairs', (hamt)-> nextHamtPair rz(hamt).entries()
-  
+
   nextHamtPair = (entries)->
     if entries.size == 0 then rz L_nil
     else
@@ -815,7 +823,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 #################
 
   lacons = (k, v, list)-> rz(L_acons)((lz k), (lz v), (lz list))
-  
+
   jsonConvert = (obj)->
     if obj instanceof Array
       consFrom (jsonConvert i for i in obj)
@@ -825,11 +833,11 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
         t = lacons k, jsonConvert(v), t
       t
     else obj
-  
+
   define 'fromJson', (obj)-> jsonConvert rz obj
-  
+
   define 'parseYaml', (obj)-> safeLoad rz obj
-  
+
   define 'toJsonArray', (list)->
     list = rz list
     array = []
@@ -837,7 +845,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       array.push list.head()
       list = list.tail()
     array
-  
+
   define 'toJsonObject', (list)->
     list = rz list
     obj = {}
@@ -846,7 +854,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       if !obj[head.head()]? then obj[head.head()] = head.tail()
       list = list.tail()
     obj
-  
+
   define 'jsonToYaml', (json)->
     try
       right dump rz json
@@ -862,12 +870,12 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     ret = rz func
     while true
       if typeof ret == 'function' && ret.trampoline then ret = ret() else return ret
-  
+
   define 'trampoline', (func)->
     f = rz func
     arity = functionInfo[f.leisureName].arity
     trampCurry f, arity
-  
+
   trampCurry = (func, arity)-> (arg)->
     a = rz arg
     if arity > 1 then trampCurry (func ->a), arity - 1
@@ -889,24 +897,24 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
         if newNameSpace then LeisureNameSpaces[name] = {}
         nsLog "SETTING NAME SPACE: #{name}"
       cont (if newNameSpace then _true else _false)
-  
+
   define 'pushNameSpace', (newNameSpace)->
     makeSyncMonad (env, cont)->
       pushed = LeisureNameSpaces[newNameSpace] && ! (newNameSpace in root.nameSpacePath)
       if pushed then root.nameSpacePath.push newNameSpace
       cont (if pushed then _true else _false)
-  
+
   define 'clearNameSpacePath', makeSyncMonad (env, cont)->
     root.nameSpacePath = []
     cont _unit
-  
+
   define 'resetNameSpaceInfo', makeSyncMonad (enf, cont)->
     old = [root.nameSpacePath, root.currentNameSpace]
     root.nameSpacePath = ['core']
     root.currentNameSpace = null
     nsLog "SETTING NAME SPACE: null"
     cont old
-  
+
   define 'setNameSpaceInfo', (info)->
     makeSyncMonad (env, cont)->
       #console.log "RESTORING NAME SPACE INFO: #{require('util').inspect rz info}"
@@ -920,30 +928,30 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 
   ensureLeisureClass 'token'
   Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{posString tokenPos(@)})"
-  
+
   tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
   tokenPos = (t)-> t(lz (txt)->(pos)-> rz pos)
   ensureLeisureClass 'filepos'
   posString = (p)->
     if p instanceof Leisure_filepos then p(lz (file)->(line)->(offset)-> "#{rz file}:#{rz line}.#{rz offset}")
     else p
-  
+
   ensureLeisureClass 'parens'
   Leisure_parens.prototype.toString = -> "Parens(#{posString parensStart @}, #{posString parensEnd @}, #{parensContent @})"
-  
+
   parensStart = (p)-> p(lz (s)->(e)->(l)-> rz s)
   parensEnd = (p)-> p(lz (s)->(e)->(l)-> rz e)
   parensContent = (p)-> p(lz (s)->(e)->(l)-> rz l)
-  
+
   ensureLeisureClass 'true'
   Leisure_true.prototype.toString = -> "true"
-  
+
   ensureLeisureClass 'false'
   Leisure_false.prototype.toString = -> "false"
-  
+
   ensureLeisureClass 'left'
   Leisure_left.prototype.toString = -> "Left(#{@(lz _identity)(lz _identity)})"
-  
+
   ensureLeisureClass 'right'
   Leisure_right.prototype.toString = -> "Right(#{@(lz _identity)(lz _identity)})"
 
@@ -966,9 +974,9 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 #######################
 
   define 'funcInfo', (f)-> funcInfo rz f
-  
+
   define 'funcName', (f)-> if rz(f).leisureName then some rz(f).leisureName else none
-  
+
   define 'trackCreation', (flag)->
     makeSyncMonad (env, cont)->
       root.trackCreation = rz(flag)(lz true)(lz false)
@@ -977,7 +985,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     makeSyncMonad (env, cont)->
       root.trackVars = rz(flag)(lz true)(lz false)
       cont _unit
-  
+
   define 'getFunction', (name)->
     f = rz global['L_' + (nameSub rz name)]
     if f then some f else none
@@ -998,6 +1006,9 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     _true
     _false
     _unit
+    _identity
+    some
+    none
     stateValues: values
     runMonad
     runMonad2
@@ -1024,4 +1035,5 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     unescapePresentationHtml
     makeHamt
     jsonConvert
+    lacons
   }

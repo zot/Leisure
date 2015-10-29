@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable)->
+    define ['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], (Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable)->
 
       {
         defaultEnv
@@ -294,7 +294,7 @@ that must be done regardless of the source of changes
             func()
           null
         checkPropChange: (oldBlock, newBlock, isDefault)->
-          if !isDefault && !newBlock.level && !_.isEqual(oldBlock?.properties, newBlock?.properties) && parent = @parent newBlock ? oldBlock
+          if !isDefault && !newBlock?.level && !_.isEqual(oldBlock?.properties, newBlock?.properties) && parent = @parent newBlock ? oldBlock
             newProperties = _.defaults @parseBlocks(parent.text).properties ? {}, newBlock.properties ? {}
             if !_.isEqual parent.properties, newProperties
               sets = {}
@@ -307,13 +307,14 @@ that must be done regardless of the source of changes
           if isCss newBlock
             $('head').append "<style id='css-#{blockElementId newBlock}'>#{blockSource newBlock}</style>"
         checkCodeChange: (oldBlock, newBlock, isDefault)->
-          if oldBlock?.codeName != newBlock?.codeName
-            if oldBlock?.codeName then @deleteBlockName oldBlock.codeName
-            if newBlock?.codeName
-              if !isDefault || @addImported isDefault, 'data', newBlock.codeName
-                @setBlockName newBlock.codeName, newBlock._id, isDefault
-          if oldBlock?.local && !newBlock?.local then @deleteLocalBlock oldBlock.codeName
-          if newBlock.codeAttributes?.results == 'def'
+          oldName = oldBlock?.codeName ? (oldBlock?.type == 'headline' && oldBlock?.properties?.name)
+          newName = newBlock?.codeName ? (newBlock?.type == 'headline' && newBlock?.properties?.name)
+          if oldName != newName
+            if oldName then @deleteBlockName oldName
+            if newName && (!isDefault || @addImported isDefault, 'data', newName)
+              @setBlockName newName, newBlock._id, isDefault
+          if oldBlock?.local && !newBlock?.local then @deleteLocalBlock oldName
+          if newBlock?.codeAttributes?.results == 'def'
             @queueEval => @executeBlock newBlock
         getNamedBlockId: (name)-> @namedBlocks[name] ? @importedData[name]
         setBlockName: (name, blockId, isDefault)->
@@ -343,8 +344,7 @@ that must be done regardless of the source of changes
             transaction(@localDocumentId()).delete name
         textForDataNamed: (name, data, attrs)->
           """
-          #+NAME: #{name}
-          #+BEGIN_SRC yaml #{(":#{k} #{v}" for k, v of attrs).join ' '}
+          #{if name then "#+NAME: #{name}\n" else ''}#+BEGIN_SRC yaml #{(":#{k} #{v}" for k, v of attrs).join ' '}
           #{dump(data, _.merge {sortKeys: true, flowLevel: 2}, attrs ? {}).trim()}
           #+END_SRC
           
@@ -368,9 +368,8 @@ that must be done regardless of the source of changes
                 env.eval = (text)-> controllerEval.call controller, text
         executeBlock: (block, envConf)->
           env = blockEnvMaker(block) __proto__: defaultEnv
-          env.write = (str)->
-          env.errorAt = (offset, msg)-> console.log msg
           env.data = this
+          env.write = ->
           envConf?(env)
           env.executeText blockSource(block), Nil, (->)
         checkImports: (block)->
@@ -449,6 +448,11 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
           @toggledSlides = {}
           @dataChanges = null
           @pendingDataChanges = null
+        load: (name, text)->
+          oldOpts = defaultEnv.opts
+          defaultEnv.opts = this
+          super name, text
+          defaultEnv.opts = oldOpts
         renderBlocks: -> @mode.renderBlocks this, super()
         setTheme: (theme)->
           if @theme then @editor.node.removeClass @theme
@@ -488,9 +492,11 @@ may be called more than once.  changeData() returns a promise.
                 b.text = ''
                 repls.push b
               for name, {parent, parentType, block} of @dataChanges.sharedInserts
-                b = @blockBounds name
-                b.text = block.text
-                repls.push b
+                if b = @blockBounds (if parentType == 'block' then parent else @data.lastChild @data.getNamedBlockId parent)
+                  b.start = b.end
+                  b.text = block.text
+                  repls.push b
+                else throw new Error "Attempt to append a block after nonexistant block: #{parent}"
               for name, block of @dataChanges.sharedSets
                 b = @blockBounds name
                 b.text = block.text
@@ -519,20 +525,22 @@ may be called more than once.  changeData() returns a promise.
           if @pendingDataChanges?.length
             @pendingDataChanges.shift()()
           else @pendingDataChanges = null
+        blockBoundsForHeadline: (name)->
         blockBounds: (name)->
-          block = @data.getBlockNamed name
-          start = @data.offsetForBlock block
-          end = start + block.text.length
-          {start, end, gStart: start, gEnd: end}
+          if name
+            block = if typeof name == 'string' then @data.getBlockNamed name else name
+            start = @data.offsetForBlock block
+            end = start + block.text.length
+            {start, end, gStart: start, gEnd: end}
         checkChanging: -> if !@dataChanges
           throw new Error "Attempt to access data outside of a change block"
         appendDataToHeadline: (parent, name, value, codeOpts)->
-          appendData 'headline', parent, name, value, codeOpts
+          @appendData 'headline', parent, name, value, codeOpts
         appendDataAfter: (parent, name, value, codeOpts)->
-          appendData 'block', parent, name, value, codeOpts
+          @appendData 'block', parent, name, value, codeOpts
         appendData: (parentType, parent, name, value, codeOpts)->
           @checkChanging()
-          if @getData(name)
+          if name && @getData(name)
             throw new Error "Attempt to add block with duplicate name: #{name}"
           @dataChanges.sharedInserts[name] = {
             parentType
@@ -541,7 +549,8 @@ may be called more than once.  changeData() returns a promise.
           }
         getData: (name, skipCheck)->
           if !skipCheck then @checkChanging()
-          block = if @dataChanges.localRemoves[name] || @dataChanges.sharedRemoves[name]
+          block = if skipCheck then @data.getBlockNamed(name)
+          else if @dataChanges.localRemoves[name] || @dataChanges.sharedRemoves[name]
             null
           else if block = (@dataChanges.localSets[name] || @dataChanges.sharedSets[name])
             block
@@ -762,6 +771,7 @@ may be called more than once.  changeData() returns a promise.
               sync = true
               env = envM
                 __proto__: defaultEnv
+                write: ->
                 options: this
                 data: @data
               opts = this
@@ -807,13 +817,13 @@ may be called more than once.  changeData() returns a promise.
             result = ''
             sync = true
             env = envM __proto__: defaultEnv
-            opts = this
+            env.opts = opts = this
             newBlock = setError block
             env.errorAt = (offset, msg)->
               newBlock = setError block, offset, msg
               if newBlock != block && !sync then opts.update newBlock
             env.write = (str)->
-              result += str
+              result += presentHtml str
               if !sync then opts.update newBlock = setResult block, str
             env.executeText source.content, Nil, ->
             sync = false

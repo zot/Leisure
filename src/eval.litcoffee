@@ -1,6 +1,6 @@
 Evaulation support for Leisure
 
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', './gen', './leisure-support'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = null
@@ -10,6 +10,7 @@ Evaulation support for Leisure
         getType
         cons
         unescapePresentationHtml
+        Nil
       } = Ast
       {
         Node
@@ -17,8 +18,8 @@ Evaulation support for Leisure
         lazy
         defaultEnv
       } = Base
-      rz = resolve
-      lz = lazy
+      window.resolve = rz = resolve
+      window.lazy = lz = lazy
       lc = Leisure_call
       {
         runMonad
@@ -31,6 +32,9 @@ Evaulation support for Leisure
         _true
         jsonConvert
       } = Runtime
+      {
+        Promise
+      } = Bluebird
 
       requirePromise = (file...)-> new Promise (resolve, reject)->
         require file, resolve
@@ -41,27 +45,47 @@ Evaulation support for Leisure
         .then -> requirePromise './leisure/svg'
 
       defaultEnv.write = (str)-> console.log str
+      defaultEnv.errorAt = (offset, msg)-> console.log msg
 
       id = lz (x)-> rz x
       getLeft = (x)-> x(id)(id)
       getRight = (x)-> x(id)(id)
       show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
+      window.evalLeisure = evalLeisure = (str, cont)->
+        #console.log "EVAL: \n#{str}"
+        env = leisureEnv(__proto__: defaultEnv)
+        env.presentValue = (v)-> v
+        env.executeText str, Nil, cont
+
       leisureEnv = (env)->
         env.presentValue = (v)-> html rz(L_showHtml) lz v
         env.executeText = (text, props, cont)->
-          leisurePromise.then (=>
-            try
-              old = getValue 'parser_funcProps'
-              setValue 'parser_funcProps', props
-              result = rz(L_baseLoadString)('notebook')(text)
-              runMonad2 result, env, (results)->
-                runNextResult results, env, ->
-                  setValue 'parser_funcProps', old
-                  cont? env, results
-            catch err
-              @errorAt 0, err.message), (err)=> @errorAt 0, err?.message ? err
+          if !cont then cont = (env, x)->
+            r = x.head().tail()
+            if getType(r) == 'left' then new Error getLeft r
+            else getRight r
+          if leisurePromise.isResolved()
+            leisureExec env, text, props, cont, (err)=> @errorAt 0, err?.message ? err
+          else
+            if opts = env.opts then console.log "OPTS:", opts
+            leisurePromise.then (=>
+              if !env.opts then env.opts = opts
+              leisureExec env, text, props, cont, (err)=> @errorAt 0, err?.message ? err),
+            (err)=> @errorAt 0, err?.message ? err
         env
+
+      leisureExec = (env, text, props, cont, errCont)->
+        try
+          old = getValue 'parser_funcProps'
+          setValue 'parser_funcProps', props
+          result = rz(L_baseLoadString)('notebook')(text)
+          runMonad2 result, env, (results)->
+            runNextResult results, env, ->
+              setValue 'parser_funcProps', old
+              cont? env, results
+        catch err
+          errCont err.message
 
       runNextResult = (results, env, cont)->
         while results != rz(L_nil) && getType(results.head().tail()) == 'left'
@@ -74,8 +98,9 @@ Evaulation support for Leisure
         else cont()
 
       presentHtml = (v)->
-        ': ' + (if v instanceof Html then v.content.replace(/\r?\n/g, '\\n')
+        str = ': ' + (if v instanceof Html then v.content.replace(/\r?\n/g, '\\n')
         else escapeHtml String(v).replace(/\r?\n/g, '\n: '))
+        if _.last(str) == '\n' then str else str + '\n'
 
       writeValues = (env, values)-> env.write values.join '\n'
 
@@ -230,4 +255,5 @@ Evaulation support for Leisure
         presentHtml
         escapeString
         unescapeString
+        evalLeisure
       }

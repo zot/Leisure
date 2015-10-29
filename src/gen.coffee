@@ -74,38 +74,41 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
   } = Runtime
 
   consFrom = newConsFrom
-  
+
   {
     SourceNode,
     SourceMapConsumer,
   } = SourceMap
 
   varNameSub = (n)-> "L_#{nameSub n}"
-  
+
   useArity = true
   #useArity = false
-  
+  megaArity = false
+
+  setMegaArity = (setting)-> megaArity = setting
+
   collectArgs = (args, result)->
     for i in args
       if Array.isArray i then collectArgs i, result else result.push i
     result
-  
+
   locateAst = (ast)->
     [line, col] = pos = getPos(ast).toArray()
     [line,col]
-  
+
   check = (bool, arg)->
     if !bool then console.log new Error("Bad sourcemap arg: #{arg}").stack
-  
+
   checkChild = (child)->
     if Array.isArray child
       for c in child
         checkChild c
     else check (typeof child == 'string') || (child instanceof SourceNode), c
-  
+
   currentFile = 'NEVERGIVENFILE.lsr'
   currentFuncName = undefined
-  
+
   withFile = (file, name, block)->
     oldFileName = currentFile
     oldFuncName = currentFuncName
@@ -116,7 +119,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     finally
       currentFile = oldFileName
       currentFuncName = oldFuncName
-  
+
   sn = (ast, str...)->
     #(collectArgs str, []).join('')
     #[file, line, col] = getPos(ast).toArray()
@@ -134,9 +137,9 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     #else new SourceNode(line, offset, currentFile, str)
 
   genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
-  
+
   gen = (ast)-> genMap(ast).toStringWithSourceMap(file: currentFile).code
-  
+
   genSource = (source, ast)->
     #console.log "SOURCE: #{source}\nAST: #{ast}"
     funcname = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName' then getAnnoData ast else null
@@ -167,17 +170,17 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     [line, offset] = locateAst ast
     if funcname then new SourceNode line, offset, filename, sub, funcname
     else sub
-  
+
   findName = (name)->
     for i in [root.nameSpacePath.length - 1 .. 0]
       if LeisureNameSpaces[root.nameSpacePath[i]]?[name] then return root.nameSpacePath[i]
     if root.currentNameSpace && LeisureNameSpaces[root.currentNameSpace][name] then root.currentNameSpace
     else null
-  
+
   location = (ast)->
     [line, col] = locateAst ast
     "#{line}:#{col}"
-  
+
   genRefName = (ref, uniq, names)->
     name = getRefName ref
     #if isNil (val = names.find (el)-> el == name) then console.log("GLOBAL: #{name}, val = #{val}")
@@ -217,12 +220,12 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
               genned
             else genned
       else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
-  
+
   # this is a no-op, now
   define 'newGen', (makeSyncMonad (env, cont)->
     console.log "CALL TO OBSOLETE NEWGEN"
     cont _true), null, null, null, 'parser'
-  
+
   genArifiedApply = (ast, names, uniq)->
     args = []
     func = ast
@@ -230,18 +233,26 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
       args.push getApplyArg dumpAnno func
       func = getApplyFunc dumpAnno func
     args.reverse()
-    info = functionInfo[getRefName func]
-    if dumpAnno(func) instanceof Leisure_ref && info?.newArity && (arity = info?.arity) && arity <= args.length
+    #if (dmp = dumpAnno(func)) instanceof Leisure_ref && (info = functionInfo[getRefName dmp]) && info?.newArity && (arity = info?.arity) && arity <= args.length
+    #if true
+    #  if (dmp = dumpAnno(func)) instanceof Leisure_ref && (info = functionInfo[getRefName dmp]) && info?.newArity && (arity = info?.arity) && arity <= args.length
+    #  else arity = args.length
+    defaultArity = false
+    if ((dmp = dumpAnno(func)) instanceof Leisure_ref && (info = functionInfo[getRefName dmp]) && info?.newArity && (arity = info?.arity) && 1 < arity <= args.length) || (!arity && megaArity && args.length > 1)
+      if defaultArity = !arity then arity = args.length
       argCode = []
       argCode.push ast
+      if defaultArity then argCode.push 'L$('
       argCode.push genUniq func, names, uniq
-      argCode.push '('
+      if defaultArity then argCode.push ')('
+      else argCode.push '('
       for i in [0...arity]
         if i > 0 then argCode.push ', '
         argCode.push sn args[i], genApplyArg args[i], names, uniq
       argCode.push ')'
       for i in [arity...args.length] by 1
         argCode.push '(', (sn args[i], genApplyArg args[i], names, uniq), ')'
+      #console.log sn(argCode...).toString()
       sn argCode...
     else
       ast = dumpAnno ast
@@ -252,14 +263,14 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     u = addUniq name, names, uniq
     n = cons name, names
     addLambdaProperties ast, sn ast, "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}"
-  
+
   getLambdaArgs = (ast)->
     args = []
     while ast instanceof Leisure_lambda
       args.push getLambdaVar ast
       ast = getLambdaBody ast
     [args, ast]
-  
+
   genArifiedLambda = (ast, names, uniq, arity)->
     if arity < 2 then genLambda ast, names, uniq, 0
     else
@@ -280,12 +291,12 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
           when 'dataType' then result = sn ast, "setDataType(", result, ", '", data, "')"
         annoAst = getAnnoBody annoAst
       result
-  
+
   getNthLambdaBody = (ast, n)->
     if n == 0 then ast
     else if (d = dumpAnno ast) instanceof Leisure_lambda then getNthLambdaBody getLambdaBody(d), n - 1
     else throw new Error "Expected lambda but got #{ast}"
-  
+
   strRepeat = (string, n)->
     result = string
     for i in [1...n]
@@ -297,17 +308,17 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     for i in [1...args.length]
       f = f args[i]
     f
-  
+
   getNArgs = (n, ast)->
     d = dumpAnno ast
     if !n then Nil else cons (getLambdaVar d), getNArgs n - 1, getLambdaBody d
-  
+
   specialAnnotations = ['type', 'dataType', 'define']
-  
+
   arrayify = (cons)->
     if cons instanceof Leisure_cons then cons.map((el)-> arrayify el).toArray()
     else cons
-  
+
   getLambdaProperties = (body, props)->
     if body instanceof Leisure_anno
       if !_.contains specialAnnotations, getAnnoName(body)
@@ -316,7 +327,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
         props[getAnnoName body] = arrayify value
       getLambdaProperties getAnnoBody(body), props
     props
-  
+
   addLambdaProperties = (ast, def, extras)->
     props = getLambdaProperties getLambdaBody ast
     if props || extras
@@ -325,10 +336,10 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
       if extras then _.merge p, extras
       sn ast, "setLambdaProperties(", def, ", ", (JSON.stringify p), ")"
     else def
-  
+
   lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
   parseErr = (a, b)-> rz(L_parseErr)(a)(b)
-  
+
   lconsFrom = (array)->
     if array instanceof Array
       p = rz L_nil
@@ -336,15 +347,15 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
         p = lcons lconsFrom(el), p
       p
     else array
-  
+
   assocListProps = null
-  
+
   getAssocListProps = ->
     if !assocListProps
       assocListProps = lcons lcons('assoc', 'true'), rz(L_nil)
       assocListProps.properties = assocListProps
     assocListProps
-  
+
   lacons = (key, value, list)->
     alist = lcons lcons(key, value), list
     alist.properties = getAssocListProps()
@@ -356,11 +367,11 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
       p = lacons k, lconsFrom(v), p
     def.properties = p
     def
-  
+
   lazify = (ast, func)-> sn ast, "function(){return ", func, "}"
-  
+
   dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
-  
+
   genApplyArg = (arg, names, uniq)->
     d = dumpAnno arg
     if d instanceof Leisure_apply then lazify d, genUniq arg, names, uniq
@@ -369,11 +380,11 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     else if d instanceof Leisure_let then sn arg, "function(){return", (genUniq arg, names, uniq), ";}"
     else if d instanceof Leisure_lambda then sn arg, "lazy(", (genUniq arg, names, uniq), ")"
     else sn arg, "function(){return ", (genUniq arg, names, uniq), "}"
-  
+
   genLetAssign = (arg, names, uniq)->
     if dumpAnno(arg) instanceof Leisure_let then sn arg, "function(){", (genLets arg, names, uniq), "}"
     else sn arg, "function(){return ", (genUniq arg, names, uniq), "}"
-  
+
   genLets = (ast, names, uniq)->
     bindings = letList ast, []
     letNames = _.foldl bindings, ((n, l)-> cons (getLetName l), n), names
@@ -385,13 +396,13 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
         (cons (sn ast, letName + ' = ', genLetAssign(getLetValue(l), letNames, u)), code),
         (cons letName, assigns)]), [uniq, Nil, Nil]
     sn ast, "  var ", assigns.reverse().join(', '), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", (genUniq (getLastLetBody ast), letNames, letUniq)
-  
+
   addUniq = (name, names, uniq)->
     if (names.find (el)-> el == name) != Nil
       [overrides, num] = uniq
       [(cons (cons name, "#{name}_#{num}"), overrides), num + 1]
     else uniq
-  
+
   uniqName = (name, uniq)->
     [uniq] = uniq
     kv = uniq.find ((el)-> el.head() == name), uniq
@@ -402,9 +413,9 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
       buf.push ast
       letList getLetBody(ast), buf
     else buf
-  
+
   getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
-  
+
   define 'runAst', ((code)->(ast)->
     jsCode = null
     try
@@ -415,7 +426,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
       msg = "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "
       console.log msg + ast() + "\n" + err.stack
       parseErr (lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
-  
+
   define 'genAst', ((ast)->
     jsCode = null
     try
@@ -423,19 +434,22 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     catch err
       codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
       parseErr (lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
-  
-  gen: gen
-  genMap: genMap
-  genSource: genSource
-  genNode: genNode
-  sourceNode: sn
-  withFile: withFile
-  curryCall: curryCall
-  #useNameSpace: useNameSpace
-  #pushNameSpace: pushNameSpace
-  #getNameSpacePath: getNameSpacePath
-  #clearNameSpacePath: clearNameSpacePath
-  #saveNameSpace: saveNameSpace
-  #restoreNameSpace: restoreNameSpace
-  SourceNode: SourceNode
-  SourceMapConsumer: SourceMapConsumer
+
+  {
+    gen
+    genMap
+    genSource
+    genNode
+    sourceNode: sn
+    withFile
+    curryCall
+    #useNameSpace: useNameSpace
+    #pushNameSpace: pushNameSpace
+    #getNameSpacePath: getNameSpacePath
+    #clearNameSpacePath: clearNameSpacePath
+    #saveNameSpace: saveNameSpace
+    #restoreNameSpace: restoreNameSpace
+    SourceNode
+    SourceMapConsumer
+    setMegaArity
+  }
