@@ -1,0 +1,29 @@
+{
+  "name": "Leisure",
+  "main": "www/org.html",
+  "version": "1.0.0",
+  "description": "Leisure environment",
+  "keywords": [
+    "Leisure"
+  ],
+  "author": {
+    "name": "Bill Burdick",
+    "email": "bill.burdick@gmail.com",
+    "url": "http://github.com/zot"
+  },
+  "homepage": "http://github.com/zot",
+  "engines": {
+    "node": ">= 0.6.0",
+    "npm": ">= 1.0.0"
+  },
+  "dependencies": {
+    "amdefine": "^1.0.0",
+    "finalhandler": "^0.4.0",
+    "requirejs": "^2.1.20",
+    "serve-static": "^1.10.0",
+    "sockjs": "^0.3.15",
+    "source-map-support": "^0.3.3"
+  },
+  "devDependencies": {},
+  "bundleDependencies": []
+}
