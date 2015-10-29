@@ -103,16 +103,16 @@ runRepeat count limit f = count < limit
   [(f count) | runRepeat (count + 1) limit f]
   []
 
-requireJS file = bind (getValue 'requiredFiles')
+requireJS file = bind2 (getValue 'requiredFiles')
   \files . contains files file
     false
-    bind (loadJS file)
+    bind2 (loadJS file)
       \result . result
         \x . left x
-        \_ . bind (setValue 'requiredFiles' (cons file files))
+        \_ . bind2 (setValue 'requiredFiles' (cons file files))
           \_ . right true
 
-loadJS file = bind (readFile file)
+loadJS file = bind2 (readFile file)
   \result . result
     \err . err
     \contents . js contents

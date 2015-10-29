@@ -828,7 +828,7 @@ namesForLines lines = foldl
 # make some let-style macros that use gensyms?
 
 runParseFilters filters line = filters
-  \h t D . bind (h line) \filtered . runParseFilters t filtered
+  \h t D . bind2 (h line) \filtered . runParseFilters t filtered
   fakereturn line
 
 isBlockStart tok = and
@@ -900,6 +900,7 @@ postProcessMacro before after expr = isString expr
         token (strString expr) (isEmptyPos after before after)
         expr
 
+# doesn't work with bind2
 defMacro name def = bind (getValue 'macroDefs') \macs . setValue 'macroDefs' (acons name def macs)
 
 #################
@@ -910,6 +911,7 @@ delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#.*|\\r?\
 
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
+# doesn't work with bind2
 addToken del = bind (getValue 'tokenList')
   \dels . contains dels del
     false
@@ -925,6 +927,7 @@ computeTokenPat dels = \\
   .
   setValue 'tokenPat' newPat
 
+# doesn't work with bind2
 addTokenGroup open close = bind (addToken open)
   \_ . bind (addToken close)
     \_ . bind (getValue 'tokenGroups')
@@ -984,12 +987,12 @@ simpleScanLine line = bind2 (getValue 'tokenPat')
 
 scanLineM line = countedScanLineM emptyLineStarts line
 
-countedScanLineM lineStarts line = bind (getValue 'tokenPat')
-  \tokenPat . bind (getValue 'tokenGroups')
-    \groups . bind (getValue 'parseFilters')
-      \filters . bind (getValue 'macroDefs')
-        \macros . bind (getValue 'parser_funcProps')
-          \props . bind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups props id id))
+countedScanLineM lineStarts line = bind2 (getValue 'tokenPat')
+  \tokenPat . bind2 (getValue 'tokenGroups')
+    \groups . bind2 (getValue 'parseFilters')
+      \filters . bind2 (getValue 'macroDefs')
+        \macros . bind2 (getValue 'parser_funcProps')
+          \props . bind2 (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups props id id))
             \scanned . macroSub macros scanned
 
 newline = regexp '\\r?\\n'
@@ -1140,10 +1143,12 @@ countedScanLines file names countedLines = countedLines
 
 #newGen
 
+# doesn't work with bind2
 # pack is (tokens groups filters)
 defTokenPack name pack = bind (getValue 'tokenPacks')
   \packs . setValue 'tokenPacks' (acons name pack packs)
 
+# doesn't work with bind2
 useTokenPack name = bind (getValue 'tokenPacks')
   \packs . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'tokenList')
@@ -1161,6 +1166,7 @@ useTokenPack name = bind (getValue 'tokenPacks')
                       \_ . setValue 'activeTokenPacks' (cons name activePacks)
             nil
 
+# doesn't work with bind2
 resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
   \_ . bind (setValue 'tokenList' nil)
     \_ . bind (setValue 'activeTokenPacks' nil)
@@ -1169,14 +1175,14 @@ resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
           \packCmd result . bind packCmd \_ . result
           map useTokenPack packs
 
-resetStdTokenPacks = bind (getValue 'stdTokenPacks')
-  \stds . bind (resetTokenPacks stds)
+resetStdTokenPacks = bind2 (getValue 'stdTokenPacks')
+  \stds . bind2 (resetTokenPacks stds)
     \_ . setValue 'activeTokenPacks' nil
 
-addStdTokenPacks morePacks = bind (getValue 'stdTokenPacks')
+addStdTokenPacks morePacks = bind2 (getValue 'stdTokenPacks')
   \stds . setValue 'stdTokenPacks' (append stds morePacks)
 
-addParseFilter filt = bind (getValue 'parseFilters')
+addParseFilter filt = bind2 (getValue 'parseFilters')
   \filters . setValue 'parseFilters' (append filters (cons filt nil))
 
 ############
@@ -1227,7 +1233,6 @@ setNameSpace 'core'
 #################
 
 # change this to return a list of results
-#doall = foldr1 (\el res . bind el \_ . res)
 doall = foldr1 (\el res . bind2 el \_ . res)
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list
@@ -1250,7 +1255,7 @@ defMacro '[' \list . list \h t . listify h
 
 # parse filter 'listFilter' gathers items after the '|' into a single argument
 
-listFilter code = bind (getValue 'listMacros')
+listFilter code = bind2 (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
     and (isToken h) (contains listMacros (tokenString h))
       listFilterTail list
@@ -1362,9 +1367,9 @@ defMacro 'concat[' \list . ['strCat' [(listify (head list))]]
 
 defMacro 'concatFlat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
 
-infix code = bind (getValue 'infixPrecedence')
-  \prec . bind (getValue 'infixRightAssociative')
-    \right . bind (getValue 'tokenGroups')
+infix code = bind2 (getValue 'infixPrecedence')
+  \prec . bind2 (getValue 'infixRightAssociative')
+    \right . bind2 (getValue 'tokenGroups')
       \groups . filterApplies
         code
         \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr

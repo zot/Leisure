@@ -14,6 +14,8 @@ LEISURE_GEN=$(LEISURE_JS) $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.ast) $(LEISURE_SRC:%=$
 
 all: node_modules lib/leisureRepl.js $(OUTPUT_DIR) $(LEISURE_JS) $(SRC_JS:%=$(OUTPUT_DIR)/%.js) $(BASE_LESURE:%=$(OUTPUT_DIR)/%.lsr)
 
+base: $(OUTPUT_DIR)/generatedPrelude.js
+
 tst: FRC
 	echo "LEISURE_JS:" $(LEISURE_JS)
 

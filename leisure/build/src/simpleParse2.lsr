@@ -17,7 +17,6 @@ setNameSpace 'core'
 #################
 
 # change this to return a list of results
-#doall = foldr1 (\el res . bind el \_ . res)
 doall = foldr1 (\el res . bind2 el \_ . res)
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list
@@ -40,7 +39,7 @@ defMacro '[' \list . list \h t . listify h
 
 # parse filter 'listFilter' gathers items after the '|' into a single argument
 
-listFilter code = bind (getValue 'listMacros')
+listFilter code = bind2 (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
     and (isToken h) (contains listMacros (tokenString h))
       listFilterTail list
@@ -152,9 +151,9 @@ defMacro 'concat[' \list . ['strCat' [(listify (head list))]]
 
 defMacro 'concatFlat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
 
-infix code = bind (getValue 'infixPrecedence')
-  \prec . bind (getValue 'infixRightAssociative')
-    \right . bind (getValue 'tokenGroups')
+infix code = bind2 (getValue 'infixPrecedence')
+  \prec . bind2 (getValue 'infixRightAssociative')
+    \right . bind2 (getValue 'tokenGroups')
       \groups . filterApplies
         code
         \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
