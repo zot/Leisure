@@ -137,7 +137,7 @@ Support code for Leisure
         _appendWithAttrs headline name attrs (toJson data)
 
       dataModBind item cont = \\f . f item cont
-      defCase bind2.dataMod mod cont | hasType mod dataMod ->
+      defCase bind.dataMod mod cont | hasType mod dataMod ->
         dataMod (dataModBind (getDataModCmd mod) cont)
       defCase showBase.dataModBind func cmd | hasType cmd dataModBind ->
         concatFlat["(do " (intersperse (map (showBase func) (extractDataModBind cmd)) ' ') ")"]

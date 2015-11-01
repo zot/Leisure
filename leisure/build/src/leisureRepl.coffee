@@ -54,6 +54,8 @@ _ = require 'lodash.min'
 fs = require 'fs'
 #compiler = require 'compiler'
 
+if _.includes process.argv, '-x' then global.L_DEBUG = true
+
 {
   getType
   setType
@@ -78,8 +80,7 @@ global.btoa = require 'btoa'
 } = requirejs './node'
 {
   identity
-  runMonad
-  newRunMonad
+  runMonad2
   isMonad
   asyncMonad
   replaceErr
@@ -88,8 +89,10 @@ global.btoa = require 'btoa'
   requireFiles
   getValue
 } = requirejs './runtime'
+{
+  Promise
+} = requirejs 'lib/bluebird.min'
 
-global.runMonad = runMonad
 global.setType = setType
 global.setDataType = setDataType
 global.defaultEnv = defaultEnv
@@ -102,6 +105,7 @@ global.identity = identity
 # 2: use generatedPrelude.lsr
 #
 stage = 2
+std = true
 stages = ['simpleParseJS', 'simpleParse', 'generatedPrelude']
 shouldNsLog = false
 pargs = null
@@ -131,14 +135,14 @@ evalInput = (text, cont)->
         result = lc L_newParseLine, 0, Nil, text
       else
         result = rz(L_newParseLine)(0)(lz Nil)(lz text)
-      runMonad result, replEnv, (ast)->
+      runMonad2 result, replEnv, (ast)->
         try
           if getType(ast) == 'err'
             cont "PARSE ERORR: #{getParseErr ast}"
           else
             if diag
               if L_simplify?
-                runMonad (rz(L_simplify) lz text), replEnv, (result)-> console.log "\nSIMPLIFIED: #{result}"
+                runMonad2 (rz(L_simplify) lz text), replEnv, (result)-> console.log "\nSIMPLIFIED: #{result}"
               console.log "\nAST: #{ast}"
             source = genSource text, ast
             if diag
@@ -147,7 +151,7 @@ evalInput = (text, cont)->
             #result = eval genSource text, ast
             result = eval source
             if isMonad result then console.log "(processing IO monad)"
-            runMonad result, replEnv, cont
+            runMonad2 result, replEnv, cont
         catch err
           cont rz(L_err)(lz (err.stack ? err.toString()))
     catch err
@@ -251,7 +255,9 @@ repl = (config)->
         else
           try
             if line.substring(0,2) == ':s'
-              if L_simplify? then console.log "\n#{show runMonad rz(L_simplify) lz line.substring(2)}\n"
+              if L_simplify?
+                runMonad2 (rz(L_simplify) lz text), replEnv, (result)->
+                  console.log "\n#{result}"
               else console.log "No simplify function.  Load std.lsr"
             else if line.match /^!/ then console.log eval line.substring 1
             else
@@ -311,7 +317,7 @@ createJsFile = false
 
 runFile = (file, cont)->
   try
-    runMonad rz(L_protect)(lz rz(L_require)(lz file)), defaultEnv, (result)->
+    runMonad2 rz(L_protect)(lz rz(L_require)(lz file)), defaultEnv, (result)->
       cont []
   catch err
     console.log "ERROR LOADING FILE: #{file}...\n#{err.stack}"
@@ -320,7 +326,7 @@ runFile = (file, cont)->
 compile = (file, cont)->
   defaultEnv.errorHandlers?.push (e)-> process.exit 1
   ext = path.extname file
-  runMonad rz(L_baseLoad)(lz file), defaultEnv, (result)->
+  runMonad2 rz(L_baseLoad)(lz file), defaultEnv, (result)->
     if verbose then console.log "Preparing to write code for #{file}"
     errors = []
     asts = _.map result.toArray(), (lineData)->
@@ -362,9 +368,9 @@ compile = (file, cont)->
         lastArgs = null
         result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
           #"module.exports = L_runMonads([\n  ",
-          "L_runMonads([\n  ",
-          intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
-          "]);\n"
+          'define([], function(){\n  return L_runMonads([\n    ',
+          intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, 'function(){return ', (genMap item), '}'), ',\n    '),
+          '\n  ]);\n});'
         ]).toStringWithSourceMap(file: path.basename(bareJs))
       catch err
         inspect = require?('util').inspect ? (x)-> x
@@ -421,6 +427,7 @@ usage = ->
   -a            only parse to AST
   -0            use CoffeeScript parser
   -1            use simple Leisure parser
+  -2            use normal Leisure parser but don't load std
   -c            for -0, compile to JS using CoffeeScript compiler
                 for -1, or normal case, create AST and JS file
   -r FILE       require JS FILE
@@ -438,14 +445,18 @@ requireList = []
 
 doRequirements = (cont)->
   if verbose then console.log "DO REQUIREMENTS.  loaded: #{loadedParser}"
+  if std then requireList.unshift 'leisure/std'
   if !loadedParser
     #if stage < 2 then root.shouldNsLog = false
     root.shouldNsLog = shouldNsLog
-    require baseLeisureDir + stages[stage]
-    loadedParser = true
-    if stage == 1 then root.lockGen = false
-  #loadRequirements requireList, cont, verbose
-  requireFiles requireList, cont, verbose
+    requirejs ['./leisure/' + stages[stage]], (promise)->
+      loadedParser = true
+      if stage == 1 then root.lockGen = false
+      if promise instanceof Promise
+        promise.then -> requireFiles requireList, cont, verbose
+      else
+        requireFiles requireList, cont, verbose
+  else requireFiles requireList, cont, verbose
 
 #loadRequirements = (req, cont)->
 #  if req.length
@@ -480,6 +491,7 @@ processArg = (config, pos)->
     when '-p'
       promptText = pargs[pos + 1]
       pos++
+    when '-x' then #ignore because processed above
     when '-v'
       verbose = true
       global.verbose.gen = true
@@ -500,10 +512,14 @@ processArg = (config, pos)->
       pos++
     when '-0'
       stage = 0
+      std = false
       root.lockGen = true
     when '-1'
       stage = 1
+      std = false
       root.lockGen = true
+    when '-2'
+      std = false
     when '-i'
       interactive = true
     when '--nslog' then shouldNsLog = true
@@ -552,8 +568,14 @@ run = (args, config)->
     #if stage < 2 then root.shouldNsLog = false
     root.shouldNsLog = shouldNsLog
     #require baseLeisureDir + stages[stage]
-    require stages[stage]
-    repl config
+    #requirejs ['./leisure/' + stages[stage]], (promise)->
+    #  if promise instanceof Promise
+    #    console.log 'GOT PROMISE IN RUN'
+    #    promise.then -> repl config
+    #  else
+    #    console.log 'NO PROMISE IN RUN'
+    #    repl config
+    doRequirements -> repl config
   else processArg config, 2
 
 root.runFile = runFile
@@ -570,7 +592,6 @@ else
       if verbose then console.log "RUNNING REPL"
       run process.argv, home: process.env.HOME
     else
-      console.log "b"
       #if stage < 2 then root.shouldNsLog = false
       root.shouldNsLog = shouldNsLog
-      require baseLeisureDir + stages[stage]
+      requirejs ['./leisure/' + stages[stage]], 

@@ -25,7 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
-  var Nil, SourceNode, action, ast2Json, asyncMonad, baseDir, baseLeisureDir, compile, createAstFile, createJsFile, defaultEnv, diag, doRequirements, evalInput, fs, gen, genJsFromAst, genMap, genSource, gennedAst, gennedJs, getMonadSyncMode, getParseErr, getType, getValue, help, identity, interactive, interrupted, intersperse, isMonad, json2Ast, lazy, lc, leisureCompleter, leisureFunctions, loadedParser, lz, newCall, newOptions, newRunMonad, oldFunctionCount, outDir, pargs, path, primCompile, processArg, processedFiles, prog, prompt, promptText, readFile, readline, recompiled, repl, replEnv, replaceErr, requireFiles, requireList, requireUtils, requirejs, resolve, rl, root, run, runFile, runMonad, rz, setDataType, setMegaArity, setType, setWarnAsync, shouldNsLog, show, sourceNode, stage, stages, tokenString, updateCompleter, usage, verbose, withFile, writeFile, _, _ref, _ref1, _ref2, _ref3, _ref4;
+  var Nil, Promise, SourceNode, action, ast2Json, asyncMonad, baseDir, baseLeisureDir, compile, createAstFile, createJsFile, defaultEnv, diag, doRequirements, evalInput, fs, gen, genJsFromAst, genMap, genSource, gennedAst, gennedJs, getMonadSyncMode, getParseErr, getType, getValue, help, identity, interactive, interrupted, intersperse, isMonad, json2Ast, lazy, lc, leisureCompleter, leisureFunctions, loadedParser, lz, newCall, newOptions, oldFunctionCount, outDir, pargs, path, primCompile, processArg, processedFiles, prog, prompt, promptText, readFile, readline, recompiled, repl, replEnv, replaceErr, requireFiles, requireList, requireUtils, requirejs, resolve, rl, root, run, runFile, runMonad2, rz, setDataType, setMegaArity, setType, setWarnAsync, shouldNsLog, show, sourceNode, stage, stages, std, tokenString, updateCompleter, usage, verbose, withFile, writeFile, _, _ref, _ref1, _ref2, _ref3, _ref4;
 
   require('source-map-support').install();
 
@@ -59,6 +59,10 @@ misrepresented as being the original software.
 
   fs = require('fs');
 
+  if (_.includes(process.argv, '-x')) {
+    global.L_DEBUG = true;
+  }
+
   _ref1 = requirejs('./ast'), getType = _ref1.getType, setType = _ref1.setType, setDataType = _ref1.setDataType, ast2Json = _ref1.ast2Json, json2Ast = _ref1.json2Ast, Nil = _ref1.Nil;
 
   global.btoa = require('btoa');
@@ -67,9 +71,9 @@ misrepresented as being the original software.
 
   _ref3 = requirejs('./node'), readFile = _ref3.readFile, writeFile = _ref3.writeFile;
 
-  _ref4 = requirejs('./runtime'), identity = _ref4.identity, runMonad = _ref4.runMonad, newRunMonad = _ref4.newRunMonad, isMonad = _ref4.isMonad, asyncMonad = _ref4.asyncMonad, replaceErr = _ref4.replaceErr, getMonadSyncMode = _ref4.getMonadSyncMode, setWarnAsync = _ref4.setWarnAsync, requireFiles = _ref4.requireFiles, getValue = _ref4.getValue;
+  _ref4 = requirejs('./runtime'), identity = _ref4.identity, runMonad2 = _ref4.runMonad2, isMonad = _ref4.isMonad, asyncMonad = _ref4.asyncMonad, replaceErr = _ref4.replaceErr, getMonadSyncMode = _ref4.getMonadSyncMode, setWarnAsync = _ref4.setWarnAsync, requireFiles = _ref4.requireFiles, getValue = _ref4.getValue;
 
-  global.runMonad = runMonad;
+  Promise = requirejs('lib/bluebird.min').Promise;
 
   global.setType = setType;
 
@@ -80,6 +84,8 @@ misrepresented as being the original software.
   global.identity = identity;
 
   stage = 2;
+
+  std = true;
 
   stages = ['simpleParseJS', 'simpleParse', 'generatedPrelude'];
 
@@ -125,7 +131,7 @@ misrepresented as being the original software.
         } else {
           result = rz(L_newParseLine)(0)(lz(Nil))(lz(text));
         }
-        return runMonad(result, replEnv, function(ast) {
+        return runMonad2(result, replEnv, function(ast) {
           var err, source, _ref5;
           try {
             if (getType(ast) === 'err') {
@@ -133,7 +139,7 @@ misrepresented as being the original software.
             } else {
               if (diag) {
                 if (typeof L_simplify !== "undefined" && L_simplify !== null) {
-                  runMonad(rz(L_simplify)(lz(text)), replEnv, function(result) {
+                  runMonad2(rz(L_simplify)(lz(text)), replEnv, function(result) {
                     return console.log("\nSIMPLIFIED: " + result);
                   });
                 }
@@ -147,7 +153,7 @@ misrepresented as being the original software.
               if (isMonad(result)) {
                 console.log("(processing IO monad)");
               }
-              return runMonad(result, replEnv, cont);
+              return runMonad2(result, replEnv, cont);
             }
           } catch (_error) {
             err = _error;
@@ -304,7 +310,9 @@ misrepresented as being the original software.
             try {
               if (line.substring(0, 2) === ':s') {
                 if (typeof L_simplify !== "undefined" && L_simplify !== null) {
-                  console.log("\n" + (show(runMonad(rz(L_simplify)(lz(line.substring(2)))))) + "\n");
+                  runMonad2(rz(L_simplify)(lz(text)), replEnv, function(result) {
+                    return console.log("\n" + result);
+                  });
                 } else {
                   console.log("No simplify function.  Load std.lsr");
                 }
@@ -407,7 +415,7 @@ misrepresented as being the original software.
   runFile = function(file, cont) {
     var err;
     try {
-      return runMonad(rz(L_protect)(lz(rz(L_require)(lz(file)))), defaultEnv, function(result) {
+      return runMonad2(rz(L_protect)(lz(rz(L_require)(lz(file)))), defaultEnv, function(result) {
         return cont([]);
       });
     } catch (_error) {
@@ -425,7 +433,7 @@ misrepresented as being the original software.
       });
     }
     ext = path.extname(file);
-    return runMonad(rz(L_baseLoad)(lz(file)), defaultEnv, function(result) {
+    return runMonad2(rz(L_baseLoad)(lz(file)), defaultEnv, function(result) {
       var asts, bareFile, bareJs, bareLsr, bareOutputMap, err, errors, inspect, lastArgs, outputFile, outputFileBase, outputMap, _i, _len, _ref6;
       if (verbose) {
         console.log("Preparing to write code for " + file);
@@ -496,9 +504,9 @@ misrepresented as being the original software.
           lastArgs = null;
           result = withFile(path.basename(bareLsr), null, function() {
             return (new SourceNode(1, 0, bareLsr, [
-              "L_runMonads([\n  ", intersperse(lastArgs = _.map(asts, function(item) {
-                return sourceNode(item, "function(){return ", genMap(item), "}");
-              }), ',\n '), "]);\n"
+              'define([], function(){\n  return L_runMonads([\n    ', intersperse(lastArgs = _.map(asts, function(item) {
+                return sourceNode(item, 'function(){return ', genMap(item), '}');
+              }), ',\n    '), '\n  ]);\n});'
             ])).toStringWithSourceMap({
               file: path.basename(bareJs)
             });
@@ -588,7 +596,7 @@ misrepresented as being the original software.
   };
 
   usage = function() {
-    console.log("Usage repl [-v | -a | -0 | -1 | -c | -coffee | -j | -d DIR] [FILE ...]\n\n-v            verbose\n-a            only parse to AST\n-0            use CoffeeScript parser\n-1            use simple Leisure parser\n-c            for -0, compile to JS using CoffeeScript compiler\n              for -1, or normal case, create AST and JS file\n-r FILE       require JS FILE\n-d DIR        specify output directory for .ast and .js files\n-j            run JavaScript interactively after requiring Leisure files\n-coffee       run CoffeeScript interactively after requiring Leisure files\n\nWith no FILE arguments, runs interactive REPL");
+    console.log("Usage repl [-v | -a | -0 | -1 | -c | -coffee | -j | -d DIR] [FILE ...]\n\n-v            verbose\n-a            only parse to AST\n-0            use CoffeeScript parser\n-1            use simple Leisure parser\n-2            use normal Leisure parser but don't load std\n-c            for -0, compile to JS using CoffeeScript compiler\n              for -1, or normal case, create AST and JS file\n-r FILE       require JS FILE\n-d DIR        specify output directory for .ast and .js files\n-j            run JavaScript interactively after requiring Leisure files\n-coffee       run CoffeeScript interactively after requiring Leisure files\n\nWith no FILE arguments, runs interactive REPL");
     return process.exit(0);
   };
 
@@ -600,15 +608,27 @@ misrepresented as being the original software.
     if (verbose) {
       console.log("DO REQUIREMENTS.  loaded: " + loadedParser);
     }
+    if (std) {
+      requireList.unshift('leisure/std');
+    }
     if (!loadedParser) {
       root.shouldNsLog = shouldNsLog;
-      require(baseLeisureDir + stages[stage]);
-      loadedParser = true;
-      if (stage === 1) {
-        root.lockGen = false;
-      }
+      return requirejs(['./leisure/' + stages[stage]], function(promise) {
+        loadedParser = true;
+        if (stage === 1) {
+          root.lockGen = false;
+        }
+        if (promise instanceof Promise) {
+          return promise.then(function() {
+            return requireFiles(requireList, cont, verbose);
+          });
+        } else {
+          return requireFiles(requireList, cont, verbose);
+        }
+      });
+    } else {
+      return requireFiles(requireList, cont, verbose);
     }
-    return requireFiles(requireList, cont, verbose);
   };
 
   processArg = function(config, pos) {
@@ -636,6 +656,8 @@ misrepresented as being the original software.
         promptText = pargs[pos + 1];
         pos++;
         break;
+      case '-x':
+        break;
       case '-v':
         verbose = true;
         global.verbose.gen = true;
@@ -660,11 +682,16 @@ misrepresented as being the original software.
         break;
       case '-0':
         stage = 0;
+        std = false;
         root.lockGen = true;
         break;
       case '-1':
         stage = 1;
+        std = false;
         root.lockGen = true;
+        break;
+      case '-2':
+        std = false;
         break;
       case '-i':
         interactive = true;
@@ -726,8 +753,9 @@ misrepresented as being the original software.
     console.log("Run: " + (args.join(', ')));
     if (args.length === 2) {
       root.shouldNsLog = shouldNsLog;
-      require(stages[stage]);
-      return repl(config);
+      return doRequirements(function() {
+        return repl(config);
+      });
     } else {
       return processArg(config, 2);
     }
@@ -763,9 +791,8 @@ misrepresented as being the original software.
         });
         break;
       default:
-        console.log("b");
         root.shouldNsLog = shouldNsLog;
-        require(baseLeisureDir + stages[stage]);
+        requirejs(['./leisure/' + stages[stage]]);
     }
   }
 

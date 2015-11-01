@@ -5,7 +5,7 @@ LEISURE_SRC=generatedPrelude std svg parseAst simpleParse
 LEISURE_JS=lib/simpleParseJS.js $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.js)
 NODE=$(CURDIR)/runNode
 #REPL=$(NODE) src/runRepl
-REPL=$(CURDIR)/../repl
+REPL=$(CURDIR)/../repl $(DEBUG)
 OUTPUT_PARSE_AST=$(OUTPUT_DIR)/parseAst.js
 BASE_LEISURE=std svg parseAst
 SRC_JS=source-map
@@ -51,31 +51,31 @@ node_modules:
 $(OUTPUT_DIR)/generatedPrelude.lsr: src/simpleParse.lsr src/simpleParse2.lsr
 	cat src/simpleParse.lsr src/simpleParse2.lsr > $@
 
-$(OUTPUT_DIR)/generatedPrelude.js: lib/leisureRepl.js $(OUTPUT_DIR)/simpleParse.js $(OUTPUT_DIR)/generatedPrelude.lsr
-	$(REPL) -d $(OUTPUT_DIR) -1 -c $(OUTPUT_DIR)/generatedPrelude.lsr
-
 $(OUTPUT_DIR)/simpleParse.js: src/simpleParse.lsr lib/simpleParseJS.js
-	$(REPL) -d $(OUTPUT_DIR) -0 -c src/simpleParse.lsr
+	$(REPL) -0 -d $(OUTPUT_DIR) -c src/simpleParse.lsr
 	sed -e 's!^//@.*$$!//# sourceMappingURL=simpleParse.map!' $(OUTPUT_DIR)/simpleParse.js > /tmp/tmp
 	mv /tmp/tmp $(OUTPUT_DIR)/simpleParse.js
 	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
+$(OUTPUT_DIR)/generatedPrelude.js: lib/leisureRepl.js $(OUTPUT_DIR)/simpleParse.js $(OUTPUT_DIR)/generatedPrelude.lsr
+	$(REPL) -1 -d $(OUTPUT_DIR) -c $(OUTPUT_DIR)/generatedPrelude.lsr
+
 $(OUTPUT_DIR)/std.js: src/std.lsr $(OUTPUT_DIR)/generatedPrelude.js
-	$(REPL) -d $(OUTPUT_DIR) -c src/std.lsr
+	$(REPL) -2 -d $(OUTPUT_DIR) -c src/std.lsr
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
 	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
 $(OUTPUT_DIR)/svg.js: src/svg.lsr $(OUTPUT_DIR)/std.js
-	$(REPL) -d $(OUTPUT_DIR) -c -r std src/svg.lsr
+	$(REPL) -d $(OUTPUT_DIR) -c src/svg.lsr
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
 	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
 $(OUTPUT_DIR)/parseAst.js: src/parseAst.lsr $(OUTPUT_DIR)/std.js
-	$(REPL) -d $(OUTPUT_DIR) -c -r std -r svg src/parseAst.lsr
+	$(REPL) -d $(OUTPUT_DIR) -c -r leisure/svg src/parseAst.lsr
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)

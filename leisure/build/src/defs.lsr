@@ -92,7 +92,7 @@ parseToList str = d 'parseToList ' str
 defMacro 'def' \list . makeDef (head list) (stripParens (at list 1)) (drop 2 list)
 
 makeDefs l = foldr1
-  \expr res . ['bind2' expr ['\\' '_' '.' res]]
+  \expr res . ['bind' expr ['\\' '_' '.' res]]
   map
     \num . do
       name = concat['A' num]

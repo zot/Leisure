@@ -28,6 +28,10 @@ misrepresented as being the original software.
   var files,
     slice1 = [].slice;
 
+  if (typeof window !== "undefined" && window !== null) {
+    window.global = window;
+  }
+
   files = !(typeof window !== "undefined" && window !== null ? window : global).btoa ? ['btoa'] : [null];
 
   define(files, function(btoa) {

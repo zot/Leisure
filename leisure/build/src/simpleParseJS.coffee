@@ -63,7 +63,7 @@ rz = resolve
 lz = lazy
 lc = Leisure_call
 {
-  runMonad,
+  runMonad2,
   defaultEnv,
   identity,
 } = requirejs './runtime'
@@ -429,8 +429,8 @@ genLine = (str, names, isDef, isExpr)->
 compileLine = (str, names, isDef, isExpr)->
   genLine str,
     names,
-    ((code)-> runMonad (eval "(#{code})"), defaultEnv, isDef),
-    ((code)-> runMonad (eval "(#{code})"), defaultEnv, isExpr)
+    ((code)-> runMonad2 (eval "(#{code})"), defaultEnv, isDef),
+    ((code)-> runMonad2 (eval "(#{code})"), defaultEnv, isExpr)
 
 transformDef = (name, toks)->
   if isTokenString head(toks), '='
@@ -470,9 +470,12 @@ compileFile = (text, filename)->
   id = (x)-> x
   lines = linesForFile text
   names = namesForLines lines
-  "if (typeof module != 'undefined') require('source-map-support').install();\n" +
-     _.map(lines, (line)-> "runMonad(#{genLine line.trim(), names, id, id});\n").join('') +
-    (if filename then "\n//@ sourceURL=#{filename}\n" else "")
+  #"if (typeof module != 'undefined') require('source-map-support').install();\n" +
+  #   _.map(lines, (line)-> "runMonad2(#{genLine line.trim(), names, id, id}, null, function(){});\n").join('') +
+  #  (if filename then "\n//@ sourceURL=#{filename}\n" else "")
+  "define([], function(){\n  if (typeof module != 'undefined') require('source-map-support').install();\n  return L_runMonads([\n    " +
+     _.map(lines, (line)-> "function(){return #{genLine line.trim(), names, id, id};}").join(', \n    ') +
+    (if filename then "\n  ]);\n});\n//@ sourceURL=#{filename}\n" else "")
 
 jsonForFile = (text)->
   id = (x)-> x

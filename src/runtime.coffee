@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base, Ast, _, Immutable, Yaml)->
+define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bluebird.min'], (Base, Ast, _, Immutable, Yaml, Bluebird)->
 
   {
     readFile,
@@ -64,6 +64,9 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     safeLoad,
     dump,
   } = Yaml
+  {
+    Promise
+  } = Bluebird
 
   rz = resolve
   lz = lazy
@@ -78,7 +81,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     res = rz global["L_#{args[0]}"]
     for arg in args[1..]
       res = do (arg)-> res(lz arg)
-    runMonad res, env, cont
+    runMonad2 res, env, cont
 
   consFrom = (array, i)->
     i = i || 0
@@ -363,20 +366,10 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
   class Monad
     toString: -> "Monad: #{@cmd.toString()}"
 
-  (global ? window).L_runMonads = (monadArray, env)->
-    #console.log "RUNNING MONADS"
-    monadArray.reverse()
-    newRunMonad 0, (env ? defaultEnv), null, monadArray
-    monadArray
-
-#  global.L_runMonads = (monadArray, env, cont)->
-#    nextMonad = (ind)->
-#      if ind >= monadArray.length then cont?()
-#      else
-#        runMonad2 monadArray[ind], env, ->
-#          setTimeout (->nextMonad ind + 1), 1
-#    nextMonad 0
-#    monadArray
+  (global ? window).L_runMonads = (array, env)->
+    new Promise (resolve, reject)->
+      runMonad2 array.slice().reverse().reduce((result, element)->
+        bind element, lz (x)-> result), env, resolve
 
   ensureLeisureClass 'unit'
 
@@ -392,8 +385,8 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       cont _unit
 
   define 'newDefine', (name, arity, src, def)-> if isPartial arguments then partialCall arguments else
-    #console.log "NEW DEFINE: #{name}"
-    makeSyncMonad (env, cont)->
+    new Monad2 (env, cont)->
+      if global.verbose?.gen then console.log "DEFINE: #{name}"
       nakedDefine rz(name), def, rz(arity), rz(src), null, null, true
       cont _unit
 
@@ -407,85 +400,89 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 #    runMonads monadArray, 0, 0
 #    monadArray
 
-  runMonad2 = (monad, env, cont)->
-    #if !(monad instanceof Monad2) && !(isMonad monad) && L_asIO && L_show
-    #  #monad = rz(L_asIO)(lz monad)
-    #  tmpMonad = rz(L_asIO)(lz monad)
-    #  if monad != tmpMonad
-    #    if getType(monad) == 'wrapped'
-    #      monad = tmpMonad
-    #    else console.log "WOULD HAVE CONVERTED #{rz(L_show) lz monad} to #{rz(L_show) lz tmpMonad}"
-    if monad instanceof Monad2 then monad.cmd(env, cont)
-    #else if isMonad monad then newRunMonad monad, env, cont, []
-    else if isMonad monad
-      if monad.binding?
-        sync = true
-        inner = null
-        hasInnerArg = false
-        innerArg = null
-        result = runMonad2 rz(monad.monad), env, (x)->
-          if sync then inner = -> runMonad2 rz(monad.binding)(lz x), env, (y)->
-            if sync
-              hasInnerArg = true
-              innerArg = y
-            else cont y
-          else runMonad2 rz(monad.binding)(lz x), env, cont
-        if inner
-          result = inner()
-          if hasInnerArg then result = cont innerArg
-        sync = false
-        result
-      else monad.cmd(env, cont)
-    else cont monad
+  if global.L_DEBUG == true
+    (window ? global).runMonad2 = runMonad2 = (monad, env, cont)->
+      if monad instanceof Monad2
+        if !env then env = {}
+        st = env.monadStack  ? (env.monadStack = [])
+        st.push monad
+        try
+          monad.cmd(env, cont)
+          st.pop()
+        catch err
+          dumpMonadStack err, env
+          throw err
+      else if isMonad monad
+        #console.log "OLD MONAD: #{monad}"
+        monad.cmd(env, cont)
+      else cont monad
+  else
+    (window ? global).runMonad2 = runMonad2 = (monad, env, cont)->
+      if monad instanceof Monad2 then monad.cmd(env, cont)
+      else if isMonad monad
+        #console.log "OLD MONAD: #{monad}"
+        monad.cmd(env, cont)
+      else cont monad
 
-  class Monad2 extends Monad
-    constructor: (@name, @cmd, @cmdToString)->
-      if typeof @name == 'function'
-        @cmdToString = @cmd
-        @cmd = @name
-        @name = null
-      if !@cmdToString then @cmdToString = => (if name then "#{name}: " else '') + @cmd.toString()
-    toString: -> "Monad2: #{@cmdToString()}"
+  if global.L_DEBUG
+    class Monad2 extends Monad
+      constructor: (@name, @cmd, @cmdToString)->
+        @err = new Error()
+        if typeof @name == 'function'
+          @cmdToString = @cmd
+          @cmd = @name
+          @name = null
+        if !@cmdToString then @cmdToString = => (if name then "#{name}: " else '') + @cmd.toString()
+      stack: ->
+        n = 0
+        for i in [0...3]
+          n = @err.stack.indexOf('\n', n) + 1
+        @err.stack.substring(n, @err.stack.indexOf('\n', n)).trim().substring 3
+  else
+    class Monad2 extends Monad
+      constructor: (@name, @cmd, @cmdToString)->
+        if typeof @name == 'function'
+          @cmdToString = @cmd
+          @cmd = @name
+          @name = null
+        if !@cmdToString then @cmdToString = => (if name then "#{name}: " else '') + @cmd.toString()
+
+  Monad2::toString = -> "Monad2: #{@cmdToString()}"
+
+  dumpMonadStack = (err, env)->
+    if global.L_DEBUG && !err.L_LOGGED && env.monadStack
+      err.L_LOGGED = true
+      console.log 'ERROR IN MONAD, STACK...'
+      (console.log "#{n.name}: #{n.stack()}") for n in env.monadStack
+      console.log()
+
+  define 'dumpStack', new Monad2 (env, cont)->
+    e = new Error()
+    dumpMonadStack e, env
+    console.log e.stack
+    cont _unit
 
 #  define 'return', (v)-> new Monad2 ((env, cont)-> cont rz v), -> "return #{rz v}"
 
   define 'defer', (v)-> new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1), ->
     "defer #{rz v}"
 
-  define 'bind2', bind2 = (m, binding)-> if isPartial arguments then partialCall arguments else
-    newM = rz m
-    if true || (newM instanceof Monad2) || (isMonad newM)
-      new Monad2 'bind', ((env, cont)->
+  define 'bind', bind = (m, binding)-> if isPartial arguments then partialCall arguments else
+    b = new Monad2 'bind', ((env, cont)->
+      while b instanceof Monad2 && b.isBind
         sync = true
-        inner = null
-        innerArg = null
-        hasInnerArg = false
-        result = runMonad2 newM, env, (value)->
-          if sync then inner = -> runMonad2 rz(binding)(lz value), env, (y)->
-            if sync
-              hasInnerArg = true
-              innerArg = y
-            else cont y
-          else runMonad2 rz(binding)(lz value), env, cont
-        if inner
-          result = inner()
-          if hasInnerArg then result = cont innerArg
+        async = true
+        runMonad2 rz(b.arg), env, (result)->
+          b = rz(b.binding)(lz result)
+          if sync then async = false
+          else runMonad2 b, env, cont
         sync = false
-        result), -> "bind (#{rz m})"
-    else rz(binding) m
-
-  newbind = false
-  #newbind = true
-
-  if newbind then define 'bind', bind2
-  else
-    define 'bind', (m, binding)-> if isPartial arguments then partialCall arguments else
-      if true || isMonad rz m
-        bindMonad = makeMonad (env, cont)->
-        bindMonad.monad = m
-        bindMonad.binding = binding
-        bindMonad
-      else rz(binding) m
+        if async then return _unit
+      runMonad2 b, env, cont)
+    b.isBind = true
+    b.arg = m
+    b.binding = binding
+    b
 
   values = {}
 
@@ -498,7 +495,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
         console.log "PROTECTED ERROR: #{err.stack ? err}"
         cont left err.stack ? err
       env.errorHandlers.push hnd
-      runMonad rz(value), env, ((result)->
+      runMonad2 rz(value), env, ((result)->
         #console.log "PROTECT CONTINUING WITH RESULT: #{result}"
         if env.errorHandlers.length
           if env.errorHandlers[env.errorHandlers.length - 1] == hnd then env.errorHandlers.pop()
@@ -527,7 +524,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     func.env.__proto__ = defaultEnv
 
   define 'send', (name, msg)-> if isPartial arguments then partialCall arguments else
-    setTimeout (-> runMonad (rz(actors[name])(msg)), rz(actors[name]).env), 1
+    setTimeout (-> runMonad2 (rz(actors[name])(msg)), rz(actors[name]).env), 1
 
   define 'hasValue', (name)->
     makeSyncMonad (env, cont)->
@@ -538,7 +535,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       cont(values[rz name] ? rz(defaultValue))
 
   define 'getValue', (name)->
-    makeSyncMonad (env, cont)->
+    new Monad2 'getValue', (env, cont)->
       if !(rz(name) of values) then throw new Error "No value named '#{rz name}'"
       cont values[rz name]
 
@@ -548,7 +545,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 #    cont (if !(rz(name) of values) then none else some values[rz name])
 
   define 'setValue', (name, value)-> if isPartial arguments then partialCall arguments else
-    makeSyncMonad (env, cont)->
+    new Monad2 'setValue', (env, cont)->
       values[rz name] = rz value
       cont _unit
 
@@ -649,17 +646,17 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
       cont _unit
 
   define 'readFile', (name)->
-    makeMonad (env, cont)->
+    new Monad2 'readFile', (env, cont)->
       env.readFile rz(name), (err, contents)->
         cont (if err then left err.stack ? err else right contents)
 
   define 'readDir', (dir)->
-    makeMonad (env, cont)->
+    new Monad2 'readDir', (env, cont)->
       env.readDir rz(dir), (err, files)->
         cont (if err then left err.stack ? err else right files)
 
   define 'writeFile', (name, data)-> if isPartial arguments then partialCall arguments else
-    makeMonad (env, cont)->
+    new Monad2 'writeFile', (env, cont)->
       env.writeFile rz(name), rz(data), (err, contents)->
         cont (if err then left err.stack ? err else right contents)
 
@@ -864,23 +861,11 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 # Trampolines
 #######################
 
-  define 'trampolineCall', (func)->
-    ret = rz func
-    while true
-      if typeof ret == 'function' && ret.trampoline then ret = ret() else return ret
-
-  define 'trampoline', (func)->
-    f = rz func
-    arity = functionInfo[f.leisureName].arity
-    trampCurry f, arity
-
-  trampCurry = (func, arity)-> (arg)->
-    a = rz arg
-    if arity > 1 then trampCurry (func ->a), arity - 1
-    else
-      result = -> func ->a
-      result.trampoline = true
-      result
+  define 'startRecur', (value)->
+    ret = rz value
+    while getType(ret) == 'recur'
+      ret = ret lz _identity
+    ret
 
 #######################
 # NAME SPACES
@@ -958,14 +943,9 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
 #######################
 
   requireFiles = (req, cont, verbose)->
-    if req.length
-      if verbose then console.log "REQUIRING FILE: #{req[0]}"
-      contStack = require req.shift()
-      if Array.isArray(contStack) && contStack.length then contStack.unshift ->
-        requireFiles req, cont, verbose
-      else requireFiles req, cont, verbose
-    else
-      cont()
+    (req[..].reverse().reduce ((acc, el)-> ->
+      if verbose then console.log "REQUIRING FILE: #{el}"
+      require [el], acc), cont)()
 
 #######################
 # Func info
@@ -1034,4 +1014,5 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], (Base,
     makeHamt
     jsonConvert
     lacons
+    dumpMonadStack
   }

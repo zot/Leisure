@@ -63,14 +63,14 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     isNil,
   } = root = Ast
   {
-    makeSyncMonad,
-    runMonad,
-    _true,
-    _false,
-    left,
-    right,
-    booleanFor,
-    newConsFrom,
+    Monad2
+    _true
+    _false
+    left
+    right
+    booleanFor
+    newConsFrom
+    dumpMonadStack
   } = Runtime
 
   consFrom = newConsFrom
@@ -220,11 +220,6 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
               genned
             else genned
       else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
-
-  # this is a no-op, now
-  define 'newGen', (makeSyncMonad (env, cont)->
-    console.log "CALL TO OBSOLETE NEWGEN"
-    cont _true), null, null, null, 'parser'
 
   genArifiedApply = (ast, names, uniq)->
     args = []
@@ -417,23 +412,26 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
   getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
   define 'runAst', ((code)->(ast)->
-    jsCode = null
-    try
-      jsCode = gen rz ast
-      eval "(#{jsCode})"
-    catch err
-      codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
-      msg = "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "
-      console.log msg + ast() + "\n" + err.stack
-      parseErr (lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
+    new Monad2 'runAst', (env, cont)->
+      jsCode = null
+      try
+        jsCode = gen rz ast
+        cont eval "(#{jsCode})"
+        #runMonad2 eval("(#{jsCode})"), env, cont
+      catch err
+        dumpMonadStack err, env
+        codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else '')
+        msg = '\n\nParse error: ' + err.toString() + "\n#{codeMsg}AST: "
+        console.log msg + ast() + '\n' + err.stack
+        cont parseErr (lz '\n\nParse error: ' + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
 
   define 'genAst', ((ast)->
     jsCode = null
     try
       gen rz ast
     catch err
-      codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
-      parseErr (lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
+      codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else '')
+      parseErr (lz '\n\nParse error: ' + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
 
   {
     gen

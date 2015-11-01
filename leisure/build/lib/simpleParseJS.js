@@ -25,7 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
-  var L_parens, L_parseErr, L_token, Nil, addDelimiter, anno, apply, arity, ast2Json, baseDir, chainApply, charCodes, checkSetDataType, cleanTokens, compileFile, compileLine, cons, consFrom, createAnno, createApply, createAst, createDef, createLambda, createLet, createLitOrRef, createSublets, defPat, defaultEnv, define, delimiterList, delimiterListPrefix, delimiterPat, delimiters, dummyPosition, ensureLeisureClass, gen, genLine, getDelimiterInfo, getLetLambda, getLetNames, getNameAndDef, head, identity, isParens, isToken, isTokenStart, isTokenString, jsonForFile, lambda, lazy, lc, lexEnd, linesForFile, lit, llet, loc, lz, makeDelimterPat, makeMoreTokens, makeTokens, namesForLines, newCall, parens, parensContent, parensEnd, parensFromToks, parensStart, parse, parseErr, parseErrMsg, parseGroup, parseIndent, parseLine, parseString, parseToAst, parseTok, parseToks, path, position, ref, regexpEscapePat, requirejs, resolve, root, runMonad, rz, scanLine, setDataType, setDataTypeAnno, setDelimiterInfo, setType, setTypeAnno, splitTokens, strip, stripParens, tail, tokListStr, token, tokenPos, tokenString, tokens, transformDef, withCons, withParens, withToken, _, _ref, _ref1,
+  var L_parens, L_parseErr, L_token, Nil, addDelimiter, anno, apply, arity, ast2Json, baseDir, chainApply, charCodes, checkSetDataType, cleanTokens, compileFile, compileLine, cons, consFrom, createAnno, createApply, createAst, createDef, createLambda, createLet, createLitOrRef, createSublets, defPat, defaultEnv, define, delimiterList, delimiterListPrefix, delimiterPat, delimiters, dummyPosition, ensureLeisureClass, gen, genLine, getDelimiterInfo, getLetLambda, getLetNames, getNameAndDef, head, identity, isParens, isToken, isTokenStart, isTokenString, jsonForFile, lambda, lazy, lc, lexEnd, linesForFile, lit, llet, loc, lz, makeDelimterPat, makeMoreTokens, makeTokens, namesForLines, newCall, parens, parensContent, parensEnd, parensFromToks, parensStart, parse, parseErr, parseErrMsg, parseGroup, parseIndent, parseLine, parseString, parseToAst, parseTok, parseToks, path, position, ref, regexpEscapePat, requirejs, resolve, root, runMonad2, rz, scanLine, setDataType, setDataTypeAnno, setDelimiterInfo, setType, setTypeAnno, splitTokens, strip, stripParens, tail, tokListStr, token, tokenPos, tokenString, tokens, transformDef, withCons, withParens, withToken, _, _ref, _ref1,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   path = require('path');
@@ -52,7 +52,7 @@ misrepresented as being the original software.
 
   lc = Leisure_call;
 
-  _ref1 = requirejs('./runtime'), runMonad = _ref1.runMonad, defaultEnv = _ref1.defaultEnv, identity = _ref1.identity;
+  _ref1 = requirejs('./runtime'), runMonad2 = _ref1.runMonad2, defaultEnv = _ref1.defaultEnv, identity = _ref1.identity;
 
   gen = requirejs('./gen').gen;
 
@@ -774,9 +774,9 @@ misrepresented as being the original software.
 
   compileLine = function(str, names, isDef, isExpr) {
     return genLine(str, names, (function(code) {
-      return runMonad(eval("(" + code + ")"), defaultEnv, isDef);
+      return runMonad2(eval("(" + code + ")"), defaultEnv, isDef);
     }), (function(code) {
-      return runMonad(eval("(" + code + ")"), defaultEnv, isExpr);
+      return runMonad2(eval("(" + code + ")"), defaultEnv, isExpr);
     }));
   };
 
@@ -865,9 +865,9 @@ misrepresented as being the original software.
     };
     lines = linesForFile(text);
     names = namesForLines(lines);
-    return "if (typeof module != 'undefined') require('source-map-support').install();\n" + _.map(lines, function(line) {
-      return "runMonad(" + (genLine(line.trim(), names, id, id)) + ");\n";
-    }).join('') + (filename ? "\n//@ sourceURL=" + filename + "\n" : "");
+    return "define([], function(){\n  if (typeof module != 'undefined') require('source-map-support').install();\n  return L_runMonads([\n    " + _.map(lines, function(line) {
+      return "function(){return " + (genLine(line.trim(), names, id, id)) + ";}";
+    }).join(', \n    ') + (filename ? "\n  ]);\n});\n//@ sourceURL=" + filename + "\n" : "");
   };
 
   jsonForFile = function(text) {

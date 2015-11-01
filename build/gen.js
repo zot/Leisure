@@ -28,13 +28,13 @@ misrepresented as being the original software.
   var slice = [].slice;
 
   define(['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], function(Base, Ast, Runtime, _, SourceMap) {
-    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, _false, _true, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curryCall, define, dumpAnno, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, makeSyncMonad, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, right, root, runMonad, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, strRepeat, uniqName, useArity, varNameSub, verboseMsg, withFile;
+    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceNode, _false, _true, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, strRepeat, uniqName, useArity, varNameSub, verboseMsg, withFile;
     simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
     ref1 = root = Ast, nameSub = ref1.nameSub, getLitVal = ref1.getLitVal, getRefName = ref1.getRefName, getLambdaVar = ref1.getLambdaVar, getLambdaBody = ref1.getLambdaBody, getApplyFunc = ref1.getApplyFunc, getApplyArg = ref1.getApplyArg, getAnnoName = ref1.getAnnoName, getAnnoData = ref1.getAnnoData, getAnnoBody = ref1.getAnnoBody, getLetName = ref1.getLetName, getLetValue = ref1.getLetValue, getLetBody = ref1.getLetBody, Leisure_lit = ref1.Leisure_lit, Leisure_ref = ref1.Leisure_ref, Leisure_lambda = ref1.Leisure_lambda, Leisure_apply = ref1.Leisure_apply, Leisure_let = ref1.Leisure_let, Leisure_anno = ref1.Leisure_anno, setType = ref1.setType, setDataType = ref1.setDataType, cons = ref1.cons, Nil = ref1.Nil, define = ref1.define, functionInfo = ref1.functionInfo, getPos = ref1.getPos, isNil = ref1.isNil;
-    makeSyncMonad = Runtime.makeSyncMonad, runMonad = Runtime.runMonad, _true = Runtime._true, _false = Runtime._false, left = Runtime.left, right = Runtime.right, booleanFor = Runtime.booleanFor, newConsFrom = Runtime.newConsFrom;
+    Monad2 = Runtime.Monad2, _true = Runtime._true, _false = Runtime._false, left = Runtime.left, right = Runtime.right, booleanFor = Runtime.booleanFor, newConsFrom = Runtime.newConsFrom, dumpMonadStack = Runtime.dumpMonadStack;
     consFrom = newConsFrom;
     SourceNode = SourceMap.SourceNode, SourceMapConsumer = SourceMap.SourceMapConsumer;
     varNameSub = function(n) {
@@ -231,10 +231,6 @@ misrepresented as being the original software.
           return "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: " + ast + ", " + ast.constructor + " " + Leisure_lambda;
       }
     };
-    define('newGen', makeSyncMonad(function(env, cont) {
-      console.log("CALL TO OBSOLETE NEWGEN");
-      return cont(_true);
-    }), null, null, null, 'parser');
     genArifiedApply = function(ast, names, uniq) {
       var argCode, args, arity, defaultArity, dmp, func, i, info, j, m, ref2, ref3, ref4;
       args = [];
@@ -523,18 +519,21 @@ misrepresented as being the original software.
     };
     define('runAst', (function(code) {
       return function(ast) {
-        var codeMsg, err, jsCode, msg;
-        jsCode = null;
-        try {
-          jsCode = gen(rz(ast));
-          return eval("(" + jsCode + ")");
-        } catch (_error) {
-          err = _error;
-          codeMsg = (jsCode ? "CODE: \n" + jsCode + "\n" : "");
-          msg = "\n\nParse error: " + err.toString() + ("\n" + codeMsg + "AST: ");
-          console.log(msg + ast() + "\n" + err.stack);
-          return parseErr(lz("\n\nParse error: " + err.toString() + ("\n" + codeMsg + "AST: ")), ast);
-        }
+        return new Monad2('runAst', function(env, cont) {
+          var codeMsg, err, jsCode, msg;
+          jsCode = null;
+          try {
+            jsCode = gen(rz(ast));
+            return cont(eval("(" + jsCode + ")"));
+          } catch (_error) {
+            err = _error;
+            dumpMonadStack(err, env);
+            codeMsg = (jsCode ? "CODE: \n" + jsCode + "\n" : '');
+            msg = '\n\nParse error: ' + err.toString() + ("\n" + codeMsg + "AST: ");
+            console.log(msg + ast() + '\n' + err.stack);
+            return cont(parseErr(lz('\n\nParse error: ' + err.toString() + ("\n" + codeMsg + "AST: ")), ast));
+          }
+        });
       };
     }), null, null, null, 'parser');
     define('genAst', (function(ast) {
@@ -544,8 +543,8 @@ misrepresented as being the original software.
         return gen(rz(ast));
       } catch (_error) {
         err = _error;
-        codeMsg = (jsCode ? "CODE: \n" + jsCode + "\n" : "");
-        return parseErr(lz("\n\nParse error: " + err.toString() + ("\n" + codeMsg + "AST: ")), ast);
+        codeMsg = (jsCode ? "CODE: \n" + jsCode + "\n" : '');
+        return parseErr(lz('\n\nParse error: ' + err.toString() + ("\n" + codeMsg + "AST: ")), ast);
       }
     }), null, null, null, 'parser');
     return {

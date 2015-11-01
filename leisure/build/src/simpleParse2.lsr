@@ -26,7 +26,7 @@ any f l = find f l (\el . true) false
 all f l = not (any (compose not f) l)
 
 # change this to return a list of results
-doall = foldr1 (\el res . bind2 el \_ . res)
+doall = foldr1 (\el res . bind el \_ . res)
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list
   nil
@@ -44,11 +44,9 @@ listifyOp op list = list
 
 listify list = listifyOp 'cons' list
 
-defMacro '[' \list . list \h t . listify h
-
 # parse filter 'listFilter' gathers items after the '|' into a single argument
 
-listFilter code = bind2 (getValue 'listMacros')
+listFilter code = bind (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
     and (isToken h) (contains listMacros (tokenString h))
       listFilterTail list
@@ -105,6 +103,8 @@ filterLambda code func = code \h t . cons h
     filterApplies t func
     filterLambda t func
 
+defMacro '[' \list . list \h t . listify h
+
 setValue 'listMacros' ['[' '{' 'hamt{']
 
 addParseFilter listFilter
@@ -133,7 +133,7 @@ defTokenPack 'list' [
   {['{' | '}'] ['hamt{' | '}'] ['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']'] ['print[' | ']'] ['concatFlat[' | ']']}
   [listFilter]]
 
-### Yay!  From here down, we can use list constructors!
+### Yay!  From here down, we can use full list constructors!
 
 addTokenGroup 'or[' ']'
 
@@ -160,9 +160,9 @@ defMacro 'concat[' \list . ['strCat' [(listify (head list))]]
 
 defMacro 'concatFlat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
 
-infix code = bind2 (getValue 'infixPrecedence')
-  \prec . bind2 (getValue 'infixRightAssociative')
-    \right . bind2 (getValue 'tokenGroups')
+infix code = bind (getValue 'infixPrecedence')
+  \prec . bind (getValue 'infixRightAssociative')
+    \right . bind (getValue 'tokenGroups')
       \groups . filterApplies
         code
         \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
@@ -257,7 +257,7 @@ handleDo list inLet cont = list
 
 doClause steppingClause clause prefix inLet cont = \\
   makeBind var monad = cont false \rest . inLet (cons '.') id
-    ['bind2' monad ['\\' var '.' | rest]]
+    ['bind' monad ['\\' var '.' | rest]]
   h = head steppingClause
   t = tail steppingClause
   .
@@ -277,7 +277,9 @@ doClause steppingClause clause prefix inLet cont = \\
         doClause t clause [h | prefix] inLet cont
     makeBind '_' clause
 
+addToken '<-'
+
 defTokenPack 'do' [['<-'] [] []]
 
-addStdTokenPacks ['list' 'infix' 'do']
+addStdTokenPacks ['do' 'list' 'infix']
 resetStdTokenPacks

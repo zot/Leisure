@@ -30,12 +30,13 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml'], function(Base, Ast, _, Immutable, Yaml) {
-    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind2, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, lz, makeHamt, makeMonad, makeSyncMonad, mkProto, monadModeSync, nakedDefine, nameSub, newRunMonad, newbind, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
+  define(['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bluebird.min'], function(Base, Ast, _, Immutable, Yaml, Bluebird) {
+    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, Promise, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, lz, makeHamt, makeMonad, makeSyncMonad, mkProto, monadModeSync, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
     ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
     define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall;
     Map = Immutable.Map;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
+    Promise = Bluebird.Promise;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
@@ -60,7 +61,7 @@ misrepresented as being the original software.
           return res(lz(arg));
         })(arg);
       }
-      return runMonad(res, env, cont);
+      return runMonad2(res, env, cont);
     };
     consFrom = function(array, i) {
       i = i || 0;
@@ -681,10 +682,14 @@ misrepresented as being the original software.
       return Monad;
 
     })();
-    (typeof global !== "undefined" && global !== null ? global : window).L_runMonads = function(monadArray, env) {
-      monadArray.reverse();
-      newRunMonad(0, env != null ? env : defaultEnv, null, monadArray);
-      return monadArray;
+    (typeof global !== "undefined" && global !== null ? global : window).L_runMonads = function(array, env) {
+      return new Promise(function(resolve, reject) {
+        return runMonad2(array.slice().reverse().reduce(function(result, element) {
+          return bind(element, lz(function(x) {
+            return result;
+          }));
+        }), env, resolve);
+      });
     };
     ensureLeisureClass('unit');
     Leisure_unit = (function(superClass) {
@@ -718,81 +723,134 @@ misrepresented as being the original software.
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeSyncMonad(function(env, cont) {
+        return new Monad2(function(env, cont) {
+          var ref1;
+          if ((ref1 = global.verbose) != null ? ref1.gen : void 0) {
+            console.log("DEFINE: " + name);
+          }
           nakedDefine(rz(name), def, rz(arity), rz(src), null, null, true);
           return cont(_unit);
         });
       }
     });
-    runMonad2 = function(monad, env, cont) {
-      var hasInnerArg, inner, innerArg, result, sync;
-      if (monad instanceof Monad2) {
-        return monad.cmd(env, cont);
-      } else if (isMonad(monad)) {
-        if (monad.binding != null) {
-          sync = true;
-          inner = null;
-          hasInnerArg = false;
-          innerArg = null;
-          result = runMonad2(rz(monad.monad), env, function(x) {
-            if (sync) {
-              return inner = function() {
-                return runMonad2(rz(monad.binding)(lz(x)), env, function(y) {
-                  if (sync) {
-                    hasInnerArg = true;
-                    return innerArg = y;
-                  } else {
-                    return cont(y);
-                  }
-                });
-              };
-            } else {
-              return runMonad2(rz(monad.binding)(lz(x)), env, cont);
-            }
-          });
-          if (inner) {
-            result = inner();
-            if (hasInnerArg) {
-              result = cont(innerArg);
-            }
+    if (global.L_DEBUG === true) {
+      (typeof window !== "undefined" && window !== null ? window : global).runMonad2 = runMonad2 = function(monad, env, cont) {
+        var err, ref1, st;
+        if (monad instanceof Monad2) {
+          if (!env) {
+            env = {};
           }
-          sync = false;
-          return result;
-        } else {
+          st = (ref1 = env.monadStack) != null ? ref1 : (env.monadStack = []);
+          st.push(monad);
+          try {
+            monad.cmd(env, cont);
+            return st.pop();
+          } catch (_error) {
+            err = _error;
+            dumpMonadStack(err, env);
+            throw err;
+          }
+        } else if (isMonad(monad)) {
           return monad.cmd(env, cont);
+        } else {
+          return cont(monad);
         }
-      } else {
-        return cont(monad);
+      };
+    } else {
+      (typeof window !== "undefined" && window !== null ? window : global).runMonad2 = runMonad2 = function(monad, env, cont) {
+        if (monad instanceof Monad2) {
+          return monad.cmd(env, cont);
+        } else if (isMonad(monad)) {
+          return monad.cmd(env, cont);
+        } else {
+          return cont(monad);
+        }
+      };
+    }
+    if (global.L_DEBUG) {
+      Monad2 = (function(superClass) {
+        extend(Monad2, superClass);
+
+        function Monad2(name1, cmd, cmdToString) {
+          this.name = name1;
+          this.cmd = cmd;
+          this.cmdToString = cmdToString;
+          this.err = new Error();
+          if (typeof this.name === 'function') {
+            this.cmdToString = this.cmd;
+            this.cmd = this.name;
+            this.name = null;
+          }
+          if (!this.cmdToString) {
+            this.cmdToString = (function(_this) {
+              return function() {
+                return (name ? name + ": " : '') + _this.cmd.toString();
+              };
+            })(this);
+          }
+        }
+
+        Monad2.prototype.stack = function() {
+          var i, j, n;
+          n = 0;
+          for (i = j = 0; j < 3; i = ++j) {
+            n = this.err.stack.indexOf('\n', n) + 1;
+          }
+          return this.err.stack.substring(n, this.err.stack.indexOf('\n', n)).trim().substring(3);
+        };
+
+        return Monad2;
+
+      })(Monad);
+    } else {
+      Monad2 = (function(superClass) {
+        extend(Monad2, superClass);
+
+        function Monad2(name1, cmd, cmdToString) {
+          this.name = name1;
+          this.cmd = cmd;
+          this.cmdToString = cmdToString;
+          if (typeof this.name === 'function') {
+            this.cmdToString = this.cmd;
+            this.cmd = this.name;
+            this.name = null;
+          }
+          if (!this.cmdToString) {
+            this.cmdToString = (function(_this) {
+              return function() {
+                return (name ? name + ": " : '') + _this.cmd.toString();
+              };
+            })(this);
+          }
+        }
+
+        return Monad2;
+
+      })(Monad);
+    }
+    Monad2.prototype.toString = function() {
+      return "Monad2: " + (this.cmdToString());
+    };
+    dumpMonadStack = function(err, env) {
+      var j, len, n, ref1;
+      if (global.L_DEBUG && !err.L_LOGGED && env.monadStack) {
+        err.L_LOGGED = true;
+        console.log('ERROR IN MONAD, STACK...');
+        ref1 = env.monadStack;
+        for (j = 0, len = ref1.length; j < len; j++) {
+          n = ref1[j];
+          console.log(n.name + ": " + (n.stack()));
+        }
+        return console.log();
       }
     };
-    Monad2 = (function(superClass) {
-      extend(Monad2, superClass);
-
-      function Monad2(name1, cmd, cmdToString) {
-        this.name = name1;
-        this.cmd = cmd;
-        this.cmdToString = cmdToString;
-        if (typeof this.name === 'function') {
-          this.cmdToString = this.cmd;
-          this.cmd = this.name;
-          this.name = null;
-        }
-        if (!this.cmdToString) {
-          this.cmdToString = (function(_this) {
-            return function() {
-              return (name ? name + ": " : '') + _this.cmd.toString();
-            };
-          })(this);
-        }
-      }
-
-      Monad2.prototype.toString = function() {
-        return "Monad2: " + (this.cmdToString());
-      };
-
-      return Monad2;
-
-    })(Monad);
+    define('dumpStack', new Monad2(function(env, cont) {
+      var e;
+      e = new Error();
+      dumpMonadStack(e, env);
+      console.log(e.stack);
+      return cont(_unit);
+    }));
     define('defer', function(v) {
       return new Monad2((function(env, cont) {
         return setTimeout((function() {
@@ -802,71 +860,37 @@ misrepresented as being the original software.
         return "defer " + (rz(v));
       });
     });
-    define('bind2', bind2 = function(m, binding) {
-      var newM;
+    define('bind', bind = function(m, binding) {
+      var b;
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        newM = rz(m);
-        if (true || (newM instanceof Monad2) || (isMonad(newM))) {
-          return new Monad2('bind', (function(env, cont) {
-            var hasInnerArg, inner, innerArg, result, sync;
+        b = new Monad2('bind', (function(env, cont) {
+          var async, sync;
+          while (b instanceof Monad2 && b.isBind) {
             sync = true;
-            inner = null;
-            innerArg = null;
-            hasInnerArg = false;
-            result = runMonad2(newM, env, function(value) {
+            async = true;
+            runMonad2(rz(b.arg), env, function(result) {
+              b = rz(b.binding)(lz(result));
               if (sync) {
-                return inner = function() {
-                  return runMonad2(rz(binding)(lz(value)), env, function(y) {
-                    if (sync) {
-                      hasInnerArg = true;
-                      return innerArg = y;
-                    } else {
-                      return cont(y);
-                    }
-                  });
-                };
+                return async = false;
               } else {
-                return runMonad2(rz(binding)(lz(value)), env, cont);
+                return runMonad2(b, env, cont);
               }
             });
-            if (inner) {
-              result = inner();
-              if (hasInnerArg) {
-                result = cont(innerArg);
-              }
-            }
             sync = false;
-            return result;
-          }), function() {
-            return "bind (" + (rz(m)) + ")";
-          });
-        } else {
-          return rz(binding)(m);
-        }
+            if (async) {
+              return _unit;
+            }
+          }
+          return runMonad2(b, env, cont);
+        }));
+        b.isBind = true;
+        b.arg = m;
+        b.binding = binding;
+        return b;
       }
     });
-    newbind = false;
-    if (newbind) {
-      define('bind', bind2);
-    } else {
-      define('bind', function(m, binding) {
-        var bindMonad;
-        if (isPartial(arguments)) {
-          return partialCall(arguments);
-        } else {
-          if (true || isMonad(rz(m))) {
-            bindMonad = makeMonad(function(env, cont) {});
-            bindMonad.monad = m;
-            bindMonad.binding = binding;
-            return bindMonad;
-          } else {
-            return rz(binding)(m);
-          }
-        }
-      });
-    }
     values = {};
     define('protect', function(value) {
       return makeMonad(function(env, cont) {
@@ -877,7 +901,7 @@ misrepresented as being the original software.
           return cont(left((ref2 = err.stack) != null ? ref2 : err));
         };
         env.errorHandlers.push(hnd);
-        return runMonad(rz(value), env, (function(result) {
+        return runMonad2(rz(value), env, (function(result) {
           if (env.errorHandlers.length) {
             if (env.errorHandlers[env.errorHandlers.length - 1] === hnd) {
               env.errorHandlers.pop();
@@ -908,7 +932,7 @@ misrepresented as being the original software.
         return partialCall(arguments);
       } else {
         return setTimeout((function() {
-          return runMonad(rz(actors[name])(msg), rz(actors[name]).env);
+          return runMonad2(rz(actors[name])(msg), rz(actors[name]).env);
         }), 1);
       }
     });
@@ -928,7 +952,7 @@ misrepresented as being the original software.
       }
     });
     define('getValue', function(name) {
-      return makeSyncMonad(function(env, cont) {
+      return new Monad2('getValue', function(env, cont) {
         if (!(rz(name) in values)) {
           throw new Error("No value named '" + (rz(name)) + "'");
         }
@@ -939,7 +963,7 @@ misrepresented as being the original software.
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeSyncMonad(function(env, cont) {
+        return new Monad2('setValue', function(env, cont) {
           values[rz(name)] = rz(value);
           return cont(_unit);
         });
@@ -1087,7 +1111,7 @@ misrepresented as being the original software.
       });
     });
     define('readFile', function(name) {
-      return makeMonad(function(env, cont) {
+      return new Monad2('readFile', function(env, cont) {
         return env.readFile(rz(name), function(err, contents) {
           var ref1;
           return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(contents)));
@@ -1095,7 +1119,7 @@ misrepresented as being the original software.
       });
     });
     define('readDir', function(dir) {
-      return makeMonad(function(env, cont) {
+      return new Monad2('readDir', function(env, cont) {
         return env.readDir(rz(dir), function(err, files) {
           var ref1;
           return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(files)));
@@ -1106,7 +1130,7 @@ misrepresented as being the original software.
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeMonad(function(env, cont) {
+        return new Monad2('writeFile', function(env, cont) {
           return env.writeFile(rz(name), rz(data), function(err, contents) {
             var ref1;
             return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(contents)));
@@ -1411,42 +1435,14 @@ misrepresented as being the original software.
         return left(err.stack);
       }
     });
-    define('trampolineCall', function(func) {
+    define('startRecur', function(value) {
       var ret;
-      ret = rz(func);
-      while (true) {
-        if (typeof ret === 'function' && ret.trampoline) {
-          ret = ret();
-        } else {
-          return ret;
-        }
+      ret = rz(value);
+      while (getType(ret) === 'recur') {
+        ret = ret(lz(_identity));
       }
+      return ret;
     });
-    define('trampoline', function(func) {
-      var arity, f;
-      f = rz(func);
-      arity = functionInfo[f.leisureName].arity;
-      return trampCurry(f, arity);
-    });
-    trampCurry = function(func, arity) {
-      return function(arg) {
-        var a, result;
-        a = rz(arg);
-        if (arity > 1) {
-          return trampCurry(func(function() {
-            return a;
-          }), arity - 1);
-        } else {
-          result = function() {
-            return func(function() {
-              return a;
-            });
-          };
-          result.trampoline = true;
-          return result;
-        }
-      };
-    };
     define('setNameSpace', function(name) {
       return makeSyncMonad(function(env, cont) {
         var newNameSpace;
@@ -1572,22 +1568,14 @@ misrepresented as being the original software.
       return "Right(" + (this(lz(_identity))(lz(_identity))) + ")";
     };
     requireFiles = function(req, cont, verbose) {
-      var contStack;
-      if (req.length) {
-        if (verbose) {
-          console.log("REQUIRING FILE: " + req[0]);
-        }
-        contStack = require(req.shift());
-        if (Array.isArray(contStack) && contStack.length) {
-          return contStack.unshift(function() {
-            return requireFiles(req, cont, verbose);
-          });
-        } else {
-          return requireFiles(req, cont, verbose);
-        }
-      } else {
-        return cont();
-      }
+      return (req.slice(0).reverse().reduce((function(acc, el) {
+        return function() {
+          if (verbose) {
+            console.log("REQUIRING FILE: " + el);
+          }
+          return require([el], acc);
+        };
+      }), cont))();
     };
     define('funcInfo', function(f) {
       return funcInfo(rz(f));
@@ -1661,7 +1649,8 @@ misrepresented as being the original software.
       unescapePresentationHtml: unescapePresentationHtml,
       makeHamt: makeHamt,
       jsonConvert: jsonConvert,
-      lacons: lacons
+      lacons: lacons,
+      dumpMonadStack: dumpMonadStack
     };
   });
 

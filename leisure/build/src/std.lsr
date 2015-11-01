@@ -107,16 +107,16 @@ isRepeat r = hasType r repeat
 
 isRange r = hasType r range
 
-requireJS file = bind2 (getValue 'requiredFiles')
+requireJS file = bind (getValue 'requiredFiles')
   \files . contains files file
     false
-    bind2 (loadJS file)
+    bind (loadJS file)
       \result . result
         \x . left x
-        \_ . bind2 (setValue 'requiredFiles' (cons file files))
+        \_ . bind (setValue 'requiredFiles' (cons file files))
           \_ . right true
 
-loadJS file = bind2 (readFile file)
+loadJS file = bind (readFile file)
   \result . result
     \err . err
     \contents . js contents
@@ -344,17 +344,17 @@ wrapped x = \f . f x
 
 defCase showBase.wrapped func v | hasType v wrapped -> concat['wrapped ' (showBase func (v id))]
 
-defCase bind2.wrapped v cont | hasType v wrapped -> cont (v id)
+defCase bind.wrapped v cont | hasType v wrapped -> cont (v id)
 
-defCase bind2.bool opt cont | or (opt == true) (opt == false) -> opt
+defCase bind.bool opt cont | or (opt == true) (opt == false) -> opt
   cont true
   unit
 
-defCase bind2.option opt cont | isOption opt -> opt
+defCase bind.option opt cont | isOption opt -> opt
   \value . cont value
   unit
 
-defCase bind2.either either cont | isEither either -> either
+defCase bind.either either cont | isEither either -> either
   \_ . either
   \value . cont value
 
@@ -367,17 +367,17 @@ isCaseResult v = hasType v caseResult
 
 case test res = test (caseResult res) unit
 
-defCase bind2.caseResult data cont | isCaseResult data -> data id
+defCase bind.caseResult data cont | isCaseResult data -> data id
 
 # the first def is for if we can get IO to auto-convert values...
 #defCase bind.cons list cont | hasType list cons -> map cont list
-defCase bind2.cons list cont | hasType list cons -> map cont list
-defCase bind2.range r cont | hasType r range -> map cont r
-defCase bind2.repeat r cont | hasType r repeat -> map (cont nil) r
+defCase bind.cons list cont | hasType list cons -> map cont list
+defCase bind.range r cont | hasType r range -> map cont r
+defCase bind.repeat r cont | hasType r repeat -> map (cont nil) r
 
-subbind m cont = bind2 (wrapped m) cont
+subbind m cont = bind (wrapped m) cont
 
-defCase subbind.monad m cont | or (hasType m '*Monad2') (hasType m 'monad') -> bind2 m cont
+defCase subbind.monad m cont | or (hasType m '*Monad2') (hasType m 'monad') -> bind m cont
 defCase subbind.boolean m cont | m == false -> cont unit
 defCase subbind.option m cont | hasType m none -> cont unit
 defCase subbind.either m cont | hasType m left -> cont unit
@@ -397,11 +397,11 @@ defCase map.repeat item r | isRepeat r -> r \n . runRepeat 0 n \x . item
 wrappedForeach x = \f . f x
 testWrappedForeach f test = and (hasType f wrappedForeach) (f test)
 
-defCase bind2.wrappedForeachCons list cont | testWrappedForeach list isCons ->
+defCase bind.wrappedForeachCons list cont | testWrappedForeach list isCons ->
   doall (map cont (list id))
-defCase bind2.wrappedForeachRep rep cont | testWrappedForeach rep isRepeat ->
+defCase bind.wrappedForeachRep rep cont | testWrappedForeach rep isRepeat ->
   doall (map (cont nil) (rep id))
-defCase bind2.wrappedForeachRange r cont | testWrappedForeach r isRange ->
+defCase bind.wrappedForeachRange r cont | testWrappedForeach r isRange ->
   doall (map cont (r id))
 
 defMacro 'foreach' \list . ['wrappedForeach' list]
