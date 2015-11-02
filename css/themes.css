@@ -1011,11 +1011,18 @@ body {
     -webkit-user-select: none;
     user-select: none;
     position: fixed;
-    border-top-left-radius: 5px;
-    border-bottom-right-radius: 5px;
     border: solid blue 2px;
+/*
     width: 5px;
     height: 5px;
+   border-top-left-radius: 5px;
+   border-bottom-right-radius: 5px;
+ */
+    width: 10px;
+    height: 10px;
+    border-top-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    margin-bottom: 5px;
     overflow: visible;
     background-color: yellow;
 }

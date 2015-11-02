@@ -883,7 +883,7 @@
       var type;
       if (node) {
         type = node.nodeType;
-        return type === 7 || type === 8 || (type === node.TEXT_NODE && (node.data === '' || isCollapsed(node.parentNode))) || /^(script|style)$/i.test(node.nodeName) || (type === node.ELEMENT_NODE && (/span/i.test(node.nodeName) ? getComputedStyle(node).display === 'none' : node.offsetHeight === 0));
+        return type === 7 || type === 8 || (type === node.TEXT_NODE && (node.data === '' || isCollapsed(node.parentNode))) || /^(script|style)$/i.test(node.nodeName) || (type === node.ELEMENT_NODE && !node.offsetParent);
       }
     };
     selectRange = function(r) {

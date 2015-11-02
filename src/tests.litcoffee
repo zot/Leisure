@@ -52,7 +52,7 @@
           block7: 2
 
       runTests = ->
-        test1()
+        #test1()
 
       test1 = ->
         data = new OrgData()

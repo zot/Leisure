@@ -12,6 +12,7 @@
         Link
         ListItem
         Drawer
+        Meat
         Example
         HTML
         Nil
@@ -54,6 +55,7 @@
         findEditor
         copyBlock
         preserveSelection
+        getEventChar
       } = Editor
       {
         addView
@@ -94,6 +96,7 @@
         name: 'plain'
         keyPress: (opts, parent, e)-> parent e
         enter: (opts, parent, e)-> parent e
+        handleDelete: (opts, parent, e, sel, forward)-> parent e
         renderBlocks: (opt, html)-> html
         setSlideMode: (opt, flag)->
         showingSlides: -> false
@@ -306,12 +309,13 @@
         keyPress: (opts, parent, e)->
           sel = getSelection()
           if sel.type == 'Caret'
+            pos = opts.editor.docOffset sel.getRangeAt 0
             sel = opts.editor.getSelectedBlockRange()
             block = opts.getBlock sel.block
-            if !opts.isToggled(block) && block.type != 'code' && sel.offset == 0 && block.text[0] == '\n'
+            if !opts.isToggled(block) && block.type != 'code' && sel.offset == 0 && block.text[0] == '\n' && block.text[1] != '\n'
               e.preventDefault()
-              sel.length = 1
-              return opts.editor.replace e, sel, null, false
+              opts.editor.replace e, sel, (getEventChar e) + '\n', false
+              return opts.editor.domCursorForDocOffset(pos + 1).moveCaret()
           parent e
         enter: (opts, parent, e)->
           block = opts.getBlock opts.idForNode getSelection().getRangeAt(0).startContainer
@@ -331,29 +335,40 @@
             e.preventDefault()
             opts.editor.replace e, sel, '\n\n', false
         handleDelete: (opts, parent, e, sel, forward)->
-          if opts.getBlock(opts.idForNode sel.getRangeAt(0).startContainer).type == 'code'
+          r = sel.getRangeAt 0
+          start = opts.editor.docOffset r.startContainer, r.startOffset
+          blockOff = opts.data.blockOffsetForDocOffset start
+          block = opts.getBlock blockOff.block
+          if (block?.type == 'code') || (forward && start == opts.getLength()) || (!forward && start == 0)
             return parent e, sel, forward
-          pos = opts.editor.docOffset opts.editor.domCursorForCaret().firstText()
-          [start, end] = if forward
-            [Math.max(0, pos - 1), Math.min(pos + 2, opts.data.getDocLength())]
-          else [Math.max(0, pos - 2), pos + 1]
-          s = opts.data.getDocSubstring(start, end)
-          if s.match(/\n\n/)
-            if s.length == 3
-              start += if (s[0] != '\n' && forward) then 1
-              else if s[2] != '\n' && !forward then -1
-              else 0
-            boff = opts.data.blockOffsetForDocOffset(start)
-            boff.block = opts.data.getBlock boff.block
-            if boff.offset != boff.block.text.length - 2
-              eoff = opts.data.blockOffsetForDocOffset end
-              if !(opts.isToggled(boff.block) || opts.isToggled(eoff.block))
-                boff.length = 2
-                boff.type = 'Caret'
-                console.log "DELETE NEWLINE", boff
-                opts.editor.replace null, boff, ''
-              return
-          parent e, sel, forward
+          if !forward
+            --blockOff.offset
+            --start
+          pos = start
+          if blockOff.offset <= 0
+            prevBlock = opts.getBlock(block.prev)
+            blockOff.block = prevBlock
+            pt = prevBlock.text
+            blockOff.offset += pt.length
+            pt += block.text
+          else pt = block.text
+          del = pt.substring(blockOff.offset, blockOff.offset + 1)
+          nt = pt.substring(blockOff.offset + 1)
+          pt = pt.substring(0, blockOff.offset)
+          ptNls = pt.match(/\n*$/)[0].length
+          ntNls = nt.match(/^\n*/)[0].length
+          end = start + 1
+          if ptNls > 0 && ntNls > 0
+            if (ptNls + ntNls) % 2 then start--
+          else if del == '\n'
+            if ntNls % 2 then end++
+            else if ptNls % 2
+              start--
+              pos--
+          opts.replaceText start, end, ''
+          opts.editor.domCursorForDocOffset(pos).moveCaret()
+          if pos < opts.getLength() && pos != opts.editor.docOffset opts.editor.moveForward()
+            opts.editor.moveBackward()
         renderBlocks: (opt, html)->
           header = if hasView 'header' then opt.withNewContext =>
             @renderView('header', null, null, {})[0]
@@ -564,7 +579,8 @@
           text = if org instanceof SimpleMarkup then @renderSimple opts, org
           else if org instanceof Link then @renderLink opts, org
           else if org instanceof Fragment
-            (@renderOrg opts, child for child, i in org.children).join ''
+            #(@renderOrg opts, child for child, i in org.children).join ''
+            (@renderOrg opts, child for child, i in mergeMeat(org).children).join ''
           else if org instanceof ListItem then @renderList opts, org
           else if org instanceof Drawer then @renderDrawer opts, org
           else if org instanceof Example then @renderExample opts, org
@@ -675,9 +691,14 @@
           wrench.outerHTML
         else ''
 
-      insertBreaks = (text)-> text.replace /\n\n/g, "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>"
+      insertBreaks = (text)-> text.replace /\n\n/g, (match, offset, str)->
+        if str[offset + 2] == '\n'
+          "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='white-space: pre; height: 2em' data-noncontent></div></span><div style='height: 1em; white-spaceX: pre' data-noncontentX>\n</div><span class='hidden'></span>"
+        else if str[offset - 1] == '\n'
+          "<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>"
+        else "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>"
 
-      prefixBreak = (text)-> if text[0] == '\n' && text[1] != '\n' then "\n<span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>#{text.substring 1}" else text
+      prefixBreak = (text)-> if text[0] == '\n' && text[1] != '\n' then "\n<div style='height: 2em; white-space: pre' data-noncontent>\n</div>#{text.substring 1}" else text
 
       createValueSliders = ->
         for num in $(UI.context.currentView).find('.token.number')
@@ -787,6 +808,18 @@
         if replace then initializePendingViews()
 
       cleanOrg = (text)-> blockOrg null, text: text
+
+      mergeMeat = (fragment)->
+        newChildren = []
+        prevMeat = null
+        for c, i in fragment.children
+          if c instanceof Meat
+            if !prevMeat
+              prevMeat = new Meat c.text, c.offset
+              newChildren.push prevMeat
+            else prevMeat.text += c.text
+          else newChildren.push _.clone c
+        new Fragment(fragment.offset, newChildren).linkNodes()
 
 Exports
 

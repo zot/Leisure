@@ -20,9 +20,7 @@
         block7: 2
       }
     };
-    runTests = function() {
-      return test1();
-    };
+    runTests = function() {};
     test1 = function() {
       var blk, block, blocks, count, data, i, info, j, len;
       data = new OrgData();

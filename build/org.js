@@ -29,7 +29,7 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['lib/lazy'], function(Lazy) {
-    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, UnknownDeclaration, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, declRE, drawerRE, endRE, exampleEndRE, exampleStartRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseDrawer, parseExample, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, parseUnknown, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
+    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, UnknownDeclaration, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, declRE, drawerRE, endRE, exampleEndRE, exampleStartRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, last, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseDrawer, parseExample, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, parseUnknown, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
     _ = Lazy._;
     todoKeywords = ['TODO', 'DONE'];
     declRE = /^#\+.*$/m;
@@ -86,6 +86,9 @@ misrepresented as being the original software.
     imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i;
     leisurePathRE = /^leisure:([^\/]*)\/?(.*)$/;
     keywordPropertyRE = /:([^ ]+)/;
+    last = function(a) {
+      return a[a.length - 1];
+    };
     matchLine = function(txt) {
       var ref;
       if (((ref = txt.match(simpleRE)) != null ? ref.index : void 0) === 0) {

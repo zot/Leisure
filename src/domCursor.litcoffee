@@ -660,10 +660,7 @@ Thanks to (rangy)[this: https://github.com/timdown/rangy] for the isCollapsed lo
           type == 8 || # COMMENT
           (type == node.TEXT_NODE && (node.data == '' || isCollapsed(node.parentNode))) ||
           /^(script|style)$/i.test(node.nodeName) ||
-          #(type == node.ELEMENT_NODE && (node.offsetWidth == 0 || node.offsetHeight == 0))
-          (type == node.ELEMENT_NODE && (if /span/i.test node.nodeName
-            getComputedStyle(node).display == 'none'
-          else node.offsetHeight == 0))
+          (type == node.ELEMENT_NODE && !node.offsetParent)
 
       selectRange = (r)->
         if r

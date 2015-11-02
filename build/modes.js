@@ -3,13 +3,13 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './lib/prism-leisure'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setHtml, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
-    parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
+    parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html, blockVars = Eval.blockVars;
-    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection;
+    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, getEventChar = Editor.getEventChar;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr, nextImageSrc = UI.nextImageSrc, prevImageSrc = UI.prevImageSrc, pushPendingInitialzation = UI.pushPendingInitialzation;
     mergeExports = BrowserExports.mergeExports;
     OrgEditing = EditorSupport.OrgEditing, blockOrg = EditorSupport.blockOrg, blockCodeItems = EditorSupport.blockCodeItems, blockIsHidden = EditorSupport.blockIsHidden, blockEnvMaker = EditorSupport.blockEnvMaker, controllerEval = EditorSupport.controllerEval;
@@ -23,6 +23,9 @@
         return parent(e);
       },
       enter: function(opts, parent, e) {
+        return parent(e);
+      },
+      handleDelete: function(opts, parent, e, sel, forward) {
         return parent(e);
       },
       renderBlocks: function(opt, html) {
@@ -346,15 +349,16 @@
     fancyMode = {
       name: 'fancy',
       keyPress: function(opts, parent, e) {
-        var block, sel;
+        var block, pos, sel;
         sel = getSelection();
         if (sel.type === 'Caret') {
+          pos = opts.editor.docOffset(sel.getRangeAt(0));
           sel = opts.editor.getSelectedBlockRange();
           block = opts.getBlock(sel.block);
-          if (!opts.isToggled(block) && block.type !== 'code' && sel.offset === 0 && block.text[0] === '\n') {
+          if (!opts.isToggled(block) && block.type !== 'code' && sel.offset === 0 && block.text[0] === '\n' && block.text[1] !== '\n') {
             e.preventDefault();
-            sel.length = 1;
-            return opts.editor.replace(e, sel, null, false);
+            opts.editor.replace(e, sel, (getEventChar(e)) + '\n', false);
+            return opts.editor.domCursorForDocOffset(pos + 1).moveCaret();
           }
         }
         return parent(e);
@@ -384,31 +388,51 @@
         }
       },
       handleDelete: function(opts, parent, e, sel, forward) {
-        var boff, end, eoff, pos, ref, s, start;
-        if (opts.getBlock(opts.idForNode(sel.getRangeAt(0).startContainer)).type === 'code') {
+        var block, blockOff, del, end, nt, ntNls, pos, prevBlock, pt, ptNls, r, start;
+        r = sel.getRangeAt(0);
+        start = opts.editor.docOffset(r.startContainer, r.startOffset);
+        blockOff = opts.data.blockOffsetForDocOffset(start);
+        block = opts.getBlock(blockOff.block);
+        if (((block != null ? block.type : void 0) === 'code') || (forward && start === opts.getLength()) || (!forward && start === 0)) {
           return parent(e, sel, forward);
         }
-        pos = opts.editor.docOffset(opts.editor.domCursorForCaret().firstText());
-        ref = forward ? [Math.max(0, pos - 1), Math.min(pos + 2, opts.data.getDocLength())] : [Math.max(0, pos - 2), pos + 1], start = ref[0], end = ref[1];
-        s = opts.data.getDocSubstring(start, end);
-        if (s.match(/\n\n/)) {
-          if (s.length === 3) {
-            start += s[0] !== '\n' && forward ? 1 : s[2] !== '\n' && !forward ? -1 : 0;
+        if (!forward) {
+          --blockOff.offset;
+          --start;
+        }
+        pos = start;
+        if (blockOff.offset <= 0) {
+          prevBlock = opts.getBlock(block.prev);
+          blockOff.block = prevBlock;
+          pt = prevBlock.text;
+          blockOff.offset += pt.length;
+          pt += block.text;
+        } else {
+          pt = block.text;
+        }
+        del = pt.substring(blockOff.offset, blockOff.offset + 1);
+        nt = pt.substring(blockOff.offset + 1);
+        pt = pt.substring(0, blockOff.offset);
+        ptNls = pt.match(/\n*$/)[0].length;
+        ntNls = nt.match(/^\n*/)[0].length;
+        end = start + 1;
+        if (ptNls > 0 && ntNls > 0) {
+          if ((ptNls + ntNls) % 2) {
+            start--;
           }
-          boff = opts.data.blockOffsetForDocOffset(start);
-          boff.block = opts.data.getBlock(boff.block);
-          if (boff.offset !== boff.block.text.length - 2) {
-            eoff = opts.data.blockOffsetForDocOffset(end);
-            if (!(opts.isToggled(boff.block) || opts.isToggled(eoff.block))) {
-              boff.length = 2;
-              boff.type = 'Caret';
-              console.log("DELETE NEWLINE", boff);
-              opts.editor.replace(null, boff, '');
-            }
-            return;
+        } else if (del === '\n') {
+          if (ntNls % 2) {
+            end++;
+          } else if (ptNls % 2) {
+            start--;
+            pos--;
           }
         }
-        return parent(e, sel, forward);
+        opts.replaceText(start, end, '');
+        opts.editor.domCursorForDocOffset(pos).moveCaret();
+        if (pos < opts.getLength() && pos !== opts.editor.docOffset(opts.editor.moveForward())) {
+          return opts.editor.moveBackward();
+        }
       },
       renderBlocks: function(opt, html) {
         var header;
@@ -736,7 +760,7 @@
         var child, i, text;
         text = org instanceof SimpleMarkup ? this.renderSimple(opts, org) : org instanceof Link ? this.renderLink(opts, org) : org instanceof Fragment ? ((function() {
           var j, len, ref, results1;
-          ref = org.children;
+          ref = mergeMeat(org).children;
           results1 = [];
           for (i = j = 0, len = ref.length; j < len; i = ++j) {
             child = ref[i];
@@ -934,11 +958,19 @@
       }
     };
     insertBreaks = function(text) {
-      return text.replace(/\n\n/g, "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>");
+      return text.replace(/\n\n/g, function(match, offset, str) {
+        if (str[offset + 2] === '\n') {
+          return "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='white-space: pre; height: 2em' data-noncontent></div></span><div style='height: 1em; white-spaceX: pre' data-noncontentX>\n</div><span class='hidden'></span>";
+        } else if (str[offset - 1] === '\n') {
+          return "<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>";
+        } else {
+          return "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>";
+        }
+      });
     };
     prefixBreak = function(text) {
       if (text[0] === '\n' && text[1] !== '\n') {
-        return "\n<span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>" + (text.substring(1));
+        return "\n<div style='height: 2em; white-space: pre' data-noncontent>\n</div>" + (text.substring(1));
       } else {
         return text;
       }
@@ -1103,6 +1135,26 @@
       return blockOrg(null, {
         text: text
       });
+    };
+    mergeMeat = function(fragment) {
+      var c, i, j, len, newChildren, prevMeat, ref;
+      newChildren = [];
+      prevMeat = null;
+      ref = fragment.children;
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        c = ref[i];
+        if (c instanceof Meat) {
+          if (!prevMeat) {
+            prevMeat = new Meat(c.text, c.offset);
+            newChildren.push(prevMeat);
+          } else {
+            prevMeat.text += c.text;
+          }
+        } else {
+          newChildren.push(_.clone(c));
+        }
+      }
+      return new Fragment(fragment.offset, newChildren).linkNodes();
     };
     mergeExports({
       plainMode: plainMode,

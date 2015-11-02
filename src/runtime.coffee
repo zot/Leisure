@@ -373,7 +373,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
   (global ? window).L_runMonads = (array, env)->
     new Promise (resolve, reject)->
       runMonad2 array.slice().reverse().reduce((result, element)->
-        bind element, lz (x)-> result), env, resolve
+        bind element, lz (x)-> rz result), env, resolve
 
   ensureLeisureClass 'unit'
 

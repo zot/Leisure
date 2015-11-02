@@ -729,7 +729,7 @@
                 return _this.del(e, s, r);
               } else if ((modifyingKey(c, e)) && !isAlphabetic(e)) {
                 _this.char = getEventChar(e);
-                return _this.keypress(e);
+                return _this.keyPress(e);
               }
             }
           };
@@ -866,7 +866,7 @@
         }
         pos = this.domCursorForCaret();
         pos.moveCaret();
-        pos.show(this.options.topRect());
+        (pos.node.nodeType === pos.node.TEXT_NODE ? pos.node.parentNode : pos.node).scrollIntoViewIfNeeded();
         return this.trigger('moved', this);
       };
 
@@ -2485,7 +2485,8 @@
       preserveSelection: preserveSelection,
       treeToArray: treeToArray,
       computeNewStructure: computeNewStructure,
-      validateBatch: validateBatch
+      validateBatch: validateBatch,
+      getEventChar: getEventChar
     };
   });
 

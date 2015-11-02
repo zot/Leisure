@@ -45,12 +45,12 @@ define([], function(){
 })))},
     function(){return resolve(L_newDefine)("polygon", 1, "polygon map = svgElement 'polygon' ((isNil map) defaultPolygonMap map)", lazy(function(L_map){return resolve(L_svgElement)("polygon", function(){return resolve(L_isNil)(L_map)(L_defaultPolygonMap)(L_map)})}))},
     function(){return resolve(L_newDefine)("group", 1, "group elem = svgNode concat['<g>' (elem id) '</g>']", lazy(function(L_elem){return resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<g>", function(){return resolve(L_cons)(function(){return resolve(L_elem)(L_id)}, function(){return resolve(L_cons)("</g>", L_nil)})})})})}))},
-    function(){return resolve(L_newDefine)("translate", 3, "translate elem x y = svgNode concat['<g transform=\"translate(' x ' ' y ')\">' (elem id) '</g>']", lazy((function(L_elem, L_x, L_y) {
+      function(){return resolve(L_newDefine)("translate", 3, "translate elem x y = svgNode concat['<g transform=\"translate(' x ' ' y ')\">' (elem id) '</g>']", lazy((function(L_elem, L_x, L_y) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)
         : resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<g transform=\"translate(", function(){return resolve(L_cons)(L_x, function(){return resolve(L_cons)(" ", function(){return resolve(L_cons)(L_y, function(){return resolve(L_cons)(")\">", function(){return resolve(L_cons)(function(){return resolve(L_elem)(L_id)}, function(){return resolve(L_cons)("</g>", L_nil)})})})})})})})});
 })))},
-    function(){return resolve(L_newDefine)("rotate", 2, "rotate elem r = svgNode concat['<g transform=\"rotate(' r ')\">' (elem id) '</g>']", lazy((function(L_elem, L_r) {
+      function(){return resolve(L_newDefine)("rotate", 2, "rotate elem r = svgNode concat['<g transform=\"rotate(' r ')\">' (elem id) '</g>']", lazy((function(L_elem, L_r) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)
         : resolve(L_svgNode)(function(){return resolve(L_strCat)(function(){return resolve(L_cons)("<g transform=\"rotate(", function(){return resolve(L_cons)(L_r, function(){return resolve(L_cons)(")\">", function(){return resolve(L_cons)(function(){return resolve(L_elem)(L_id)}, function(){return resolve(L_cons)("</g>", L_nil)})})})})})});

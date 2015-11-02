@@ -82,6 +82,8 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       localDb = null
       localStore = null
       deleteStore = false
+      bubbleTopOffset = -5;
+      bubbleLeftOffset = 0;
 
       blockOrg = (data, blockOrText)->
         text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
@@ -945,10 +947,6 @@ may be called more than once.  changeData() returns a promise.
         #    return menu.find("[name='insert']").removeClass 'ui-state-disabled'
         #menu.find("[name='insert']").addClass 'ui-state-disabled'
       
-      updateSelection = _.throttle (-> actualSelectionUpdate()), 30,
-        leading: true
-        trailing: true
-      
       actualSelectionUpdate = ->
         if selectionActive
           if editor = findEditor getSelection().focusNode
@@ -957,13 +955,19 @@ may be called more than once.  changeData() returns a promise.
               left = p.left
               top = p.top
               bubble = $("#selectionBubble")[0]
-              bubble.style.left = "#{left}px"
-              bubble.style.top = "#{top - bubble.offsetHeight}px"
+              bubble.style.left = "#{left + bubbleLeftOffset}px"
+              bubble.style.top = "#{top - bubble.offsetHeight + bubbleTopOffset}px"
               $(document.body).addClass 'selection'
               editor.trigger 'selection'
               return
         $(document.body).removeClass 'selection'
         editor?.trigger 'selection'
+
+      updateSelection = _.throttle (->
+        actualSelectionUpdate()
+        actualSelectionUpdate()), 30,
+        leading: true
+        trailing: true
 
       monitorSelectionChange = ->
         $(document).on 'selectionchange', updateSelection

@@ -582,7 +582,7 @@ on it can select if start and end are different
                 @del e, s, r
               else if (modifyingKey c, e) && !isAlphabetic e
                 @char = getEventChar e
-                @keypress e
+                @keyPress e
           @node.on 'keypress', (e)=> @keyPress e
         enter: (e)->
           e.preventDefault()
@@ -656,7 +656,8 @@ on it can select if start and end are different
           if pos.isEmpty() then pos = pos.prev()
           pos = @domCursorForCaret()
           pos.moveCaret()
-          pos.show @options.topRect()
+          #pos.show @options.topRect()
+          (if pos.node.nodeType == pos.node.TEXT_NODE then pos.node.parentNode else pos.node).scrollIntoViewIfNeeded()
           @trigger 'moved', this
         moveForward: ->
           sel = getSelection()
@@ -1715,4 +1716,5 @@ Exports
         treeToArray
         computeNewStructure
         validateBatch
+        getEventChar
       }

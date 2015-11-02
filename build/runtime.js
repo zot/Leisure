@@ -686,7 +686,7 @@ misrepresented as being the original software.
       return new Promise(function(resolve, reject) {
         return runMonad2(array.slice().reverse().reduce(function(result, element) {
           return bind(element, lz(function(x) {
-            return result;
+            return rz(result);
           }));
         }), env, resolve);
       });

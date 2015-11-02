@@ -95,6 +95,8 @@ define ['lib/lazy'], (Lazy)->
   leisurePathRE = /^leisure:([^\/]*)\/?(.*)$/
   keywordPropertyRE = /:([^ ]+)/
   
+  last = (a)-> a[a.length - 1]
+
   matchLine = (txt)->
     if txt.match(simpleRE)?.index == 0 then false
     else

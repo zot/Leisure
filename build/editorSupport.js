@@ -5,7 +5,7 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -26,6 +26,8 @@
     localDb = null;
     localStore = null;
     deleteStore = false;
+    bubbleTopOffset = -5;
+    bubbleLeftOffset = 0;
     blockOrg = function(data, blockOrText) {
       var frag, org, ref, text;
       text = typeof blockOrText === 'string' ? (ref = data.getBlock(blockOrText)) != null ? ref : blockOrText : blockOrText.text;
@@ -1569,12 +1571,6 @@
     configureMenu = function(menu) {
       return console.log("configure menu");
     };
-    updateSelection = _.throttle((function() {
-      return actualSelectionUpdate();
-    }), 30, {
-      leading: true,
-      trailing: true
-    });
     actualSelectionUpdate = function() {
       var bubble, c, editor, left, p, top;
       if (selectionActive) {
@@ -1584,8 +1580,8 @@
             left = p.left;
             top = p.top;
             bubble = $("#selectionBubble")[0];
-            bubble.style.left = left + "px";
-            bubble.style.top = (top - bubble.offsetHeight) + "px";
+            bubble.style.left = (left + bubbleLeftOffset) + "px";
+            bubble.style.top = (top - bubble.offsetHeight + bubbleTopOffset) + "px";
             $(document.body).addClass('selection');
             editor.trigger('selection');
             return;
@@ -1595,6 +1591,13 @@
       $(document.body).removeClass('selection');
       return editor != null ? editor.trigger('selection') : void 0;
     };
+    updateSelection = _.throttle((function() {
+      actualSelectionUpdate();
+      return actualSelectionUpdate();
+    }), 30, {
+      leading: true,
+      trailing: true
+    });
     monitorSelectionChange = function() {
       $(document).on('selectionchange', updateSelection);
       $(window).on('scroll', updateSelection);
