@@ -1497,7 +1497,7 @@ handleDo list inLet cont = list
 
 doClause steppingClause clause prefix inLet cont = \\
   makeBind var monad = cont false \rest . inLet (cons '.') id
-    ['primBind' monad ['\\' var '.' | rest]]
+    ['bind' monad ['\\' var '.' | rest]]
   h = head steppingClause
   t = tail steppingClause
   .
