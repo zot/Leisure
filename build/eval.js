@@ -163,7 +163,7 @@
       try {
         old = getValue('parser_funcProps');
         setValue('parser_funcProps', props);
-        result = rz(L_baseLoadString)('notebook')(text);
+        result = rz(L_baseLoadString)('notebook', text);
         return runMonad2(result, env, function(results) {
           return runNextResult(results, env, function() {
             setValue('parser_funcProps', old);

@@ -490,6 +490,8 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 
   values = {}
 
+  define 'primBind', bind
+
 #
 # Error handling
 #

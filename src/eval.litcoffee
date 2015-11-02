@@ -115,7 +115,7 @@ Evaulation support for Leisure
         try
           old = getValue 'parser_funcProps'
           setValue 'parser_funcProps', props
-          result = rz(L_baseLoadString)('notebook')(text)
+          result = rz(L_baseLoadString)('notebook', text)
           runMonad2 result, env, (results)->
             runNextResult results, env, ->
               setValue 'parser_funcProps', old

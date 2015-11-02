@@ -26,7 +26,7 @@ any f l = find f l (\el . true) false
 all f l = not (any (compose not f) l)
 
 # change this to return a list of results
-doall = foldr1 (\el res . bind el \_ . res)
+doall = foldr1 (\el res . primBind el \_ . res)
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list
   nil
@@ -46,7 +46,7 @@ listify list = listifyOp 'cons' list
 
 # parse filter 'listFilter' gathers items after the '|' into a single argument
 
-listFilter code = bind (getValue 'listMacros')
+listFilter code = primBind (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
     and (isToken h) (contains listMacros (tokenString h))
       listFilterTail list
@@ -160,9 +160,9 @@ defMacro 'concat[' \list . ['strCat' [(listify (head list))]]
 
 defMacro 'concatFlat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
 
-infix code = bind (getValue 'infixPrecedence')
-  \prec . bind (getValue 'infixRightAssociative')
-    \right . bind (getValue 'tokenGroups')
+infix code = primBind (getValue 'infixPrecedence')
+  \prec . primBind (getValue 'infixRightAssociative')
+    \right . primBind (getValue 'tokenGroups')
       \groups . filterApplies
         code
         \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
@@ -228,7 +228,7 @@ defMacro ':' \list . ['cons' | list]
 iprec = [['*' '/' '%'] ['+' '-'] [':'] ['<' '>' '<=' '>='] ['==' '!='] ['&&' '||']]
 rightAssoc = [':']
 
-setPrecedenceLevels levels = bind
+setPrecedenceLevels levels = primBind
   setValue 'infixPrecedence' levels
   \_ . doall (map addInfixProp (flatten levels))
 
@@ -257,7 +257,7 @@ handleDo list inLet cont = list
 
 doClause steppingClause clause prefix inLet cont = \\
   makeBind var monad = cont false \rest . inLet (cons '.') id
-    ['bind' monad ['\\' var '.' | rest]]
+    ['primBind' monad ['\\' var '.' | rest]]
   h = head steppingClause
   t = tail steppingClause
   .
@@ -281,5 +281,5 @@ addToken '<-'
 
 defTokenPack 'do' [['<-'] [] []]
 
-addStdTokenPacks ['list' 'infix' 'do']
+addStdTokenPacks ['do' 'list' 'infix']
 resetStdTokenPacks

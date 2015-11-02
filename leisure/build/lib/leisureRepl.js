@@ -271,7 +271,7 @@ misrepresented as being the original software.
             } else {
               return fs.mkdir(leisureDir, function(err) {
                 if (err) {
-                  console.log("Could not create leisure dir!");
+                  console.log('Could not create leisure dir!');
                   process.exit(1);
                 }
                 return cont();
@@ -292,7 +292,7 @@ misrepresented as being the original software.
         };
         startMultiline = function() {
           if (multiline) {
-            return console.log("Already reading multiline input");
+            return console.log('Already reading multiline input');
           } else {
             multiline = true;
             lines = [];
@@ -315,13 +315,13 @@ misrepresented as being the original software.
                     return console.log("\n" + result);
                   });
                 } else {
-                  console.log("No simplify function.  Load std.lsr");
+                  console.log('No simplify function.  Load std.lsr');
                 }
               } else if (line.match(/^!/)) {
                 console.log(eval(line.substring(1)));
               } else {
                 evalInput(line, function(result) {
-                  console.log("RESULT: " + show(result));
+                  console.log('RESULT: ' + show(result));
                   return prompt();
                 });
                 return;

@@ -892,6 +892,7 @@ misrepresented as being the original software.
       }
     });
     values = {};
+    define('primBind', bind);
     define('protect', function(value) {
       return makeMonad(function(env, cont) {
         var hnd;

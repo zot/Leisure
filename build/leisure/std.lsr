@@ -107,16 +107,16 @@ isRepeat r = hasType r repeat
 
 isRange r = hasType r range
 
-requireJS file = bind (getValue 'requiredFiles')
+requireJS file = primBind (getValue 'requiredFiles')
   \files . contains files file
     false
-    bind (loadJS file)
+    primBind (loadJS file)
       \result . result
         \x . left x
-        \_ . bind (setValue 'requiredFiles' (cons file files))
+        \_ . primBind (setValue 'requiredFiles' (cons file files))
           \_ . right true
 
-loadJS file = bind (readFile file)
+loadJS file = primBind (readFile file)
   \result . result
     \err . err
     \contents . js contents
