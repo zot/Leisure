@@ -674,6 +674,8 @@ may be called more than once.  changeData() returns a promise.
             false
           opts = this
           changeAdvice ed, true,
+            keyPress: options: (parent)-> (e)->
+              opts.mode.keyPress opts, parent, e
             enter: options: (parent)-> (e)->
               opts.mode.enter opts, parent, e
             handleDelete: options: (parent)-> (e, sel, forward)->
@@ -943,14 +945,10 @@ may be called more than once.  changeData() returns a promise.
         #    return menu.find("[name='insert']").removeClass 'ui-state-disabled'
         #menu.find("[name='insert']").addClass 'ui-state-disabled'
       
-      throttledUpdateSelection = _.throttle (-> actualSelectionUpdate()), 30,
+      updateSelection = _.throttle (-> actualSelectionUpdate()), 30,
         leading: true
         trailing: true
       
-      updateSelection = (e)->
-        #console.log "updating selection...", new Error('trace').stack
-        throttledUpdateSelection()
-    
       actualSelectionUpdate = ->
         if selectionActive
           if editor = findEditor getSelection().focusNode

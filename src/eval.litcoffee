@@ -37,8 +37,48 @@ Evaulation support for Leisure
         Promise
       } = Bluebird
       {
-        getLeisurePromise
+        genSource
       } = Gen
+
+      #########
+      # init
+      #########
+
+      requirePromise = (file...)-> new Promise (resolve, reject)->
+        require file, resolve
+
+      leisurePromise = null
+
+      getLeisurePromise = ->
+        if !leisurePromise
+          leisurePromise = requirePromise './leisure/generatedPrelude'
+            .then -> requirePromise './leisure/std'
+            .then -> requirePromise './leisure/parseAst'
+            .then -> requirePromise './leisure/svg'
+            .then -> new Promise (resolve, reject)->
+              simpleEval 'resetStdTokenPacks', resolve, reject
+        leisurePromise
+
+      simpleEval = (txt, success, fail)->
+        rejected = false
+        env =
+          __proto__: defaultEnv
+          errorAt: (offset, msg)->
+            if !rejected
+              rejected = true
+              fail msg
+        runMonad2 rz(L_newParseLine)(0, L_nil, txt), env, (ast)->
+          if getType(ast) != 'err'
+            try
+              runMonad2 (eval genSource txt, ast), env, (x)->
+                if !rejected then success x
+            catch err
+              if !rejected then fail err
+          else if !rejected then fail new Error "Parse error: #{ast id}"
+
+      #########
+      # CODE
+      #########
 
       defaultEnv.write = (str)-> console.log str
       defaultEnv.errorAt = (offset, msg)-> console.log msg

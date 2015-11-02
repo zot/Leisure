@@ -342,12 +342,16 @@ Events:
             .adjustForNewline()
         domCursorForCaret: ->
           sel = getSelection()
-          n = @domCursor sel.focusNode, sel.focusOffset
-            .mutable()
-            .filterVisibleTextNodes()
-            .filterParent @node[0]
-            .firstText()
-          if n.isEmpty() || n.pos <= n.node.length then n else n.next()
+          #n = @domCursor sel.focusNode, sel.focusOffset
+          if sel.type == 'None' then DOMCursor.emptyDOMCursor
+          else
+            r = sel.getRangeAt 0
+            n = @domCursor r.startContainer, r.startOffset
+              .mutable()
+              .filterVisibleTextNodes()
+              .filterParent @node[0]
+              .firstText()
+            if n.isEmpty() || n.pos <= n.node.length then n else n.next()
         getTextPosition: (parent, target, pos)->
           if parent
             targ = @domCursorForText target, pos
@@ -577,9 +581,8 @@ on it can select if start and end are different
                 e.preventDefault()
                 @del e, s, r
               else if (modifyingKey c, e) && !isAlphabetic e
-                e.preventDefault()
                 @char = getEventChar e
-                @replace e, @getSelectedBlockRange(), null, false
+                @keypress e
           @node.on 'keypress', (e)=> @keyPress e
         enter: (e)->
           e.preventDefault()
@@ -656,17 +659,41 @@ on it can select if start and end are different
           pos.show @options.topRect()
           @trigger 'moved', this
         moveForward: ->
+          sel = getSelection()
+          offset = if sel.type == 'None' then 0
+          else
+            r = sel.getRangeAt(0)
+            offset = if r.endContainer == r.startContainer
+              @docOffset r.endContainer, Math.max r.startOffset, r.endOffset
+            else @docOffset r.endContainer, r.endOffset
           start = pos = @domCursorForCaret().firstText().save()
-          while !pos.isEmpty() && @domCursorForCaret().firstText().equals start
-            pos = pos.forwardChar()
+          while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
+            pos = @domCursorForDocOffset ++offset
             pos.moveCaret()
-          pos
+          if pos.isEmpty()
+            offset = @options.getLength() - 1
+            pos = @domCursorForDocOffset(offset).firstText()
+            while !pos.isEmpty() && DOMCursor.isCollapsed pos.node
+              pos = @domCursorForDocOffset --offset
+          pos.moveCaret()
         moveBackward: ->
+          sel = getSelection()
+          offset = if sel.type == 'None' then 0
+          else
+            r = sel.getRangeAt(0)
+            offset = if r.endContainer == r.startContainer
+              @docOffset r.endContainer, Math.min r.startOffset, r.endOffset
+            else @docOffset r.startContainer, r.startOffset
           start = pos = @domCursorForCaret().firstText().save()
-          while !pos.isEmpty() && @domCursorForCaret().firstText().equals start
-            pos = pos.backwardChar()
+          while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
+            pos = @domCursorForDocOffset --offset
             pos.moveCaret()
-          pos
+          if pos.isEmpty()
+            offset = 0
+            pos = @domCursorForDocOffset(offset).firstText()
+            while !pos.isEmpty() && DOMCursor.isCollapsed pos.node
+              pos = @domCursorForDocOffset ++offset
+          pos.moveCaret()
         firstText: -> @domCursor(@node, 0).firstText().node
         moveDown: ->
           linePos = prev = pos = @domCursorForCaret().save()
@@ -675,7 +702,9 @@ on it can select if start and end are different
             line = 0
           else line = (if pos.pos == 0 && pos.node == @firstText() && @options.blockColumn(pos) < @movementGoal then 1 else 0)
           lineTop = posFor(linePos).top
-          while !(pos = @moveForward()).isEmpty()
+          lastPos = @docOffset(pos) - 1
+          while !(pos = @moveForward()).isEmpty() && (docPos = @docOffset(pos)) != lastPos
+            lastPos = docPos
             p = posFor(pos)
             if lineTop < p.top
               line++
@@ -690,7 +719,9 @@ on it can select if start and end are different
           linePos = prev = pos = @domCursorForCaret().save()
           if !(@prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then @movementGoal = @options.blockColumn pos
           line = 0
-          while !(pos = @moveBackward()).isEmpty()
+          lastPos = @options.getLength()
+          while !(pos = @moveBackward()).isEmpty() && (docPos = @docOffset pos) != lastPos
+            lastPos = docPos
             if linePos.differentLines pos
               line++
               linePos = pos
@@ -1310,7 +1341,7 @@ sorted in reverse order by position.
           @offsetForBlock(block) + offset
         blockOffsetForDocOffset: (offset)->
           results = @splitBlockIndexOnOffset offset
-          if results[1]
+          if !results[1].isEmpty()
             block: results[1].peekFirst().id
             offset: offset - results[0].measure().length
           else

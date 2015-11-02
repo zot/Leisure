@@ -19,6 +19,9 @@
     currentSlider = null;
     plainMode = {
       name: 'plain',
+      keyPress: function(opts, parent, e) {
+        return parent(e);
+      },
       enter: function(opts, parent, e) {
         return parent(e);
       },
@@ -342,37 +345,70 @@
     };
     fancyMode = {
       name: 'fancy',
+      keyPress: function(opts, parent, e) {
+        var block, sel;
+        sel = getSelection();
+        if (sel.type === 'Caret') {
+          sel = opts.editor.getSelectedBlockRange();
+          block = opts.getBlock(sel.block);
+          if (!opts.isToggled(block) && block.type !== 'code' && sel.offset === 0 && block.text[0] === '\n') {
+            e.preventDefault();
+            sel.length = 1;
+            return opts.editor.replace(e, sel, null, false);
+          }
+        }
+        return parent(e);
+      },
       enter: function(opts, parent, e) {
-        var block;
+        var block, endBlock, endSel, pt, sel, startBlock, t;
         block = opts.getBlock(opts.idForNode(getSelection().getRangeAt(0).startContainer));
         console.log("enter in block ", block._id);
-        if (opts.isToggled(block)) {
+        if (opts.isToggled(block) || block.type === 'code') {
           return parent(e);
         } else {
+          sel = opts.editor.getSelectedBlockRange();
+          startBlock = opts.data.getBlock(sel.block);
+          endSel = opts.data.blockOffsetForDocOffset(opts.data.offsetForBlock(startBlock) + sel.offset + sel.length);
+          endBlock = opts.data.getBlock(endSel.block);
+          t = startBlock.text;
+          if (!sel.offset && startBlock.prev) {
+            pt = opts.data.getBlock(startBlock.prev).text;
+            t = pt + t;
+            sel.offset += pt.length;
+          }
+          if ((t.substring(0, sel.offset).match(/\n*$/)[0].length + endBlock.text.substring(endSel.offset).match(/^\n*/)[0].length) % 2) {
+            return parent(e);
+          }
           e.preventDefault();
-          return opts.editor.replace(e, opts.editor.getSelectedBlockRange(), '\n\n', false);
+          return opts.editor.replace(e, sel, '\n\n', false);
         }
       },
       handleDelete: function(opts, parent, e, sel, forward) {
         var boff, end, eoff, pos, ref, s, start;
-        pos = opts.editor.docOffset(opts.editor.domCursorForCaret().firstText());
-        ref = forward ? [pos, Math.min(pos + 2, opts.data.getDocLength())] : [Math.max(0, pos - 2), pos], start = ref[0], end = ref[1];
-        s = opts.data.getDocSubstring(start, end);
-        if (s === '\n\n') {
-          boff = opts.data.blockOffsetForDocOffset(start);
-          eoff = opts.data.blockOffsetForDocOffset(end);
-          if (opts.isToggled(boff.block) || opts.isToggled(boff.block)) {
-            return parent(e, sel, forward);
-          } else {
-            boff.block = opts.data.getBlock(boff.block);
-            boff.length = 2;
-            boff.type = 'Caret';
-            console.log("DELETE NEWLINE", boff);
-            return opts.editor.replace(null, boff, '');
-          }
-        } else {
+        if (opts.getBlock(opts.idForNode(sel.getRangeAt(0).startContainer)).type === 'code') {
           return parent(e, sel, forward);
         }
+        pos = opts.editor.docOffset(opts.editor.domCursorForCaret().firstText());
+        ref = forward ? [Math.max(0, pos - 1), Math.min(pos + 2, opts.data.getDocLength())] : [Math.max(0, pos - 2), pos + 1], start = ref[0], end = ref[1];
+        s = opts.data.getDocSubstring(start, end);
+        if (s.match(/\n\n/)) {
+          if (s.length === 3) {
+            start += s[0] !== '\n' && forward ? 1 : s[2] !== '\n' && !forward ? -1 : 0;
+          }
+          boff = opts.data.blockOffsetForDocOffset(start);
+          boff.block = opts.data.getBlock(boff.block);
+          if (boff.offset !== boff.block.text.length - 2) {
+            eoff = opts.data.blockOffsetForDocOffset(end);
+            if (!(opts.isToggled(boff.block) || opts.isToggled(eoff.block))) {
+              boff.length = 2;
+              boff.type = 'Caret';
+              console.log("DELETE NEWLINE", boff);
+              opts.editor.replace(null, boff, '');
+            }
+            return;
+          }
+        }
+        return parent(e, sel, forward);
       },
       renderBlocks: function(opt, html) {
         var header;
@@ -672,7 +708,13 @@
         }
       },
       renderOrgChunk: function(opts, org) {
-        return "<span class='org-chunk'>" + (this.renderOrg(opts, org, true)) + "</span>";
+        var m, t;
+        t = this.renderOrg(opts, org, true);
+        if (m = t.match(/\n$/)) {
+          return "<span class='org-chunk'>" + (t.substring(0, t.length - 1)) + "</span><span class='hidden'>\n</span>";
+        } else {
+          return "<span class='org-chunk'>" + t + "</span>";
+        }
       },
       renderExample: function(opts, org) {
         var end, key, start, text;
@@ -892,7 +934,7 @@
       }
     };
     insertBreaks = function(text) {
-      return text.replace(/\n\n/g, "\n\n<span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>");
+      return text.replace(/\n\n/g, "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>");
     };
     prefixBreak = function(text) {
       if (text[0] === '\n' && text[1] !== '\n') {

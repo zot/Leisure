@@ -883,7 +883,7 @@
       var type;
       if (node) {
         type = node.nodeType;
-        return type === 7 || type === 8 || (type === node.TEXT_NODE && (node.data === '' || isCollapsed(node.parentNode))) || /^(script|style)$/i.test(node.nodeName) || (type === node.ELEMENT_NODE && node.offsetHeight === 0);
+        return type === 7 || type === 8 || (type === node.TEXT_NODE && (node.data === '' || isCollapsed(node.parentNode))) || /^(script|style)$/i.test(node.nodeName) || (type === node.ELEMENT_NODE && (/span/i.test(node.nodeName) ? getComputedStyle(node).display === 'none' : node.offsetHeight === 0));
       }
     };
     selectRange = function(r) {
@@ -963,7 +963,7 @@
         return rects[0];
       } else if (rects.length === 2) {
         result = rects[0];
-        comp = r.startContainer.data[r.startOffset] === '\n' ? chooseUpper : chooseLower;
+        comp = r.startContainer.data[r.startOffset] === '\n' && r.startOffset > 0 && r.startContainer.data[r.startOffset] !== '\n' ? chooseUpper : chooseLower;
         for (i = 0, len = rects.length; i < len; i++) {
           rect = rects[i];
           if (comp(rect, result)) {

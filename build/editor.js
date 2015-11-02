@@ -269,13 +269,18 @@
       };
 
       LeisureEditCore.prototype.domCursorForCaret = function() {
-        var n, sel;
+        var n, r, sel;
         sel = getSelection();
-        n = this.domCursor(sel.focusNode, sel.focusOffset).mutable().filterVisibleTextNodes().filterParent(this.node[0]).firstText();
-        if (n.isEmpty() || n.pos <= n.node.length) {
-          return n;
+        if (sel.type === 'None') {
+          return DOMCursor.emptyDOMCursor;
         } else {
-          return n.next();
+          r = sel.getRangeAt(0);
+          n = this.domCursor(r.startContainer, r.startOffset).mutable().filterVisibleTextNodes().filterParent(this.node[0]).firstText();
+          if (n.isEmpty() || n.pos <= n.node.length) {
+            return n;
+          } else {
+            return n.next();
+          }
         }
       };
 
@@ -723,9 +728,8 @@
                 e.preventDefault();
                 return _this.del(e, s, r);
               } else if ((modifyingKey(c, e)) && !isAlphabetic(e)) {
-                e.preventDefault();
                 _this.char = getEventChar(e);
-                return _this.replace(e, _this.getSelectedBlockRange(), null, false);
+                return _this.keypress(e);
               }
             }
           };
@@ -867,23 +871,41 @@
       };
 
       LeisureEditCore.prototype.moveForward = function() {
-        var pos, start;
+        var offset, pos, r, sel, start;
+        sel = getSelection();
+        offset = sel.type === 'None' ? 0 : (r = sel.getRangeAt(0), offset = r.endContainer === r.startContainer ? this.docOffset(r.endContainer, Math.max(r.startOffset, r.endOffset)) : this.docOffset(r.endContainer, r.endOffset));
         start = pos = this.domCursorForCaret().firstText().save();
-        while (!pos.isEmpty() && this.domCursorForCaret().firstText().equals(start)) {
-          pos = pos.forwardChar();
+        while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
+          pos = this.domCursorForDocOffset(++offset);
           pos.moveCaret();
         }
-        return pos;
+        if (pos.isEmpty()) {
+          offset = this.options.getLength() - 1;
+          pos = this.domCursorForDocOffset(offset).firstText();
+          while (!pos.isEmpty() && DOMCursor.isCollapsed(pos.node)) {
+            pos = this.domCursorForDocOffset(--offset);
+          }
+        }
+        return pos.moveCaret();
       };
 
       LeisureEditCore.prototype.moveBackward = function() {
-        var pos, start;
+        var offset, pos, r, sel, start;
+        sel = getSelection();
+        offset = sel.type === 'None' ? 0 : (r = sel.getRangeAt(0), offset = r.endContainer === r.startContainer ? this.docOffset(r.endContainer, Math.min(r.startOffset, r.endOffset)) : this.docOffset(r.startContainer, r.startOffset));
         start = pos = this.domCursorForCaret().firstText().save();
-        while (!pos.isEmpty() && this.domCursorForCaret().firstText().equals(start)) {
-          pos = pos.backwardChar();
+        while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
+          pos = this.domCursorForDocOffset(--offset);
           pos.moveCaret();
         }
-        return pos;
+        if (pos.isEmpty()) {
+          offset = 0;
+          pos = this.domCursorForDocOffset(offset).firstText();
+          while (!pos.isEmpty() && DOMCursor.isCollapsed(pos.node)) {
+            pos = this.domCursorForDocOffset(++offset);
+          }
+        }
+        return pos.moveCaret();
       };
 
       LeisureEditCore.prototype.firstText = function() {
@@ -891,7 +913,7 @@
       };
 
       LeisureEditCore.prototype.moveDown = function() {
-        var line, linePos, lineTop, p, pos, prev, ref;
+        var docPos, lastPos, line, linePos, lineTop, p, pos, prev, ref;
         linePos = prev = pos = this.domCursorForCaret().save();
         if (!((ref = this.prevKeybinding) === keyFuncs.nextLine || ref === keyFuncs.previousLine)) {
           this.movementGoal = this.options.blockColumn(pos);
@@ -900,7 +922,9 @@
           line = (pos.pos === 0 && pos.node === this.firstText() && this.options.blockColumn(pos) < this.movementGoal ? 1 : 0);
         }
         lineTop = posFor(linePos).top;
-        while (!(pos = this.moveForward()).isEmpty()) {
+        lastPos = this.docOffset(pos) - 1;
+        while (!(pos = this.moveForward()).isEmpty() && (docPos = this.docOffset(pos)) !== lastPos) {
+          lastPos = docPos;
           p = posFor(pos);
           if (lineTop < p.top) {
             line++;
@@ -919,13 +943,15 @@
       };
 
       LeisureEditCore.prototype.moveUp = function() {
-        var line, linePos, pos, prev, ref;
+        var docPos, lastPos, line, linePos, pos, prev, ref;
         linePos = prev = pos = this.domCursorForCaret().save();
         if (!((ref = this.prevKeybinding) === keyFuncs.nextLine || ref === keyFuncs.previousLine)) {
           this.movementGoal = this.options.blockColumn(pos);
         }
         line = 0;
-        while (!(pos = this.moveBackward()).isEmpty()) {
+        lastPos = this.options.getLength();
+        while (!(pos = this.moveBackward()).isEmpty() && (docPos = this.docOffset(pos)) !== lastPos) {
+          lastPos = docPos;
           if (linePos.differentLines(pos)) {
             line++;
             linePos = pos;
@@ -1848,7 +1874,7 @@
       DataStore.prototype.blockOffsetForDocOffset = function(offset) {
         var results;
         results = this.splitBlockIndexOnOffset(offset);
-        if (results[1]) {
+        if (!results[1].isEmpty()) {
           return {
             block: results[1].peekFirst().id,
             offset: offset - results[0].measure().length

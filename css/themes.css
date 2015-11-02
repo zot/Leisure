@@ -1622,7 +1622,8 @@ button:hover {
     padding: 0;
     padding-top: 0;
 }
-[data-edit-mode='fancy'][data-org-headline='1'] {
+/*[data-edit-mode='fancy'][data-org-headline='1'] {*/
+[data-org-headline='1'] {
     margin-bottom: 8px;
     padding: 8px;
     position: relative;
@@ -1817,6 +1818,8 @@ body.loading, body.slides {
 .toggle_edit,
 .create_note {
     user-select: none;
+    -webkit-user-select: none;
+    vertical-align: top;
 }
 .slides .toggle_edit,
 .slides .create_note,

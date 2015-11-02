@@ -228,6 +228,7 @@ updateButton = (view, hiding)->
 ** Headline
 #+BEGIN_SRC html :defview leisure-headline-plain
 <div class='slideholder'
+data-org-headline='{{level}}'
  ><div class='page'
    ><div class='border'></div
    ><div class='.pagecontent'>{{> leisure-source-toggle}}{{{renderPlain this}}}</div></div></div>

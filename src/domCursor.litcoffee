@@ -661,7 +661,9 @@ Thanks to (rangy)[this: https://github.com/timdown/rangy] for the isCollapsed lo
           (type == node.TEXT_NODE && (node.data == '' || isCollapsed(node.parentNode))) ||
           /^(script|style)$/i.test(node.nodeName) ||
           #(type == node.ELEMENT_NODE && (node.offsetWidth == 0 || node.offsetHeight == 0))
-          (type == node.ELEMENT_NODE && node.offsetHeight == 0)
+          (type == node.ELEMENT_NODE && (if /span/i.test node.nodeName
+            getComputedStyle(node).display == 'none'
+          else node.offsetHeight == 0))
 
       selectRange = (r)->
         if r
@@ -724,7 +726,9 @@ Node location routines
         if rects.length == 1 then rects[0]
         else if rects.length == 2
           result = rects[0]
-          comp = if r.startContainer.data[r.startOffset] == '\n' then chooseUpper
+          #comp = if r.startContainer.data[r.startOffset] == '\n' then chooseUpper
+          comp = if r.startContainer.data[r.startOffset] == '\n' && r.startOffset > 0 && r.startContainer.data[r.startOffset] != '\n'
+            chooseUpper
           else chooseLower
           for rect in rects
             if comp rect, result then result = rect

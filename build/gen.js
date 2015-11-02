@@ -27,15 +27,14 @@ misrepresented as being the original software.
 (function() {
   var slice = [].slice;
 
-  define(['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map', 'lib/bluebird.min'], function(Base, Ast, Runtime, _, SourceMap, Bluebird) {
-    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, Promise, SourceMapConsumer, SourceNode, _false, _true, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLeisurePromise, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, leisurePromise, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, requirePromise, resolve, right, root, rz, setDataType, setMegaArity, setType, simpleEval, simpyCons, sn, specialAnnotations, strRepeat, uniqName, useArity, varNameSub, verboseMsg, withFile;
+  define(['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], function(Base, Ast, Runtime, _, SourceMap) {
+    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceNode, _false, _true, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, strRepeat, uniqName, useArity, varNameSub, verboseMsg, withFile;
     simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
     ref1 = root = Ast, nameSub = ref1.nameSub, getLitVal = ref1.getLitVal, getRefName = ref1.getRefName, getLambdaVar = ref1.getLambdaVar, getLambdaBody = ref1.getLambdaBody, getApplyFunc = ref1.getApplyFunc, getApplyArg = ref1.getApplyArg, getAnnoName = ref1.getAnnoName, getAnnoData = ref1.getAnnoData, getAnnoBody = ref1.getAnnoBody, getLetName = ref1.getLetName, getLetValue = ref1.getLetValue, getLetBody = ref1.getLetBody, Leisure_lit = ref1.Leisure_lit, Leisure_ref = ref1.Leisure_ref, Leisure_lambda = ref1.Leisure_lambda, Leisure_apply = ref1.Leisure_apply, Leisure_let = ref1.Leisure_let, Leisure_anno = ref1.Leisure_anno, setType = ref1.setType, setDataType = ref1.setDataType, cons = ref1.cons, Nil = ref1.Nil, define = ref1.define, functionInfo = ref1.functionInfo, getPos = ref1.getPos, isNil = ref1.isNil, getType = ref1.getType;
     Monad2 = Runtime.Monad2, _true = Runtime._true, _false = Runtime._false, left = Runtime.left, right = Runtime.right, booleanFor = Runtime.booleanFor, newConsFrom = Runtime.newConsFrom, dumpMonadStack = Runtime.dumpMonadStack;
-    Promise = Bluebird.Promise;
     consFrom = newConsFrom;
     SourceNode = SourceMap.SourceNode, SourceMapConsumer = SourceMap.SourceMapConsumer;
     varNameSub = function(n) {
@@ -43,62 +42,6 @@ misrepresented as being the original software.
     };
     useArity = true;
     megaArity = false;
-    requirePromise = function() {
-      var file;
-      file = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-      return new Promise(function(resolve, reject) {
-        return require(file, resolve);
-      });
-    };
-    leisurePromise = null;
-    getLeisurePromise = function() {
-      if (!leisurePromise) {
-        leisurePromise = requirePromise('./leisure/generatedPrelude').then(function() {
-          return requirePromise('./leisure/std');
-        }).then(function() {
-          return requirePromise('./leisure/parseAst');
-        }).then(function() {
-          return requirePromise('./leisure/svg');
-        }).then(function() {
-          return new Promise(function(resolve, reject) {
-            return simpleEval('resetStdTokenPacks', resolve, reject);
-          });
-        });
-      }
-      return leisurePromise;
-    };
-    simpleEval = function(txt, success, fail) {
-      var env, rejected;
-      rejected = false;
-      env = {
-        __proto__: defaultEnv,
-        errorAt: function(offset, msg) {
-          if (!rejected) {
-            rejected = true;
-            return fail(msg);
-          }
-        }
-      };
-      return runMonad2(rz(L_newParseLine)(0, L_nil, txt), env, function(ast) {
-        var err;
-        if (getType(ast) !== 'err') {
-          try {
-            return runMonad2(eval(genSource(txt, ast)), env, function(x) {
-              if (!rejected) {
-                return success(x);
-              }
-            });
-          } catch (_error) {
-            err = _error;
-            if (!rejected) {
-              return fail(err);
-            }
-          }
-        } else if (!rejected) {
-          return fail(new Error("Parse error: " + (ast(id))));
-        }
-      });
-    };
     setMegaArity = function(setting) {
       return megaArity = setting;
     };
@@ -614,9 +557,7 @@ misrepresented as being the original software.
       curryCall: curryCall,
       SourceNode: SourceNode,
       SourceMapConsumer: SourceMapConsumer,
-      setMegaArity: setMegaArity,
-      getLeisurePromise: getLeisurePromise,
-      simpleEval: simpleEval
+      setMegaArity: setMegaArity
     };
   });
 
