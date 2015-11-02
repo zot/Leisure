@@ -22,8 +22,6 @@ output where msg = print msg
 
 outputNoNl where msg = write msg
 
-console "1"
-
 clearScreen = do   # nothing to do for REPL version
   nil
   
@@ -55,8 +53,6 @@ pokeList list idx value = append (take idx list) (append [ value ] (drop (++ idx
 LIGHT_SOURCE = 9  # light is always at index 9
 DESTROYED = 0     # room location for 'destroyed' items
 CARRIED = 255     # room location for carried items
-
-console "2"
 
 # indexes into BitFields list
 DARKBIT = 15
@@ -101,8 +97,6 @@ loadGame filename = do
 
 #everyLinesForFile text =  collapseStrings (strSplit (strReplace text lineScrub '\n') '\\r?\\n')
 everyLinesForFile text =  collapseStrings (strSplit text '\\r?\\n')
-
-console "3"
 
 # for every string that starts with " and doesn't end, combine following strings into a single string element 
 collapseStrings list = isNil list
@@ -224,8 +218,6 @@ debugGame = do
   output 'DEBUG' concat[ "\nNum Verbs: " (length Verbs) " Verbs: " (csv Verbs) ]
   debugGame2
 
-console "4"
-
 debugGame2 = do    
   Rooms <- getValue 'Rooms'
   output 'DEBUG' concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (csv (at Rooms 0)) '\nLast Room: ' (csv (last Rooms)) ]
@@ -320,8 +312,6 @@ lightTick = do
     and (< timeleft 25) light  # only inform them the light is running out if they can see the light
       output 'MSGS' concat[ "Your light runs out in " timeleft ((eq timeleft 1) " turn" " turns") "." ]
       nil
-
-console "5"
 
 # take a looksy  
 look = do
@@ -418,8 +408,6 @@ countItemsInLocation myloc items = isNil items
     1 + (countItemsInLocation myloc (tail items))
     countItemsInLocation myloc (tail items)
 
-console "6"
-
 countCarried = do
   allitems <- getValue 'Items'
   countItemsInLocation CARRIED allitems
@@ -510,8 +498,6 @@ verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
       v
   v
 
-console "7"
-
 whichNoun noun = do
   nouns <- getValue 'Nouns'
   whichWord noun nouns
@@ -530,8 +516,6 @@ hintNouns = do
   hintn = map (\n . (eq n '.') '' ((strStartsWith n '*') ('/' + (strSubstring n 1 99)) ('\n' + n))) (drop 1 nouns)
   output 'HINTN' concat[ "Nouns I know: " hintn  ]
   
-console "7.1"
-
 # loop over the list of words, any words that start with * should return the index of the last non-* word before it. return -1 if no match found  
 whichWord word list = basicWhichWord 0 0 word list  
 basicWhichWord idx result word list = isNil list
@@ -562,8 +546,6 @@ performActions verb noun wasAll = (and (eq verb 1) (between noun 1 6))
         f1
     f1
     
-console "7.2"
-
 CONTINUE = -54    
 # whole lotta code to process actions 
 # action is: [ vv&nv, five condtions, and two action ints ]   
@@ -599,8 +581,6 @@ crazyLoopHere vb no actions = isNil actions
         (and (eq more -1) (eq f3 -2)) f3 more    # if we had a -2, try to preserve that in the event nothing more special happens
       f3  
     f1
-
-console "8"
 
 # the vocab matches based on the verb and an optional noun provided by the rule not the player
 doesVocabMatch vb no action = do
@@ -682,8 +662,6 @@ testLookExecute = do
 testWarpExecute = do
   cell <- at actionsFuncList (54 - 52)
   executeAction 54 cell [ 28 0 0 0 0] 0
-
-console "9"
 
 # GET takes 1 param    
 action52 p1 = do
@@ -831,13 +809,15 @@ action88 = nil  # nop
 action89 p1 = nil  # only increments pptr
 actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action56] [action57] [action58 1] [ action59 1] [action60 1] [action61] [action62 2] [action63] [action64] [action65] [action66] [action67] [action68] [action69] [action70] [action71] [action72 2] [action73] [action74 1] [action75 2] [action76] [action77] [action78] [action79 1] [action80] [action81 1] [action82 1] [action83 1] [action84] [action85] [action86] [action87 1] [action88] [action89 1] ]
         
-console "10"
+console "1"
 
 setRedrawOn = poke 'GlobalVars' GV_REDRAW true
 setRedrawOff = poke 'GlobalVars' GV_REDRAW false
 
 #  compute the four action ints from the action which has packed 2 per int
 buildActionList action = [ (floor ((at action 6) / 150)) ((at action 6) % 150) (floor ((at action 7) / 150)) ((at action 7) % 150) ]       
+
+console "1.1"
 
 # takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
 meetsConditions param pptr conds = do
@@ -848,6 +828,8 @@ meetsConditions param pptr conds = do
   met <- basicMeetsConditions param pptr conds myloc carryCount bf counter  # pull out all the monad calls and call the basic version  # log concat[ "Conditions: " (csv conds) " met? " met] 0
   met
   
+console "1.2"
+
 # takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
 basicMeetsConditions param pptr conds myloc carryCount bf counter = isNil conds
   [ true param pptr ]
@@ -862,6 +844,8 @@ basicMeetsConditions param pptr conds myloc carryCount bf counter = isNil conds
       basicMeetsConditions param pptr (tail conds) myloc carryCount bf counter
       [ false param pptr]
     
+console "1.2.1"
+
 testSingleCondition cv dv item myloc bf carryCount counter =
   (eq cv 1)
     (eq (at item ITEM_LOCATION) CARRIED)   # player has an item     #if(Items[dv].Location!=CARRIED) return(0);
@@ -885,6 +869,8 @@ testSingleCondition cv dv item myloc bf carryCount counter =
                       (neq carryCount 0)   # if player has something  #if(CountCarried()==0) return(0);
                       testSingleCondition2 cv dv item myloc bf carryCount counter
                                         
+console "1.3"
+
 testSingleCondition2 cv dv item myloc bf carryCount counter =     
   (eq cv 11)
     (eq carryCount 0)   # if player has nothing  #if(CountCarried()) return(0);
@@ -906,11 +892,13 @@ testSingleCondition2 cv dv item myloc bf carryCount counter =
                     (eq counter dv)    # is COUNTER  ==   # if(CurrentCounter!=dv) 	return(0);
                     false              # should in theory never get here!
 
+console "1.4"
+
 debugSearchActions vvact = do
   all <- getValue 'Actions'
   grrrLoop vvact 0 all
   
-console "11"
+console "2"
 
 grrrLoop vvact idx all = isNil all
   nil
@@ -995,7 +983,7 @@ debugCondData cv dv = do
               'BITFLAG: ' + dv
               '???'
     
-console "12"
+console "3"
 
 debugActions actions = isNil actions
   nil
@@ -1080,7 +1068,7 @@ findAllMatchingNouns where nouns allitems = isNil allitems
       cons noun (findAllMatchingNouns where nouns (tail allitems))
       findAllMatchingNouns where nouns (tail allitems)
 
-console "13"
+console "4"
 
 testFindAllMatchingNouns where = do
   allitems <- getValue 'Items'    
@@ -1153,7 +1141,7 @@ printReturn where msg value = do
   output where msg
   value
 
-console "14"
+console "5"
 
 performMove verb noun = do
   eq noun -1

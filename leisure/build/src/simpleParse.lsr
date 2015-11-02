@@ -113,6 +113,7 @@ jsonParse str failure success = _jsonParse
 ############
 
 show x = _show x
+equal x y = eq x y
 
 ############
 # FUNCTIONS
@@ -382,17 +383,16 @@ lineStart  = regexp '^\\r?\\n'
 commentPat = regexp '^\\r?\\n[ \\i]*#'
 emptyToken = regexp '^\\r?\\n[ \\i]*(#|$)'
 
-makeTokens lineStarts strings start = strings (\h t D . makeMoreTokens lineStarts h t start) nil
+makeTokens lineStarts strings start = withRecur
+  makeMoreTokens lineStarts strings start nil
 
-# -- use these lines and the alternate delimiterListPrefix def
-# if comments are only allowed on their own lines
-#  or (strStartsWith h ' ') (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))
-makeMoreTokens lineStarts h t start = \\
-  next = makeTokens lineStarts t (+ start (strLen h))
-  .
-  or (or (strStartsWith h ' ') (strStartsWith h '#')) (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))
-    next
-    cons (makeTokenAt lineStarts h start) next
+makeMoreTokens lineStarts strings start result = strings
+  \h t D . recur
+    makeMoreTokens lineStarts t (+ start (strLen h))
+      or (or (strStartsWith h ' ') (strStartsWith h '#')) (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))
+        result
+        cons (makeTokenAt lineStarts h start) result
+  reverse result
 
 makeTokenAt lineStarts txt offset = token txt (filePosFor lineStarts offset)
 
@@ -922,7 +922,7 @@ defMacro name def = bind (getValue 'macroDefs')
 # -- use this def and the alternate makeMoreTokens def
 # if comments are only allowed on their own lines
 #delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#.*|\\r?\\n *| +"
-delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#.*|\\r?\\n *| +|#.*"
+delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#[^\\r\\n]*|\\r?\\n *| +|#[^\\r\\n]*"
 
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
@@ -1128,9 +1128,10 @@ baseLoadString file contents = bind (getValue 'activeTokenPacks')
     \_ . bind resetNameSpaceInfo
       \nsInfo . bind (runNamedFile file contents)
         \result . bind (setNameSpaceInfo nsInfo)
-          \_ . isNil activePacks
-            bind resetStdTokenPacks \_ . result
-            bind (resetTokenPacks activePacks) \_ . result
+          \_ . bind (isNil activePacks
+            resetStdTokenPacks
+            resetTokenPacks activePacks)
+            \_ . result
 
 load file = bind (baseLoad file)
   \result . \\
@@ -1213,8 +1214,6 @@ addParseFilter filt = bind (getValue 'parseFilters')
 ############
 # DIAG
 ############
-
-#newGen
 
 d label value expr = log (strCat (cons label (cons value nil))) expr
 dd label arg = d label arg arg

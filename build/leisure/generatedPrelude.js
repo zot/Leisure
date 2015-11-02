@@ -97,6 +97,11 @@ define([], function(){
         : resolve(L__jsonParse)(function(){return resolve(L_assertType)("jsonParse str", "*string", L_str)}, L_failure, L_success);
 })))},
     function(){return resolve(L_newDefine)("show", 1, "show x = _show x", lazy(function(L_x){return resolve(L__show)(L_x)}))},
+    function(){return resolve(L_newDefine)("equal", 2, "equal x y = eq x y", lazy((function(L_x, L_y) {
+    return arguments.callee.length != arguments.length
+        ? Leisure_primCall(arguments.callee, 0, arguments)
+        : resolve(L_eq)(L_x, L_y);
+})))},
     function(){return resolve(L_newDefine)("id", 1, "id x = x", lazy(function(L_x){return resolve(L_x)}))},
     function(){return resolve(L_newDefine)("unit", 0, "unit = \\x . x", lazy(setDataType(setType(function(L_x){return resolve(L_x)}, 'unit'), 'unit')))},
     function(){return resolve(L_newDefine)("compose", 2, "compose f g = \\x . f (g x)", lazy(setDataType((function(L_f, L_g) {
@@ -391,19 +396,15 @@ define([], function(){
     function(){return resolve(L_newDefine)("lineStart", 0, "lineStart  = regexp '^\\\\r?\\\\n'", function(){return resolve(L_regexp)("^\\r?\\n")})},
     function(){return resolve(L_newDefine)("commentPat", 0, "commentPat = regexp '^\\\\r?\\\\n[ \\\\i]*#'", function(){return resolve(L_regexp)("^\\r?\\n[ \\i]*#")})},
     function(){return resolve(L_newDefine)("emptyToken", 0, "emptyToken = regexp '^\\\\r?\\\\n[ \\\\i]*(#|$)'", function(){return resolve(L_regexp)("^\\r?\\n[ \\i]*(#|$)")})},
-    function(){return resolve(L_newDefine)("makeTokens", 3, "makeTokens lineStarts strings start = strings (\\h t D . makeMoreTokens lineStarts h t start) nil", lazy((function(L_lineStarts, L_strings, L_start) {
+    function(){return resolve(L_newDefine)("makeTokens", 3, "makeTokens lineStarts strings start = withRecur\r\n  makeMoreTokens lineStarts strings start nil", lazy((function(L_lineStarts, L_strings, L_start) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)
-        : resolve(L_strings)(lazy(function(L_h){return function(L_t){return function(L_D){return resolve(L_makeMoreTokens)(L_lineStarts, L_h, L_t, L_start)}}}))(L_nil);
+        : resolve(L_withRecur)(function(){return resolve(L_makeMoreTokens)(L_lineStarts, L_strings, L_start, L_nil)});
 })))},
-    function(){return resolve(L_newDefine)("makeMoreTokens", 4, "makeMoreTokens lineStarts h t start = \\\\\r\n  next = makeTokens lineStarts t (+ start (strLen h))\r\n  .\r\n  or (or (strStartsWith h ' ') (strStartsWith h '#')) (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))\r\n    next\r\n    cons (makeTokenAt lineStarts h start) next", lazy((function(L_lineStarts, L_h, L_t, L_start) {
+    function(){return resolve(L_newDefine)("makeMoreTokens", 4, "makeMoreTokens lineStarts strings start result = strings\r\n  \\h t D . recur\r\n    makeMoreTokens lineStarts t (+ start (strLen h))\r\n      or (or (strStartsWith h ' ') (strStartsWith h '#')) (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))\r\n        result\r\n        cons (makeTokenAt lineStarts h start) result\r\n  reverse result", lazy((function(L_lineStarts, L_strings, L_start, L_result) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)
-        : (function(){
-  var L_next_0;
-  L_next_0 = function(){return resolve(L_makeTokens)(L_lineStarts, L_t, function(){return resolve(L_$o)(L_start, function(){return resolve(L_strLen)(L_h)})})};
-
-  return resolve(L_or)(function(){return resolve(L_or)(function(){return resolve(L_strStartsWith)(L_h, " ")}, function(){return resolve(L_strStartsWith)(L_h, "#")})}, function(){return resolve(L_and)(function(){return resolve(L_strMatches)(L_h, L_emptyToken)}, function(){return resolve(L_or)(function(){return resolve(L_isNil)(L_t)}, function(){return resolve(L_strMatches)(function(){return resolve(L_head)(L_t)}, L_lineStart)})})})(L_next_0)(function(){return resolve(L_cons)(function(){return resolve(L_makeTokenAt)(L_lineStarts, L_h, L_start)}, L_next_0)})})();
+        : resolve(L_strings)(lazy(function(L_h){return function(L_t){return function(L_D){return resolve(L_recur)(function(){return resolve(L_makeMoreTokens)(L_lineStarts, L_t, function(){return resolve(L_$o)(L_start, function(){return resolve(L_strLen)(L_h)})}, function(){return resolve(L_or)(function(){return resolve(L_or)(function(){return resolve(L_strStartsWith)(L_h, " ")}, function(){return resolve(L_strStartsWith)(L_h, "#")})}, function(){return resolve(L_and)(function(){return resolve(L_strMatches)(L_h, L_emptyToken)}, function(){return resolve(L_or)(function(){return resolve(L_isNil)(L_t)}, function(){return resolve(L_strMatches)(function(){return resolve(L_head)(L_t)}, L_lineStart)})})})(L_result)(function(){return resolve(L_cons)(function(){return resolve(L_makeTokenAt)(L_lineStarts, L_h, L_start)}, L_result)})})})}}}))(function(){return resolve(L_reverse)(L_result)});
 })))},
     function(){return resolve(L_newDefine)("makeTokenAt", 3, "makeTokenAt lineStarts txt offset = token txt (filePosFor lineStarts offset)", lazy((function(L_lineStarts, L_txt, L_offset) {
     return arguments.callee.length != arguments.length
@@ -828,7 +829,7 @@ define([], function(){
         ? Leisure_primCall(arguments.callee, 0, arguments)
         : resolve(L_bind)(function(){return resolve(L_getValue)("macroDefs")}, lazy(function(L_macs){return resolve(L_setValue)("macroDefs", function(){return resolve(L_acons)(L_name, L_def, L_macs)})}));
 })))},
-    function(){return resolve(L_newDefine)("delimiterListPrefix", 0, "delimiterListPrefix = \"\\\"(?:\\\\\\\\.|[^\\\"])*\\\"|'(?:\\\\\\\\.|[^'])*'|\\\\r?\\\\n *#.*|\\\\r?\\\\n *| +|#.*\"", "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#.*|\\r?\\n *| +|#.*")},
+    function(){return resolve(L_newDefine)("delimiterListPrefix", 0, "delimiterListPrefix = \"\\\"(?:\\\\\\\\.|[^\\\"])*\\\"|'(?:\\\\\\\\.|[^'])*'|\\\\r?\\\\n *#[^\\\\r\\\\n]*|\\\\r?\\\\n *| +|#[^\\\\r\\\\n]*\"", "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#[^\\r\\n]*|\\r?\\n *| +|#[^\\r\\n]*")},
     function(){return resolve(L_newDefine)("regexpEscapePat", 0, "regexpEscapePat = regexpFlags '[\\\\-\\\\[\\\\]/\\\\{\\\\}\\\\(\\\\)\\\\*\\\\+\\\\?\\\\.\\\\\\\\\\\\^\\\\$\\\\|]' 'g'", function(){return resolve(L_regexpFlags)("[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]", "g")})},
     function(){return resolve(L_newDefine)("addToken", 1, "addToken del = bind (getValue 'tokenList')\r\n  \\dels . contains dels del\r\n    false\r\n    \\\\\r\n      newDels = insertSorted (\\a b . > (strLen a) (strLen b)) del dels\r\n      .\r\n      bind (setValue 'tokenList' newDels)\r\n        \\_ . computeTokenPat newDels", lazy(function(L_del){return resolve(L_bind)(function(){return resolve(L_getValue)("tokenList")}, lazy(function(L_dels){return resolve(L_contains)(L_dels, L_del)(L_false)(function(){return(function(){
   var L_newDels_0;
@@ -959,10 +960,10 @@ define([], function(){
   return resolve(L_countedRunLines)(L_name, L_names_2, L_counted_0, L_nil)})();
 })))},
     function(){return resolve(L_newDefine)("baseLoad", 1, "baseLoad file = bind (readFile file)\r\n  \\result . result\r\n    \\err . err\r\n    \\contents . baseLoadString file contents", lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_readFile)(L_file)}, lazy(function(L_result){return resolve(L_result)(lazy(function(L_err){return resolve(L_err)}))(lazy(function(L_contents){return resolve(L_baseLoadString)(L_file, L_contents)}))}))}))},
-    function(){return resolve(L_newDefine)("baseLoadString", 2, "baseLoadString file contents = bind (getValue 'activeTokenPacks')\r\n  \\activePacks . bind resetStdTokenPacks\r\n    \\_ . bind resetNameSpaceInfo\r\n      \\nsInfo . bind (runNamedFile file contents)\r\n        \\result . bind (setNameSpaceInfo nsInfo)\r\n          \\_ . isNil activePacks\r\n            bind resetStdTokenPacks \\_ . result\r\n            bind (resetTokenPacks activePacks) \\_ . result", lazy((function(L_file, L_contents) {
+    function(){return resolve(L_newDefine)("baseLoadString", 2, "baseLoadString file contents = bind (getValue 'activeTokenPacks')\r\n  \\activePacks . bind resetStdTokenPacks\r\n    \\_ . bind resetNameSpaceInfo\r\n      \\nsInfo . bind (runNamedFile file contents)\r\n        \\result . bind (setNameSpaceInfo nsInfo)\r\n          \\_ . bind (isNil activePacks\r\n            resetStdTokenPacks\r\n            resetTokenPacks activePacks)\r\n            \\_ . result", lazy((function(L_file, L_contents) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)
-        : resolve(L_bind)(function(){return resolve(L_getValue)("activeTokenPacks")}, lazy(function(L_activePacks){return resolve(L_bind)(L_resetStdTokenPacks, lazy(function(L__){return resolve(L_bind)(L_resetNameSpaceInfo, lazy(function(L_nsInfo){return resolve(L_bind)(function(){return resolve(L_runNamedFile)(L_file, L_contents)}, lazy(function(L_result){return resolve(L_bind)(function(){return resolve(L_setNameSpaceInfo)(L_nsInfo)}, lazy(function(L___0){return resolve(L_isNil)(L_activePacks)(function(){return resolve(L_bind)(L_resetStdTokenPacks, lazy(function(L___1){return resolve(L_result)}))})(function(){return resolve(L_bind)(function(){return resolve(L_resetTokenPacks)(L_activePacks)}, lazy(function(L___1){return resolve(L_result)}))})}))}))}))}))}));
+        : resolve(L_bind)(function(){return resolve(L_getValue)("activeTokenPacks")}, lazy(function(L_activePacks){return resolve(L_bind)(L_resetStdTokenPacks, lazy(function(L__){return resolve(L_bind)(L_resetNameSpaceInfo, lazy(function(L_nsInfo){return resolve(L_bind)(function(){return resolve(L_runNamedFile)(L_file, L_contents)}, lazy(function(L_result){return resolve(L_bind)(function(){return resolve(L_setNameSpaceInfo)(L_nsInfo)}, lazy(function(L___0){return resolve(L_bind)(function(){return resolve(L_isNil)(L_activePacks)(L_resetStdTokenPacks)(function(){return resolve(L_resetTokenPacks)(L_activePacks)})}, lazy(function(L___1){return resolve(L_result)}))}))}))}))}))}));
 })))},
     function(){return resolve(L_newDefine)("load", 1, "load file = bind (baseLoad file)\r\n  \\result . \\\\\r\n    errs = foldr (\\line results . tail line (\\er . cons er results) (\\x . results)) nil result\r\n    .\r\n    isNil errs\r\n      right true\r\n      left errs", lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_baseLoad)(L_file)}, lazy(function(L_result){return (function(){
   var L_errs_0;
@@ -1189,7 +1190,7 @@ define([], function(){
 })))},
     function(){return resolve(L_addToken)("<-")},
     function(){return resolve(L_defTokenPack)("do", function(){return resolve(L_cons)(function(){return resolve(L_cons)("<-", L_nil)}, function(){return resolve(L_cons)(L_nil, function(){return resolve(L_cons)(L_nil, L_nil)})})})},
-    function(){return resolve(L_addStdTokenPacks)(function(){return resolve(L_cons)("do", function(){return resolve(L_cons)("list", function(){return resolve(L_cons)("infix", L_nil)})})})},
+    function(){return resolve(L_addStdTokenPacks)(function(){return resolve(L_cons)("list", function(){return resolve(L_cons)("infix", function(){return resolve(L_cons)("do", L_nil)})})})},
     function(){return resolve(L_resetStdTokenPacks)}
   ]);
 });

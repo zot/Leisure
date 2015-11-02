@@ -1,6 +1,6 @@
 Evaulation support for Leisure
 
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = null
@@ -31,18 +31,14 @@ Evaulation support for Leisure
         makeHamt
         _true
         jsonConvert
+        getLeisurePromise
       } = Runtime
       {
         Promise
       } = Bluebird
-
-      requirePromise = (file...)-> new Promise (resolve, reject)->
-        require file, resolve
-
-      leisurePromise = requirePromise './leisure/generatedPrelude'
-        .then -> requirePromise './leisure/std'
-        .then -> requirePromise './leisure/parseAst'
-        .then -> requirePromise './leisure/svg'
+      {
+        getLeisurePromise
+      } = Gen
 
       defaultEnv.write = (str)-> console.log str
       defaultEnv.errorAt = (offset, msg)-> console.log msg
@@ -65,11 +61,11 @@ Evaulation support for Leisure
             r = x.head().tail()
             if getType(r) == 'left' then new Error getLeft r
             else getRight r
-          if leisurePromise.isResolved()
+          if getLeisurePromise().isResolved()
             leisureExec env, text, props, cont, (err)=> @errorAt 0, err?.message ? err
           else
             if opts = env.opts then console.log "OPTS:", opts
-            leisurePromise.then (=>
+            getLeisurePromise().then (=>
               if !env.opts then env.opts = opts
               leisureExec env, text, props, cont, (err)=> @errorAt 0, err?.message ? err),
             (err)=> @errorAt 0, err?.message ? err

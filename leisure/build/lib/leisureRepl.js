@@ -246,6 +246,7 @@ misrepresented as being the original software.
 
   repl = function(config) {
     var historyFile, leisureDir, lines;
+    evalInput('resetStdTokenPacks', (function() {}));
     lines = null;
     leisureDir = path.join(config.home, '.leisure');
     historyFile = path.join(leisureDir, 'history');

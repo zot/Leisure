@@ -252,7 +252,7 @@
 
       Handlebars.registerHelper 'resultsContents', ->
         {results: res} = @codeItems
-        if @hideResults then "<span class='hidden'>#{fancyHtml res.text}</span>"
+        if @hideResults then "<span class='hidden'>#{escapeHtml res.text}</span>"
         else resultsArea UI.context.options, res.text.substring res.contentPos
 
       slideNode = (node)-> $(node).closest('slideHolder').closest('[data-view]')
@@ -485,7 +485,7 @@
               afterName: if name then @renderOrg opts, cleanOrg(block.text.substring name.end(), source.offset), true else ''
               inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
               results: if !results then ''
-              else if hideResults then "<span class='hidden'>#{fancyHtml results.text}</span>"
+              else if hideResults then "<span class='hidden'>#{escapeHtml results.text}</span>"
               else resultsArea opts, results.text
               beforeResults: block.text.substring 0, results?.offset ? source.end()
             sourceData.text = @renderCodeOrg opts, sourceData
@@ -528,7 +528,7 @@
               text: text
               end: end
               org: org)[0]
-          else "<span class='hidden'>#{fancyHtml start}</span><span class='example'>#{fancyHtml text}</span><span class='hidden'>#{fancyHtml end}</span>"
+          else "<span class='hidden'>#{escapeHtml start}</span><span class='example'>#{fancyHtml text}</span><span class='hidden'>#{escapeHtml end}</span>"
         renderOrg: (opts, org, start)->
           text = if org instanceof SimpleMarkup then @renderSimple opts, org
           else if org instanceof Link then @renderLink opts, org
@@ -540,11 +540,11 @@
           else insertBreaks fancyHtml org.allText()
           if start then prefixBreak text else text
         renderHtml: (opts, org)->
-          "<span class='hidden'>#{fancyHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{fancyHtml org.trailing}</span>"
+          "<span class='hidden'>#{escapeHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{escapeHtml org.trailing}</span>"
         renderList: (opts, org)->
           classifyListItems org
           text = if org.firstItem then '<ul>' else ''
-          text += "<li><span class='hidden'>#{fancyHtml org.text.substring 0, org.contentOffset}</span>#{(@renderOrg opts, child for child in org.children).join ''}"
+          text += "<li><span class='hidden'>#{escapeHtml org.text.substring 0, org.contentOffset}</span>#{(@renderOrg opts, child for child in org.children).join ''}"
           for i in [0...org.closeCount]
             text += '</ul>'
           text
@@ -564,12 +564,12 @@
             if error
               "<span class='error' data-noncontent title='#{escapeAttr error}'><b>✖</b></span>#{fancyHtml org.allText()}"
             else
-              "<span class='hidden link'>#{fancyHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block, objectName}</span>"
+              "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block, objectName}</span>"
           else if org.isImage()
             title = (if desc = org.descriptionText() then " title='#{fancyHtml desc}'" else "")
             src = fancyHtml org.path
             if org.path.indexOf('file:') == 0 then src = prevImageSrc src
-            "#{opts.renderImage src, title}<span class='hidden link'>#{fancyHtml org.allText()}</span>"
+            "#{opts.renderImage src, title}<span class='hidden link'>#{escapeHtml org.allText()}</span>"
           else
             guts = ''
             for c in org.children
@@ -590,7 +590,7 @@
             else guts
           "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{goodText org.text[0]}</span>"
         renderDrawer: (opts, org)->
-          if org.name == 'properties' then "<span class='hidden'>#{fancyHtml org.allText()}</span>"
+          if org.name == 'properties' then "<span class='hidden'>#{escapeHtml org.allText()}</span>"
           else "<span class='org-properties'>#{fancyHtml org.allText}</span>"
         showingSlides: (opt)-> opt.editor.node.is '.slides'
         setSlideMode: (opt, flag)->

@@ -818,7 +818,7 @@ misrepresented as being the original software.
           if (!this.cmdToString) {
             this.cmdToString = (function(_this) {
               return function() {
-                return (name ? name + ": " : '') + _this.cmd.toString();
+                return (_this.name ? _this.name + ": " : '') + _this.cmd.toString();
               };
             })(this);
           }
@@ -1435,7 +1435,7 @@ misrepresented as being the original software.
         return left(err.stack);
       }
     });
-    define('startRecur', function(value) {
+    define('withRecur', function(value) {
       var ret;
       ret = rz(value);
       while (getType(ret) === 'recur') {

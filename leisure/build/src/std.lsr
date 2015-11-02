@@ -244,6 +244,14 @@ makeCaseCondition orig funcName altName args rest cond = rest
     makeCaseCondition orig funcName altName args t (dlPush cond h)
  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
+######################
+# equality
+######################
+
+defCase equal.cons a b | and (isCons a) (isCons b) -> and
+  equal (head a) (head b)
+  equal (tail a) (tail b)
+
 # show
 ## Generic presentation
 

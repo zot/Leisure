@@ -276,7 +276,7 @@
       var res;
       res = this.codeItems.results;
       if (this.hideResults) {
-        return "<span class='hidden'>" + (fancyHtml(res.text)) + "</span>";
+        return "<span class='hidden'>" + (escapeHtml(res.text)) + "</span>";
       } else {
         return resultsArea(UI.context.options, res.text.substring(res.contentPos));
       }
@@ -622,7 +622,7 @@
             name: name ? name.text.substring(name.info) : '',
             afterName: name ? this.renderOrg(opts, cleanOrg(block.text.substring(name.end(), source.offset)), true) : '',
             inter: results ? block.text.substring(source.end(), results != null ? results.offset : void 0) : block.text.substring(source.end()),
-            results: !results ? '' : hideResults ? "<span class='hidden'>" + (fancyHtml(results.text)) + "</span>" : resultsArea(opts, results.text),
+            results: !results ? '' : hideResults ? "<span class='hidden'>" + (escapeHtml(results.text)) + "</span>" : resultsArea(opts, results.text),
             beforeResults: block.text.substring(0, (ref3 = results != null ? results.offset : void 0) != null ? ref3 : source.end())
           };
           sourceData.text = this.renderCodeOrg(opts, sourceData);
@@ -687,7 +687,7 @@
             org: org
           }))[0];
         } else {
-          return "<span class='hidden'>" + (fancyHtml(start)) + "</span><span class='example'>" + (fancyHtml(text)) + "</span><span class='hidden'>" + (fancyHtml(end)) + "</span>";
+          return "<span class='hidden'>" + (escapeHtml(start)) + "</span><span class='example'>" + (fancyHtml(text)) + "</span><span class='hidden'>" + (escapeHtml(end)) + "</span>";
         }
       },
       renderOrg: function(opts, org, start) {
@@ -709,13 +709,13 @@
         }
       },
       renderHtml: function(opts, org) {
-        return "<span class='hidden'>" + (fancyHtml(org.leading)) + "</span>" + ($(org.content)[0].outerHTML) + "<span class='hidden'>" + (fancyHtml(org.trailing)) + "</span>";
+        return "<span class='hidden'>" + (escapeHtml(org.leading)) + "</span>" + ($(org.content)[0].outerHTML) + "<span class='hidden'>" + (escapeHtml(org.trailing)) + "</span>";
       },
       renderList: function(opts, org) {
         var child, i, j, ref, text;
         classifyListItems(org);
         text = org.firstItem ? '<ul>' : '';
-        text += "<li><span class='hidden'>" + (fancyHtml(org.text.substring(0, org.contentOffset))) + "</span>" + (((function() {
+        text += "<li><span class='hidden'>" + (escapeHtml(org.text.substring(0, org.contentOffset))) + "</span>" + (((function() {
           var j, len, ref, results1;
           ref = org.children;
           results1 = [];
@@ -740,7 +740,7 @@
           if (error) {
             return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'><b>✖</b></span>" + (fancyHtml(org.allText()));
           } else {
-            return "<span class='hidden link'>" + (fancyHtml(org.allText())) + "</span><span data-noncontent contenteditable='false'>" + (renderView(type, viewName, obj, null, block, objectName)) + "</span>";
+            return "<span class='hidden link'>" + (escapeHtml(org.allText())) + "</span><span data-noncontent contenteditable='false'>" + (renderView(type, viewName, obj, null, block, objectName)) + "</span>";
           }
         } else if (org.isImage()) {
           title = ((desc = org.descriptionText()) ? " title='" + (fancyHtml(desc)) + "'" : "");
@@ -748,7 +748,7 @@
           if (org.path.indexOf('file:') === 0) {
             src = prevImageSrc(src);
           }
-          return (opts.renderImage(src, title)) + "<span class='hidden link'>" + (fancyHtml(org.allText())) + "</span>";
+          return (opts.renderImage(src, title)) + "<span class='hidden link'>" + (escapeHtml(org.allText())) + "</span>";
         } else {
           guts = '';
           ref1 = org.children;
@@ -793,7 +793,7 @@
       },
       renderDrawer: function(opts, org) {
         if (org.name === 'properties') {
-          return "<span class='hidden'>" + (fancyHtml(org.allText())) + "</span>";
+          return "<span class='hidden'>" + (escapeHtml(org.allText())) + "</span>";
         } else {
           return "<span class='org-properties'>" + (fancyHtml(org.allText)) + "</span>";
         }

@@ -9,7 +9,8 @@ x=0
 r=0
 while [ $x -lt 3 ]; do
     x=$((x + 1))
-    node --stack-size=3000 "$@"
+    #node --stack-size=3000 "$@"
+    node "$@"
     r=$?
     if [ $r = 0 ]; then
         break

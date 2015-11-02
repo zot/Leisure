@@ -213,6 +213,7 @@ prompt = ->
 show = (obj)-> if L_show? then rz(L_show)(lz obj) else String obj
 
 repl = (config)->
+  evalInput 'resetStdTokenPacks', (->)
   lines = null
   leisureDir = path.join config.home, '.leisure'
   historyFile = path.join(leisureDir, 'history')
@@ -229,7 +230,7 @@ repl = (config)->
         if exists then cont()
         else fs.mkdir leisureDir, (err)->
           if err
-            console.log "Could not create leisure dir!"
+            console.log 'Could not create leisure dir!'
             process.exit 1
           cont()) ()->
       help()
@@ -240,7 +241,7 @@ repl = (config)->
         multiline = false
         prompt()
       startMultiline = ->
-        if multiline then console.log "Already reading multiline input"
+        if multiline then console.log 'Already reading multiline input'
         else
           multiline = true
           lines = []
@@ -258,11 +259,11 @@ repl = (config)->
               if L_simplify?
                 runMonad2 (rz(L_simplify) lz text), replEnv, (result)->
                   console.log "\n#{result}"
-              else console.log "No simplify function.  Load std.lsr"
+              else console.log 'No simplify function.  Load std.lsr'
             else if line.match /^!/ then console.log eval line.substring 1
             else
               evalInput line, (result)->
-                console.log "RESULT: " + show(result)
+                console.log 'RESULT: ' + show(result)
                 prompt()
               return
           catch err

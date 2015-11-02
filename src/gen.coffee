@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Base, Ast, Runtime, _, SourceMap)->
+define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map', 'lib/bluebird.min'], (Base, Ast, Runtime, _, SourceMap, Bluebird)->
   {
     simpyCons,
     resolve,
@@ -61,6 +61,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     functionInfo,
     getPos,
     isNil,
+    getType
   } = root = Ast
   {
     Monad2
@@ -72,6 +73,9 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     newConsFrom
     dumpMonadStack
   } = Runtime
+  {
+    Promise
+  } = Bluebird
 
   consFrom = newConsFrom
 
@@ -86,7 +90,49 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
   #useArity = false
   megaArity = false
 
+#########
+# init
+#########
+
+  requirePromise = (file...)-> new Promise (resolve, reject)->
+    require file, resolve
+
+  leisurePromise = null
+
+  getLeisurePromise = ->
+    if !leisurePromise
+      leisurePromise = requirePromise './leisure/generatedPrelude'
+        .then -> requirePromise './leisure/std'
+        .then -> requirePromise './leisure/parseAst'
+        .then -> requirePromise './leisure/svg'
+        .then -> new Promise (resolve, reject)->
+          simpleEval 'resetStdTokenPacks', resolve, reject
+    leisurePromise
+
+  simpleEval = (txt, success, fail)->
+    rejected = false
+    env =
+      __proto__: defaultEnv
+      errorAt: (offset, msg)->
+        if !rejected
+          rejected = true
+          fail msg
+    runMonad2 rz(L_newParseLine)(0, L_nil, txt), env, (ast)->
+      if getType(ast) != 'err'
+        try
+          runMonad2 (eval genSource txt, ast), env, (x)->
+            if !rejected then success x
+        catch err
+          if !rejected then fail err
+      else if !rejected then fail new Error "Parse error: #{ast id}"
+
+
+
   setMegaArity = (setting)-> megaArity = setting
+
+#########
+# Code
+#########
 
   collectArgs = (args, result)->
     for i in args
@@ -450,4 +496,6 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     SourceNode
     SourceMapConsumer
     setMegaArity
+    getLeisurePromise
+    simpleEval
   }

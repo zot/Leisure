@@ -73,6 +73,10 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
   lc = Leisure_call
   gensymCounter = 0
 
+#########
+# code
+#########
+
   call = (args...)-> basicCall(args, defaultEnv, identity)
 
   callMonad = (args..., env, cont)-> basicCall(args, env, cont)
@@ -445,7 +449,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
           @cmdToString = @cmd
           @cmd = @name
           @name = null
-        if !@cmdToString then @cmdToString = => (if name then "#{name}: " else '') + @cmd.toString()
+        if !@cmdToString then @cmdToString = => (if @name then "#{@name}: " else '') + @cmd.toString()
 
   Monad2::toString = -> "Monad2: #{@cmdToString()}"
 
@@ -861,7 +865,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 # Trampolines
 #######################
 
-  define 'startRecur', (value)->
+  define 'withRecur', (value)->
     ret = rz value
     while getType(ret) == 'recur'
       ret = ret lz _identity

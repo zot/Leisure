@@ -281,5 +281,5 @@ addToken '<-'
 
 defTokenPack 'do' [['<-'] [] []]
 
-addStdTokenPacks ['do' 'list' 'infix']
+addStdTokenPacks ['list' 'infix' 'do']
 resetStdTokenPacks
