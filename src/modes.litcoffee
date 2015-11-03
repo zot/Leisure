@@ -693,9 +693,7 @@
 
       insertBreaks = (text)-> text.replace /\n\n/g, (match, offset, str)->
         if str[offset + 2] == '\n'
-          "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='white-space: pre; height: 2em' data-noncontent></div></span><div style='height: 1em; white-spaceX: pre' data-noncontentX>\n</div><span class='hidden'></span>"
-        else if str[offset - 1] == '\n'
-          "<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>"
+          "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='white-space: pre; height: 2em' data-noncontent></div></span><div style='height: 1em; white-spaceX: pre' data-noncontent>\n</div><span class='hidden'></span>"
         else "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>"
 
       prefixBreak = (text)-> if text[0] == '\n' && text[1] != '\n' then "\n<div style='height: 2em; white-space: pre' data-noncontent>\n</div>#{text.substring 1}" else text

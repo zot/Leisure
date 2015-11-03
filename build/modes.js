@@ -960,9 +960,7 @@
     insertBreaks = function(text) {
       return text.replace(/\n\n/g, function(match, offset, str) {
         if (str[offset + 2] === '\n') {
-          return "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='white-space: pre; height: 2em' data-noncontent></div></span><div style='height: 1em; white-spaceX: pre' data-noncontentX>\n</div><span class='hidden'></span>";
-        } else if (str[offset - 1] === '\n') {
-          return "<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>";
+          return "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='white-space: pre; height: 2em' data-noncontent></div></span><div style='height: 1em; white-spaceX: pre' data-noncontent>\n</div><span class='hidden'></span>";
         } else {
           return "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>";
         }
