@@ -414,6 +414,15 @@ defCase bind.wrappedForeachRange r cont | testWrappedForeach r isRange ->
 
 defMacro 'foreach' \list . ['wrappedForeach' list]
 
+wrappedIf x = \f . f x
+
+defCase bind.wrappedIf wif cont | hasType wif wrappedIf ->
+  do
+    optValue <- wif id
+    optValue cont unit
+
+defMacro 'if' \list . ['wrappedIf' list]
+
 #######################
 ## pre/postconditions
 #######################

@@ -165,31 +165,47 @@
         setValue('parser_funcProps', props);
         result = rz(L_baseLoadString)('notebook', text);
         return runMonad2(result, env, function(results) {
-          return runNextResult(results, env, function() {
+          return runNextResult(results, env, (function() {
             setValue('parser_funcProps', old);
             return typeof cont === "function" ? cont(env, results) : void 0;
-          });
+          }), errCont);
         });
       } catch (_error) {
         err = _error;
-        return errCont(err.message);
+        return errCont(err);
       }
     };
-    runNextResult = function(results, env, cont) {
-      while (results !== rz(L_nil) && getType(results.head().tail()) === 'left') {
-        env.write("PARSE ERROR: " + (getLeft(results.head().tail())));
+    runNextResult = function(results, env, cont, errCont) {
+      var async, err, sync;
+      while (results !== rz(L_nil)) {
+        if (getType(results.head().tail()) === 'left') {
+          env.write("PARSE ERROR: " + (getLeft(results.head().tail())));
+        } else {
+          sync = true;
+          async = true;
+          try {
+            runMonad2(getRight(results.head().tail()), env, function(res2) {
+              if (getType(res2) !== 'unit') {
+                env.write(env.presentValue(res2));
+              }
+              if (sync) {
+                return async = false;
+              } else {
+                return runNextResult(results.tail(), env, cont, errCont);
+              }
+            });
+          } catch (_error) {
+            err = _error;
+            errCont(err);
+          }
+          sync = false;
+          if (async) {
+            return;
+          }
+        }
         results = results.tail();
       }
-      if (results !== rz(L_nil)) {
-        return runMonad2(getRight(results.head().tail()), env, function(res2) {
-          if (getType(res2) !== 'unit') {
-            env.write(env.presentValue(res2));
-          }
-          return runNextResult(results.tail(), env, cont);
-        });
-      } else {
-        return cont();
-      }
+      return cont();
     };
     presentHtml = function(v) {
       var str;

@@ -31,6 +31,7 @@ Support code for Leisure
         _true
         _false
         _identity
+        _unit
         jsonConvert
         Monad2
         some
@@ -112,54 +113,45 @@ Support code for Leisure
       
       define 'svgMeasureText', ((text)->svgMeasureText(rz text)), 1
 
-      define 'getData', (name)->
+      define 'dataMod', setDataType ((op)->
         m = new Monad2 (env, cont)->
-          data = env.opts.data.getBlockNamed(rz name)?.yaml
-          cont if data then some jsonConvert data else none
-        m.properties = acons 'getName', rz(name), Nil
-        m.name = name
+          data = {}
+          runMods env, rz(op), data, cont, true
+        m.op = op
         m.leisureType = 'dataMod'
-        m
+        m), 'dataMod'
+
+      define 'dataModOperation', (mod)-> rz (rz mod).op
 
       define 'setTheme', (theme)->
         new Monad2 (env, cont)->
           env.opts.setTheme theme
-          cont()
+          cont _unit
 
       define 'changeData', (changes)->
         new Monad2 (env, cont)->
           ch = rz changes
-          ch = if ch instanceof Monad2 then ch else ch(_identity)
+          if getType(ch) != 'dataMod' then throw new Error "Attempt data change with value that is not a dataMod"
           data = {}
-          env.opts.changeData -> runMods env, ch, data, ->
+          env.opts.changeData -> runMods env, rz(ch.op), data, ->
             cont jsonConvert data
 
-      getMod = (dataMod)-> if dataMod instanceof Monad2 then dataMod else dataMod _identity
-
-      runMods = (env, mod, data, cont)->
-        type = if mod instanceof Monad2 then 'dataModGet' else getType mod
-        switch type
+      runMods = (env, mod, data, cont, noChanges)->
+        if noChanges && !(getType(mod) in ['dataModBind', 'dataModGet'])
+          throw new Error("Attempt to alter data outside a changeData command")
+        switch getType mod
           when 'dataModBind'
-            sync = true
-            first = second = firstRes = secondRes = false
-            result = runMods env, (mod _true), data, (res)->
-              if sync
-                first = true
-                firstRes = res
-              else runMods env, getMod((mod _false)(lz res)), data, cont
-            if first
-              runMods env, getMod(mod(_false)(lz firstRes)), data, (res2)->
-                if sync
-                  second = true
-                  secondRes = res2
-                else cont(res2)
-            sync = false
-            return if second then cont secondRes
-            else result
+            while getType(mod) == 'dataModBind'
+              first = second = firstRes = secondRes = false
+              result = runMods env, (mod _true), data, ((res)->
+                mod = (mod _false)(lz res)), noChanges
+            if getType(mod) == 'dataMod'
+              runMods env, rz(mod.op), data, cont, noChanges
+            else cont mod
           when 'dataModGet'
-            name = if mod instanceof Monad2 then rz mod.name
-            else mod _identity
-            cont jsonConvert data[name] = env.opts.getData name
+            name = mod _identity
+            d = env.opts.getData name, noChanges
+            if d then cont some jsonConvert data[name] = d else cont none
           when 'dataModSet'
             name = mod _true
             value = mod _false
@@ -180,12 +172,10 @@ Support code for Leisure
             cont name
 
       evalLeisure """
-      dataMod item = \\f . f item
-      getDataModCmd mod = (getProperty mod 'getName') (\\x . mod) (mod id)
-      defCase showBase.dataMod func mod | hasType mod dataMod ->
-        (getProperty mod 'getName')
-          \\name . concat["(getData " (showBase func name) ")"]
-          mod \\cmd . showBase func cmd
+      dataModGet name = \\f . f name
+      getData name = dataMod (dataModGet name)
+      defCase showBase.dataModGet func cmd | hasType cmd dataModGet ->
+        cmd \\name . concatFlat["(getData " (showBase func name) ")"]
 
       dataModSet name value = \\f . f name value
       _setData name value = dataMod (dataModSet name value)
@@ -209,10 +199,14 @@ Support code for Leisure
 
       dataModBind item cont = \\f . f item cont
       defCase bind.dataMod mod cont | hasType mod dataMod ->
-        dataMod (dataModBind (getDataModCmd mod) cont)
-      defCase showBase.dataModBind func cmd | hasType cmd dataModBind ->
-        concatFlat["(do " (intersperse (map (showBase func) (extractDataModBind cmd)) ' ') ")"]
-      extractDataModBind b = hasType b dataModBind
-        b \\mod cont . [mod | (extractDataModBind (cont nil))]
+        dataMod (dataModBind (dataModOperation mod) cont)
+      isDataModBind m = getProperty m 'dataModType' (\\x . x == 'dataModBind') false
+      extractDataModBind b = isDataModBind b
+        (dataModBindInfo b) \\mod cont . [mod | (extractDataModBind (cont nil))]
         [b]
+      defCase showBase.dataModBind func mod | hasType mod dataModBind ->
+        concatFlat["(do " (intersperse (map (showBase func) (extractDataModBind mod)) ' ') ")"]
+
+      defCase showBase.dataMod func mod | hasType mod dataMod ->
+        showBase func (dataModOperation mod)
       """

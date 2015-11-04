@@ -3,14 +3,14 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './ast', './runtime', './gen', './eval'], function(Base, Ast, Runtime, Gen, Eval) {
-    var Monad2, Nil, Node, _false, _identity, _true, acons, baseElements, baseStrokeWidth, cons, createNode, defaultEnv, define, evalLeisure, foldLeft, getMaxStrokeWidth, getMod, getSvgElement, getType, getValue, isNil, jsonConvert, lazy, lc, lz, makeHamt, makeSyncMonad, newConsFrom, none, primFoldLeft, primSvgMeasure, ref, resolve, root, runMods, runMonad, runMonad2, rz, setValue, some, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml;
+    var Monad2, Nil, Node, _false, _identity, _true, _unit, acons, baseElements, baseStrokeWidth, cons, createNode, defaultEnv, define, evalLeisure, foldLeft, getMaxStrokeWidth, getSvgElement, getType, getValue, isNil, jsonConvert, lazy, lc, lz, makeHamt, makeSyncMonad, newConsFrom, none, primFoldLeft, primSvgMeasure, ref, resolve, root, runMods, runMonad, runMonad2, rz, setValue, some, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml;
     ref = root = Ast, define = ref.define, getType = ref.getType, cons = ref.cons, unescapePresentationHtml = ref.unescapePresentationHtml, isNil = ref.isNil;
     Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
     Nil = requirejs('./ast').Nil;
-    runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, _false = Runtime._false, _identity = Runtime._identity, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2, some = Runtime.some, none = Runtime.none, acons = Runtime.lacons;
+    runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, _false = Runtime._false, _identity = Runtime._identity, _unit = Runtime._unit, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2, some = Runtime.some, none = Runtime.none, acons = Runtime.lacons;
     evalLeisure = Eval.evalLeisure;
     getSvgElement = function(id) {
       var el, svg;
@@ -112,78 +112,69 @@
     define('svgMeasureText', (function(text) {
       return svgMeasureText(rz(text));
     }), 1);
-    define('getData', function(name) {
+    define('dataMod', setDataType((function(op) {
       var m;
       m = new Monad2(function(env, cont) {
-        var data, ref1;
-        data = (ref1 = env.opts.data.getBlockNamed(rz(name))) != null ? ref1.yaml : void 0;
-        return cont(data ? some(jsonConvert(data)) : none);
+        var data;
+        data = {};
+        return runMods(env, rz(op), data, cont, true);
       });
-      m.properties = acons('getName', rz(name), Nil);
-      m.name = name;
+      m.op = op;
       m.leisureType = 'dataMod';
       return m;
+    }), 'dataMod'));
+    define('dataModOperation', function(mod) {
+      return rz((rz(mod)).op);
     });
     define('setTheme', function(theme) {
       return new Monad2(function(env, cont) {
         env.opts.setTheme(theme);
-        return cont();
+        return cont(_unit);
       });
     });
     define('changeData', function(changes) {
       return new Monad2(function(env, cont) {
         var ch, data;
         ch = rz(changes);
-        ch = ch instanceof Monad2 ? ch : ch(_identity);
+        if (getType(ch) !== 'dataMod') {
+          throw new Error("Attempt data change with value that is not a dataMod");
+        }
         data = {};
         return env.opts.changeData(function() {
-          return runMods(env, ch, data, function() {
+          return runMods(env, rz(ch.op), data, function() {
             return cont(jsonConvert(data));
           });
         });
       });
     });
-    getMod = function(dataMod) {
-      if (dataMod instanceof Monad2) {
-        return dataMod;
-      } else {
-        return dataMod(_identity);
+    runMods = function(env, mod, data, cont, noChanges) {
+      var d, first, firstRes, name, ref1, result, second, secondRes, value;
+      if (noChanges && !((ref1 = getType(mod)) === 'dataModBind' || ref1 === 'dataModGet')) {
+        throw new Error("Attempt to alter data outside a changeData command");
       }
-    };
-    runMods = function(env, mod, data, cont) {
-      var first, firstRes, name, result, second, secondRes, sync, type, value;
-      type = mod instanceof Monad2 ? 'dataModGet' : getType(mod);
-      switch (type) {
+      switch (getType(mod)) {
         case 'dataModBind':
-          sync = true;
-          first = second = firstRes = secondRes = false;
-          result = runMods(env, mod(_true), data, function(res) {
-            if (sync) {
-              first = true;
-              return firstRes = res;
-            } else {
-              return runMods(env, getMod((mod(_false))(lz(res))), data, cont);
-            }
-          });
-          if (first) {
-            runMods(env, getMod(mod(_false)(lz(firstRes))), data, function(res2) {
-              if (sync) {
-                second = true;
-                return secondRes = res2;
-              } else {
-                return cont(res2);
-              }
-            });
+          while (getType(mod) === 'dataModBind') {
+            first = second = firstRes = secondRes = false;
+            result = runMods(env, mod(_true), data, (function(res) {
+              return mod = (mod(_false))(lz(res));
+            }), noChanges);
           }
-          sync = false;
-          if (second) {
-            return cont(secondRes);
+          if (getType(mod) === 'dataMod') {
+            return runMods(env, rz(mod.op), data, cont, noChanges);
           } else {
-            return result;
+            return cont(mod);
           }
+          break;
         case 'dataModGet':
-          name = mod instanceof Monad2 ? rz(mod.name) : mod(_identity);
-          return cont(jsonConvert(data[name] = env.opts.getData(name)));
+          name = mod(_identity);
+          d = env.opts.getData(name, noChanges);
+          if (d) {
+            return cont(some(jsonConvert(data[name] = d)));
+          } else {
+            return cont(none);
+          }
+          break;
         case 'dataModSet':
           name = mod(_true);
           value = mod(_false);
@@ -216,7 +207,7 @@
           return cont(name);
       }
     };
-    return evalLeisure("dataMod item = \\f . f item\ngetDataModCmd mod = (getProperty mod 'getName') (\\x . mod) (mod id)\ndefCase showBase.dataMod func mod | hasType mod dataMod ->\n  (getProperty mod 'getName')\n    \\name . concat[\"(getData \" (showBase func name) \")\"]\n    mod \\cmd . showBase func cmd\n\ndataModSet name value = \\f . f name value\n_setData name value = dataMod (dataModSet name value)\nsetData name value = _setData name (toJson value)\ndefCase showBase.dataModSet func cmd | hasType cmd dataModSet -> cmd \\name value . concatFlat[\"(setData \" (map (showBase func) [name (fromJson value)]) \")\"]\n\ndataModRemove name = \\f . f name\nremoveData name = dataMod (dataModRemove name)\ndefCase showBase.dataModRemove func cmd | hasType cmd dataModRemove -> cmd \\name . concatFlat[\"(removeData \" (map (showBase func) name) \")\"]\n\ndataModAppend headline name value = \\f . f headline name value\ndefCase showBase.dataModAppend func cmd | hasType cmd dataModAppend -> cmd \\headline name value . concatFlat[\"(append \" (map (showBase func) [headline name value]) \")\"]\n_appendData headline name data = dataMod (dataModAppend headline name data)\nappendData headline name data = _appendData headline name (toJson data)\n\ndataModAppendWithAttrs headline name attrs data = \\f . f headline name attrs data\ndefCase showBase.dataModAppendWithAttrs func cmd | hasType cmd dataModAppendWithAttrs -> cmd \\headline name attrs data . concatFlat[\"(appendWithAttrs \" (map (showBase func) [headline name attrs data]) \")\"]\n_appendWithAttrs headline name attrs data = dataMod (dataModAppendWithAttrs headline name attrs data)\nappendWithAttrs headline name attrs data =\n  _appendWithAttrs headline name attrs (toJson data)\n\ndataModBind item cont = \\f . f item cont\ndefCase bind.dataMod mod cont | hasType mod dataMod ->\n  dataMod (dataModBind (getDataModCmd mod) cont)\ndefCase showBase.dataModBind func cmd | hasType cmd dataModBind ->\n  concatFlat[\"(do \" (intersperse (map (showBase func) (extractDataModBind cmd)) ' ') \")\"]\nextractDataModBind b = hasType b dataModBind\n  b \\mod cont . [mod | (extractDataModBind (cont nil))]\n  [b]");
+    return evalLeisure("dataModGet name = \\f . f name\ngetData name = dataMod (dataModGet name)\ndefCase showBase.dataModGet func cmd | hasType cmd dataModGet ->\n  cmd \\name . concatFlat[\"(getData \" (showBase func name) \")\"]\n\ndataModSet name value = \\f . f name value\n_setData name value = dataMod (dataModSet name value)\nsetData name value = _setData name (toJson value)\ndefCase showBase.dataModSet func cmd | hasType cmd dataModSet -> cmd \\name value . concatFlat[\"(setData \" (map (showBase func) [name (fromJson value)]) \")\"]\n\ndataModRemove name = \\f . f name\nremoveData name = dataMod (dataModRemove name)\ndefCase showBase.dataModRemove func cmd | hasType cmd dataModRemove -> cmd \\name . concatFlat[\"(removeData \" (map (showBase func) name) \")\"]\n\ndataModAppend headline name value = \\f . f headline name value\ndefCase showBase.dataModAppend func cmd | hasType cmd dataModAppend -> cmd \\headline name value . concatFlat[\"(append \" (map (showBase func) [headline name value]) \")\"]\n_appendData headline name data = dataMod (dataModAppend headline name data)\nappendData headline name data = _appendData headline name (toJson data)\n\ndataModAppendWithAttrs headline name attrs data = \\f . f headline name attrs data\ndefCase showBase.dataModAppendWithAttrs func cmd | hasType cmd dataModAppendWithAttrs -> cmd \\headline name attrs data . concatFlat[\"(appendWithAttrs \" (map (showBase func) [headline name attrs data]) \")\"]\n_appendWithAttrs headline name attrs data = dataMod (dataModAppendWithAttrs headline name attrs data)\nappendWithAttrs headline name attrs data =\n  _appendWithAttrs headline name attrs (toJson data)\n\ndataModBind item cont = \\f . f item cont\ndefCase bind.dataMod mod cont | hasType mod dataMod ->\n  dataMod (dataModBind (dataModOperation mod) cont)\nisDataModBind m = getProperty m 'dataModType' (\\x . x == 'dataModBind') false\nextractDataModBind b = isDataModBind b\n  (dataModBindInfo b) \\mod cont . [mod | (extractDataModBind (cont nil))]\n  [b]\ndefCase showBase.dataModBind func mod | hasType mod dataModBind ->\n  concatFlat[\"(do \" (intersperse (map (showBase func) (extractDataModBind mod)) ' ') \")\"]\n\ndefCase showBase.dataMod func mod | hasType mod dataMod ->\n  showBase func (dataModOperation mod)");
   });
 
 }).call(this);

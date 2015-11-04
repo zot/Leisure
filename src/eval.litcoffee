@@ -117,21 +117,30 @@ Evaulation support for Leisure
           setValue 'parser_funcProps', props
           result = rz(L_baseLoadString)('notebook', text)
           runMonad2 result, env, (results)->
-            runNextResult results, env, ->
+            runNextResult results, env, (->
               setValue 'parser_funcProps', old
-              cont? env, results
+              cont? env, results), errCont
         catch err
-          errCont err.message
+          errCont err
 
-      runNextResult = (results, env, cont)->
-        while results != rz(L_nil) && getType(results.head().tail()) == 'left'
-          env.write "PARSE ERROR: #{getLeft results.head().tail()}"
+      runNextResult = (results, env, cont, errCont)->
+        while results != rz(L_nil)
+          if getType(results.head().tail()) == 'left'
+            env.write "PARSE ERROR: #{getLeft results.head().tail()}"
+          else
+            sync = true
+            async = true
+            try
+              runMonad2 getRight(results.head().tail()), env, (res2)->
+                if getType(res2) != 'unit' then env.write env.presentValue res2
+                if sync then async = false
+                else runNextResult results.tail(), env, cont, errCont
+            catch err
+              errCont err
+            sync = false
+            if async then return
           results = results.tail()
-        if results != rz(L_nil)
-          runMonad2 getRight(results.head().tail()), env, (res2)->
-            if getType(res2) != 'unit' then env.write env.presentValue res2
-            runNextResult results.tail(), env, cont
-        else cont()
+        cont()
 
       presentHtml = (v)->
         str = ': ' + (if v instanceof Html then v.content.replace(/\r?\n/g, '\\n')

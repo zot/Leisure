@@ -477,6 +477,9 @@ may be called more than once.  changeData() returns a promise.
           else
             @pendingDataChanges = []
             @executeDataChange replaceFunc, succeed, fail
+        verifyDataObject: (opType, obj)->
+          if typeof obj != 'object'
+            throw new Error "Attempt to #{opType} value that is not an object."
         executeDataChange: (replaceFunc, succeed, fail)->
           dataChanges = null
           @batchReplace (=>
@@ -542,6 +545,7 @@ may be called more than once.  changeData() returns a promise.
           @appendData 'block', parent, name, value, codeOpts
         appendData: (parentType, parent, name, value, codeOpts)->
           @checkChanging()
+          @verifyDataObject "append", value
           if name && @getData(name)
             throw new Error "Attempt to add block with duplicate name: #{name}"
           @dataChanges.sharedInserts[name] = {
@@ -551,7 +555,7 @@ may be called more than once.  changeData() returns a promise.
           }
         getData: (name, skipCheck)->
           if !skipCheck then @checkChanging()
-          block = if skipCheck then @data.getBlockNamed(name)
+          block = if skipCheck && !@dataChanges then @data.getBlockNamed(name)
           else if @dataChanges.localRemoves[name] || @dataChanges.sharedRemoves[name]
             null
           else if block = (@dataChanges.localSets[name] || @dataChanges.sharedSets[name])
@@ -561,6 +565,7 @@ may be called more than once.  changeData() returns a promise.
           block?.yaml
         setData: (name, value, codeOpts)->
           @checkChanging()
+          @verifyDataObject "set #{name} to ", value
           if @dataChanges.sharedRemoves[name] then delete @dataChanges.sharedRemoves[name]
           if @dataChanges.localRemoves[name] then delete @dataChanges.localRemoves[name]
           if !(block = @data.getBlockNamed name)

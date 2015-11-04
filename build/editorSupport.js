@@ -771,6 +771,12 @@
         })(this));
       };
 
+      OrgEditing.prototype.verifyDataObject = function(opType, obj) {
+        if (typeof obj !== 'object') {
+          throw new Error("Attempt to " + opType + " value that is not an object.");
+        }
+      };
+
       OrgEditing.prototype.executeDataChange = function(replaceFunc, succeed, fail) {
         var dataChanges;
         dataChanges = null;
@@ -899,6 +905,7 @@
 
       OrgEditing.prototype.appendData = function(parentType, parent, name, value, codeOpts) {
         this.checkChanging();
+        this.verifyDataObject("append", value);
         if (name && this.getData(name)) {
           throw new Error("Attempt to add block with duplicate name: " + name);
         }
@@ -914,13 +921,14 @@
         if (!skipCheck) {
           this.checkChanging();
         }
-        block = skipCheck ? this.data.getBlockNamed(name) : this.dataChanges.localRemoves[name] || this.dataChanges.sharedRemoves[name] ? null : (block = this.dataChanges.localSets[name] || this.dataChanges.sharedSets[name]) ? block : (info = this.dataChanges.sharedInserts[name]) ? info.block : this.data.getBlockNamed(name);
+        block = skipCheck && !this.dataChanges ? this.data.getBlockNamed(name) : this.dataChanges.localRemoves[name] || this.dataChanges.sharedRemoves[name] ? null : (block = this.dataChanges.localSets[name] || this.dataChanges.sharedSets[name]) ? block : (info = this.dataChanges.sharedInserts[name]) ? info.block : this.data.getBlockNamed(name);
         return block != null ? block.yaml : void 0;
       };
 
       OrgEditing.prototype.setData = function(name, value, codeOpts) {
         var block, newBlock, ref;
         this.checkChanging();
+        this.verifyDataObject("set " + name + " to ", value);
         if (this.dataChanges.sharedRemoves[name]) {
           delete this.dataChanges.sharedRemoves[name];
         }
