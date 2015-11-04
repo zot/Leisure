@@ -402,26 +402,14 @@ defCase map.range func r | isRange r -> r \a b . runRepeat a b func
 
 defCase map.repeat item r | isRepeat r -> r \n . runRepeat 0 n \x . item
 
-wrappedForeach x = \f . f x
-testWrappedForeach f test = and (hasType f wrappedForeach) (f test)
+wrappedForEach x = \f . f x
 
-defCase bind.wrappedForeachCons list cont | testWrappedForeach list isCons ->
-  doall (map cont (list id))
-defCase bind.wrappedForeachRep rep cont | testWrappedForeach rep isRepeat ->
-  doall (map (cont nil) (rep id))
-defCase bind.wrappedForeachRange r cont | testWrappedForeach r isRange ->
-  doall (map cont (r id))
+defCase bind.wrappedForEach fe cont | hasType fe wrappedForEach ->
+  bind (fe id) \x . bind x cont
 
-defMacro 'foreach' \list . ['wrappedForeach' list]
+defMacro 'if' \list . ['wrappedForEach' list]
 
-wrappedIf x = \f . f x
-
-defCase bind.wrappedIf wif cont | hasType wif wrappedIf ->
-  do
-    optValue <- wif id
-    optValue cont unit
-
-defMacro 'if' \list . ['wrappedIf' list]
+defMacro 'foreach' \list . ['wrappedForEach' list]
 
 #######################
 ## pre/postconditions
