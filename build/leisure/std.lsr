@@ -402,14 +402,14 @@ defCase map.range func r | isRange r -> r \a b . runRepeat a b func
 
 defCase map.repeat item r | isRepeat r -> r \n . runRepeat 0 n \x . item
 
-wrappedForEach x = \f . f x
+doubleBind x = \f . f x
 
-defCase bind.wrappedForEach fe cont | hasType fe wrappedForEach ->
+defCase bind.doubleBind fe cont | hasType fe doubleBind ->
   bind (fe id) \x . bind x cont
 
-defMacro 'if' \list . ['wrappedForEach' list]
+defMacro 'if' \list . ['doubleBind' list]
 
-defMacro 'foreach' \list . ['wrappedForEach' list]
+defMacro 'foreach' \list . ['doubleBind' list]
 
 #######################
 ## pre/postconditions
