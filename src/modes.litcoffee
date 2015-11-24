@@ -811,12 +811,16 @@
         newChildren = []
         prevMeat = null
         for c, i in fragment.children
-          if c instanceof Meat
+          if c.__proto__ == Meat.prototype
             if !prevMeat
               prevMeat = new Meat c.text, c.offset
               newChildren.push prevMeat
             else prevMeat.text += c.text
-          else newChildren.push _.clone c
+          else
+            if prevMeat then prevMeat = null
+            newC = _.clone c
+            newC.__proto__ = c.__proto__
+            newChildren.push newC
         new Fragment(fragment.offset, newChildren).linkNodes()
 
 Exports

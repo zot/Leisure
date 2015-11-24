@@ -26,7 +26,10 @@ any f l = find f l (\el . true) false
 all f l = not (any (compose not f) l)
 
 # change this to return a list of results
-doall = foldr1 (\el res . primBind el \_ . res)
+doall x = isNil x
+  unit
+  foldr1 (\el res . primBind el \_ . res) x
+
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list
   nil

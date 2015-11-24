@@ -30,8 +30,9 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bluebird.min'], function(Base, Ast, _, Immutable, Yaml, Bluebird) {
-    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, Promise, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, lz, makeHamt, makeMonad, makeSyncMonad, mkProto, monadModeSync, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
+  define(['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bluebird.min', './export'], function(Base, Ast, _, Immutable, Yaml, Bluebird, Exports) {
+    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, Promise, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, lz, makeHamt, makeMonad, makeSyncMonad, mergeExports, mkProto, monadModeSync, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
+    mergeExports = Exports.mergeExports;
     ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
     define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall;
     Map = Immutable.Map;
@@ -524,7 +525,7 @@ misrepresented as being the original software.
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        console.log(String(rz(str)));
+        console.log(rz(str));
         return rz(res);
       }
     });
@@ -733,7 +734,7 @@ misrepresented as being the original software.
         });
       }
     });
-    if (global.L_DEBUG === true) {
+    if (global.L_DEBUG) {
       (typeof window !== "undefined" && window !== null ? window : global).runMonad2 = runMonad2 = function(monad, env, cont) {
         var err, ref1, st;
         if (monad instanceof Monad2) {
@@ -890,6 +891,16 @@ misrepresented as being the original software.
         b.binding = binding;
         return b;
       }
+    });
+    define('pierce', function(value) {
+      return new Monad2('bind', function(env, cont) {
+        var ret;
+        ret = null;
+        runMonad2(rz(value), env, function(r) {
+          return ret = cont(r);
+        });
+        return ret;
+      });
     });
     values = {};
     define('primBind', bind);
@@ -1096,14 +1107,28 @@ misrepresented as being the original software.
         return "write " + (rz(msg));
       });
     });
-    define('prompt2', function(msg) {
-      return new Monad2((function(env, cont) {
-        return env.prompt(String(rz(msg)), function(input) {
-          return cont(input);
+    define('prompt', function(msg) {
+      return new Monad2('promptDefault', (function(env, cont) {
+        return env.prompt(String(rz(msg)), void 0, function(input) {
+          return cont(input ? some(input) : none);
         });
       }), function() {
-        return "prompt2 " + (rz(msg));
+        return "prompt " + (rz(msg)) + " " + (rz(defaultValue));
       });
+    });
+    define('promptDefault', function(msg, defaultValue) {
+      var r;
+      if (r = doPartial(arguments)) {
+        return r;
+      } else {
+        return new Monad2('promptDefault', (function(env, cont) {
+          return env.prompt(String(rz(msg)), String(rz(defaultValue)), function(input) {
+            return cont(input ? some(input) : none);
+          });
+        }), function() {
+          return "prompt " + (rz(msg)) + " " + (rz(defaultValue));
+        });
+      }
     });
     define('oldWrite', function(msg) {
       return makeSyncMonad(function(env, cont) {
@@ -1144,13 +1169,6 @@ misrepresented as being the original software.
         return env.statFile(rz(file), function(err, stats) {
           var ref1;
           return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(stats)));
-        });
-      });
-    });
-    define('prompt', function(msg) {
-      return makeMonad(function(env, cont) {
-        return env.prompt(String(rz(msg)), function(input) {
-          return cont(input);
         });
       });
     });
@@ -1616,6 +1634,9 @@ misrepresented as being the original software.
       window.defaultEnv = defaultEnv;
       window.identity = identity;
     }
+    mergeExports({
+      stateValues: values
+    });
     return {
       requireFiles: requireFiles,
       _true: _true,

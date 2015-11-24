@@ -26,6 +26,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         languageEnvMaker
         Html
         presentHtml
+        setLounge
       } = Eval
       {
         LeisureEditCore
@@ -317,7 +318,12 @@ that must be done regardless of the source of changes
               @setBlockName newName, newBlock._id, isDefault
           if oldBlock?.local && !newBlock?.local then @deleteLocalBlock oldName
           if newBlock?.codeAttributes?.results == 'def'
-            @queueEval => @executeBlock newBlock
+            opts = defaultEnv.opts
+            @queueEval =>
+              oldOpts = defaultEnv.opts
+              defaultEnv.opts = opts
+              @executeBlock newBlock
+              defaultEnv.opts = oldOpts
         getNamedBlockId: (name)-> @namedBlocks[name] ? @importedData[name]
         setBlockName: (name, blockId, isDefault)->
           (if isDefault then @importedData else @namedBlocks)[name] = blockId
@@ -369,11 +375,15 @@ that must be done regardless of the source of changes
               @executeBlock newBlock, (env)->
                 env.eval = (text)-> controllerEval.call controller, text
         executeBlock: (block, envConf)->
-          env = blockEnvMaker(block) __proto__: defaultEnv
+          @executeText block.language, blockSource(block), null, envConf
+        env: (language, envConf)->
+          env = languageEnvMaker(language) __proto__: defaultEnv
           env.data = this
           env.write = ->
           envConf?(env)
-          env.executeText blockSource(block), Nil, (->)
+          env
+        executeText: (language, text, cont, envConf)->
+          @env(language, envConf).executeText text, Nil, (cont ? (x)-> x)
         checkImports: (block)->
           if (i = block?.properties?.import) && !@importRecords.importedFiles[filename = block.properties.import]
             console.log "Import: #{block?.properties?.import}"
@@ -482,6 +492,7 @@ may be called more than once.  changeData() returns a promise.
             throw new Error "Attempt to #{opType} value that is not an object."
         executeDataChange: (replaceFunc, succeed, fail)->
           dataChanges = null
+          result = null
           @batchReplace (=>
             dataChanges = @dataChanges =
               sharedRemoves: {}
@@ -490,7 +501,7 @@ may be called more than once.  changeData() returns a promise.
               localRemoves: {}
               localSets: {}
             try
-              replaceFunc()
+              result = replaceFunc()
               repls = []
               for name of @dataChanges.sharedRemoves
                 b = @blockBounds name
@@ -519,7 +530,7 @@ may be called more than once.  changeData() returns a promise.
                 #@mode.handleChanges this, sets: _.indexBy(blocks, '_id'), removes: {}, oldBlocks: [], newBlocks: blocks
                 #@mode.renderChanged this, blocks, @idPrefix, true
                 @changed oldBlocks: [], newBlocks: blocks
-              succeed()
+              succeed result
               @nextDataChange()),
             (e)=>
               if e.retryOK then @executeDataChange replaceFunc, succeed, fail
@@ -783,6 +794,7 @@ may be called more than once.  changeData() returns a promise.
                 write: ->
                 options: this
                 data: @data
+                prompt: (str, defaultValue, cont)-> cont prompt(str, defaultValue)
               opts = this
               do (change)=>
                 env.errorAt = (offset, msg)->
@@ -820,6 +832,13 @@ may be called more than once.  changeData() returns a promise.
           block = @editor.blockForCaret()
           if block.type == 'code' && envM = blockEnvMaker block
             @executeBlock block, envM
+        env: (language)->
+          env = @data.env language
+          env.opts = this
+          env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
+          env
+        executeText: (language, text, cont)->
+          @env(language).executeText text, Nil, (cont ? (x)-> x)
         executeBlock: (block, envM)->
           if envM = blockEnvMaker block
             {source} = blockCodeItems this, block
@@ -834,6 +853,7 @@ may be called more than once.  changeData() returns a promise.
             env.write = (str)->
               result += presentHtml str
               if !sync then opts.update newBlock = setResult block, str
+            env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
             env.executeText source.content, Nil, ->
             sync = false
             newBlock = setResult newBlock, result
@@ -1046,6 +1066,7 @@ Exports
         blockOrg
         parseOrgMode
         followLink
+        defaultEnv
       }
 
       {

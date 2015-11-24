@@ -351,7 +351,8 @@
         prevImageSrc: prevImageSrc,
         pushPendingInitialzation: pushPendingInitialzation,
         setPanelExpanded: setPanelExpanded
-      }
+      },
+      Handlebars: Handlebars
     }).UI;
   });
 

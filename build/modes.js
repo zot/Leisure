@@ -1135,13 +1135,13 @@
       });
     };
     mergeMeat = function(fragment) {
-      var c, i, j, len, newChildren, prevMeat, ref;
+      var c, i, j, len, newC, newChildren, prevMeat, ref;
       newChildren = [];
       prevMeat = null;
       ref = fragment.children;
       for (i = j = 0, len = ref.length; j < len; i = ++j) {
         c = ref[i];
-        if (c instanceof Meat) {
+        if (c.__proto__ === Meat.prototype) {
           if (!prevMeat) {
             prevMeat = new Meat(c.text, c.offset);
             newChildren.push(prevMeat);
@@ -1149,7 +1149,12 @@
             prevMeat.text += c.text;
           }
         } else {
-          newChildren.push(_.clone(c));
+          if (prevMeat) {
+            prevMeat = null;
+          }
+          newC = _.clone(c);
+          newC.__proto__ = c.__proto__;
+          newChildren.push(newC);
         }
       }
       return new Fragment(fragment.offset, newChildren).linkNodes();

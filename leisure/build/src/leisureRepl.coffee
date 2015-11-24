@@ -27,6 +27,7 @@ require('source-map-support').install()
 path = require 'path'
 
 baseDir = path.resolve path.dirname(module.filename) + '/../../../build'
+console.log "BASE DIR: #{baseDir}"
 baseLeisureDir = baseDir + '/leisure/'
 
 requirejs = require('requirejs').config
@@ -77,7 +78,8 @@ global.btoa = require 'btoa'
 {
   readFile
   writeFile
-} = requirejs './node'
+#} = requirejs './node'
+} = require './node'
 {
   identity
   runMonad2
@@ -128,6 +130,10 @@ replEnv.__proto__ = defaultEnv
 
 getParseErr = (x)-> x lz (value)->rz value
 
+errorString = (err)->
+  if L$thunkStack then L$thunkStack.toArray().join '\n'
+  else err.stack ? err.toString()
+
 evalInput = (text, cont)->
   if text
     try
@@ -153,9 +159,10 @@ evalInput = (text, cont)->
             if isMonad result then console.log "(processing IO monad)"
             runMonad2 result, replEnv, cont
         catch err
+          console.log 'caught error'
           cont rz(L_err)(lz (err.stack ? err.toString()))
     catch err
-      cont rz(L_err)(lz (err.stack ? err.toString()))
+      cont rz(L_err)(lz (errorString err))
   else cont ''
 
 help = ->

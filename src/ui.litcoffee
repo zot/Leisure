@@ -225,7 +225,7 @@ choose a handlebars template.
             when "'" then '&#39;'
             when '&' then '&amp;'
 
-      root = mergeExports(
+      root = mergeExports({
         UI: {
           withContext
           mergeContext
@@ -249,4 +249,5 @@ choose a handlebars template.
           pushPendingInitialzation
           setPanelExpanded
         }
-      ).UI
+        Handlebars
+      }).UI

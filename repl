@@ -11,11 +11,12 @@ fi
 
 if [ -n "$(expr "$(uname -s)" : '\(CYGWIN\|WIN\)')" ]; then
     dir=$(dirname $(cygpath -a -d $0))
-    build=$dir\\..\\build
-    export NODE_PATH="$build;$build\\node_modules"
+    build=$dir/../build
+    inst=$dir/packages/leisure/build
+    export NODE_PATH="$build;$build/node_modules"
     echo NODE_PATH="'$NODE_PATH'"
-    echo $NODE --stack-size=$STACK $inst\\src\\runRepl "$@"
-    $NODE --stack-size=$STACK $inst\\src\\runRepl "$@"
+    echo $NODE --stack-size=$STACK $inst/src/runRepl "$@"
+    $NODE --stack-size=$STACK $inst/src/runRepl "$@"
 else
     dir=$(dirname $0)
     inst=$dir/packages/leisure/build

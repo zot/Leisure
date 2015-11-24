@@ -1,6 +1,6 @@
 Evaulation support for Leisure
 
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen, Exports)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = null
@@ -12,6 +12,9 @@ Evaulation support for Leisure
         unescapePresentationHtml
         Nil
       } = Ast
+      {
+        mergeExports
+      } = Exports
       {
         Node
         resolve
@@ -97,7 +100,7 @@ Evaulation support for Leisure
       leisureEnv = (env)->
         env.presentValue = (v)-> html rz(L_showHtml) lz v
         env.executeText = (text, props, cont)->
-          if !cont then cont = (env, x)->
+          if !cont then cont = (x)->
             r = x.head().tail()
             if getType(r) == 'left' then new Error getLeft r
             else getRight r
@@ -115,11 +118,12 @@ Evaulation support for Leisure
         try
           old = getValue 'parser_funcProps'
           setValue 'parser_funcProps', props
-          result = rz(L_baseLoadString)('notebook', text)
-          runMonad2 result, env, (results)->
-            runNextResult results, env, (->
-              setValue 'parser_funcProps', old
-              cont? env, results), errCont
+          setLounge env, ->
+            result = rz(L_baseLoadString)('notebook', text)
+            runMonad2 result, env, (results)->
+              runNextResult results, env, (->
+                setValue 'parser_funcProps', old
+                (cont ? (x)->x)(results)), errCont
         catch err
           errCont err
 
@@ -131,7 +135,7 @@ Evaulation support for Leisure
             sync = true
             async = true
             try
-              runMonad2 getRight(results.head().tail()), env, (res2)->
+              setLounge env, -> runMonad2 getRight(results.head().tail()), env, (res2)->
                 if getType(res2) != 'unit' then env.write env.presentValue res2
                 if sync then async = false
                 else runNextResult results.tail(), env, cont, errCont
@@ -149,6 +153,13 @@ Evaulation support for Leisure
 
       writeValues = (env, values)-> env.write values.join '\n'
 
+      setLounge = (env, func)->
+        window.Lounge = env
+        env.opts = env.opts
+        result = func()
+        window.Lounge = null
+        result
+
       jsEnv = (env)->
         env.executeText = (text, props, cont)->
           try
@@ -165,7 +176,7 @@ Evaulation support for Leisure
           errNode = null
           handleErrors acornLoose.parse_dammit(text), (node)-> errNode = node
           try
-            eval text
+            setLounge env, -> eval text
           catch err2
             if errNode
               env.errorAt Math.min(errNode.start, errNode.end), err2.message
@@ -183,7 +194,7 @@ Evaulation support for Leisure
           else newText += text.substring expr.start, expr.end
         newText += ";leisure_results;"
         console = log: (str)=> env.write env.presentValue str
-        (env.eval ? localEval) newText
+        setLounge env, -> (env.eval ? localEval) newText
 
       findError = (err, text)->
         [x, line, col] = err.match(/\(([0-9]*):([0-9]*)\)/)
@@ -208,11 +219,11 @@ Evaulation support for Leisure
         env.executeText = (text, props, cont)->
           try
             console = log: (str)=> env.write env.presentValue str
-            value = eval(lispyScript._compile(text));
+            value = setLounge env, -> eval(lispyScript._compile(text));
             if typeof value != 'undefined' then writeValues env, [value]
           catch err
             @errorAt 0, err.message
-          cont? env
+          cont? value
         env
 
       csEnv = (env)->
@@ -290,6 +301,10 @@ Evaulation support for Leisure
 
       unescapeString = (str)-> String(str).replace slashed, (c)-> unescaped[c] ? c[1]
 
+      mergeExports {
+        evalLeisure
+      }
+
       {
         languageEnvMaker
         html
@@ -301,4 +316,5 @@ Evaulation support for Leisure
         escapeString
         unescapeString
         evalLeisure
+        setLounge
       }

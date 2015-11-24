@@ -22,8 +22,11 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bluebird.min'], (Base, Ast, _, Immutable, Yaml, Bluebird)->
+define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bluebird.min', './export'], (Base, Ast, _, Immutable, Yaml, Bluebird, Exports)->
 
+  {
+    mergeExports
+  } = Exports
   {
     readFile,
     statFile,
@@ -254,7 +257,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 ############
 
   define 'log', (str, res)-> if isPartial arguments then partialCall arguments else
-    console.log String rz str
+    console.log rz str
     rz res
 
   define 'logStack', (str, res)-> if isPartial arguments then partialCall arguments else
@@ -404,7 +407,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 #    runMonads monadArray, 0, 0
 #    monadArray
 
-  if global.L_DEBUG == true
+  if global.L_DEBUG
     (window ? global).runMonad2 = runMonad2 = (monad, env, cont)->
       if monad instanceof Monad2
         if !env then env = {}
@@ -487,6 +490,13 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     b.arg = m
     b.binding = binding
     b
+
+  define 'pierce', (value)->
+    new Monad2 'bind', (env, cont)->
+      ret = null
+      runMonad2 rz(value), env, (r)->
+        ret = cont r
+      ret
 
   values = {}
 
@@ -641,10 +651,18 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
       env.write String(rz msg)
       cont _unit), -> "write #{rz msg}"
 
-  define 'prompt2', (msg)->
-    new Monad2 ((env, cont)->
-      env.prompt(String(rz msg), (input)-> cont input)), ->
-      "prompt2 #{rz msg}"
+  define 'prompt', (msg)->
+    new Monad2 'promptDefault', ((env, cont)->
+      env.prompt(String(rz msg), undefined, (input)->
+        cont if input then some input else none)), ->
+      "prompt #{rz msg} #{rz defaultValue}"
+
+
+  define 'promptDefault', (msg, defaultValue)-> if r = doPartial arguments then r else
+    new Monad2 'promptDefault', ((env, cont)->
+      env.prompt(String(rz msg), String(rz defaultValue), (input)->
+        cont if input then some input else none)), ->
+      "prompt #{rz msg} #{rz defaultValue}"
 
   define 'oldWrite', (msg)->
     makeSyncMonad (env, cont)->
@@ -670,10 +688,6 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     makeMonad (env, cont)->
       env.statFile rz(file), (err, stats)->
         cont (if err then left err.stack ? err else right stats)
-
-  define 'prompt', (msg)->
-    makeMonad (env, cont)->
-      env.prompt(String(rz msg), (input)-> cont(input))
 
   define 'rand', makeSyncMonad (env, cont)->
     cont(Math.random())
@@ -984,6 +998,10 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     window.setDataType = setDataType
     window.defaultEnv = defaultEnv
     window.identity = identity
+
+  mergeExports {
+    stateValues: values
+  }
 
   {
     requireFiles

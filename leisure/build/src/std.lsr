@@ -89,9 +89,16 @@ visit func l = \\
     result \h t . cons (visit func h) (visit func t)
     result
 
+stripNesting l = isCons l
+  l \h t . (isCons h) && (isNil t)
+    stripNesting h
+    map stripNesting l
+  l
+  
+
 simplify exprString = do
   list <- scanLineM exprString
-  visit (\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list
+  stripNesting (visit (\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list)
 
 #######################
 ## Monads
@@ -106,6 +113,10 @@ repeat n = \f . f n
 isRepeat r = hasType r repeat
 
 isRange r = hasType r range
+
+runRepeat count limit f = count < limit
+  [(f count) | runRepeat (count + 1) limit f]
+  []
 
 requireJS file = primBind (getValue 'requiredFiles')
   \files . contains files file
@@ -200,9 +211,9 @@ sortBy cmp l = mergeSort cmp l
 # YAML and JSON
 #################
 
-toJson obj = isAlist obj
-  toJsonObject (map (\pair . cons (head pair) (toJson (tail pair))) (reverse obj))
-  isCons obj
+toJson obj = (isAlist obj) && (not (isNil obj))
+  toJsonObject (map (\pair . cons (head pair) (toJson (tail pair))) obj)
+  (isCons obj) || (isNil obj)
     toJsonArray (map (\item . toJson item) obj)
     obj
 
@@ -252,6 +263,16 @@ defCase equal.cons a b | and (isCons a) (isCons b) -> and
   equal (head a) (head b)
   equal (tail a) (tail b)
 
+######################
+# sequences
+######################
+
+defCase map.range func r | isRange r -> r \a b . runRepeat a b func
+
+defCase map.repeat func r | isRepeat r -> r \n . runRepeat 0 n func
+
+defCase map.option func opt | isOption opt -> opt (\x . [x]) []
+
 # show
 ## Generic presentation
 
@@ -290,7 +311,7 @@ defCase showBase.hamt func obj | hasType obj hamt -> concatFlat[
   intersperse (map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) (hamtPairs obj)) ' '
   '}']
 
-defCase showBase.assoc func obj | isAlist obj -> concatFlat[
+defCase showBase.assoc func obj | (isAlist obj) && (not (isNil obj)) -> concatFlat[
   '{'
   intersperse (map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) obj) ' '
   '}']
@@ -359,8 +380,8 @@ defCase bind.bool opt cont | or (opt == true) (opt == false) -> opt
   unit
 
 defCase bind.option opt cont | isOption opt -> opt
-  \value . cont value
-  unit
+  \value . some (cont value)
+  none
 
 defCase bind.either either cont | isEither either -> either
   \_ . either
@@ -381,7 +402,7 @@ defCase bind.caseResult data cont | isCaseResult data -> data id
 #defCase bind.cons list cont | hasType list cons -> map cont list
 defCase bind.cons list cont | hasType list cons -> map cont list
 defCase bind.range r cont | hasType r range -> map cont r
-defCase bind.repeat r cont | hasType r repeat -> map (cont nil) r
+defCase bind.repeat r cont | hasType r repeat -> map cont r
 
 subbind m cont = bind (wrapped m) cont
 
@@ -394,22 +415,12 @@ defCase subbind.either m cont | hasType m left -> cont unit
 ## monadic iteration
 #######################
 
-runRepeat count limit f = count < limit
-  [(f count) | runRepeat (count + 1) limit f]
-  []
+wrappedForeach l = \f . f l
 
-defCase map.range func r | isRange r -> r \a b . runRepeat a b func
+defMacro 'foreach' \list . ['wrappedForeach' list]
 
-defCase map.repeat item r | isRepeat r -> r \n . runRepeat 0 n \x . item
-
-doubleBind x = \f . f x
-
-defCase bind.doubleBind fe cont | hasType fe doubleBind ->
-  bind (fe id) \x . bind x cont
-
-defMacro 'if' \list . ['doubleBind' list]
-
-defMacro 'foreach' \list . ['doubleBind' list]
+defCase bind.wrappedForeach fe cont | hasType fe wrappedForeach ->
+  primBind (fe id) \x . doall (map id (bind x cont))
 
 #######################
 ## pre/postconditions

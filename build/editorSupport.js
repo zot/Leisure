@@ -5,12 +5,12 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setHtml, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
-    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, presentHtml = Eval.presentHtml;
+    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, presentHtml = Eval.presentHtml, setLounge = Eval.setLounge;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, setHtml = Editor.setHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
@@ -458,7 +458,7 @@
       };
 
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
-        var newName, oldName, ref, ref1, ref2, ref3, ref4;
+        var newName, oldName, opts, ref, ref1, ref2, ref3, ref4;
         oldName = (ref = oldBlock != null ? oldBlock.codeName : void 0) != null ? ref : (oldBlock != null ? oldBlock.type : void 0) === 'headline' && (oldBlock != null ? (ref1 = oldBlock.properties) != null ? ref1.name : void 0 : void 0);
         newName = (ref2 = newBlock != null ? newBlock.codeName : void 0) != null ? ref2 : (newBlock != null ? newBlock.type : void 0) === 'headline' && (newBlock != null ? (ref3 = newBlock.properties) != null ? ref3.name : void 0 : void 0);
         if (oldName !== newName) {
@@ -473,9 +473,14 @@
           this.deleteLocalBlock(oldName);
         }
         if ((newBlock != null ? (ref4 = newBlock.codeAttributes) != null ? ref4.results : void 0 : void 0) === 'def') {
+          opts = defaultEnv.opts;
           return this.queueEval((function(_this) {
             return function() {
-              return _this.executeBlock(newBlock);
+              var oldOpts;
+              oldOpts = defaultEnv.opts;
+              defaultEnv.opts = opts;
+              _this.executeBlock(newBlock);
+              return defaultEnv.opts = oldOpts;
             };
           })(this));
         }
@@ -591,8 +596,12 @@
       };
 
       OrgData.prototype.executeBlock = function(block, envConf) {
+        return this.executeText(block.language, blockSource(block), null, envConf);
+      };
+
+      OrgData.prototype.env = function(language, envConf) {
         var env;
-        env = blockEnvMaker(block)({
+        env = languageEnvMaker(language)({
           __proto__: defaultEnv
         });
         env.data = this;
@@ -600,7 +609,13 @@
         if (typeof envConf === "function") {
           envConf(env);
         }
-        return env.executeText(blockSource(block), Nil, (function() {}));
+        return env;
+      };
+
+      OrgData.prototype.executeText = function(language, text, cont, envConf) {
+        return this.env(language, envConf).executeText(text, Nil, cont != null ? cont : function(x) {
+          return x;
+        });
       };
 
       OrgData.prototype.checkImports = function(block) {
@@ -778,8 +793,9 @@
       };
 
       OrgEditing.prototype.executeDataChange = function(replaceFunc, succeed, fail) {
-        var dataChanges;
+        var dataChanges, result;
         dataChanges = null;
+        result = null;
         return this.batchReplace(((function(_this) {
           return function() {
             var b, block, name, parent, parentType, ref, ref1, ref2, repls;
@@ -791,7 +807,7 @@
               localSets: {}
             };
             try {
-              replaceFunc();
+              result = replaceFunc();
               repls = [];
               for (name in _this.dataChanges.sharedRemoves) {
                 b = _this.blockBounds(name);
@@ -848,7 +864,7 @@
                 newBlocks: blocks
               });
             }
-            succeed();
+            succeed(result);
             return _this.nextDataChange();
           };
         })(this)), (function(_this) {
@@ -1360,7 +1376,10 @@
               __proto__: defaultEnv,
               write: function() {},
               options: this,
-              data: this.data
+              data: this.data,
+              prompt: function(str, defaultValue, cont) {
+                return cont(prompt(str, defaultValue));
+              }
             });
             opts = this;
             (function(_this) {
@@ -1435,6 +1454,22 @@
         }
       };
 
+      OrgEditing.prototype.env = function(language) {
+        var env;
+        env = this.data.env(language);
+        env.opts = this;
+        env.prompt = function(str, defaultValue, cont) {
+          return cont(prompt(str, defaultValue));
+        };
+        return env;
+      };
+
+      OrgEditing.prototype.executeText = function(language, text, cont) {
+        return this.env(language).executeText(text, Nil, cont != null ? cont : function(x) {
+          return x;
+        });
+      };
+
       OrgEditing.prototype.executeBlock = function(block, envM) {
         var env, newBlock, opts, result, source, sync;
         if (envM = blockEnvMaker(block)) {
@@ -1457,6 +1492,9 @@
             if (!sync) {
               return opts.update(newBlock = setResult(block, str));
             }
+          };
+          env.prompt = function(str, defaultValue, cont) {
+            return cont(prompt(str, defaultValue));
           };
           env.executeText(source.content, Nil, function() {});
           sync = false;
@@ -1694,7 +1732,8 @@
       breakpoint: breakpoint,
       blockOrg: blockOrg,
       parseOrgMode: parseOrgMode,
-      followLink: followLink
+      followLink: followLink,
+      defaultEnv: defaultEnv
     });
     return {
       createLocalData: createLocalData,

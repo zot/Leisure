@@ -32,7 +32,7 @@ recur x = \f . f x
 
 # example
 # subRLen list n = isNil list n (recur (subRLen (tail list) (++n)))
-# rlen list = startRecur (subRLen list 0)
+# rlen list = withRecur (subRLen list 0)
 
 ############
 # LOGIC
@@ -182,9 +182,9 @@ contains list item = find (\el . eq el item) list (\x . true) false
 
 # make a new list by applying func (which takes exactly 1 arg) to each element of list
 # eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
-map func l = isNil l
-  nil
+map func l = isCons l
   cons (func (head l)) (map func (tail l))
+  l
 
 # map, but preserve the old list where possible, so that == works on it
 mapSave func l = isNil l
@@ -410,8 +410,32 @@ matchOffset str match = isNil match
   strLen str
   head (tail (tail match))
 
-basicSplitTokens str pat prevIsDel = == str ''
-  nil
+#basicSplitTokens str pat prevIsDel = == str ''
+#  nil
+#  \\
+#    num = strMatch str numberPat
+#    del = strMatch str pat
+#    numOffset = matchOffset str num
+#    delOffset = matchOffset str del
+#    select = and (== numOffset 0) prevIsDel
+#      \del num first . num
+#      == delOffset 0
+#        \del num first . del
+#        \del num first . first
+#    first = select (head del) (head num) (strSubstring str 0 delOffset)
+#    .
+#    cons
+#      first
+#      basicSplitTokens
+#        strSubstring str (strLen first) 0
+#        pat
+#        select true false false
+
+basicSplitTokens str pat prevIsDel = reverse
+  withRecur (_basicSplitTokens str pat prevIsDel nil)
+
+_basicSplitTokens str pat prevIsDel toks = == str ''
+  toks
   \\
     num = strMatch str numberPat
     del = strMatch str pat
@@ -424,12 +448,12 @@ basicSplitTokens str pat prevIsDel = == str ''
         \del num first . first
     first = select (head del) (head num) (strSubstring str 0 delOffset)
     .
-    cons
-      first
-      basicSplitTokens
+    recur
+      _basicSplitTokens
         strSubstring str (strLen first) 0
         pat
         select true false false
+        cons first toks
 
 tokens str pat = countedTokens emptyLineStarts str pat
 
@@ -570,19 +594,47 @@ convertStringEscape char codes values =
       strAt values 0
       convertStringEscape char (strSubstring codes 1 0) (strSubstring values 1 0)
 
-convertStringEscapes orig str cont =
-  eq str ''
-    cont str
+#convertStringEscapes orig str cont =
+#  eq str ''
+#    cont str
+#    eq (strAt str 0) '\\'
+#      eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
+#        convertStringEscapes orig (strSubstring str 2 0) \rest . cont
+#          strAdd
+#            convertStringEscape (strAt str 1) backslashCodes backslashValues
+#            rest
+#      convertStringEscapes orig (strSubstring str 1 0) \rest . cont
+#        strAdd
+#          strAt str 0
+#          rest
+
+convertStringEscapes orig str cont = \\
+  res = _convertStringEscapes orig str
+  .
+  hasType res parseErr
+    parseErr
+    cont res
+
+_convertStringEscapes orig str =
+  eq str '' str
     eq (strAt str 0) '\\'
       eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
-        convertStringEscapes orig (strSubstring str 2 0) \rest . cont
-          strAdd
-            convertStringEscape (strAt str 1) backslashCodes backslashValues
+        \\
+          rest = _convertStringEscapes orig (strSubstring str 2 0)
+          .
+          hasType rest parseErr
             rest
-      convertStringEscapes orig (strSubstring str 1 0) \rest . cont
-        strAdd
-          strAt str 0
+            strAdd
+              convertStringEscape (strAt str 1) backslashCodes backslashValues
+              rest
+      \\
+        rest = _convertStringEscapes orig (strSubstring str 1 0)
+        .
+        hasType rest parseErr
           rest
+          strAdd
+            strAt str 0
+            rest
 
 parseString str cont =
   neq (strAt str 0) (strAt str -1) (parseErr "Badly terminated string: " str)
@@ -804,7 +856,25 @@ countedLinesForFile name text = filter
   countedLines name 1 text
 
 # 1-based offset for lines
-countedLines filename lineOffset str = \\
+#countedLines filename lineOffset str = \\
+#  m = strMatch str linePat
+#  idx = head (tail (tail m))
+#  chunk = strSubstring str 0 idx
+#  next = + idx (strLen (head m))
+#  chunkLines = findLines 0 chunk
+#  .
+#  eq str ''
+#    nil
+#    isNil m
+#      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) nil
+#      cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk)
+#        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
+
+countedLines filename lineOffset str = reverse
+  withRecur
+    _countedLines filename lineOffset str nil
+
+_countedLines filename lineOffset str lines = \\
   m = strMatch str linePat
   idx = head (tail (tail m))
   chunk = strSubstring str 0 idx
@@ -812,11 +882,12 @@ countedLines filename lineOffset str = \\
   chunkLines = findLines 0 chunk
   .
   eq str ''
-    nil
+    lines
     isNil m
-      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) nil
-      cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk)
-        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
+      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) lines
+      recur
+        _countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
+          cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk) lines
 
 defPat = regexp '^[^ =]+.* =( |$)'
 
@@ -1266,7 +1337,10 @@ any f l = find f l (\el . true) false
 all f l = not (any (compose not f) l)
 
 # change this to return a list of results
-doall = foldr1 (\el res . primBind el \_ . res)
+doall x = isNil x
+  unit
+  foldr1 (\el res . primBind el \_ . res) x
+
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list
   nil

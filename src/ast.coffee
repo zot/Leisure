@@ -288,6 +288,8 @@ define ['./base', 'lib/lodash.min'], (base, _)->
 
   partialCall = (args)-> Leisure_primCall args.callee, 0, args
 
+  doPartial = (args)-> if isPartial args then Leisure_primCall args.callee, 0, args
+
 # use AST, instead of arity?
   define = (name, func, arity, src, method, namespace, isNew) ->
     func.leisureName = name
@@ -546,5 +548,6 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   root.isNil = isNil
   root.isPartial = isPartial
   root.partialCall = partialCall
+  root.doPartial = doPartial
 
   root

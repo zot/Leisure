@@ -3,8 +3,8 @@
   var slice = [].slice,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen) {
-    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, blockVars, c, cons, csEnv, defaultEnv, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, html, id, isError, jsEnv, jsEval, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, setValue, show, simpleEval, slashed, specials, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen, Exports) {
+    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, blockVars, c, cons, csEnv, defaultEnv, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, html, id, isError, jsEnv, jsEval, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, specials, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = null;
@@ -15,6 +15,7 @@
     }), 1);
     lispyScript = lsrequire("lispyscript");
     getType = Ast.getType, cons = Ast.cons, unescapePresentationHtml = Ast.unescapePresentationHtml, Nil = Ast.Nil;
+    mergeExports = Exports.mergeExports;
     Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
     window.resolve = rz = resolve;
     window.lazy = lz = lazy;
@@ -117,7 +118,7 @@
       env.executeText = function(text, props, cont) {
         var opts;
         if (!cont) {
-          cont = function(env, x) {
+          cont = function(x) {
             var r;
             r = x.head().tail();
             if (getType(r) === 'left') {
@@ -159,16 +160,21 @@
       return env;
     };
     leisureExec = function(env, text, props, cont, errCont) {
-      var err, old, result;
+      var err, old;
       try {
         old = getValue('parser_funcProps');
         setValue('parser_funcProps', props);
-        result = rz(L_baseLoadString)('notebook', text);
-        return runMonad2(result, env, function(results) {
-          return runNextResult(results, env, (function() {
-            setValue('parser_funcProps', old);
-            return typeof cont === "function" ? cont(env, results) : void 0;
-          }), errCont);
+        return setLounge(env, function() {
+          var result;
+          result = rz(L_baseLoadString)('notebook', text);
+          return runMonad2(result, env, function(results) {
+            return runNextResult(results, env, (function() {
+              setValue('parser_funcProps', old);
+              return (cont != null ? cont : function(x) {
+                return x;
+              })(results);
+            }), errCont);
+          });
         });
       } catch (_error) {
         err = _error;
@@ -184,15 +190,17 @@
           sync = true;
           async = true;
           try {
-            runMonad2(getRight(results.head().tail()), env, function(res2) {
-              if (getType(res2) !== 'unit') {
-                env.write(env.presentValue(res2));
-              }
-              if (sync) {
-                return async = false;
-              } else {
-                return runNextResult(results.tail(), env, cont, errCont);
-              }
+            setLounge(env, function() {
+              return runMonad2(getRight(results.head().tail()), env, function(res2) {
+                if (getType(res2) !== 'unit') {
+                  env.write(env.presentValue(res2));
+                }
+                if (sync) {
+                  return async = false;
+                } else {
+                  return runNextResult(results.tail(), env, cont, errCont);
+                }
+              });
             });
           } catch (_error) {
             err = _error;
@@ -219,6 +227,14 @@
     writeValues = function(env, values) {
       return env.write(values.join('\n'));
     };
+    setLounge = function(env, func) {
+      var result;
+      window.Lounge = env;
+      env.opts = env.opts;
+      result = func();
+      window.Lounge = null;
+      return result;
+    };
     jsEnv = function(env) {
       env.executeText = function(text, props, cont) {
         var err, value;
@@ -233,7 +249,7 @@
       return env;
     };
     jsEval = function(env, text) {
-      var console, err, err2, errNode, expr, exprText, i, len, newText, parsed, ref, ref1;
+      var console, err, err2, errNode, expr, exprText, i, len, newText, parsed, ref;
       try {
         parsed = acorn.parse(text);
       } catch (_error) {
@@ -243,7 +259,9 @@
           return errNode = node;
         });
         try {
-          eval(text);
+          setLounge(env, function() {
+            return eval(text);
+          });
         } catch (_error) {
           err2 = _error;
           if (errNode) {
@@ -277,7 +295,10 @@
           };
         })(this)
       };
-      return ((ref1 = env["eval"]) != null ? ref1 : localEval)(newText);
+      return setLounge(env, function() {
+        var ref1;
+        return ((ref1 = env["eval"]) != null ? ref1 : localEval)(newText);
+      });
     };
     findError = function(err, text) {
       var col, i, len, line, n, ref, ref1, tot, txt, x;
@@ -324,7 +345,9 @@
               };
             })(this)
           };
-          value = eval(lispyScript._compile(text));
+          value = setLounge(env, function() {
+            return eval(lispyScript._compile(text));
+          });
           if (typeof value !== 'undefined') {
             writeValues(env, [value]);
           }
@@ -332,7 +355,7 @@
           err = _error;
           this.errorAt(0, err.message);
         }
-        return typeof cont === "function" ? cont(env) : void 0;
+        return typeof cont === "function" ? cont(value) : void 0;
       };
       return env;
     };
@@ -454,6 +477,9 @@
         return (ref = unescaped[c]) != null ? ref : c[1];
       });
     };
+    mergeExports({
+      evalLeisure: evalLeisure
+    });
     return {
       languageEnvMaker: languageEnvMaker,
       html: html,
@@ -464,7 +490,8 @@
       presentHtml: presentHtml,
       escapeString: escapeString,
       unescapeString: unescapeString,
-      evalLeisure: evalLeisure
+      evalLeisure: evalLeisure,
+      setLounge: setLounge
     };
   });
 

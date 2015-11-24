@@ -1,14 +1,14 @@
 Browser exports
 
     define ->
-      root = window.Leisure = window.Leisure ? {}
+      root = (window ? global).Leisure = (window ? global).Leisure ? {}
 
       mergeExports = (exports)->
         for k, v of exports
           root[k] = v
         exports
 
-      window.Leisure = root
+      (window ? global).Leisure = root
 
       root.mergeExports = mergeExports
 

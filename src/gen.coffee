@@ -67,6 +67,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     Monad2
     _true
     _false
+    _unit
     left
     right
     booleanFor
@@ -86,6 +87,8 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
   useArity = true
   #useArity = false
   megaArity = false
+  curDef = null
+  trace = false
 
   setMegaArity = (setting)-> megaArity = setting
 
@@ -213,17 +216,27 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
         if name == 'arity' && useArity && data > 1
           genArifiedLambda (getAnnoBody ast), names, uniq, data
         else
-          genned = genUniq (getAnnoBody ast), names, uniq
-          switch name
-            when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
-            when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
-            when 'define'
-              [funcName, arity, src] = data.toArray()
-              sn ast, "define('", funcName, "', (function(){return ", genned, "}), ", arity, ", ", JSON.stringify(src), ")"
-            when 'leisureName'
-              #console.log "DEFINE #{getAnnoData ast} = #{getApplyArg getAnnoBody ast}"
-              genned
-            else genned
+          try
+            if trace && name == 'leisureName'
+              oldDef = curDef
+              curDef = data
+            genned = genUniq (getAnnoBody ast), names, uniq
+            switch name
+              when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
+              when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
+              when 'define'
+                [funcName, arity, src] = data.toArray()
+                #sn ast, "define('", funcName, "', (function(){return ", genned, "}), ", arity, ", ", JSON.stringify(src), ")"
+                sn ast, "define('", funcName, "', lazify(ast, genned), ", arity, ", ", JSON.stringify(src), ")"
+              when 'leisureName'
+                #console.log "DEFINE #{getAnnoData ast} = #{getApplyArg getAnnoBody ast}"
+                genned
+                #if curDef
+                #  sn ast, 'function(){var old = L$thunkStack; var stack = (global ? window).L$thunkStack = L$thunkStack.slice(); stack.push("', data, '"); var ret = ', genned, '; (global ? window).L$thunkStack = old; return ret;}()'
+                #else genned
+              else genned
+          finally
+            if trace && name == 'leisureName' then curDef = oldDef
       else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
   genArifiedApply = (ast, names, uniq)->
@@ -262,7 +275,9 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     name = getLambdaVar ast
     u = addUniq name, names, uniq
     n = cons name, names
-    addLambdaProperties ast, sn ast, "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}"
+    if curDef
+      addLambdaProperties ast, sn ast, 'function(', (uniqName name, u), '){var old = ', genPushThunk(ast), '; var ret = ', (genUniq (getLambdaBody ast), n, u, 1), '; L$setThunkStack(old); return ret;}'
+    else addLambdaProperties ast, sn ast, 'function(', (uniqName name, u), '){return ', (genUniq (getLambdaBody ast), n, u, 1), '}'
 
   getLambdaArgs = (ast)->
     args = []
@@ -368,7 +383,36 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     def.properties = p
     def
 
-  lazify = (ast, func)-> sn ast, "function(){return ", func, "}"
+  (global ? window).L$thunkStack = []
+
+  (global ? window).L$convertError = (err, args)->
+    if !err.L_stack
+      console.log 'CONVERTING ERROR:', err
+      (global ? window).ERR = err
+      err.L_stack = args.callee.L$stack
+      err.L_args = args
+    err
+
+  (global ? window).L$pushThunk = (stack, entry)->
+    old = L$thunkStack
+    (global ? window).L$thunkStack = stack.slice(-9)
+    L$thunkStack.push entry
+    old
+
+  (global ? window).L$setThunkStack = (stack)->
+    (global ? window).L$thunkStack = stack
+
+  genPushThunk = (ast)->
+    [line, offset] = locateAst ast
+    "L$pushThunk((typeof stack == 'undefined' ? L$thunkStack : stack), '#{curDef}:#{line}:#{offset}')"
+
+  lazify = (ast, body)->
+    if curDef
+      #sn ast, '(function(){var stack = L$thunkStack; return function(){var old = L$thunkStack; L$setThunkStack(stack); var ret = ', body, '; L$setThunkStack(old); return ret;}})()'
+      sn ast, '(function(){var stack = L$thunkStack; return function(){var old = ', genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); return ret;}})()'
+    else sn ast, 'function(){return ', body, ';}'
+
+  #lazify = (ast, body)-> sn ast, 'function(){return ', body, ';}'
 
   dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
 
@@ -377,13 +421,13 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     if d instanceof Leisure_apply then lazify d, genUniq arg, names, uniq
     else if d instanceof Leisure_ref then genRefName d, uniq, names
     else if d instanceof Leisure_lit then sn arg, JSON.stringify getLitVal d
-    else if d instanceof Leisure_let then sn arg, "function(){return", (genUniq arg, names, uniq), ";}"
-    else if d instanceof Leisure_lambda then sn arg, "lazy(", (genUniq arg, names, uniq), ")"
-    else sn arg, "function(){return ", (genUniq arg, names, uniq), "}"
+    else if d instanceof Leisure_let then lazify arg, (genUniq arg, names, uniq)
+    else if d instanceof Leisure_lambda then sn arg, 'lazy(', (genUniq arg, names, uniq), ')'
+    else lazify arg, (genUniq arg, names, uniq)
 
   genLetAssign = (arg, names, uniq)->
-    if dumpAnno(arg) instanceof Leisure_let then sn arg, "function(){", (genLets arg, names, uniq), "}"
-    else sn arg, "function(){return ", (genUniq arg, names, uniq), "}"
+    if dumpAnno(arg) instanceof Leisure_let then lazify arg, (genLets arg, names, uniq)
+    else lazify arg, (genUniq arg, names, uniq)
 
   genLets = (ast, names, uniq)->
     bindings = letList ast, []
@@ -415,6 +459,14 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     else buf
 
   getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
+
+  define 'traceOff', new Monad2 'traceOff', (env, cont)->
+    trace = false
+    cont _unit
+
+  define 'traceOn', new Monad2 'traceOn', (env, cont)->
+    trace = true
+    cont _unit
 
   define 'runAst', ((code)->(ast)->
     new Monad2 'runAst', (env, cont)->

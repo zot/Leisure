@@ -2,7 +2,7 @@
 (function() {
   define(function() {
     var mergeExports, ref, root;
-    root = window.Leisure = (ref = window.Leisure) != null ? ref : {};
+    root = (typeof window !== "undefined" && window !== null ? window : global).Leisure = (ref = (typeof window !== "undefined" && window !== null ? window : global).Leisure) != null ? ref : {};
     mergeExports = function(exports) {
       var k, v;
       for (k in exports) {
@@ -11,7 +11,7 @@
       }
       return exports;
     };
-    window.Leisure = root;
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure = root;
     root.mergeExports = mergeExports;
     return {
       mergeExports: mergeExports

@@ -29,7 +29,7 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['./base', 'lib/lodash.min'], function(base, _) {
-    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, ref, ref1, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError;
+    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, ref, ref1, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError;
     ref1 = root = base, resolve = ref1.resolve, lazy = ref1.lazy, nsLog = ref1.nsLog;
     rz = resolve;
     lz = lazy;
@@ -514,6 +514,11 @@ misrepresented as being the original software.
     };
     partialCall = function(args) {
       return Leisure_primCall(args.callee, 0, args);
+    };
+    doPartial = function(args) {
+      if (isPartial(args)) {
+        return Leisure_primCall(args.callee, 0, args);
+      }
     };
     define = function(name, func, arity, src, method, namespace, isNew) {
       func.leisureName = name;
@@ -1007,6 +1012,7 @@ misrepresented as being the original software.
     root.isNil = isNil;
     root.isPartial = isPartial;
     root.partialCall = partialCall;
+    root.doPartial = doPartial;
     return root;
   });
 

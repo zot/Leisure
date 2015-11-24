@@ -28,13 +28,13 @@ misrepresented as being the original software.
   var slice = [].slice;
 
   define(['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], function(Base, Ast, Runtime, _, SourceMap) {
-    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceNode, _false, _true, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, strRepeat, uniqName, useArity, varNameSub, verboseMsg, withFile;
+    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceNode, _false, _true, _unit, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genPushThunk, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, strRepeat, trace, uniqName, useArity, varNameSub, verboseMsg, withFile;
     simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
     ref1 = root = Ast, nameSub = ref1.nameSub, getLitVal = ref1.getLitVal, getRefName = ref1.getRefName, getLambdaVar = ref1.getLambdaVar, getLambdaBody = ref1.getLambdaBody, getApplyFunc = ref1.getApplyFunc, getApplyArg = ref1.getApplyArg, getAnnoName = ref1.getAnnoName, getAnnoData = ref1.getAnnoData, getAnnoBody = ref1.getAnnoBody, getLetName = ref1.getLetName, getLetValue = ref1.getLetValue, getLetBody = ref1.getLetBody, Leisure_lit = ref1.Leisure_lit, Leisure_ref = ref1.Leisure_ref, Leisure_lambda = ref1.Leisure_lambda, Leisure_apply = ref1.Leisure_apply, Leisure_let = ref1.Leisure_let, Leisure_anno = ref1.Leisure_anno, setType = ref1.setType, setDataType = ref1.setDataType, cons = ref1.cons, Nil = ref1.Nil, define = ref1.define, functionInfo = ref1.functionInfo, getPos = ref1.getPos, isNil = ref1.isNil, getType = ref1.getType;
-    Monad2 = Runtime.Monad2, _true = Runtime._true, _false = Runtime._false, left = Runtime.left, right = Runtime.right, booleanFor = Runtime.booleanFor, newConsFrom = Runtime.newConsFrom, dumpMonadStack = Runtime.dumpMonadStack;
+    Monad2 = Runtime.Monad2, _true = Runtime._true, _false = Runtime._false, _unit = Runtime._unit, left = Runtime.left, right = Runtime.right, booleanFor = Runtime.booleanFor, newConsFrom = Runtime.newConsFrom, dumpMonadStack = Runtime.dumpMonadStack;
     consFrom = newConsFrom;
     SourceNode = SourceMap.SourceNode, SourceMapConsumer = SourceMap.SourceMapConsumer;
     varNameSub = function(n) {
@@ -42,6 +42,8 @@ misrepresented as being the original software.
     };
     useArity = true;
     megaArity = false;
+    curDef = null;
+    trace = false;
     setMegaArity = function(setting) {
       return megaArity = setting;
     };
@@ -188,7 +190,7 @@ misrepresented as being the original software.
       }
     };
     genUniq = function(ast, names, uniq, count) {
-      var arity, data, funcName, genned, name, ref2, src;
+      var arity, data, funcName, genned, name, oldDef, ref2, src;
       switch (ast.constructor) {
         case Leisure_lit:
           return sn(ast, JSON.stringify(getLitVal(ast)));
@@ -211,19 +213,29 @@ misrepresented as being the original software.
           if (name === 'arity' && useArity && data > 1) {
             return genArifiedLambda(getAnnoBody(ast), names, uniq, data);
           } else {
-            genned = genUniq(getAnnoBody(ast), names, uniq);
-            switch (name) {
-              case 'type':
-                return sn(ast, "setType(", genned, ", '", data, "')");
-              case 'dataType':
-                return sn(ast, "setDataType(", genned, ", '", data, "')");
-              case 'define':
-                ref2 = data.toArray(), funcName = ref2[0], arity = ref2[1], src = ref2[2];
-                return sn(ast, "define('", funcName, "', (function(){return ", genned, "}), ", arity, ", ", JSON.stringify(src), ")");
-              case 'leisureName':
-                return genned;
-              default:
-                return genned;
+            try {
+              if (trace && name === 'leisureName') {
+                oldDef = curDef;
+                curDef = data;
+              }
+              genned = genUniq(getAnnoBody(ast), names, uniq);
+              switch (name) {
+                case 'type':
+                  return sn(ast, "setType(", genned, ", '", data, "')");
+                case 'dataType':
+                  return sn(ast, "setDataType(", genned, ", '", data, "')");
+                case 'define':
+                  ref2 = data.toArray(), funcName = ref2[0], arity = ref2[1], src = ref2[2];
+                  return sn(ast, "define('", funcName, "', lazify(ast, genned), ", arity, ", ", JSON.stringify(src), ")");
+                case 'leisureName':
+                  return genned;
+                default:
+                  return genned;
+              }
+            } finally {
+              if (trace && name === 'leisureName') {
+                curDef = oldDef;
+              }
             }
           }
           break;
@@ -277,7 +289,11 @@ misrepresented as being the original software.
       name = getLambdaVar(ast);
       u = addUniq(name, names, uniq);
       n = cons(name, names);
-      return addLambdaProperties(ast, sn(ast, "function(", uniqName(name, u), "){return ", genUniq(getLambdaBody(ast), n, u, 1), "}"));
+      if (curDef) {
+        return addLambdaProperties(ast, sn(ast, 'function(', uniqName(name, u), '){var old = ', genPushThunk(ast), '; var ret = ', genUniq(getLambdaBody(ast), n, u, 1), '; L$setThunkStack(old); return ret;}'));
+      } else {
+        return addLambdaProperties(ast, sn(ast, 'function(', uniqName(name, u), '){return ', genUniq(getLambdaBody(ast), n, u, 1), '}'));
+      }
     };
     getLambdaArgs = function(ast) {
       var args;
@@ -434,8 +450,37 @@ misrepresented as being the original software.
       def.properties = p;
       return def;
     };
-    lazify = function(ast, func) {
-      return sn(ast, "function(){return ", func, "}");
+    (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = [];
+    (typeof global !== "undefined" && global !== null ? global : window).L$convertError = function(err, args) {
+      if (!err.L_stack) {
+        console.log('CONVERTING ERROR:', err);
+        (typeof global !== "undefined" && global !== null ? global : window).ERR = err;
+        err.L_stack = args.callee.L$stack;
+        err.L_args = args;
+      }
+      return err;
+    };
+    (typeof global !== "undefined" && global !== null ? global : window).L$pushThunk = function(stack, entry) {
+      var old;
+      old = L$thunkStack;
+      (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = stack.slice(-9);
+      L$thunkStack.push(entry);
+      return old;
+    };
+    (typeof global !== "undefined" && global !== null ? global : window).L$setThunkStack = function(stack) {
+      return (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = stack;
+    };
+    genPushThunk = function(ast) {
+      var line, offset, ref3;
+      ref3 = locateAst(ast), line = ref3[0], offset = ref3[1];
+      return "L$pushThunk((typeof stack == 'undefined' ? L$thunkStack : stack), '" + curDef + ":" + line + ":" + offset + "')";
+    };
+    lazify = function(ast, body) {
+      if (curDef) {
+        return sn(ast, '(function(){var stack = L$thunkStack; return function(){var old = ', genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); return ret;}})()');
+      } else {
+        return sn(ast, 'function(){return ', body, ';}');
+      }
     };
     dumpAnno = function(ast) {
       if (ast instanceof Leisure_anno) {
@@ -454,18 +499,18 @@ misrepresented as being the original software.
       } else if (d instanceof Leisure_lit) {
         return sn(arg, JSON.stringify(getLitVal(d)));
       } else if (d instanceof Leisure_let) {
-        return sn(arg, "function(){return", genUniq(arg, names, uniq), ";}");
+        return lazify(arg, genUniq(arg, names, uniq));
       } else if (d instanceof Leisure_lambda) {
-        return sn(arg, "lazy(", genUniq(arg, names, uniq), ")");
+        return sn(arg, 'lazy(', genUniq(arg, names, uniq), ')');
       } else {
-        return sn(arg, "function(){return ", genUniq(arg, names, uniq), "}");
+        return lazify(arg, genUniq(arg, names, uniq));
       }
     };
     genLetAssign = function(arg, names, uniq) {
       if (dumpAnno(arg) instanceof Leisure_let) {
-        return sn(arg, "function(){", genLets(arg, names, uniq), "}");
+        return lazify(arg, genLets(arg, names, uniq));
       } else {
-        return sn(arg, "function(){return ", genUniq(arg, names, uniq), "}");
+        return lazify(arg, genUniq(arg, names, uniq));
       }
     };
     genLets = function(ast, names, uniq) {
@@ -517,6 +562,14 @@ misrepresented as being the original software.
         return ast;
       }
     };
+    define('traceOff', new Monad2('traceOff', function(env, cont) {
+      trace = false;
+      return cont(_unit);
+    }));
+    define('traceOn', new Monad2('traceOn', function(env, cont) {
+      trace = true;
+      return cont(_unit);
+    }));
     define('runAst', (function(code) {
       return function(ast) {
         return new Monad2('runAst', function(env, cont) {
