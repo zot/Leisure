@@ -57,7 +57,7 @@
       return replaceWhile(start, end, text, data, function(repl) {
         var endLen, targetLen;
         if (end === -1) {
-          return editor.options.load(text);
+          return editor.options.load('emacs', text);
         } else {
           targetLen = data.getDocLength() - (end - start) + text.length;
           editor.options.makeStructureChange(start, end, text, repl);

@@ -620,7 +620,7 @@ may be called more than once.  changeData() returns a promise.
             @withNewContext =>
               for node in viewNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
-                if data = (block = @getBlock(node.attr 'data-view-block'))?.yaml
+                if data = (block = @blockForNode node)?.yaml
                   [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
                   renderView view, name, data, node, block
               for node in nameNodes.filter((n)=> !nb[@idForNode n])
@@ -629,6 +629,9 @@ may be called more than once.  changeData() returns a promise.
                   [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
                   renderView view, name, data, node, blk, blkName
           else super changes
+        blockForNode: (node)->
+          @getBlock(node.attr 'data-view-block') ||
+            @data.getBlockNamed(node.attr 'data-view-block-name')
         find: (sel)-> $(@editor.node).find sel
         findViewsForDefiner: (block, nodes)->
           if block

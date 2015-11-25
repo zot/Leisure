@@ -1019,7 +1019,7 @@
               for (q = 0, len3 = ref2.length; q < len3; q++) {
                 node = ref2[q];
                 node = $(node);
-                if (data = (ref3 = (block = _this.getBlock(node.attr('data-view-block')))) != null ? ref3.yaml : void 0) {
+                if (data = (ref3 = (block = _this.blockForNode(node))) != null ? ref3.yaml : void 0) {
                   ref5 = ((ref4 = $(node).attr('data-requested-view')) != null ? ref4 : '').split('/'), view = ref5[0], name = ref5[1];
                   renderView(view, name, data, node, block);
                 }
@@ -1044,6 +1044,10 @@
         } else {
           return OrgEditing.__super__.changed.call(this, changes);
         }
+      };
+
+      OrgEditing.prototype.blockForNode = function(node) {
+        return this.getBlock(node.attr('data-view-block')) || this.data.getBlockNamed(node.attr('data-view-block-name'));
       };
 
       OrgEditing.prototype.find = function(sel) {

@@ -1,3 +1,4 @@
+* TODO view changes aren't updating
 * TODO editable shapes in data blocks
 * TODO recursive lets don't work
 * TODO make a way to specify the "original contents" of a code block so you can reset it

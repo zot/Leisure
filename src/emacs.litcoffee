@@ -65,7 +65,7 @@ Emacs connection
         editor = data.emacsConnection.opts.editor
         replaceWhile start, end, text, data, (repl)->
           if end == -1
-            editor.options.load text
+            editor.options.load 'emacs', text
           else
             targetLen = data.getDocLength() - (end - start) + text.length
             editor.options.makeStructureChange start, end, text, repl
