@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
-    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, renderImage, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
+    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
@@ -152,9 +152,6 @@
           }
         });
       };
-      _.defaults(opts, {
-        renderImage: renderImage
-      });
       return changeAdvice(opts, true, {
         followLink: {
           emacs: function(parent) {
@@ -179,30 +176,34 @@
               }
             };
           }
+        },
+        renderImage: {
+          emacs: function(parent) {
+            return function(src, title, currentId) {
+              var imgId, name, ref, ref1;
+              if (name = (ref = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref[1] : void 0) {
+                con = this.data.emacsConnection;
+                imgId = currentId || ("emacs-image-" + (imgCount++));
+                sendGetFile(this.data, src, function(file) {
+                  var img;
+                  if (file && (img = $("#" + imgId)[0])) {
+                    return preserveSelection(function(range) {
+                      img.src = "data:" + (typeForFile(name)) + ";base64," + file;
+                      return img.onload = function() {
+                        img.removeAttribute('style');
+                        return con.imageSizes[name] = " style='height: " + img.height + "px; width: " + img.width + "px'";
+                      };
+                    });
+                  }
+                });
+                return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'" + ((ref1 = con.imageSizes[name]) != null ? ref1 : '') + ">";
+              } else {
+                return parent(src, title);
+              }
+            };
+          }
         }
       });
-    };
-    renderImage = function(src, title, currentId) {
-      var con, imgId, name, ref, ref1;
-      if (name = (ref = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref[1] : void 0) {
-        con = this.data.emacsConnection;
-        imgId = currentId || ("emacs-image-" + (imgCount++));
-        sendGetFile(this.data, src, function(file) {
-          var img;
-          if (file && (img = $("#" + imgId)[0])) {
-            return preserveSelection(function(range) {
-              img.src = "data:" + (typeForFile(name)) + ";base64," + file;
-              return img.onload = function() {
-                img.removeAttribute('style');
-                return con.imageSizes[name] = " style='height: " + img.height + "px; width: " + img.width + "px'";
-              };
-            });
-          }
-        });
-        return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'" + ((ref1 = con.imageSizes[name]) != null ? ref1 : '') + ">";
-      } else {
-        return "<img src='" + src + "' title='" + title + "'>";
-      }
     };
     typeForFile = function(name) {
       var ext, ignore, ref;

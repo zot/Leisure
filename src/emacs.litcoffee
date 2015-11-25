@@ -122,7 +122,6 @@ Emacs connection
         con.onerror = (evt)-> showMessage opts.editor.node, "Connection error", "Could not open connection to emacs",
           position: my: 'center top', at: 'center top'
           buttons: OK: -> $(this).dialog 'close'
-        _.defaults opts, {renderImage}
         changeAdvice opts, true,
           followLink: emacs: (parent)->(e)->
             if e.target.href.match /^elisp/
@@ -133,20 +132,19 @@ Emacs connection
             if @editor.blockForCaret()?.language.toLowerCase() of knownLanguages
               parent()
             else sendCcCc @editor.options.data.emacsConnection.websocket, @editor.docOffset(@editor.domCursorForCaret())
-
-      renderImage = (src, title, currentId)->
-        if name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
-          con = @data.emacsConnection
-          imgId = currentId || "emacs-image-#{imgCount++}"
-          sendGetFile @data, src, (file)->
-            if file && img = $("##{imgId}")[0]
-              preserveSelection (range)->
-                img.src = "data:#{typeForFile name};base64,#{file}"
-                img.onload = ->
-                  img.removeAttribute 'style'
-                  con.imageSizes[name] = " style='height: #{img.height}px; width: #{img.width}px'"
-          "<img id='#{imgId}' title='#{escapeAttr title}'#{con.imageSizes[name] ? ''}>"
-        else "<img src='#{src}' title='#{title}'>"
+          renderImage: emacs: (parent)->(src, title, currentId)->
+            if name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
+              con = @data.emacsConnection
+              imgId = currentId || "emacs-image-#{imgCount++}"
+              sendGetFile @data, src, (file)->
+                if file && img = $("##{imgId}")[0]
+                  preserveSelection (range)->
+                    img.src = "data:#{typeForFile name};base64,#{file}"
+                    img.onload = ->
+                      img.removeAttribute 'style'
+                      con.imageSizes[name] = " style='height: #{img.height}px; width: #{img.width}px'"
+              "<img id='#{imgId}' title='#{escapeAttr title}'#{con.imageSizes[name] ? ''}>"
+            else parent src, title
 
       typeForFile = (name)->
         [ignore,ext] = name.match /\.(.*)$/
