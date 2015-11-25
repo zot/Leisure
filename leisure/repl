@@ -21,9 +21,10 @@ if [ -n "$(expr "$(uname -s)" : '\(CYGWIN\|WIN\)')" ]; then
     $NODE --stack-size=$STACK $dir/build/src/runRepl "$@"
     #$NODE $dir/build/src/runRepl "$@"
 else
-    echo POSIX
-    dir=$(dirname $0)
+    dir=$(cd "$(dirname $0)"; pwd -P)
+    build=$(dirname $dir)/build
     inst=$dir/leisure/build
-    export NODE_PATH="$dir/lib:$dir/client:$inst/lib:$dir/packages/org:$inst/src:$inst/node_modules"
-    $NODE --stack-size=$STACK $inst/src/runRepl "$@"
+    export NODE_PATH="$build:$build/leisure:$build/lib:$build/node_modules:$dir/build/node_modules:$dir/build/lib"
+    NODE=$dir/build/runNode
+    $NODE --stack-size=$STACK $dir/build/src/runRepl "$@"
 fi
