@@ -125,13 +125,19 @@ misrepresented as being the original software.
   };
 
   errorString = function(err) {
-    var ref5;
+    var ref5, s;
     if (L$thunkStack) {
-      return L$thunkStack.toArray().join('\n');
+      s = L$thunkStack.join('\n   at ');
+      (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = [];
+      return err.toString() + ":\n   at " + s;
     } else {
       return (ref5 = err.stack) != null ? ref5 : err.toString();
     }
   };
+
+  process.on('uncaughtException', function(err) {
+    return console.log("Uncaught Exception: " + (errorString(err)));
+  });
 
   evalInput = function(text, cont) {
     var err, error, result;
@@ -143,7 +149,7 @@ misrepresented as being the original software.
           result = rz(L_newParseLine)(0)(lz(Nil))(lz(text));
         }
         return runMonad2(result, replEnv, function(ast) {
-          var err, error, ref5, source;
+          var err, error, source;
           try {
             if (getType(ast) === 'err') {
               return cont("PARSE ERORR: " + (getParseErr(ast)));
@@ -169,7 +175,7 @@ misrepresented as being the original software.
           } catch (error) {
             err = error;
             console.log('caught error');
-            return cont(rz(L_err)(lz((ref5 = err.stack) != null ? ref5 : err.toString())));
+            return cont(rz(L_err)(lz(errorString(err))));
           }
         });
       } catch (error) {

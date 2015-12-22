@@ -89,6 +89,9 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
   megaArity = false
   curDef = null
   trace = false
+  trace = true
+  #stackSize = 9
+  stackSize = 20
 
   setMegaArity = (setting)-> megaArity = setting
 
@@ -383,7 +386,50 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     def.properties = p
     def
 
+# The ThunkStack is a list of at most stackLimit items, using the
+# functional queue technique given in Purely Functional Data Structures
+# by Okasaki.  No need for a pop() operation here, just push() and items().
+
+  class ThunkStack
+    constructor: (@front, @back, @frontLen, @backLen)->
+    push: (item)->
+      if @backLen + @frontLen >= stackSize
+        if @backLen == 0 then new ThunkStack null, reverseThunks([item, @front])[1], 0, @frontLen
+        else new ThunkStack [item, @front], @back[1], @frontLen + 1, @backLen - 1
+      else new ThunkStack [item, @front], @back, @frontLen + 1, @backLen
+    items: ->
+      items = []
+      frontItems = []
+      stack = @back
+      while stack
+        items.push stack[0]
+        stack = stack[1]
+      stack = @front
+      while stack
+        frontItems.push stack[0]
+        stack = stack[1]
+      items.concat frontItems.reverse()
+
+  (global ? window).L$emptyThunkStack = new ThunkStack null, null, 0, 0
+
+  reverseThunks = (stack)->
+    result = null
+    while stack
+      result = [stack[0], result]
+      stack = stack[1]
+    result
+
+  #(global ? window).L$thunkStack = L$emptyThunkStack
+
   (global ? window).L$thunkStack = []
+
+  #(global ? window).L$convertError = (err, args)->
+  #  if !err.L_stack
+  #    console.log 'CONVERTING ERROR:', err
+  #    (global ? window).ERR = err
+  #    err.L_stack = args.callee.L$stack.items()
+  #    err.L_args = args
+  #  err
 
   (global ? window).L$convertError = (err, args)->
     if !err.L_stack
@@ -393,10 +439,15 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
       err.L_args = args
     err
 
+  #(global ? window).L$pushThunk = (stack, entry)->
+  #  old = L$thunkStack
+  #  (global ? window).L$thunkStack = stack.push entry
+  #  old
+
   (global ? window).L$pushThunk = (stack, entry)->
     old = L$thunkStack
-    (global ? window).L$thunkStack = stack.slice(-9)
-    L$thunkStack.push entry
+    (global ? window).L$thunkStack = stack.slice(Math.max(0, stack.length - 9))
+    stack.push entry
     old
 
   (global ? window).L$setThunkStack = (stack)->
@@ -404,12 +455,11 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
 
   genPushThunk = (ast)->
     [line, offset] = locateAst ast
-    "L$pushThunk((typeof stack == 'undefined' ? L$thunkStack : stack), '#{curDef}:#{line}:#{offset}')"
+    "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '#{curDef}:#{line}:#{offset}')"
 
   lazify = (ast, body)->
     if curDef
-      #sn ast, '(function(){var stack = L$thunkStack; return function(){var old = L$thunkStack; L$setThunkStack(stack); var ret = ', body, '; L$setThunkStack(old); return ret;}})()'
-      sn ast, '(function(){var stack = L$thunkStack; return function(){var old = ', genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); return ret;}})()'
+      sn ast, '(function(){var stack = L$thunkStack; var f = function(){var old = ', genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()'
     else sn ast, 'function(){return ', body, ';}'
 
   #lazify = (ast, body)-> sn ast, 'function(){return ', body, ';}'

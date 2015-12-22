@@ -608,6 +608,8 @@ convertStringEscape char codes values =
 #          strAt str 0
 #          rest
 
+
+# CONVERT THIS TO USE RECUR
 convertStringEscapes orig str cont = \\
   res = _convertStringEscapes orig str
   .
@@ -635,6 +637,25 @@ _convertStringEscapes orig str =
           strAdd
             strAt str 0
             rest
+
+#convertStringEscapes orig str cont = \\
+#  res = withRecur (_convertStringEscapes orig str '')
+#  .
+#  hasType res parseErr
+#    res
+#    cont res
+#
+#_convertStringEscapes orig str result =
+#  eq str '' result
+#    eq (strAt str 0) '\\'
+#      eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
+#        recur
+#          _convertStringEscapes orig (strSubstring str 2 0)
+#            strAdd result
+#              convertStringEscape (strAt str 1) backslashCodes backslashValues
+#      recur
+#        _convertStringEscapes orig (strSubstring str 1 0)
+#          strAdd result (strAt str 0)
 
 parseString str cont =
   neq (strAt str 0) (strAt str -1) (parseErr "Badly terminated string: " str)

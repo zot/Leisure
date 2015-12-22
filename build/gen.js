@@ -28,7 +28,7 @@ misrepresented as being the original software.
   var slice = [].slice;
 
   define(['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], function(Base, Ast, Runtime, _, SourceMap) {
-    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceNode, _false, _true, _unit, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genPushThunk, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, strRepeat, trace, uniqName, useArity, varNameSub, verboseMsg, withFile;
+    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceNode, ThunkStack, _false, _true, _unit, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genPushThunk, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, reverseThunks, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, stackSize, strRepeat, trace, uniqName, useArity, varNameSub, verboseMsg, withFile;
     simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog;
     rz = resolve;
     lz = lazy;
@@ -44,6 +44,8 @@ misrepresented as being the original software.
     megaArity = false;
     curDef = null;
     trace = false;
+    trace = true;
+    stackSize = 20;
     setMegaArity = function(setting) {
       return megaArity = setting;
     };
@@ -450,6 +452,56 @@ misrepresented as being the original software.
       def.properties = p;
       return def;
     };
+    ThunkStack = (function() {
+      function ThunkStack(front, back, frontLen, backLen) {
+        this.front = front;
+        this.back = back;
+        this.frontLen = frontLen;
+        this.backLen = backLen;
+      }
+
+      ThunkStack.prototype.push = function(item) {
+        if (this.backLen + this.frontLen >= stackSize) {
+          if (this.backLen === 0) {
+            return new ThunkStack(null, reverseThunks([item, this.front])[1], 0, this.frontLen);
+          } else {
+            return new ThunkStack([item, this.front], this.back[1], this.frontLen + 1, this.backLen - 1);
+          }
+        } else {
+          return new ThunkStack([item, this.front], this.back, this.frontLen + 1, this.backLen);
+        }
+      };
+
+      ThunkStack.prototype.items = function() {
+        var frontItems, items, stack;
+        items = [];
+        frontItems = [];
+        stack = this.back;
+        while (stack) {
+          items.push(stack[0]);
+          stack = stack[1];
+        }
+        stack = this.front;
+        while (stack) {
+          frontItems.push(stack[0]);
+          stack = stack[1];
+        }
+        return items.concat(frontItems.reverse());
+      };
+
+      return ThunkStack;
+
+    })();
+    (typeof global !== "undefined" && global !== null ? global : window).L$emptyThunkStack = new ThunkStack(null, null, 0, 0);
+    reverseThunks = function(stack) {
+      var result;
+      result = null;
+      while (stack) {
+        result = [stack[0], result];
+        stack = stack[1];
+      }
+      return result;
+    };
     (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = [];
     (typeof global !== "undefined" && global !== null ? global : window).L$convertError = function(err, args) {
       if (!err.L_stack) {
@@ -463,8 +515,8 @@ misrepresented as being the original software.
     (typeof global !== "undefined" && global !== null ? global : window).L$pushThunk = function(stack, entry) {
       var old;
       old = L$thunkStack;
-      (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = stack.slice(-9);
-      L$thunkStack.push(entry);
+      (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = stack.slice(Math.max(0, stack.length - 9));
+      stack.push(entry);
       return old;
     };
     (typeof global !== "undefined" && global !== null ? global : window).L$setThunkStack = function(stack) {
@@ -473,11 +525,11 @@ misrepresented as being the original software.
     genPushThunk = function(ast) {
       var line, offset, ref3;
       ref3 = locateAst(ast), line = ref3[0], offset = ref3[1];
-      return "L$pushThunk((typeof stack == 'undefined' ? L$thunkStack : stack), '" + curDef + ":" + line + ":" + offset + "')";
+      return "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '" + curDef + ":" + line + ":" + offset + "')";
     };
     lazify = function(ast, body) {
       if (curDef) {
-        return sn(ast, '(function(){var stack = L$thunkStack; return function(){var old = ', genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); return ret;}})()');
+        return sn(ast, '(function(){var stack = L$thunkStack; var f = function(){var old = ', genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()');
       } else {
         return sn(ast, 'function(){return ', body, ';}');
       }

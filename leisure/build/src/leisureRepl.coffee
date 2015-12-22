@@ -131,8 +131,15 @@ replEnv.__proto__ = defaultEnv
 getParseErr = (x)-> x lz (value)->rz value
 
 errorString = (err)->
-  if L$thunkStack then L$thunkStack.toArray().join '\n'
+  if L$thunkStack
+    #s = L$thunkStack.items().join '\n   at '
+    s = L$thunkStack.join '\n   at '
+    (global ? window).L$thunkStack = []
+    err.toString() + ":\n   at " + s
   else err.stack ? err.toString()
+
+process.on 'uncaughtException', (err)->
+  console.log "Uncaught Exception: #{errorString err}"
 
 evalInput = (text, cont)->
   if text
@@ -160,7 +167,7 @@ evalInput = (text, cont)->
             runMonad2 result, replEnv, cont
         catch err
           console.log 'caught error'
-          cont rz(L_err)(lz (err.stack ? err.toString()))
+          cont rz(L_err)(lz (errorString err))
     catch err
       cont rz(L_err)(lz (errorString err))
   else cont ''

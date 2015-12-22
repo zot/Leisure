@@ -18,11 +18,11 @@
     imgCount = 0;
     fileCount = 0;
     fileTypes = {
-      pgn: 'image/png',
+      png: 'image/png',
       gif: 'image/gif',
       bmp: 'image/bmp',
       xpm: 'image/xpm',
-      svg: 'image/svg'
+      svg: 'image/svg+xml'
     };
     diag = function() {
       var msg;

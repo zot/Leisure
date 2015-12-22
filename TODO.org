@@ -1,3 +1,10 @@
+* BUG search is broken
+* BUG changing hidden from true to false is not updating properly
+* BUG splitting a dynamic code block in Emacs causes problems in Leisure
+* BUG splitting a code block directly above a dynamic one in Emacs causes problems in Leisure
+* BUG toggling show/hide in slide mode dies
+* BUG problem editing headline in slide mode
+* BUG search not updating
 * TODO view changes aren't updating
 * TODO editable shapes in data blocks
 * TODO recursive lets don't work
@@ -12,7 +19,6 @@
 * TODO confirm before disconnect
 * TODO tabs should collapse
 * TODO convert Lounge source to Lounge documents
-* BUG changing hidden from true to false is not updating properly
 * TODO infer data types
 * TODO show views by default
 * TODO single-document monoliths (base-64 inlined parts)
@@ -21,7 +27,6 @@
 - videos
 ** Let people explode the documents into directories/zip files
 * TODO tags
-* TODO search is broken
 * TODO changes to view definitions don't cause updates
 * TODO bring back imports
 * TODO make sessions sticky so masters can reload and slaves can take over if master leaves
@@ -51,9 +56,6 @@ inspector button on code scope
 * TODO Tool to find defs and controllers from views
 * TODO nice text color against white bgnd: #4D4D4C
 * TODO time slider (use undo/redo)
-* BUG splitting a dynamic code block in Emacs causes problems in Leisure
-* BUG splitting a code block directly above a dynamic one in Emacs causes problems in Leisure
-* BUG toggling show/hide in slide mode dies
 * TODO convert source to Leisure files
 * TODO announcement form
 - melpa package
@@ -81,13 +83,11 @@ hides cruft so you can just look at the code
 * TODO Check out [[https://disqus.com/][disqus]] for code comments [[https://disqus.com/api/docs/requests/][disqus api]]
 * TODO extract doc strings between name and begin_src
 * TODO extract doc strings from sourcemap, before code
-* BUG problem editing headline in slide mode
 * TODO get toolbar theming working (at least get steampunk toolbar to work)
 * TODO widgets for Emacs demo
 * TODO code block views (replace whole code block)
 * TODO code result views (replace results area)
 * TODO updating
-* BUG search not updating
 * TODO teach minimal updates about top-level headlines
 * TODO move leisure stuff out of METEOR-OLD
 * TODO make errors insert into highlighted syntax (check out Prism's [[http://prismjs.com/extending.html#writing-plugins][hooks]])
