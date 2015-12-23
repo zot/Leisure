@@ -1,0 +1,5 @@
+toksFor file = do
+  tokenPat <- getValue 'tokenPat'
+  strOpt <- readFile file
+  str <- strOpt
+  map tokenString (tokens str tokenPat)

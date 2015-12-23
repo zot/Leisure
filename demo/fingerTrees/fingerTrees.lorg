@@ -1,0 +1,194 @@
+* Settings
+:properties:
+:hidden: true
+:end:
+
+#+BEGIN_SRC coffee :results def
+window.FT = require './lib/fingertree'
+window.app = {}
+#+END_SRC
+* Fun With Finger Trees!
+* Weird name, what is it?
+[[finger-tree-3.png]]
+* What? That name...
+** Take a tree...
+[[finger-tree-1.png]]
+* What? That name...
+** Fold it in half along the spine...
+[[finger-tree-2.png]]
+* What? That name...
+** Index the path with "fingers"
+[[finger-tree-3.png]]
+* Why do people use them?
+* Why? A persistent "measured sequence"
+** Alternative to lists
+** Random access
+** Very good performance for these operations:
+*** push at both ends
+*** pop at both ends
+*** split based on a value
+*** concat
+*** insert
+*** delete
+*** reverse
+* Why? Sequence, concat...
+** Wait, concatenate trees?  Huh?
+
+** Finger trees are *SEQUENCES* that are just implemented as trees
+
+** Bulk operations on finger trees perform well (split/concat)
+* Why? Sequence, Concat...
+** Concat for large stock sequences tends to be wasteful
+*** Lisp cons-list concat: O(N)
+*** Clojure vector concat: O(N)
+** Finger tree concat is fast
+*** Finger tress O(log N)
+* Why? Sequence, split...
+** Split gives you random access!
+** Returns two trees
+*** You can randomly access and alter each tree
+** Insert is easy: Split + push + concat
+** DELETE is easy: Split + pop + concat
+*** Repeat: DELETE is easy!
+**** Say bye-bye to THAT fear and loathing...
+* Why? Sequence, "measured"?
+** Caches a "measurement" at each level, providing O(log N) lookup
+[[finger-tree-1.png]]
+* Why? Sequence, "measured"?
+** Measurements merge and cascade up
+[[finger-tree-1-measured.png]]
+* Why? Why? Why? Swiss Army, baby!
+** Because pluggable!
+* Why? Why? Why? Swiss Army, baby!
+** FANTASTIC for ad hoc measured sequences
+** many people just use lists/vectors for ad hoc structures
+*** better performance
+* How do you use it?
+** You provide:
+*** Measure(element): produce a measurement based on a sequence element
+*** Identity(): the "zero" measurement for empty trees
+*** Sum(measure1, measure2): produce a measurement based on two other measurements
+(FYI: these last two make it a monoid)
+* How? Split...
+** Given a measurement test function, it returns two finger trees
+*** All of the initial items that don't pass the test
+*** The rest of the tree (starting with the first that passes the test)
+** You provide the measurement function at creation
+*** Each finger tree has specialized access
+* How? Access the Nth element?  Easy!
+** Here's a "get nth element-able" measurement definition
+#+BEGIN_SRC cs :results def
+app.t = FT.fromArray 'abcdefghijklmnopqrstuvwxy',
+  measure: (n)-> 1
+  identity: -> 0
+  sum: (a, b)-> a + b
+
+app.getNth = (tree, i)->
+  [first, rest] = tree.split (n)-> n > i
+  rest.peekFirst()
+#+END_SRC
+** Test it...
+#+BEGIN_SRC cs :results dynamic
+app.getNth app.t, 2
+#+END_SRC
+
+* How? Ropes...
+#+BEGIN_SRC cs :results def
+app.s = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', 'iiiii', 'jjj'],
+  measure: (n)-> n.length
+  identity: -> 0
+  sum: (a, b)-> a + b
+
+app.stringAtPos = (tree, pos)->
+  [first, rest] = tree.split (p)-> p > pos
+  rest.peekFirst()
+#+END_SRC
+
+#+BEGIN_SRC cs :results dynamic
+app.stringAtPos app.s, 0
+#+END_SRC
+
+* How? Ropes AND get Nth string?
+#+BEGIN_SRC cs :results def
+app.s2 = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', 'iiiii', 'jjj'],
+  measure: (n)-> count: 1, length: n.length
+  identity: -> count: 0, length: 0
+  sum: (a, b)-> count: a.count + b.count, length: a.length + b.length
+
+app.getNth2 = (tree, i)->
+  [first, rest] = tree.split ({count})-> count > i
+  rest.peekFirst()
+app.stringAtPos2 = (tree, pos)->
+  [first, rest] = tree.split ({length})-> length > pos
+  rest.peekFirst()
+#+END_SRC
+
+#+BEGIN_SRC cs :results dynamic
+app.getNth2 app.s2, 0
+app.stringAtPos2 app.s2, 0
+#+END_SRC
+
+* Back to "Why?" Good performance
+** split/concat: O(log N)
+** push/pop at either end: O(1)
+** insert: O(log N) (split + push + concat)
+** delete: O(log N) (split + pop + concat)
+** reverse: O(1)
+* Why? Performance comparison
+** This slide is from the [[http://comonad.com/reader/2010/finger-trees/#more-174][Comonad Reader Finger Tree talk]] (QR code at end)
+[[FingerTrees-performance.png]]
+* Why? Disclaimer
+** 3-5 times slower than the best balanced binary search trees
+** According to the [[http://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf][Hinze-Paterson paper]] (QR code at end)
+* Why? THREE to FIVE times slower?!?
+** Maybe you need to do more than just search?
+** Maybe you don't have one on hand the does exactly what you need?
+* What? A persistent "measured sequence"
+** The measurements cache up the tree, providing O(log N) lookup
+* What? Persistent?
+** persistent data structures are "functional"
+** old versions don't change
+** modifying them produces a new data structure that reuses old parts
+** very useful for concurrency
+** works well in functional environments
+* What do peeps use them for?
+** Yi (Haskell Emacs-like editor) uses them to implement text buffers
+* Use? To implement many of Okasaki's data structures (maybe all of them)
+[[http://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf][Finger trees: a simple general-purpose data structure]], by Hinze & Paterson
+* Me? Leisure uses them in several places
+
+** Block index
+
+*** Find block ID by offset
+
+#+BEGIN_SRC cs :results dynamic
+ED.options.data.blockForOffset 67
+#+END_SRC
+
+*** Find block offset by ID
+
+#+BEGIN_SRC cs :results dynamic
+ED.options.data.offsetForBlock 'block2'
+#+END_SRC
+
+** Floating marks
+
+*** Like EMACS floating marks
+
+*** Needed by value sliders (to continue working during collaboration)
+
+** Sets of textual replacements
+
+* History of finger trees
+* History: First published in 1977, by Guibas, McCreight, Plass, and Roberts
+
+** An alternative representation for lists (as opposed to cons-lists)
+* History: Refined here and there
+* History: Hinze/Paterson Finger Trees published in 2006
+* QR Codes
+** This talk
+
+** Hinze-Paterson paper
+[[FingerTree-paper-url.png]]
+** Comonad Reader Finger Tree Talk
+[[FingerTrees-performance-url.png]]

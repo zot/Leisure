@@ -1,0 +1,62 @@
+* Leisure Documents: Colaborative Documents as Computers
+* [[index.html?load=demo/posts.lorg][Posts]]
+:properties:
+:note: sidebar
+:end:
+* No difference between "development time" and "run time"
+
+** Just like a computer
+
+** Or like Smalltalk (which is a virtual machine, a type of computer)
+
+** Collaborative for developers and users
+
+* Documents are just text, though
+
+** Platform renders the text
+
+** Plays very nicely with version control
+
+** Human readable data (usually)
+
+* The document is the machine
+
+** Can copy the document to copy the machine
+
+** Orgmode file
+
+*** external/inlined images and other media
+
+*** HTML blocks
+
+** Code
+
+** Data
+
+** Views
+
+** Controls
+
+* Can import other documents
+
+** Can "freeze" imports
+
+*** "Frozen" imports are copied (uuencoded and inlined)
+
+*** Protect from changes
+
+** Imported data is copy-on-write
+
+*** Changed, imported data is copied into the document
+
+* Tools for collaboration
+
+** Local data (copy-on-write)
+
+*** When a user changes it, they get their own private data
+
+** Combine STM with Collaboration
+
+*** "Protects" a region during a change
+
+*** Retries the change if the region had been altered changed

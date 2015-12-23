@@ -1,0 +1,22 @@
+testSingleCondition cv dv item myloc bf carryCount counter =
+  (eq cv 1)
+    (eq (at item ITEM_LOCATION) CARRIED)   # player has an item     #if(Items[dv].Location!=CARRIED) return(0);
+    (eq cv 2)
+      (eq (at item ITEM_LOCATION) myloc)   # item is in room   # if(Items[dv].Location!=MyLoc) return(0);
+      (eq cv 3)
+        (or (eq (at item ITEM_LOCATION) CARRIED) (eq (at item ITEM_LOCATION) myloc))    # item is available to player # if(Items[dv].Location!=CARRIED&& Items[dv].Location!=MyLoc) return(0);
+        (eq cv 4)
+          (eq myloc dv)   # is player in room  # if(MyLoc!=dv) return(0);
+          (eq cv 5)
+            (neq (at item ITEM_LOCATION) myloc)  # is item not in this room   # if(Items[dv].Location==MyLoc) return(0);
+            (eq cv 6)
+              (neq (at item ITEM_LOCATION) CARRIED)   # if player doesnt have the item # if(Items[dv].Location==CARRIED) return(0);
+              (eq cv 7)
+                (neq myloc dv)  # is player is not in room # if(MyLoc==dv) return(0);
+                (eq cv 8)
+                  (at bf dv)    # is bit set   # if((BitFlags&(1<<dv))==0) return(0);     
+                  (eq cv 9)
+                    (not (at bf dv))   #is bit clear   # if(BitFlags&(1<<dv)) return(0);      
+                    (eq cv 10)
+                      (neq carryCount 0)   # if player has something  #if(CountCarried()==0) return(0);
+                      testSingleCondition2 cv dv item myloc bf carryCount counter

@@ -1,0 +1,30 @@
+* editor-client.js
+** EditorClient(revision, clients, serverAdapter, editorAdapter)
+ Central API object
+ observes editorAdapter by sending registerCallbacks() message
+ observes serverAdapter by sending registerCallbacks() message
+*** onChange(op, inv)
+ Called from editorAdapter 'change' trigger
+*** applyServer(op)
+ Called from serverAdapter 'operation' trigger
+** editorAdapter
+*** registerCallbacks({change:((op, inv)->), selectionChange:(->), blur:(->))
+*** registerUndo(->)
+*** registerRedo(->)
+*** getValue()
+*** applyOperation(op)
+make text replacements in operation
+*** getSelection()
+*** setSelection(sel)
+*** setOtherSelection(sel, color, id)
+* editor-socketio-server.js
+** serverAdapter
+*** sendSelection
+*** registerCallbacks
+- client_left(clientId)
+- set_name(clientId, name)
+- ack()
+- operation(op)
+- selection(clientId, selection)
+- clients({CLIENT_ID: {name: NAME, selection: SELECTION_JSON}}})
+- reconnect (unused for websockets I think)

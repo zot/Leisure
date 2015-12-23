@@ -1,0 +1,129 @@
+body {
+    position: relative;
+    min-height: 25em;
+}
+a:hover {
+    background-color: lightyellow;
+}
+.plain {
+    white-space: pre;
+}
+.plain * {
+    white-space: pre;
+}
+.hiddenTextField {
+    position: absolute;
+    top: -1000px;
+}
+.expandable-panel {
+    display: inline-block;
+    position: relative;
+}
+.expandable-panel.expand,
+.expandable-panel:hover:not(.contract)
+{
+    position: absolute;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+.expandable-panel.expand > .contents,
+.expandable-panel:hover:not(.contract) > .contents
+{
+    padding-left: 1ex;
+    width: 100%;
+    transition: width 1s;
+    -webkit-transition: width 1s;
+}
+.expandable-panel.expand > .contents,
+.expandable-panel:hover:not(.contract) > .contents {
+    display: inherit;
+}
+.expandable-panel.expand > .label,
+.expandable-panel:hover:not(.contract) > .label {
+    display: none;
+}
+.expandable-panel > .contents {
+    display: none;
+    width: 0;
+    overflow: hidden;
+}
+.errorMark {
+    color: red;
+    position: absolute;
+    opacity: 0.3;
+}
+.plain .errorMark {
+    z-index: -1;
+}
+.error {
+    color: red;
+}
+#globalLoad {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: lightblue;
+    text-align: center;
+}
+.plain-headline {
+    font-weight: bold;
+    color: green;
+}
+.org-properties {
+    white-space: pre-line
+}
+.structure,
+.selectionInfo {
+    display: none;
+}
+.diag.structure,
+.editorDiag.diag .selectionInfo {
+    display: inherit;
+}
+.editorErrors,
+.dataErrors {
+    color: red;
+}
+.selectionInfo {
+    border: solid green 2px;
+    margin-top: 5px;
+}
+.structure {
+    margin-top: 5px;
+    border: solid orange 2px;
+    white-space: pre;
+    overflow: auto;
+    height: 15em;
+}
+[data-headline] {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
+.org-chunk {
+    white-space: normal !important;
+}
+.line-break {
+    display: inline-block;
+    break-after: always;
+}
+.token.number:hover {
+    outline: solid black 1px;
+}
+[name=valueSlider] {
+    display: inline-block;
+    position: absolute !important;
+    width: 8em;
+}
+.unknown-language {
+    font-family: Courier;
+}
+.example {
+    display: inline-block;
+    font-family: Courier;
+    white-space: pre;
+}

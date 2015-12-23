@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "testPeerMain.js",
+  "sourceRoot": "..",
+  "sources": [
+    "server\\testPeerMain.litcoffee"
+  ],
+  "names": [],
+  "mappings": ";AAAI;EAAA,OAAA,CAAQ,CAAC,UAAD,EAAa,YAAb,CAAR,EAAoC,SAAA,GAAA,CAApC;AAAA"
+}

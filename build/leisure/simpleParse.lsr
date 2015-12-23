@@ -1,0 +1,1332 @@
+setNameSpace 'core'
+
+#########################################################################
+#                                                                       #
+# This is the base Leisure Parser                                       #
+# It doesn't use macros or parse filters, because it defines them       #
+#                                                                       #
+# Steps that make uses to build the parser:                             #
+#                                                                       #
+# 1) Use simpleParseJS.coffee to compile simpleParse.lsr                #
+#    This creates the base Leisure parser                               #
+# 2) Catenate simpleParse.lsr + simpleParse2.lsr > generatedPrelude.lsr #
+#    This creates the full Leisure parser                               #
+#                                                                       #
+#########################################################################
+
+#############
+# IO SUPPORT
+#############
+
+isMonad x = or (eq (getType x) 'monad') (eq (getType x) 'monad2')
+
+asIO x = x
+fakereturn x = x
+wrap x = x
+
+############
+# Trampolines
+############
+
+recur x = \f . f x
+
+# example
+# subRLen list n = isNil list n (recur (subRLen (tail list) (++n)))
+# rlen list = withRecur (subRLen list 0)
+
+############
+# LOGIC
+############
+
+true = \a b . a
+false = \a b . b
+not b = b false true
+and a b = a b false
+&& = and
+or a b = a true b
+|| = or
+some x = \someCase noneCase . someCase x
+some2 a b = \someCase noneCase . someCase a b
+none = \someCase noneCase . noneCase
+isNone obj = hasType obj none
+isSome obj = hasType obj some
+isSome2 obj = hasType obj some2
+isOption obj = or (isSome obj) (isNone obj)
+neq a b = not (eq a b)
+left x = \lCase rCase . lCase x
+right x = \lCase rCase . rCase x
+isEither obj = or (hasType obj left) (hasType obj right)
+
+######################
+# DATA
+######################
+
+isString s = == (getType s) '*string'
+isNumber s = == (getType s) '*number'
+
+######################
+# STRING TYPE CHECKS
+######################
+
+strAsc string = _strAsc (assertType 'strAsc string' '*string' string)
+strChr ascii = _strChr (assertType 'strChr string' '*number' ascii)
+strAt string index = _strAt
+  assertType 'strAt string' '*string' string
+  assertType 'strAt index' '*number' index
+strStartsWith string prefix = _strStartsWith
+  assertType 'strStartsWith string' '*string' string
+  assertType 'strStartsWith prefix' '*string' prefix
+strLen string = _strLen (assertType 'strLen string' '*string' string)
+strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' '*string' string)
+strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' '*string' string)
+strReplace string pat repl = _strReplace
+  assertType 'strReplace string' '*string' string
+  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+  assertType 'strReplace repl' '*string' repl
+strSubstring str start end = _strSubstring
+  assertType 'strSubstring str' '*string' str
+  assertType 'strSubstring start' '*number' start
+  assertType 'strSubstring end' '*number' end
+strSplit str pat = _strSplit
+  assertType 'strSplit str' '*string' str
+  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+strCat list = _strCat
+  assert (isList list) (strCat (cons 'strCat list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
+strAdd str1 str2 = _strAdd (assertType 'strAdd str1' '*string' str1) (assertType 'strAdd str2' '*string' str2)
+strMatch str pat = _strMatch
+  assertType 'strMatch str' '*string' str
+  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+strToList str = _strToList (assertType 'strToList str' '*string' str)
+strFromList list = _strFromList
+  assert (isList list) (strCat (cons 'strFromList list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
+regexp str = _regexp (assertType 'regexp str' '*string' str)
+regexpFlags str flags = _regexpFlags
+  assertType 'regexp str' '*string' str
+  assertType 'regexp flags' '*string' flags
+jsonParse str failure success = _jsonParse
+  assertType 'jsonParse str' '*string' str
+  failure
+  success
+
+############
+# UTILS
+############
+
+show x = _show x
+equal x y = eq x y
+
+############
+# FUNCTIONS
+############
+
+id x = x
+unit = \x . x
+compose f g = \x . f (g x)
+
+# make a new function that takes two args in opposite order than the original function
+# eq. flip cons nil 1 gives cons: [1]
+flip func = \x y . func y x
+
+# The Y combinator, for reference
+#
+# Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+# rec = \f . f (Y f)
+
+##############
+# CONS LISTS
+##############
+
+## withCons is like a safe version of a cons
+withCons l nilCase cont = isCons l (l (\h t D . cont h t) nilCase) nilCase
+
+cons a b = \f . f a b
+isCons c = hasType c cons
+isList l = or (hasType l cons) (hasType l nil)
+assertType msg type value = assert (hasType value type) (strCat (cons msg (cons ' should be type ' (cons (getDataType type) (cons ', but its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))))) value
+# nil is the same as false, but it's useful separate as a marker
+nil = \a b . b
+isNil n = hasType n nil
+head l = l \h t . h
+tail l = l \h t . t
+last l = isNil (tail l)
+  head l
+  last (tail l)
+removeLast l = isNil (tail l)
+  nil
+  cons (head l) (removeLast (tail l))
+length list = isCons list
+  + 1 (length (tail list))
+  assert (hasType list nil) (strCat (cons "length argument is not a proper list: " (cons list nil))) 0
+append a b = isNil a
+  b
+  cons (head a) (append (tail a) b)
+flatten list = isCons list
+  subflatten list nil
+  list
+subflatten list result = isNil list
+  result
+  isCons list
+    subflatten (head list) (subflatten (tail list) result)
+    cons list result
+reverse l = rev l nil
+rev l result = isNil l
+  result
+  rev (tail l) (cons (head l) result)
+filter func list = isNil list
+  nil
+  func (head list) (cons (head list)) id (filter func (tail list))
+find predicate list = isNil list
+  none
+  predicate (head list) (some (head list)) (find predicate (tail list))
+contains list item = find (\el . eq el item) list (\x . true) false
+
+# make a new list by applying func (which takes exactly 1 arg) to each element of list
+# eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
+map func l = isCons l
+  cons (func (head l)) (map func (tail l))
+  l
+
+# map, but preserve the old list where possible, so that == works on it
+mapSave func l = isNil l
+  nil
+  \\
+    newH = func (head l)
+    newT = mapSave func (tail l)
+    .
+    and (eq newH (head l)) (eq newT (tail l))
+      l
+      cons newH newT
+
+# foldl (\prev el . ...) list
+# foldr (\el prev . ...) list
+# call func on list items and previous result of the fold
+# foldl is left-recursive, starting at the beginning of the list and proceding forward
+# foldr is right-recursive, starting at the end of the list and processing backward
+# foldr can work on infinite lists, but foldl cannot
+foldl func initialValue l = l (\h t D . foldl func (func initialValue h) t) initialValue
+foldl1 func l = l \h t . foldl func h t
+foldr func initialValue list = list
+  \h t D . func h (foldr func initialValue t)
+  initialValue
+foldr1 func list = list \h t . isNil t
+  h
+  func h (foldr1 func t)
+
+intersperse list element = list (\h t D .
+  isNil t
+    list
+    cons h (cons element (intersperse t element))) nil
+
+join list el = strCat (intersperse list el)
+findIndex func list = idx list func 0
+idx list func pos = list
+  \h t D . func h
+    pos
+    idx t func (+ 1 pos)
+  -1
+index list el = find (\item . == el item) list
+
+increasing x = cons x (increasing (+ x 1))
+wholes = increasing 0
+naturals = tail wholes
+
+zip a b = isNil a
+  nil
+  isNil b
+    nil
+    cons (cons (head a) (head b)) (zip (tail a) (tail b))
+
+############
+# ASSOC LISTS
+############
+assertAlist msg value result = assert (isAlist value) (strCat (cons msg (cons ' should be a association list, but it is not; its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))) result
+acons k v alist = assertAlist "acons alist" alist (\@ type cons . \f . \@ assoc true . f (cons k v) alist)
+assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
+rassoc v alist = find (\el . eq v (tail el)) alist (\cell . cell \head tail . some head) none
+isAlist obj = or (isNil obj) (hasProperty obj 'assoc')
+aconsPair keyValue list = \@ type cons . \f . \@ assoc true . f keyValue list
+appendAlist a b = isNil a
+  b
+  aconsPair (head a) (appendAlist (tail a) b)
+keys list = map (\l . head l) list
+
+getProperty func prop = assoc prop (getProperties func)
+
+hasProperty func prop = getProperty func prop
+  \_ . true
+  false
+
+############
+# SORTING
+############
+
+# merge sort implemented according to http://www.haskell.org/haskellwiki/Performance/Laziness
+odds l = l
+  \h t D . cons h (evens t)
+  nil
+
+evens l = l
+  \h t D . odds t
+  nil
+
+cleave l = cons (evens l) (odds l)
+
+merge cmp a b = a
+  \ah at D . b
+    \bh bt D . cmp ah bh
+      cons ah (merge cmp at b)
+      cons bh (merge cmp a bt)
+    a
+  b
+
+mergeSort cmp l = l
+  \h t D . eq (tail l) nil
+    l
+    \\
+      cl = cleave l
+      e = head cl
+      o = tail cl
+      .
+      merge cmp (mergeSort cmp e) (mergeSort cmp o)
+  nil
+
+### this quicksort is really, really slow
+### so it's renamed to slowsort
+slowsort less list = (qs less list) nil
+# qs is written using a difference list so it can append in linear time
+# sortedFunc must return whether the two args are in sorted order
+# \rest . (qs ... makes a difference list.  id is the empty difference list.
+qs sortedFunc list = list
+  \h t D . \\
+    greater = filter (sortedFunc h) t
+    lesser = filter (compose not (sortedFunc h)) t
+    .
+    \rest . (qs sortedFunc lesser) (cons h ((qs sortedFunc greater) rest))
+  id
+insertSorted sortFunc item list = list
+  \h t D . sortFunc item h (cons item list) (cons h (insertSorted sortFunc item t))
+  cons item nil
+
+############
+# ERRORS
+############
+
+err msg = \f . f msg
+errMsg err = err \m . m
+isErr thing = hasType thing err
+ifNotErr thing cont = (isErr thing) thing (cont thing)
+
+############
+############
+# PARSER
+############
+############
+
+setNameSpace 'parser'
+
+############
+# TOKENS
+############
+
+token txt pos = \f . f txt pos
+tokenString tok = tok \t p . t
+tokenFilepos tok = tok \t p . p
+#tokenPos tok = tok \t p . p
+# TODO -- remove the non-filepos condition
+tokenPos tok = tok \t p . isFilepos p
+  fileposOffset p
+  p
+isToken t = hasType t token
+
+emptyLineStarts = cons 'EMPTYFILE.lsr' (cons 1 nil)
+
+filepos file line offset = \f . f file line offset
+fileposFile p = p \file line offset . file
+fileposLine p = p \file line offset . line
+fileposOffset p = p \file line offset . offset
+isFilepos p = hasType p filepos
+# TODO -- remove the non-filepos condition
+addFilepos pos change = isFilepos pos pos emptyFilePos
+  \file line offset . filepos file line (+ offset change)
+emptyFilePos = filepos 'NOTHING.lsr' 0 0
+isEmptyPos pos = and (isFilepos pos) (and (eq 0 (fileposLine pos)) (eq 0 (fileposOffset pos)))
+emptyFor thing = filepos (fileposFile (position thing)) 0 0
+startFilePos = emptyFilePos
+filePosFor lineStarts offset = countFilePos (head (tail lineStarts)) 0 (tail (tail lineStarts)) offset
+  \line offset . filepos (head lineStarts) line offset
+countFilePos line lineOffset starts offset = or (isNil starts) (> (head starts) offset)
+  \f . f line (- offset lineOffset)
+  countFilePos (+ line 1) (head starts) (tail starts) offset
+fileposList pos = pos \file line offset . cons line (cons offset nil)
+
+parens start end content = \f . f start end content
+parensStart p = p \s e c . s
+parensEnd p = p \s e c . e
+parensContent p = p \s e c . c
+isParens p = hasType p parens
+makeParens start end content =
+  and (isCons content) (isNil (tail content))
+    makeParens start end (head content)
+    or (isToken content) (isParens content)
+      content
+      parens start end content
+parensFromToks left right content = \\
+  start = tokenFilepos left
+  end = addFilepos (tokenFilepos right) (strLen (tokenString right))
+  .
+  parens start end content
+stripParens p = isParens p (parensContent p) p
+
+parseErr msg1 msg2 = err (strCat (cons msg1 (cons msg2 nil)))
+
+lineStart  = regexp '^\\r?\\n'
+commentPat = regexp '^\\r?\\n[ \\i]*#'
+emptyToken = regexp '^\\r?\\n[ \\i]*(#|$)'
+
+makeTokens lineStarts strings start = withRecur
+  makeMoreTokens lineStarts strings start nil
+
+makeMoreTokens lineStarts strings start result = strings
+  \h t D . recur
+    makeMoreTokens lineStarts t (+ start (strLen h))
+      or (or (strStartsWith h ' ') (strStartsWith h '#')) (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))
+        result
+        cons (makeTokenAt lineStarts h start) result
+  reverse result
+
+makeTokenAt lineStarts txt offset = token txt (filePosFor lineStarts offset)
+
+showToken tok = log (strCat (cons 'token: ' (cons (tokenString tok) (cons ', ' (cons (showPos (tokenPos tok)) nil))))) tok
+
+showPos pos = isFilepos pos
+  strCat (cons 'position: ' (cons (fileposFile pos) (cons ', ' (cons (fileposLine pos) (cons '.' (cons (fileposOffset pos) nil))))))
+  pos
+
+splitTokens str pat = filter (\s . not (eq s '')) (basicSplitTokens str pat true)
+
+numberPat = regexp '-?([0-9]+(\\.[0-9]+)?|\\.[0-9]+)'
+
+matchOffset str match = isNil match
+  strLen str
+  head (tail (tail match))
+
+#basicSplitTokens str pat prevIsDel = == str ''
+#  nil
+#  \\
+#    num = strMatch str numberPat
+#    del = strMatch str pat
+#    numOffset = matchOffset str num
+#    delOffset = matchOffset str del
+#    select = and (== numOffset 0) prevIsDel
+#      \del num first . num
+#      == delOffset 0
+#        \del num first . del
+#        \del num first . first
+#    first = select (head del) (head num) (strSubstring str 0 delOffset)
+#    .
+#    cons
+#      first
+#      basicSplitTokens
+#        strSubstring str (strLen first) 0
+#        pat
+#        select true false false
+
+basicSplitTokens str pat prevIsDel = reverse
+  withRecur (_basicSplitTokens str pat prevIsDel nil)
+
+_basicSplitTokens str pat prevIsDel toks = == str ''
+  toks
+  \\
+    num = strMatch str numberPat
+    del = strMatch str pat
+    numOffset = matchOffset str num
+    delOffset = matchOffset str del
+    select = and (== numOffset 0) prevIsDel
+      \del num first . num
+      == delOffset 0
+        \del num first . del
+        \del num first . first
+    first = select (head del) (head num) (strSubstring str 0 delOffset)
+    .
+    recur
+      _basicSplitTokens
+        strSubstring str (strLen first) 0
+        pat
+        select true false false
+        cons first toks
+
+tokens str pat = countedTokens emptyLineStarts str pat
+
+countedTokens lineStarts str pat = makeTokens lineStarts (splitTokens str pat) 0
+
+#############
+## Parsing
+#############
+
+isTokenString tok str = or
+  and (isToken tok) (eq (tokenString tok) str)
+  and (isString tok) (eq tok str)
+isTokenStart tok str = or
+  and (isToken tok) (strStartsWith (tokenString tok) str)
+  and (isString tok) (strStartsWith tok str)
+strTokenString tok = withToken tok nil \str pos . str
+withToken tok nonTokCase tokCase = isToken tok
+  tokCase (tokenString tok) (tokenPos tok)
+  isString tok
+    tokCase tok emptyFilePos
+    nonTokCase
+
+parseToks toks groups =
+  isNil toks nil
+    ifNotErr (parseTok toks groups) \list . list \h t .
+      ifNotErr (parseToks t groups) \res .
+        cons h
+          and (isCons res) (isBlockStart (head res))
+            cons res nil
+            res
+
+parseTok toks groups = withCons toks nil \h t .
+  withToken h toks \txt pos .
+    assoc txt groups
+      \close . parseGroup h t nil close groups
+      (or (isTokenStart h '\n') (isTokenStart h '\r\n')) (parseIndent h t nil groups)
+        toks
+
+parseGroup left toks gr close groups = withCons toks (parseErr 'Unterminated group starting ' (loc left))
+  \h t . isTokenString h close
+    eq close ')'
+      cons (parensFromToks left h (reverse gr)) t
+      cons (cons left (cons (reverse gr) (cons h nil))) t
+    withToken h
+      ifNotErr (parseTok toks groups) \list . list \restH restT .
+        parseGroup left restT (cons restH gr) close groups
+      \txt pos .
+        rassoc txt groups
+          \open . parseErr (strCat (cons 'Mismatched group: ' (cons (tokenString left) (cons txt (cons ' ' nil))))) (loc left)
+          ifNotErr (parseTok toks groups) \list . list \restH restT . parseGroup left restT (cons restH gr) close groups
+
+parseIndent indent toks gr groups =
+  withCons toks (cons (makeParens (tokenFilepos indent) (lexEnd (head gr)) (reverse gr)) nil)
+    \h t . or (withToken h false (\txt pos . rassoc txt groups (\open . true) false))
+      and (or (isTokenStart h '\n') (isTokenStart h '\r\n')) (<= (strLen (tokenString h)) (strLen (tokenString indent)))
+      cons (makeParens (tokenFilepos indent) (tokenFilepos h) (reverse gr)) toks
+      ifNotErr (parseTok toks groups) \list . list \restH restT . parseIndent indent restT (cons restH gr) groups
+
+#################
+## Creating ASTs
+#################
+
+# lit and ref are the easiest
+# maybe we should encode a range as [startLine startCol endLine endCol] and just add range args to things
+# lits and refs can have an extra range arg
+# actually, I think lambda and let only need one range, just for their vars/names because their bodies will have ranges
+# applies probably don't need a range at this point, since their func and arg have ranges
+# anno probably don't need ranges, since they don't directly gen code
+nilRange = cons 1 (cons 0 nil)
+lit value range = \f . f value range
+ref name range = \f . f name range
+lambda name body range = \f . f name body range
+apply func arg = \f . f func arg
+let name value body range = \f . f name value body range
+anno name data body = \f . f name data body
+
+withParens p err cont = isParens p (p cont) err
+setParens p func = isParens p
+  p \start end content . parens start end (func content)
+  func p
+
+withStripped list cont = withParens list (cont list) \start end content . withStripped content cont
+
+position thing = isToken thing (tokenFilepos thing)
+  isParens thing (parensStart thing)
+    isCons thing
+      \\
+        pos = position (head thing)
+        .
+        isEmptyPos pos (position (tail thing)) pos
+      isFilepos thing thing
+        emptyFilePos
+
+lexEnd thing = isToken thing (addFilepos (tokenFilepos thing) (strLen (tokenString thing)))
+  isParens thing (parensEnd thing)
+    isCons thing (lexEnd (last thing))
+      emptyFilePos
+
+loc thing = \\
+  p = position thing
+  l = isEmptyPos p 'an unknown location' (showPos p)
+  .
+  strCat (cons 'at ' (cons l nil))
+
+scrub str = strFromList (scrubList (strToList str))
+
+scrubList list = list
+  \h t D . \\
+    next = scrubList t
+    .
+    eq h '\\' (cons h (cons (head t) (scrubList (tail t))))
+      eq h '\"' (cons '\\' (cons '\"' next))
+        cons h next
+  nil
+
+createAst lineStarts inList names = withStripped inList \list .
+  isToken list (createLitOrRef list names)
+    list
+      \h t D .
+        isTokenString h '\\\\' (createLet h t names)
+          isTokenString h '\\@' (createAnno h t names)
+            isTokenString h '\\' (createLambda h t names)
+              createApply list names
+      nil
+
+strMatches str pat = isCons (strMatch str pat)
+
+digit = regexp '^[0-9]+$'
+
+backslashCodes = 'bfnrt'
+
+backslashValues = '\b\f\n\r\t'
+
+convertStringEscape char codes values =
+  eq codes ''
+    char
+    eq char (strAt codes 0)
+      strAt values 0
+      convertStringEscape char (strSubstring codes 1 0) (strSubstring values 1 0)
+
+#convertStringEscapes orig str cont =
+#  eq str ''
+#    cont str
+#    eq (strAt str 0) '\\'
+#      eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
+#        convertStringEscapes orig (strSubstring str 2 0) \rest . cont
+#          strAdd
+#            convertStringEscape (strAt str 1) backslashCodes backslashValues
+#            rest
+#      convertStringEscapes orig (strSubstring str 1 0) \rest . cont
+#        strAdd
+#          strAt str 0
+#          rest
+
+
+# CONVERT THIS TO USE RECUR
+convertStringEscapes orig str cont = \\
+  res = _convertStringEscapes orig str
+  .
+  hasType res parseErr
+    parseErr
+    cont res
+
+_convertStringEscapes orig str =
+  eq str '' str
+    eq (strAt str 0) '\\'
+      eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
+        \\
+          rest = _convertStringEscapes orig (strSubstring str 2 0)
+          .
+          hasType rest parseErr
+            rest
+            strAdd
+              convertStringEscape (strAt str 1) backslashCodes backslashValues
+              rest
+      \\
+        rest = _convertStringEscapes orig (strSubstring str 1 0)
+        .
+        hasType rest parseErr
+          rest
+          strAdd
+            strAt str 0
+            rest
+
+#convertStringEscapes orig str cont = \\
+#  res = withRecur (_convertStringEscapes orig str '')
+#  .
+#  hasType res parseErr
+#    res
+#    cont res
+#
+#_convertStringEscapes orig str result =
+#  eq str '' result
+#    eq (strAt str 0) '\\'
+#      eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
+#        recur
+#          _convertStringEscapes orig (strSubstring str 2 0)
+#            strAdd result
+#              convertStringEscape (strAt str 1) backslashCodes backslashValues
+#      recur
+#        _convertStringEscapes orig (strSubstring str 1 0)
+#          strAdd result (strAt str 0)
+
+parseString str cont =
+  neq (strAt str 0) (strAt str -1) (parseErr "Badly terminated string: " str)
+    convertStringEscapes str (strSubstring str 1 -1) cont
+
+createLitOrRef token names = \\
+  tok = tokenString token
+  tokRange = (fileposList (position token))
+  .
+  contains names tok
+    ref tok tokRange
+    or (strStartsWith tok '\"') (strStartsWith tok "'")
+      parseString tok \str . lit str tokRange
+      strStartsWith tok '.'
+        jsonParse (strCat (cons '0' (cons tok nil))) (\err . ref tok tokRange) (\item . lit item tokRange)
+        or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
+          jsonParse tok (\err . ref tok tokRange) (\item . lit item tokRange)
+          ref tok tokRange
+
+createLambda start list names = \\
+  err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
+  .
+  withCons list err \name rest .
+    withToken name err \n p .
+      withCons rest err \dot body .
+        # are these partial applications too hard to read?
+        isTokenString dot '.'
+          ifNotErr (createAst nil body (cons n names)) \bodyAst . lambda n bodyAst (fileposList (position name))
+          ifNotErr (createLambda start rest (cons n names)) \bodyAst . lambda n bodyAst (fileposList (position name))
+
+createAnno start list names =
+  withCons list (parseErr "No annotation name or data in annotation " (loc start)) \name rest .
+    withCons rest (parseErr "No data for annotation " (loc start)) \data rest . \\
+      finish data body = ifNotErr (createAst nil body names) \bodyAst .
+        cleanTokens start name \name .
+          cleanTokens start data \data .
+            anno name data bodyAst
+      .
+      isTokenString data '.'
+        finish nil rest
+        withStripped data \data .
+          withCons rest (parseErr "No body for annotation " (loc start)) \dot body .
+            isTokenString dot '.'
+              finish data body
+              parseErr "Annotation expects dot after name and data " (loc start)
+
+bodyStructPat = regexp '\\|\\\\|\\@'
+
+createApply inList names = withStripped inList \list .
+  withCons list (parseErr "Funcion apply expecting a non-empty list " (loc inList)) \h t .
+    ifNotErr (createAst nil h names) \func . chainApply func t names
+
+blockStarts = cons '\\' (cons '\\\\' (cons '\\@' nil))
+
+chainApply func list names = withCons list func \argItem rest .
+  and (isToken argItem) (contains blockStarts (tokenString argItem))
+    ifNotErr (createAst nil list names) \arg . apply func arg
+    ifNotErr (createAst nil argItem names) \arg . chainApply (apply func arg) rest names
+
+cleanTokens start toks cont = isToken toks
+  cont (tokenString toks)
+  withCons toks (cont toks) \head tail .
+    cleanTokens start head \head .
+      cleanTokens start tail \tail .
+        cont (cons head tail)
+
+createLet start list names = withCons list
+  parseErr "No variable or body for let " (loc start)
+  \binding body . eq body nil (createAst nil binding names)
+    ifNotErr (getLetNames start list names) \newNames .
+      createSublets start binding body newNames
+
+getLetNames start list names = \\
+  err = parseErr "Let expected binding " (loc start)
+  .
+  withCons list names \binding body .
+    isTokenString binding '.' names
+      withParens binding err \start end def .
+        withCons def err \name rest .
+          withToken name err \str pos .
+            getLetNames start body (cons str names)
+
+createSublets start binding body names =
+  isTokenString binding '.' (createAst nil body names)
+    withCons body (parseErr "Let expected a body " (loc start)) \bodyH bodyT .
+      ifNotErr (getNameAndDef (parensStart binding) (parensContent binding) names) \res . res \name def .
+        ifNotErr (createSublets start bodyH bodyT names) \bodyAst .
+          let (tokenString name) def bodyAst nilRange
+
+getNameAndDef pos binding names =
+  withCons (tail binding) (parseErr "Let expected binding at " pos) \snd sndT .
+    isTokenString snd '=' (ifNotErr (createAst nil sndT names) \def . cons (head binding) def)
+      ifNotErr (getLetLambda pos (tail binding) nil names) \lamb . cons (head binding) lamb
+
+getLetLambda pos def args names =
+  withCons def (parseErr "Let expected binding at " pos) \arg rest .
+    not (isToken arg) (parseErr "Let expected binding at " pos)
+      isTokenString arg '='
+        createAst nil (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names
+        getLetLambda pos rest (cons arg args) names
+
+#################
+## Compiling
+#################
+
+#scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
+
+countedScanLineG lineStarts str pat groups props onDef onExpr = \\
+  toks = countedTokens lineStarts str pat
+  groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
+  .
+  # check if it's a definition
+  find (\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
+    toks \name rest . \\
+      parseIt func = \\
+        parsed = parseToks (checkSetDataType func rest name) groups
+        .
+        onDef (ifNotErr parsed \list . createDef list name (arity rest 0) str props)
+      .
+      isTokenString (head rest) '='
+        isTokenString (head (tail rest)) '\\'
+          parseIt (setTypeAnno (tail rest) (tokenString name))
+          parseIt (tail rest)
+        ifNotErr (transformDef name rest) \def .
+          parseIt (cons (token '\\' (addFilepos (position (head rest)) -1)) def)
+    ifNotErr (parseToks toks groups) \list . onExpr list
+
+scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
+
+parseLineG str pat names groups onDef onExpr = \\
+  astCallback cb = \list . ifNotErr (createAst nil list names) \ast . cb ast
+  .
+  scanLineG str pat groups (astCallback onDef) (astCallback onExpr)
+
+transformDef name toks = withCons toks (parseErr "Bad definition, expecting tokens" (loc name)) \h t .
+  isTokenString h '='
+    isTokenString (head t) '\\'
+      cons (token '.' (position h)) (setTypeAnno t (tokenString name))
+      cons (token '.' (position h)) t
+    ifNotErr (transformDef name t) \list . cons h list
+
+setTypeAnno toks name = \\
+  tok = \str . token str (position toks)
+  .
+  cons (tok '\\@') (cons (tok 'type') (cons (tok name) (cons (tok '.') toks)))
+
+setDataTypeAnno toks name = \\
+  tok = \str . token str (position toks)
+  .
+  cons (tok '\\@') (cons (tok 'dataType') (cons (tok (tokenString name)) (cons (tok '.') toks)))
+
+createDef def name arity src props = \\
+  #tok str = token str (position def)
+  tok str = token str (position name)
+  .
+  jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
+    jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
+      #cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (spliceFuncProps arity props def) nil))))))))
+      cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))
+
+spliceFuncProps arity props ast = or (isNil props) (== arity 0)
+  ast
+  subSpliceFuncProps props ast
+
+subSpliceFuncProps props ast = \\
+  slash = head ast
+  var = head (tail ast)
+  afterVar = tail (tail ast)
+  dot = head afterVar
+  body = tail afterVar
+  .
+  isTokenString slash '\\'
+    cons
+      slash
+      cons
+        var
+        isTokenString dot '.'
+          cons dot (addProps props body)
+          cons '.' (addProps props afterVar)
+    cons
+      head ast
+      subSpliceFuncProps props (tail ast)
+
+addProps props ast = foldr
+  \prop result . cons '\\@' (cons (head prop) (cons (tail prop) (cons '.' result)))
+  ast
+  props
+
+checkSetDataType toks curToks name = withCons curToks toks \h t .
+  isTokenString h '='
+    isTokenString (head t) '\\'
+      setDataTypeAnno toks name
+      toks
+    checkSetDataType toks t name
+
+arity toks n = isTokenString (head toks) '=' n (arity (tail toks) (+ n 1))
+
+tokListStr toks = jsonStringify (join (map (\t . tokenString t) toks) ' ')
+
+linePat = regexp '\\r?\\n(?=[^ ]|$)'
+
+emptyLinePat = regexp '(^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$)'
+
+lineScrub = regexpFlags '\\r\\n' 'g'
+
+####
+# line counting
+####
+# a lineStarts list is [filename lineNumber lineStartOffset...]
+# so ['file1.lsr' 32 17 83] means
+#  this string starts at line 32 in file1.lsr
+#  line 33 starts at position 17 in the string
+#  line 34 starts at position 83 in the string
+
+linesForFile text = map tail (countedLinesForFile "NOTHING.lsr" text)
+
+countedLinesForFile name text = filter
+  \line . isNil (strMatch (tail line) emptyLinePat)
+  countedLines name 1 text
+
+# 1-based offset for lines
+#countedLines filename lineOffset str = \\
+#  m = strMatch str linePat
+#  idx = head (tail (tail m))
+#  chunk = strSubstring str 0 idx
+#  next = + idx (strLen (head m))
+#  chunkLines = findLines 0 chunk
+#  .
+#  eq str ''
+#    nil
+#    isNil m
+#      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) nil
+#      cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk)
+#        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
+
+countedLines filename lineOffset str = reverse
+  withRecur
+    _countedLines filename lineOffset str nil
+
+_countedLines filename lineOffset str lines = \\
+  m = strMatch str linePat
+  idx = head (tail (tail m))
+  chunk = strSubstring str 0 idx
+  next = + idx (strLen (head m))
+  chunkLines = findLines 0 chunk
+  .
+  eq str ''
+    lines
+    isNil m
+      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) lines
+      recur
+        _countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
+          cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk) lines
+
+defPat = regexp '^[^ =]+.* =( |$)'
+
+#unanchoredDefPat = regexp '(^|\\n)[^ =]+.* =([ \\n]|$)'
+
+unanchoredDefPat = regexp '^((?:\\s*\\n|#[^\\n]*\\n)*)([^=\\n]*)(=\\([^=]+=|=)?'
+
+namesForLines lines = foldl
+  \result line . \\
+    m = strMatch line defPat
+    .
+    isNil m result (cons (head (tail m)) result)
+  nil
+  lines
+
+#################
+## Macro system
+#################
+
+# what about alpha substitution to make the result hygenic?
+# make some let-style macros that use gensyms?
+
+runParseFilters filters line = filters
+  \h t D . primBind (h line) \filtered . runParseFilters t filtered
+  fakereturn line
+
+isBlockStart tok = and
+  or (isToken tok) (isString tok)
+  contains blockStarts (strTokenString tok)
+
+# macs is an assoc-list (list of (name . definition))
+# expr is the tail of the macro expression
+macroSub macs expr = postProcessMacro (emptyFor expr) (emptyFor expr) (baseMacroSub macs expr)
+
+consifyMacroValue value = isCons value value (cons value nil)
+
+baseMacroSub macs expr = isToken expr
+  expr
+  isParens expr
+    expr \start end content . \\
+      result = baseMacroSub macs content
+      .
+      isToken result result (parens start end result)
+    withCons expr expr \h t .
+      isBlockStart h
+        cons h
+          isTokenString h '\\\\'
+            macroSubLet macs t
+            macroSubBody '.' macs t
+        withToken h
+          \\
+            subH = baseMacroSub macs h
+            .
+            withToken subH
+              cons subH (map (baseMacroSub macs) t)
+              \tok pos . baseMacroSub macs (cons subH t)
+          \tok pos . assoc tok macs
+            \def . baseMacroSub macs (def t)
+            cons h (map (baseMacroSub macs) t)
+
+macroSubLet macs list = list
+  \h t D . isTokenString h '.'
+    cons h (baseMacroSub macs t)
+    cons (setParens h \content . macroSubBody '=' macs content) (macroSubLet macs t)
+  # Don't bother with parse errors at this point -- ast generator will detect them
+  nil
+
+macroSubBody char macs list = list
+  \h t D . cons h
+    isTokenString h char baseMacroSub (macroSubBody char)
+      macs
+      t
+  nil
+
+postProcessMacro before after expr = isString expr
+  token expr (isEmptyPos after before after)
+  isParens expr
+    expr \start end contents . parens start end (postProcessMacro start end contents)
+    isCons expr
+      expr \h t .
+        isToken h
+          cons h (postProcessMacro (addFilepos (addFilepos (tokenFilepos h) (strLen (tokenString h))) 1) (emptyFor h) t)
+          \\
+            posStart = position h
+            posEnd = position t
+            t2 = postProcessMacro (emptyFor posStart) after t
+            h2 = postProcessMacro before (emptyFor posStart) h
+            .
+            isEmptyPos posStart
+              cons (postProcessMacro before (position t2) h) t2
+              cons h2 (postProcessMacro (addFilepos (lexEnd h2) 1) after t)
+      isNumber expr
+        token (strString expr) (isEmptyPos after before after)
+        expr
+
+defMacro name def = primBind (getValue 'macroDefs')
+  \macs . setValue 'macroDefs' (acons name def macs)
+
+#################
+# Token Patterns
+#################
+
+# -- use this def and the alternate makeMoreTokens def
+# if comments are only allowed on their own lines
+#delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#.*|\\r?\\n *| +"
+delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#[^\\r\\n]*|\\r?\\n *| +|#[^\\r\\n]*"
+
+regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
+
+addToken del = primBind (getValue 'tokenList')
+  \dels . contains dels del
+    false
+    \\
+      newDels = insertSorted (\a b . > (strLen a) (strLen b)) del dels
+      .
+      primBind (setValue 'tokenList' newDels)
+        \_ . computeTokenPat newDels
+
+computeTokenPat dels = \\
+  delPats = map (\item . strReplace item regexpEscapePat "\\$&") dels
+  newPat = strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil)))
+  .
+  setValue 'tokenPat' newPat
+
+addTokenGroup open close = primBind (addToken open)
+  \_ . primBind (addToken close)
+    \_ . primBind (getValue 'tokenGroups')
+      \gr . setValue 'tokenGroups' (acons open close gr)
+
+#################
+## INTERFACE
+#################
+
+#################
+## TESTING
+#################
+
+parenGroups = acons '(' ')' nil
+
+testParse str pat = ifNotErr (parseIndent (token '\n' startFilePos) (tokens str pat) nil parenGroups) \list . list \h t . stripParens h
+
+parseG str pat groups = ifNotErr (parseIndent (token '\n' startFilePos) (tokens str pat) nil groups) \list . list \h t . stripParens h
+
+parseToAst str pat = createAst nil (testParse str pat) nil
+
+parseM str =
+  primBind (getValue 'tokenPat')
+    \tokPat . primBind (getValue 'tokenGroups')
+      \groups . parseG str tokPat groups
+
+scanLine str pat onDef onExpr = scanLineG str pat parenGroups onDef onExpr
+
+parseLine str pat names onDef onExpr = parseLineG str pat names parenGroups onDef onExpr
+
+parseLineM str = primBind (getValue 'tokenPat')
+  \tokPat . primBind (getValue 'tokenGroups')
+    \groups . parseLineG str tokPat nil groups id id
+
+macroSubM expr =
+  primBind (getValue 'macroDefs')
+    \macs . macroSub macs expr
+
+macroParse str =
+  primBind (parseM str)
+    \ex . macroSubM ex
+
+tokensM str =
+  primBind (getValue 'tokenPat')
+    \delimiterPat . tokens str delimiterPat
+
+parseLines lines result = lines
+  \h t D . primBind (parseLineM h)
+    \ast . parseLines t (cons ast result)
+  reverse result
+
+parseFile text = parseLines (linesForFile text) nil
+
+simpleScanLine line = primBind (getValue 'tokenPat')
+  \tokenPat . primBind (getValue 'tokenGroups')
+    \groups . scanLineG line tokenPat groups id id
+
+scanLineM line = countedScanLineM emptyLineStarts line
+
+countedScanLineM lineStarts line = primBind (getValue 'tokenPat')
+  \tokenPat . primBind (getValue 'tokenGroups')
+    \groups . primBind (getValue 'parseFilters')
+      \filters . primBind (getValue 'macroDefs')
+        \macros . primBind (getValue 'parser_funcProps')
+          \props . primBind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups props id id))
+            \scanned . macroSub macros scanned
+
+newline = regexp '\\r?\\n'
+
+# Find line ends in a chunk (overhanging line with indented lines under it)
+findLines offset line = \\
+  m = strMatch line newline
+  idx = + 1 (head (tail (tail m)))
+  .
+  eq m nil
+    cons offset nil
+    cons offset (findLines (+ offset idx) (strSubstring line idx 0))
+
+newParseLine offset names line = primBind (scanLineM line)
+  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) id
+
+countedParseLine names countedLine = primBind (countedScanLineM (head countedLine) (tail countedLine))
+  \scanned . createAst (head countedLine) scanned names
+
+runLine offset names line = primBind (newParseLine offset names line)
+  \ast . primBind (runAst line ast)
+    \res . primBind res
+      \result . cons
+        ast
+        isErr result
+          left (errMsg result)
+          right result
+
+#countedRunLine file names countedLine = \\
+#  parsed = countedParseLine names countedLine
+#  .
+#  primBind parsed
+#  \ast . \\
+#    wrapped = astFileWrap file ast
+#    .
+#    \\
+#      value = runAst (tail countedLine) wrapped
+#      .
+#      not (== (getType value) 'monad')
+#        resultOfRun wrapped value
+#        primBind (runAst (tail countedLine) wrapped)
+#          \result . resultOfRun wrapped result
+
+#countedRunLine file names countedLine = \\
+#  primBind (countedParseLine names countedLine)
+#    \ast . \\
+#      wrapped = astFileWrap file ast
+#      .
+#      primBind (runAst (tail countedLine) wrapped)
+#        \result . resultOfRun wrapped result
+
+#countedRunLine file names countedLine = primBind (countedParseLine names countedLine)
+#  \ast . \\
+#    wrapped = astFileWrap file ast
+#    value = runAst (tail countedLine) wrapped
+#    .
+#    not (== (getType value) 'monad')
+#      resultOfRun wrapped value
+#      primBind (runAst (tail countedLine) wrapped)
+#        #\result . primBind (resultOfRun wrapped result)
+#        #  \r . d "ran line: " (tail countedLine) r
+#        \result . resultOfRun wrapped result
+
+countedRunLine file names countedLine = primBind (countedParseLine names countedLine)
+  \ast . \\
+    wrapped = astFileWrap file ast
+    .
+    primBind (runAst (tail countedLine) wrapped)
+      \res . primBind res
+        \result . resultOfRun wrapped result
+
+resultOfRun wrapped result =
+  cons
+    wrapped
+    isErr result
+      left (errMsg result)
+      right result
+
+#astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast
+astFileWrap file ast = anno 'filename' (basename file) ast
+
+basename file = strReplace file (regexp '^(.*/)?([^/]+)$') '$2'
+
+# use doall for this?
+runLines names lines = lines
+  \h t D . primBind (runLine 0 names h)
+    \line . primBind (runLines names t)
+      \rest . cons line rest
+  nil
+
+# use doall for this?
+#countedRunLines file names countedLines = countedLines
+#  \h t D . primBind (countedRunLine file names h)
+#    \line . primBind (countedRunLines file names t)
+#      \rest . cons line rest
+#  nil
+
+countedRunLines file names countedLines result = countedLines
+  \h t D . primBind (countedRunLine file names h)
+    \line . countedRunLines file names t (cons line result)
+  reverse result
+
+runFile text = runNamedFile "RUNFILE.lsr" text
+
+runNamedFile name text = \\
+  counted = countedLinesForFile name text
+  lines = map tail counted
+  names = namesForLines lines
+  .
+  #countedRunLines name names counted
+  countedRunLines name names counted nil
+
+baseLoad file = primBind (readFile file)
+  \result . result
+    \err . err
+    \contents . baseLoadString file contents
+
+baseLoadString file contents = primBind (getValue 'activeTokenPacks')
+  \activePacks . primBind resetStdTokenPacks
+    \_ . primBind resetNameSpaceInfo
+      \nsInfo . primBind (runNamedFile file contents)
+        \result . primBind (setNameSpaceInfo nsInfo)
+          \_ . primBind (isNil activePacks
+            resetStdTokenPacks
+            resetTokenPacks activePacks)
+            \_ . result
+
+load file = primBind (baseLoad file)
+  \result . \\
+    errs = foldr (\line results . tail line (\er . cons er results) (\x . results)) nil result
+    .
+    isNil errs
+      right true
+      left errs
+
+require file = primBind (getValue 'requiredFiles')
+  \files . contains files file
+    right false
+    primBind (setValue 'requiredFiles' (cons file files))
+      \_. primBind (load file)
+        \result . result
+          \x . left x
+          \_ . right true
+
+scanFile file = primBind (readFile file)
+  \result . result
+    \err . err
+      \_ . primBind (runNamedFile file contents)
+        counted = countedLinesForFile name text
+        lines = map tail counted
+        names = namesForLines lines
+        .
+        countedScanLines name names counted
+
+countedScanLines file names countedLines = countedLines
+  \h t D . primBind (countedScanLineM (head h) (tail h))
+    \line . primBind (countedScanLines file names t)
+      \rest . cons line rest
+  nil
+
+################
+# Token Packs
+################
+
+#newGen
+
+# pack is (tokens groups filters)
+defTokenPack name pack = primBind (getValue 'tokenPacks')
+  \packs . setValue 'tokenPacks' (acons name pack packs)
+
+useTokenPack name = primBind (getValue 'tokenPacks')
+  \packs . primBind (getValue 'tokenGroups')
+    \groups . primBind (getValue 'tokenList')
+      \tokens . primBind (getValue 'activeTokenPacks')
+        \activePacks . primBind (getValue 'parseFilters')
+          \filters . assoc name packs
+            \pack . \\
+              groupToks = foldl (\value el . el \h t . cons h (cons t value)) nil (head (tail pack))
+              newToks = mergeSort (\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
+              .
+              primBind (setValue 'tokenList' newToks)
+                \_ . primBind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))
+                  \_ . primBind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))
+                    \_ . primBind (computeTokenPat newToks)
+                      \_ . setValue 'activeTokenPacks' (cons name activePacks)
+            nil
+
+resetTokenPacks packs = primBind (setValue 'tokenGroups' nil)
+  \_ . primBind (setValue 'tokenList' nil)
+    \_ . primBind (setValue 'activeTokenPacks' nil)
+      \_ . primBind (setValue 'parseFilters' nil)
+        \_ . foldr1
+          \packCmd result . primBind packCmd \_ . result
+          map useTokenPack packs
+
+resetStdTokenPacks = primBind (getValue 'stdTokenPacks')
+  \stds . primBind (resetTokenPacks stds)
+    \_ . setValue 'activeTokenPacks' nil
+
+addStdTokenPacks morePacks = primBind (getValue 'stdTokenPacks')
+  \stds . setValue 'stdTokenPacks' (append stds morePacks)
+
+addParseFilter filt = primBind (getValue 'parseFilters')
+  \filters . setValue 'parseFilters' (append filters (cons filt nil))
+
+############
+# DIAG
+############
+
+d label value expr = log (strCat (cons label (cons value nil))) expr
+dd label arg = d label arg arg
+
+############
+## TESTING
+############
+
+testParse str = countedParseLine nil (head (countedLinesForFile 'parse' str))
+
+############
+## SETTINGS
+############
+
+setValue 'macroDefs' nil
+setValue 'requiredFiles' nil
+setValue 'tokenPacks' nil
+setValue 'activeTokenPacks' nil
+setValue 'stdTokenPacks' (cons 'std' nil)
+setValue 'parser_funcProps' nil
+
+defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
+
+resetStdTokenPacks

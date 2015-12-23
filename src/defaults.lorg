@@ -1,0 +1,592 @@
+* These are Leisure's system views
+
+Some of these have newlines in strange places.  This is because it's crucial that
+no extra characters be inserted into the basic views in the wrong places.  So you
+won't see linebreaks for readability in the HTML where you normally would.  Instead,
+there are linebreaks inside of element tags or inside of templating code.
+
+Here are the two special rules for these system views that don't apply to other views:
+
+1. Don't change the order of Leisure content
+2. Don't add or remove Leisure content (this includes newlines and spaces)
+
+Anything else if fair game -- you can hide the content, you can add text
+in as long as you mark it as data-noncontent, etc.
+
+* Toolbar
+#+BEGIN_SRC html :defview header
+<div contenteditable='false' data-noncontent>
+  <div class="paginators">
+    <button name="prevSlide" class="bound">
+      <i class="fa fa-caret-left fa-1x"></i>
+      <span></span>
+    </button>
+    <button name="nextSlide" class="bound">
+      <i class="fa fa-caret-right fa-1x"></i>
+      <span></span>
+    </button>
+  </div>
+  <div name="dummy_headline"></div>
+  <div name="valueSlider" class='hidden'></div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-toolbar
+<div name='buttons' style="position: relative;">
+  <div style='position: relative; display: inline-block; width: calc(100% - 13em)'>
+    <label name="showHide"><input type='checkbox'></input>Fred</label>
+    <button name='search'>Search</button>
+    <span class='expandable-panel'>
+      <button class='label'>Visual</button>
+      <span class='contents'>
+        <button name='diag'>Diag: off</button>
+        <div class='themeHolder' style="display: inline-block; overflow: hidden">
+          <div class='themeDiv' style="position: absolute; top: 0;">
+            <select name='themeSelector'></select>
+          </div>
+        </div>
+        <button name='slides'>Slides</button>
+      </span>
+    </span>
+    <div name='emacsConnector' class='hidden-panel'>
+      <button class='label' name='emacsLabel'>Emacs</button>
+      <span class='contents'>
+        <button name='connectToEmacs'>Emacs</button>
+        <span name="emacsHost">Host: <input type='text' value="localhost:1315"></span>
+      </span>
+    </div>
+    <div name='p2pConnector' class='expandable-panel'>
+      <button class='label' name='p2plabel'>Collaboration</button>
+      <span class='contents not-connected'>
+        <button name='createSession'>Create Session</button>
+        <span class='when-not-connected'>Relay Host: <input name="p2pHost"></span>
+        <span class='when-connected'>
+          Connections: <span name='connections'>0</span>
+          Connection URL: <a name="sessionKey">NO SESSION</a>
+        </span>
+      </span>
+    </div>
+  </div>
+  <a name="tc" target="_blank" href="http://www.teamcthulhu.com">
+    <button name="team_cthulhu" title="x">
+      <span><img src="css/images/eldersign.png">TEAM CTHULHU</span>
+    </button>
+  </a>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC cs :control header
+@initializeView = (view)->
+  opts = Leisure.findEditor(view).options
+  view.find('[name=prevSlide]').on 'click', -> opts.mode.showPrevSlide(opts)
+  view.find('[name=nextSlide]').on 'click', -> opts.mode.showNextSlide(opts)
+  vs = view.find('[name=valueSlider]')
+  vs.slider
+    slide: -> Leisure.slideValue()
+    start: -> Leisure.setSliding true
+    stop: -> Leisure.setSliding false
+  vs.slider().on 'mouseleave', -> Leisure.mayHideValueSlider()
+  vs.on 'mouseleave', -> Leisure.mayHideValueSlider()
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-toolbar
+themes = [
+  'Flat',
+  'Googie',
+  'Steampunk',
+  'Cthulhu',
+  'Console',
+]
+
+@initializeView = (view)->
+  Leisure.UI.configurePanels view
+  view.find('[name=slides]').button().on 'click', (e)->
+    Leisure.editorForToolbar(view[0]).options.toggleSlides()
+  view.find('[name=showHide]')
+    .button()
+    .on 'click', (e)-> updateButton view, Leisure.showHide view[0]
+  view.find('[name=team_cthulhu]').button()
+  updateButton view, Leisure.editorForToolbar(view[0]).options.hiding
+  view.find('[name="search"]').button().on 'click', (e)-> Leisure.openSearch e
+  view.find('[name="diag"]').button().on 'click', (e)->
+    show = !Leisure.getDiagShowing view
+    Leisure.showDiag view, show
+    $(this).button 'option', 'label', "Diag: #{if show then 'on' else 'off'}"
+  p2pWidgets =
+    panel: view.find('[name="p2pConnector"]')
+    label: view.find('[name="p2plabel"]')
+    hostField: view.find('[name="p2pHost"]')
+    sessionField: view.find('[name="sessionKey"]')
+    createSessionButton: view.find('[name="createSession"]')
+    connections: view.find('[name="connections"]')
+  $([p2pWidgets.createSessionButton]).button()
+  Leisure.configureP2P p2pWidgets
+  themeMenu = view.find('[name="themeSelector"]')
+  themeMenu[0].innerHTML = ''
+  themeMenu.selectmenu change: -> selectTheme this
+  for theme in themes
+    themeMenu[0].innerHTML += "<option value='#{theme.toLowerCase()}'>#{theme}</option>"
+  themeMenu.val 'flat'
+  selectTheme themeMenu[0]
+  themeMenu.selectmenu 'refresh'
+  Leisure.configureEmacs view.find('[name="emacsConnector"]')
+
+selectTheme = (select)->
+  Leisure.editorForToolbar(select).options.setTheme select.value
+
+updateButton = (view, hiding)->
+  view.find('label').button 'option', 'label', if hiding
+    "<i class='fa fa-eye-slash'></i> Show/hide"
+  else
+    "<i class='fa fa-eye'></i> Show/hide"
+#+END_SRC
+
+#+NAME: toolbar-css
+#+BEGIN_SRC css
+[name=team_cthulhu] {
+  float: right;
+}
+[name=team_cthulhu] img {
+  height: 1em;
+}
+[maindoc].diag {
+  height: calc(100% - 20em);
+}
+[maindoc] {
+  height: calc(100% - 3em);
+  margin-top: 2.5em;
+  overflow: auto;
+}
+[data-view='leisure-toolbar'] {
+  position: fixed;
+  width: 100%;
+  height: 2.5em;
+}
+.themeDiv {
+  display: inline-block;
+}
+[name='buttons'] {
+  position: relative;
+  display: block;
+}
+.hidden-panel {
+  display: inline-block;
+}
+.hidden-panel:hover .contents {
+  display: inherit;
+  width: inherit;
+}
+.hidden-panel:hover .label,
+.hidden-panel .contents {
+  display: none;
+}
+[name='emacsHost'] input {
+  width: 8em;
+}
+[name='p2pHost'] {
+  width: 15ex;
+}
+.connected .when-not-connected,
+.not-connected .when-connected {
+  display: none;
+}
+[name='sessionKey'] {
+  width: 72ex;
+}
+[name='buttons'] .ui-button {
+  height: 2em;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+[name='buttons'] .ui-selectmenu-text,
+[name='buttons'] .ui-selectmenu-button,
+[name='buttons'] label.ui-button {
+  height: calc(2em - 2px);
+}
+.themeDiv .ui-selectmenu-button {
+  width: 17ex !important;
+}
+.themeDiv,
+.themeHolder {
+  width: 19ex;
+}
+#+END_SRC
+
+* Blocks
+** Source Toggle
+#+BEGIN_SRC html :defview leisure-source-toggle
+{{#if topLevel}}<button class='toggle_edit' contenteditable='false' data-noncontent><i class="fa fa-glass"></i></button><span data-noncontent contenteditable='false'> </span>{{/if}}
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-source-toggle
+@initializeView = (view)->
+  if (slide = view.closest('[data-headline]')).is('[data-headline="1"]') ||
+  (slide = view.closest("[data-view='leisure-headline-plain']").find('[data-headline="1"]')).length ||
+  (slide = view.closest('[data-view="leisure-top-chunk"]').find('[data-block]').first()).length
+    view.find('button.toggle_edit').on 'click', -> Leisure.toggleSlideMode slide
+#+END_SRC
+** Headline
+#+BEGIN_SRC html :defview leisure-headline-plain
+<div class='slideholder'
+data-org-headline='{{level}}'
+ ><div class='page'
+   ><div class='border'></div
+   ><div class='.pagecontent'>{{> leisure-source-toggle}}{{{renderPlain this}}}</div></div></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-top-chunk
+<div class='slideholder'
+ ><div class='page'
+   ><div class='border'></div
+   ><div id='{{id}}' class='fancy pagecontent' data-edit-mode='fancy'
+     ><span data-noncontent contenteditable='false'>{{> leisure-source-toggle}}
+</span>{{{text}}}</div></div></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-top-chunk-with-sidebar
+<div class='slideholder'
+ ><div class='page'
+   ><div class='border'></div
+   ><table class='sidebar-table'><tr><td class='sidebar-main'><div id='{{id}}' class='fancy pagecontent' data-edit-mode='fancy'
+     ><span data-noncontent contenteditable='false'>{{> leisure-source-toggle}}
+</span>{{{text}}}</div></td><td class='sidebar-side'>{{> sidebars}}</td></tr></table></div></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-top-headline
+<div class='slideholder'
+ ><div class='page'
+   ><div class='border'></div
+   ><div id='{{id}}' class='fancy pagecontent'
+data-edit-mode='fancy'
+data-block='headline'
+data-org-headline='{{level}}'
+data-headline='{{level}}'><span class='maincontent'><span class='hidden'
+>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'
+><div class="textborder" contenteditable="false"></div><div class='headline-content'
+><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div></div></div></div><div>{{#each children}}{{{
+render this
+}}}{{/each}}</div></span></div></div></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-top-headline-with-sidebar
+<div class='slideholder'
+ ><div class='page'
+   ><div class='border'></div
+   ><table class='sidebar-table'><tr><td class='sidebar-main'><div id='{{id}}' class='fancy pagecontent'
+data-edit-mode='fancy'
+data-block='headline'
+data-org-headline='{{level}}'
+data-headline='{{level}}'><span class='maincontent'><span class='hidden'
+>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'
+><div class="textborder" contenteditable="false"></div><div class='headline-content'
+><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div></div></div></div><div>{{#each children}}{{{
+render this
+}}}{{/each}}</div></span></div></td><td class='sidebar-side'>{{> sidebars}}</td></tr></table></div></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-sidebar
+<div id='{{id}}' class='fancy pagecontent'
+data-edit-mode='fancy'
+data-block='headline'
+data-org-headline='{{level}}'
+data-headline='{{level}}'><span class='maincontent'><span class='hidden'
+>{{stars}}</span><div data-org-type='text'><div data-org-type='headline-content'
+><div class="textborder" contenteditable="false"></div><div class='headline-content'
+><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div></div></div></div><div>{{#each children}}{{{
+render this
+}}}{{/each}}</div></span></div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview sidebars
+{{#each sidebars}}{{{this}}}{{/each}}
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-headline
+<div id='{{id}}' class='fancy'
+data-edit-mode='fancy'
+data-block='headline'
+data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div>{{#each children}}{{{
+render this
+}}}{{/each}}</div>
+#+END_SRC
+** Chunk
+#+BEGIN_SRC html :defview leisure-chunk
+<span id='{{id}}' class='fancy' data-block='chunk'>{{{text}}}</span>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-example
+<span class='hidden'>{{start}}</span><span class='example'>{{text}}</span><span class='hidden'>{{end}}</span>
+#+END_SRC
+** Code
+#+BEGIN_SRC html :defview leisure-code
+<span
+  id='{{id}}'
+  class='fancy default-lang'
+  data-block='code'
+  contenteditable='false'
+  data-org-type='source'
+  data-shared='code'
+  data-lang='{{language}}'
+  >{{> leisure-code-boiler}}<div
+    class='code-text'
+    data-org-src
+    data-contain
+    contenteditable='true'>{{{renderSource}}}</div><span
+class='hidden'>{{footer}}</span>{{#if
+inter}}<div>{{inter}}</div>{{/if}}{{#if
+results}}{{#if hideResults}}{{{results}}}{{else}}<div
+class='code-results' data-org-src>{{{results}}}</div>{{/if}}{{/if}}</span>
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-code
+@initializeView = (view)-> Leisure.createValueSliders()
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code-boiler
+<span class='codename'>{{#if nameBoiler
+}}<span class='hidden'>{{nameBoiler
+}}</span><span class='name-label'><span data-noncontent>"</span><span
+contenteditable='true' class='name'>{{nameText
+}}</span><span data-noncontent>"
+</span></span><span class='hidden'>
+</span>{{#if afterName}}<span class='code-doc-holder'><span class='code-doc-background'></span><span class='code-doc' contenteditable='true'>{{{afterName}}}</span></span>{{/if}}{{/if}}<div class='src-line-break'></div>{{> leisure-code-src-line}}</span>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code-src-line
+<div class='codeHeading' contenteditable='true'><span class='hidden'>{{sourceBoiler sourceOrg}}</span>{{sourceInfo}}</div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code/inline-html
+<span
+id='{{id}}'
+data-block='code'
+contenteditable='false'
+data-lang='{{language}}'><span class='hidden'>{{block.text}}</span><span data-noncontent contenteditable='false'>{{{renderHtml source}}}</span></span>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code/results-only
+<span
+id='{{id}}'
+data-block='code'
+contenteditable='false'
+data-lang='{{language}}'><span class='hidden'>{{beforeResults}}</span>{{{results}}}</span>
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-code/results-only
+@initializeView = (v)->
+  for img in v.find('img')
+    Leisure.UI.refreshImage img
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code/jsX
+<span
+id='{{id}}'
+class='fancy codeblock'
+data-block='code'
+contenteditable='false'
+data-lang='{{language}}'><table><tr><td class='code-controls' data-noncontent>
+<span class='hidden'>CONTROLS</span>
+</td><td class='code-text'>{{{text}}}</td><td></td></tr></table></span>
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-code/jsX
+@initializeView = (view)-> Leisure.createValueSliders()
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code-source/jsX
+<span
+class='source'
+data-org-src='{{block.codeAttributes.results}}'
+contenteditable='true'><span class='hidden'>{{sourceHeader}}</span>{{{renderSource}}}<span class='hidden'>{{sourceFooter}}</span></span>
+#+END_SRC
+
+#+BEGIN_SRC html :defview leisure-code-results/jsX
+<span class='results coderesults'
+data-org-results='{{block.codeAttributes.results}}'
+data-org-type='results'
+><span class='hidden'>{{resultsHeader this}}</span>{{{resultsContents this}}}</span>
+#+END_SRC
+** Block CSS
+#+NAME: block-css
+#+BEGIN_SRC css
+  [name=valueSlider] {
+    z-index: 1;
+  }
+  /****
+   * Hacky flex settings to simulate wimpy grid-layout.
+   * Can't use grid until it's more widely available.
+   * The reason for this is to lay out the source items in an order
+   * that is different from how the occur in the file.  Custom
+   * elements could also solve this (or Shadow DOM) but there's
+   * not a lot of cross-browser support there.
+   * Also, this flex layout is complicated because I'm running into
+   * box sizing problems.  The name-label and leisure-code-src-line
+   * widths are being added to the overall width, even though they
+   * only occur on the first line together and they are smaller than
+   * the maximum width of the elements below them.  So they get width: 0.
+   * Then, to compensate for their lack of being able to "push the
+   * sides, we set a min-width of 80ex.  Hope that's enough because
+   * long src header lines will now wrap.
+   ****/
+  .codename {
+    display: inline-flex;
+    padding-top: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+    flex-wrap: wrap;
+    min-width: 80ex;
+  }
+  .name-label {
+    order: 1;
+    flex-basis: 25ex;
+    flex-grow: 1;
+    width: 0;
+  }
+  .code-doc-holder {
+    position: relative;
+    font-style: italic;
+    font-size: larger;
+    order: 4;
+    width: 100%;
+    padding: 10px;
+    margin: 5px;
+  }
+  .code-doc-background {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    opacity: 0.1;
+    background-color: black;
+  }
+  .code-doc {
+    position: relative;
+  }
+  [data-view="leisure-code-src-line"] {
+    order: 2;
+/*
+    width: 0;
+    flex-basis: 10ex;
+    flex-grow: 1;
+*/
+    text-align: right;
+  }
+  .src-line-break {
+    width: calc(100% - 5ex);
+    height: 0px;
+    order: 3;
+  }
+  /****
+   ,* end of hacky flex settings
+   ,****/
+  .fancy[data-block=code] .codeHeading {
+    padding-top: 0;
+  }
+  .view[data-view='leisure-headline'] {
+    display: block;
+  }
+  .plain {
+    white-space: pre;
+    font-family: Courier;
+  }
+/*
+  .view [data-block],
+  .view [data-block] * {
+    white-space: pre-line;
+  }
+*/
+  .view [data-block] .code-text,
+  .view [data-block] .code-text * {
+    white-space: pre;
+  }
+  .fancy .view [data-block] .maintext {
+    white-space: normal;
+  }
+  .sidebar-table {
+    width: 100%;
+  }
+  .sidebar-main {
+    width: 60%;
+    vertical-align: top;
+  }
+  .sidebar-side {
+    width: 40%;
+    vertical-align: top;
+  }
+  span[data-block='code'].fancy {
+    border: solid 3px black;
+    margin: 2px;
+    vertical-align: middle;
+    position: relative;
+    display: inline-block;
+  }
+  .code-controls {
+    vertical-align: middle;
+    background: lightgray;
+  }
+  .source {
+    position: relative;
+    display: block;
+    border: solid 3px blue;
+  }
+  .results {
+    display: block;
+    border: solid 3px green;
+  }
+
+  /* patches for theme problems */
+  [data-org-src].code-results,
+  [data-org-src].code-text {
+    height: auto;
+  }
+  .name-label,
+  .fancy[data-block=code] .codeHeading,
+  [data-org-src].code-results,
+  [data-org-src].code-text {
+    font-size: x-large;
+  }
+  .code-results {
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+#+END_SRC
+
+* Search
+#+BEGIN_SRC html :defview leisure-search
+<div title='Search' data-noncontent>
+  <div class='frame'>
+    <input class='leisure-searchText' type='text'></input>
+    <div class='leisure-searchOutputHolder'><div class='leisure-searchOutput'></div></div>
+  </div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC cs :control leisure-search
+@initializeView = (view)->
+  d = $(view).children()
+    .dialog
+      width: 400
+      height: 600
+      position: my: "right top", at: "right top", of: window
+    .on 'dialogclose', ->
+      $(this).dialog('destroy')
+      $(this).remove()
+    #.on 'dialogclose', -> console.log this
+  Leisure.configureSearch d
+#+END_SRC
+
+#+NAME: search-css
+#+BEGIN_SRC css
+.leisure-searchText {
+  width: 100%;
+  height: 1.5em;
+}
+.leisure-searchOutput {
+  width: 100%;
+  height: calc(100% - 1.5em);
+  /*background: white;*/
+  color: black;
+  overflow: auto;
+}
+#+END_SRC

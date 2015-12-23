@@ -1,0 +1,103 @@
+* Simple expression
+#+BEGIN_SRC leisure :results dynamic
+3+4
+#+END_SRC
+#+RESULTS:
+: 7
+
+Non-dynamic
+
+#+BEGIN_SRC leisure
+show (getData 'bob')
+changeData (do (d <- getData 'bob') (appendData 'Data' 'fred' d))
+f = do
+  d <- changeData (getData 'bob')
+  b <- assoc 'bob' d
+  print concat["B: " (show b)]
+f
+#+END_SRC
+* Data
+:properties:
+:name: Data
+:end:
+#+NAME: bob
+#+BEGIN_SRC yaml
+[1, 2, 'bob']
+#+END_SRC
+* Test case
+#+BEGIN_SRC leisure :results def
+x = 17
+#+END_SRC
+
+#+BEGIN_SRC leisure :observe * :view testcase
+x
+#+END_SRC
+:EXPECTED:
+: 17
+:END:
+#+RESULTS:
+: 17
+* Test Case Views
+:properties:
+:hidden: true
+:end:
+#+BEGIN_SRC html :defview testcase
+<div onclick='App.uncollapseTestCase(Leisure.viewFor(this))' class="ready" data-org-test="{{codeTestResult}}"></div>
+<script>
+  Templating.currentViewLink.setAttribute('title', "<span>code = {{{result codeContent}}}<br>expected = {{{result codeTextExpected}}}<br>actual = {{{result codeTestActual}}}</span>");
+  $(Templating.currentViewLink).tooltip();
+</script>
+#+END_SRC
+
+#+BEGIN_SRC coffee :results def
+Handlebars.registerHelper 'result', (string)->
+  string = (string || '').replace /^(: )/, ''
+  if string[string.length - 1] == '\n' then string = string.substring 0, string.length - 1
+  if string.indexOf('\n') > -1 then '<br>  ' + string.replace /\n(: )?/, '<br>  '
+  else string
+
+App.uncollapseTestCase = (div)->
+  Leisure.clearCodeAttributes div, 'view', 'observe'
+#+END_SRC
+* Graphical values
+#+BEGIN_SRC leisure :results dynamic
+rotate (polygon nil) 0
+#+END_SRC
+#+RESULTS:
+: <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width='240' height='228' viewbox='230 74 240 228'><g transform="rotate(0)"><polygon points="350 75  379 161 469 161 397 215 423 301 350 250 277 301 303 215 231 161 321 161" stroke="black" stroke-width="2" fill="orange" /></g></svg>
+* Some fun with infinite streams
+#+BEGIN_SRC leisure :results dynamic
+take 5 ones
+take 5 naturals
+take 5 (filter even naturals)
+#+END_SRC
+#+RESULTS:
+: [1 1 1 1 1]
+: [1 2 3 4 5]
+: [2 4 6 8 10]
+
+test
+
+
+#+BEGIN_SRC leisure :results def
+ones = [1 | ones]
+increasing x = [x | increasing x + 1]
+naturals = increasing 1
+even x = (x % 2) == 0
+#+END_SRC
+* Theme settings
+#+BEGIN_SRC leisure :results def
+#setTheme 'steampunk'
+setTheme 'googie'
+#setTheme 'flat'
+#setTheme 'console'
+#setTheme 'cthulhu'
+#+END_SRC
+#+RESULTS:
+: PARSE ERROR: 
+: 
+: Parse error: ReferenceError: L_steampunk$a is not defined
+: CODE: 
+: resolve(L_steampunk$a)
+: AST: anno(\@filename notebook . steampunk')
+: true
