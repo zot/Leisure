@@ -133,7 +133,11 @@ Emacs connection
               parent()
             else sendCcCc @editor.options.data.emacsConnection.websocket, @editor.docOffset(@editor.domCursorForCaret())
           renderImage: emacs: (parent)->(src, title, currentId)->
-            if name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
+            if !src.match '^.*:.*'
+              name = src.match(/([^#?]*)([#?].*)?$/)?[1]
+              src = "file:#{src}"
+            else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
+            if name
               con = @data.emacsConnection
               imgId = currentId || "emacs-image-#{imgCount++}"
               sendGetFile @data, src, (file)->

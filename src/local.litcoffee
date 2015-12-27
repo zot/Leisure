@@ -48,6 +48,7 @@ Code for local-mode.  This will not be loaded under meteor.
       peer = null
       p2pPanel = null
       p2pConnections = null
+      DEFAULT_PAGE='demo/documentComputers.lorg'
 
       Leisure.configureP2P = ({panel, hostField, sessionField, createSessionButton, connections})->
         p2pPanel = panel
@@ -95,114 +96,116 @@ Code for local-mode.  This will not be loaded under meteor.
         createEditorDisplay ED
         if document.location.search
           {load, theme, join} = getDocumentParams()
-          if load
-            load = new URL(load, document.location).toString()
-            $.get(load, (data)-> ED.options.load load, data)
-          if theme then ED.options.setTheme theme
-          if join
-            setTimeout (->
-              createSessionButton = $(editorToolbar window.PEER.editor.node).find('[name=p2pConnector] [name=createSession]')
-              createSessionButton.data hasSession: true
-              createSessionButton.closest('.contents').removeClass 'not-connected'
-              createSessionButton.closest('.contents').addClass 'connected'
-              createSessionButton.button 'option', 'label', 'Disconnect'
-              console.log "CREATE SESSION:", createSessionButton[0]
-              u = new URL join
-              console.log "JOIN SESSION: #{u}"
-              window.PEER.connectToSession u.toString(), null, (n)-> p2pConnections.html n), 1
-        else
-          ED.options.load 'default', """
-          Create a bad replacement with collaboration: asdf<-<-<-as
+        else load = DEFAULT_PAGE
+        if load
+          load = new URL(load, document.location).toString()
+          $.get(load, (data)-> ED.options.load load, data)
+          ED.options.loadName = load
+        if theme then ED.options.setTheme theme
+        if join
+          setTimeout (->
+            createSessionButton = $(editorToolbar window.PEER.editor.node).find('[name=p2pConnector] [name=createSession]')
+            createSessionButton.data hasSession: true
+            createSessionButton.closest('.contents').removeClass 'not-connected'
+            createSessionButton.closest('.contents').addClass 'connected'
+            createSessionButton.button 'option', 'label', 'Disconnect'
+            console.log "CREATE SESSION:", createSessionButton[0]
+            u = new URL join
+            console.log "JOIN SESSION: #{u}"
+            window.PEER.connectToSession u.toString(), null, (n)-> p2pConnections.html n), 1
+        #else
+        #  ED.options.load 'default', """
+        #  Create a bad replacement with collaboration: asdf<-<-<-as
 
-          burp
-          * top
-          bubba
+        #  burp
+        #  * top
+        #  bubba
 
-          [[leisure:bubba]][[leisure:bubba]]
+        #  [[leisure:bubba]][[leisure:bubba]]
 
-          #+NAME: bubba
-          #+BEGIN_SRC yaml
-          type: rotator
-          degrees: 45
-          #+END_SRC
+        #  #+NAME: bubba
+        #  #+BEGIN_SRC yaml
+        #  type: rotator
+        #  degrees: 45
+        #  #+END_SRC
 
-          #+BEGIN_SRC leisure :results dynamic
-          3 + 4
-          #+END_SRC
-          #+RESULTS:
-          : 7
+        #  #+BEGIN_SRC leisure :results dynamic
+        #  3 + 4
+        #  #+END_SRC
+        #  #+RESULTS:
+        #  : 7
 
-          #+BEGIN_SRC js :results dynamic
-          3-4
-          #+END_SRC
-          #+RESULTS:
-          : 7
-          #+BEGIN_SRC lisp :results dynamic
-          (+ 3 4)
-          #+END_SRC
-          #+BEGIN_SRC cs :results dynamic
-          '<b>duh</b>'
-          html '<b>duh</b>'
-          37/3333
-          html '<img src="https://imgs.xkcd.com/comics/lisp_cycles.png">'
-          #+END_SRC
-          #+RESULTS:
-          : &lt;b&gt;duh&lt;/b&gt;
-          : <b>duh</b>
-          : 0.0111011101110111
-          : <img src="https://imgs.xkcd.com/comics/lisp_cycles.png">
+        #  #+BEGIN_SRC js :results dynamic
+        #  3-4
+        #  #+END_SRC
+        #  #+RESULTS:
+        #  : 7
+        #  #+BEGIN_SRC lisp :results dynamic
+        #  (+ 3 4)
+        #  #+END_SRC
+        #  #+BEGIN_SRC cs :results dynamic
+        #  '<b>duh</b>'
+        #  html '<b>duh</b>'
+        #  37/3333
+        #  html '<img src="https://imgs.xkcd.com/comics/lisp_cycles.png">'
+        #  #+END_SRC
+        #  #+RESULTS:
+        #  : &lt;b&gt;duh&lt;/b&gt;
+        #  : <b>duh</b>
+        #  : 0.0111011101110111
+        #  : <img src="https://imgs.xkcd.com/comics/lisp_cycles.png">
 
-          #+BEGIN_HTML
-          <b>hello</b>
-          #+END_HTML
+        #  #+BEGIN_HTML
+        #  <b>hello</b>
+        #  #+END_HTML
 
-          #+BEGIN_SRC html :defview rotator
-          <div style='padding: 25px; display: inline-block'>
-            <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
-          </div>
-          #+END_SRC
+        #  #+BEGIN_SRC html :defview rotator
+        #  <div style='padding: 25px; display: inline-block'>
+        #    <div style='transform: rotate({{degrees}}deg);height: 100px;width: 100px;background: green'></div>
+        #  </div>
+        #  #+END_SRC
 
-          #+BEGIN_SRC cs :control rotator
-          @initializeView = (view)-> #console.log "initialize", view
-          #+END_SRC
+        #  #+BEGIN_SRC cs :control rotator
+        #  @initializeView = (view)-> #console.log "initialize", view
+        #  #+END_SRC
 
-          #+BEGIN_SRC html :defview leisure-headlineX
-          <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
-          }}</span>{{#each children}}{{{render this}}}{{/each}}</span>
-          #+END_SRC
-          
-          #+BEGIN_SRC css
-          [data-block='headline'] .maintext {
-            font-weight: bold;
-            color: blue;
-          }
-          .custom-headline {
-            font-weight: bold;
-            color: green;
-          }
-          [data-block='headline'] {
-            color: orangeX;
-          }
-          #+END_SRC
-          * Test properties > splunge
-           ** sub 1
-          */duh/*
-          :properties:
-          :hidden: true
-          :a: 1
-          :end:
+        #  #+BEGIN_SRC html :defview leisure-headlineX
+        #  <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
+        #  }}</span>{{#each children}}{{{render this}}}{{/each}}</span>
+        #  #+END_SRC
+        #  
+        #  #+BEGIN_SRC css
+        #  [data-block='headline'] .maintext {
+        #    font-weight: bold;
+        #    color: blue;
+        #  }
+        #  .custom-headline {
+        #    font-weight: bold;
+        #    color: green;
+        #  }
+        #  [data-block='headline'] {
+        #    color: orangeX;
+        #  }
+        #  #+END_SRC
+        #  * Test properties > splunge
+        #   ** sub 1
+        #  */duh/*
+        #  :properties:
+        #  :hidden: true
+        #  :a: 1
+        #  :end:
 
 
-          image link
-          [[https://imgs.xkcd.com/comics/lisp_cycles.png]]
+        #  image link
+        #  [[https://imgs.xkcd.com/comics/lisp_cycles.png]]
 
-          peep
-          :properties:
-          :b: 2
-          :end:
-          ** sub 2
-          asdf
-          """ + '\n'
+        #  peep
+        #  :properties:
+        #  :b: 2
+        #  :end:
+        #  ** sub 2
+        #  asdf
+        #  """ + '\n'
         $('#globalLoad').remove()
 
     require ['jquery'], ->

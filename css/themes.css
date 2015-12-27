@@ -1319,8 +1319,15 @@ body.slides.firstSlide #prevSlide {
 }
 .slides .currentSlide {
 /*    margin-left: 20%;*/
-    margin-left: 100px;
+/*    margin-left: 100px;*/
 /*padding-top: 167px;*/
+}
+.slides .pagecontent {
+    text-align: center;
+}
+.slides .maincontent span + div + div {
+    display: inline-block;
+    text-align: left;
 }
 [data-edit-mode='fancy'] {
     font-family: Arial;

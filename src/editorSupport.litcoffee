@@ -862,8 +862,8 @@ may be called more than once.  changeData() returns a promise.
             newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock
         renderImage: (src, title)->
-          if @loadName && m = src.match /^file:(\/\/)?(.*)$/
-            src = new URL(m[2], @loadName).toString()
+          if @loadName && ((m = src.match /^file:(\/\/)?(.*)$/) || !(src.match /^.*:/))
+            src = new URL(m?[2] || src, @loadName).toString()
           "<img src='#{src}'#{title}>"
         followLink: (e)->
           if e.target.href.match /^elisp/

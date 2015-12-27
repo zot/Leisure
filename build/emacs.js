@@ -180,8 +180,14 @@
         renderImage: {
           emacs: function(parent) {
             return function(src, title, currentId) {
-              var imgId, name, ref, ref1;
-              if (name = (ref = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref[1] : void 0) {
+              var imgId, name, ref, ref1, ref2;
+              if (!src.match('^.*:.*')) {
+                name = (ref = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref[1] : void 0;
+                src = "file:" + src;
+              } else {
+                name = (ref1 = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref1[1] : void 0;
+              }
+              if (name) {
                 con = this.data.emacsConnection;
                 imgId = currentId || ("emacs-image-" + (imgCount++));
                 sendGetFile(this.data, src, function(file) {
@@ -196,7 +202,7 @@
                     });
                   }
                 });
-                return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'" + ((ref1 = con.imageSizes[name]) != null ? ref1 : '') + ">";
+                return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'" + ((ref2 = con.imageSizes[name]) != null ? ref2 : '') + ">";
               } else {
                 return parent(src, title);
               }

@@ -8,18 +8,25 @@ window.FT = require './lib/fingertree'
 window.app = {}
 #+END_SRC
 
+#+BEGIN_SRC cssX
+.slides [data-org-headline='1'] > .maincontent > span + div + div {
+  display: inline-block;
+  margin: auto;
+}
+#+END_SRC
+
 * Fun With Finger Trees!
 * Weird name, what is it?
-[[file:finger-tree-3.png]]
+[[finger-tree-3.png]]
 * What? That name...
 ** Take a tree...
-[[file:finger-tree-1.png]]
+[[finger-tree-1.png]]
 * What? That name...
 ** Fold it in half along the spine...
-[[file:finger-tree-2.png]]
+[[finger-tree-2.png]]
 * What? That name...
 ** Index the path with "fingers"
-[[file:finger-tree-3.png]]
+[[finger-tree-3.png]]
 * Why do people use them?
 * Why? A persistent "measured sequence"
 ** Alternative to lists
@@ -34,28 +41,32 @@ window.app = {}
 *** reverse
 * Why? Sequence, concat...
 ** Wait, concatenate trees?  Huh?
+
+** Finger trees are *SEQUENCES* that are just implemented as trees
+
 ** Bulk operations on finger trees perform well (split/concat)
-** Finger trees are *sequences*
 * Why? Sequence, Concat...
 ** Concat for large stock sequences tends to be wasteful
-*** Lisp O(N)
-*** Clojure O(N)
+*** Lisp cons-list concat: O(N)
+*** Clojure vector concat: O(N)
+** Finger tree concat is fast
 *** Finger tress O(log N)
 * Why? Sequence, split...
-** Gives you random access!
+** Split gives you random access!
 ** Returns two trees
-*** You can random access and alter each tree
+*** You can randomly access and alter each tree
 ** Insert is easy: Split + push + concat
-** DELETE is easy: Split + pop + concat == delete
-*** The much-feared delte operation is actually easy!
+** DELETE is easy: Split + pop + concat
+*** Repeat: DELETE is easy!
+**** Say bye-bye to THAT fear and loathing...
 * Why? Sequence, "measured"?
 ** Caches a "measurement" at each level, providing O(log N) lookup
-[[file:finger-tree-1.png]]
+[[finger-tree-1.png]]
 * Why? Sequence, "measured"?
-** Caches successive "measurements" at each level
-[[file:finger-tree-1-measured.png]]
+** Measurements merge and cascade up
+[[finger-tree-1-measured.png]]
 * Why? Why? Why? Swiss Army, baby!
-** The measurement is pluggable
+** Because pluggable!
 * Why? Why? Why? Swiss Army, baby!
 ** FANTASTIC for ad hoc measured sequences
 ** many people just use lists/vectors for ad hoc structures
@@ -86,13 +97,12 @@ app.getNth = (tree, i)->
 #+END_SRC
 ** Test it...
 #+BEGIN_SRC cs :results dynamic
-app.getNth app.t, 0
+app.getNth app.t, 2
 #+END_SRC
-#+RESULTS:
-: a
+
 * How? Ropes...
 #+BEGIN_SRC cs :results def
-app.s = FT.fromArray ['aaa', 'bbbb', 'ccccc'],
+app.s = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', 'iiiii', 'jjj'],
   measure: (n)-> n.length
   identity: -> 0
   sum: (a, b)-> a + b
@@ -103,13 +113,12 @@ app.stringAtPos = (tree, pos)->
 #+END_SRC
 
 #+BEGIN_SRC cs :results dynamic
-app.stringAtPos app.s, 8
+app.stringAtPos app.s, 0
 #+END_SRC
-#+RESULTS:
-: ccccc
+
 * How? Ropes AND get Nth string?
 #+BEGIN_SRC cs :results def
-app.s2 = FT.fromArray ['aaa', 'bbbb', 'ccccc'],
+app.s2 = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', 'iiiii', 'jjj'],
   measure: (n)-> count: 1, length: n.length
   identity: -> count: 0, length: 0
   sum: (a, b)-> count: a.count + b.count, length: a.length + b.length
@@ -121,15 +130,13 @@ app.stringAtPos2 = (tree, pos)->
   [first, rest] = tree.split ({length})-> length > pos
   rest.peekFirst()
 #+END_SRC
-#+ERROR: 0, literal is not a function
+
 #+BEGIN_SRC cs :results dynamic
 app.getNth2 app.s2, 0
 app.stringAtPos2 app.s2, 0
 #+END_SRC
-#+RESULTS:
-: aaa
-: aaa
-* Why? Decent performance
+
+* Back to "Why?" Good performance
 ** split/concat: O(log N)
 ** push/pop at either end: O(1)
 ** insert: O(log N) (split + push + concat)
@@ -137,7 +144,7 @@ app.stringAtPos2 app.s2, 0
 ** reverse: O(1)
 * Why? Performance comparison
 ** This slide is from the [[http://comonad.com/reader/2010/finger-trees/#more-174][Comonad Reader Finger Tree talk]] (QR code at end)
-[[file:FingerTrees-performance.png]]
+[[FingerTrees-performance.png]]
 * Why? Disclaimer
 ** 3-5 times slower than the best balanced binary search trees
 ** According to the [[http://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf][Hinze-Paterson paper]] (QR code at end)
@@ -156,15 +163,44 @@ app.stringAtPos2 app.s2, 0
 ** Yi (Haskell Emacs-like editor) uses them to implement text buffers
 * Use? To implement many of Okasaki's data structures (maybe all of them)
 [[http://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf][Finger trees: a simple general-purpose data structure]], by Hinze & Paterson
-* Why? You provide the measurement
+* Me? Leisure uses them in several places
+
+** Block index
+
+*** Find block ID by offset
+
+#+BEGIN_SRC cs :results dynamic
+ED.options.data.blockForOffset 67
+#+END_SRC
+
+*** Find block offset by ID
+
+#+BEGIN_SRC cs :results dynamic
+ED.options.data.offsetForBlock 'block2'
+#+END_SRC
+
+** Floating marks
+
+*** Like EMACS floating marks
+
+*** Needed by value sliders (to continue working during collaboration)
+
+** Sets of textual replacements
+
+* How does the block index work?
+
+* How does the block index work?
+[[BlockIndex.png]]
 * History of finger trees
 * History: First published in 1977, by Guibas, McCreight, Plass, and Roberts
+
+** An alternative representation for lists (as opposed to cons-lists)
 * History: Refined here and there
 * History: Hinze/Paterson Finger Trees published in 2006
 * QR Codes
 ** This talk
 
 ** Hinze-Paterson paper
-[[file:FingerTree-paper-url.png]]
+[[FingerTree-paper-url.png]]
 ** Comonad Reader Finger Tree Talk
-[[file:FingerTrees-performance-url.png]]
+[[FingerTrees-performance-url.png]]

@@ -1,0 +1,50 @@
+* Leisure's transactional memory for operational transformation
+
+It's been a very long time since my last post but we haven't been
+idle.  We've been working on Leisure, which grew out of Lazp.  Leisure
+has become a dynamic, polyglot, collaborative computing environment,
+but more about that in future posts.  If you're curious about Leisure,
+you can find the repository here https://github.com/zot/Leisure,
+although we haven't formally announced it, yet.  It's functional but
+buggy.
+
+For now, here's a short note about how Leisure manages collaborative
+data manipulation.  Leisure's collaborative documents contain a
+combination of content, code, and data, all represented by org-format
+markup in plain text.  Data in Leisure documents resides in
+markup-delimited regions of text, such as org-mode source blocks
+containing yaml data and code in a Leisure document can change that
+data.  This means that, beyond just normal collaboration, Leisure
+requires an exclusion mechanism so that data can stay consistent when
+several users access and change it.
+
+Currently available OT (operational transformation) libraries and
+services work fine for eventually consistent collaborative document
+editing but these systems (Google Realtime API, TogetherJS,
+operational-transform.js, sharejs) don't work so well for collborative
+applications that use the document for their state because they don't
+support any kind of locking (pessimistic or optimistic).
+
+Leisure adds "guarded operations" to OT for collaborative data
+management.  Guarded operations add a "compare and set" operation to
+OT which Leisure uses to implement a sort of STM (software
+transactional memory) where the memory arena is the entire text
+document.  A guarded operation pairs an OT operation with a collection
+of text ranges.  A guarded operation will return failure to the sender
+if any of the ranges were altered before the operation could be
+applied, otherwise it returns success.
+
+Leisure's STM transaction facility takes a transaction function which
+returns a set of guarded replacements and returns a promise.  To
+attempt transaction, Leisure evaluates the function, combines the
+returned replacements into a guarded operation and sends it to the OT
+server.  Leisure will reattempt the transaction until it succeeds,
+after which it will resolve the promise.  This is analogous to the way
+STM works (see [[https://en.wikipedia.org/wiki/Software_transactional_memory][this Wikipedia article]]).
+
+Using this facility in Leisure, developers can safely and easily write
+multiuser programs that collaborate on document data.  This is the
+standard way to access and alter data in Leisure so the use of STM
+becomes transparent to the developer.  As with STM, developers don't
+have to worry about data concurrency so much as just which code to
+group into which transactions.

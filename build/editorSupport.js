@@ -1511,8 +1511,8 @@
 
       OrgEditing.prototype.renderImage = function(src, title) {
         var m;
-        if (this.loadName && (m = src.match(/^file:(\/\/)?(.*)$/))) {
-          src = new URL(m[2], this.loadName).toString();
+        if (this.loadName && ((m = src.match(/^file:(\/\/)?(.*)$/)) || !(src.match(/^.*:/)))) {
+          src = new URL((m != null ? m[2] : void 0) || src, this.loadName).toString();
         }
         return "<img src='" + src + "'" + title + ">";
       };

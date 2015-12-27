@@ -56,7 +56,7 @@ in as long as you mark it as data-noncontent, etc.
       </span>
     </div>
     <div name='p2pConnector' class='expandable-panel'>
-      <button class='label' name='p2plabel'>Collaboration (not working yet)</button>
+      <button class='label' name='p2plabel'>Collaboration</button>
       <span class='contents not-connected'>
         <button name='createSession'>Create Session</button>
         <span class='when-not-connected'>Relay Host: <input name="p2pHost"></span>
