@@ -882,7 +882,7 @@
         }
       },
       getSlides: function(opt) {
-        return $(opt.editor.node).find('.slideHolder');
+        return $(opt.editor.node).find('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]');
       },
       firstSlide: function(opt) {
         return this.getSlides(opt).first();
@@ -890,9 +890,9 @@
       lastSlide: function(opt) {
         return this.getSlides(opt).last();
       },
-      showSlide: function(opt, slide) {
-        var slides, top;
-        slides = this.getSlides(opt);
+      showSlide: function(opt, slide, slides) {
+        var top;
+        slides = slides != null ? slides : this.getSlides(opt);
         top = $(opt.editor.node);
         top.removeClass('firstSlide').removeClass('lastSlide');
         $(opt.editor.node).find('.currentSlide').removeClass('currentSlide');
@@ -905,33 +905,23 @@
         }
       },
       showNextSlide: function(opt) {
-        var i, j, len, slide, slides;
+        var next;
         if (this.showingSlides(opt)) {
-          slides = this.getSlides(opt);
-          for (i = j = 0, len = slides.length; j < len; i = ++j) {
-            slide = slides[i];
-            if ($(slide).is('.currentSlide')) {
-              if (i + 1 < slides.length) {
-                this.showSlide(opt, slides[i + 1]);
-              }
-              return true;
-            }
+          next = $('.currentSlide').next('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]');
+          if (next.length) {
+            this.showSlide(opt, next);
+            return true;
           }
         }
         return false;
       },
       showPrevSlide: function(opt) {
-        var i, j, len, slide, slides;
+        var prev;
         if (this.showingSlides(opt)) {
-          slides = this.getSlides(opt);
-          for (i = j = 0, len = slides.length; j < len; i = ++j) {
-            slide = slides[i];
-            if ($(slide).is('.currentSlide')) {
-              if (i > 0) {
-                this.showSlide(opt, slides[i - 1]);
-              }
-              return true;
-            }
+          prev = $('.currentSlide').prev('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]');
+          if (prev.length) {
+            this.showSlide(opt, prev);
+            return true;
           }
         }
         return false;

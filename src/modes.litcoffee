@@ -651,11 +651,12 @@
           else
             opt.editor.node.removeClass 'slides'
             $(opt.editor.node).find('.currentSlide').removeClass 'currentSlide'
-        getSlides: (opt)-> $(opt.editor.node).find('.slideHolder')
+        getSlides: (opt)->
+          $(opt.editor.node).find('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]')
         firstSlide: (opt)-> @getSlides(opt).first()
         lastSlide: (opt)-> @getSlides(opt).last()
-        showSlide: (opt, slide)->
-          slides = @getSlides opt
+        showSlide: (opt, slide, slides)->
+          slides = slides ? @getSlides opt
           top = $(opt.editor.node)
           top.removeClass('firstSlide').removeClass('lastSlide')
           $(opt.editor.node).find('.currentSlide').removeClass 'currentSlide'
@@ -664,19 +665,17 @@
           if $(slide)[0] == _.last(slides) then top.addClass 'lastSlide'
         showNextSlide: (opt)->
           if @showingSlides(opt)
-            slides = @getSlides opt
-            for slide, i in slides
-              if $(slide).is '.currentSlide'
-                if i + 1 < slides.length then @showSlide opt, slides[i + 1]
-                return true
+            next = $('.currentSlide').next('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]')
+            if next.length
+              @showSlide opt, next
+              return true
           false
         showPrevSlide: (opt)->
           if @showingSlides(opt)
-            slides = @getSlides opt
-            for slide, i in slides
-              if $(slide).is '.currentSlide'
-                if i > 0 then @showSlide opt, slides[i - 1]
-                return true
+            prev = $('.currentSlide').prev('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]')
+            if prev.length
+              @showSlide opt, prev
+              return true
           false
 
       isSidebar = (block)-> block?.properties?.note == 'sidebar'
