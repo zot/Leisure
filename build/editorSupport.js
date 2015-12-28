@@ -762,6 +762,14 @@
         return this.mode.showingSlides(this);
       };
 
+      OrgEditing.prototype.hideToolbar = function() {
+        return this.editor.node.prev().addClass('collapse');
+      };
+
+      OrgEditing.prototype.showToolbar = function() {
+        return this.editor.node.prev().removeClass('collapse');
+      };
+
       OrgEditing.prototype.getLocalBlock = function(thing) {
         return this.data.getLocalBlock(thing);
       };

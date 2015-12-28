@@ -34,6 +34,7 @@ in as long as you mark it as data-noncontent, etc.
 #+BEGIN_SRC html :defview leisure-toolbar
 <div name='buttons' style="position: relative;">
   <div style='position: relative; display: inline-block; width: calc(100% - 13em)'>
+    <button name='leisure_grip' title='x'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>
     <label name="showHide"><input type='checkbox'></input>Fred</label>
     <button name='search'>Search</button>
     <span class='expandable-panel'>
@@ -100,6 +101,8 @@ themes = [
 
 @initializeView = (view)->
   Leisure.UI.configurePanels view
+  toolbar = view.find('[name=buttons]')
+  view.find('[name=leisure_grip]').button().on 'click', (e)-> view.toggleClass 'collapse'
   view.find('[name=slides]').button().on 'click', (e)->
     Leisure.editorForToolbar(view[0]).options.toggleSlides()
   view.find('[name=showHide]')
@@ -143,6 +146,42 @@ updateButton = (view, hiding)->
 
 #+NAME: toolbar-css
 #+BEGIN_SRC css
+[data-view=leisure-toolbar] [name=leisure_grip] .fa-angle-right {
+  display: none;
+}
+[data-view=leisure-toolbar].collapse {
+  width: 2em;
+  max-width: 2em;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  background: transparent;
+}
+[data-view=leisure-toolbar].collapse [name=buttons] > * > * {
+  display: none;
+}
+[data-view=leisure-toolbar] [name=leisure_grip] {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+[data-view=leisure-toolbar].collapse [name=leisure_grip] {
+  display: inline;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  opacity: 0.5;
+  background-color: #111;
+}
+[data-view=leisure-toolbar].collapse [name=leisure_grip] .fa-angle-left {
+  display: none;
+}
+[data-view=leisure-toolbar].collapse [name=leisure_grip] .fa-angle-right {
+  display: inline;
+}
 [name=team_cthulhu] {
   float: right;
 }
@@ -156,6 +195,9 @@ updateButton = (view, hiding)->
   height: calc(100% - 3em);
   margin-top: 2.5em;
   overflow: auto;
+}
+[data-view='leisure-toolbar'].collapse + [maindoc] {
+  margin-top: 0;
 }
 [data-view='leisure-toolbar'] {
   position: fixed;
