@@ -1,23 +1,66 @@
 * Leisure Documents: Colaborative Documents as Computers
+Leisure's collaborative documents act like tiny computers.  Like
+computers, then just "run", there is no "development time" or "run
+time".  Also like a computer, Leisure documents contain both code and
+data and (like many computers) can present interfaces so that users
+can interact with their programs.
 * [[index.html?load=demo/posts.lorg][Posts]]
 :properties:
 :note: sidebar
 :end:
 * No difference between "development time" and "run time"
 
-** Just like a computer
+Just like computers, Leisure documents can be modified on-the-go (you
+don't have to restart your laptop in order to change or start a
+program).
 
-** Or like Smalltalk (which is a virtual machine, a type of computer)
+** Like Smalltalk (which is a virtual machine, i.e. a type of computer)
+
+Leisure is not as comprehensive a machine as Smalltalk but it owes
+much to Smalltalk and other related systems (like HyperCard and
+Mathematica).
 
 ** Collaborative for developers and users
 
-* Documents are just text, though
+You can share Leisure documents with other people and they can all
+interact with and change the document at the same time.  Different
+groups can interact privately in their own /sessions/ so that only
+people in the same session will see the changes.
+
+* Leisure documents are just text
+
+Leisure documents are org-file formatted text files.  They aren't
+stored or communicated in any special encoding, they're just text.
+Leisure on your computer communicates with Leisure on other computers
+by sending and receiving changes to the text document.
 
 ** Platform renders the text
 
-** Plays very nicely with version control
+Even though it's just text, Leisure displays its documents in a much
+richer way, by /rendering/ the text according to markup rules.  These
+rules also control graphical interfaces to code contained in the
+documents.
 
-** Human readable data (usually)
+** Plays very nicely with version control, email, and web sites
+
+Because the documents are just text, you don't need to do anything
+special to store them in Git, mail them to a friend, or put them on a
+web site.
+
+** Text is human readable and future proof
+
+By avoiding binary encoding, Leisure documents can remain readable for
+many years, even after web browsers become obsolete!
+
+** Text is easy to deal with
+
+Because it relies on text, Leisure's protocol is simpler and easier
+for other people to implement.
+
+** Text is reasonably efficient
+
+Leisure uses WebSockets, which support compression, so the protocol
+doesn't need to include compression as an optimization.
 
 * The document is the machine
 
