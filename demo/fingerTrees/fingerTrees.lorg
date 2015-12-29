@@ -431,9 +431,13 @@ _.at reps.finalBounds(), ['start', 'end']
 
 *** Combines two items to produce another item of the same type
 * QR Codes
-** [[http://zot.github.io/Leisure/index.html?load=demo/fingerTrees/fingerTrees.lorg][This talk]]
-[[ThisTalk.png]]
 ** [[http://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf][Hinze-Paterson paper]]
 [[FingerTree-paper-url.png]]
 ** [[http://comonad.com/reader/2010/finger-trees/#more-174][Comonad Reader Finger Tree Talk]]
 [[FingerTrees-performance-url.png]]
+* Finger tree library
+** [[http://zot.github.io/Leisure/index.html?load=demo/fingerTrees/fingerTrees.lorg][This talk]]
+[[ThisTalk.png]]
+** Using Xueqiao (Joe) Xu's [[https://github.com/qiao/fingertree.js/][JavaScript library]]
+** (well, my CoffeeScript port of it)
+[[fingerTreeLibrary-url.png]]
