@@ -21,14 +21,14 @@ ED.node.focus()
 #+END_SRC
 
 * Fun With Finger Trees!
-
 ** (Page Down / Page Up changes slides)
-
 #+BEGIN_HTML
 <button onclick='document.body.webkitRequestFullscreen(); ED.node.focus()'>Full screen</button>
 #+END_HTML
+
+[[2-3_finger_tree,_sample_tree.svg.png]]
 * Weird name, what is it?
-[[finger-tree-3.png]]
+[[Anatomy-of-a-finger-tree.png]]
 * What? That name...
 ** Take a tree...
 [[finger-tree-1.png]]
@@ -91,6 +91,12 @@ ED.node.focus()
 * Why? Wait, concatenate trees?  Huh?
 ** BOOM!
 [[ftAppend.png]]
+* Why? Wait, concatenate trees?  Huh?
+** Skeptical?
+* Why? Wait, concatenate trees?  Huh?
+** Well, that's roughly what happens, anyway
+* Why? Wait, concatenate trees?  Huh?
+** There's more finagling and laziness involved
 * Why? Wait, concatenate trees?  Huh?
 ** It's even better for really big trees: most ops are O(log N) or better
 * Why? Sequence, split...
