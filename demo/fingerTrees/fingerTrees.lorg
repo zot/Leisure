@@ -9,6 +9,8 @@ window.app = {}
 Lounge.opts.setTheme 'googie'
 Lounge.opts.hideToolbar()
 Lounge.opts.toggleSlides()
+window.ED = Lounge.opts.editor
+ED.node.focus()
 #+END_SRC
 
 #+BEGIN_SRC cssX
@@ -19,8 +21,14 @@ Lounge.opts.toggleSlides()
 #+END_SRC
 
 * Fun With Finger Trees!
+** (Page Down / Page Up changes slides)
+#+BEGIN_HTML
+<button onclick='document.body.webkitRequestFullscreen(); ED.node.focus()'>Full screen</button>
+#+END_HTML
+
+[[2-3_finger_tree,_sample_tree.svg.png]]
 * Weird name, what is it?
-[[finger-tree-3.png]]
+[[Anatomy-of-a-finger-tree.png]]
 * What? That name...
 ** Take a tree...
 [[finger-tree-1.png]]
@@ -33,6 +41,11 @@ Lounge.opts.toggleSlides()
 [[finger-tree-3.png]]
 
 * Why do people use them?
+** Decent performance
+
+** Persistent
+
+** Pluggable
 * Why? Decent performance
 ** Random access
 
@@ -84,18 +97,24 @@ Lounge.opts.toggleSlides()
 ** BOOM!
 [[ftAppend.png]]
 * Why? Wait, concatenate trees?  Huh?
+** Skeptical?
+* Why? Wait, concatenate trees?  Huh?
+** Well, that's roughly what happens, anyway
+* Why? Wait, concatenate trees?  Huh?
+** There's more finagling and laziness involved
+* Why? Wait, concatenate trees?  Huh?
 ** It's even better for really big trees: most ops are O(log N) or better
 * Why? Sequence, split...
 ** Split gives you random access!
 
-** Returns two trees
+** Returns two finger trees
 *** 1) All of the first items that failed the test
 
 
 *** 2) The rest of the tree (starting with the first successful item)
 
 
-** You can randomly access and alter each tree (of course!)
+** You can randomly access and alter each finger tree (of course!)
 * Why? Sequence, split...
 ** Insert is easy: Split + push + concat
 
@@ -104,8 +123,19 @@ Lounge.opts.toggleSlides()
 * Why? Sequence, split...
 ** Repeat: DELETE IS EASY!
 
-*** No fear and loathing!!!
-* Why? Disclaimer
+
+** No fear and loathing!!!
+* Why? Persistent?
+** persistent data structures are "functional"
+
+** old versions don't change
+
+** modifying them produces a new data structure that reuses old parts
+
+** very useful in concurrent and asynchronous programs
+
+** works well in functional environments
+* Why? Time for a disclaimer
 ** 3-5 times slower than the best balanced binary search trees
 
 ** According to the [[http://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf][Hinze-Paterson paper]] (QR code at end)
@@ -114,8 +144,7 @@ Lounge.opts.toggleSlides()
 * Why? THREE to FIVE times slower?!?
 ** Do you need trees that aren't just for SEARCH?
 
-
-** Do you need a search tree but don't have one on hand the QUITE does what you need?
+** Do you need a search tree but don't have one on hand that QUITE does what you need?
 * Why? Why? Why? Swiss Army, baby!
 ** You can haz pluggable!
 [[Happy-cat.jpg]]
@@ -163,13 +192,13 @@ app.getNth = (tree, i)->
   [first, rest] = tree.split (n)-> n > i
   rest.peekFirst()
 #+END_SRC
-
 ** Test it...
 #+BEGIN_SRC cs :results dynamic
 app.getNth app.t, 2
 #+END_SRC
 
 * How? Ropes...
+** Ropes done with finger trees
 #+BEGIN_SRC cs :results def
 app.s = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', 'iiiii', 'jjj'],
   measure: (n)-> n.length
@@ -180,12 +209,13 @@ app.stringAtPos = (tree, pos)->
   [first, rest] = tree.split (p)-> p > pos
   rest.peekFirst()
 #+END_SRC
-
+** Test it...
 #+BEGIN_SRC cs :results dynamic
 app.stringAtPos app.s, 0
 #+END_SRC
 
 * How? Ropes AND get Nth string?
+** Both at once!
 #+BEGIN_SRC cs :results def
 app.s2 = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', 'iiiii', 'jjj'],
   measure: (n)-> count: 1, length: n.length
@@ -195,11 +225,12 @@ app.s2 = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', 
 app.getNth2 = (tree, i)->
   [first, rest] = tree.split ({count})-> count > i
   rest.peekFirst()
+
 app.stringAtPos2 = (tree, pos)->
   [first, rest] = tree.split ({length})-> length > pos
   rest.peekFirst()
 #+END_SRC
-
+** Test it...
 #+BEGIN_SRC cs :results dynamic
 app.getNth2 app.s2, 5
 app.stringAtPos2 app.s2, 16
@@ -207,7 +238,12 @@ app.stringAtPos2 app.s2, 16
 #+RESULTS:
 : f
 : eeee
+* Let's review: Both at once
+** Measurements can be complex
 
+** They can serve several purposes
+
+** They can act like multiple indexes
 * Back to "Why?" Good performance
 ** split/concat: O(log N)
 
@@ -221,16 +257,6 @@ app.stringAtPos2 app.s2, 16
 * Why? Performance comparison
 ** This slide is from the [[http://comonad.com/reader/2010/finger-trees/#more-174][Comonad Reader Finger Tree talk]] (QR code at end)
 [[FingerTrees-performance.png]]
-* What? Persistent?
-** persistent data structures are "functional"
-
-** old versions don't change
-
-** modifying them produces a new data structure that reuses old parts
-
-** very useful for concurrency
-
-** works well in functional environments
 * What do peeps use them for?
 ** Yi (Haskell Emacs-like editor) uses them to implement text buffers
 
@@ -272,11 +298,37 @@ sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
 * How does the block index work?
 ** Actually, it's not too bad...
 * How does the block index work?
-** Becuz functional tekneex!
+** Becuz functional!
 [[Happy-cat.jpg]]
 * How does the block index work?
 ** It looks kind of like this
 [[BlockIndex.png]]
+* Floating Marks
+** They're just names and offsets!
+* Floating Marks
+** Well, offset is stored relative to the previous mark
+
+** That makes it easy to move them around
+
+** A finger tree manages lookup, and manipulation
+* Sets of textual replacements
+** Combine (and merge) successive string replacements
+
+** Compute the initial and final string length
+
+** Important for collaboration
+* Sets of textual replacements
+** Items are stored as {offset, length, text}
+
+** Offset is from end of preceding replacement (after application)
+#+BEGIN_SRC cs :results dynamic
+reps = Leisure.Replacements.replacements [
+  {start: 5, end: 15, text: 'hello'},
+  {start: 3, end: 7, text: 'burp'}
+]
+_.at reps.initialBounds(), ['start', 'end']
+_.at reps.finalBounds(), ['start', 'end']
+#+END_SRC
 * History
 ** First published in 1977
 *** by Guibas, McCreight, Plass, and Roberts
@@ -303,15 +355,19 @@ sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
 ** Really, people are confused about them because the IO monad is a clever hack
 *** That's a topic for another talk
 * Monoids!
-** A type
+** A type for the items
+
+** An identity item (or function)
+*** The "zero" item
 
 ** An associative operation
+*** A "plus" operator
 
-** An identity
+*** Combines two items to produce another item of the same type
 * QR Codes
-** This talk
-
-** Hinze-Paterson paper
+** [[http://zot.github.io/Leisure/index.html?load=demo/fingerTrees/fingerTrees.lorg][This talk]]
+[[ThisTalk.png]]
+** [[http://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf][Hinze-Paterson paper]]
 [[FingerTree-paper-url.png]]
-** Comonad Reader Finger Tree Talk
+** [[http://comonad.com/reader/2010/finger-trees/#more-174][Comonad Reader Finger Tree Talk]]
 [[FingerTrees-performance-url.png]]
