@@ -9,6 +9,8 @@ window.app = {}
 Lounge.opts.setTheme 'googie'
 Lounge.opts.hideToolbar()
 Lounge.opts.toggleSlides()
+window.ED = Lounge.opts.editor
+ED.node.focus()
 #+END_SRC
 
 #+BEGIN_SRC cssX
@@ -19,7 +21,12 @@ Lounge.opts.toggleSlides()
 #+END_SRC
 
 * Fun With Finger Trees!
-** (Page Down / Page Up to change slides)
+
+** (Page Down / Page Up changes slides)
+
+#+BEGIN_HTML
+<button onclick='document.body.webkitRequestFullscreen(); ED.node.focus()'>Full screen</button>
+#+END_HTML
 * Weird name, what is it?
 [[finger-tree-3.png]]
 * What? That name...
