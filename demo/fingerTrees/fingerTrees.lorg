@@ -13,10 +13,9 @@ window.ED = Lounge.opts.editor
 ED.node.focus()
 #+END_SRC
 
-#+BEGIN_SRC cssX
-.slides [data-org-headline='1'] > .maincontent > span + div + div {
-  display: inline-block;
-  margin: auto;
+#+BEGIN_SRC css
+body {
+  cursor: pointer;
 }
 #+END_SRC
 
@@ -27,6 +26,12 @@ ED.node.focus()
 #+END_HTML
 
 [[2-3_finger_tree,_sample_tree.svg.png]]
+* Who am I?
+** Bill Burdick
+
+** TEAM CTHULHU (Roy Riggs, Gilan Israel, and me)
+
+** We make [[github.com/zot/Leisure][Leisure]] and other stuff
 * Weird name, what is it?
 [[Anatomy-of-a-finger-tree.png]]
 * What? That name...
@@ -54,13 +59,13 @@ ED.node.focus()
 
 *** pop at both ends: O(1)
 
+*** reverse: O(1)
+
 *** insert: O(log N)
 
 *** delete: O(log N)
 
-*** reverse: O(1)
-
-*** split based on a value: O(log N)
+*** split based on a predicate (test functino): O(log N)
 
 *** concat: O(log N)
 * Why? Wait, concatenate trees?  Huh?
@@ -69,12 +74,16 @@ ED.node.focus()
 ** "Search trees" are not the only type of trees
 
 ** Trees can also be used for sequences
+
+** Like lists in Lisp
+
+** Like vectors in Clojure
 * Why? Concat...
-** Finger trees are *SEQUENCES* that are just implemented as trees
+** Finger trees are random-access *SEQUENCES* that are just implemented as trees
 
 ** Bulk operations on finger trees perform well (split/concat)
 * Why? Concat...
-** Concat for large stock sequences tends to be wasteful
+** Concat for large, stock-implemented sequences tends to be time consuming
 
 *** Lisp cons-list concat: O(N)
 
@@ -85,25 +94,30 @@ ED.node.focus()
 *** Finger tress: O(log N)
 
 * Why? Concat...
-** Remember Lisp?
+** Appending in Lisp and Clojure copies one of the lists
 [[consAppend.png]]
 * Why? Concat...
 ** Now with finger trees...
 
 ** Get ready to feel the performance...
-* Why? Wait, concatenate trees?  Huh?
+* Why? Concat...
 ** Are you ready?
-* Why? Wait, concatenate trees?  Huh?
+* Why? Concat...
 ** BOOM!
+** O(log N) concat!
 [[ftAppend.png]]
-* Why? Wait, concatenate trees?  Huh?
+* Why? Concat...
 ** Skeptical?
-* Why? Wait, concatenate trees?  Huh?
+* Why? Concat...
 ** Well, that's roughly what happens, anyway
-* Why? Wait, concatenate trees?  Huh?
+* Why? Concat...
 ** There's more finagling and laziness involved
-* Why? Wait, concatenate trees?  Huh?
-** It's even better for really big trees: most ops are O(log N) or better
+
+** But it's really O(log N)
+* Why? Concat...
+** O(log N) makes it even better for really big trees, of course
+
+** As we saw above, most ops are O(log N) or better
 * Why? Sequence, split...
 ** Split gives you random access!
 
@@ -121,20 +135,22 @@ ED.node.focus()
 ** DELETE is easy: Split + pop + concat
 
 * Why? Sequence, split...
+** Have you written your own collection libraries before?
+* Why? Sequence, split...
 ** Repeat: DELETE IS EASY!
 
 
 ** No fear and loathing!!!
 * Why? Persistent?
-** persistent data structures are "functional"
+** Persistent data structures are "functional"
 
-** old versions don't change
+** Old collection values don't change
 
-** modifying them produces a new data structure that reuses old parts
+** "Modifying" them produces a new data structure that reuses old parts
 
-** very useful in concurrent and asynchronous programs
+** Very useful in concurrent and asynchronous programs
 
-** works well in functional environments
+** Work well in functional environments
 * Why? Time for a disclaimer
 ** 3-5 times slower than the best balanced binary search trees
 
@@ -163,13 +179,15 @@ ED.node.focus()
 ** Measurements merge and cascade up
 [[finger-tree-1-measured.png]]
 * How do you use it?  You provide...
+** So how do you use a finger tree?
+* How do you use it?  You provide...
 ** Measure(element): produce a measurement based on a sequence element
 
 ** Identity(): the "zero" measurement for empty trees
 
 ** Sum(measure1, measure2): produce a measurement based on two other measurements
 
-(FYI: these last two make it a monoid)
+*** (FYI: these last two make it a monoid)
 * How? Split...
 ** Given a measurement test function, it returns two finger trees
 
@@ -180,10 +198,21 @@ ED.node.focus()
 ** You provide the measurement function at creation
 
 *** Each finger tree has specialized access
+* How?  Let's define a couple finger trees
+** One that lets you get the nth element
+*** Split on the nth element
+
+** Ropes, quickly-modifiable strings made of a bunch of substrings
+*** Split on the nth CHARACTER (as opposed to the nth string)
+
+** Combine the two, ropes with random-access substrings
+*** Split on the nth string
+
+*** Split on string containing the nth character from the start
 * How? Access the Nth element?  Easy!
-** Here's a "get nth element-able" measurement definition
+** Here's a "get nth element"-able measurement definition
 #+BEGIN_SRC cs :results def
-app.t = FT.fromArray 'abcdefghijklmnopqrstuvwxy',
+app.t = FT.fromArray 'abcdefghijklmnopqrstuvwxyz',
   measure: (n)-> 1
   identity: -> 0
   sum: (a, b)-> a + b
@@ -192,13 +221,37 @@ app.getNth = (tree, i)->
   [first, rest] = tree.split (n)-> n > i
   rest.peekFirst()
 #+END_SRC
+
+[[Get-nth.png]]
+* How? Access the Nth element?  Easy!
 ** Test it...
 #+BEGIN_SRC cs :results dynamic
-app.getNth app.t, 2
-#+END_SRC
+#app.t = FT.fromArray 'abcdefghijklmnopqrstuvwxyz',
+#  measure: (n)-> 1
+#  identity: -> 0
+#  sum: (a, b)-> a + b
 
+app.getNth app.t, 0
+#+END_SRC
+#+RESULTS:
+: a
 * How? Ropes...
-** Ropes done with finger trees
+** Ropes are a modern approach to strings (used by JavaScript and other systems)
+
+** Java's strings are just immutable arrays of characters
+*** Substring: O(1), pre-Java 7 (according to [[http://stackoverflow.com/a/4679775][John Skeet's]] StackOverflow answer)
+**** Can cause leaks.  Becuz shared.
+
+*** Substring: O(N), Java 7+ (according to [[http://stackoverflow.com/a/4679775][John Skeet's]] StackOverflow answer)
+
+*** Concatenating: O(N)
+
+** Ropes can provide better overall performance
+*** Substring: O(log N)
+
+*** Concatenation: O(log N)
+* How? Ropes...
+** Ropes done with finger trees (rough impl)
 #+BEGIN_SRC cs :results def
 app.s = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', 'iiiii', 'jjj'],
   measure: (n)-> n.length
@@ -207,15 +260,25 @@ app.s = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', '
 
 app.stringAtPos = (tree, pos)->
   [first, rest] = tree.split (p)-> p > pos
-  rest.peekFirst()
-#+END_SRC
-** Test it...
-#+BEGIN_SRC cs :results dynamic
-app.stringAtPos app.s, 0
+  if rest.isEmpty() then first
+  else first.addLast rest.peekFirst()
 #+END_SRC
 
+[[Rope.png]]
+* How? Ropes...
+** Test it...
+#+BEGIN_SRC cs :results dynamic
+t = app.stringAtPos app.s, 0
+res = if t.isEmpty() then '' else t.peekLast()
+t.toArray().join ''
+#+END_SRC
+#+RESULTS:
+: [object Object]
+: aaa
+: aaa
 * How? Ropes AND get Nth string?
 ** Both at once!
+** Measurements are objects instead of numbers
 #+BEGIN_SRC cs :results def
 app.s2 = FT.fromArray ['aaa', 'bbbb', 'ccccc', 'dd', 'eeee', 'f', 'gg', 'hhhh', 'iiiii', 'jjj'],
   measure: (n)-> count: 1, length: n.length
@@ -228,12 +291,13 @@ app.getNth2 = (tree, i)->
 
 app.stringAtPos2 = (tree, pos)->
   [first, rest] = tree.split ({length})-> length > pos
-  rest.peekFirst()
+  if rest.isEmpty() then first
+  else first.addLast rest.peekFirst()
 #+END_SRC
 ** Test it...
 #+BEGIN_SRC cs :results dynamic
 app.getNth2 app.s2, 5
-app.stringAtPos2 app.s2, 16
+app.stringAtPos2(app.s2, 16).toArray().join ''
 #+END_SRC
 #+RESULTS:
 : f
@@ -243,31 +307,32 @@ app.stringAtPos2 app.s2, 16
 
 ** They can serve several purposes
 
-** They can act like multiple indexes
+** They can act like multiple indexes in a single finger tree
 * Back to "Why?" Good performance
 ** split/concat: O(log N)
 
 ** push/pop at either end: O(1)
 
+** reverse: O(1)
+
 ** insert: O(log N) (split + push + concat)
 
 ** delete: O(log N) (split + pop + concat)
-
-** reverse: O(1)
 * Why? Performance comparison
 ** This slide is from the [[http://comonad.com/reader/2010/finger-trees/#more-174][Comonad Reader Finger Tree talk]] (QR code at end)
+*** Note that this is for non-lazy, so reverse is O(N) instead of O(1)
 [[FingerTrees-performance.png]]
-* What do peeps use them for?
+* What peeps use them?
 ** Yi (Haskell Emacs-like editor) uses them to implement text buffers
 
-** Leisure uses it
+** Leisure uses them
 * Use? Implement many (all?) of Okasaki's structures
 ** [[http://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf][Finger trees: a simple general-purpose data structure]], by Hinze & Paterson
 * Me? Leisure uses them in several places
 ** Block index
 *** Find block ID by offset
 #+BEGIN_SRC cs :results dynamic
-ED.options.data.blockForOffset 67
+ED.options.data.blockForOffset 1000
 #+END_SRC
 *** Find block offset by ID
 #+BEGIN_SRC cs :results dynamic
@@ -284,6 +349,7 @@ ED.options.data.offsetForBlock 'block2'
 
 ** One tree converts two-ways between character offset and block ID
 * How does the block index work?
+** Uses Facebook's [[http://facebook.github.io/immutable-js/][Immutable JS library]] (highly recommended)
 #+BEGIN_SRC cs
 identity: -> ids: Set(), length: 0
 measure: (v)-> ids: Set([v.id]), length: v.length
@@ -298,7 +364,7 @@ sum: (a, b)-> ids: a.ids.union(b.ids), length: a.length + b.length
 * How does the block index work?
 ** Actually, it's not too bad...
 * How does the block index work?
-** Becuz functional!
+** Becuz persistent!
 [[Happy-cat.jpg]]
 * How does the block index work?
 ** It looks kind of like this
@@ -342,7 +408,7 @@ _.at reps.finalBounds(), ['start', 'end']
 ** MONOIDS!
 [[Happy-cat.jpg]]
 * Monoids!
-** It mostly just means you can combine measurements
+** It mostly just means you can combine the measurements
 * Monoids!
 ** Monoids are like monads
 
