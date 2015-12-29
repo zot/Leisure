@@ -2,10 +2,11 @@
 (function() {
   var slice = [].slice;
 
-  define(['./lib/fingertree', './lib/lodash.min', './testing', 'immutable'], function(Fingertree, _, Testing, Immutable) {
-    var Replacements, Set, assert, assertEq, diag, eachReplacement, mergeRepl, replacements;
+  define(['./lib/fingertree', './lib/lodash.min', './testing', 'immutable', './export'], function(Fingertree, _, Testing, Immutable, Exports) {
+    var Replacements, Set, assert, assertEq, diag, eachReplacement, mergeExports, mergeRepl, replacements;
     assert = Testing.assert, assertEq = Testing.assertEq;
     Set = Immutable.Set;
+    mergeExports = Exports.mergeExports;
     diag = function() {
       var args;
       args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -297,10 +298,12 @@
       }
       return s;
     };
-    return {
-      Replacements: Replacements,
-      replacements: replacements
-    };
+    return mergeExports({
+      Replacements: {
+        Replacements: Replacements,
+        replacements: replacements
+      }
+    }).Replacements;
   });
 
 }).call(this);

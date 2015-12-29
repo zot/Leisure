@@ -152,10 +152,10 @@ updateButton = (view, hiding)->
 [data-view=leisure-toolbar].collapse {
   width: 2em;
   max-width: 2em;
-  position: absolute;
+  position: fixed;
   left: 0;
   top: 0;
-  z-index: 1;
+  z-index: 100;
   background: transparent;
 }
 [data-view=leisure-toolbar].collapse [name=buttons] > * > * {

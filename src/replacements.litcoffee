@@ -1,6 +1,6 @@
 Simple operational transformation engine
 
-    define ['./lib/fingertree', './lib/lodash.min', './testing', 'immutable'], (Fingertree, _, Testing, Immutable)->
+    define ['./lib/fingertree', './lib/lodash.min', './testing', 'immutable', './export'], (Fingertree, _, Testing, Immutable, Exports)->
       {
         assert
         assertEq
@@ -8,6 +8,9 @@ Simple operational transformation engine
       {
         Set
       } = Immutable
+      {
+        mergeExports
+      } = Exports
 
       #diag = (args...)-> console.log args...
       diag = (args...)->
@@ -147,7 +150,9 @@ Merge overlapping repl with node
           s.replace repl
         s
 
-      {
-        Replacements
-        replacements
-      }
+      mergeExports({
+        Replacements: {
+          Replacements
+          replacements
+        }
+      }).Replacements
