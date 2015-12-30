@@ -875,7 +875,7 @@
         sel = getSelection();
         offset = sel.type === 'None' ? 0 : (r = sel.getRangeAt(0), offset = r.endContainer === r.startContainer ? this.docOffset(r.endContainer, Math.max(r.startOffset, r.endOffset)) : this.docOffset(r.endContainer, r.endOffset));
         start = pos = this.domCursorForCaret().firstText().save();
-        while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
+        while (!pos.isEmpty() && this.options.isValidDocOffset(offset) && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
           pos = this.domCursorForDocOffset(++offset);
           pos.moveCaret();
         }
@@ -885,6 +885,8 @@
           while (!pos.isEmpty() && DOMCursor.isCollapsed(pos.node)) {
             pos = this.domCursorForDocOffset(--offset);
           }
+        } else if (!this.options.isValidDocOffset(offset)) {
+          pos = start;
         }
         return pos.moveCaret();
       };
@@ -1290,6 +1292,10 @@
 
       BasicEditingOptions.prototype.getLength = function() {
         return this.data.getLength();
+      };
+
+      BasicEditingOptions.prototype.isValidDocOffset = function(offset) {
+        return (0 <= offset && offset <= this.getLength());
       };
 
       return BasicEditingOptions;

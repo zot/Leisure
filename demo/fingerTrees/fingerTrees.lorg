@@ -150,7 +150,7 @@ body {
 
 ** Very useful in concurrent and asynchronous programs
 
-** Work well in functional environments
+** Works well in functional environments
 * Why? Time for a disclaimer
 ** 3-5 times slower than the best balanced binary search trees
 
@@ -170,6 +170,8 @@ body {
 ** Many people just use lists/vectors for ad hoc structures
 
 *** better performance
+* What?  "Measured sequence"?
+** Finger trees use "measurements" you provide to help with searching the structure
 * What?  "Measured sequence"?
 ** Caches "measurements" of subsequences for faster access and modification
 * Why? Sequence, "measured"?
