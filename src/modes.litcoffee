@@ -651,6 +651,7 @@
           else
             opt.editor.node.removeClass 'slides'
             $(opt.editor.node).find('.currentSlide').removeClass 'currentSlide'
+            opt.currentSlide = null
         getSlides: (opt)->
           $(opt.editor.node).find('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]')
         firstSlide: (opt)-> @getSlides(opt).first()
@@ -663,6 +664,7 @@
           $(slide).addClass 'currentSlide'
           if $(slide)[0] == slides[0] then top.addClass 'firstSlide'
           if $(slide)[0] == _.last(slides) then top.addClass 'lastSlide'
+          opt.currentSlide = opt.idForNode $(slide).find('[data-block]:first')
         showNextSlide: (opt)->
           if @showingSlides(opt)
             next = $('.currentSlide').next('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]')

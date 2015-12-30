@@ -474,6 +474,14 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         hideToolbar: -> @editor.node.prev().addClass 'collapse'
         showToolbar: -> @editor.node.prev().removeClass 'collapse'
         getLocalBlock: (thing)-> @data.getLocalBlock thing
+        isValidDocOffset: (offset)->
+          if @currentSlide
+            start = @data.offsetForBlock(@currentSlide)
+            if next = @data.nextSibling @currentSlide
+              end = @data.offsetForBlock(next) + next.text.length
+            else end = start + @getBlock(@currentSlide).text.length
+            start <= offset < end
+          else super offset
         rerenderAll: ->
           super()
           initializePendingViews()

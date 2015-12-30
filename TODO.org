@@ -1043,6 +1043,8 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE in slide mode, down/forward can move past the end of the visible text
+   CLOSED: [2015-12-30 Wed 09:03]
 ** DONE get collaboration going again
    CLOSED: [2015-10-19 Mon 13:42]
 ** DONE restore value sliders and make more value editors

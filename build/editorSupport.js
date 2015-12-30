@@ -774,6 +774,21 @@
         return this.data.getLocalBlock(thing);
       };
 
+      OrgEditing.prototype.isValidDocOffset = function(offset) {
+        var end, next, start;
+        if (this.currentSlide) {
+          start = this.data.offsetForBlock(this.currentSlide);
+          if (next = this.data.nextSibling(this.currentSlide)) {
+            end = this.data.offsetForBlock(next) + next.text.length;
+          } else {
+            end = start + this.getBlock(this.currentSlide).text.length;
+          }
+          return (start <= offset && offset < end);
+        } else {
+          return OrgEditing.__super__.isValidDocOffset.call(this, offset);
+        }
+      };
+
       OrgEditing.prototype.rerenderAll = function() {
         OrgEditing.__super__.rerenderAll.call(this);
         return initializePendingViews();

@@ -668,7 +668,7 @@ on it can select if start and end are different
               @docOffset r.endContainer, Math.max r.startOffset, r.endOffset
             else @docOffset r.endContainer, r.endOffset
           start = pos = @domCursorForCaret().firstText().save()
-          while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
+          while !pos.isEmpty() && @options.isValidDocOffset(offset) && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
             pos = @domCursorForDocOffset ++offset
             pos.moveCaret()
           if pos.isEmpty()
@@ -676,6 +676,8 @@ on it can select if start and end are different
             pos = @domCursorForDocOffset(offset).firstText()
             while !pos.isEmpty() && DOMCursor.isCollapsed pos.node
               pos = @domCursorForDocOffset --offset
+          else if !@options.isValidDocOffset(offset)
+            pos = start
           pos.moveCaret()
         moveBackward: ->
           sel = getSelection()
@@ -995,6 +997,7 @@ Factored out because the Emacs connection calls MakeStructureChange.
           result
         getText: -> @data.getText()
         getLength: -> @data.getLength()
+        isValidDocOffset: (offset)-> 0 <= offset <= @getLength()
 
       computeNewStructure = (access, oldBlocks, newText)->
         prev = oldBlocks[0]?.prev ? 0
