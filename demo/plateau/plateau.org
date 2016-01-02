@@ -1,4 +1,4 @@
-* Plateau, a game of intrigue! (Settings)
+* Settings
 :properties:
 :hidden: true
 :end:

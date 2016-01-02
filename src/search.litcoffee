@@ -29,8 +29,6 @@
       } = BrowserExports
 
       searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g
-      editorCount = 0
-      activeEditors = {}
 
       normalize = (str)-> str && str.toLowerCase().replace(/([^a-z0-9]|\n)+/g, '').trim()
 
@@ -62,11 +60,8 @@
         grams: tri
         tokens: _.keys tokens
 
-      updateEditors = _.throttle ->
-        for k, editor of activeEditors
-          editor.redisplay()
-
       addSearchDataFilter = (data)->
+        updateEditors = _.throttle -> data.trigger 'updateSearch'
         data.addFilter
           __proto__: basicDataFilter
           clear: (data)->
@@ -111,11 +106,10 @@
         constructor: (@data, @text)->
           super @data
           @results = {}
-          @id = "editor-#{editorCount++}"
-          activeEditors[@id] = this
+          @addDataCallbacks updateSearch: => @redisplay()
         checkValid: ->
           if !document.documentElement.contains $(@editor.node)[0]
-            delete activeEditors[@id]
+            @cleanup()
             false
           true
         initToolbar: ->
@@ -152,6 +146,7 @@
         opts.hiding = false
         output.prev().filter('[data-view=leisure-toolbar]').remove()
         input.on 'input', (e)-> opts.search()
+        opts
 
       mergeExports {
         openSearch

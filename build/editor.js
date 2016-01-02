@@ -91,6 +91,26 @@
         this.suppressTriggers = false;
       }
 
+      Observable.prototype.add = function(obj) {
+        var callback, results1, type;
+        results1 = [];
+        for (type in obj) {
+          callback = obj[type];
+          results1.push(this.on(type, callback));
+        }
+        return results1;
+      };
+
+      Observable.prototype.remove = function(obj) {
+        var callback, results1, type;
+        results1 = [];
+        for (type in obj) {
+          callback = obj[type];
+          results1.push(this.off(type, callback));
+        }
+        return results1;
+      };
+
       Observable.prototype.on = function(type, callback) {
         if (!this.listeners[type]) {
           this.listeners[type] = [];
@@ -2229,19 +2249,46 @@
       function DataStoreEditingOptions(data) {
         this.data = data;
         DataStoreEditingOptions.__super__.constructor.call(this);
-        this.data.on('change', (function(_this) {
-          return function(changes) {
-            return preserveSelection(function() {
-              return _this.changed(changes);
-            });
-          };
-        })(this));
-        this.data.on('load', (function(_this) {
-          return function() {
-            return _this.trigger('load');
-          };
-        })(this));
+        this.callbacks = {};
+        this.addDataCallbacks({
+          change: (function(_this) {
+            return function(changes) {
+              return _this.dataChanged(changes);
+            };
+          })(this),
+          load: (function(_this) {
+            return function() {
+              return _this.dataLoaded();
+            };
+          })(this)
+        });
       }
+
+      DataStoreEditingOptions.prototype.addDataCallbacks = function(cb) {
+        var func, results1, type;
+        results1 = [];
+        for (type in cb) {
+          func = cb[type];
+          results1.push(this.data.on(type, this.callbacks[type] = func));
+        }
+        return results1;
+      };
+
+      DataStoreEditingOptions.prototype.dataChanged = function(changes) {
+        return preserveSelection((function(_this) {
+          return function() {
+            return _this.changed(changes);
+          };
+        })(this));
+      };
+
+      DataStoreEditingOptions.prototype.dataLoaded = function() {
+        return this.trigger('load');
+      };
+
+      DataStoreEditingOptions.prototype.cleanup = function() {
+        return this.data.remove(this.callbacks);
+      };
 
       DataStoreEditingOptions.prototype.initData = function() {};
 
