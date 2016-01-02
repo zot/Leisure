@@ -1,14 +1,16 @@
-    define ['./editor', './editorSupport', './ui', './export'], (Editor, EditorSupport, UI, BrowserExports)->
+    define ['./editor', './editorSupport', './ui', './export', './modes'], (Editor, EditorSupport, UI, BrowserExports, Modes)->
       {
         findEditor
         LeisureEditCore
       } = Editor
       {
         OrgEditing
-        fancyMode
         editorForToolbar
         basicDataFilter
       } = EditorSupport
+      {
+        fancyMode
+      } = Modes
       {
         addView
         removeView
@@ -123,11 +125,10 @@
         editor = UI.context.editor
         output = $(view).find '.leisure-searchOutput'
         input = $(view).find '.leisure-searchText'
-        opts = new SearchEditor(editor.options.data).setMode fancyMode
-        new LeisureEditCore output, opts
-        $(output).parent().addClass 'flat'
-        opts.setMode fancyMode
-        opts.rerenderAll()
+        output.parent().addClass 'flat'
+        searchEditor = new LeisureEditCore output, new SearchEditor(editor.options.data).setMode fancyMode
+        opts = searchEditor.options
+        output.prev().filter('[data-view=leisure-toolbar]').remove()
         input.on 'input', (e)->
           if hits = searchForBlocks(opts.data, input.val())
             results = _.transform hits, ((obj, item)-> obj[item] = true), {}

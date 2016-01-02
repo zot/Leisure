@@ -51,6 +51,8 @@ choose a handlebars template.
       refreshImage = (img)->
         if img.src.indexOf("file:") == 0
           newImg = document.createElement('img')
+          for att in img.attributes
+            newImg.setAttribute att.name, att.value
           newImg.onload = -> $(img).replaceWith newImg
           newImg.src = nextImageSrc img.src
 
@@ -132,13 +134,13 @@ choose a handlebars template.
               if isTop then attrs += " data-ids='#{_.keys(settings.subviews).join ' '}'"
               n = $("<span #{attrs}>#{html}</span>")
               $(node).replaceWith n
-              activateScripts n, root.context
+              root.activateScripts n, root.context
         else mergeContext settings, -> simpleRenderView attrs, key, template, data, block
 
       simpleRenderView = (attrs, key, template, data, block)->
         id = "view-#{viewIdCounter++}"
         do (context = root.context)->
-          pendingViews.push -> activateScripts $("##{id}"), context
+          pendingViews.push -> root.activateScripts $("##{id}"), context
         attrs += " id='#{id}'"
         if block then root.context.subviews[block._id] = true
         root.context.simpleViewId = id
@@ -248,6 +250,7 @@ choose a handlebars template.
           prevImageSrc
           pushPendingInitialzation
           setPanelExpanded
+          activateScripts
         }
         Handlebars
       }).UI

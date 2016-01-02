@@ -275,8 +275,8 @@ Evaulation support for Leisure
               value = v.substring(eq + 1).trim()
               if value[0] in "'\"0123456789" then value = JSON.parse value
               else if bl = data.getBlockNamed value
-                blockIds[bl] = true
-                value = data.getBlock(bl)?.yaml
+                blockIds[bl._id] = true
+                value = bl.yaml
               else value = value.trim()
               vars[v.substring(0, eq).trim()] = value
         [vars, _.keys blockIds]

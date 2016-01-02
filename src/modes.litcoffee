@@ -177,6 +177,8 @@
 
       Handlebars.registerHelper 'renderHtml', (html)->
         [vars, ids] = blockVars UI.context?.opts?.data, this.block?.codeAttributes?.var
+        varSetting = this.block?.codeAttributes?.var
+        data = UI.context?.opts?.data
         if ids.length > 0 && (id = UI.context?.simpleViewId ? this.id) && (opts = UI.context?.opts)
           pushPendingInitialzation =>
             viewNode = $("##{id}")
@@ -185,6 +187,10 @@
               for id in ids
                 blocks += " #{id}"
               node.attr 'data-observe', blocks
+              if varSetting && !_.isEmpty(varSetting)
+                for v in varSetting
+                  if id = data.namedBlocks[v]
+                    blocks += " #{id}"
             if controllerName = @block.codeAttributes.controller
               if !(controller = singleControllers[controllerName])
                 if block = opts.data.getBlockNamed controllerName

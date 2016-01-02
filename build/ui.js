@@ -57,9 +57,14 @@
       return (src.substring(0, hashLoc)) + "#" + count;
     };
     refreshImage = function(img) {
-      var newImg;
+      var att, i, len, newImg, ref;
       if (img.src.indexOf("file:") === 0) {
         newImg = document.createElement('img');
+        ref = img.attributes;
+        for (i = 0, len = ref.length; i < len; i++) {
+          att = ref[i];
+          newImg.setAttribute(att.name, att.value);
+        }
         newImg.onload = function() {
           return $(img).replaceWith(newImg);
         };
@@ -177,7 +182,7 @@
             }
             n = $("<span " + attrs + ">" + html + "</span>");
             $(node).replaceWith(n);
-            return activateScripts(n, root.context);
+            return root.activateScripts(n, root.context);
           }));
         }
         return results;
@@ -192,7 +197,7 @@
       id = "view-" + (viewIdCounter++);
       (function(context) {
         return pendingViews.push(function() {
-          return activateScripts($("#" + id), context);
+          return root.activateScripts($("#" + id), context);
         });
       })(root.context);
       attrs += " id='" + id + "'";
@@ -350,7 +355,8 @@
         nextImageSrc: nextImageSrc,
         prevImageSrc: prevImageSrc,
         pushPendingInitialzation: pushPendingInitialzation,
-        setPanelExpanded: setPanelExpanded
+        setPanelExpanded: setPanelExpanded,
+        activateScripts: activateScripts
       },
       Handlebars: Handlebars
     }).UI;

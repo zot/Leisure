@@ -1,0 +1,89 @@
+* Plateau, a game of intrigue! (Settings)
+:properties:
+:hidden: true
+:end:
+#+NAME: board
+#+BEGIN_SRC yaml :flowlevel 2
+- [W2, E, B3, B2]
+- [E, R, R, B]
+- [R, E, E, E]
+- [R, B, E, E]
+#+END_SRC
+
+#+BEGIN_SRC css
+.piece {
+  width: 64px;
+  height: 64px;
+  margin: 15px;
+}
+.board {
+  display: inline-block;
+  border: black solid 2px;
+  padding: 15px;
+}
+.scorePanel {
+  display: inline-block;
+  margin-left: 0.5em;
+  padding: 10px;
+  border: solid black 2px;
+  vertical-align: top;
+  font-size: 200%;
+  font-weight: bold;
+  background: grey;
+}
+.playerName {
+}
+.playerScore {
+}
+.whitePlayer, .blackPlayer {
+  padding: 5px;
+  border: solid 16px;
+  background: #CCC;
+}
+.whitePlayer {
+  border-color: white;
+  margin-bottom: 5px;
+}
+.blackPlayer {
+  border-color: black;
+}
+#+END_SRC
+
+* Plateau, a game of intrigue!
+#+BEGIN_HTML :var board=board :var pw=whitePlayer :var pb=blackPlayer
+<div class='board'>
+  {{#each board}}
+    {{#each this}}
+      <img src='demo/plateau/{{this.[0]}}-Piece.svg' class='piece'>
+    {{/each}}<br>
+  {{/each}}
+  </div>
+<div class='scorePanel'>
+  <div class='whitePlayer'>
+    <span class='playerName'>{{pw.name}}:</span> <span class='playerScore'>{{pw.score}}</span><br>
+  </div>
+  <div class='blackPlayer'>
+    <span class='playerName'>{{pb.name}}:</span> <span class='playerScore'>{{pb.score}}</span><br>
+  </div>
+</div>
+<div class='controls'>
+  <div class=''>
+    Available Pieces
+  </div>
+</div>
+#+END_HTML
+* Data
+:properties:
+:hidden: true
+:end:
+#+NAME: whitePlayer
+#+BEGIN_SRC yaml :flowlevel 2
+name: player1
+score: 0
+#+END_SRC
+
+#+NAME: blackPlayer
+#+BEGIN_SRC yaml :flowlevel 2
+name: player2
+score: 0
+#+END_SRC

@@ -132,23 +132,29 @@ Emacs connection
             if @editor.blockForCaret()?.language.toLowerCase() of knownLanguages
               parent()
             else sendCcCc @editor.options.data.emacsConnection.websocket, @editor.docOffset(@editor.domCursorForCaret())
-          renderImage: emacs: (parent)->(src, title, currentId)->
-            if !src.match '^.*:.*'
-              name = src.match(/([^#?]*)([#?].*)?$/)?[1]
-              src = "file:#{src}"
-            else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
-            if name
-              con = @data.emacsConnection
-              imgId = currentId || "emacs-image-#{imgCount++}"
-              sendGetFile @data, src, (file)->
-                if file && img = $("##{imgId}")[0]
-                  preserveSelection (range)->
-                    img.src = "data:#{typeForFile name};base64,#{file}"
-                    img.onload = ->
-                      img.removeAttribute 'style'
-                      con.imageSizes[name] = " style='height: #{img.height}px; width: #{img.width}px'"
-              "<img id='#{imgId}' title='#{escapeAttr title}'#{con.imageSizes[name] ? ''}>"
-            else parent src, title
+        changeAdvice UI, true,
+          activateScripts: emacs: (parent)->(el, context)->
+            ret = parent el, context
+            for img in $(el).find 'img'
+              src = img.getAttribute 'src'
+              if !src.match '^.*:.*'
+                name = src.match(/([^#?]*)([#?].*)?$/)?[1]
+                src = "file:#{src}"
+              else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
+              if name
+                if !img.id then img.id = "emacs-image-#{imgCount++}"
+                img.src = ''
+                fetchImage opts.data.emacsConnection, img.id, src
+            ret
+
+      fetchImage = (con, imgId, src)->
+        sendGetFile con, src, (file)->
+          if file && img = $("##{imgId}")[0]
+            preserveSelection (range)->
+              img.src = "data:#{typeForFile src};base64,#{file}"
+              img.onload = ->
+                img.removeAttribute 'style'
+                con.imageSizes[src] = " style='height: #{img.height}px; width: #{img.width}px'"
 
       typeForFile = (name)->
         [ignore,ext] = name.match /\.(.*)$/
@@ -227,16 +233,16 @@ Emacs connection
         con.send "ctrl-c-ctrl-c #{location}"
         diag "sending ctrl-c-ctrl-c #{location}"
 
-      sendGetFile = (data, name, callback)->
-        con = data.emacsConnection.websocket
+      sendGetFile = (con, name, callback)->
+        webSocket = con.websocket
         if m = name.match /#.*$/
           name = name.substring 0, name.length - m[0].length
         id = "file-#{fileCount++}"
         diag "sending getFile #{id} #{name}"
-        data.emacsConnection.fileCallbacks[id] = (file)->
-          delete data.emacsConnection.fileCallbacks[id]
+        con.fileCallbacks[id] = (file)->
+          delete con.fileCallbacks[id]
           callback file
-        con.send "getFile #{id} #{name}"
+        webSocket.send "getFile #{id} #{name}"
 
       blockRangeFor = (data, start, end)->
         bOff = data.blockOffsetForDocOffset start
