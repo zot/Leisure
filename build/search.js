@@ -4,13 +4,15 @@
     hasProp = {}.hasOwnProperty;
 
   define(['./editor', './editorSupport', './ui', './export', './modes'], function(Editor, EditorSupport, UI, BrowserExports, Modes) {
-    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
-    findEditor = Editor.findEditor, LeisureEditCore = Editor.LeisureEditCore;
+    var LeisureEditCore, OrgEditing, SearchEditor, activeEditors, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorCount, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, preserveSelection, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, updateEditors, viewKey, withContext;
+    findEditor = Editor.findEditor, LeisureEditCore = Editor.LeisureEditCore, preserveSelection = Editor.preserveSelection;
     OrgEditing = EditorSupport.OrgEditing, editorForToolbar = EditorSupport.editorForToolbar, basicDataFilter = EditorSupport.basicDataFilter;
     fancyMode = Modes.fancyMode;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
     mergeExports = BrowserExports.mergeExports;
     searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g;
+    editorCount = 0;
+    activeEditors = {};
     normalize = function(str) {
       return str && str.toLowerCase().replace(/([^a-z0-9]|\n)+/g, '').trim();
     };
@@ -18,7 +20,7 @@
       return c.charCodeAt(0);
     };
     grams = function(str, gr) {
-      var c, cc, i, j, k, l, len, m, n, ref, ref1, ref2, ref3, ref4, ref5, ref6, results1, results2;
+      var c, cc, i, j, l, len, m, n, o, ref, ref1, ref2, ref3, ref4, ref5, ref6, results1, results2;
       if (gr == null) {
         gr = {};
       }
@@ -26,11 +28,11 @@
       if (str) {
         ref4 = (function() {
           results2 = [];
-          for (var l = ref2 = chr('a'), ref3 = chr('z'); ref2 <= ref3 ? l <= ref3 : l >= ref3; ref2 <= ref3 ? l++ : l--){ results2.push(l); }
+          for (var m = ref2 = chr('a'), ref3 = chr('z'); ref2 <= ref3 ? m <= ref3 : m >= ref3; ref2 <= ref3 ? m++ : m--){ results2.push(m); }
           return results2;
         }).apply(this).concat((function() {
           results1 = [];
-          for (var k = ref = chr('0'), ref1 = chr('9'); ref <= ref1 ? k <= ref1 : k >= ref1; ref <= ref1 ? k++ : k--){ results1.push(k); }
+          for (var l = ref = chr('0'), ref1 = chr('9'); ref <= ref1 ? l <= ref1 : l >= ref1; ref <= ref1 ? l++ : l--){ results1.push(l); }
           return results1;
         }).apply(this));
         for (j = 0, len = ref4.length; j < len; j++) {
@@ -42,12 +44,12 @@
         }
       }
       if (str && str.length >= 2) {
-        for (i = m = 0, ref5 = str.length - 3; 0 <= ref5 ? m < ref5 : m > ref5; i = 0 <= ref5 ? ++m : --m) {
+        for (i = n = 0, ref5 = str.length - 3; 0 <= ref5 ? n < ref5 : n > ref5; i = 0 <= ref5 ? ++n : --n) {
           gr[str.substring(i, i + 2)] = true;
         }
       }
       if (str && str.length >= 3) {
-        for (i = n = 0, ref6 = str.length - 2; 0 <= ref6 ? n < ref6 : n > ref6; i = 0 <= ref6 ? ++n : --n) {
+        for (i = o = 0, ref6 = str.length - 2; 0 <= ref6 ? o < ref6 : o > ref6; i = 0 <= ref6 ? ++o : --o) {
           gr[str.substring(i, i + 3)] = true;
         }
       }
@@ -80,6 +82,15 @@
         tokens: _.keys(tokens)
       };
     };
+    updateEditors = _.throttle(function() {
+      var editor, k, results1;
+      results1 = [];
+      for (k in activeEditors) {
+        editor = activeEditors[k];
+        results1.push(editor.redisplay());
+      }
+      return results1;
+    });
     addSearchDataFilter = function(data) {
       return data.addFilter({
         __proto__: basicDataFilter,
@@ -90,7 +101,7 @@
           };
         },
         replaceBlock: function(data, oldBlock, newBlock) {
-          var gram, ref, ref1, ref2, ref3, results1;
+          var gram, ref, ref1, ref2, ref3;
           for (gram in grams(oldBlock != null ? oldBlock.text : void 0)) {
             if ((ref = data.ftsIndex.gramBlocks[gram]) != null ? ref[oldBlock._id] : void 0) {
               if ((ref1 = data.ftsIndex.gramBlocks[gram]) != null) {
@@ -102,7 +113,6 @@
               }
             }
           }
-          results1 = [];
           for (gram in grams(newBlock != null ? newBlock.text : void 0)) {
             if (!((ref2 = data.ftsIndex.gramBlocks[gram]) != null ? ref2[newBlock._id] : void 0)) {
               if (!data.ftsIndex.gramBlocks[gram]) {
@@ -112,12 +122,10 @@
               if ((ref3 = data.ftsIndex.gramBlocks[gram]) != null) {
                 ref3[newBlock._id] = true;
               }
-              results1.push(++data.ftsIndex.sizes[gram]);
-            } else {
-              results1.push(void 0);
+              ++data.ftsIndex.sizes[gram];
             }
           }
-          return results1;
+          return setTimeout(updateEditors, 1);
         }
       });
     };
@@ -169,11 +177,22 @@
     SearchEditor = (function(superClass) {
       extend(SearchEditor, superClass);
 
-      function SearchEditor(data1) {
+      function SearchEditor(data1, text1) {
         this.data = data1;
+        this.text = text1;
         SearchEditor.__super__.constructor.call(this, this.data);
         this.results = {};
+        this.id = "editor-" + (editorCount++);
+        activeEditors[this.id] = this;
       }
+
+      SearchEditor.prototype.checkValid = function() {
+        if (!document.documentElement.contains($(this.editor.node)[0])) {
+          delete activeEditors[this.id];
+          false;
+        }
+        return true;
+      };
 
       SearchEditor.prototype.initToolbar = function() {};
 
@@ -194,6 +213,24 @@
         } else {
           return ['', realBlock != null ? realBlock.next : void 0];
         }
+      };
+
+      SearchEditor.prototype.search = function() {
+        var hits, results;
+        if (hits = searchForBlocks(this.data, this.text.val())) {
+          results = _.transform(hits, (function(obj, item) {
+            return obj[item] = true;
+          }), {});
+          return this.setResults(results);
+        }
+      };
+
+      SearchEditor.prototype.redisplay = function() {
+        return preserveSelection((function(_this) {
+          return function() {
+            return _this.search();
+          };
+        })(this));
       };
 
       return SearchEditor;
@@ -217,18 +254,12 @@
       output = $(view).find('.leisure-searchOutput');
       input = $(view).find('.leisure-searchText');
       output.parent().addClass('flat');
-      searchEditor = new LeisureEditCore(output, new SearchEditor(editor.options.data).setMode(fancyMode));
+      searchEditor = new LeisureEditCore(output, new SearchEditor(editor.options.data, input).setMode(fancyMode));
       opts = searchEditor.options;
       opts.hiding = false;
       output.prev().filter('[data-view=leisure-toolbar]').remove();
       return input.on('input', function(e) {
-        var hits, results;
-        if (hits = searchForBlocks(opts.data, input.val())) {
-          results = _.transform(hits, (function(obj, item) {
-            return obj[item] = true;
-          }), {});
-          return opts.setResults(results);
-        }
+        return opts.search();
       });
     };
     mergeExports({

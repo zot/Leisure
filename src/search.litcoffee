@@ -2,6 +2,7 @@
       {
         findEditor
         LeisureEditCore
+        preserveSelection
       } = Editor
       {
         OrgEditing
@@ -28,6 +29,8 @@
       } = BrowserExports
 
       searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g
+      editorCount = 0
+      activeEditors = {}
 
       normalize = (str)-> str && str.toLowerCase().replace(/([^a-z0-9]|\n)+/g, '').trim()
 
@@ -59,6 +62,10 @@
         grams: tri
         tokens: _.keys tokens
 
+      updateEditors = _.throttle ->
+        for k, editor of activeEditors
+          editor.redisplay()
+
       addSearchDataFilter = (data)->
         data.addFilter
           __proto__: basicDataFilter
@@ -80,6 +87,7 @@
                   data.ftsIndex.sizes[gram] = 0
                 data.ftsIndex.gramBlocks[gram]?[newBlock._id] = true
                 ++data.ftsIndex.sizes[gram]
+            setTimeout updateEditors, 1
 
       searchForBlocks = (data, query)->
         {tokens, grams: g} = indexQuery query
@@ -100,9 +108,16 @@
         else []
 
       class SearchEditor extends OrgEditing
-        constructor: (@data)->
+        constructor: (@data, @text)->
           super @data
           @results = {}
+          @id = "editor-#{editorCount++}"
+          activeEditors[@id] = this
+        checkValid: ->
+          if !document.documentElement.contains $(@editor.node)[0]
+            delete activeEditors[@id]
+            false
+          true
         initToolbar: ->
         setResults: (newResults)->
           if changed = !_.isEqual newResults, @results
@@ -113,6 +128,12 @@
           realBlock = @getBlock block
           if @results[realBlock?._id] then super realBlock
           else ['', realBlock?.next]
+        search: ->
+          if hits = searchForBlocks(@data, @text.val())
+            results = _.transform hits, ((obj, item)-> obj[item] = true), {}
+            @setResults results
+        redisplay: -> preserveSelection => @search()
+            
 
       openSearch = (event)->
         editor = editorForToolbar(event.originalEvent.srcElement)
@@ -126,14 +147,11 @@
         output = $(view).find '.leisure-searchOutput'
         input = $(view).find '.leisure-searchText'
         output.parent().addClass 'flat'
-        searchEditor = new LeisureEditCore output, new SearchEditor(editor.options.data).setMode fancyMode
+        searchEditor = new LeisureEditCore output, new SearchEditor(editor.options.data, input).setMode fancyMode
         opts = searchEditor.options
         opts.hiding = false
         output.prev().filter('[data-view=leisure-toolbar]').remove()
-        input.on 'input', (e)->
-          if hits = searchForBlocks(opts.data, input.val())
-            results = _.transform hits, ((obj, item)-> obj[item] = true), {}
-            opts.setResults results
+        input.on 'input', (e)-> opts.search()
 
       mergeExports {
         openSearch

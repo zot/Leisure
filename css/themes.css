@@ -1026,6 +1026,7 @@ body {
     margin-bottom: 5px;
     overflow: visible;
     background-color: yellow;
+    z-index: 1000;
 }
 #selectionBubble > div {
     display: none;
