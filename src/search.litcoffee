@@ -29,6 +29,7 @@
       } = BrowserExports
 
       searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g
+      editorCount = 0
 
       normalize = (str)-> str && str.toLowerCase().replace(/([^a-z0-9]|\n)+/g, '').trim()
 
@@ -107,6 +108,7 @@
           super @data
           @results = {}
           @addDataCallbacks updateSearch: => @redisplay()
+          @setPrefix "search-#{editorCount++}-"
         checkValid: ->
           if !document.documentElement.contains $(@editor.node)[0]
             @cleanup()
@@ -120,8 +122,14 @@
           changed
         renderBlock: (block)->
           realBlock = @getBlock block
-          if @results[realBlock?._id] then super realBlock
+          if @shouldRender realBlock
+            super realBlock
           else ['', realBlock?.next]
+        shouldRender: (block)->
+          while block
+            if @results[block._id] then return true
+            block = @data.parent block
+          false
         search: ->
           if hits = searchForBlocks(@data, @text.val())
             results = _.transform hits, ((obj, item)-> obj[item] = true), {}
