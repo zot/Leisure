@@ -4,15 +4,13 @@
     hasProp = {}.hasOwnProperty;
 
   define(['./editor', './editorSupport', './ui', './export', './modes'], function(Editor, EditorSupport, UI, BrowserExports, Modes) {
-    var LeisureEditCore, OrgEditing, SearchEditor, activeEditors, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorCount, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, preserveSelection, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, updateEditors, viewKey, withContext;
+    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, preserveSelection, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
     findEditor = Editor.findEditor, LeisureEditCore = Editor.LeisureEditCore, preserveSelection = Editor.preserveSelection;
     OrgEditing = EditorSupport.OrgEditing, editorForToolbar = EditorSupport.editorForToolbar, basicDataFilter = EditorSupport.basicDataFilter;
     fancyMode = Modes.fancyMode;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
     mergeExports = BrowserExports.mergeExports;
     searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g;
-    editorCount = 0;
-    activeEditors = {};
     normalize = function(str) {
       return str && str.toLowerCase().replace(/([^a-z0-9]|\n)+/g, '').trim();
     };
@@ -20,7 +18,7 @@
       return c.charCodeAt(0);
     };
     grams = function(str, gr) {
-      var c, cc, i, j, l, len, m, n, o, ref, ref1, ref2, ref3, ref4, ref5, ref6, results1, results2;
+      var c, cc, i, j, k, l, len, m, n, ref, ref1, ref2, ref3, ref4, ref5, ref6, results1, results2;
       if (gr == null) {
         gr = {};
       }
@@ -28,11 +26,11 @@
       if (str) {
         ref4 = (function() {
           results2 = [];
-          for (var m = ref2 = chr('a'), ref3 = chr('z'); ref2 <= ref3 ? m <= ref3 : m >= ref3; ref2 <= ref3 ? m++ : m--){ results2.push(m); }
+          for (var l = ref2 = chr('a'), ref3 = chr('z'); ref2 <= ref3 ? l <= ref3 : l >= ref3; ref2 <= ref3 ? l++ : l--){ results2.push(l); }
           return results2;
         }).apply(this).concat((function() {
           results1 = [];
-          for (var l = ref = chr('0'), ref1 = chr('9'); ref <= ref1 ? l <= ref1 : l >= ref1; ref <= ref1 ? l++ : l--){ results1.push(l); }
+          for (var k = ref = chr('0'), ref1 = chr('9'); ref <= ref1 ? k <= ref1 : k >= ref1; ref <= ref1 ? k++ : k--){ results1.push(k); }
           return results1;
         }).apply(this));
         for (j = 0, len = ref4.length; j < len; j++) {
@@ -44,12 +42,12 @@
         }
       }
       if (str && str.length >= 2) {
-        for (i = n = 0, ref5 = str.length - 3; 0 <= ref5 ? n < ref5 : n > ref5; i = 0 <= ref5 ? ++n : --n) {
+        for (i = m = 0, ref5 = str.length - 3; 0 <= ref5 ? m < ref5 : m > ref5; i = 0 <= ref5 ? ++m : --m) {
           gr[str.substring(i, i + 2)] = true;
         }
       }
       if (str && str.length >= 3) {
-        for (i = o = 0, ref6 = str.length - 2; 0 <= ref6 ? o < ref6 : o > ref6; i = 0 <= ref6 ? ++o : --o) {
+        for (i = n = 0, ref6 = str.length - 2; 0 <= ref6 ? n < ref6 : n > ref6; i = 0 <= ref6 ? ++n : --n) {
           gr[str.substring(i, i + 3)] = true;
         }
       }
@@ -82,16 +80,11 @@
         tokens: _.keys(tokens)
       };
     };
-    updateEditors = _.throttle(function() {
-      var editor, k, results1;
-      results1 = [];
-      for (k in activeEditors) {
-        editor = activeEditors[k];
-        results1.push(editor.redisplay());
-      }
-      return results1;
-    });
     addSearchDataFilter = function(data) {
+      var updateEditors;
+      updateEditors = _.throttle(function() {
+        return data.trigger('updateSearch');
+      });
       return data.addFilter({
         __proto__: basicDataFilter,
         clear: function(data) {
@@ -182,13 +175,18 @@
         this.text = text1;
         SearchEditor.__super__.constructor.call(this, this.data);
         this.results = {};
-        this.id = "editor-" + (editorCount++);
-        activeEditors[this.id] = this;
+        this.addDataCallbacks({
+          updateSearch: (function(_this) {
+            return function() {
+              return _this.redisplay();
+            };
+          })(this)
+        });
       }
 
       SearchEditor.prototype.checkValid = function() {
         if (!document.documentElement.contains($(this.editor.node)[0])) {
-          delete activeEditors[this.id];
+          this.cleanup();
           false;
         }
         return true;
@@ -258,9 +256,10 @@
       opts = searchEditor.options;
       opts.hiding = false;
       output.prev().filter('[data-view=leisure-toolbar]').remove();
-      return input.on('input', function(e) {
+      input.on('input', function(e) {
         return opts.search();
       });
+      return opts;
     };
     mergeExports({
       openSearch: openSearch,

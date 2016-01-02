@@ -719,14 +719,6 @@
 
       function OrgEditing(data) {
         OrgEditing.__super__.constructor.call(this, data);
-        data.on('load', (function(_this) {
-          return function() {
-            return _this.rerenderAll();
-          };
-        })(this));
-        data.on('change', function() {
-          return initializePendingViews();
-        });
         this.setPrefix('leisureBlock-');
         this.hiding = true;
         this.setMode(Leisure.plainMode);
@@ -734,6 +726,16 @@
         this.dataChanges = null;
         this.pendingDataChanges = null;
       }
+
+      OrgEditing.prototype.dataChanged = function(changes) {
+        OrgEditing.__super__.dataChanged.call(this, changes);
+        return initializePendingViews();
+      };
+
+      OrgEditing.prototype.dataLoaded = function() {
+        OrgEditing.__super__.dataLoaded.call(this);
+        return this.rerenderAll();
+      };
 
       OrgEditing.prototype.load = function(name, text) {
         var oldOpts;

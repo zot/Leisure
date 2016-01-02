@@ -452,14 +452,18 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       class OrgEditing extends DataStoreEditingOptions
         constructor: (data)->
           super data
-          data.on 'load', => @rerenderAll()
-          data.on 'change', -> initializePendingViews()
           @setPrefix 'leisureBlock-'
           @hiding = true
           @setMode Leisure.plainMode
           @toggledSlides = {}
           @dataChanges = null
           @pendingDataChanges = null
+        dataChanged: (changes)->
+          super changes
+          initializePendingViews()
+        dataLoaded: ->
+          super()
+          @rerenderAll()
         load: (name, text)->
           oldOpts = defaultEnv.opts
           defaultEnv.opts = this

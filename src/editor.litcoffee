@@ -244,6 +244,12 @@ Observable class
         constructor: ->
           @listeners = {}
           @suppressTriggers = false
+        add: (obj)->
+          for type, callback of obj
+            @on type, callback
+        remove: (obj)->
+          for type, callback of obj
+            @off type, callback
         on: (type, callback)->
           if !@listeners[type] then @listeners[type] = []
           @listeners[type].push callback
@@ -1528,8 +1534,16 @@ DataStoreEditingOptions
       class DataStoreEditingOptions extends BasicEditingOptions
         constructor: (@data)->
           super()
-          @data.on 'change', (changes)=> preserveSelection => @changed changes
-          @data.on 'load', => @trigger 'load'
+          @callbacks = {}
+          @addDataCallbacks
+            change: (changes)=> @dataChanged changes
+            load: => @dataLoaded()
+        addDataCallbacks: (cb)->
+          for type, func of cb
+            @data.on type, @callbacks[type] = func
+        dataChanged: (changes)-> preserveSelection => @changed changes
+        dataLoaded: -> @trigger 'load'
+        cleanup: -> @data.remove @callbacks
         initData: ->
         load: (name, text)->
           blockMap = {}

@@ -606,6 +606,7 @@ data-org-type='results'
 
 #+BEGIN_SRC cs :control leisure-search
 @initializeView = (view)->
+  searchEditor = null
   d = $(view).children()
     .dialog
       width: 400
@@ -614,8 +615,9 @@ data-org-type='results'
     .on 'dialogclose', ->
       $(this).dialog('destroy')
       $(this).remove()
+      searchEditor.cleanup()
     #.on 'dialogclose', -> console.log this
-  Leisure.configureSearch d
+  searchEditor = Leisure.configureSearch d
 #+END_SRC
 
 #+NAME: search-css
