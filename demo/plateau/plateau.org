@@ -4,7 +4,7 @@
 :end:
 #+NAME: board
 #+BEGIN_SRC yaml :flowlevel 2
-- [W2, E, B3, R2]
+- [W2, E, B3, B2]
 - [E, R, R, R]
 - [R, E, E, E]
 - [R, B, E, E]

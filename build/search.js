@@ -4,13 +4,14 @@
     hasProp = {}.hasOwnProperty;
 
   define(['./editor', './editorSupport', './ui', './export', './modes'], function(Editor, EditorSupport, UI, BrowserExports, Modes) {
-    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, preserveSelection, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
+    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorCount, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, preserveSelection, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
     findEditor = Editor.findEditor, LeisureEditCore = Editor.LeisureEditCore, preserveSelection = Editor.preserveSelection;
     OrgEditing = EditorSupport.OrgEditing, editorForToolbar = EditorSupport.editorForToolbar, basicDataFilter = EditorSupport.basicDataFilter;
     fancyMode = Modes.fancyMode;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
     mergeExports = BrowserExports.mergeExports;
     searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g;
+    editorCount = 0;
     normalize = function(str) {
       return str && str.toLowerCase().replace(/([^a-z0-9]|\n)+/g, '').trim();
     };
@@ -182,6 +183,7 @@
             };
           })(this)
         });
+        this.setPrefix("search-" + (editorCount++) + "-");
       }
 
       SearchEditor.prototype.checkValid = function() {
@@ -206,11 +208,21 @@
       SearchEditor.prototype.renderBlock = function(block) {
         var realBlock;
         realBlock = this.getBlock(block);
-        if (this.results[realBlock != null ? realBlock._id : void 0]) {
+        if (this.shouldRender(realBlock)) {
           return SearchEditor.__super__.renderBlock.call(this, realBlock);
         } else {
           return ['', realBlock != null ? realBlock.next : void 0];
         }
+      };
+
+      SearchEditor.prototype.shouldRender = function(block) {
+        while (block) {
+          if (this.results[block._id]) {
+            return true;
+          }
+          block = this.data.parent(block);
+        }
+        return false;
       };
 
       SearchEditor.prototype.search = function() {
