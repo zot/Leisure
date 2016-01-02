@@ -91,8 +91,8 @@
         if counts.length
           counts.sort (a, b)-> b.size - a.size
           results = (block for block of gramBlocks[counts.pop().gram])
-          while counts.length
-            blocks = gramBlocks[counts.pop().gram]
+          for count in counts by -1
+            blocks = gramBlocks[count.gram]
             results = _.filter results, (x)-> blocks[x]
           _.filter results, (id)->
             text = normalize data.getBlock(id).text
@@ -128,6 +128,7 @@
         output.parent().addClass 'flat'
         searchEditor = new LeisureEditCore output, new SearchEditor(editor.options.data).setMode fancyMode
         opts = searchEditor.options
+        opts.hiding = false
         output.prev().filter('[data-view=leisure-toolbar]').remove()
         input.on 'input', (e)->
           if hits = searchForBlocks(opts.data, input.val())

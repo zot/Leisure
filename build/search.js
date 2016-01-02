@@ -122,7 +122,7 @@
       });
     };
     searchForBlocks = function(data, query) {
-      var block, blocks, counts, g, gram, gramBlocks, ref, ref1, results, sizes, tokens;
+      var block, blocks, count, counts, g, gram, gramBlocks, j, ref, ref1, results, sizes, tokens;
       ref = indexQuery(query), tokens = ref.tokens, g = ref.grams;
       ref1 = data.ftsIndex, gramBlocks = ref1.gramBlocks, sizes = ref1.sizes;
       counts = [];
@@ -148,8 +148,9 @@
           }
           return results1;
         })();
-        while (counts.length) {
-          blocks = gramBlocks[counts.pop().gram];
+        for (j = counts.length - 1; j >= 0; j += -1) {
+          count = counts[j];
+          blocks = gramBlocks[count.gram];
           results = _.filter(results, function(x) {
             return blocks[x];
           });
@@ -218,6 +219,7 @@
       output.parent().addClass('flat');
       searchEditor = new LeisureEditCore(output, new SearchEditor(editor.options.data).setMode(fancyMode));
       opts = searchEditor.options;
+      opts.hiding = false;
       output.prev().filter('[data-view=leisure-toolbar]').remove();
       return input.on('input', function(e) {
         var hits, results;
