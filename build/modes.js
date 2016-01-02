@@ -166,20 +166,30 @@
       return fancyMode.render(UI.context.opts, block, UI.context.prefix)[0];
     });
     Handlebars.registerHelper('renderHtml', function(html) {
-      var id, ids, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, vars;
+      var data, id, ids, opts, ref, ref1, ref10, ref11, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, varSetting, vars;
       ref4 = blockVars((ref = UI.context) != null ? (ref1 = ref.opts) != null ? ref1.data : void 0 : void 0, (ref2 = this.block) != null ? (ref3 = ref2.codeAttributes) != null ? ref3["var"] : void 0 : void 0), vars = ref4[0], ids = ref4[1];
-      if (ids.length > 0 && (id = (ref5 = (ref6 = UI.context) != null ? ref6.simpleViewId : void 0) != null ? ref5 : this.id) && (opts = (ref7 = UI.context) != null ? ref7.opts : void 0)) {
+      varSetting = (ref5 = this.block) != null ? (ref6 = ref5.codeAttributes) != null ? ref6["var"] : void 0 : void 0;
+      data = (ref7 = UI.context) != null ? (ref8 = ref7.opts) != null ? ref8.data : void 0 : void 0;
+      if (ids.length > 0 && (id = (ref9 = (ref10 = UI.context) != null ? ref10.simpleViewId : void 0) != null ? ref9 : this.id) && (opts = (ref11 = UI.context) != null ? ref11.opts : void 0)) {
         pushPendingInitialzation((function(_this) {
           return function() {
-            var block, blocks, controller, controllerName, env, j, len, node, ref8, viewNode;
+            var block, blocks, controller, controllerName, env, j, len, len1, n, node, ref12, v, viewNode;
             viewNode = $("#" + id);
             if ((node = opts.nodeForId(_this.block._id)) && (node[0] === viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)) {
-              blocks = (ref8 = node.attr('data-observe')) != null ? ref8 : '';
+              blocks = (ref12 = node.attr('data-observe')) != null ? ref12 : '';
               for (j = 0, len = ids.length; j < len; j++) {
                 id = ids[j];
                 blocks += " " + id;
               }
               node.attr('data-observe', blocks);
+              if (varSetting && !_.isEmpty(varSetting)) {
+                for (n = 0, len1 = varSetting.length; n < len1; n++) {
+                  v = varSetting[n];
+                  if (id = data.namedBlocks[v]) {
+                    blocks += " " + id;
+                  }
+                }
+              }
             }
             if (controllerName = _this.block.codeAttributes.controller) {
               if (!(controller = singleControllers[controllerName])) {

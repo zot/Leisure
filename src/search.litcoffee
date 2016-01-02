@@ -1,14 +1,16 @@
-    define ['./editor', './editorSupport', './ui', './export'], (Editor, EditorSupport, UI, BrowserExports)->
+    define ['./editor', './editorSupport', './ui', './export', './modes'], (Editor, EditorSupport, UI, BrowserExports, Modes)->
       {
         findEditor
         LeisureEditCore
       } = Editor
       {
         OrgEditing
-        fancyMode
         editorForToolbar
         basicDataFilter
       } = EditorSupport
+      {
+        fancyMode
+      } = Modes
       {
         addView
         removeView
@@ -89,8 +91,8 @@
         if counts.length
           counts.sort (a, b)-> b.size - a.size
           results = (block for block of gramBlocks[counts.pop().gram])
-          while counts.length
-            blocks = gramBlocks[counts.pop().gram]
+          for count in counts by -1
+            blocks = gramBlocks[count.gram]
             results = _.filter results, (x)-> blocks[x]
           _.filter results, (id)->
             text = normalize data.getBlock(id).text
@@ -123,11 +125,11 @@
         editor = UI.context.editor
         output = $(view).find '.leisure-searchOutput'
         input = $(view).find '.leisure-searchText'
-        opts = new SearchEditor(editor.options.data).setMode fancyMode
-        new LeisureEditCore output, opts
-        $(output).parent().addClass 'flat'
-        opts.setMode fancyMode
-        opts.rerenderAll()
+        output.parent().addClass 'flat'
+        searchEditor = new LeisureEditCore output, new SearchEditor(editor.options.data).setMode fancyMode
+        opts = searchEditor.options
+        opts.hiding = false
+        output.prev().filter('[data-view=leisure-toolbar]').remove()
         input.on 'input', (e)->
           if hits = searchForBlocks(opts.data, input.val())
             results = _.transform hits, ((obj, item)-> obj[item] = true), {}

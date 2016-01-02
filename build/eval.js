@@ -422,7 +422,7 @@
       return knownLanguages[name != null ? name.toLowerCase() : void 0];
     };
     blockVars = function(data, varDefs) {
-      var bl, blockIds, eq, i, len, ref, ref1, ref2, v, value, vars;
+      var bl, blockIds, eq, i, len, ref, ref1, v, value, vars;
       blockIds = {};
       vars = {};
       if (varDefs) {
@@ -434,8 +434,8 @@
             if (ref1 = value[0], indexOf.call("'\"0123456789", ref1) >= 0) {
               value = JSON.parse(value);
             } else if (bl = data.getBlockNamed(value)) {
-              blockIds[bl] = true;
-              value = (ref2 = data.getBlock(bl)) != null ? ref2.yaml : void 0;
+              blockIds[bl._id] = true;
+              value = bl.yaml;
             } else {
               value = value.trim();
             }

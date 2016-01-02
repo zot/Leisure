@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
-    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
+    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
@@ -152,7 +152,7 @@
           }
         });
       };
-      return changeAdvice(opts, true, {
+      changeAdvice(opts, true, {
         followLink: {
           emacs: function(parent) {
             return function(e) {
@@ -176,38 +176,49 @@
               }
             };
           }
-        },
-        renderImage: {
+        }
+      });
+      return changeAdvice(UI, true, {
+        activateScripts: {
           emacs: function(parent) {
-            return function(src, title, currentId) {
-              var imgId, name, ref, ref1, ref2;
-              if (!src.match('^.*:.*')) {
-                name = (ref = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref[1] : void 0;
-                src = "file:" + src;
-              } else {
-                name = (ref1 = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref1[1] : void 0;
-              }
-              if (name) {
-                con = this.data.emacsConnection;
-                imgId = currentId || ("emacs-image-" + (imgCount++));
-                sendGetFile(this.data, src, function(file) {
-                  var img;
-                  if (file && (img = $("#" + imgId)[0])) {
-                    return preserveSelection(function(range) {
-                      img.src = "data:" + (typeForFile(name)) + ";base64," + file;
-                      return img.onload = function() {
-                        img.removeAttribute('style');
-                        return con.imageSizes[name] = " style='height: " + img.height + "px; width: " + img.width + "px'";
-                      };
-                    });
+            return function(el, context) {
+              var i, img, len, name, ref, ref1, ref2, ret, src;
+              ret = parent(el, context);
+              ref = $(el).find('img');
+              for (i = 0, len = ref.length; i < len; i++) {
+                img = ref[i];
+                src = img.getAttribute('src');
+                if (!src.match('^.*:.*')) {
+                  name = (ref1 = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref1[1] : void 0;
+                  src = "file:" + src;
+                } else {
+                  name = (ref2 = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref2[1] : void 0;
+                }
+                if (name) {
+                  if (!img.id) {
+                    img.id = "emacs-image-" + (imgCount++);
                   }
-                });
-                return "<img id='" + imgId + "' title='" + (escapeAttr(title)) + "'" + ((ref2 = con.imageSizes[name]) != null ? ref2 : '') + ">";
-              } else {
-                return parent(src, title);
+                  img.src = '';
+                  fetchImage(opts.data.emacsConnection, img.id, src);
+                }
               }
+              return ret;
             };
           }
+        }
+      });
+    };
+    fetchImage = function(con, imgId, src) {
+      return sendGetFile(con, src, function(file) {
+        var img;
+        if (file && (img = $("#" + imgId)[0])) {
+          return preserveSelection(function(range) {
+            img.src = "data:" + (typeForFile(src)) + ";base64," + file;
+            return img.onload = function() {
+              img.removeAttribute('style');
+              return con.imageSizes[src] = " style='height: " + img.height + "px; width: " + img.width + "px'";
+            };
+          });
         }
       });
     };
@@ -319,19 +330,19 @@
       con.send("ctrl-c-ctrl-c " + location);
       return diag("sending ctrl-c-ctrl-c " + location);
     };
-    sendGetFile = function(data, name, callback) {
-      var con, id, m;
-      con = data.emacsConnection.websocket;
+    sendGetFile = function(con, name, callback) {
+      var id, m, webSocket;
+      webSocket = con.websocket;
       if (m = name.match(/#.*$/)) {
         name = name.substring(0, name.length - m[0].length);
       }
       id = "file-" + (fileCount++);
       diag("sending getFile " + id + " " + name);
-      data.emacsConnection.fileCallbacks[id] = function(file) {
-        delete data.emacsConnection.fileCallbacks[id];
+      con.fileCallbacks[id] = function(file) {
+        delete con.fileCallbacks[id];
         return callback(file);
       };
-      return con.send("getFile " + id + " " + name);
+      return webSocket.send("getFile " + id + " " + name);
     };
     blockRangeFor = function(data, start, end) {
       var bOff;

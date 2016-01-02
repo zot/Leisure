@@ -3,10 +3,11 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['./editor', './editorSupport', './ui', './export'], function(Editor, EditorSupport, UI, BrowserExports) {
+  define(['./editor', './editorSupport', './ui', './export', './modes'], function(Editor, EditorSupport, UI, BrowserExports, Modes) {
     var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
     findEditor = Editor.findEditor, LeisureEditCore = Editor.LeisureEditCore;
-    OrgEditing = EditorSupport.OrgEditing, fancyMode = EditorSupport.fancyMode, editorForToolbar = EditorSupport.editorForToolbar, basicDataFilter = EditorSupport.basicDataFilter;
+    OrgEditing = EditorSupport.OrgEditing, editorForToolbar = EditorSupport.editorForToolbar, basicDataFilter = EditorSupport.basicDataFilter;
+    fancyMode = Modes.fancyMode;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
     mergeExports = BrowserExports.mergeExports;
     searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g;
@@ -121,7 +122,7 @@
       });
     };
     searchForBlocks = function(data, query) {
-      var block, blocks, counts, g, gram, gramBlocks, ref, ref1, results, sizes, tokens;
+      var block, blocks, count, counts, g, gram, gramBlocks, j, ref, ref1, results, sizes, tokens;
       ref = indexQuery(query), tokens = ref.tokens, g = ref.grams;
       ref1 = data.ftsIndex, gramBlocks = ref1.gramBlocks, sizes = ref1.sizes;
       counts = [];
@@ -147,8 +148,9 @@
           }
           return results1;
         })();
-        while (counts.length) {
-          blocks = gramBlocks[counts.pop().gram];
+        for (j = counts.length - 1; j >= 0; j += -1) {
+          count = counts[j];
+          blocks = gramBlocks[count.gram];
           results = _.filter(results, function(x) {
             return blocks[x];
           });
@@ -210,15 +212,15 @@
       })(this));
     };
     configureSearch = function(view) {
-      var editor, input, opts, output;
+      var editor, input, opts, output, searchEditor;
       editor = UI.context.editor;
       output = $(view).find('.leisure-searchOutput');
       input = $(view).find('.leisure-searchText');
-      opts = new SearchEditor(editor.options.data).setMode(fancyMode);
-      new LeisureEditCore(output, opts);
-      $(output).parent().addClass('flat');
-      opts.setMode(fancyMode);
-      opts.rerenderAll();
+      output.parent().addClass('flat');
+      searchEditor = new LeisureEditCore(output, new SearchEditor(editor.options.data).setMode(fancyMode));
+      opts = searchEditor.options;
+      opts.hiding = false;
+      output.prev().filter('[data-view=leisure-toolbar]').remove();
       return input.on('input', function(e) {
         var hits, results;
         if (hits = searchForBlocks(opts.data, input.val())) {
