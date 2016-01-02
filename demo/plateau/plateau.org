@@ -76,6 +76,7 @@
 :properties:
 :hidden: true
 :end:
+
 #+NAME: whitePlayer
 #+BEGIN_SRC yaml :flowlevel 2
 name: player1
