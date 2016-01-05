@@ -235,7 +235,7 @@
     };
     typeForFile = function(name) {
       var ext, ignore, ref;
-      ref = name.match(/\.(.*)$/), ignore = ref[0], ext = ref[1];
+      ref = name.match(/\.(.*)(#.*)?$/), ignore = ref[0], ext = ref[1];
       return fileTypes[ext];
     };
     close = function(evt, data) {
