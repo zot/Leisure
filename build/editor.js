@@ -332,6 +332,17 @@
         return this.domCursorForText(node, 0).mutable().forwardChars(bOff.offset);
       };
 
+      LeisureEditCore.prototype.docOffsetForCaret = function() {
+        var range, s;
+        s = getSelection();
+        if (s.type === 'None') {
+          return -1;
+        } else {
+          range = s.getRangeAt(0);
+          return this.docOffset(range.startContainer, range.startOffset);
+        }
+      };
+
       LeisureEditCore.prototype.docOffsetForBlockOffset = function(block, offset) {
         return this.options.docOffsetForBlockOffset(block, offset);
       };
@@ -1116,46 +1127,7 @@
       };
 
       BasicEditingOptions.prototype.changeStructure = function(oldBlocks, newText) {
-        var newBlocks, next, offset, oldText, prev;
-        prev = oldBlocks[0].prev;
-        oldBlocks = oldBlocks.slice();
-        oldText = null;
-        offset = 0;
-        while (oldText !== newText && (oldBlocks[0].prev || last(oldBlocks).next)) {
-          oldText = newText;
-          if (prev = this.getBlock(oldBlocks[0].prev)) {
-            oldBlocks.unshift(prev);
-            newText = prev.text + newText;
-            offset += prev.text.length;
-          }
-          if (next = this.getBlock(last(oldBlocks).next)) {
-            oldBlocks.push(next);
-            newText += next.text;
-          }
-          newBlocks = this.parseBlocks(newText);
-          if ((!prev || prev.text === newBlocks[0].text) && (!next || next.text === last(newBlocks).text)) {
-            break;
-          }
-        }
-        if (!newBlocks) {
-          newBlocks = this.parseBlocks(newText);
-        }
-        while (oldBlocks.length && newBlocks.length && oldBlocks[0].text === newBlocks[0].text) {
-          offset -= oldBlocks[0].text.length;
-          prev = oldBlocks[0]._id;
-          oldBlocks.shift();
-          newBlocks.shift();
-        }
-        while (oldBlocks.length && newBlocks.length && last(oldBlocks).text === last(newBlocks).text) {
-          oldBlocks.pop();
-          newBlocks.pop();
-        }
-        return {
-          oldBlocks: oldBlocks,
-          newBlocks: newBlocks,
-          offset: offset,
-          prev: prev
-        };
+        return computeNewStructure(this, oldBlocks, newText);
       };
 
       BasicEditingOptions.prototype.mergeChangeContext = function(obj) {

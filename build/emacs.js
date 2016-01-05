@@ -172,8 +172,19 @@
               if (((ref = this.editor.blockForCaret()) != null ? ref.language.toLowerCase() : void 0) in knownLanguages) {
                 return parent();
               } else {
-                return sendCcCc(this.editor.options.data.emacsConnection.websocket, this.editor.docOffset(this.editor.domCursorForCaret()));
+                return sendCcCc(this.data.emacsConnection.websocket, this.editor.docOffset(this.editor.domCursorForCaret()));
               }
+            };
+          }
+        }
+      });
+      changeAdvice(opts.data, true, {
+        getFile: {
+          emacs: function(parent) {
+            return function(file, cont) {
+              return sendGetFile(this.emacsConnection, "file:" + file, function(contents) {
+                return cont(atob(contents));
+              });
             };
           }
         }

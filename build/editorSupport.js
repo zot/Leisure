@@ -626,7 +626,7 @@
           return this.runOnImport((function(_this) {
             return function() {
               return new Promise(function(resolve, reject) {
-                return ajaxGet(new URL(filename, _this.loadName).toString()).then(function(contents) {
+                return _this.getFile(filename, function(contents) {
                   var id, j, len, oldEvals, oldPromise, ref2;
                   oldPromise = _this.importPromise;
                   oldEvals = _this.pendingEvals;
@@ -649,6 +649,10 @@
             };
           })(this));
         }
+      };
+
+      OrgData.prototype.getFile = function(filename, cont) {
+        return ajaxGet(new URL(filename, this.loadName).toString()).then(cont);
       };
 
       return OrgData;

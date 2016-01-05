@@ -371,6 +371,12 @@ Events:
           bOff = @options.blockOffsetForDocOffset dOff
           node = @options.nodeForId bOff.block
           @domCursorForText(node, 0).mutable().forwardChars bOff.offset
+        docOffsetForCaret: ->
+          s = getSelection()
+          if s.type == 'None' then -1
+          else
+            range = s.getRangeAt 0
+            @docOffset range.startContainer, range.startOffset
         docOffsetForBlockOffset: (block, offset)->
           @options.docOffsetForBlockOffset block, offset
         docOffset: (node, offset)->
@@ -874,32 +880,7 @@ situations to provide STM-like change management.
 `changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
 
         changeStructure: (oldBlocks, newText)->
-          prev = oldBlocks[0].prev
-          oldBlocks = oldBlocks.slice()
-          oldText = null
-          offset = 0
-          while oldText != newText && (oldBlocks[0].prev || last(oldBlocks).next)
-            oldText = newText
-            if prev = @getBlock oldBlocks[0].prev
-              oldBlocks.unshift prev
-              newText = prev.text + newText
-              offset += prev.text.length
-            if next = @getBlock last(oldBlocks).next
-              oldBlocks.push next
-              newText += next.text
-            newBlocks = @parseBlocks newText
-            if (!prev || prev.text == newBlocks[0].text) && (!next || next.text == last(newBlocks).text)
-              break
-          if !newBlocks then newBlocks = @parseBlocks newText
-          while oldBlocks.length && newBlocks.length && oldBlocks[0].text == newBlocks[0].text
-            offset -= oldBlocks[0].text.length
-            prev = oldBlocks[0]._id
-            oldBlocks.shift()
-            newBlocks.shift()
-          while oldBlocks.length && newBlocks.length && last(oldBlocks).text == last(newBlocks).text
-            oldBlocks.pop()
-            newBlocks.pop()
-          oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
+          computeNewStructure this, oldBlocks, newText
         mergeChangeContext: (obj)-> @changeContext = _.merge {}, @changeContext ? {}, obj
         clearChangeContext: -> @changeContext = null
         replaceContent: (blocks, start, length, newContent)->

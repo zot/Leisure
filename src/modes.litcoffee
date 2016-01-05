@@ -265,6 +265,9 @@
         if @hideResults then "<span class='hidden'>#{escapeHtml res.text}</span>"
         else resultsArea UI.context.options, res.text.substring res.contentPos
 
+      #Handlebars.registerHelper 'find', ->
+      #  ***
+
       slideNode = (node)-> $(node).closest('slideHolder').closest('[data-view]')
 
       isHiddenSlide = (block)-> block.type == 'headline' && blockIsHidden block
@@ -643,8 +646,8 @@
             else guts
           "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{goodText org.text[0]}</span>"
         renderDrawer: (opts, org)->
-          if org.name == 'properties' then "<span class='hidden'>#{escapeHtml org.allText()}</span>"
-          else "<span class='org-properties'>#{fancyHtml org.allText}</span>"
+          if org.name.toLowerCase() == 'properties' then "<span class='hidden'>#{escapeHtml org.allText()}</span>"
+          else "<span class='org-properties'>#{fancyHtml org.allText()}</span>"
         showingSlides: (opt)-> opt.editor.node.is '.slides'
         setSlideMode: (opt, flag)->
           if flag

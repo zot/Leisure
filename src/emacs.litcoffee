@@ -131,7 +131,10 @@ Emacs connection
           execute: emacs: (parent)->->
             if @editor.blockForCaret()?.language.toLowerCase() of knownLanguages
               parent()
-            else sendCcCc @editor.options.data.emacsConnection.websocket, @editor.docOffset(@editor.domCursorForCaret())
+            else sendCcCc @data.emacsConnection.websocket, @editor.docOffset(@editor.domCursorForCaret())
+        changeAdvice opts.data, true,
+          getFile: emacs: (parent)->(file, cont)->
+            sendGetFile @emacsConnection, "file:#{file}", (contents)-> cont atob(contents)
         changeAdvice UI, true,
           activateScripts: emacs: (parent)->(el, context)->
             ret = parent el, context

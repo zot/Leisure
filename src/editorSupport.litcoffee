@@ -389,7 +389,8 @@ that must be done regardless of the source of changes
             console.log "Import: #{block?.properties?.import}"
             @importRecords.importedFiles[filename] = true
             @runOnImport => new Promise (resolve, reject)=>
-              ajaxGet(new URL(filename, @loadName).toString()).then (contents)=>
+              #ajaxGet(new URL(filename, @loadName).toString()).then (contents)=>
+              @getFile filename, (contents)=>
                 oldPromise = @importPromise
                 oldEvals = @pendingEvals
                 @pendingEvals = []
@@ -402,6 +403,7 @@ that must be done regardless of the source of changes
                   @pendingEvals = oldEvals
                   @importPromise = oldPromise
                   resolve()
+        getFile: (filename, cont)-> ajaxGet(new URL(filename, @loadName).toString()).then cont
 
       basicDataFilter =
         startChange: (data)->

@@ -868,10 +868,10 @@
         return "<span class='hidden'>" + org.text[0] + "</span>" + text + "<span class='hidden'>" + (goodText(org.text[0])) + "</span>";
       },
       renderDrawer: function(opts, org) {
-        if (org.name === 'properties') {
+        if (org.name.toLowerCase() === 'properties') {
           return "<span class='hidden'>" + (escapeHtml(org.allText())) + "</span>";
         } else {
-          return "<span class='org-properties'>" + (fancyHtml(org.allText)) + "</span>";
+          return "<span class='org-properties'>" + (fancyHtml(org.allText())) + "</span>";
         }
       },
       showingSlides: function(opt) {

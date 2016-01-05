@@ -2,7 +2,7 @@ Code for local-mode.  This will not be loaded under meteor.
 
     require ['./domCursor'], (DC)-> window.DOMCursor = DC
 
-    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs)->
+    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, Todo)->
 
       {
         OrgData
@@ -42,6 +42,9 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         addEmacsDataFilter
       } = Emacs
+      {
+        todoForEditor
+      } = Todo
 
       useP2P = true
       #useP2P = false
@@ -94,6 +97,7 @@ Code for local-mode.  This will not be loaded under meteor.
         window.ED = fancyEditDiv $("[maindoc]"), data
         if useP2P then window.PEER.setEditor ED
         createEditorDisplay ED
+        todoForEditor ED
         if document.location.search
           {load, theme, join} = getDocumentParams()
         else load = DEFAULT_PAGE
@@ -209,4 +213,4 @@ Code for local-mode.  This will not be loaded under meteor.
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './hamtData'], init
+      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo'], init
