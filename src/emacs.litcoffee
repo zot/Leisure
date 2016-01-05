@@ -160,7 +160,7 @@ Emacs connection
                 con.imageSizes[src] = " style='height: #{img.height}px; width: #{img.width}px'"
 
       typeForFile = (name)->
-        [ignore,ext] = name.match /\.(.*)(#.*)?$/
+        [ignore,ext] = name.match /\.([^#]*)(#.*)?$/
         fileTypes[ext]
 
       close = (evt, data)->
