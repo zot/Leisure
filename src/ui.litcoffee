@@ -258,7 +258,6 @@ choose a handlebars template.
           pushPendingInitialzation
           setPanelExpanded
           activateScripts
-          activatePendingScript
           pendingScripts: []
         }
         Handlebars
