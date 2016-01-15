@@ -33,8 +33,59 @@ is a new version, we've been overhauling a lot of it, and we're
 finally ready to start to talk more publicly about it.
 *NOTE: LEISURE CURRENTLY ONLY RUNS IN CHROMIUM-BASED BROWSERS (LIKE CHROME).*
 
+* View definitions
+** Click the degrees value and move the slider that pops up
+#+NAME: rotator
+#+BEGIN_SRC yaml
+type: rotator
+degrees: 126
+#+END_SRC
+
+[[leisure:rotator]] [[leisure:rotator/two]]
+
+The YAML data controls the rotating square and line.
+- When you let go of the sider, it snaps to the middle so the value can keep changing
+- If you are connected to Emacs *(see below)*
+  - You can watch the degrees value update in Emacs
+  - You can edit the value in Emacs and it will update in Leisure
+
+** Fiddle with these view definitions and you'll see the views change.
+
+#+BEGIN_SRC html :defview rotator
+<div style='padding: 25px; display: inline-block'>
+  <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview rotator/two
+<div style='padding: 25px; padding-left: 100px; display: inline-block'>
+  <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
+</div>
+#+END_SRC
+Leisure uses "leisure:" links to display data, based on the data's
+"type" field.  You can nest views and even pick alternate views for
+the same types of data by specifying a view name in the link.  At this
+point, Leisure uses YAML data for its views.
+
+Leisure uses this presentation system when it displays every Leisure
+document and you can redefine how Leisure displays its document parts
+in the documents themselves (but you have to be verrry careful when
+you redefine things at such a low-level.  So a lot of Leisure's
+document display is defined in Leisure.  It's so meta
+* Searches with live content
+Click the search button above or this
+#+BEGIN_HTML
+ <button name='openSearch'>Search</button>
+<script>
+console.log("current script: " + Leisure.UI.currentScript)
+  $(Leisure.UI.currentScript.parentNode).find('[name=openSearch]').button()
+    .on('click', function(e){Leisure.openSearch(e);});
+</script>
+#+END_HTML
+button, here, and type rot into the field at the top of the window. Then, you
+can edit the result inside the search window.
 * Leisure connection mode for Emacs
-This is a minor mode that connects an emacs buffer to Leisure web page.
+Leisure comes with a minor mode that connects an emacs buffer to a Leisure web page.
 
 *If you are viewing this in Emacs* and you already have
 leisure-connection-mode loaded, you can try this out by [[elisp:leisure-connection-mode][CLICKING THIS
@@ -128,20 +179,6 @@ and Leisure will update the results as you type.
 
 Clicking an elisp link in Leisure will run it in Emacs.  Click this
 and it will [[elisp:(message "Hello from Leisure!")][show a message]] in Emacs.
-** (Why) does Leisure flicker after an Emacs command?
-- When Emacs asks you permission to execute a code block, the Emacs
-window takes input focus
-- After the command executes, the Leisure connection code in Emacs attempts to send focus back to the browser.
-- Browser focus is a tricky thing because of spammers
-
-You may see a popup notice in your browser's location bar.  If you
-enable popups from Leisure, the browser will be able to take focus
-back after it executes a remote Emacs command.
-
-Once you enable popups, the browser will flicker, slightly when it
-takes focus back.  This is because in order to reactivate the browser,
-Leisure has to quickly open a temporary window and that is what causes
-the flicker.
 * Emacs file service
 When connected to Emacs, Leisure uses Emacs to access file: links so
 that it can display them in the browser.
@@ -194,44 +231,6 @@ This is Fred's controller
 #+BEGIN_SRC cs
 @initializeView = (view, data)->
   $(view).find('[name=len]').html data.name.length
-#+END_SRC
-* View definitions
-Leisure uses "leisure:" links to display data, based on the data's
-"type" field.  You can nest views and even pick alternate views for
-the same types of data by specifying a view name in the link.  At this
-point, Leisure uses YAML data for its views.
-
-Leisure uses this presentation system when it displays every Leisure
-document and you can redefine how Leisure displays its document parts
-in the documents themselves (but you have to be verrry careful when
-you redefine things at such a low-level.  So a lot of Leisure's
-document display is defined in Leisure.  It's so meta
-
-#+NAME: rotator
-This YAML data controls the rotating square and line below.
-- Click the degrees value and move the slider that pops up
-- When you let go of the sider, it snaps to the middle so the value can keep changing
-- Watch it update in both Emacs and Leisure
-- You can edit the value in Emacs and it will update in Leisure
-#+BEGIN_SRC yaml 
-type: rotator
-degrees: 90
-#+END_SRC
-
-[[leisure:rotator]] [[leisure:rotator/two]]
-
-Fiddle with these view definitions and you'll see the views change.
-
-#+BEGIN_SRC html :defview rotator
-<div style='padding: 25px; display: inline-block'>
-  <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>
-</div>
-#+END_SRC
-
-#+BEGIN_SRC html :defview rotator/two
-<div style='padding: 25px; padding-left: 100px; display: inline-block'>
-  <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
-</div>
 #+END_SRC
 * You Can Haz Media Because Web
 
@@ -373,6 +372,20 @@ There are a lot of things left to do!
   - tables
   - tags
   - lots of other things :)
+** (Why) does Leisure flicker after an Emacs command?
+- When Emacs asks you permission to execute a code block, the Emacs
+window takes input focus
+- After the command executes, the Leisure connection code in Emacs attempts to send focus back to the browser.
+- Browser focus is a tricky thing because of spammers
+
+You may see a popup notice in your browser's location bar.  If you
+enable popups from Leisure, the browser will be able to take focus
+back after it executes a remote Emacs command.
+
+Once you enable popups, the browser will flicker, slightly when it
+takes focus back.  This is because in order to reactivate the browser,
+Leisure has to quickly open a temporary window and that is what causes
+the flicker.
 * How you can help!
 - Report bugs
 - Contribute code
