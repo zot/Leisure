@@ -11,7 +11,6 @@
       class Todo
         constructor: (@data, inputStates)->
           inputStates = inputStates || stdTodo
-          @startState = inputStates.todo[0] || inputStates.done[0]
           @states = {}
           todoPat = ''
           prev = null
@@ -23,10 +22,12 @@
               prev.next = state
             prev = state
             todoPat += "\\b#{state.name}\\b|"
+          @startState = inputStates.todo[0] || inputStates.done[0]
           if prev
-            @startState.prev = prev
-            prev.next = @startState
-          @statePat = new RegExp "^(\\*+ *)(#{todoPat})", 'i'
+            @endState = prev
+          #  @startState.prev = prev
+          #  prev.next = @startState
+          @statePat = new RegExp "^(\\*+)( +(#{todoPat}) *)", 'i'
         shiftRight: (docPos, block)->
           block = @data.getBlock (block || @data.blockForOffset docPos)
           if block.type == 'headline'
@@ -42,12 +43,13 @@ Cycle the todo state for a headline
 
         cycleTodo: (block, forward)->
           if m = block.text.match @statePat
-            next = if m[2]
-              if forward then @states[m[2].toUpperCase()].next.name
-              else @states[m[2].toUpperCase()].prev.name
+            state = m[2].trim()
+            next = if state
+              if forward then @states[state.toUpperCase()]?.next?.name || ''
+              else @states[state.toUpperCase()]?.prev?.name || ''
             else if forward then @startState.name
-            else @startState.prev.name
-            newText = m[1] + next + (if !m[2] then ' ' else '') + block.text.substring m[0].length
+            else @endState.name
+            newText = m[1] + ' ' + next + (if next then ' ' else '') + block.text.substring m[0].length
             start = @data.offsetForBlock block
             @data.replaceText start, start + block.text.length, newText
         bind: (opts)->

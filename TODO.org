@@ -1,3 +1,12 @@
+* New results type, "view"
+** optional type or type/name param overrides type of result
+** results for normal code
+** yaml blocks themselves
+* :exports code/results/both controls fancy display
+* Need fancy gizmos to control header args
+* TODO Support :tangle yes (also for internal code base)
+Tangled blocks of a given language should be concatenated before evaluation
+* BUG numbered lists don't parse as lists
 * BUG search is broken
 * BUG changing hidden from true to false is not updating properly
 * BUG splitting a dynamic code block in Emacs causes problems in Leisure

@@ -9,7 +9,6 @@
         var i, len, prev, ref, state, todoPat;
         this.data = data;
         inputStates = inputStates || stdTodo;
-        this.startState = inputStates.todo[0] || inputStates.done[0];
         this.states = {};
         todoPat = '';
         prev = null;
@@ -25,11 +24,11 @@
           prev = state;
           todoPat += "\\b" + state.name + "\\b|";
         }
+        this.startState = inputStates.todo[0] || inputStates.done[0];
         if (prev) {
-          this.startState.prev = prev;
-          prev.next = this.startState;
+          this.endState = prev;
         }
-        this.statePat = new RegExp("^(\\*+ *)(" + todoPat + ")", 'i');
+        this.statePat = new RegExp("^(\\*+)( +(" + todoPat + ") *)", 'i');
       }
 
       Todo.prototype.shiftRight = function(docPos, block) {
@@ -49,10 +48,11 @@
       };
 
       Todo.prototype.cycleTodo = function(block, forward) {
-        var m, newText, next, start;
+        var m, newText, next, ref, ref1, ref2, ref3, start, state;
         if (m = block.text.match(this.statePat)) {
-          next = m[2] ? forward ? this.states[m[2].toUpperCase()].next.name : this.states[m[2].toUpperCase()].prev.name : forward ? this.startState.name : this.startState.prev.name;
-          newText = m[1] + next + (!m[2] ? ' ' : '') + block.text.substring(m[0].length);
+          state = m[2].trim();
+          next = state ? forward ? ((ref = this.states[state.toUpperCase()]) != null ? (ref1 = ref.next) != null ? ref1.name : void 0 : void 0) || '' : ((ref2 = this.states[state.toUpperCase()]) != null ? (ref3 = ref2.prev) != null ? ref3.name : void 0 : void 0) || '' : forward ? this.startState.name : this.endState.name;
+          newText = m[1] + ' ' + next + (next ? ' ' : '') + block.text.substring(m[0].length);
           start = this.data.offsetForBlock(block);
           return this.data.replaceText(start, start + block.text.length, newText);
         }

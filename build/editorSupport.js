@@ -65,6 +65,7 @@
           controller: {},
           importedFiles: {}
         };
+        this.tangles = {};
       }
 
       OrgData.prototype.addImported = function(importFile, type, name) {
@@ -148,6 +149,8 @@
             if (!first) {
               return OrgData.__super__.load.call(_this, first, blocks);
             } else {
+              _this.loading = true;
+              _this.tangles = {};
               ref = _this.filters;
               for (j = 0, len = ref.length; j < len; j++) {
                 filter = ref[j];
@@ -176,7 +179,8 @@
                 _this.checkChange(null, block);
               }
               OrgData.__super__.load.call(_this, name, first, blocks);
-              return _this.scheduleEvals();
+              _this.scheduleEvals();
+              return _this.loading = false;
             }
           };
         })(this));
@@ -413,7 +417,17 @@
       OrgData.prototype.scheduleEvals = function() {
         return this.runOnImport((function(_this) {
           return function() {
-            var e, func, j, len;
+            var code, e, entry, func, j, lang, len, oldOpts, opts, ref;
+            ref = _this.tangles;
+            for (lang in ref) {
+              entry = ref[lang];
+              opts = entry[0], code = entry[1];
+              oldOpts = defaultEnv.opts;
+              defaultEnv.opts = opts;
+              _this.executeText(lang, code);
+              defaultEnv.opts = oldOpts;
+            }
+            _this.tangles = {};
             e = _this.pendingEvals;
             _this.pendingEvals = [];
             for (j = 0, len = e.length; j < len; j++) {
@@ -458,7 +472,7 @@
       };
 
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
-        var newName, oldName, opts, ref, ref1, ref2, ref3, ref4;
+        var lang, newName, oldName, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, source;
         oldName = (ref = oldBlock != null ? oldBlock.codeName : void 0) != null ? ref : (oldBlock != null ? oldBlock.type : void 0) === 'headline' && (oldBlock != null ? (ref1 = oldBlock.properties) != null ? ref1.name : void 0 : void 0);
         newName = (ref2 = newBlock != null ? newBlock.codeName : void 0) != null ? ref2 : (newBlock != null ? newBlock.type : void 0) === 'headline' && (newBlock != null ? (ref3 = newBlock.properties) != null ? ref3.name : void 0 : void 0);
         if (oldName !== newName) {
@@ -472,7 +486,14 @@
         if ((oldBlock != null ? oldBlock.local : void 0) && !(newBlock != null ? newBlock.local : void 0)) {
           this.deleteLocalBlock(oldName);
         }
-        if ((newBlock != null ? (ref4 = newBlock.codeAttributes) != null ? ref4.results : void 0 : void 0) === 'def') {
+        if (this.loading && (newBlock != null ? (ref4 = newBlock.codeAttributes) != null ? (ref5 = ref4.tangle) != null ? ref5.toLowerCase() : void 0 : void 0 : void 0) === 'yes') {
+          source = blockCodeItems(this, newBlock).source;
+          lang = newBlock.language.toLowerCase();
+          if (!this.tangles[lang]) {
+            this.tangles[lang] = [defaultEnv.opts, ''];
+          }
+          return this.tangles[lang][1] += source.content;
+        } else if ((newBlock != null ? (ref6 = newBlock.codeAttributes) != null ? (ref7 = ref6.results) != null ? ref7.toLowerCase() : void 0 : void 0 : void 0) === 'def') {
           opts = defaultEnv.opts;
           return this.queueEval((function(_this) {
             return function() {

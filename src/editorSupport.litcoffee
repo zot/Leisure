@@ -116,7 +116,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
             view: {}
             control: {}
             data: {}
-            
+
 At this point, there is no conflict handling for imports that use the
 same names for blocks other than printing a warning.
 
@@ -126,6 +126,7 @@ same names for blocks other than printing a warning.
             view: {}
             controller: {}
             importedFiles: {}
+          @tangles = {}
         addImported: (importFile, type, name)->
           if typeof importFile == 'string'
             if obj[type][name]
@@ -167,6 +168,8 @@ Let's just call this poetic license for the time being...
             @populateLocalData()
             if !first then super first, blocks
             else
+              @loading = true
+              @tangles = {}
               for filter in @filters
                 filter.clear this
               if !changes then changes = sets: blocks, oldBlocks: {}, first: first
@@ -180,6 +183,7 @@ Let's just call this poetic license for the time being...
                 @checkChange null, block
               super name, first, blocks
               @scheduleEvals()
+              @loading = false
         setBlock: (id, block)->
           @makeChanges =>
             @runFilters @getBlock(id), block
@@ -291,6 +295,13 @@ that must be done regardless of the source of changes
             if p instanceof Promise then p else Promise.resolve()
           else @importPromise.then => func()
         scheduleEvals: -> @runOnImport =>
+          for lang, entry of @tangles
+            [opts, code] = entry
+            oldOpts = defaultEnv.opts
+            defaultEnv.opts = opts
+            @executeText lang, code
+            defaultEnv.opts = oldOpts
+          @tangles = {}
           e = @pendingEvals
           @pendingEvals = []
           for func in e
@@ -317,7 +328,13 @@ that must be done regardless of the source of changes
             if newName && (!isDefault || @addImported isDefault, 'data', newName)
               @setBlockName newName, newBlock._id, isDefault
           if oldBlock?.local && !newBlock?.local then @deleteLocalBlock oldName
-          if newBlock?.codeAttributes?.results == 'def'
+          if @loading && newBlock?.codeAttributes?.tangle?.toLowerCase() == 'yes'
+            {source} = blockCodeItems this, newBlock
+            lang = newBlock.language.toLowerCase()
+            if !@tangles[lang]
+              @tangles[lang] = [defaultEnv.opts, '']
+            @tangles[lang][1] += source.content
+          else if newBlock?.codeAttributes?.results?.toLowerCase() == 'def'
             opts = defaultEnv.opts
             @queueEval =>
               oldOpts = defaultEnv.opts
