@@ -1,7 +1,7 @@
 Leisure's UI system uses a piece of data's "type" and the "context" (a string) to
 choose a handlebars template.
 
-    define ['handlebars', './export', './editor'], (Handlebars, Exports, Editor)->
+    define ['handlebars', './export', './editor', './coffee-script'], (Handlebars, Exports, Editor, CoffeeScript)->
       {
         compile
         create
@@ -130,21 +130,28 @@ choose a handlebars template.
               root.context.data = data
               if block then root.context.block = block
               if isTop then root.context.topView = node
-              html = template data, data: root.context
+              html = runTemplate template, data, data: root.context
               if isTop then attrs += " data-ids='#{_.keys(settings.subviews).join ' '}'"
               n = $("<span #{attrs}>#{html}</span>")
               $(node).replaceWith n
-              root.activateScripts n, root.context
+              activateScripts n, root.context
         else mergeContext settings, -> simpleRenderView attrs, key, template, data, block
+
+      runTemplate = (template, args...)->
+        try
+          template args...
+        catch err
+          console.log err.stack ? err.msg
+          " <span class='error'>[Error in template]</span> "
 
       simpleRenderView = (attrs, key, template, data, block)->
         id = "view-#{viewIdCounter++}"
         do (context = root.context)->
-          pendingViews.push -> root.activateScripts $("##{id}"), context
+          pendingViews.push -> activateScripts $("##{id}"), context
         attrs += " id='#{id}'"
         if block then root.context.subviews[block._id] = true
         root.context.simpleViewId = id
-        "<span #{attrs}>#{template data, data: root.context}</span>"
+        "<span #{attrs}>#{runTemplate template, data, data: root.context}</span>"
 
       initializePendingViews = ->
         imageRefreshCounter++
@@ -171,7 +178,7 @@ choose a handlebars template.
               for script in $(el).find('script[type="text/coffeescript"]').add($(el).find 'script[type="text/literate-coffeescript"]')
                 root.currentScript = script
                 CoffeeScript.run script.innerHTML
-              getController($(el).attr 'data-view')?.initializeView(el, context.data)
+              getController($(el).attr 'data-view')?.initializeView?(el, context.data)
               for img in el.find 'img'
                 refreshImage img
             finally
@@ -251,6 +258,8 @@ choose a handlebars template.
           pushPendingInitialzation
           setPanelExpanded
           activateScripts
+          activatePendingScript
+          pendingScripts: []
         }
         Handlebars
       }).UI

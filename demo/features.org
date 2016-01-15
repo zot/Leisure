@@ -1,0 +1,40 @@
+* Leisure features
+* Dynamic views
+#+NAME: rotator
+Click the degrees value and move the slider that pops up
+#+BEGIN_SRC yaml
+type: rotator
+degrees: 103
+#+END_SRC
+
+If you're connected to Emacs, you'll see the degrees value change in Emasc as
+you slide and you can also edit the degrees value in Emacs and see the views
+update...
+
+[[leisure:rotator]] [[leisure:rotator/two]]
+
+Fiddle with these view definitions and you'll see the views change.
+
+#+BEGIN_SRC html :defview rotator
+<div style='padding: 10px; display: inline-block'>
+  <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview rotator/two
+<div style='padding: 25px; padding-left: 100px; display: inline-block'>
+  <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
+</div>
+#+END_SRC
+* Searches with live content
+Click the search button above or this
+#+BEGIN_HTML
+<button name='openSearch'>Search</button>
+<script>
+console.log("current script: " + Leisure.UI.currentScript)
+  $(Leisure.UI.currentScript.parentNode).find('[name=openSearch]').button()
+    .on('click', function(e){Leisure.openSearch(e);});
+</script>
+#+END_HTML
+ button, here, and type rot into the field at the top of the window. Then, you
+ can edit the result inside the search window.

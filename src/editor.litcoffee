@@ -371,6 +371,12 @@ Events:
           bOff = @options.blockOffsetForDocOffset dOff
           node = @options.nodeForId bOff.block
           @domCursorForText(node, 0).mutable().forwardChars bOff.offset
+        docOffsetForCaret: ->
+          s = getSelection()
+          if s.type == 'None' then -1
+          else
+            range = s.getRangeAt 0
+            @docOffset range.startContainer, range.startOffset
         docOffsetForBlockOffset: (block, offset)->
           @options.docOffsetForBlockOffset block, offset
         docOffset: (node, offset)->
@@ -747,6 +753,45 @@ on it can select if start and end are different
             pos
           else prev.moveCaret()
 
+Set html of an element and evaluate scripts so that document.currentScript is properly set
+
+        setHtml: (el, html, outer)->
+          if outer
+            prev = el.previousSibling
+            next = el.nextSibling
+            par = el.parentNode
+            el.outerHTML = html
+            el = prev?.nextSibling ? next?.previousSibling ? par?.firstChild
+          else el.innerHTML = html
+          @activateScripts $(el)
+          el
+
+        activateScripts: (jq)->
+          if !activating
+            activating = true
+            try
+              for script in jq.find('script')
+                text = if !script.type || script.type.toLowerCase() == 'text/javascript'
+                  script.textContent
+                else if script.type.toLowerCase() == 'text/coffeescript'
+                  CoffeeScript.compile script.textContent, bare: true
+                else if script.type.toLowerCase() == 'text/literate-coffeescript'
+                  CoffeeScript.compile script.textContent, bare: true, literate: true
+                if text
+                  newScript = document.createElement 'script'
+                  newScript.type = 'text/javascript'
+                  if script.src then newScript.src = script.src
+                  newScript.textContent = text
+                  @setCurrentScript newScript
+                  script.parentNode.insertBefore newScript, script
+                  script.parentNode.removeChild script
+            finally
+              @setCurrentScript null
+              activating = false
+
+        setCurrentScript: (script)->
+          LeisureEditCore.currentScript = null
+
       eventChar = (e)-> e.charCode || e.keyCode || e.which
 
       isAlphabetic = (e)-> !e.altKey && !e.ctrlKey && !e.metaKey && (64 < eventChar(e) < 91)
@@ -874,32 +919,7 @@ situations to provide STM-like change management.
 `changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
 
         changeStructure: (oldBlocks, newText)->
-          prev = oldBlocks[0].prev
-          oldBlocks = oldBlocks.slice()
-          oldText = null
-          offset = 0
-          while oldText != newText && (oldBlocks[0].prev || last(oldBlocks).next)
-            oldText = newText
-            if prev = @getBlock oldBlocks[0].prev
-              oldBlocks.unshift prev
-              newText = prev.text + newText
-              offset += prev.text.length
-            if next = @getBlock last(oldBlocks).next
-              oldBlocks.push next
-              newText += next.text
-            newBlocks = @parseBlocks newText
-            if (!prev || prev.text == newBlocks[0].text) && (!next || next.text == last(newBlocks).text)
-              break
-          if !newBlocks then newBlocks = @parseBlocks newText
-          while oldBlocks.length && newBlocks.length && oldBlocks[0].text == newBlocks[0].text
-            offset -= oldBlocks[0].text.length
-            prev = oldBlocks[0]._id
-            oldBlocks.shift()
-            newBlocks.shift()
-          while oldBlocks.length && newBlocks.length && last(oldBlocks).text == last(newBlocks).text
-            oldBlocks.pop()
-            newBlocks.pop()
-          oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
+          computeNewStructure this, oldBlocks, newText
         mergeChangeContext: (obj)-> @changeContext = _.merge {}, @changeContext ? {}, obj
         clearChangeContext: -> @changeContext = null
         replaceContent: (blocks, start, length, newContent)->
@@ -967,7 +987,7 @@ Factored out because the Emacs connection calls MakeStructureChange.
           @replaceBlocks @blockList(), @parseBlocks text
           @rerenderAll()
           @trigger 'load'
-        rerenderAll: -> setHtml @editor.node[0], @renderBlocks()
+        rerenderAll: -> @editor.setHtml @editor.node[0], @renderBlocks()
         blockCount: ->
           c = 0
           for b of @blocks
@@ -1043,40 +1063,6 @@ Factored out because the Emacs connection calls MakeStructureChange.
           bl
 
       activating = false
-
-Set html of an element and evaluate scripts so that document.currentScript is properly set
-
-      setHtml = (el, html, outer)->
-        if outer
-          prev = el.previousSibling
-          next = el.nextSibling
-          par = el.parentNode
-          el.outerHTML = html
-          el = prev?.nextSibling ? next?.previousSibling ? par?.firstChild
-        else el.innerHTML = html
-        activateScripts $(el)
-        el
-
-      activateScripts = (jq)->
-        if !activating
-          activating = true
-          try
-            for script in jq.find('script')
-              text = if !script.type || script.type.toLowerCase() == 'text/javascript'
-                script.textContent
-              else if script.type.toLowerCase() == 'text/coffeescript'
-                CoffeeScript.compile script.textContent, bare: true
-              else if script.type.toLowerCase() == 'text/literate-coffeescript'
-                CoffeeScript.compile script.textContent, bare: true, literate: true
-              if text
-                newScript = document.createElement 'script'
-                newScript.type = 'text/javascript'
-                if script.src then newScript.src = script.src
-                newScript.textContent = text
-                script.parentNode.insertBefore newScript, script
-                script.parentNode.removeChild script
-          finally
-            activating = false
 
 DataStore
 =========
@@ -1712,7 +1698,7 @@ selection, regardless of the current value of LeisureEditCore.editing.
 Exports
 =======
 
-      {
+      root = {
         LeisureEditCore
         Observable
         BasicEditingOptions
@@ -1725,8 +1711,6 @@ Exports
         posFor
         escapeHtml
         copy
-        activateScripts
-        setHtml
         findEditor
         copyBlock
         preserveSelection

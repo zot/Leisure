@@ -51,7 +51,6 @@
         posFor
         escapeHtml
         copy
-        setHtml
         findEditor
         copyBlock
         preserveSelection
@@ -163,8 +162,8 @@
               next = block
               while isSidebar(next = opts.data.nextSibling(next))
                 $(opts.nodeForId(next._id)).closest('.slideholder').closest('[data-view]').remove()
-            (if block.type == 'headline' then slideDom.closest('[data-view]')
-            else slideDom.closest('[data-view="leisure-top-chunk"]')).replaceWith prev = $(blockHtml)
+            prev = opts.editor.setHtml (if block.type == 'headline' then slideDom.closest('[data-view]')
+            else slideDom.closest('[data-view="leisure-top-chunk"]'))[0], blockHtml, true
             next = block
             if opts.isToggled(block)
               while isSidebar(next = opts.data.nextSibling(next))
@@ -264,6 +263,9 @@
         {results: res} = @codeItems
         if @hideResults then "<span class='hidden'>#{escapeHtml res.text}</span>"
         else resultsArea UI.context.options, res.text.substring res.contentPos
+
+      #Handlebars.registerHelper 'find', ->
+      #  ***
 
       slideNode = (node)-> $(node).closest('slideHolder').closest('[data-view]')
 
@@ -643,8 +645,8 @@
             else guts
           "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{goodText org.text[0]}</span>"
         renderDrawer: (opts, org)->
-          if org.name == 'properties' then "<span class='hidden'>#{escapeHtml org.allText()}</span>"
-          else "<span class='org-properties'>#{fancyHtml org.allText}</span>"
+          if org.name.toLowerCase() == 'properties' then "<span class='hidden'>#{escapeHtml org.allText()}</span>"
+          else "<span class='org-properties'>#{fancyHtml org.allText()}</span>"
         showingSlides: (opt)-> opt.editor.node.is '.slides'
         setSlideMode: (opt, flag)->
           if flag

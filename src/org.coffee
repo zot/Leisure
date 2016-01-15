@@ -65,11 +65,11 @@ define ['lib/lazy'], (Lazy)->
   resultsRE = /^#\+(RESULTS)(?: *\[.*\] *)?: *$/im
   resultsLineRE = /^([:|] .*)(?:\n|$)/i
   DRAWER_NAME = 1
-  drawerRE = /^:([^\n:]*): *$/im
-  endRE = /^:END: *$/im
+  drawerRE = /^ *:([^\n:]*): *$/im
+  endRE = /^ *:END: *$/im
   PROPERTY_KEY = 1
   PROPERTY_VALUE = 2
-  propertyRE = /^:([^\n:]+): *([^\n]*)$/img
+  propertyRE = /^ *:([^\n:]+): *([^\n]*)$/img
   LIST_LEVEL = 1
   LIST_BOILERPLATE = 2
   LIST_CHECK = 3

@@ -28,27 +28,27 @@ define files, (btoa)->
   if !btoa then btoa = (window ? global).btoa
 
   root = {}
-  
+
   root.currentNameSpace = 'core'
   root.nameSpacePath = ['core']
-  
+
   #root.shouldNsLog = true
   root.shouldNsLog = false
-  
+
   root.nsLog = (args...)-> if root.shouldNsLog then console.log args...
-  
+
   (window ? global).verbose = {}
-  
+
   verboseMsg = (label, msg...)-> if (window ? global).verbose[label] then console.log msg...
-  
+
   if !btoa? then (window ? global).btoa = require 'btoa'
-  
+
   defaultEnv =
     presentValue: (x)-> String(x) + '\n'
     values: {}
     errorHandlers: []
     prompt: ->
-  
+
   rz = (window ? global).resolve = (value)->
     if typeof value == 'function' && value.length == 0
       if typeof value.memo != 'undefined' then value.memo
@@ -66,20 +66,20 @@ define files, (btoa)->
   #    l
   #else l
   (window ? global).lazy = (l)-> if typeof l == 'function' then l.memo = l else l
-  
+
   readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
-  
+
   writeFile = (fileName, data, cont)-> defaultEnv.writeFile fileName, data, cont
-  
+
   readDir = (fileName, cont)-> defaultEnv.readDir fileName, cont
-  
+
   statFile = (fileName, cont)-> defaultEnv.statFile fileName, cont
-  
+
   root.trackCreation = false
   #root.trackVars = false
   #root.trackCreation = true
   root.trackVars = true
-  
+
   funcInfo = (func)->
     if func.leisureInfoNew then primConsFrom func.leisureInfoNew, 0
     else if func.leisureInfo
@@ -98,23 +98,23 @@ define files, (btoa)->
   primConsFrom = (array, index)->
     if index >= array.length then rz L_nil
     else root.primCons array[index], primConsFrom array, index + 1
-  
+
   class SimpyCons
     constructor: (@head, @tail)->
     toArray: ->
       @_array ? (
-        h = @
+        h = this
         array = []
         while h != null
           array.push h.head
           h = h.tail
         @_array = array)
-  
+
   simpyCons = (a, b)-> new SimpyCons a, b
-  
+
   slice = Array.prototype.slice
   concat = Array.prototype.concat
-  
+
   (window ? global).L$ = (f)->
     f = rz(f)
     if f.length > 1 then f else (args...)-> baseLeisureCall(f, 0, args)
@@ -151,7 +151,7 @@ define files, (btoa)->
         return lazy partial
     if pos != args.length then console.log "BAD FINAL POSITION IN LEISURE CALL, ARG LENGTH IS #{args.length} BUT POSITION IS #{pos}"
     f
-  
+
   genInfo = (func, args, oldInfo)->
     for arg in args
       if !oldInfo then oldInfo = {name: func.leisureName, arg}
@@ -165,7 +165,7 @@ define files, (btoa)->
       if errors.length then errors += '\n'
       errors += "TEST #{testCount} FAILED, EXPECTED #{JSON.stringify(expected)} BUT GOT #{JSON.stringify(actual)}"
     testCount++
-  
+
   (window ? global).Leisure_test_call = ->
     test [1, 2, 3], Leisure_call ((a, b)->(c)-> [a, b, c]), 1, 2, 3
     test [1, 2, 3], Leisure_call ((a, b, c)-> [a, b, c]), 1, 2, 3
@@ -177,7 +177,7 @@ define files, (btoa)->
     test [1, 2, 3, 4], Leisure_call ((a, b, c, d)-> [a, b, c, d]), 1, 2, 3, 4
     test [1, 2, 3, 4], Leisure_call (Leisure_call ((a, b, c, d)-> [a, b, c, d]), 1, 2), 3, 4
     if errors.length then errors else null
-  
+
   serverIncrement = (path, amount, cont)->
     block = root.getBlockNamed path.split(/\./)[0]
     if block.origin != root.currentDocument._name
