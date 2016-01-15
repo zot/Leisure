@@ -372,7 +372,6 @@
         pushPendingInitialzation: pushPendingInitialzation,
         setPanelExpanded: setPanelExpanded,
         activateScripts: activateScripts,
-        activatePendingScript: activatePendingScript,
         pendingScripts: []
       },
       Handlebars: Handlebars
