@@ -37,7 +37,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         posFor
         escapeHtml
         copy
-        setHtml
         findEditor
         copyBlock
         preserveSelection
@@ -734,6 +733,8 @@ may be called more than once.  changeData() returns a promise.
               opts.mode.enter opts, parent, e
             handleDelete: options: (parent)-> (e, sel, forward)->
               opts.mode.handleDelete opts, parent, e, sel, forward
+            setCurrentScript: options: (parent)-> (script)->
+              Leisure.UI.currentScript = script
           $(@editor.node).on 'scroll', updateSelection
         setMode: (@mode)->
           if @mode && @editor then @editor.node.attr 'data-edit-mode', @mode.name

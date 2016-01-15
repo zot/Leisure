@@ -753,6 +753,45 @@ on it can select if start and end are different
             pos
           else prev.moveCaret()
 
+Set html of an element and evaluate scripts so that document.currentScript is properly set
+
+        setHtml: (el, html, outer)->
+          if outer
+            prev = el.previousSibling
+            next = el.nextSibling
+            par = el.parentNode
+            el.outerHTML = html
+            el = prev?.nextSibling ? next?.previousSibling ? par?.firstChild
+          else el.innerHTML = html
+          @activateScripts $(el)
+          el
+
+        activateScripts: (jq)->
+          if !activating
+            activating = true
+            try
+              for script in jq.find('script')
+                text = if !script.type || script.type.toLowerCase() == 'text/javascript'
+                  script.textContent
+                else if script.type.toLowerCase() == 'text/coffeescript'
+                  CoffeeScript.compile script.textContent, bare: true
+                else if script.type.toLowerCase() == 'text/literate-coffeescript'
+                  CoffeeScript.compile script.textContent, bare: true, literate: true
+                if text
+                  newScript = document.createElement 'script'
+                  newScript.type = 'text/javascript'
+                  if script.src then newScript.src = script.src
+                  newScript.textContent = text
+                  @setCurrentScript newScript
+                  script.parentNode.insertBefore newScript, script
+                  script.parentNode.removeChild script
+            finally
+              @setCurrentScript null
+              activating = false
+
+        setCurrentScript: (script)->
+          LeisureEditCore.currentScript = null
+
       eventChar = (e)-> e.charCode || e.keyCode || e.which
 
       isAlphabetic = (e)-> !e.altKey && !e.ctrlKey && !e.metaKey && (64 < eventChar(e) < 91)
@@ -948,7 +987,7 @@ Factored out because the Emacs connection calls MakeStructureChange.
           @replaceBlocks @blockList(), @parseBlocks text
           @rerenderAll()
           @trigger 'load'
-        rerenderAll: -> setHtml @editor.node[0], @renderBlocks()
+        rerenderAll: -> @editor.setHtml @editor.node[0], @renderBlocks()
         blockCount: ->
           c = 0
           for b of @blocks
@@ -1024,40 +1063,6 @@ Factored out because the Emacs connection calls MakeStructureChange.
           bl
 
       activating = false
-
-Set html of an element and evaluate scripts so that document.currentScript is properly set
-
-      setHtml = (el, html, outer)->
-        if outer
-          prev = el.previousSibling
-          next = el.nextSibling
-          par = el.parentNode
-          el.outerHTML = html
-          el = prev?.nextSibling ? next?.previousSibling ? par?.firstChild
-        else el.innerHTML = html
-        activateScripts $(el)
-        el
-
-      activateScripts = (jq)->
-        if !activating
-          activating = true
-          try
-            for script in jq.find('script')
-              text = if !script.type || script.type.toLowerCase() == 'text/javascript'
-                script.textContent
-              else if script.type.toLowerCase() == 'text/coffeescript'
-                CoffeeScript.compile script.textContent, bare: true
-              else if script.type.toLowerCase() == 'text/literate-coffeescript'
-                CoffeeScript.compile script.textContent, bare: true, literate: true
-              if text
-                newScript = document.createElement 'script'
-                newScript.type = 'text/javascript'
-                if script.src then newScript.src = script.src
-                newScript.textContent = text
-                script.parentNode.insertBefore newScript, script
-                script.parentNode.removeChild script
-          finally
-            activating = false
 
 DataStore
 =========
@@ -1693,7 +1698,7 @@ selection, regardless of the current value of LeisureEditCore.editing.
 Exports
 =======
 
-      {
+      root = {
         LeisureEditCore
         Observable
         BasicEditingOptions
@@ -1706,8 +1711,6 @@ Exports
         posFor
         escapeHtml
         copy
-        activateScripts
-        setHtml
         findEditor
         copyBlock
         preserveSelection

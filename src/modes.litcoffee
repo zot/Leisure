@@ -51,7 +51,6 @@
         posFor
         escapeHtml
         copy
-        setHtml
         findEditor
         copyBlock
         preserveSelection
@@ -163,8 +162,8 @@
               next = block
               while isSidebar(next = opts.data.nextSibling(next))
                 $(opts.nodeForId(next._id)).closest('.slideholder').closest('[data-view]').remove()
-            (if block.type == 'headline' then slideDom.closest('[data-view]')
-            else slideDom.closest('[data-view="leisure-top-chunk"]')).replaceWith prev = $(blockHtml)
+            prev = opts.editor.setHtml (if block.type == 'headline' then slideDom.closest('[data-view]')
+            else slideDom.closest('[data-view="leisure-top-chunk"]'))[0], blockHtml, true
             next = block
             if opts.isToggled(block)
               while isSidebar(next = opts.data.nextSibling(next))

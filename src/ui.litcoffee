@@ -1,7 +1,7 @@
 Leisure's UI system uses a piece of data's "type" and the "context" (a string) to
 choose a handlebars template.
 
-    define ['handlebars', './export', './editor'], (Handlebars, Exports, Editor)->
+    define ['handlebars', './export', './editor', './coffee-script'], (Handlebars, Exports, Editor, CoffeeScript)->
       {
         compile
         create
@@ -134,7 +134,7 @@ choose a handlebars template.
               if isTop then attrs += " data-ids='#{_.keys(settings.subviews).join ' '}'"
               n = $("<span #{attrs}>#{html}</span>")
               $(node).replaceWith n
-              root.activateScripts n, root.context
+              activateScripts n, root.context
         else mergeContext settings, -> simpleRenderView attrs, key, template, data, block
 
       runTemplate = (template, args...)->
@@ -147,7 +147,7 @@ choose a handlebars template.
       simpleRenderView = (attrs, key, template, data, block)->
         id = "view-#{viewIdCounter++}"
         do (context = root.context)->
-          pendingViews.push -> root.activateScripts $("##{id}"), context
+          pendingViews.push -> activateScripts $("##{id}"), context
         attrs += " id='#{id}'"
         if block then root.context.subviews[block._id] = true
         root.context.simpleViewId = id
@@ -258,6 +258,8 @@ choose a handlebars template.
           pushPendingInitialzation
           setPanelExpanded
           activateScripts
+          activatePendingScript
+          pendingScripts: []
         }
         Handlebars
       }).UI
