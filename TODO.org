@@ -1,13 +1,13 @@
-* Search changes don't propagate collaboratively
-* Should Yaml blocks only auto-update only for :results dynamic?
+* BUG Search changes don't propagate collaboratively
+* TODO Should Yaml blocks only auto-update only for :results dynamic?
 ** Maybe have c-c c-c update the cache number in the results block?
-* c-c c-c in emacs should evaluate in the connected browser
-* New results type, "view"
+* TODO c-c c-c in emacs should evaluate in the connected browser
+* TODO New results type, "view"
 ** optional type or type/name param overrides type of result
 ** results for normal code
 ** yaml blocks themselves
-* :exports code/results/both controls fancy display
-* Need fancy gizmos to control header args
+* TODO :exports code/results/both controls fancy display
+* TODO Need fancy gizmos to control header args
 * TODO Support :tangle yes (also for internal code base)
 Tangled blocks of a given language should be concatenated before evaluation
 * BUG numbered lists don't parse as lists
