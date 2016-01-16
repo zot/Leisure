@@ -391,7 +391,11 @@ that must be done regardless of the source of changes
               @executeBlock newBlock, (env)->
                 env.eval = (text)-> controllerEval.call controller, text
         executeBlock: (block, envConf)->
-          @executeText block.language, blockSource(block), null, envConf
+          @executeText block.language, blockSource(block), null, (env)->
+            envConf? env
+            if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
+              env.silent = true
+              env.write = ->
         env: (language, envConf)->
           env = languageEnvMaker(language) __proto__: defaultEnv
           env.data = this
@@ -735,6 +739,9 @@ may be called more than once.  changeData() returns a promise.
               opts.mode.handleDelete opts, parent, e, sel, forward
             setCurrentScript: options: (parent)-> (script)->
               Leisure.UI.currentScript = script
+            activateScripts: options: (parent)-> (jq)->
+              if UI.context then UI.activateScripts jq, UI.context
+              else parent jq
           $(@editor.node).on 'scroll', updateSelection
         setMode: (@mode)->
           if @mode && @editor then @editor.node.attr 'data-edit-mode', @mode.name
@@ -924,6 +931,8 @@ may be called more than once.  changeData() returns a promise.
         (t[0] == 'headline' && oldBlock.level != newBlock.level)
 
       setResult = (block, result)->
+        if block?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
+          result = ''
         {results} = blockCodeItems this, block
         if !results && (!result? || result == '') then block
         else

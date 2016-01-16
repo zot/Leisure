@@ -135,7 +135,6 @@
             results = _.transform hits, ((obj, item)-> obj[item] = true), {}
             @setResults results
         redisplay: -> preserveSelection => @search()
-            
 
       openSearch = (event)->
         editor = editorForToolbar(event.originalEvent.srcElement)

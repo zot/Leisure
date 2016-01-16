@@ -274,7 +274,7 @@
       closeList = (level, lastItem, stack)->
         closeCount = 0
         prevLast = lastItem
-        
+
         while lastItem && lastItem.level > level
           delete lastItem.middleItem
           lastItem.lastItem = true
@@ -305,10 +305,18 @@
         '&': '&amp;'
         '"': '&quot;'
         "'": '&#39;'
-        " ": '&nbsp;'
+        " ": ' '
 
       fancyHtml = (str)->
-        if typeof str == 'string' then str.replace /[<>&'" ]/g, (c)-> fancyReplacements[c]
+        if typeof str == 'string' then str.replace /[<>&'"]| +/g, (c)->
+          if c == ' ' then c
+          else if c[0] == ' '
+            s = ''
+            for i in [1...c.length]
+              s += '&nbsp;'
+            s += ' '
+            s
+          else fancyReplacements[c]
         else str
 
 
@@ -799,7 +807,7 @@
         js: 'javascript'
         lisp: 'scheme'
         leisure: 'leisure'
-  
+
       prismHighlight = (lang, text)->
         if l = prismAliases[lang] then lang = l
         if Prism.languages[lang]

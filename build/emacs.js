@@ -60,7 +60,7 @@
           return editor.options.load('emacs', text);
         } else {
           targetLen = data.getDocLength() - (end - start) + text.length;
-          editor.options.makeStructureChange(start, end, text, repl);
+          editor.options.replaceText(start, end, text, repl);
           endLen = data.getDocLength();
           if (endLen !== targetLen) {
             return diagMessage("BAD DOC LENGTH AFTER REPLACEMENT, expected <" + targetLen + "> but ggot<" + endLen + ">");
@@ -189,7 +189,7 @@
           }
         }
       });
-      return changeAdvice(UI, true, {
+      return changeAdvice(opts.editor, true, {
         activateScripts: {
           emacs: function(parent) {
             return function(el, context) {

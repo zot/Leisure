@@ -272,8 +272,10 @@
           return [];
         }
       }
-      env.results = [];
-      newText = 'var leisure_results=[];';
+      if (!env.silent) {
+        env.results = [];
+        newText = 'var leisure_results=[];';
+      }
       ref = parsed.body;
       for (i = 0, len = ref.length; i < len; i++) {
         expr = ref[i];
@@ -282,12 +284,16 @@
           if (exprText[exprText.length - 1] === ';') {
             exprText = exprText.substring(0, exprText.length - 1);
           }
-          newText += "leisure_results.push(" + exprText + ");";
+          if (!env.silent) {
+            newText += "leisure_results.push(" + exprText + ");";
+          }
         } else {
           newText += text.substring(expr.start, expr.end);
         }
       }
-      newText += ";leisure_results;";
+      if (!env.silent) {
+        newText += ";leisure_results;";
+      }
       console = {
         log: (function(_this) {
           return function(str) {

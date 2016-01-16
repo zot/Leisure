@@ -68,7 +68,8 @@ Emacs connection
             editor.options.load 'emacs', text
           else
             targetLen = data.getDocLength() - (end - start) + text.length
-            editor.options.makeStructureChange start, end, text, repl
+            #editor.options.makeStructureChange start, end, text, repl
+            editor.options.replaceText start, end, text, repl
             endLen = data.getDocLength()
             if endLen != targetLen
               diagMessage "BAD DOC LENGTH AFTER REPLACEMENT, expected <#{targetLen}> but ggot<#{endLen}>"
@@ -135,7 +136,7 @@ Emacs connection
         changeAdvice opts.data, true,
           getFile: emacs: (parent)->(file, cont)->
             sendGetFile @emacsConnection, "file:#{file}", (contents)-> cont atob(contents)
-        changeAdvice UI, true,
+        changeAdvice opts.editor, true,
           activateScripts: emacs: (parent)->(el, context)->
             ret = parent el, context
             for img in $(el).find 'img'

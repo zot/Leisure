@@ -345,12 +345,24 @@
       '&': '&amp;',
       '"': '&quot;',
       "'": '&#39;',
-      " ": '&nbsp;'
+      " ": ' '
     };
     fancyHtml = function(str) {
       if (typeof str === 'string') {
-        return str.replace(/[<>&'" ]/g, function(c) {
-          return fancyReplacements[c];
+        return str.replace(/[<>&'"]| +/g, function(c) {
+          var i, j, ref, s;
+          if (c === ' ') {
+            return c;
+          } else if (c[0] === ' ') {
+            s = '';
+            for (i = j = 1, ref = c.length; 1 <= ref ? j < ref : j > ref; i = 1 <= ref ? ++j : --j) {
+              s += '&nbsp;';
+            }
+            s += ' ';
+            return s;
+          } else {
+            return fancyReplacements[c];
+          }
         });
       } else {
         return str;

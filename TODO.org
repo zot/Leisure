@@ -1,3 +1,7 @@
+* Search changes don't propagate collaboratively
+* Should Yaml blocks only auto-update only for :results dynamic?
+** Maybe have c-c c-c update the cache number in the results block?
+* c-c c-c in emacs should evaluate in the connected browser
 * New results type, "view"
 ** optional type or type/name param overrides type of result
 ** results for normal code
