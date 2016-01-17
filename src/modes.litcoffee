@@ -759,10 +759,13 @@
           m = numPat.exec block.text.substring blockOff.offset
           newText = String currentSlider.widget.slider 'value'
           if m[0] != newText
-            #console.log "REPLACE #{m[0]} with #{newText}"
-            blockStart = cs.editor.options.data.offsetForBlock block
-            cs.editor.options.awaitingGuard = true
-            Promise.using(Promise.resolve(0).disposer(-> cs.editor.options.awaitingGuard = false), (cs.editor.options.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (->))
+            if block.local
+              cs.editor.options.replaceText start, start + m[0].length, newText
+            else
+              #console.log "REPLACE #{m[0]} with #{newText}"
+              blockStart = cs.editor.options.data.offsetForBlock block
+              cs.editor.options.awaitingGuard = true
+              Promise.using(Promise.resolve(0).disposer(-> cs.editor.options.awaitingGuard = false), (cs.editor.options.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (->))
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding

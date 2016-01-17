@@ -1052,11 +1052,15 @@
         m = numPat.exec(block.text.substring(blockOff.offset));
         newText = String(currentSlider.widget.slider('value'));
         if (m[0] !== newText) {
-          blockStart = cs.editor.options.data.offsetForBlock(block);
-          cs.editor.options.awaitingGuard = true;
-          return Promise.using(Promise.resolve(0).disposer(function() {
-            return cs.editor.options.awaitingGuard = false;
-          }), cs.editor.options.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (function() {}));
+          if (block.local) {
+            return cs.editor.options.replaceText(start, start + m[0].length, newText);
+          } else {
+            blockStart = cs.editor.options.data.offsetForBlock(block);
+            cs.editor.options.awaitingGuard = true;
+            return Promise.using(Promise.resolve(0).disposer(function() {
+              return cs.editor.options.awaitingGuard = false;
+            }), cs.editor.options.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (function() {}));
+          }
         }
       }
     };

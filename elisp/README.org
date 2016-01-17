@@ -125,7 +125,7 @@ connection to the buffer that mirrors your changes.
 Please note, there are still bugs in the mirroring, but we may not
 know about all of them, so if you're motivated to report them in
 GitHub, that would be nice :).
-* Emacs code-execution
+* Emacs code execution
 *(Wanna see my source?  Click the martini glass.)*
 
 Leisure can use orgmode's code execution features.
@@ -137,6 +137,9 @@ Leisure will attempt to execute in Emacs.  You can try it here:
 echo hello there
 #+END_SRC
 
+Clicking an elisp link in Leisure will run it in Emacs.  Click this
+and it will [[elisp:(message "Hello from Leisure!")][show a message]] in Emacs.
+* Local code execution
 Webby code blocks execute in the browser directly.
 
 Go to Leisure and hit C-C C-C in this block:
@@ -154,9 +157,6 @@ the browser.
 #+END_SRC
 #+RESULTS:
 : 7
-
-Clicking an elisp link in Leisure will run it in Emacs.  Click this
-and it will [[elisp:(message "Hello from Leisure!")][show a message]] in Emacs.
 * Emacs file service
 When connected to Emacs, Leisure uses Emacs to access file: links so
 that it can display them in the browser.

@@ -150,6 +150,8 @@
         output.parent().addClass 'flat'
         searchEditor = new LeisureEditCore output, new SearchEditor(editor.options.data, input).setMode fancyMode
         opts = searchEditor.options
+        Leisure.configureEmacsOpts opts
+        Leisure.configurePeerOpts opts
         opts.hiding = false
         output.prev().filter('[data-view=leisure-toolbar]').remove()
         input.on 'input', (e)-> opts.search()

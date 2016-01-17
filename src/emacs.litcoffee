@@ -123,20 +123,26 @@ Emacs connection
         con.onerror = (evt)-> showMessage opts.editor.node, "Connection error", "Could not open connection to emacs",
           position: my: 'center top', at: 'center top'
           buttons: OK: -> $(this).dialog 'close'
-        changeAdvice opts, true,
-          followLink: emacs: (parent)->(e)->
-            if e.target.href.match /^elisp/
-              sendFollowLink @data.emacsConnection.websocket, @editor.docOffset($(e.target).prev('.link')[0], 1)
-              false
-            else parent e
-          execute: emacs: (parent)->->
-            if @editor.blockForCaret()?.language.toLowerCase() of knownLanguages
-              parent()
-            else sendCcCc @data.emacsConnection.websocket, @editor.docOffset(@editor.domCursorForCaret())
         changeAdvice opts.data, true,
           getFile: emacs: (parent)->(file, cont)->
             sendGetFile @emacsConnection, "file:#{file}", (contents)-> cont atob(contents)
-        changeAdvice opts.editor, true,
+        configureOpts opts
+
+      configureOpts = (opts)->
+        data = opts.data
+        if !data.emacsConnection.websocket then return
+        editor = opts.editor
+        changeAdvice opts, true,
+          followLink: emacs: (parent)->(e)->
+            if e.target.href.match /^elisp/
+              sendFollowLink data.emacsConnection.websocket, editor.docOffset($(e.target).prev('.link')[0], 1)
+              false
+            else parent e
+          execute: emacs: (parent)->->
+            if editor.blockForCaret()?.language.toLowerCase() of knownLanguages
+              parent()
+            else sendCcCc data.emacsConnection.websocket, editor.docOffset(editor.domCursorForCaret())
+        changeAdvice editor, true,
           activateScripts: emacs: (parent)->(el, context)->
             ret = parent el, context
             for img in $(el).find 'img'
@@ -148,7 +154,7 @@ Emacs connection
               if name
                 if !img.id then img.id = "emacs-image-#{imgCount++}"
                 img.src = ''
-                fetchImage opts.data.emacsConnection, img.id, src
+                fetchImage data.emacsConnection, img.id, src
             ret
 
       fetchImage = (con, imgId, src)->
@@ -281,6 +287,7 @@ Emacs connection
       mergeExports {
         blockRangeFor
         configureEmacs
+        configureEmacsOpts: configureOpts
       }
 
       {
