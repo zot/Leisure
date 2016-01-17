@@ -1,4 +1,4 @@
-* What is Leisure? ([[http://zot.github.io/Leisure/index.html?load=elisp/README.org][this document]], [[https://raw.githubusercontent.com/zot/Leisure/master/elisp/README.org][source]], [[https://github.com/zot/Leisure/][repository]])
+* What is Leisure? ([[http://zot.github.io/Leisure/?load=elisp/README.org][this document]], [[https://raw.githubusercontent.com/zot/Leisure/master/elisp/README.org][source]], [[https://github.com/zot/Leisure/][repository]])
 Leisure is an open-source web-based platform for interactive editable documents
 in orgmode format that provides what we call *[[https://en.wikipedia.org/wiki/Illuminated_manuscript][Illuminated Programming]]*. Leisure
 documents are:
