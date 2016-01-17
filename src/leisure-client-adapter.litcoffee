@@ -27,7 +27,10 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 
-    define ['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements'], (jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep)->
+    define ['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements', './export'], (jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep, Exports)->
+      {
+        mergeExports
+      } = Exports
       {
         Map
         Set
@@ -104,34 +107,8 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @con.onmessage = (msg)=> @handleMessage JSON.parse msg.data
           @con.onclose = => @closed()
           peer = this
-          changeAdvice @editor.options, true,
-            guardedReplaceText: p2p: (parent)-> (start, end, text, gStart, gEnd)->
-              reps = Replacements.fromArray [start, end, text]
-              {offset, block} = @data.blockOffsetForDocOffset start
-              oldBlock = @data.getBlock block
-              for repl in @replaceTextEffects(start, end, text, true).repls
-                reps.replace repl
-              p = peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, @getLength()), [gStart, gEnd])
-              p.then ((op)=>
-                #console.log "Promise:", p
-                repls = peer.replsForTextOp TextOperation.fromJSON op
-                #console.log "Guarded operation: ", repls
-                for repl in Replacements.fromArray(repls).getRepls()
-                  @replaceTextEffects repl.start, repl.end, text)
-                .catch(->)
-            replaceText: p2p: (parent)-> (start, end, text, skip)->
-              oldLen = @getLength()
-              repl = {start, end, text}
-              newLen = oldLen + text.length - end + start
-              peer.editorCallbacks.change peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen)
-              parent start, end, text, skip
-            batchReplace: p2p: (parent)-> (replacementFunc, cont, error)->
-              repls = validateBatch(replacementFunc()).reverse()
-              ops = peer.opsFor repls, @getLength()
-              guards = [r.gStart, r.end] for r in repls
-              peer.sendGuardedOperation(peer.editorClient.revision, ops, guards)
-                .then cont, error
-                .catch error
+          @editor.options.data.peer = this
+          configureOpts @editor.options
           @editor.on 'selection', => @getSelection()
         opFor: ({start, end, text}, length)->
           op = new TextOperation()
@@ -316,12 +293,48 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @send 'guardedOperation', {revision, operation, guards, guardId, selection: @editorClient.selection}
           new Promise (success, failure)=> @guardPromises[guardId] = [success, failure]
 
+      configureOpts = (opts)->
+        data = opts.data
+        if !data.peer then return
+        peer = data.peer
+        changeAdvice opts, true,
+          guardedReplaceText: p2p: (parent)-> (start, end, text, gStart, gEnd)->
+            reps = Replacements.fromArray [start, end, text]
+            {offset, block} = @data.blockOffsetForDocOffset start
+            oldBlock = @data.getBlock block
+            for repl in @replaceTextEffects(start, end, text, true).repls
+              reps.replace repl
+            p = peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, @getLength()), [gStart, gEnd])
+            p.then ((op)=>
+              #console.log "Promise:", p
+              repls = peer.replsForTextOp TextOperation.fromJSON op
+              #console.log "Guarded operation: ", repls
+              for repl in Replacements.fromArray(repls).getRepls()
+                @replaceTextEffects repl.start, repl.end, text)
+              .catch(->)
+          replaceText: p2p: (parent)-> (start, end, text, skip)->
+            oldLen = @getLength()
+            repl = {start, end, text}
+            newLen = oldLen + text.length - end + start
+            peer.editorCallbacks.change peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen)
+            parent start, end, text, skip
+          batchReplace: p2p: (parent)-> (replacementFunc, cont, error)->
+            repls = validateBatch(replacementFunc()).reverse()
+            ops = peer.opsFor repls, @getLength()
+            guards = [r.gStart, r.end] for r in repls
+            peer.sendGuardedOperation(peer.editorClient.revision, ops, guards)
+              .then cont, error
+              .catch error
+
       window.randomUserName = randomUserName = (done)->
         Promise
           .all(ajaxGet 'http://randomword.setgetgo.com/get.php' for i in [0...2])
           .then (names)->
             done names.join ' '
 
+      mergeExports {
+        configurePeerOpts: configureOpts
+      }
       {
         Peer
       }

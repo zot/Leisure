@@ -617,7 +617,16 @@
       };
 
       OrgData.prototype.executeBlock = function(block, envConf) {
-        return this.executeText(block.language, blockSource(block), null, envConf);
+        return this.executeText(block.language, blockSource(block), null, function(env) {
+          var ref, ref1, ref2;
+          if (typeof envConf === "function") {
+            envConf(env);
+          }
+          if ((ref = typeof newBlock !== "undefined" && newBlock !== null ? (ref1 = newBlock.codeAttributes) != null ? (ref2 = ref1.results) != null ? ref2.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref === 'silent') {
+            env.silent = true;
+            return env.write = function() {};
+          }
+        });
       };
 
       OrgData.prototype.env = function(language, envConf) {
@@ -1273,6 +1282,17 @@
                 return Leisure.UI.currentScript = script;
               };
             }
+          },
+          activateScripts: {
+            options: function(parent) {
+              return function(jq) {
+                if (UI.context) {
+                  return UI.activateScripts(jq, UI.context);
+                } else {
+                  return parent(jq);
+                }
+              };
+            }
           }
         });
         return $(this.editor.node).on('scroll', updateSelection);
@@ -1614,7 +1634,10 @@
       return oldBlock._id !== newBlock._id || (indexOf.call((t = [oldBlock.type, newBlock.type]), 'headline') >= 0 && t[0] !== t[1]) || (t[0] === 'headline' && oldBlock.level !== newBlock.level);
     };
     setResult = function(block, result) {
-      var newBlock, prop, results, text, tmp, value;
+      var newBlock, prop, ref, ref1, ref2, results, text, tmp, value;
+      if ((ref = block != null ? (ref1 = block.codeAttributes) != null ? (ref2 = ref1.results) != null ? ref2.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref === 'silent') {
+        result = '';
+      }
       results = blockCodeItems(this, block).results;
       if (!results && ((result == null) || result === '')) {
         return block;

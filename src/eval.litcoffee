@@ -183,16 +183,17 @@ Evaulation support for Leisure
             else
               env.errorAt findError(err.message, text), err2.message
             return []
-        env.results = []
-        newText = 'var leisure_results=[];'
+        if !env.silent
+          env.results = []
+          newText = 'var leisure_results=[];'
         for expr in parsed.body
           if expr.type == 'ExpressionStatement'
             exprText = text.substring expr.start, expr.end
             if exprText[exprText.length - 1] == ';'
               exprText = exprText.substring(0, exprText.length - 1)
-            newText += "leisure_results.push(" + exprText + ");"
+            if !env.silent then newText += "leisure_results.push(" + exprText + ");"
           else newText += text.substring expr.start, expr.end
-        newText += ";leisure_results;"
+        if !env.silent then newText += ";leisure_results;"
         console = log: (str)=> env.write env.presentValue str
         setLounge env, -> (env.eval ? localEval) newText
 
@@ -237,11 +238,11 @@ Evaulation support for Leisure
 
       class Html
         constructor: (content)-> @content = String(content)
-      
+
       html = (content)-> new Html content
-      
+
       errorDiv = (err, orgText)-> "<span class='error' contenteditable='false'><span class='hidden'>#{orgText || ''}</span><span data-nonorg='true'>#{escapeHtml err}</span></span>"
-      
+
       replacements =
         '<': '&lt;'
         '>': '&gt;'

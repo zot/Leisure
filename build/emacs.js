@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
-    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
+    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, configureOpts, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
@@ -60,7 +60,7 @@
           return editor.options.load('emacs', text);
         } else {
           targetLen = data.getDocLength() - (end - start) + text.length;
-          editor.options.makeStructureChange(start, end, text, repl);
+          editor.options.replaceText(start, end, text, repl);
           endLen = data.getDocLength();
           if (endLen !== targetLen) {
             return diagMessage("BAD DOC LENGTH AFTER REPLACEMENT, expected <" + targetLen + "> but ggot<" + endLen + ">");
@@ -152,32 +152,6 @@
           }
         });
       };
-      changeAdvice(opts, true, {
-        followLink: {
-          emacs: function(parent) {
-            return function(e) {
-              if (e.target.href.match(/^elisp/)) {
-                sendFollowLink(this.data.emacsConnection.websocket, this.editor.docOffset($(e.target).prev('.link')[0], 1));
-                return false;
-              } else {
-                return parent(e);
-              }
-            };
-          }
-        },
-        execute: {
-          emacs: function(parent) {
-            return function() {
-              var ref;
-              if (((ref = this.editor.blockForCaret()) != null ? ref.language.toLowerCase() : void 0) in knownLanguages) {
-                return parent();
-              } else {
-                return sendCcCc(this.data.emacsConnection.websocket, this.editor.docOffset(this.editor.domCursorForCaret()));
-              }
-            };
-          }
-        }
-      });
       changeAdvice(opts.data, true, {
         getFile: {
           emacs: function(parent) {
@@ -189,7 +163,42 @@
           }
         }
       });
-      return changeAdvice(UI, true, {
+      return configureOpts(opts);
+    };
+    configureOpts = function(opts) {
+      var data, editor;
+      data = opts.data;
+      if (!data.emacsConnection.websocket) {
+        return;
+      }
+      editor = opts.editor;
+      changeAdvice(opts, true, {
+        followLink: {
+          emacs: function(parent) {
+            return function(e) {
+              if (e.target.href.match(/^elisp/)) {
+                sendFollowLink(data.emacsConnection.websocket, editor.docOffset($(e.target).prev('.link')[0], 1));
+                return false;
+              } else {
+                return parent(e);
+              }
+            };
+          }
+        },
+        execute: {
+          emacs: function(parent) {
+            return function() {
+              var ref;
+              if (((ref = editor.blockForCaret()) != null ? ref.language.toLowerCase() : void 0) in knownLanguages) {
+                return parent();
+              } else {
+                return sendCcCc(data.emacsConnection.websocket, editor.docOffset(editor.domCursorForCaret()));
+              }
+            };
+          }
+        }
+      });
+      return changeAdvice(editor, true, {
         activateScripts: {
           emacs: function(parent) {
             return function(el, context) {
@@ -210,7 +219,7 @@
                     img.id = "emacs-image-" + (imgCount++);
                   }
                   img.src = '';
-                  fetchImage(opts.data.emacsConnection, img.id, src);
+                  fetchImage(data.emacsConnection, img.id, src);
                 }
               }
               return ret;
@@ -397,7 +406,8 @@
     };
     mergeExports({
       blockRangeFor: blockRangeFor,
-      configureEmacs: configureEmacs
+      configureEmacs: configureEmacs,
+      configureEmacsOpts: configureOpts
     });
     return {};
   });

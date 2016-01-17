@@ -2,8 +2,9 @@
 (function() {
   var slice = [].slice;
 
-  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements'], function(jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep) {
-    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, diag, editorToolbar, getDocumentParams, isDelete, isInsert, isRetain, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, validateBatch;
+  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements', './export'], function(jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep, Exports) {
+    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, getDocumentParams, isDelete, isInsert, isRetain, mergeExports, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, validateBatch;
+    mergeExports = Exports.mergeExports;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
     OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor, ajaxGet = Support.ajaxGet;
@@ -79,67 +80,8 @@
           };
         })(this);
         peer = this;
-        changeAdvice(this.editor.options, true, {
-          guardedReplaceText: {
-            p2p: function(parent) {
-              return function(start, end, text, gStart, gEnd) {
-                var block, j, len1, offset, oldBlock, p, ref1, ref2, repl, reps;
-                reps = Replacements.fromArray([start, end, text]);
-                ref1 = this.data.blockOffsetForDocOffset(start), offset = ref1.offset, block = ref1.block;
-                oldBlock = this.data.getBlock(block);
-                ref2 = this.replaceTextEffects(start, end, text, true).repls;
-                for (j = 0, len1 = ref2.length; j < len1; j++) {
-                  repl = ref2[j];
-                  reps.replace(repl);
-                }
-                p = peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, this.getLength()), [gStart, gEnd]);
-                return p.then(((function(_this) {
-                  return function(op) {
-                    var k, len2, ref3, repls, results;
-                    repls = peer.replsForTextOp(TextOperation.fromJSON(op));
-                    ref3 = Replacements.fromArray(repls).getRepls();
-                    results = [];
-                    for (k = 0, len2 = ref3.length; k < len2; k++) {
-                      repl = ref3[k];
-                      results.push(_this.replaceTextEffects(repl.start, repl.end, text));
-                    }
-                    return results;
-                  };
-                })(this)))["catch"](function() {});
-              };
-            }
-          },
-          replaceText: {
-            p2p: function(parent) {
-              return function(start, end, text, skip) {
-                var newLen, oldLen, repl;
-                oldLen = this.getLength();
-                repl = {
-                  start: start,
-                  end: end,
-                  text: text
-                };
-                newLen = oldLen + text.length - end + start;
-                peer.editorCallbacks.change(peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen));
-                return parent(start, end, text, skip);
-              };
-            }
-          },
-          batchReplace: {
-            p2p: function(parent) {
-              return function(replacementFunc, cont, error) {
-                var guards, j, len1, ops, r, repls;
-                repls = validateBatch(replacementFunc()).reverse();
-                ops = peer.opsFor(repls, this.getLength());
-                for (j = 0, len1 = repls.length; j < len1; j++) {
-                  r = repls[j];
-                  guards = [r.gStart, r.end];
-                }
-                return peer.sendGuardedOperation(peer.editorClient.revision, ops, guards).then(cont, error)["catch"](error);
-              };
-            }
-          }
-        });
+        this.editor.options.data.peer = this;
+        configureOpts(this.editor.options);
         return this.editor.on('selection', (function(_this) {
           return function() {
             return _this.getSelection();
@@ -519,6 +461,75 @@
       return Peer;
 
     })();
+    configureOpts = function(opts) {
+      var data, peer;
+      data = opts.data;
+      if (!data.peer) {
+        return;
+      }
+      peer = data.peer;
+      return changeAdvice(opts, true, {
+        guardedReplaceText: {
+          p2p: function(parent) {
+            return function(start, end, text, gStart, gEnd) {
+              var block, j, len1, offset, oldBlock, p, ref1, ref2, repl, reps;
+              reps = Replacements.fromArray([start, end, text]);
+              ref1 = this.data.blockOffsetForDocOffset(start), offset = ref1.offset, block = ref1.block;
+              oldBlock = this.data.getBlock(block);
+              ref2 = this.replaceTextEffects(start, end, text, true).repls;
+              for (j = 0, len1 = ref2.length; j < len1; j++) {
+                repl = ref2[j];
+                reps.replace(repl);
+              }
+              p = peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, this.getLength()), [gStart, gEnd]);
+              return p.then(((function(_this) {
+                return function(op) {
+                  var k, len2, ref3, repls, results;
+                  repls = peer.replsForTextOp(TextOperation.fromJSON(op));
+                  ref3 = Replacements.fromArray(repls).getRepls();
+                  results = [];
+                  for (k = 0, len2 = ref3.length; k < len2; k++) {
+                    repl = ref3[k];
+                    results.push(_this.replaceTextEffects(repl.start, repl.end, text));
+                  }
+                  return results;
+                };
+              })(this)))["catch"](function() {});
+            };
+          }
+        },
+        replaceText: {
+          p2p: function(parent) {
+            return function(start, end, text, skip) {
+              var newLen, oldLen, repl;
+              oldLen = this.getLength();
+              repl = {
+                start: start,
+                end: end,
+                text: text
+              };
+              newLen = oldLen + text.length - end + start;
+              peer.editorCallbacks.change(peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen));
+              return parent(start, end, text, skip);
+            };
+          }
+        },
+        batchReplace: {
+          p2p: function(parent) {
+            return function(replacementFunc, cont, error) {
+              var guards, j, len1, ops, r, repls;
+              repls = validateBatch(replacementFunc()).reverse();
+              ops = peer.opsFor(repls, this.getLength());
+              for (j = 0, len1 = repls.length; j < len1; j++) {
+                r = repls[j];
+                guards = [r.gStart, r.end];
+              }
+              return peer.sendGuardedOperation(peer.editorClient.revision, ops, guards).then(cont, error)["catch"](error);
+            };
+          }
+        }
+      });
+    };
     window.randomUserName = randomUserName = function(done) {
       var i;
       return Promise.all((function() {
@@ -532,6 +543,9 @@
         return done(names.join(' '));
       });
     };
+    mergeExports({
+      configurePeerOpts: configureOpts
+    });
     return {
       Peer: Peer
     };

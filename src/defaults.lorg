@@ -32,9 +32,13 @@ in as long as you mark it as data-noncontent, etc.
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-toolbar
+{{#condense}}
 <div name='buttons' style="position: relative;">
   <div style='position: relative; display: inline-block; width: calc(100% - 13em)'>
-    <button name='leisure_grip' title='x'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>
+    <button name='leisure_grip' title='x'>
+      <i class='fa fa-angle-left'></i>
+      <i class='fa fa-angle-right'></i>
+    </button>
     <label name="showHide"><input type='checkbox'></input>Fred</label>
     <button name='search'>Search</button>
     <span class='expandable-panel'>
@@ -53,14 +57,14 @@ in as long as you mark it as data-noncontent, etc.
       <button class='label' name='emacsLabel'>Emacs</button>
       <span class='contents'>
         <button name='connectToEmacs'>Emacs</button>
-        <span name="emacsHost">Host: <input type='text' value="localhost:1315"></span>
+        <span name="emacsHost"> Host: <input type='text' value="localhost:1315"></span>
       </span>
     </div>
     <div name='p2pConnector' class='expandable-panel'>
       <button class='label' name='p2plabel'>Collaboration</button>
       <span class='contents not-connected'>
         <button name='createSession'>Create Session</button>
-        <span class='when-not-connected'>Relay Host: <input name="p2pHost"></span>
+        <span class='when-not-connected'> Relay Host: <input name="p2pHost"></span>
         <span class='when-connected'>
           Connections: <span name='connections'>0</span>
           Connection URL: <a name="sessionKey">NO SESSION</a>
@@ -74,6 +78,7 @@ in as long as you mark it as data-noncontent, etc.
     </button>
   </a>
 </div>
+{{/condense}}
 #+END_SRC
 
 #+BEGIN_SRC cs :control header
@@ -149,6 +154,11 @@ updateButton = (view, hiding)->
 [data-view=leisure-toolbar] [name=leisure_grip] .fa-angle-right {
   display: none;
 }
+[name=leisure_grip] .ui-button-text {
+  padding-left: 1ex;
+  padding-right: 1ex;
+}
+
 [data-view=leisure-toolbar].collapse {
   width: 2em;
   max-width: 2em;

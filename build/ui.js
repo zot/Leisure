@@ -107,6 +107,9 @@
     mergeContext = function(subcontext, func) {
       return withContext(_.merge({}, root.context, subcontext), func);
     };
+    Handlebars.registerHelper('condense', function(options) {
+      return options.fn(options).replace(/>[ \n]+</g, '><');
+    });
     Handlebars.registerHelper('view', function(item, contextName, options) {
       var block, data;
       if (!options) {
@@ -184,7 +187,7 @@
             }
             n = $("<span " + attrs + ">" + html + "</span>");
             $(node).replaceWith(n);
-            return activateScripts(n, root.context);
+            return root.context.opts.editor.activateScripts(n, root.context);
           }));
         }
         return results;
@@ -241,7 +244,7 @@
           root.context.currentView = el;
           activating = true;
           try {
-            ref = $(el).find('script');
+            ref = el.find('script');
             for (i = 0, len = ref.length; i < len; i++) {
               script = ref[i];
               if (!script.type || script.type === 'text/javascript') {
@@ -254,13 +257,13 @@
                 script.remove();
               }
             }
-            ref1 = $(el).find('script[type="text/coffeescript"]').add($(el).find('script[type="text/literate-coffeescript"]'));
+            ref1 = el.find('script[type="text/coffeescript"]').add(el.find('script[type="text/literate-coffeescript"]'));
             for (j = 0, len1 = ref1.length; j < len1; j++) {
               script = ref1[j];
               root.currentScript = script;
               CoffeeScript.run(script.innerHTML);
             }
-            if ((ref2 = getController($(el).attr('data-view'))) != null) {
+            if ((ref2 = getController(el.attr('data-view'))) != null) {
               if (typeof ref2.initializeView === "function") {
                 ref2.initializeView(el, context.data);
               }

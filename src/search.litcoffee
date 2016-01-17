@@ -135,7 +135,6 @@
             results = _.transform hits, ((obj, item)-> obj[item] = true), {}
             @setResults results
         redisplay: -> preserveSelection => @search()
-            
 
       openSearch = (event)->
         editor = editorForToolbar(event.originalEvent.srcElement)
@@ -151,6 +150,8 @@
         output.parent().addClass 'flat'
         searchEditor = new LeisureEditCore output, new SearchEditor(editor.options.data, input).setMode fancyMode
         opts = searchEditor.options
+        Leisure.configureEmacsOpts opts
+        Leisure.configurePeerOpts opts
         opts.hiding = false
         output.prev().filter('[data-view=leisure-toolbar]').remove()
         input.on 'input', (e)-> opts.search()

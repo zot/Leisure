@@ -345,12 +345,24 @@
       '&': '&amp;',
       '"': '&quot;',
       "'": '&#39;',
-      " ": '&nbsp;'
+      " ": ' '
     };
     fancyHtml = function(str) {
       if (typeof str === 'string') {
-        return str.replace(/[<>&'" ]/g, function(c) {
-          return fancyReplacements[c];
+        return str.replace(/[<>&'"]| +/g, function(c) {
+          var i, j, ref, s;
+          if (c === ' ') {
+            return c;
+          } else if (c[0] === ' ') {
+            s = '';
+            for (i = j = 1, ref = c.length; 1 <= ref ? j < ref : j > ref; i = 1 <= ref ? ++j : --j) {
+              s += '&nbsp;';
+            }
+            s += ' ';
+            return s;
+          } else {
+            return fancyReplacements[c];
+          }
         });
       } else {
         return str;
@@ -1040,11 +1052,15 @@
         m = numPat.exec(block.text.substring(blockOff.offset));
         newText = String(currentSlider.widget.slider('value'));
         if (m[0] !== newText) {
-          blockStart = cs.editor.options.data.offsetForBlock(block);
-          cs.editor.options.awaitingGuard = true;
-          return Promise.using(Promise.resolve(0).disposer(function() {
-            return cs.editor.options.awaitingGuard = false;
-          }), cs.editor.options.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (function() {}));
+          if (block.local) {
+            return cs.editor.options.replaceText(start, start + m[0].length, newText);
+          } else {
+            blockStart = cs.editor.options.data.offsetForBlock(block);
+            cs.editor.options.awaitingGuard = true;
+            return Promise.using(Promise.resolve(0).disposer(function() {
+              return cs.editor.options.awaitingGuard = false;
+            }), cs.editor.options.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (function() {}));
+          }
         }
       }
     };

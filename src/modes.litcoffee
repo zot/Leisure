@@ -274,7 +274,7 @@
       closeList = (level, lastItem, stack)->
         closeCount = 0
         prevLast = lastItem
-        
+
         while lastItem && lastItem.level > level
           delete lastItem.middleItem
           lastItem.lastItem = true
@@ -305,10 +305,18 @@
         '&': '&amp;'
         '"': '&quot;'
         "'": '&#39;'
-        " ": '&nbsp;'
+        " ": ' '
 
       fancyHtml = (str)->
-        if typeof str == 'string' then str.replace /[<>&'" ]/g, (c)-> fancyReplacements[c]
+        if typeof str == 'string' then str.replace /[<>&'"]| +/g, (c)->
+          if c == ' ' then c
+          else if c[0] == ' '
+            s = ''
+            for i in [1...c.length]
+              s += '&nbsp;'
+            s += ' '
+            s
+          else fancyReplacements[c]
         else str
 
 
@@ -751,10 +759,13 @@
           m = numPat.exec block.text.substring blockOff.offset
           newText = String currentSlider.widget.slider 'value'
           if m[0] != newText
-            #console.log "REPLACE #{m[0]} with #{newText}"
-            blockStart = cs.editor.options.data.offsetForBlock block
-            cs.editor.options.awaitingGuard = true
-            Promise.using(Promise.resolve(0).disposer(-> cs.editor.options.awaitingGuard = false), (cs.editor.options.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (->))
+            if block.local
+              cs.editor.options.replaceText start, start + m[0].length, newText
+            else
+              #console.log "REPLACE #{m[0]} with #{newText}"
+              blockStart = cs.editor.options.data.offsetForBlock block
+              cs.editor.options.awaitingGuard = true
+              Promise.using(Promise.resolve(0).disposer(-> cs.editor.options.awaitingGuard = false), (cs.editor.options.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (->))
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding
@@ -799,7 +810,7 @@
         js: 'javascript'
         lisp: 'scheme'
         leisure: 'leisure'
-  
+
       prismHighlight = (lang, text)->
         if l = prismAliases[lang] then lang = l
         if Prism.languages[lang]

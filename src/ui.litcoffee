@@ -82,6 +82,9 @@ choose a handlebars template.
       mergeContext = (subcontext, func)->
         withContext _.merge({}, root.context, subcontext), func
 
+      Handlebars.registerHelper 'condense', (options)->
+        options.fn(options).replace(/>[ \n]+</g, '><')
+
       Handlebars.registerHelper 'view', (item, contextName, options)->
         if !options
           options = contextName
@@ -134,7 +137,7 @@ choose a handlebars template.
               if isTop then attrs += " data-ids='#{_.keys(settings.subviews).join ' '}'"
               n = $("<span #{attrs}>#{html}</span>")
               $(node).replaceWith n
-              activateScripts n, root.context
+              root.context.opts.editor.activateScripts n, root.context
         else mergeContext settings, -> simpleRenderView attrs, key, template, data, block
 
       runTemplate = (template, args...)->
@@ -166,7 +169,7 @@ choose a handlebars template.
             root.context.currentView = el
             activating = true
             try
-              for script in $(el).find('script')
+              for script in el.find('script')
                 if !script.type || script.type == 'text/javascript'
                   newScript = document.createElement 'script'
                   newScript.type = 'text/javascript'
@@ -175,10 +178,10 @@ choose a handlebars template.
                   root.currentScript = newScript
                   script.parentNode.insertBefore newScript, script
                   script.remove()
-              for script in $(el).find('script[type="text/coffeescript"]').add($(el).find 'script[type="text/literate-coffeescript"]')
+              for script in el.find('script[type="text/coffeescript"]').add(el.find 'script[type="text/literate-coffeescript"]')
                 root.currentScript = script
                 CoffeeScript.run script.innerHTML
-              getController($(el).attr 'data-view')?.initializeView?(el, context.data)
+              getController(el.attr 'data-view')?.initializeView?(el, context.data)
               for img in el.find 'img'
                 refreshImage img
             finally
