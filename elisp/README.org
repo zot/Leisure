@@ -35,7 +35,7 @@ a new version, we've been overhauling a lot of it, and we're finally ready to
 talk more publicly about it.
 
 *NOTE: LEISURE CURRENTLY ONLY RUNS IN CHROMIUM-BASED BROWSERS (LIKE CHROME).*
-* View definitions
+* Views
 ** Click the degrees value and move the slider that pops up
 #+NAME: rotator
 #+BEGIN_SRC yaml

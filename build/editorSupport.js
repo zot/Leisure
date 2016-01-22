@@ -2,10 +2,11 @@
 (function() {
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty,
-    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    slice = [].slice;
 
-  define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, Nil, OrgData, OrgEditing, Promise, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+  define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isPrefix, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -17,7 +18,7 @@
     hasDatabase = DB.hasDatabase, transaction = DB.transaction;
     mergeExports = BrowserExports.mergeExports;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
-    Map = Immutable.Map;
+    Map = Immutable.Map, Set = Immutable.Set;
     Promise = Bluebird.Promise;
     selectionActive = true;
     headlineRE = /^(\*+ *)(.*)(\n)$/;
@@ -28,6 +29,7 @@
     deleteStore = false;
     bubbleTopOffset = -5;
     bubbleLeftOffset = 0;
+    keySplitPat = new RegExp(' +');
     blockOrg = function(data, blockOrText) {
       var frag, org, ref, text;
       text = typeof blockOrText === 'string' ? (ref = data.getBlock(blockOrText)) != null ? ref : blockOrText : blockOrText.text;
@@ -46,12 +48,28 @@
       function OrgData() {
         DataStore.apply(this, arguments);
         this.namedBlocks = {};
+        this.pendingObserves = new NMap();
+        this.observers = new NMap();
         this.localBlocks = {};
         this.filters = [];
         this.populateLocalData();
         this.pendingEvals = [];
         this.importPromise = Promise.resolve();
-        this.indexes = {};
+        this.indexes = FingerTree.fromArray([], {
+          identity: function() {
+            return [];
+          },
+          measure: function(v) {
+            return v.key;
+          },
+          sum: function(a, b) {
+            if (compareSorted(a, b) < 1) {
+              return b;
+            } else {
+              return a;
+            }
+          }
+        });
         this.imported = {
           css: {},
           view: {},
@@ -67,6 +85,16 @@
         };
         this.tangles = {};
       }
+
+      OrgData.prototype.change = function(changes) {
+        var ch;
+        ch = this.makeChange(changes);
+        return this.scheduleEvals().then((function(_this) {
+          return function() {
+            return _this.trigger('change', ch);
+          };
+        })(this));
+      };
 
       OrgData.prototype.addImported = function(importFile, type, name) {
         if (typeof importFile === 'string') {
@@ -85,7 +113,7 @@
         return transaction(this.localDocumentId()).getAll().then((function(_this) {
           return function(allData) {
             var deletes, j, len, name, results1;
-            _this.localBlocks = _.indexBy(allData, '_id');
+            _this.localBlocks = _.keyBy(allData, '_id');
             deletes = [];
             for (name in _this.localBlocks) {
               if (!_this.namedBlocks[name] || !(_this.getBlockNamed(name)).local) {
@@ -178,8 +206,9 @@
                 _this.runFilters(null, block);
                 _this.checkChange(null, block);
               }
-              OrgData.__super__.load.call(_this, name, first, blocks);
-              _this.scheduleEvals();
+              _this.scheduleEvals().then(function() {
+                return OrgData.__super__.load.call(_this, name, first, blocks);
+              });
               return _this.loading = false;
             }
           };
@@ -321,7 +350,7 @@
             while (parent && cur.level <= parent.level) {
               ref = stack.pop(), parent = ref[0], sibling = ref[1];
             }
-          } else if (cur.type === 'chunk' && (cur.properties != null) && parent && !_(parent.propertiesBlocks).contains(cur._id)) {
+          } else if (cur.type === 'chunk' && (cur.properties != null) && parent && !_(parent.propertiesBlocks).includes(cur._id)) {
             if (!parent.propertiesBlocks) {
               parent.propertiesBlocks = [];
             }
@@ -364,7 +393,7 @@
         ref1 = this.removesAndSets(changes);
         for (id in ref1) {
           block = ref1[id];
-          this.checkChange(this.getBlock(id), block || null);
+          this.checkChange(this.getBlock(id), block != null ? block : null);
         }
         return OrgData.__super__.makeChange.call(this, changes);
       };
@@ -394,11 +423,115 @@
       };
 
       OrgData.prototype.checkChange = function(oldBlock, newBlock, isDefault) {
+        this.checkIndexChange(oldBlock, newBlock, isDefault);
         this.checkPropChange(oldBlock, newBlock, isDefault);
         this.checkCssChange(oldBlock, newBlock, isDefault);
         this.checkCodeChange(oldBlock, newBlock, isDefault);
+        this.checkChannelChange(oldBlock, newBlock);
         this.checkViewChange(oldBlock, newBlock, isDefault);
         return this.checkControlChange(oldBlock, newBlock, isDefault);
+      };
+
+      OrgData.prototype.checkIndexChange = function(oldBlock, newBlock, isDefault) {
+        var index, j, k, key, l, len, len1, ref, ref1, ref2, ref3, ref4, results1, v;
+        if (newBlock) {
+          if ((index = (ref = newBlock.codeAttributes) != null ? ref.index : void 0) && newBlock.yaml) {
+            newBlock.keys = ((function() {
+              var j, len, ref1, results1;
+              ref1 = (function() {
+                var l, len, ref1, results2;
+                ref1 = index.split(',');
+                results2 = [];
+                for (l = 0, len = ref1.length; l < len; l++) {
+                  k = ref1[l];
+                  results2.push(k.trim().split(keySplitPat));
+                }
+                return results2;
+              })();
+              results1 = [];
+              for (j = 0, len = ref1.length; j < len; j++) {
+                key = ref1[j];
+                if (v = newBlock.yaml[_.last(key).trim()]) {
+                  results1.push([key[0].trim(), v, newBlock._id]);
+                }
+              }
+              return results1;
+            })()).sort(compareSorted);
+          } else {
+            delete newBlock.keys;
+          }
+        }
+        if (!((oldBlock != null ? oldBlock.keys : void 0) && newBlock.keys && _.isEqual(newBlock.keys, oldBlock.keys))) {
+          if (oldBlock != null ? oldBlock.keys : void 0) {
+            k = (ref1 = newBlock != null ? newBlock.keys : void 0) != null ? ref1 : [];
+            ref2 = oldBlock.keys;
+            for (j = 0, len = ref2.length; j < len; j++) {
+              key = ref2[j];
+              if (!(indexOf.call(k, key) >= 0)) {
+                this.deleteBlockKey({
+                  id: oldBlock._id,
+                  key: key
+                });
+              }
+            }
+          }
+          if (newBlock.keys) {
+            k = (ref3 = oldBlock != null ? oldBlock.keys : void 0) != null ? ref3 : [];
+            ref4 = newBlock.keys;
+            results1 = [];
+            for (l = 0, len1 = ref4.length; l < len1; l++) {
+              key = ref4[l];
+              if (!(indexOf.call(k, key) >= 0)) {
+                results1.push(this.addBlockKey({
+                  id: newBlock._id,
+                  key: key
+                }));
+              } else {
+                results1.push(void 0);
+              }
+            }
+            return results1;
+          }
+        }
+      };
+
+      OrgData.prototype.addBlockKey = function(k) {
+        var first, ref, rest;
+        ref = this.indexes.split(function(m) {
+          return m >= k.key;
+        }), first = ref[0], rest = ref[1];
+        return this.indexes = first.concat(rest.addFirst(k));
+      };
+
+      OrgData.prototype.deleteBlockKey = function(k) {
+        var first, found, r, ref, rest;
+        ref = this.indexes.split(function(m) {
+          return m === k.key;
+        }), first = ref[0], rest = ref[1];
+        r = rest;
+        while (!r.isEmpty() && (found = r.peekFirst() && found.key === k.key && found.id === k.id)) {
+          r = r.removeFirst();
+        }
+        if (r !== rest) {
+          return this.indexes = first.concat(rest);
+        }
+      };
+
+      OrgData.prototype.find = function(index, key) {
+        var first, k, ref, rest, result;
+        k = [index];
+        result = [];
+        if (key) {
+          k.push(key);
+        }
+        ref = this.indexes.split(function(m) {
+          return compareSorted(k, m) < 1;
+        }), first = ref[0], rest = ref[1];
+        while (!rest.isEmpty() && isPrefix(k, rest.peekFirst().key)) {
+          result.push(rest.peekFirst().id);
+          rest = rest.removeFirst();
+        }
+        return result;
       };
 
       OrgData.prototype.queueEval = function(func) {
@@ -417,16 +550,28 @@
       OrgData.prototype.scheduleEvals = function() {
         return this.runOnImport((function(_this) {
           return function() {
-            var code, e, entry, func, j, lang, len, oldOpts, opts, ref;
-            ref = _this.tangles;
-            for (lang in ref) {
-              entry = ref[lang];
-              opts = entry[0], code = entry[1];
-              oldOpts = defaultEnv.opts;
-              defaultEnv.opts = opts;
-              _this.executeText(lang, code);
-              defaultEnv.opts = oldOpts;
-            }
+            var block, code, e, entry, func, j, lang, len, oldOpts, opts, p, promises, ref, target, targets;
+            promises = (function() {
+              var ref, results1;
+              ref = this.tangles;
+              results1 = [];
+              for (lang in ref) {
+                entry = ref[lang];
+                opts = entry[0], code = entry[1];
+                oldOpts = defaultEnv.opts;
+                defaultEnv.opts = opts;
+                p = new Promise((function(_this) {
+                  return function(resolve, reject) {
+                    return _this.executeText(lang, code, function(x) {
+                      return resolve(x);
+                    });
+                  };
+                })(this));
+                defaultEnv.opts = oldOpts;
+                results1.push(p);
+              }
+              return results1;
+            }).call(_this);
             _this.tangles = {};
             e = _this.pendingEvals;
             _this.pendingEvals = [];
@@ -434,9 +579,55 @@
               func = e[j];
               func();
             }
-            return null;
+            if (!_.isEmpty(_this.pendingObserves.items)) {
+              ref = _this.pendingObserves.items;
+              for (block in ref) {
+                targets = ref[block];
+                for (target in targets) {
+                  _this.runObserver(block, target);
+                }
+              }
+              _this.pendingObserves.clear();
+            }
+            return Promise.all(promises);
           };
         })(this));
+      };
+
+      OrgData.prototype.checkChannelChange = function(oldBlock, newBlock) {
+        var channel, channels, j, len, name, ref, ref1, ref2, type;
+        if (type = newBlock != null ? (ref = newBlock.yaml) != null ? ref.type : void 0 : void 0) {
+          this.triggerUpdate('type', type, newBlock);
+        }
+        if (name = newBlock != null ? newBlock.codeName : void 0) {
+          this.triggerUpdate('block', name, newBlock);
+        }
+        if (channels = newBlock != null ? (ref1 = newBlock.codeAttributes) != null ? ref1.channels : void 0 : void 0) {
+          ref2 = channels.split(' ');
+          for (j = 0, len = ref2.length; j < len; j++) {
+            channel = ref2[j];
+            this.triggerUpdate.apply(this, slice.call(channel.split('.')).concat([newBlock]));
+          }
+        }
+        return null;
+      };
+
+      OrgData.prototype.triggerUpdate = function() {
+        var block, channelKeys, id, items, j, ref, v;
+        channelKeys = 2 <= arguments.length ? slice.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), block = arguments[j++];
+        if (items = (ref = this.observers).get.apply(ref, channelKeys)) {
+          for (id in items) {
+            v = items[id];
+            if (v === true) {
+              this.addPendingObserver(id, block);
+            }
+          }
+        }
+        return null;
+      };
+
+      OrgData.prototype.addPendingObserver = function(observer, triggerBlock) {
+        return this.pendingObserves.add(getId(observer), getId(triggerBlock), true);
       };
 
       OrgData.prototype.checkPropChange = function(oldBlock, newBlock, isDefault) {
@@ -472,7 +663,7 @@
       };
 
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
-        var lang, newName, oldName, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, source;
+        var lang, newName, oldName, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, resultType, source;
         oldName = (ref = oldBlock != null ? oldBlock.codeName : void 0) != null ? ref : (oldBlock != null ? oldBlock.type : void 0) === 'headline' && (oldBlock != null ? (ref1 = oldBlock.properties) != null ? ref1.name : void 0 : void 0);
         newName = (ref2 = newBlock != null ? newBlock.codeName : void 0) != null ? ref2 : (newBlock != null ? newBlock.type : void 0) === 'headline' && (newBlock != null ? (ref3 = newBlock.properties) != null ? ref3.name : void 0 : void 0);
         if (oldName !== newName) {
@@ -493,18 +684,57 @@
             this.tangles[lang] = [defaultEnv.opts, ''];
           }
           return this.tangles[lang][1] += source.content;
-        } else if ((newBlock != null ? (ref6 = newBlock.codeAttributes) != null ? (ref7 = ref6.results) != null ? ref7.toLowerCase() : void 0 : void 0 : void 0) === 'def') {
+        } else if ((resultType = (newBlock != null ? (ref6 = newBlock.codeAttributes) != null ? (ref7 = ref6.results) != null ? ref7.toLowerCase() : void 0 : void 0 : void 0) === 'def') || (resultType = (newBlock != null ? (ref8 = newBlock.codeAttributes) != null ? ref8.observe : void 0 : void 0) && 'observe')) {
           opts = defaultEnv.opts;
           return this.queueEval((function(_this) {
             return function() {
-              var oldOpts;
+              var observer, oldOpts;
               oldOpts = defaultEnv.opts;
               defaultEnv.opts = opts;
-              _this.executeBlock(newBlock);
+              if (resultType === 'observe') {
+                observer = newBlock.observer = {};
+                _this.executeBlock(newBlock, function(env) {
+                  return env["eval"] = function(text) {
+                    return controllerEval.call(observer, text);
+                  };
+                });
+                _this.updateObserver(newBlock, oldBlock);
+              } else {
+                _this.executeBlock(newBlock);
+              }
               return defaultEnv.opts = oldOpts;
             };
           })(this));
         }
+      };
+
+      OrgData.prototype.updateObserver = function(block, oldBlock) {
+        var ch, j, l, len, len1, obs, oldObs, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, results1;
+        obs = (ref = (ref1 = block.codeAttributes) != null ? (ref2 = ref1.observe) != null ? ref2.split(' ') : void 0 : void 0) != null ? ref : [];
+        oldObs = (ref3 = oldBlock != null ? (ref4 = oldBlock.codeAttributes) != null ? (ref5 = ref4.observe) != null ? ref5.split(' ') : void 0 : void 0 : void 0) != null ? ref3 : [];
+        for (j = 0, len = oldObs.length; j < len; j++) {
+          ch = oldObs[j];
+          if (!(indexOf.call(obs, ch) >= 0)) {
+            (ref6 = this.observers).remove.apply(ref6, slice.call(ch.split('.')).concat([getId(oldBlock)]));
+          }
+        }
+        results1 = [];
+        for (l = 0, len1 = obs.length; l < len1; l++) {
+          ch = obs[l];
+          if (!(indexOf.call(oldObs, ch) >= 0)) {
+            results1.push((ref7 = this.observers).add.apply(ref7, slice.call(ch.split('.')).concat([getId(block)], [true])));
+          } else {
+            results1.push(void 0);
+          }
+        }
+        return results1;
+      };
+
+      OrgData.prototype.runObserver = function(observer, block) {
+        var obs, ref;
+        obs = this.getBlock(observer);
+        block = this.getBlock(block);
+        return (ref = obs.observer) != null ? ref.observe(block != null ? block.yaml : void 0, block) : void 0;
       };
 
       OrgData.prototype.getNamedBlockId = function(name) {
@@ -581,7 +811,9 @@
 
       OrgData.prototype.checkViewChange = function(oldBlock, newBlock, isDefault) {
         var ov, source, vt;
-        removeView(ov = blockViewType(oldBlock));
+        if (oldBlock && (ov = blockViewType(oldBlock))) {
+          removeView(ov);
+        }
         if (vt = blockViewType(newBlock)) {
           source = blockSource(newBlock);
           if (!isDefault || this.addImported(isDefault, 'view', vt)) {
@@ -602,7 +834,9 @@
 
       OrgData.prototype.changeController = function(oldBlock, newBlock, isDefault) {
         var controller, ov, vt;
-        removeController(ov = blockViewType(oldBlock, 'control', isDefault));
+        if (oldBlock && (ov = blockViewType(oldBlock, 'control', isDefault))) {
+          removeController(ov);
+        }
         if (vt = blockViewType(newBlock, 'control')) {
           controller = {};
           if (!isDefault || this.addImported(isDefault, 'controller', vt)) {
@@ -688,6 +922,31 @@
       return OrgData;
 
     })(DataStore);
+    compareSorted = function(a, b) {
+      var i, j, ref;
+      for (i = j = 0, ref = Math.min(a.length, b.length); 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
+        if (a[i] < b[i]) {
+          return -1;
+        }
+        if (a[i] > b[i]) {
+          return 1;
+        }
+      }
+      return a.length - b.length;
+    };
+    isPrefix = function(a, b) {
+      var av, i, j, len;
+      if (a.length > b.length) {
+        return false;
+      }
+      for (i = j = 0, len = a.length; j < len; i = ++j) {
+        av = a[i];
+        if (av !== b[i]) {
+          return false;
+        }
+      }
+      return true;
+    };
     basicDataFilter = {
       startChange: function(data) {},
       endChange: function(data) {},
@@ -695,7 +954,8 @@
       replaceBlock: function(data, oldBlock, newBlock) {}
     };
     blockElementId = function(block) {
-      return block && (block.codeName || block._id);
+      var ref;
+      return block && ((ref = block.codeName) != null ? ref : block._id);
     };
     blockIsHidden = function(block) {
       var ref, ref1;
@@ -712,11 +972,11 @@
       return (block != null ? block.type : void 0) === 'code' && ((ref = block.codeAttributes) != null ? ref.control : void 0);
     };
     blockViewType = function(block, attr) {
-      var ref;
+      var ref, ref1;
       if (attr == null) {
         attr = 'defview';
       }
-      return ((block != null ? block.type : void 0) === 'code' && ((ref = block.codeAttributes) != null ? ref[attr] : void 0)) || null;
+      return (ref = (block != null ? block.type : void 0) === 'code' && ((ref1 = block.codeAttributes) != null ? ref1[attr] : void 0)) != null ? ref : null;
     };
     addChange = function(block, changes) {
       if (!changes.sets[block._id]) {
@@ -748,6 +1008,84 @@
         return thing._id;
       }
     };
+    NMap = (function() {
+      function NMap(items1) {
+        this.items = items1;
+        if (!this.items) {
+          this.items = {};
+        }
+      }
+
+      NMap.prototype.clone = function() {
+        return new NMap(_.clone(this.items));
+      };
+
+      NMap.prototype.clear = function() {
+        return this.items = {};
+      };
+
+      NMap.prototype.add = function() {
+        var args, i, j, l, pos, ref, value;
+        args = 2 <= arguments.length ? slice.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), value = arguments[j++];
+        i = this.items;
+        for (pos = l = 0, ref = args.length - 1; 0 <= ref ? l < ref : l > ref; pos = 0 <= ref ? ++l : --l) {
+          if (!i[args[pos]]) {
+            i[args[pos]] = {};
+          }
+          i = i[args[pos]];
+        }
+        return i[args[args.length - 1]] = value;
+      };
+
+      NMap.prototype.get = function() {
+        var i, j, keys, pos, ref;
+        keys = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        i = this.items;
+        for (pos = j = 0, ref = keys.length; 0 <= ref ? j < ref : j > ref; pos = 0 <= ref ? ++j : --j) {
+          if (!i[keys[pos]]) {
+            return null;
+          }
+          i = i[keys[pos]];
+        }
+        return i;
+      };
+
+      NMap.prototype.getAll = function() {
+        var keys;
+        keys = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        return new NMap(this.get.apply(this, keys));
+      };
+
+      NMap.prototype.remove = function() {
+        var collection, i, items, j, keys, l, path, pos, ref;
+        keys = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        path = [];
+        items = this.items;
+        for (pos = j = 0, ref = keys.length; 0 <= ref ? j < ref : j > ref; pos = 0 <= ref ? ++j : --j) {
+          if (!items[keys[pos]]) {
+            break;
+          }
+          path.push(items);
+          items = items[keys[pos]];
+        }
+        for (i = l = path.length - 1; l >= 0; i = l += -1) {
+          collection = path[i];
+          delete collection[keys[i]];
+          if (!_.isEmpty(collection)) {
+            break;
+          }
+        }
+        return items[keys[keys.length - 1]];
+      };
+
+      NMap.prototype.toString = function() {
+        return "NMAP " + (JSON.stringify(this.items));
+      };
+
+      return NMap;
+
+    })();
+    window.NMap = NMap;
     OrgEditing = (function(superClass) {
       extend(OrgEditing, superClass);
 
@@ -1067,7 +1405,7 @@
               }
             }
           }
-          nb = _.values(_.indexBy(nb, '_id'));
+          nb = _.values(_.keyBy(nb, '_id'));
           this.mode.renderChanged(this, nb, this.idPrefix, true);
           return this.withNewContext((function(_this) {
             return function() {
@@ -1106,7 +1444,8 @@
       };
 
       OrgEditing.prototype.blockForNode = function(node) {
-        return this.getBlock(node.attr('data-view-block')) || this.data.getBlockNamed(node.attr('data-view-block-name'));
+        var ref;
+        return (ref = this.getBlock(node.attr('data-view-block'))) != null ? ref : this.data.getBlockNamed(node.attr('data-view-block-name'));
       };
 
       OrgEditing.prototype.find = function(sel) {
@@ -1114,10 +1453,10 @@
       };
 
       OrgEditing.prototype.findViewsForDefiner = function(block, nodes) {
-        var attrs, viewType;
+        var attrs, ref, viewType;
         if (block) {
           attrs = block.type === 'code' && block.codeAttributes;
-          if (attrs && (viewType = attrs.control || attrs.defview)) {
+          if (attrs && (viewType = (ref = attrs.control) != null ? ref : attrs.defview)) {
             nodes = nodes.add(this.find("[data-view='" + viewType + "']"));
             nodes = nodes.add(this.find("[data-requested-view='" + viewType + "']"));
           }
@@ -1126,7 +1465,7 @@
       };
 
       OrgEditing.prototype.withNewContext = function(func) {
-        return mergeContext({}, (function(_this) {
+        return mergeContext(Leisure.rootContext, (function(_this) {
           return function() {
             UI.context.opts = _this;
             UI.context.prefix = _this.idPrefix;
@@ -1587,9 +1926,9 @@
       };
 
       OrgEditing.prototype.renderImage = function(src, title) {
-        var m;
+        var m, ref;
         if (this.loadName && ((m = src.match(/^file:(\/\/)?(.*)$/)) || !(src.match(/^.*:/)))) {
-          src = new URL((m != null ? m[2] : void 0) || src, this.loadName).toString();
+          src = new URL((ref = m != null ? m[2] : void 0) != null ? ref : src, this.loadName).toString();
         }
         return "<img src='" + src + "'" + title + ">";
       };
@@ -1817,7 +2156,8 @@
       blockOrg: blockOrg,
       parseOrgMode: parseOrgMode,
       followLink: followLink,
-      defaultEnv: defaultEnv
+      defaultEnv: defaultEnv,
+      rootContext: {}
     });
     return {
       createLocalData: createLocalData,

@@ -213,7 +213,9 @@
           };
         })(this));
       }
-      return Handlebars.compile(html)(vars);
+      return Handlebars.compile(html)(vars, {
+        data: UI.context
+      });
     });
     initializePendingViews = function() {
       UI.initializePendingViews();

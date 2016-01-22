@@ -85,6 +85,10 @@ choose a handlebars template.
       Handlebars.registerHelper 'condense', (options)->
         options.fn(options).replace(/>[ \n]+</g, '><')
 
+      Handlebars.registerHelper 'debug', (options)->
+        debugger
+        ''
+
       Handlebars.registerHelper 'view', (item, contextName, options)->
         if !options
           options = contextName

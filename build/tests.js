@@ -34,7 +34,7 @@
           blocks[i - 1].next = block._id;
         }
       }
-      blk = _.indexBy(blocks, '_id');
+      blk = _.keyBy(blocks, '_id');
       data.linkAllSiblings({
         first: blocks[0]._id,
         sets: blk,

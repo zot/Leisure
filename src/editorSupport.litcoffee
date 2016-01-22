@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable'], (Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable)->
+    define ['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], (Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree)->
 
       {
         defaultEnv
@@ -70,6 +70,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       } = Yaml
       {
         Map
+        Set
       } = Immutable
       {
         Promise
@@ -84,6 +85,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       deleteStore = false
       bubbleTopOffset = -5;
       bubbleLeftOffset = 0;
+      keySplitPat = new RegExp ' +'
 
       blockOrg = (data, blockOrText)->
         text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
@@ -104,12 +106,17 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         constructor: ->
           DataStore.apply this, arguments
           @namedBlocks = {}
+          @pendingObserves = new NMap()
+          @observers = new NMap()
           @localBlocks = {}
           @filters = []
           @populateLocalData()
           @pendingEvals = []
           @importPromise = Promise.resolve()
-          @indexes = {}
+          @indexes = FingerTree.fromArray [],
+            identity: -> []
+            measure: (v)-> v.key
+            sum: (a, b)-> if compareSorted(a, b) < 1 then b else a
           @imported =
             css: {}
             view: {}
@@ -126,6 +133,10 @@ same names for blocks other than printing a warning.
             controller: {}
             importedFiles: {}
           @tangles = {}
+        change: (changes)->
+          #super changes
+          ch = @makeChange changes
+          @scheduleEvals().then => @trigger 'change', ch
         addImported: (importFile, type, name)->
           if typeof importFile == 'string'
             if obj[type][name]
@@ -135,7 +146,7 @@ same names for blocks other than printing a warning.
           else typeof importFile == 'boolean'
         populateLocalData: ->
           transaction(@localDocumentId()).getAll().then (allData)=>
-            @localBlocks = _.indexBy allData, '_id'
+            @localBlocks = _.keyBy allData, '_id'
             deletes = []
             for name of @localBlocks
               if !@namedBlocks[name] || !(@getBlockNamed name).local then deletes.push name
@@ -180,8 +191,8 @@ Let's just call this poetic license for the time being...
               for id, block of changes.sets
                 @runFilters null, block
                 @checkChange null, block
-              super name, first, blocks
-              @scheduleEvals()
+              #super name, first, blocks
+              @scheduleEvals().then => super name, first, blocks
               @loading = false
         setBlock: (id, block)->
           @makeChanges =>
@@ -239,7 +250,7 @@ next sibling if there is one, otherwise it's the closest "right uncle" of this n
             if cur.type == 'headline'
               while parent && cur.level <= parent.level
                 [parent, sibling] = stack.pop()
-            else if cur.type == 'chunk' && cur.properties? && parent && !_(parent.propertiesBlocks).contains cur._id
+            else if cur.type == 'chunk' && cur.properties? && parent && !_(parent.propertiesBlocks).includes cur._id
               if !parent.propertiesBlocks
                 parent.propertiesBlocks = []
               parent.propertiesBlocks.push cur._id
@@ -267,7 +278,7 @@ that must be done regardless of the source of changes
           for id, block of changes.sets
             @checkImports block
           for id, block of @removesAndSets changes
-            @checkChange @getBlock(id), block || null
+            @checkChange @getBlock(id), block ? null
           super changes
         removesAndSets: ({sets, removes})->
           blocks = {}
@@ -282,11 +293,46 @@ that must be done regardless of the source of changes
             @checkChange null, block, true
           @scheduleEvals()
         checkChange: (oldBlock, newBlock, isDefault)->
+          @checkIndexChange oldBlock, newBlock, isDefault
           @checkPropChange oldBlock, newBlock, isDefault
           @checkCssChange oldBlock, newBlock, isDefault
           @checkCodeChange oldBlock, newBlock, isDefault
+          @checkChannelChange oldBlock, newBlock
           @checkViewChange oldBlock, newBlock, isDefault
           @checkControlChange oldBlock, newBlock, isDefault
+        checkIndexChange: (oldBlock, newBlock, isDefault)->
+          if newBlock
+            if (index = newBlock.codeAttributes?.index) && newBlock.yaml
+              newBlock.keys = (for key in ((k.trim().split keySplitPat) for k in index.split ',') when v = newBlock.yaml[_.last(key).trim()]
+                [key[0].trim(), v, newBlock._id]).sort compareSorted
+            else delete newBlock.keys
+          if !(oldBlock?.keys && newBlock.keys && _.isEqual newBlock.keys, oldBlock.keys)
+            if oldBlock?.keys
+              k = newBlock?.keys ? []
+              for key in oldBlock.keys
+                if !(key in k) then @deleteBlockKey id: oldBlock._id, key: key
+            if newBlock.keys
+              k = oldBlock?.keys ? []
+              for key in newBlock.keys
+                if !(key in k) then @addBlockKey id: newBlock._id, key: key
+        addBlockKey: (k)->
+          [first, rest] = @indexes.split (m)-> m >= k.key
+          @indexes = first.concat rest.addFirst k
+        deleteBlockKey: (k)->
+          [first, rest] = @indexes.split (m)-> m == k.key
+          r = rest
+          while !r.isEmpty() && found = r.peekFirst() && found.key == k.key && found.id == k.id
+            r = r.removeFirst()
+          if r != rest then @indexes = first.concat rest
+        find: (index, key)->
+          k = [index]
+          result = []
+          if key then k.push key
+          [first, rest] = @indexes.split (m)-> compareSorted(k, m) < 1
+          while !rest.isEmpty() && isPrefix k, rest.peekFirst().key
+            result.push rest.peekFirst().id
+            rest = rest.removeFirst()
+          result
         queueEval: (func)-> @pendingEvals.push func
         runOnImport: (func)->
           @importPromise = if @importPromise.isResolved()
@@ -294,18 +340,41 @@ that must be done regardless of the source of changes
             if p instanceof Promise then p else Promise.resolve()
           else @importPromise.then => func()
         scheduleEvals: -> @runOnImport =>
-          for lang, entry of @tangles
+          promises = for lang, entry of @tangles
             [opts, code] = entry
             oldOpts = defaultEnv.opts
             defaultEnv.opts = opts
-            @executeText lang, code
+            p = new Promise (resolve, reject)=>
+              @executeText lang, code, (x)-> resolve x
             defaultEnv.opts = oldOpts
+            p
           @tangles = {}
           e = @pendingEvals
           @pendingEvals = []
           for func in e
             func()
+          if !_.isEmpty @pendingObserves.items
+            for block, targets of @pendingObserves.items
+              for target of targets
+                @runObserver block, target
+            @pendingObserves.clear()
+          Promise.all promises
+        checkChannelChange: (oldBlock, newBlock)->
+          if type = newBlock?.yaml?.type then @triggerUpdate 'type', type, newBlock
+          if name = newBlock?.codeName then @triggerUpdate 'block', name, newBlock
+          if channels = newBlock?.codeAttributes?.channels
+            for channel in channels.split ' '
+              @triggerUpdate (channel.split '.')..., newBlock
           null
+        triggerUpdate: (channelKeys..., block)->
+          if items = @observers.get channelKeys...
+            for id, v of items
+              # verify that it's exactly equal to true
+              # if not, then it's not really an observer
+              if v == true then @addPendingObserver id, block
+          null
+        addPendingObserver: (observer, triggerBlock)->
+          @pendingObserves.add getId(observer), getId(triggerBlock), true
         checkPropChange: (oldBlock, newBlock, isDefault)->
           if !isDefault && !newBlock?.level && !_.isEqual(oldBlock?.properties, newBlock?.properties) && parent = @parent newBlock ? oldBlock
             newProperties = _.defaults @parseBlocks(parent.text).properties ? {}, newBlock.properties ? {}
@@ -333,13 +402,31 @@ that must be done regardless of the source of changes
             if !@tangles[lang]
               @tangles[lang] = [defaultEnv.opts, '']
             @tangles[lang][1] += source.content
-          else if newBlock?.codeAttributes?.results?.toLowerCase() == 'def'
+          else if (resultType = newBlock?.codeAttributes?.results?.toLowerCase() == 'def') || (resultType = newBlock?.codeAttributes?.observe && 'observe')
             opts = defaultEnv.opts
             @queueEval =>
               oldOpts = defaultEnv.opts
               defaultEnv.opts = opts
-              @executeBlock newBlock
+              if resultType == 'observe'
+                observer = newBlock.observer = {}
+                @executeBlock newBlock, (env)->
+                  env.eval = (text)-> controllerEval.call observer, text
+                @updateObserver newBlock, oldBlock
+              else @executeBlock newBlock
               defaultEnv.opts = oldOpts
+        updateObserver: (block, oldBlock)->
+          obs = block.codeAttributes?.observe?.split(' ') ? []
+          oldObs = oldBlock?.codeAttributes?.observe?.split(' ') ? []
+          for ch in oldObs
+            if !(ch in obs)
+              @observers.remove (ch.split '.')..., getId(oldBlock)
+          for ch in obs
+            if !(ch in oldObs)
+              @observers.add (ch.split '.')..., getId(block), true
+        runObserver: (observer, block)->
+          obs = @getBlock observer
+          block = @getBlock block
+          obs.observer?.observe block?.yaml, block
         getNamedBlockId: (name)-> @namedBlocks[name] ? @importedData[name]
         setBlockName: (name, blockId, isDefault)->
           (if isDefault then @importedData else @namedBlocks)[name] = blockId
@@ -374,7 +461,8 @@ that must be done regardless of the source of changes
           
           """
         checkViewChange: (oldBlock, newBlock, isDefault)->
-          removeView ov = blockViewType oldBlock
+          if oldBlock && ov = blockViewType oldBlock
+            removeView ov
           if vt = blockViewType newBlock
             source = blockSource newBlock
             if !isDefault || @addImported isDefault, 'view', vt
@@ -383,7 +471,8 @@ that must be done regardless of the source of changes
           if (isControl(oldBlock) || isControl(newBlock)) && (oldBlock?.type != 'code' || blockSource(oldBlock) != blockSource(newBlock) || isControl(oldBlock) != isControl(newBlock))
             @queueEval => @changeController oldBlock, newBlock, isDefault
         changeController: (oldBlock, newBlock, isDefault)->
-          removeController ov = blockViewType oldBlock, 'control', isDefault
+          if oldBlock && ov = blockViewType oldBlock, 'control', isDefault
+            removeController ov
           if vt = blockViewType newBlock, 'control'
             controller = {}
             if !isDefault || @addImported isDefault, 'controller', vt
@@ -425,13 +514,25 @@ that must be done regardless of the source of changes
                   resolve()
         getFile: (filename, cont)-> ajaxGet(new URL(filename, @loadName).toString()).then cont
 
+      compareSorted = (a, b)->
+        for i in [0...Math.min a.length, b.length]
+          if a[i] < b[i] then return -1
+          if a[i] > b[i] then return 1
+        a.length - b.length
+
+      isPrefix = (a, b)->
+        if a.length > b.length then return false
+        for av, i in a
+          if av != b[i] then return false
+        true
+
       basicDataFilter =
         startChange: (data)->
         endChange: (data)->
         clear: (data)->
         replaceBlock: (data, oldBlock, newBlock)->
 
-      blockElementId = (block)-> block && (block.codeName || block._id)
+      blockElementId = (block)-> block && (block.codeName ? block._id)
 
       blockIsHidden = (block)->
         String(block?.properties?.hidden ? '').toLowerCase() == 'true'
@@ -446,7 +547,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       isControl = (block)-> block?.type == 'code' && block.codeAttributes?.control
 
       blockViewType = (block, attr = 'defview')->
-        (block?.type == 'code' && block.codeAttributes?[attr]) || null
+        (block?.type == 'code' && block.codeAttributes?[attr]) ? null
 
       addChange = (block, changes)->
         if !changes.sets[block._id]
@@ -468,6 +569,40 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
         arg
 
       getId = (thing)-> if typeof thing == 'string' then thing else thing._id
+
+NMap is a very simple trie.
+
+      class NMap
+        constructor: (@items)-> if !@items then @items = {}
+        clone: -> new NMap _.clone @items
+        clear: -> @items = {}
+        add: (args..., value)->
+          i = @items
+          for pos in [0...args.length - 1]
+            if !i[args[pos]] then i[args[pos]] = {}
+            i = i[args[pos]]
+          i[args[args.length - 1]] = value
+        get: (keys...)->
+          i = @items
+          for pos in [0...keys.length]
+            if !i[keys[pos]] then return null
+            i = i[keys[pos]]
+          i
+        getAll: (keys...)-> new NMap @get keys...
+        remove: (keys...)->
+          path = []
+          items = @items
+          for pos in [0...keys.length]
+            if !items[keys[pos]] then break
+            path.push items
+            items = items[keys[pos]]
+          for collection, i in path by -1
+            delete collection[keys[i]]
+            if !_.isEmpty collection then break
+          items[keys[keys.length - 1]]
+        toString: -> "NMAP #{JSON.stringify @items}"
+
+      window.NMap = NMap
 
 `OrgEditing` -- editing options for the org editor.
 
@@ -563,7 +698,7 @@ may be called more than once.  changeData() returns a promise.
                 @data.storeLocalBlock block
               if !_.isEmpty dataChanges.localSets
                 blocks = ((block._id = @data.getNamedBlockId name; block) for name, block of dataChanges.localSets)
-                #@mode.handleChanges this, sets: _.indexBy(blocks, '_id'), removes: {}, oldBlocks: [], newBlocks: blocks
+                #@mode.handleChanges this, sets: _.keyBy(blocks, '_id'), removes: {}, oldBlocks: [], newBlocks: blocks
                 #@mode.renderChanged this, blocks, @idPrefix, true
                 @changed oldBlocks: [], newBlocks: blocks
               succeed result
@@ -651,7 +786,7 @@ may be called more than once.  changeData() returns a promise.
               for node in @find "[data-observe~=#{block._id}]"
                 if id = @idForNode node
                   nb.push @getBlock id, changes
-            nb = _.values(_.indexBy(nb, '_id'))
+            nb = _.values(_.keyBy(nb, '_id'))
             @mode.renderChanged this, nb, @idPrefix, true
             @withNewContext =>
               for node in viewNodes.filter((n)=> !nb[@idForNode n])
@@ -666,17 +801,17 @@ may be called more than once.  changeData() returns a promise.
                   renderView view, name, data, node, blk, blkName
           else super changes
         blockForNode: (node)->
-          @getBlock(node.attr 'data-view-block') ||
+          @getBlock(node.attr 'data-view-block') ?
             @data.getBlockNamed(node.attr 'data-view-block-name')
         find: (sel)-> $(@editor.node).find sel
         findViewsForDefiner: (block, nodes)->
           if block
             attrs = (block.type == 'code' && block.codeAttributes)
-            if attrs && viewType = (attrs.control || attrs.defview)
+            if attrs && viewType = (attrs.control ? attrs.defview)
               nodes = nodes.add @find "[data-view='#{viewType}']"
               nodes = nodes.add @find "[data-requested-view='#{viewType}']"
           nodes
-        withNewContext: (func)-> mergeContext {}, =>
+        withNewContext: (func)-> mergeContext Leisure.rootContext, =>
           UI.context.opts = this
           UI.context.prefix = @idPrefix
           func()
@@ -904,7 +1039,7 @@ may be called more than once.  changeData() returns a promise.
             if newBlock != block then opts.update newBlock
         renderImage: (src, title)->
           if @loadName && ((m = src.match /^file:(\/\/)?(.*)$/) || !(src.match /^.*:/))
-            src = new URL(m?[2] || src, @loadName).toString()
+            src = new URL(m?[2] ? src, @loadName).toString()
           "<img src='#{src}'#{title}>"
         followLink: (e)->
           if e.target.href.match /^elisp/
@@ -927,8 +1062,8 @@ may be called more than once.  changeData() returns a promise.
 
       trickyChange = (oldBlock, newBlock)->
         oldBlock._id != newBlock._id ||
-        ('headline' in (t = [oldBlock.type, newBlock.type]) && t[0] != t[1]) ||
-        (t[0] == 'headline' && oldBlock.level != newBlock.level)
+          ('headline' in (t = [oldBlock.type, newBlock.type]) && t[0] != t[1]) ||
+          (t[0] == 'headline' && oldBlock.level != newBlock.level)
 
       setResult = (block, result)->
         if block?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
@@ -1113,6 +1248,7 @@ Exports
         parseOrgMode
         followLink
         defaultEnv
+        rootContext: {}
       }
 
       {
