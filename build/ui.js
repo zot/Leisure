@@ -110,6 +110,10 @@
     Handlebars.registerHelper('condense', function(options) {
       return options.fn(options).replace(/>[ \n]+</g, '><');
     });
+    Handlebars.registerHelper('debug', function(options) {
+      debugger;
+      return '';
+    });
     Handlebars.registerHelper('view', function(item, contextName, options) {
       var block, data;
       if (!options) {

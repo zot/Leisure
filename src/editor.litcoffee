@@ -261,7 +261,7 @@ Observable class
         trigger: (type, args...)->
           if !@suppressTriggers
             for listener in @listeners[type] || []
-              listener.apply null, args
+              listener args...
         suppressChanges: (func)->
           oldSuppress = @suppressTriggers
           @suppressTriggers = true
@@ -1468,7 +1468,7 @@ sorted in reverse order by position.
           blocks: blocks
           blockText: fullText
           newText: fullText.substring(0, start - offset) + text + (fullText.substring end - offset)
-          
+
 ValidateBatch takes a set of guarded replacements and returns the
 replacements reverse-sorted by position and throws an error if the
 guard regions overlap.

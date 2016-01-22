@@ -1,3 +1,9 @@
+* TODO Views that contain select Leisure content, like search does
+* TODO Allow block results as input (key Babel feature)
+  - Allows piping
+  - Operate on org file itself
+  - Document observers can auto-update
+  - Blocks can observe their input's results
 * BUG Make OT replaceText skip local blocks
 * BUG Search changes don't propagate collaboratively
 * TODO Should Yaml blocks only auto-update only for :results dynamic?
