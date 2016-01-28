@@ -7,7 +7,7 @@
   });
 
   init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, GDrive) {
-    var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
+    var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, localResources, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams, editorToolbar = EditorSupport.editorToolbar;
     plainEditDiv = Modes.plainEditDiv, fancyEditDiv = Modes.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
@@ -25,6 +25,7 @@
     p2pPanel = null;
     p2pConnections = null;
     DEFAULT_PAGE = 'demo/documentComputers.lorg';
+    localResources = {};
     Leisure.configureP2P = function(arg) {
       var connections, createSessionButton, hostField, panel, sessionField;
       panel = arg.panel, hostField = arg.hostField, sessionField = arg.sessionField, createSessionButton = arg.createSessionButton, connections = arg.connections;
@@ -87,7 +88,7 @@
               results = [];
               for (i = 0, len = ref.length; i < len; i++) {
                 img = ref[i];
-                if (!img.complete) {
+                if (!img.complete && !localResources[img.src]) {
                   img.addEventListener('error', errorEvt);
                   results.push(img.addEventListener('load', function(e) {
                     return e.target.removeEventListener(errorEvt);
@@ -104,7 +105,7 @@
     };
     checkImage = function(opts, img) {
       var name, ref, ref1, src, u;
-      if (img.complete && !img.naturalHeight) {
+      if ((img.complete && !img.naturalHeight) || localResources[img.src]) {
         src = img.getAttribute('src');
         if (!src.match('^.*:.*')) {
           name = (ref = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref[1] : void 0;
@@ -114,7 +115,7 @@
         if (name && !img.leisureLoaded) {
           img.leisureLoaded = true;
           u = new URL(name, opts.loadName);
-          return img.src = u.href;
+          return localResources[img.src] = img.src = u.href;
         }
       }
     };

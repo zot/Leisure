@@ -55,6 +55,7 @@ Code for local-mode.  This will not be loaded under meteor.
       p2pPanel = null
       p2pConnections = null
       DEFAULT_PAGE='demo/documentComputers.lorg'
+      localResources = {}
 
       Leisure.configureP2P = ({panel, hostField, sessionField, createSessionButton, connections})->
         p2pPanel = panel
@@ -95,13 +96,13 @@ Code for local-mode.  This will not be loaded under meteor.
               checkImage opts, e.target
               e.target.removeEventListener 'load', errorEvt
             for img in $(el).find 'img'
-              if !img.complete
+              if !img.complete && !localResources[img.src]
                 img.addEventListener 'error', errorEvt
                 img.addEventListener 'load', (e)-> e.target.removeEventListener errorEvt
               else checkImage opts, img
 
       checkImage = (opts, img)->
-        if img.complete && !img.naturalHeight
+        if (img.complete && !img.naturalHeight) || localResources[img.src]
           src = img.getAttribute 'src'
           if !src.match '^.*:.*'
             name = src.match(/([^#?]*)([#?].*)?$/)?[1]
@@ -109,7 +110,7 @@ Code for local-mode.  This will not be loaded under meteor.
           if name && !img.leisureLoaded
             img.leisureLoaded = true
             u = new URL name, opts.loadName
-            img.src = u.href
+            localResources[img.src] = img.src = u.href
 
       $(document).ready ->
         runTests()
