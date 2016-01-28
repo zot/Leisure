@@ -26,18 +26,17 @@ misrepresented as being the original software.
 # Parse orgmode files
 #
 #
-# every node has a text property that contains only its text (including newline)
+
 # alText() gets its text, plus its childrens'
 #
 
 define ['lib/lazy'], (Lazy)->
-  
   {
     _
   } = Lazy
 
   todoKeywords = ['TODO', 'DONE']
-  
+
   declRE = /^#\+.*$/m
   buildHeadlineRE = ->
     new RegExp "^(\\*+( +|$))((?:#{todoKeywords.join('|')}) *)?(\\[#(A|B|C)\\] *)?([^\\n]*?)(:[\\w@%#:]*: *)?$", 'm'
@@ -92,9 +91,9 @@ define ['lib/lazy'], (Lazy)->
   attrHtmlRE = /^#\+(ATTR_HTML): *$/im
   attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i
   imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i
-  leisurePathRE = /^leisure:([^\/]*)\/?(.*)$/
+  leisurePathRE = /^leisure:([^\/]*)(?:\/([^\/]*)(?:\/([^\/]*))?)?$/
   keywordPropertyRE = /:([^ ]+)/
-  
+
   last = (a)-> a[a.length - 1]
 
   matchLine = (txt)->
@@ -112,19 +111,19 @@ define ['lib/lazy'], (Lazy)->
       checkMatch(txt, htmlStartRE, 'htmlStart') ||
       checkMatch(txt, htmlEndRE, 'htmlEnd') ||
       checkMatch(txt, declRE, 'unknownDecl')
-  
+
   checkMatch = (txt, pat, result)->
     m = txt.match pat
     if m?.index == 0
       if typeof result == 'string' then result else result m
     else false
-  
+
   class Node
     constructor: -> @markup = markupText @text
     count: -> 1
     length: -> @text.length
     end: -> @offset + @text.length
-    toJson: -> JSON.stringify @toJsonObject(), null, "  "
+    toJson: -> JSON.stringify @toJsonObject(), null, '  '
     toJsonObject: ->
       obj = @jsonDef()
       obj.nodeId = @nodeId
@@ -132,9 +131,9 @@ define ['lib/lazy'], (Lazy)->
     allText: -> @text
     block: false
     findNodeAt: (pos)-> if @offset <= pos && pos < @offset + @text.length then this else null
-    scan: (func)-> func @
+    scan: (func)-> func this
     scanWithChildren: (func)->
-      func @
+      func this
       for c in @children
         c.scan func
     linkNodes: -> this
@@ -191,7 +190,7 @@ define ['lib/lazy'], (Lazy)->
       else if parent = @fragment ? @parent
         if parent.children[parent.children.length - 1] == this then return parent
         parent.children[parent.children.indexOf(this) + 1].getLeftmostDescendent()
-  
+
   class Headline extends Node
     constructor: (@text, @level, @todo, @priority, @tags, @children, @offset)->
       super()
@@ -294,7 +293,7 @@ define ['lib/lazy'], (Lazy)->
         null
     linkNodes: -> @linkChildren()
     linkChild: (child)->
-      child.fragment = @
+      child.fragment = this
       super child
     linkTo: (parent)->
       if @children.length
@@ -302,7 +301,7 @@ define ['lib/lazy'], (Lazy)->
         @children[@children.length - 1].next = @next
         for c in @children
           c.linkTo parent
-  
+
   class Meat extends Node
     constructor: (@text, @offset)-> super()
     lowerThan: (l)-> true
@@ -322,20 +321,20 @@ define ['lib/lazy'], (Lazy)->
       for m in meat
         t += m.allText()
       t.match meatStart
-  
+
   inListItem = (org)->
     org && (org instanceof ListItem || inListItem org.fragment ? org.parent)
-  
+
   meatStart = /^\S|\n\n\S/
-  
+
   markupTypes =
-    "*": 'bold'
-    "/": 'italic'
-    "_": 'underline'
-    "=": 'verbatim'
-    "~": 'code'
-    "+": 'strikethrough'
-  
+    '*': 'bold'
+    '/': 'italic'
+    '_': 'underline'
+    '=': 'verbatim'
+    '~': 'code'
+    '+': 'strikethrough'
+
   #* bold, / italic, _ underline, = verbatim, ~ code, + strikethrough
   class SimpleMarkup extends Meat
     constructor: (@text, @offset, @children)-> @markupType = markupTypes[@text[0]]
@@ -353,7 +352,7 @@ define ['lib/lazy'], (Lazy)->
       markupType: @markupType
       children: (c.toJsonObject() for c in @children)
     scan: Node.prototype.scanWithChildren
-  
+
   class Link extends Meat
     constructor: (@text, @offset, @path, @children)->
     count: ->
@@ -372,7 +371,7 @@ define ['lib/lazy'], (Lazy)->
     isImage: -> @path.match imagePathRE
     isLeisure: -> @path.match leisurePathRE
     descriptionText: -> (child.allText() for child in @children).join ' '
-  
+
   class ListItem extends Meat
     constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset
     count: ->
@@ -413,7 +412,7 @@ define ['lib/lazy'], (Lazy)->
       null
     scan: Node.prototype.scanWithChildren
     inNewMeat: -> true
-  
+
   class Drawer extends Meat
     constructor: (@text, @offset, @name, @contentPos, @endPos)-> super @text, @offset
     type: 'drawer'
@@ -445,7 +444,7 @@ define ['lib/lazy'], (Lazy)->
           if !node.properties then node.properties = {}
           for k, v of @properties()
             node.properties[k] = v
-  
+
   class Example extends Meat
     constructor: (@text, @offset, @contentPos, @contentLength)->
     block: true
@@ -480,7 +479,7 @@ define ['lib/lazy'], (Lazy)->
           else attr[k] = v
         attr
     lead: -> _(@info.split(keywordPropertyRE)).first()
-  
+
   class Source extends Keyword
     constructor: (@text, @offset, @name, @info, @infoPos, @content, @contentPos)-> super @text, @offset, @name, @info
     type: 'source'
@@ -495,7 +494,7 @@ define ['lib/lazy'], (Lazy)->
       content: @content
       contentPos: @contentPos
       contentLength: @content.length
-  
+
   class HTML extends Keyword
     constructor: (@text, @offset, @name, @contentPos, @contentLength, @info)-> super @text, @offset, @name, @info
     type: 'html'
@@ -509,7 +508,7 @@ define ['lib/lazy'], (Lazy)->
       offset: @offset
       contentPos: @contentPos
       contentLength: @contentLength
-  
+
   class Results extends Keyword
     constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
     type: 'results'
@@ -520,7 +519,7 @@ define ['lib/lazy'], (Lazy)->
       offset: @offset
       name: @name
       contentPos: @contentPos
-  
+
   class AttrHtml extends Keyword
     constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
     type: 'attr'
@@ -530,7 +529,7 @@ define ['lib/lazy'], (Lazy)->
       offset: @offset
       name: @name
       contentPos: @contentPos
-  
+
   class UnknownDeclaration extends Meat
     constructor: (@text, @offset)->
     type: 'unknown'
@@ -538,7 +537,7 @@ define ['lib/lazy'], (Lazy)->
       type: @type
       text: @text
       offset: @offset
-    
+
   nextOrgNode = (node)->
     up = false
     while node
@@ -548,7 +547,7 @@ define ['lib/lazy'], (Lazy)->
         up = true
         node = node.parent
     null
-  
+
   #
   # Parse the content of an orgmode file
   #
@@ -561,7 +560,7 @@ define ['lib/lazy'], (Lazy)->
         if res.children.length == 1 then res = res.children[0]
         else if res.children.length > 1 then res = new Fragment res.offset, res.children
       res.linkNodes()
-  
+
   parseHeadline = (text, offset, level, todo, priority, tags, rest, totalLen)->
     children = []
     originalRest = rest
@@ -575,15 +574,15 @@ define ['lib/lazy'], (Lazy)->
           child = child.next
       else rest = oldRest
     [new Headline(text, level, todo, priority, tags || '', children, offset), rest]
-  
+
   parseTags = (text)->
     tagArray = []
     for t in (if text then text.split ':' else [])
       if t then tagArray.push t
     tagArray
-  
+
   fullLine = (match, text)-> text.substring match.index, match.index + match[0].length + (if text[match.index + match[0].length] == '\n' then 1 else 0)
-  
+
   parseOrgChunk = (text, offset, level)->
     if !text then [null, text]
     else
@@ -601,7 +600,7 @@ define ['lib/lazy'], (Lazy)->
           meatLen = if m && (m.index > 0 || !simple) then m.index else text.length
         meat = text.substring 0, meatLen
         parseMeat meat, offset, text.substring(meatLen), false
-  
+
   class MeatParser
     constructor: ->
     checkPat: (pattern, cont)->
@@ -665,19 +664,19 @@ define ['lib/lazy'], (Lazy)->
           if newline then meatText = '\n\n' + meatText
           @result = new Meat meatText, offset
         parseRestOfMeat @result, meat.substring(@result.text.length), rest
-  
+
   lineBreakPat = /\n\n/
-  
+
   parseMeat = (meat, offset, rest, singleLine)->
     new MeatParser().parse(meat, offset, rest, singleLine)
-  
+
   parseRestOfMeat = (node, meat, rest)->
     if meat && node.text[node.text.length - 1] != '\n'
       [node2, rest] = parseMeat meat, node.offset + node.allText().length, rest, true
       node.next = node2
       [node, rest]
     else [node, meat + rest]
-  
+
   parseResults = (text, offset, rest)->
     oldRest = rest
     while m = rest.match resultsLineRE
@@ -686,21 +685,21 @@ define ['lib/lazy'], (Lazy)->
       rest = rest.substring (if m = rest.match /\n/ then m.index + 1 else rest.length)
     lines = oldRest.substring 0, oldRest.length - rest.length
     [new Results(text + lines, offset, text.match(resultsRE)[RES_NAME], text.length), rest]
-  
+
   parseAttr = (text, offset, rest)->
     oldRest = rest
     while m = rest.match attrHrmlLineRE
       rest = rest.substring m[0].length
     lines = oldRest.substring 0, oldRest.length - rest.length
     [new AttrHtml(text + lines, offset, text.match(attrHtmlRE)[ATTR_NAME], text.length), rest]
-  
+
   parseDrawer = (text, name, offset, end, rest)->
     pos = end.index + (fullLine end, rest).length
     [new Drawer(text + rest.substring(0, pos), offset, name, text.length, text.length + end.index), rest.substring pos]
-  
+
   parseKeyword = (match, text, offset, name, info, rest)->
     [new Keyword(text, offset, name, text.substring match[KW_BOILERPLATE].length), rest]
-  
+
   parseExample = (startLine, offset, start, end, rest)->
     lastLine = fullLine end, rest
     newRest = rest.substring end.index + lastLine.length
@@ -719,7 +718,7 @@ define ['lib/lazy'], (Lazy)->
     else
       endLine = fullLine end, rest
       [new Source(text + rest.substring(0, end.index + endLine.length), offset, text.match(srcStartRE)[SRC_NAME], info, infoPos, rest.substring(0, end.index), text.length), rest.substring end.index + endLine.length]
-  
+
   parseHtmlBlock = (text, offset, rest, match)->
     end = rest.match htmlEndRE
     otherHtmlStart = rest.match htmlStartRE
@@ -730,7 +729,7 @@ define ['lib/lazy'], (Lazy)->
     else
       endLine = fullLine end, rest
       [new HTML(text + rest.substring(0, end.index + endLine.length), offset, match[HTML_START_NAME], line[0].length, text.length + end.index - line[0].length, match[HTML_INFO]), rest.substring end.index + endLine.length]
-  
+
   parseList = (match, text, offset, level, check, info, rest)->
     contentOffset = listContentOffset match
     insideOffset = offset + contentOffset
@@ -743,12 +742,12 @@ define ['lib/lazy'], (Lazy)->
         insideOffset += node.allText().length
         node = node.next
     [new ListItem(text, offset, level, check == 'X' || (if check == ' ' then false else null), contentOffset, children), rest]
-  
+
   parseUnknown = (line, offset, rest)-> [new UnknownDeclaration(line, offset), rest]
 
   listContentOffset = (match)->
     match[LIST_LEVEL].length + match[LIST_BOILERPLATE].length + (match[LIST_CHECK]?.length ? 0)
-  
+
   markupText = (text)->
 
   {

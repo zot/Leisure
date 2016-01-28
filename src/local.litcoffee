@@ -2,7 +2,7 @@ Code for local-mode.  This will not be loaded under meteor.
 
     require ['./domCursor'], (DC)-> window.DOMCursor = DC
 
-    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, Todo)->
+    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, GDrive)->
 
       {
         OrgData
@@ -45,6 +45,9 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         todoForEditor
       } = Todo
+      {
+        changeAdvice
+      } = Advice
 
       useP2P = true
       #useP2P = false
@@ -82,6 +85,33 @@ Code for local-mode.  This will not be loaded under meteor.
             setTimeout (->setPanelExpanded panel, true), 1
           createSessionButton.data hasSession: !createSessionButton.data().hasSession
 
+      configureLocal = (opts)->
+        u = new URL '.', opts.loadName
+        opts.data.localURL = u.href
+        changeAdvice opts.editor, true,
+          activateScripts: local: (parent)->(el, context)->
+            ret = parent el, context
+            errorEvt = (e)->
+              checkImage opts, e.target
+              e.target.removeEventListener 'load', errorEvt
+            for img in $(el).find 'img'
+              if !img.complete
+                img.addEventListener 'error', errorEvt
+                img.addEventListener 'load', (e)-> e.target.removeEventListener errorEvt
+              else checkImage opts, img
+
+      checkImage = (opts, img)->
+        if img.complete && !img.naturalHeight
+          src = img.getAttribute 'src'
+          if !src.match '^.*:.*'
+            name = src.match(/([^#?]*)([#?].*)?$/)?[1]
+            src = "file:#{src}"
+          else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
+          if name && !img.leisureLoaded
+            img.leisureLoaded = true
+            u = new URL name, opts.loadName
+            img.src = u.href
+
       $(document).ready ->
         runTests()
         installSelectionMenu()
@@ -103,8 +133,9 @@ Code for local-mode.  This will not be loaded under meteor.
         else load = DEFAULT_PAGE
         if load
           load = new URL(load, document.location).toString()
-          $.get(load, (data)-> ED.options.load load, data)
           ED.options.loadName = load
+          configureLocal ED.options
+          $.get(load, (data)-> ED.options.load load, data)
         if theme then ED.options.setTheme theme
         if join
           setTimeout (->
@@ -213,4 +244,4 @@ Code for local-mode.  This will not be loaded under meteor.
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo'], init
+      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init

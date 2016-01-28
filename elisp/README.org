@@ -40,7 +40,7 @@ talk more publicly about it.
 #+NAME: rotator
 #+BEGIN_SRC yaml
 type: rotator
-degrees: 101
+degrees: 416
 #+END_SRC
 
 A couple rotator views: [[leisure:rotator]] [[leisure:rotator/two]]

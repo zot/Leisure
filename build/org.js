@@ -84,7 +84,7 @@ misrepresented as being the original software.
     attrHtmlRE = /^#\+(ATTR_HTML): *$/im;
     attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i;
     imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i;
-    leisurePathRE = /^leisure:([^\/]*)\/?(.*)$/;
+    leisurePathRE = /^leisure:([^\/]*)(?:\/([^\/]*)(?:\/([^\/]*))?)?$/;
     keywordPropertyRE = /:([^ ]+)/;
     last = function(a) {
       return a[a.length - 1];
@@ -130,7 +130,7 @@ misrepresented as being the original software.
       };
 
       Node.prototype.toJson = function() {
-        return JSON.stringify(this.toJsonObject(), null, "  ");
+        return JSON.stringify(this.toJsonObject(), null, '  ');
       };
 
       Node.prototype.toJsonObject = function() {
@@ -654,12 +654,12 @@ misrepresented as being the original software.
     };
     meatStart = /^\S|\n\n\S/;
     markupTypes = {
-      "*": 'bold',
-      "/": 'italic',
-      "_": 'underline',
-      "=": 'verbatim',
-      "~": 'code',
-      "+": 'strikethrough'
+      '*': 'bold',
+      '/': 'italic',
+      '_': 'underline',
+      '=': 'verbatim',
+      '~': 'code',
+      '+': 'strikethrough'
     };
     SimpleMarkup = (function(superClass) {
       extend(SimpleMarkup, superClass);

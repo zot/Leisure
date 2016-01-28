@@ -114,13 +114,30 @@
       debugger;
       return '';
     });
+    Handlebars.registerHelper('find', function() {
+      var data, i, item, j, len, name, options, ref, ref1, res;
+      name = 2 <= arguments.length ? slice.call(arguments, 0, i = arguments.length - 1) : (i = 0, []), options = arguments[i++];
+      data = options.data.opts.data;
+      if (name.length === 2) {
+        return data.find(name[0], name[1]);
+      } else {
+        res = '';
+        ref1 = (ref = data.find(name[0])) != null ? ref : [];
+        for (j = 0, len = ref1.length; j < len; j++) {
+          item = ref1[j];
+          res += options.fn(item);
+        }
+        return res;
+      }
+    });
     Handlebars.registerHelper('view', function(item, contextName, options) {
-      var block, data;
+      var block, context, data;
       if (!options) {
         options = contextName;
         contextName = null;
       }
-      data = typeof item === 'string' ? (block = context.editor.options.getBlock(data), block != null ? block.yaml : void 0) : (item != null ? item.yaml : void 0) && item._id ? (block = item, item.yaml) : (block = null, item);
+      context = options != null ? options.data : void 0;
+      data = typeof item === 'string' ? (block = context.opts.editor.options.getBlock(data), block != null ? block.yaml : void 0) : (item != null ? item.yaml : void 0) && item._id ? (block = item, item.yaml) : (block = null, item);
       if (data != null ? data.type : void 0) {
         return renderView(data.type, contextName, data, null, false, block);
       }

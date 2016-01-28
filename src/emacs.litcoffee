@@ -117,16 +117,12 @@ Emacs connection
 
       connect = (opts, host, port, cookie, cont)->
         con = new WebSocket "ws://#{host}:#{port}"
-        con.onopen = (evt)-> open evt, con, opts.data, port, cookie, cont
+        con.onopen = (evt)-> open evt, con, opts, port, cookie, cont
         con.onclose = (evt)-> close evt, opts.data
         con.onmessage = (evt)-> message evt, opts.data
         con.onerror = (evt)-> showMessage opts.editor.node, "Connection error", "Could not open connection to emacs",
           position: my: 'center top', at: 'center top'
           buttons: OK: -> $(this).dialog 'close'
-        changeAdvice opts.data, true,
-          getFile: emacs: (parent)->(file, cont)->
-            sendGetFile @emacsConnection, "file:#{file}", (contents)-> cont atob(contents)
-        configureOpts opts
 
       configureOpts = (opts)->
         data = opts.data
@@ -157,14 +153,28 @@ Emacs connection
                 fetchImage data.emacsConnection, img.id, src
             ret
 
+      images = {}
+
       fetchImage = (con, imgId, src)->
-        sendGetFile con, src, (file)->
-          if file && img = $("##{imgId}")[0]
-            preserveSelection (range)->
-              img.src = "data:#{typeForFile src};base64,#{file}"
-              img.onload = ->
-                img.removeAttribute 'style'
-                con.imageSizes[src] = " style='height: #{img.height}px; width: #{img.width}px'"
+        if con && img = $("##{imgId}")[0]
+          if data = images[src]
+            if data instanceof Promise then data.then (data)->
+              replaceImage con, img, src, data
+            else preserveSelection (range)-> replaceImage con, img, src, data
+          else images[src] = new Promise (resolve, reject)->
+            sendGetFile con, src, (file)->
+              if file
+                data = images[src] = "data:#{typeForFile src};base64,#{file}"
+                preserveSelection (range)-> replaceImage con, img, src, data
+                resolve data
+              else reject null
+
+      replaceImage = (con, img, src, data)-> setTimeout (->
+          img.src = data
+          img.onload = ->
+            img.removeAttribute 'style'
+            con.imageSizes[src] = " style='height: #{img.height}px; width: #{img.width}px'"
+        ), 0
 
       typeForFile = (name)->
         [ignore,ext] = name.match /\.([^#.]*)(#.*)?$/
@@ -189,7 +199,8 @@ Emacs connection
 
       error = (evt, data)-> console.log "Error: #{evt.data}"
 
-      open = (evt, ws, data, port, cookie, cont)->
+      open = (evt, ws, opts, port, cookie, cont)->
+        data = opts.data
         ws.send "#{cookie ? ''} display"
         connection = data.emacsConnection
         connection.cookie = cookie
@@ -229,6 +240,10 @@ Emacs connection
             if tmpReplacing then con.replacing = null
         data.addFilter connection.filter
         if !cookie then sendReplace ws, 0, -1, data.getText()
+        changeAdvice opts.data, true,
+          getFile: emacs: (parent)->(file, cont)->
+            sendGetFile @emacsConnection, "file:#{file}", (contents)-> cont atob(contents)
+        configureOpts opts
         cont?()
 
       sendReplace = (con, start, end, text)->
