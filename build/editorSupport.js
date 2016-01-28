@@ -207,6 +207,8 @@
                 _this.runFilters(null, block);
                 _this.checkChange(null, block);
               }
+              _this.first = first;
+              _this.blocks = blocks;
               _this.scheduleEvals().then(function() {
                 return OrgData.__super__.load.call(_this, name, first, blocks);
               });

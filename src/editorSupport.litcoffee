@@ -191,7 +191,8 @@ Let's just call this poetic license for the time being...
               for id, block of changes.sets
                 @runFilters null, block
                 @checkChange null, block
-              #super name, first, blocks
+              @first = first
+              @blocks = blocks
               @scheduleEvals().then => super name, first, blocks
               @loading = false
         setBlock: (id, block)->

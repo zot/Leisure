@@ -17,6 +17,7 @@ Emacs connection
         showMessage
         pushPendingInitialzation
         escapeAttr
+        localResources
       } = UI
       {
         getDocumentParams
@@ -153,18 +154,16 @@ Emacs connection
                 fetchImage data.emacsConnection, img.id, src
             ret
 
-      images = {}
-
       fetchImage = (con, imgId, src)->
         if con && img = $("##{imgId}")[0]
-          if data = images[src]
+          if data = localResources[src]
             if data instanceof Promise then data.then (data)->
               replaceImage con, img, src, data
             else preserveSelection (range)-> replaceImage con, img, src, data
-          else images[src] = new Promise (resolve, reject)->
+          else localResources[src] = new Promise (resolve, reject)->
             sendGetFile con, src, (file)->
               if file
-                data = images[src] = "data:#{typeForFile src};base64,#{file}"
+                data = localResources[src] = "data:#{typeForFile src};base64,#{file}"
                 preserveSelection (range)-> replaceImage con, img, src, data
                 resolve data
               else reject null

@@ -32,6 +32,7 @@ Code for local-mode.  This will not be loaded under meteor.
         initializePendingViews
         withContext
         setPanelExpanded
+        localResources
       } = UI
       {
         mergeExports
@@ -95,22 +96,21 @@ Code for local-mode.  This will not be loaded under meteor.
               checkImage opts, e.target
               e.target.removeEventListener 'load', errorEvt
             for img in $(el).find 'img'
-              if !img.complete
+              if !img.complete && !localResources[img.src]
                 img.addEventListener 'error', errorEvt
                 img.addEventListener 'load', (e)-> e.target.removeEventListener errorEvt
               else checkImage opts, img
 
       checkImage = (opts, img)->
-        if img.complete && !img.naturalHeight
+        if (img.complete && !img.naturalHeight) || localResources[img.src]
           src = img.getAttribute 'src'
           if !src.match '^.*:.*'
             name = src.match(/([^#?]*)([#?].*)?$/)?[1]
-            src = "file:#{src}"
           else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
           if name && !img.leisureLoaded
             img.leisureLoaded = true
             u = new URL name, opts.loadName
-            img.src = u.href
+            localResources[img.src] = img.src = u.href
 
       $(document).ready ->
         runTests()
@@ -244,4 +244,5 @@ Code for local-mode.  This will not be loaded under meteor.
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init
+      #require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init
+      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice'], init

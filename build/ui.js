@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['handlebars', './export', './editor', './coffee-script'], function(Handlebars, Exports, Editor, CoffeeScript) {
-    var activateScripts, activating, addController, addView, compile, configurePanels, controllers, create, defaults, escapeAttr, escapeHtml, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, mergeContext, mergeExports, nextImageSrc, pendingViews, prevImageSrc, pushPendingInitialzation, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
+    var activateScripts, activating, addController, addView, compile, configurePanels, controllers, create, defaults, escapeAttr, escapeHtml, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, prevImageSrc, pushPendingInitialzation, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
     compile = Handlebars.compile, create = Handlebars.create, registerHelper = Handlebars.registerHelper;
     mergeExports = Exports.mergeExports;
     escapeHtml = Editor.escapeHtml;
@@ -18,6 +18,7 @@
     viewIdCounter = 0;
     pendingViews = [];
     imageRefreshCounter = 0;
+    localResources = {};
     getTemplates = function(isDefault) {
       if (isDefault) {
         return defaults.templates;
@@ -108,7 +109,7 @@
       return withContext(_.merge({}, root.context, subcontext), func);
     };
     Handlebars.registerHelper('condense', function(options) {
-      return options.fn(options).replace(/>[ \n]+</g, '><');
+      return options.fn(options).replace(/>\s+</g, '><');
     });
     Handlebars.registerHelper('debug', function(options) {
       debugger;
@@ -396,7 +397,8 @@
         pushPendingInitialzation: pushPendingInitialzation,
         setPanelExpanded: setPanelExpanded,
         activateScripts: activateScripts,
-        pendingScripts: []
+        pendingScripts: [],
+        localResources: localResources
       },
       Handlebars: Handlebars
     }).UI;

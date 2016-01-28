@@ -7,14 +7,14 @@
   });
 
   init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, GDrive) {
-    var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
+    var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, localResources, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams, editorToolbar = EditorSupport.editorToolbar;
     plainEditDiv = Modes.plainEditDiv, fancyEditDiv = Modes.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
     Peer = P2P.Peer;
     findPeer = Webrtc.findPeer;
     runTests = Tests.runTests;
-    renderView = UI.renderView, initializePendingViews = UI.initializePendingViews, withContext = UI.withContext, setPanelExpanded = UI.setPanelExpanded;
+    renderView = UI.renderView, initializePendingViews = UI.initializePendingViews, withContext = UI.withContext, setPanelExpanded = UI.setPanelExpanded, localResources = UI.localResources;
     mergeExports = BrowserExports.mergeExports;
     addSearchDataFilter = Search.addSearchDataFilter;
     addEmacsDataFilter = Emacs.addEmacsDataFilter;
@@ -87,7 +87,7 @@
               results = [];
               for (i = 0, len = ref.length; i < len; i++) {
                 img = ref[i];
-                if (!img.complete) {
+                if (!img.complete && !localResources[img.src]) {
                   img.addEventListener('error', errorEvt);
                   results.push(img.addEventListener('load', function(e) {
                     return e.target.removeEventListener(errorEvt);
@@ -104,18 +104,17 @@
     };
     checkImage = function(opts, img) {
       var name, ref, ref1, src, u;
-      if (img.complete && !img.naturalHeight) {
+      if ((img.complete && !img.naturalHeight) || localResources[img.src]) {
         src = img.getAttribute('src');
         if (!src.match('^.*:.*')) {
           name = (ref = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref[1] : void 0;
-          src = "file:" + src;
         } else {
           name = (ref1 = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref1[1] : void 0;
         }
         if (name && !img.leisureLoaded) {
           img.leisureLoaded = true;
           u = new URL(name, opts.loadName);
-          return img.src = u.href;
+          return localResources[img.src] = img.src = u.href;
         }
       }
     };
@@ -180,7 +179,7 @@
   };
 
   require(['jquery'], function() {
-    return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init);
+    return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice'], init);
   });
 
 }).call(this);

@@ -1,3 +1,6 @@
+* add resourceBase=URL parameter for resource fallback
+** helps  collaboration on standard resources
+* collaboration clients should fetch unknown resources from master
 * TODO Views that contain select Leisure content, like search does
 * TODO Allow block results as input (key Babel feature)
   - Allows piping
