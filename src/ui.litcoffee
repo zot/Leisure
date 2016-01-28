@@ -6,7 +6,7 @@ choose a handlebars template.
         compile
         create
         registerHelper
-      } = Handlebars
+      } = window.Handlebars = Handlebars
       {
         mergeExports
       } = Exports
