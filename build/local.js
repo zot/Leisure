@@ -108,7 +108,6 @@
         src = img.getAttribute('src');
         if (!src.match('^.*:.*')) {
           name = (ref = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref[1] : void 0;
-          src = "file:" + src;
         } else {
           name = (ref1 = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref1[1] : void 0;
         }
@@ -180,7 +179,7 @@
   };
 
   require(['jquery'], function() {
-    return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init);
+    return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice'], init);
   });
 
 }).call(this);

@@ -105,7 +105,6 @@ Code for local-mode.  This will not be loaded under meteor.
           src = img.getAttribute 'src'
           if !src.match '^.*:.*'
             name = src.match(/([^#?]*)([#?].*)?$/)?[1]
-            src = "file:#{src}"
           else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
           if name && !img.leisureLoaded
             img.leisureLoaded = true
@@ -244,4 +243,5 @@ Code for local-mode.  This will not be loaded under meteor.
         $('#globalLoad').remove()
 
     require ['jquery'], ->
-      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init
+      #require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init
+      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice'], init
