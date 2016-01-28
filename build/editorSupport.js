@@ -2146,9 +2146,17 @@
       return new Promise(function(resolve, reject) {
         var xhr;
         xhr = new XMLHttpRequest;
+        xhr.responseType = 'arraybuffer';
         xhr.onerror = reject;
         xhr.onload = function(e) {
-          return resolve(e.target.responseText.trim());
+          var binary, i, j, len, ref;
+          binary = '';
+          ref = new Uint8Array(e.target.response);
+          for (j = 0, len = ref.length; j < len; j++) {
+            i = ref[j];
+            binary += String.fromCharCode(i);
+          }
+          return resolve(binary);
         };
         xhr.open("GET", url);
         return xhr.send(null);
