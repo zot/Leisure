@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
-    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, configureOpts, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
+    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, configureOpts, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, images, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceImage, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
@@ -131,7 +131,7 @@
       var con;
       con = new WebSocket("ws://" + host + ":" + port);
       con.onopen = function(evt) {
-        return open(evt, con, opts.data, port, cookie, cont);
+        return open(evt, con, opts, port, cookie, cont);
       };
       con.onclose = function(evt) {
         return close(evt, opts.data);
@@ -139,7 +139,7 @@
       con.onmessage = function(evt) {
         return message(evt, opts.data);
       };
-      con.onerror = function(evt) {
+      return con.onerror = function(evt) {
         return showMessage(opts.editor.node, "Connection error", "Could not open connection to emacs", {
           position: {
             my: 'center top',
@@ -152,18 +152,6 @@
           }
         });
       };
-      changeAdvice(opts.data, true, {
-        getFile: {
-          emacs: function(parent) {
-            return function(file, cont) {
-              return sendGetFile(this.emacsConnection, "file:" + file, function(contents) {
-                return cont(atob(contents));
-              });
-            };
-          }
-        }
-      });
-      return configureOpts(opts);
     };
     configureOpts = function(opts) {
       var data, editor;
@@ -228,19 +216,45 @@
         }
       });
     };
+    images = {};
     fetchImage = function(con, imgId, src) {
-      return sendGetFile(con, src, function(file) {
-        var img;
-        if (file && (img = $("#" + imgId)[0])) {
-          return preserveSelection(function(range) {
-            img.src = "data:" + (typeForFile(src)) + ";base64," + file;
-            return img.onload = function() {
-              img.removeAttribute('style');
-              return con.imageSizes[src] = " style='height: " + img.height + "px; width: " + img.width + "px'";
-            };
+      var data, img;
+      if (con && (img = $("#" + imgId)[0])) {
+        if (data = images[src]) {
+          if (data instanceof Promise) {
+            return data.then(function(data) {
+              return replaceImage(con, img, src, data);
+            });
+          } else {
+            return preserveSelection(function(range) {
+              return replaceImage(con, img, src, data);
+            });
+          }
+        } else {
+          return images[src] = new Promise(function(resolve, reject) {
+            return sendGetFile(con, src, function(file) {
+              if (file) {
+                data = images[src] = "data:" + (typeForFile(src)) + ";base64," + file;
+                preserveSelection(function(range) {
+                  return replaceImage(con, img, src, data);
+                });
+                return resolve(data);
+              } else {
+                return reject(null);
+              }
+            });
           });
         }
-      });
+      }
+    };
+    replaceImage = function(con, img, src, data) {
+      return setTimeout((function() {
+        img.src = data;
+        return img.onload = function() {
+          img.removeAttribute('style');
+          return con.imageSizes[src] = " style='height: " + img.height + "px; width: " + img.width + "px'";
+        };
+      }), 0);
     };
     typeForFile = function(name) {
       var ext, ignore, ref;
@@ -277,8 +291,9 @@
     error = function(evt, data) {
       return console.log("Error: " + evt.data);
     };
-    open = function(evt, ws, data, port, cookie, cont) {
-      var connection;
+    open = function(evt, ws, opts, port, cookie, cont) {
+      var connection, data;
+      data = opts.data;
       ws.send((cookie != null ? cookie : '') + " display");
       connection = data.emacsConnection;
       connection.cookie = cookie;
@@ -336,6 +351,18 @@
       if (!cookie) {
         sendReplace(ws, 0, -1, data.getText());
       }
+      changeAdvice(opts.data, true, {
+        getFile: {
+          emacs: function(parent) {
+            return function(file, cont) {
+              return sendGetFile(this.emacsConnection, "file:" + file, function(contents) {
+                return cont(atob(contents));
+              });
+            };
+          }
+        }
+      });
+      configureOpts(opts);
       return typeof cont === "function" ? cont() : void 0;
     };
     sendReplace = function(con, start, end, text) {

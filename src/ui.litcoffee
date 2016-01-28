@@ -89,12 +89,22 @@ choose a handlebars template.
         debugger
         ''
 
+      Handlebars.registerHelper 'find', (name..., options)->
+        data = options.data.opts.data
+        if name.length == 2 then data.find name[0], name[1]
+        else
+          res = ''
+          for item in data.find(name[0]) ? []
+            res += options.fn item
+          res
+
       Handlebars.registerHelper 'view', (item, contextName, options)->
         if !options
           options = contextName
           contextName = null
+        context = options?.data
         data = if typeof item == 'string'
-          block = context.editor.options.getBlock data
+          block = context.opts.editor.options.getBlock data
           block?.yaml
         else if item?.yaml && item._id
           block = item

@@ -98,11 +98,11 @@
 
       OrgData.prototype.addImported = function(importFile, type, name) {
         if (typeof importFile === 'string') {
-          if (obj[type][name]) {
-            obj[type][name].push(importFile);
-            return console.log("Warning, conflicting block of type: " + type + " imported from " + obj[type][name]);
+          if (this.importRecords[type][name]) {
+            this.importRecords[type][name].push(importFile);
+            return console.log("Warning, conflicting block of type: " + type + " imported from " + this.importRecords[type][name]);
           } else {
-            return obj[type][name] = [importFile];
+            return this.importRecords[type][name] = [importFile];
           }
         } else {
           return typeof importFile === 'boolean';
@@ -153,11 +153,11 @@
       };
 
       OrgData.prototype.getBlock = function(thing, changes) {
-        var ref;
+        var ref, ref1;
         if (typeof thing === 'object') {
           return thing;
         } else {
-          return (ref = changes != null ? changes.sets[thing] : void 0) != null ? ref : OrgData.__super__.getBlock.call(this, thing);
+          return (ref = (ref1 = changes != null ? changes.sets[thing] : void 0) != null ? ref1 : OrgData.__super__.getBlock.call(this, thing)) != null ? ref : this.imported.data[thing];
         }
       };
 
@@ -187,7 +187,8 @@
               if (!changes) {
                 changes = {
                   sets: blocks,
-                  oldBlocks: {},
+                  oldBlocks: [],
+                  newBlocks: [],
                   first: first
                 };
               }
@@ -413,10 +414,12 @@
       };
 
       OrgData.prototype.processDefaults = function(lorgText) {
-        var block, j, len, viewBlocks;
+        var block, id, j, len, viewBlocks;
         viewBlocks = orgDoc(parseOrgMode(lorgText.replace(/\r\n?/g, '\n')));
+        id = 0;
         for (j = 0, len = viewBlocks.length; j < len; j++) {
           block = viewBlocks[j];
+          block._id = "default-" + (id++);
           this.checkChange(null, block, true);
         }
         return this.scheduleEvals();
@@ -674,6 +677,9 @@
             this.setBlockName(newName, newBlock._id, isDefault);
           }
         }
+        if (isDefault && newName) {
+          this.imported.data[newBlock._id] = newBlock;
+        }
         if ((oldBlock != null ? oldBlock.local : void 0) && !(newBlock != null ? newBlock.local : void 0)) {
           this.deleteLocalBlock(oldName);
         }
@@ -900,8 +906,8 @@
                   ref2 = _this.parseBlocks(contents);
                   for (j = 0, len = ref2.length; j < len; j++) {
                     block = ref2[j];
-                    block._id = "imported-" + name + "-" + (id++);
-                    _this.checkChange(null, block, name);
+                    block._id = "imported-" + filename + "-" + (id++);
+                    _this.checkChange(null, block, filename);
                   }
                   return _this.scheduleEvals().then(function() {
                     _this.pendingEvals = oldEvals;
@@ -980,7 +986,7 @@
     };
     addChange = function(block, changes) {
       if (!changes.sets[block._id]) {
-        changes.oldBlocks.push = block;
+        changes.oldBlocks.push(block);
         changes.newBlocks.push(changes.sets[block._id] = copy(block));
       }
       return changes.sets[block._id];

@@ -139,10 +139,10 @@ same names for blocks other than printing a warning.
           @scheduleEvals().then => @trigger 'change', ch
         addImported: (importFile, type, name)->
           if typeof importFile == 'string'
-            if obj[type][name]
-              obj[type][name].push importFile
-              console.log "Warning, conflicting block of type: #{type} imported from #{obj[type][name]}"
-            else obj[type][name] = [importFile]
+            if @importRecords[type][name]
+              @importRecords[type][name].push importFile
+              console.log "Warning, conflicting block of type: #{type} imported from #{@importRecords[type][name]}"
+            else @importRecords[type][name] = [importFile]
           else typeof importFile == 'boolean'
         populateLocalData: ->
           transaction(@localDocumentId()).getAll().then (allData)=>
@@ -163,7 +163,7 @@ same names for blocks other than printing a warning.
               filter.endChange this
         getBlock: (thing, changes)->
           if typeof thing == 'object' then thing
-          else changes?.sets[thing] ? super thing
+          else changes?.sets[thing] ? super(thing) ? @imported.data[thing]
         changesFor: (first, oldBlocks, newBlocks)->
           changes = super first, oldBlocks, newBlocks
           @linkAllSiblings changes
@@ -182,7 +182,7 @@ Let's just call this poetic license for the time being...
               @tangles = {}
               for filter in @filters
                 filter.clear this
-              if !changes then changes = sets: blocks, oldBlocks: {}, first: first
+              if !changes then changes = sets: blocks, oldBlocks: [], newBlocks: [], first: first
               @linkAllSiblings changes
               for block of @blockList()
                 @checkChange block, null
@@ -289,7 +289,9 @@ that must be done regardless of the source of changes
           blocks
         processDefaults: (lorgText)->
           viewBlocks = orgDoc parseOrgMode lorgText.replace /\r\n?/g, '\n'
+          id = 0
           for block in viewBlocks
+            block._id = "default-#{id++}"
             @checkChange null, block, true
           @scheduleEvals()
         checkChange: (oldBlock, newBlock, isDefault)->
@@ -395,6 +397,7 @@ that must be done regardless of the source of changes
             if oldName then @deleteBlockName oldName
             if newName && (!isDefault || @addImported isDefault, 'data', newName)
               @setBlockName newName, newBlock._id, isDefault
+          if isDefault && newName then @imported.data[newBlock._id] = newBlock
           if oldBlock?.local && !newBlock?.local then @deleteLocalBlock oldName
           if @loading && newBlock?.codeAttributes?.tangle?.toLowerCase() == 'yes'
             {source} = blockCodeItems this, newBlock
@@ -506,8 +509,8 @@ that must be done regardless of the source of changes
                 @importPromise = Promise.resolve()
                 id = 0
                 for block in @parseBlocks contents
-                  block._id = "imported-#{name}-#{id++}"
-                  @checkChange null, block, name
+                  block._id = "imported-#{filename}-#{id++}"
+                  @checkChange null, block, filename
                 @scheduleEvals().then =>
                   @pendingEvals = oldEvals
                   @importPromise = oldPromise
@@ -551,7 +554,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
 
       addChange = (block, changes)->
         if !changes.sets[block._id]
-          changes.oldBlocks.push = block
+          changes.oldBlocks.push block
           changes.newBlocks.push changes.sets[block._id] = copy block
         changes.sets[block._id]
 

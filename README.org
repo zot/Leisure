@@ -17,20 +17,22 @@ present the code and data along with the app(s), like [[http://textcraft.org:333
 version of Leisure does, or it might be mostly a document with interactive
 examples in it.
 
-Some of these ideas have been around for quite a while, [[http://hypercard.org/][Hypercard]], [[http://www.wolfram.com/mathematica/][Mathematica]],
-and [[http://tiddlywiki.com/][Tiddly Wiki]] implement interactive documents that contain code and data, as
-do [[http://orgmode.org/][Emacs' orgmode]] (of course) and [[https://jupyter.org/][Jupyter/iPython Notebook]]. Leisure is trying to
-add a few ideas to this field, like social coding, collaborative editing, and
-application collaboration.
+Some of these ideas have been around for quite a while, [[http://www.vpri.org/pdf/tr2009002_active_essays.pdf][Active Essays]] [[http://hypercard.org/][Hypercard]],
+[[http://www.wolfram.com/mathematica/][Mathematica]], and [[http://tiddlywiki.com/][Tiddly Wiki]] implement interactive documents that contain code
+and data, as do [[http://orgmode.org/][Emacs' orgmode]] (of course) and [[https://jupyter.org/][Jupyter/iPython Notebook]]. Leisure
+is trying to add a few ideas to this field, like social coding, collaborative
+editing, and application collaboration.
 
-Leisure is just HTML/JS/CSS and it has a pretty simple architecture. It only
-needs a static HTML server for basic document operation. For collaboration,
-there is a small JavaScript server that can run in node.js. It's easy to manage
-because it has so few requirements, which means less worry about language or
-library version conflicts.
+Leisure is just a program in HTML/JS/CSS and it has a pretty simple
+architecture. It only needs a static HTML server for basic document operation.
+For collaboration, there is a small JavaScript server that can run in node.js.
+It's easy to manage because it has so few requirements, which means less worry
+about language or library version conflicts. Documents are in orgmode format,
+which is a great foundation that already comes with a lot of the
+representational tools Leisure needs.
 
-Leisure can also connect directly to an Emacs orgmode buffer. Once connected,
-Emacs and Leisure will mirror changes between each other.
+Leisure can also connect directly to an orgmode buffer running in Emacs. Once
+connected, Emacs and Leisure will mirror changes between each other.
 
 TEAM CTHULHU has been working (somewhat) quietly on Leisure since 2011. This is
 a new version, we've been overhauling a lot of it, and we're finally ready to
@@ -77,6 +79,8 @@ GitHub, that would be nice :).
 
 Once you have loaded the code in Emacs, you can open elisp/README.org for more
 instructions.
+** If you want to run the repl or change the Leisure language
+Make sure you run *npm install* in the *build* and *leisure/build* directories
 * Packages we use
 - [[http://handlebarsjs.com/][Handlebars]]
 - [[https://lodash.com/][Lodash]]

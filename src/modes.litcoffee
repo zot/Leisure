@@ -613,14 +613,13 @@
           text
         renderLink: (opts, org)->
           if leisureMatch = org.isLeisure()
-            objectName = leisureMatch[1]
-            viewName = leisureMatch[2]
+            [ignore, objectName, viewName, typeName] = leisureMatch
             data = UI.context.opts.data
             error = if !obj = data.getBlockNamed objectName
               "No object named #{objectName}"
             else if !obj = (block = data.getBlockNamed objectName)?.yaml
               "Object #{objectName} isn't yaml"
-            else if !(type = obj?.type)
+            else if !(type = (typeName || obj?.type))
               "No type field in object #{objectName}"
             else if !hasView type, viewName
               "No view '#{viewKey type, viewName}'"

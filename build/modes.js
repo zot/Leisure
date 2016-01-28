@@ -821,12 +821,11 @@
         return text;
       },
       renderLink: function(opts, org) {
-        var block, c, data, desc, error, guts, j, leisureMatch, len, obj, objectName, ref, ref1, src, title, type, viewName;
+        var block, c, data, desc, error, guts, ignore, j, leisureMatch, len, obj, objectName, ref, ref1, src, title, type, typeName, viewName;
         if (leisureMatch = org.isLeisure()) {
-          objectName = leisureMatch[1];
-          viewName = leisureMatch[2];
+          ignore = leisureMatch[0], objectName = leisureMatch[1], viewName = leisureMatch[2], typeName = leisureMatch[3];
           data = UI.context.opts.data;
-          error = !(obj = data.getBlockNamed(objectName)) ? "No object named " + objectName : !(obj = (ref = (block = data.getBlockNamed(objectName))) != null ? ref.yaml : void 0) ? "Object " + objectName + " isn't yaml" : !(type = obj != null ? obj.type : void 0) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
+          error = !(obj = data.getBlockNamed(objectName)) ? "No object named " + objectName : !(obj = (ref = (block = data.getBlockNamed(objectName))) != null ? ref.yaml : void 0) ? "Object " + objectName + " isn't yaml" : !(type = typeName || (obj != null ? obj.type : void 0)) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
           if (error) {
             return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'><b>✖</b></span>" + (fancyHtml(org.allText()));
           } else {
