@@ -3,8 +3,8 @@
   var slice = [].slice;
 
   define(['handlebars', './export', './editor', './coffee-script'], function(Handlebars, Exports, Editor, CoffeeScript) {
-    var activateScripts, activating, addController, addView, compile, configurePanels, controllers, create, defaults, escapeAttr, escapeHtml, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, prevImageSrc, pushPendingInitialzation, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
-    compile = Handlebars.compile, create = Handlebars.create, registerHelper = Handlebars.registerHelper;
+    var activateScripts, activating, addController, addView, compile, configurePanels, controllers, create, defaults, escapeAttr, escapeHtml, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
+    ref = window.Handlebars = Handlebars, compile = ref.compile, create = ref.create, registerHelper = ref.registerHelper;
     mergeExports = Exports.mergeExports;
     escapeHtml = Editor.escapeHtml;
     templates = {};
@@ -27,8 +27,8 @@
       }
     };
     getTemplate = function(type) {
-      var ref;
-      return (ref = templates[type]) != null ? ref : defaults.templates[type];
+      var ref1;
+      return (ref1 = templates[type]) != null ? ref1 : defaults.templates[type];
     };
     getControllers = function(isDefault) {
       if (isDefault) {
@@ -38,12 +38,12 @@
       }
     };
     getController = function(type) {
-      var ref;
-      return (ref = controllers[type]) != null ? ref : defaults.controllers[type];
+      var ref1;
+      return (ref1 = controllers[type]) != null ? ref1 : defaults.controllers[type];
     };
     nextImageSrc = function(src) {
-      var hashLoc, ref, ref1, slide;
-      if ((ref = (slide = (ref1 = root.context.currentView) != null ? ref1.closest('.slideholder') : void 0)) != null ? ref.length : void 0) {
+      var hashLoc, ref1, ref2, slide;
+      if ((ref1 = (slide = (ref2 = root.context.currentView) != null ? ref2.closest('.slideholder') : void 0)) != null ? ref1.length : void 0) {
         slide.attr('imgCount', imageRefreshCounter);
       }
       if ((hashLoc = src.indexOf('#')) === -1) {
@@ -52,20 +52,20 @@
       return (src.substring(0, hashLoc)) + "#" + imageRefreshCounter;
     };
     prevImageSrc = function(src) {
-      var count, hashLoc, ref, ref1, slide;
-      count = ((ref = (slide = (ref1 = root.context.currentView) != null ? ref1.closest('.slideholder') : void 0)) != null ? ref.length : void 0) ? Number(slide.attr('imgCount')) : imageRefreshCounter - 1;
+      var count, hashLoc, ref1, ref2, slide;
+      count = ((ref1 = (slide = (ref2 = root.context.currentView) != null ? ref2.closest('.slideholder') : void 0)) != null ? ref1.length : void 0) ? Number(slide.attr('imgCount')) : imageRefreshCounter - 1;
       if ((hashLoc = src.indexOf('#')) === -1) {
         hashLoc = src.length;
       }
       return (src.substring(0, hashLoc)) + "#" + count;
     };
     refreshImage = function(img) {
-      var att, i, len, newImg, ref;
+      var att, i, len, newImg, ref1;
       if (img.src.indexOf("file:") === 0) {
         newImg = document.createElement('img');
-        ref = img.attributes;
-        for (i = 0, len = ref.length; i < len; i++) {
-          att = ref[i];
+        ref1 = img.attributes;
+        for (i = 0, len = ref1.length; i < len; i++) {
+          att = ref1[i];
           newImg.setAttribute(att.name, att.value);
         }
         newImg.onload = function() {
@@ -116,16 +116,16 @@
       return '';
     });
     Handlebars.registerHelper('find', function() {
-      var data, i, item, j, len, name, options, ref, ref1, res;
+      var data, i, item, j, len, name, options, ref1, ref2, res;
       name = 2 <= arguments.length ? slice.call(arguments, 0, i = arguments.length - 1) : (i = 0, []), options = arguments[i++];
       data = options.data.opts.data;
       if (name.length === 2) {
         return data.find(name[0], name[1]);
       } else {
         res = '';
-        ref1 = (ref = data.find(name[0])) != null ? ref : [];
-        for (j = 0, len = ref1.length; j < len; j++) {
-          item = ref1[j];
+        ref2 = (ref1 = data.find(name[0])) != null ? ref1 : [];
+        for (j = 0, len = ref2.length; j < len; j++) {
+          item = ref2[j];
           res += options.fn(item);
         }
         return res;
@@ -147,8 +147,8 @@
       return simpleRenderView("data-view='" + name + "' data-requested-view='" + name + "' class='view'", name, opts.fn, this);
     });
     renderView = function(type, contextName, data, targets, block, blockName) {
-      var attr, attrs, classAttr, i, isTop, key, len, node, ref, ref1, ref2, requestedKey, results, settings, template, value;
-      isTop = !((ref = root.context) != null ? ref.topView : void 0);
+      var attr, attrs, classAttr, i, isTop, key, len, node, ref1, ref2, ref3, requestedKey, results, settings, template, value;
+      isTop = !((ref1 = root.context) != null ? ref1.topView : void 0);
       requestedKey = key = viewKey(type, contextName);
       if (!(template = getTemplate(key))) {
         key = type;
@@ -169,9 +169,9 @@
       }
       attrs = "data-view='" + key + "' data-requested-view='" + requestedKey + "'";
       classAttr = 'view';
-      ref2 = (ref1 = root.context.viewAttrs) != null ? ref1 : {};
-      for (attr in ref2) {
-        value = ref2[attr];
+      ref3 = (ref2 = root.context.viewAttrs) != null ? ref2 : {};
+      for (attr in ref3) {
+        value = ref3[attr];
         if (attr === 'class') {
           classAttr += " " + value;
         } else {
@@ -220,13 +220,13 @@
       }
     };
     runTemplate = function() {
-      var args, err, error, ref, template;
+      var args, err, error, ref1, template;
       template = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
       try {
         return template.apply(null, args);
       } catch (error) {
         err = error;
-        console.log((ref = err.stack) != null ? ref : err.msg);
+        console.log((ref1 = err.stack) != null ? ref1 : err.msg);
         return " <span class='error'>[Error in template]</span> ";
       }
     };
@@ -262,13 +262,13 @@
     activateScripts = function(el, context) {
       if (!activating) {
         return withContext(_.merge({}, context), function() {
-          var i, img, j, k, len, len1, len2, newScript, ref, ref1, ref2, ref3, results, script;
+          var i, img, j, k, len, len1, len2, newScript, ref1, ref2, ref3, ref4, results, script;
           root.context.currentView = el;
           activating = true;
           try {
-            ref = el.find('script');
-            for (i = 0, len = ref.length; i < len; i++) {
-              script = ref[i];
+            ref1 = el.find('script');
+            for (i = 0, len = ref1.length; i < len; i++) {
+              script = ref1[i];
               if (!script.type || script.type === 'text/javascript') {
                 newScript = document.createElement('script');
                 newScript.type = 'text/javascript';
@@ -279,21 +279,21 @@
                 script.remove();
               }
             }
-            ref1 = el.find('script[type="text/coffeescript"]').add(el.find('script[type="text/literate-coffeescript"]'));
-            for (j = 0, len1 = ref1.length; j < len1; j++) {
-              script = ref1[j];
+            ref2 = el.find('script[type="text/coffeescript"]').add(el.find('script[type="text/literate-coffeescript"]'));
+            for (j = 0, len1 = ref2.length; j < len1; j++) {
+              script = ref2[j];
               root.currentScript = script;
               CoffeeScript.run(script.innerHTML);
             }
-            if ((ref2 = getController(el.attr('data-view'))) != null) {
-              if (typeof ref2.initializeView === "function") {
-                ref2.initializeView(el, context.data);
+            if ((ref3 = getController(el.attr('data-view'))) != null) {
+              if (typeof ref3.initializeView === "function") {
+                ref3.initializeView(el, context.data);
               }
             }
-            ref3 = el.find('img');
+            ref4 = el.find('img');
             results = [];
-            for (k = 0, len2 = ref3.length; k < len2; k++) {
-              img = ref3[k];
+            for (k = 0, len2 = ref4.length; k < len2; k++) {
+              img = ref4[k];
               results.push(refreshImage(img));
             }
             return results;
