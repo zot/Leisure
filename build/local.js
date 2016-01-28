@@ -14,7 +14,7 @@
     Peer = P2P.Peer;
     findPeer = Webrtc.findPeer;
     runTests = Tests.runTests;
-    renderView = UI.renderView, initializePendingViews = UI.initializePendingViews, withContext = UI.withContext, setPanelExpanded = UI.setPanelExpanded;
+    renderView = UI.renderView, initializePendingViews = UI.initializePendingViews, withContext = UI.withContext, setPanelExpanded = UI.setPanelExpanded, localResources = UI.localResources;
     mergeExports = BrowserExports.mergeExports;
     addSearchDataFilter = Search.addSearchDataFilter;
     addEmacsDataFilter = Emacs.addEmacsDataFilter;
@@ -25,7 +25,6 @@
     p2pPanel = null;
     p2pConnections = null;
     DEFAULT_PAGE = 'demo/documentComputers.lorg';
-    localResources = {};
     Leisure.configureP2P = function(arg) {
       var connections, createSessionButton, hostField, panel, sessionField;
       panel = arg.panel, hostField = arg.hostField, sessionField = arg.sessionField, createSessionButton = arg.createSessionButton, connections = arg.connections;

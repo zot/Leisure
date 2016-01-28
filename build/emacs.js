@@ -3,11 +3,11 @@
   var slice = [].slice;
 
   define(['./lib/lodash.min', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
-    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, configureOpts, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, images, imgCount, knownLanguages, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceImage, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
+    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, configureOpts, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, localResources, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceImage, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
-    showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr;
+    showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr, localResources = UI.localResources;
     getDocumentParams = EditorSupport.getDocumentParams, basicDataFilter = EditorSupport.basicDataFilter;
     clearDiag = Diag.clearDiag, diagMessage = Diag.diagMessage;
     knownLanguages = Eval.knownLanguages, escapeString = Eval.escapeString, unescapeString = Eval.unescapeString;
@@ -216,11 +216,10 @@
         }
       });
     };
-    images = {};
     fetchImage = function(con, imgId, src) {
       var data, img;
       if (con && (img = $("#" + imgId)[0])) {
-        if (data = images[src]) {
+        if (data = localResources[src]) {
           if (data instanceof Promise) {
             return data.then(function(data) {
               return replaceImage(con, img, src, data);
@@ -231,10 +230,10 @@
             });
           }
         } else {
-          return images[src] = new Promise(function(resolve, reject) {
+          return localResources[src] = new Promise(function(resolve, reject) {
             return sendGetFile(con, src, function(file) {
               if (file) {
-                data = images[src] = "data:" + (typeForFile(src)) + ";base64," + file;
+                data = localResources[src] = "data:" + (typeForFile(src)) + ";base64," + file;
                 preserveSelection(function(range) {
                   return replaceImage(con, img, src, data);
                 });

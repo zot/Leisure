@@ -32,6 +32,7 @@ Code for local-mode.  This will not be loaded under meteor.
         initializePendingViews
         withContext
         setPanelExpanded
+        localResources
       } = UI
       {
         mergeExports
@@ -55,7 +56,6 @@ Code for local-mode.  This will not be loaded under meteor.
       p2pPanel = null
       p2pConnections = null
       DEFAULT_PAGE='demo/documentComputers.lorg'
-      localResources = {}
 
       Leisure.configureP2P = ({panel, hostField, sessionField, createSessionButton, connections})->
         p2pPanel = panel

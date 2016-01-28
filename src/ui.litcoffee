@@ -24,6 +24,7 @@ choose a handlebars template.
       viewIdCounter = 0
       pendingViews = []
       imageRefreshCounter = 0
+      localResources = {}
 
       getTemplates = (isDefault)-> if isDefault then defaults.templates
       else templates
@@ -83,7 +84,7 @@ choose a handlebars template.
         withContext _.merge({}, root.context, subcontext), func
 
       Handlebars.registerHelper 'condense', (options)->
-        options.fn(options).replace(/>[ \n]+</g, '><')
+        options.fn(options).replace(/>\s+</g, '><')
 
       Handlebars.registerHelper 'debug', (options)->
         debugger
@@ -276,6 +277,7 @@ choose a handlebars template.
           setPanelExpanded
           activateScripts
           pendingScripts: []
+          localResources
         }
         Handlebars
       }).UI
