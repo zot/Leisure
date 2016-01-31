@@ -64,13 +64,16 @@ Emacs connection
         end = Number end
         text = JSON.parse text
         editor = data.emacsConnection.opts.editor
+        context = {start, end, text, source: 'emacs'}
         replaceWhile start, end, text, data, (repl)->
           if end == -1
-            editor.options.load 'emacs', text
+            context.start = 0
+            context.end = data.getLength()
+            editor.options.load 'emacs', text, context
           else
             targetLen = data.getDocLength() - (end - start) + text.length
             #editor.options.makeStructureChange start, end, text, repl
-            editor.options.replaceText start, end, text, repl
+            editor.options.replaceText start, end, text, context
             endLen = data.getDocLength()
             if endLen != targetLen
               diagMessage "BAD DOC LENGTH AFTER REPLACEMENT, expected <#{targetLen}> but ggot<#{endLen}>"
@@ -208,35 +211,9 @@ Emacs connection
         connection.websocket = ws
         connection.filter =
           __proto__: basicDataFilter
-          replaceBlock: (data, oldBlock, newBlock)->
-            con = data.emacsConnection
-            if !con.replacing && con.opts.changeContext?.fromEmacs?
-              tmpReplacing = con.replacing = con.pendingChanges[con.opts.changeContext.fromEmacs]
-            if con.replacing
-              delete data.emacsConnection.pendingChanges[con.replacing.changeId]
-            if !con.replacing || shouldSendConcurrent data, newBlock
-              start = data.offsetForBlock oldBlock?._id ? newBlock._id
-              end = start + (oldBlock?.text.length ? 0)
-              text = newBlock.text
-              if data.emacsConnection.replacing
-                sendConcurrentBlockChange data, newBlock
-              else
-                if oldBlock && newBlock
-                  # trim common prefix/suffix off of message
-                  oldLen = oldBlock.text.length
-                  newLen = newBlock.text.length
-                  for startOff in [0...Math.min oldLen, newLen]
-                    if oldBlock.text[startOff] != newBlock.text[startOff] then break
-                  start += startOff
-                  for endOff in [0..Math.min oldLen - startOff - 1, newLen - startOff - 1] by 1
-                    if oldBlock.text[oldLen - endOff - 1] != newBlock.text[newLen - endOff - 1]
-                      break
-                  end -= endOff
-                  if startOff || endOff
-                    text = text.substring startOff, text.length - endOff
-                if start != end || text != ''
-                  sendReplace ws, start, end, text
-            if tmpReplacing then con.replacing = null
+          replaceText: (data, {start, end, text, source})->
+            if source != 'emacs'
+              sendReplace ws, start, end, text
         data.addFilter connection.filter
         if !cookie then sendReplace ws, 0, -1, data.getText()
         changeAdvice opts.data, true,

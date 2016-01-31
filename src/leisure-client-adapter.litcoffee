@@ -244,7 +244,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           popLastEmpty()
           #console.log "INCOMING REPLACE: #{JSON.stringify repls}"
           repls
-        replaceText: (start, end, text)-> @data.replaceText start, end, text
+        replaceText: (start, end, text)-> @data.replaceText start, end, text, source: 'peer'
         # OT API
         registerCallbacks: (cb)->
           if cb.client_left then @serverCallbacks = cb
@@ -297,26 +297,16 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         data = opts.data
         if !data.peer then return
         peer = data.peer
-        changeAdvice opts, true,
+        changeAdvice data, true,
           guardedReplaceText: p2p: (parent)-> (start, end, text, gStart, gEnd)->
             reps = Replacements.fromArray [start, end, text]
-            {offset, block} = @data.blockOffsetForDocOffset start
-            oldBlock = @data.getBlock block
-            for repl in @replaceTextEffects(start, end, text, true).repls
-              reps.replace repl
-            p = peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, @getLength()), [gStart, gEnd])
-            p.then ((op)=>
-              #console.log "Promise:", p
-              repls = peer.replsForTextOp TextOperation.fromJSON op
-              #console.log "Guarded operation: ", repls
-              for repl in Replacements.fromArray(repls).getRepls()
-                @replaceTextEffects repl.start, repl.end, text)
-              .catch(->)
-          replaceText: p2p: (parent)-> (start, end, text, skip)->
-            oldLen = @getLength()
-            repl = {start, end, text}
-            newLen = oldLen + text.length - end + start
-            peer.editorCallbacks.change peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen)
+            peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, @getLength()), [gStart, gEnd])
+          replaceText: p2p: (parent)-> (start, end, text, context, skip)->
+            if context.source != 'peer'
+              oldLen = @getLength()
+              repl = {start, end, text}
+              newLen = oldLen + text.length - end + start
+              peer.editorCallbacks.change peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen)
             parent start, end, text, skip
           batchReplace: p2p: (parent)-> (replacementFunc, cont, error)->
             repls = validateBatch(replacementFunc()).reverse()

@@ -47,20 +47,28 @@
       }
     };
     replace = function(data, msg) {
-      var count, editor, end, ignore, ref, start, text;
+      var context, count, editor, end, ignore, ref, start, text;
       diag("Received " + msg);
       ref = msg.match(replaceMsgPat), ignore = ref[0], count = ref[1], start = ref[2], end = ref[3], text = ref[4];
       start = Number(start);
       end = Number(end);
       text = JSON.parse(text);
       editor = data.emacsConnection.opts.editor;
+      context = {
+        start: start,
+        end: end,
+        text: text,
+        source: 'emacs'
+      };
       return replaceWhile(start, end, text, data, function(repl) {
         var endLen, targetLen;
         if (end === -1) {
-          return editor.options.load('emacs', text);
+          context.start = 0;
+          context.end = data.getLength();
+          return editor.options.load('emacs', text, context);
         } else {
           targetLen = data.getDocLength() - (end - start) + text.length;
-          editor.options.replaceText(start, end, text, repl);
+          editor.options.replaceText(start, end, text, context);
           endLen = data.getDocLength();
           if (endLen !== targetLen) {
             return diagMessage("BAD DOC LENGTH AFTER REPLACEMENT, expected <" + targetLen + "> but ggot<" + endLen + ">");
@@ -301,48 +309,11 @@
       connection.websocket = ws;
       connection.filter = {
         __proto__: basicDataFilter,
-        replaceBlock: function(data, oldBlock, newBlock) {
-          var con, end, endOff, i, j, newLen, oldLen, ref, ref1, ref2, ref3, ref4, start, startOff, text, tmpReplacing;
-          con = data.emacsConnection;
-          if (!con.replacing && (((ref = con.opts.changeContext) != null ? ref.fromEmacs : void 0) != null)) {
-            tmpReplacing = con.replacing = con.pendingChanges[con.opts.changeContext.fromEmacs];
-          }
-          if (con.replacing) {
-            delete data.emacsConnection.pendingChanges[con.replacing.changeId];
-          }
-          if (!con.replacing || shouldSendConcurrent(data, newBlock)) {
-            start = data.offsetForBlock((ref1 = oldBlock != null ? oldBlock._id : void 0) != null ? ref1 : newBlock._id);
-            end = start + ((ref2 = oldBlock != null ? oldBlock.text.length : void 0) != null ? ref2 : 0);
-            text = newBlock.text;
-            if (data.emacsConnection.replacing) {
-              sendConcurrentBlockChange(data, newBlock);
-            } else {
-              if (oldBlock && newBlock) {
-                oldLen = oldBlock.text.length;
-                newLen = newBlock.text.length;
-                for (startOff = i = 0, ref3 = Math.min(oldLen, newLen); 0 <= ref3 ? i < ref3 : i > ref3; startOff = 0 <= ref3 ? ++i : --i) {
-                  if (oldBlock.text[startOff] !== newBlock.text[startOff]) {
-                    break;
-                  }
-                }
-                start += startOff;
-                for (endOff = j = 0, ref4 = Math.min(oldLen - startOff - 1, newLen - startOff - 1); j <= ref4; endOff = j += 1) {
-                  if (oldBlock.text[oldLen - endOff - 1] !== newBlock.text[newLen - endOff - 1]) {
-                    break;
-                  }
-                }
-                end -= endOff;
-                if (startOff || endOff) {
-                  text = text.substring(startOff, text.length - endOff);
-                }
-              }
-              if (start !== end || text !== '') {
-                sendReplace(ws, start, end, text);
-              }
-            }
-          }
-          if (tmpReplacing) {
-            return con.replacing = null;
+        replaceText: function(data, arg) {
+          var end, source, start, text;
+          start = arg.start, end = arg.end, text = arg.text, source = arg.source;
+          if (source !== 'emacs') {
+            return sendReplace(ws, start, end, text);
           }
         }
       };

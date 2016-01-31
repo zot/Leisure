@@ -764,7 +764,7 @@
               #console.log "REPLACE #{m[0]} with #{newText}"
               blockStart = cs.editor.options.data.offsetForBlock block
               cs.editor.options.awaitingGuard = true
-              Promise.using(Promise.resolve(0).disposer(-> cs.editor.options.awaitingGuard = false), (cs.editor.options.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (->))
+              Promise.using(Promise.resolve(0).disposer(-> cs.editor.options.awaitingGuard = false), (cs.editor.options.data.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (->))
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding

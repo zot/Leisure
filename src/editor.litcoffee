@@ -898,15 +898,10 @@ situations to provide STM-like change management.
 
         batchReplace: (replacementFunc, contFunc, errorFunc)->
           try
-            replacements = validateBatch replacementFunc()
-            @data.batchReplace replacements
+            @data.batchReplace replacementFunc()
             contFunc()
           catch err
             errorFunc err
-
-        guardedReplaceText: (start, end, text, gStart, gEnd)->
-          @replaceText start, end, text
-          Promise.resolve()
 
 `replaceBlocks(oldBlocks, newBlocks) -> removedBlocks`: override this if you need to link up the blocks, etc., like so that `renderBlock()` can return the proper next id, for instance.
 
@@ -1183,14 +1178,17 @@ Data model -- override/reset these if you want to change how the store accesses 
 BatchReplace expects sortedReplacements to be non-overlapping and
 sorted in reverse order by position.
 
-        batchReplace: (sortedReplacements)->
-          for repl in sortedReplacements
+        batchReplace: (replacements)->
+          for repl in validateBatch replacements
             @replaceText repl.start, repl.end, repl.text
-        replaceText: (start, end, text)->
+        replaceText: (start, end, text, context)->
           {prev, oldBlocks, newBlocks} = @changesForReplacement start, end, text
           if oldBlocks
             @change @changesFor prev, oldBlocks.slice(), newBlocks.slice()
             @floatMarks start, end, text.length
+        guardedReplaceText: (start, end, text, gStart, gEnd)->
+          @replaceText start, end, text
+          Promise.resolve()
         changesForReplacement: (start, end, text)->
           {blocks} = @blockOverlapsForReplacement start, end, text
           offset = @blockOffsetForDocOffset(start).offset
@@ -1545,7 +1543,7 @@ DataStoreEditingOptions
         initData: ->
         load: (name, text)-> @data.load name, text
         edit: (prev, oldBlocks, newBlocks)-> @replaceBlocks prev, oldBlocks, newBlocks
-        replaceText: (start, end, text)-> @data.replaceText start, end, text
+        replaceText: (start, end, text, context)-> @data.replaceText start, end, text, context
         getBlock: (id)-> @data.getBlock id
         getFirst: (first)-> @data.getFirst()
         change: (changes)-> if changes then @data.change changes

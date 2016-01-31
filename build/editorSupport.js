@@ -168,11 +168,17 @@
         return changes;
       };
 
-      OrgData.prototype.load = function(name, text) {
+      OrgData.prototype.load = function(name, text, context) {
         this.loadName = name;
         return this.makeChanges((function(_this) {
           return function() {
-            var block, changes, filter, id, j, len, newBlocks, ref, ref1, ref2;
+            var block, changes, filter, id, j, len, newBlocks, ref, ref1, ref2, replacement;
+            replacement = context != null ? context : {
+              start: 0,
+              end: _this.getLength(),
+              text: text,
+              source: 'load'
+            };
             _this.initializeLocalData();
             _this.loading = true;
             _this.tangles = {};
@@ -199,10 +205,11 @@
               block = ref1[id];
               _this.checkImports(block);
             }
+            _this.runTextFilters(context);
             ref2 = changes.sets;
             for (id in ref2) {
               block = ref2[id];
-              _this.runFilters(null, block);
+              _this.runFilters(null, block, context);
               _this.checkChange(null, block);
             }
             _this.scheduleEvals().then(function() {
@@ -216,16 +223,35 @@
       OrgData.prototype.setBlock = function(id, block) {
         return this.makeChanges((function(_this) {
           return function() {
-            _this.runFilters(_this.getBlock(id), block);
+            var ctx;
+            _this.runTextFilters(ctx = _this.contextForBlock(id, {
+              text: block.text,
+              source: 'code'
+            }));
+            _this.runFilters(_this.getBlock(id), block, ctx);
             return OrgData.__super__.setBlock.call(_this, id, block);
           };
         })(this));
       };
 
+      OrgData.prototype.contextForBlock = function(id, context) {
+        var start;
+        if (start = this.offsetForBlock(id)) {
+          context.start = start;
+          context.end = start + this.getBlock(id).text.length;
+          return context;
+        }
+      };
+
       OrgData.prototype.deleteBlock = function(id) {
         return this.makeChanges((function(_this) {
           return function() {
-            _this.runFilters(_this.getBlock(id), null);
+            var ctx;
+            _this.runTextFilters(ctx = _this.contextForBlock(id, {
+              text: '',
+              source: 'code'
+            }));
+            _this.runFilters(_this.getBlock(id), null, ctx);
             return OrgData.__super__.deleteBlock.call(_this, id);
           };
         })(this));
@@ -241,15 +267,28 @@
         });
       };
 
-      OrgData.prototype.runFilters = function(oldBlock, newBlock) {
+      OrgData.prototype.runFilters = function(oldBlock, newBlock, context) {
         var filter, j, len, ref, results1;
         ref = this.filters;
         results1 = [];
         for (j = 0, len = ref.length; j < len; j++) {
           filter = ref[j];
-          results1.push(filter.replaceBlock(this, oldBlock, newBlock));
+          results1.push(filter.replaceBlock(this, oldBlock, newBlock, context));
         }
         return results1;
+      };
+
+      OrgData.prototype.runTextFilters = function(context) {
+        var filter, j, len, ref, results1;
+        if (context) {
+          ref = this.filters;
+          results1 = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            filter = ref[j];
+            results1.push(filter.replaceText(this, context));
+          }
+          return results1;
+        }
       };
 
       OrgData.prototype.parseBlocks = function(text) {
@@ -960,7 +999,11 @@
       startChange: function(data) {},
       endChange: function(data) {},
       clear: function(data) {},
-      replaceBlock: function(data, oldBlock, newBlock) {}
+      replaceBlock: function(data, oldBlock, newBlock) {},
+      replaceText: function(data, arg1) {
+        var end, source, start, text;
+        start = arg1.start, end = arg1.end, text = arg1.text, source = arg1.source;
+      }
     };
     blockElementId = function(block) {
       var ref;
@@ -1706,18 +1749,18 @@
         return changes;
       };
 
-      OrgEditing.prototype.replaceText = function(start, end, text, skipEffects) {
+      OrgEditing.prototype.replaceText = function(start, end, text, context, skipEffects) {
         var j, len, repl, repls, results1;
-        if (!skipEffects && (repls = this.replaceTextEffects(start, end, text).repls)) {
+        if (!skipEffects && (repls = this.replaceTextEffects(start, end, text, context).repls)) {
           OrgEditing.__super__.replaceText.call(this, start, end, text);
           results1 = [];
           for (j = 0, len = repls.length; j < len; j++) {
             repl = repls[j];
-            results1.push(this.replaceText(repl.start, repl.end, repl.text, true));
+            results1.push(this.replaceText(repl.start, repl.end, repl.text, context, true));
           }
           return results1;
         } else {
-          return OrgEditing.__super__.replaceText.call(this, start, end, text);
+          return OrgEditing.__super__.replaceText.call(this, start, end, text, context);
         }
       };
 
@@ -1972,7 +2015,12 @@
           } else {
             end = (start += last.end());
           }
-          return this.replaceText(start, end, str, true);
+          return this.replaceText(start, end, str, {
+            start: start,
+            end: end,
+            text: str,
+            source: 'code'
+          }, true);
         }
       };
 

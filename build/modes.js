@@ -1060,7 +1060,7 @@
             cs.editor.options.awaitingGuard = true;
             return Promise.using(Promise.resolve(0).disposer(function() {
               return cs.editor.options.awaitingGuard = false;
-            }), cs.editor.options.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (function() {}));
+            }), cs.editor.options.data.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (function() {}));
           }
         }
       }

@@ -171,9 +171,14 @@ same names for blocks other than printing a warning.
 `load` -- not the best use of inheritance here, changes is specifically for P2POrgData :).
 Let's just call this poetic license for the time being...
 
-        load: (name, text)->
+        load: (name, text, context)->
           @loadName = name
           @makeChanges =>
+            replacement = context ?
+              start: 0
+              end: @getLength()
+              text: text
+              source: 'load'
             @initializeLocalData()
             @loading = true
             @tangles = {}
@@ -185,24 +190,36 @@ Let's just call this poetic license for the time being...
             @linkAllSiblings changes
             for id, block of changes.sets
               @checkImports block
+            @runTextFilters context
             for id, block of changes.sets
-              @runFilters null, block
+              @runFilters null, block, context
               @checkChange null, block
             @scheduleEvals().then => @trigger 'load'
             @loading = false
         setBlock: (id, block)->
           @makeChanges =>
-            @runFilters @getBlock(id), block
+            @runTextFilters ctx = @contextForBlock id, {text: block.text, source: 'code'}
+            @runFilters @getBlock(id), block, ctx
             super id, block
+        contextForBlock: (id, context)->
+          if start = @offsetForBlock id
+            context.start = start
+            context.end = start + @getBlock(id).text.length
+            context
         deleteBlock: (id)->
           @makeChanges =>
-            @runFilters @getBlock(id), null
+            @runTextFilters ctx = @contextForBlock id, {text: '', source: 'code'}
+            @runFilters @getBlock(id), null, ctx
             super id
         addFilter: (filter)-> @filters.push filter
         removeFilter: (filter)-> _.remove @filters, (i)-> i == filter
-        runFilters: (oldBlock, newBlock)->
+        runFilters: (oldBlock, newBlock, context)->
           for filter in @filters
-            filter.replaceBlock this, oldBlock, newBlock
+            filter.replaceBlock this, oldBlock, newBlock, context
+        runTextFilters: (context)->
+          if context
+            for filter in @filters
+              filter.replaceText this, context
         parseBlocks: (text)->
           if text == '' then []
           else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
@@ -533,6 +550,7 @@ that must be done regardless of the source of changes
         endChange: (data)->
         clear: (data)->
         replaceBlock: (data, oldBlock, newBlock)->
+        replaceText: (data, {start, end, text, source})->
 
       blockElementId = (block)-> block && (block.codeName ? block._id)
 
@@ -912,12 +930,12 @@ may be called more than once.  changeData() returns a promise.
             changes = @changesFor prev, oldBlocks, newBlocks
           if !skipMode then @mode.handleChanges this, changes
           changes
-        replaceText: (start, end, text, skipEffects)->
-          if !skipEffects && repls = @replaceTextEffects(start, end, text).repls
+        replaceText: (start, end, text, context, skipEffects)->
+          if !skipEffects && repls = @replaceTextEffects(start, end, text, context).repls
             super start, end, text
             for repl in repls
-              @replaceText repl.start, repl.end, repl.text, true
-          else super start, end, text
+              @replaceText repl.start, repl.end, repl.text, context, true
+          else super start, end, text, context
 
 `changesFor(first, oldBlocks, newBlocks)` -- compute some effects immediately
 
@@ -1062,7 +1080,7 @@ may be called more than once.  changeData() returns a promise.
               start += results.offset
               end = start + results.text.length
             else end = (start += last.end())
-            @replaceText start, end, str, true
+            @replaceText start, end, str, {start, end, text: str, source: 'code'}, true
 
       trickyChange = (oldBlock, newBlock)->
         oldBlock._id != newBlock._id ||

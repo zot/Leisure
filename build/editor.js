@@ -1152,20 +1152,14 @@
       };
 
       BasicEditingOptions.prototype.batchReplace = function(replacementFunc, contFunc, errorFunc) {
-        var err, error, replacements;
+        var err, error;
         try {
-          replacements = validateBatch(replacementFunc());
-          this.data.batchReplace(replacements);
+          this.data.batchReplace(replacementFunc());
           return contFunc();
         } catch (error) {
           err = error;
           return errorFunc(err);
         }
-      };
-
-      BasicEditingOptions.prototype.guardedReplaceText = function(start, end, text, gStart, gEnd) {
-        this.replaceText(start, end, text);
-        return Promise.resolve();
       };
 
       BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks) {
@@ -1614,23 +1608,29 @@
         }
       };
 
-      DataStore.prototype.batchReplace = function(sortedReplacements) {
-        var j, len, repl, results1;
+      DataStore.prototype.batchReplace = function(replacements) {
+        var j, len, ref, repl, results1;
+        ref = validateBatch(replacements);
         results1 = [];
-        for (j = 0, len = sortedReplacements.length; j < len; j++) {
-          repl = sortedReplacements[j];
+        for (j = 0, len = ref.length; j < len; j++) {
+          repl = ref[j];
           results1.push(this.replaceText(repl.start, repl.end, repl.text));
         }
         return results1;
       };
 
-      DataStore.prototype.replaceText = function(start, end, text) {
+      DataStore.prototype.replaceText = function(start, end, text, context) {
         var newBlocks, oldBlocks, prev, ref;
         ref = this.changesForReplacement(start, end, text), prev = ref.prev, oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks;
         if (oldBlocks) {
           this.change(this.changesFor(prev, oldBlocks.slice(), newBlocks.slice()));
           return this.floatMarks(start, end, text.length);
         }
+      };
+
+      DataStore.prototype.guardedReplaceText = function(start, end, text, gStart, gEnd) {
+        this.replaceText(start, end, text);
+        return Promise.resolve();
       };
 
       DataStore.prototype.changesForReplacement = function(start, end, text) {
@@ -2292,8 +2292,8 @@
         return this.replaceBlocks(prev, oldBlocks, newBlocks);
       };
 
-      DataStoreEditingOptions.prototype.replaceText = function(start, end, text) {
-        return this.data.replaceText(start, end, text);
+      DataStoreEditingOptions.prototype.replaceText = function(start, end, text, context) {
+        return this.data.replaceText(start, end, text, context);
       };
 
       DataStoreEditingOptions.prototype.getBlock = function(id) {
