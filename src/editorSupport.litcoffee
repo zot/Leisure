@@ -1,4 +1,4 @@
-Editing support for Leisure
++Editing support for Leisure
 
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
@@ -105,14 +105,25 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       class OrgData extends DataStore
         constructor: ->
           DataStore.apply this, arguments
-          @namedBlocks = {}
           @pendingObserves = new NMap()
           @observers = new NMap()
-          @localBlocks = {}
           @filters = []
-          @populateLocalData()
+          @initializeLocalData()
           @pendingEvals = []
           @importPromise = Promise.resolve()
+        change: (changes)->
+          ch = @makeChange changes
+          @scheduleEvals().then => @trigger 'change', ch
+        addImported: (importFile, type, name)->
+          if typeof importFile == 'string'
+            if @importRecords[type][name]
+              @importRecords[type][name].push importFile
+              console.log "Warning, conflicting block of type: #{type} imported from #{@importRecords[type][name]}"
+            else @importRecords[type][name] = [importFile]
+          else typeof importFile == 'boolean'
+        initializeLocalData: ->
+          @namedBlocks = {}
+          @localBlocks = {}
           @indexes = FingerTree.fromArray [],
             identity: -> []
             measure: (v)-> v.key
@@ -128,23 +139,11 @@ same names for blocks other than printing a warning.
 
           @importedData = {}
           @importRecords =
-            data: {}
-            view: {}
-            controller: {}
-            importedFiles: {}
+          data: {}
+          view: {}
+          controller: {}
+          importedFiles: {}
           @tangles = {}
-        change: (changes)->
-          #super changes
-          ch = @makeChange changes
-          @scheduleEvals().then => @trigger 'change', ch
-        addImported: (importFile, type, name)->
-          if typeof importFile == 'string'
-            if @importRecords[type][name]
-              @importRecords[type][name].push importFile
-              console.log "Warning, conflicting block of type: #{type} imported from #{@importRecords[type][name]}"
-            else @importRecords[type][name] = [importFile]
-          else typeof importFile == 'boolean'
-        populateLocalData: ->
           transaction(@localDocumentId()).getAll().then (allData)=>
             @localBlocks = _.keyBy allData, '_id'
             deletes = []
@@ -172,29 +171,25 @@ same names for blocks other than printing a warning.
 `load` -- not the best use of inheritance here, changes is specifically for P2POrgData :).
 Let's just call this poetic license for the time being...
 
-        load: (name, first, blocks, changes)->
+        load: (name, text)->
           @loadName = name
           @makeChanges =>
-            @populateLocalData()
-            if !first then super first, blocks
-            else
-              @loading = true
-              @tangles = {}
-              for filter in @filters
-                filter.clear this
-              if !changes then changes = sets: blocks, oldBlocks: [], newBlocks: [], first: first
-              @linkAllSiblings changes
-              for block of @blockList()
-                @checkChange block, null
-              for id, block of changes.sets
-                @checkImports block
-              for id, block of changes.sets
-                @runFilters null, block
-                @checkChange null, block
-              @first = first
-              @blocks = blocks
-              @scheduleEvals().then => super name, first, blocks
-              @loading = false
+            @initializeLocalData()
+            @loading = true
+            @tangles = {}
+            @suppressTriggers => super name, text
+            for filter in @filters
+              filter.clear this
+            newBlocks = @blockList()
+            if !changes then changes = sets: @blocks, oldBlocks: [], newBlocks: newBlocks, first: @first
+            @linkAllSiblings changes
+            for id, block of changes.sets
+              @checkImports block
+            for id, block of changes.sets
+              @runFilters null, block
+              @checkChange null, block
+            @scheduleEvals().then => @trigger 'load'
+            @loading = false
         setBlock: (id, block)->
           @makeChanges =>
             @runFilters @getBlock(id), block
@@ -502,8 +497,7 @@ that must be done regardless of the source of changes
             console.log "Import: #{block?.properties?.import}"
             @importRecords.importedFiles[filename] = true
             @runOnImport => new Promise (resolve, reject)=>
-              #ajaxGet(new URL(filename, @loadName).toString()).then (contents)=>
-              @getFile filename, (contents)=>
+              @getFile filename, ((contents)=>
                 oldPromise = @importPromise
                 oldEvals = @pendingEvals
                 @pendingEvals = []
@@ -515,8 +509,12 @@ that must be done regardless of the source of changes
                 @scheduleEvals().then =>
                   @pendingEvals = oldEvals
                   @importPromise = oldPromise
-                  resolve()
-        getFile: (filename, cont)-> ajaxGet(new URL(filename, @loadName).toString()).then cont
+                  resolve()), (e)=> reject displayError e
+        getFile: (filename, cont, fail)-> ajaxGet(new URL(filename, @loadName).toString()).then(cont).error(fail)
+
+      displayError = (e)->
+        console.log "Error: #{e}"
+        e
 
       compareSorted = (a, b)->
         for i in [0...Math.min a.length, b.length]
@@ -686,6 +684,8 @@ may be called more than once.  changeData() returns a promise.
                 if b = @blockBounds (if parentType == 'block' then parent else @data.lastChild @data.getNamedBlockId parent)
                   b.start = b.end
                   b.text = block.text
+                  delete b.gStart
+                  delete b.gEnd
                   repls.push b
                 else throw new Error "Attempt to append a block after nonexistant block: #{parent}"
               for name, block of @dataChanges.sharedSets
@@ -1231,7 +1231,6 @@ may be called more than once.  changeData() returns a promise.
         }
 
       ajaxGet = (url)->
-        #console.log "ajaxGet #{url}"
         new Promise (resolve, reject)->
           xhr = new XMLHttpRequest
           xhr.responseType = 'arraybuffer'

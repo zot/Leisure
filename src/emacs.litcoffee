@@ -240,8 +240,10 @@ Emacs connection
         data.addFilter connection.filter
         if !cookie then sendReplace ws, 0, -1, data.getText()
         changeAdvice opts.data, true,
-          getFile: emacs: (parent)->(file, cont)->
-            sendGetFile @emacsConnection, "file:#{file}", (contents)-> cont atob(contents)
+          getFile: emacs: (parent)->(file, cont, fail)->
+            sendGetFile @emacsConnection, "file:#{file}", (contents)->
+              if contents then cont atob(contents)
+              else fail "No such file: #{file}"
         configureOpts opts
         cont?()
 

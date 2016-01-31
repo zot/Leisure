@@ -14,6 +14,8 @@ pluggable with an options object that contains customization hooks.
 Code and examples are in Coffeescript (a JS build is provided as a
 convenience).
 
+*NOTE:* parseBlocks has moved to DataStore.  Pluggability changes later.
+
 Basic Idea
 ==========
 
@@ -243,32 +245,34 @@ Observable class
       class Observable
         constructor: ->
           @listeners = {}
-          @suppressTriggers = false
-        add: (obj)->
-          for type, callback of obj
-            @on type, callback
-        remove: (obj)->
-          for type, callback of obj
-            @off type, callback
+          @suppressingTriggers = false
         on: (type, callback)->
-          if !@listeners[type] then @listeners[type] = []
-          @listeners[type].push callback
+          if typeof type == 'object'
+            for type, callback of type
+              @on type callback
+          else
+            if !@listeners[type] then @listeners[type] = []
+            @listeners[type].push callback
           this
         off: (type, callback)->
-          if @listeners[type]
-            @listeners[type] = (l for l in @listeners[type] when l != callback)
+          if typeof type == 'object'
+            for type, callback of type
+              @off type, callback
+          else
+            if @listeners[type]
+              @listeners[type] = (l for l in @listeners[type] when l != callback)
           this
         trigger: (type, args...)->
-          if !@suppressTriggers
+          if !@suppressingTriggers
             for listener in @listeners[type] || []
               listener args...
-        suppressChanges: (func)->
-          oldSuppress = @suppressTriggers
-          @suppressTriggers = true
+        suppressTriggers: (func)->
+          oldSuppress = @suppressingTriggers
+          @suppressingTriggers = true
           try
             func()
           finally
-            @suppressTriggers = oldSuppress
+            @suppressingTriggers = oldSuppress
 
 LeisureEditCore class
 =====================
@@ -348,7 +352,6 @@ Events:
             .adjustForNewline()
         domCursorForCaret: ->
           sel = getSelection()
-          #n = @domCursor sel.focusNode, sel.focusOffset
           if sel.type == 'None' then DOMCursor.emptyDOMCursor
           else
             r = sel.getRangeAt 0
@@ -668,7 +671,6 @@ on it can select if start and end are different
           if pos.isEmpty() then pos = pos.prev()
           pos = @domCursorForCaret()
           pos.moveCaret()
-          #pos.show @options.topRect()
           (if pos.node.nodeType == pos.node.TEXT_NODE then pos.node.parentNode else pos.node).scrollIntoViewIfNeeded()
           @trigger 'moved', this
         moveForward: ->
@@ -808,10 +810,6 @@ Events:
 Hook methods (required)
 -----------------------
 
-`parseBlocks(text) -> blocks`: parse text into array of blocks -- DO NOT provide _id, prev, or next, they may be overwritten!
-
-        parseBlocks: (text)-> throw new Error "options.parseBlocks(text) is not implemented"
-
 `renderBlock(block) -> [html, next]`: render a block (and potentially its children) and return the HTML and the next blockId if there is one
 * Block DOM (DOM for a block) must be a single element with the same id as the block.
 * Block DOM may contain nested block DOM.
@@ -926,8 +924,6 @@ situations to provide STM-like change management.
           oldText = blockText blocks
           newText = oldText.substring(0, start) + newContent + oldText.substring start + length
           pos = @data.docOffsetForBlockOffset blocks[0]._id, start
-          #if @makeStructureChange pos, pos + length, newContent, computeNewStructure(this, blocks, newText)
-          #  pos + newContent.length
           @replaceText pos, pos + length, newContent
           pos + newContent.length
 
@@ -972,7 +968,6 @@ Factored out because the Emacs connection calls MakeStructureChange.
 `domCursor(node, pos) -> DOMCursor`: return a domCursor that skips over non-content
 
         domCursor: (node, pos)->
-          #new DOMCursor(node, pos).addFilter (n)-> (n.hasAttribute('data-noncontent') && 'skip') || isEditable(n.node)
           new DOMCursor(node, pos).addFilter (n)-> (n.hasAttribute('data-noncontent') && 'skip') || true
 
 `getContainer(node) -> Node?`: get block DOM node containing for a node
@@ -984,7 +979,9 @@ Factored out because the Emacs connection calls MakeStructureChange.
 `load(el, text) -> void`: parse text into blocks and replace el's contents with rendered DOM
 
         load: (name, text)->
-          @replaceBlocks @blockList(), @parseBlocks text
+          @options.suppressTriggers =>
+            @options.data.suppressTriggers =>
+              @replaceText 0, @getLength(), text
           @rerenderAll()
           @trigger 'load'
         rerenderAll: -> @editor.setHtml @editor.node[0], @renderBlocks()
@@ -1098,6 +1095,25 @@ Data model -- override/reset these if you want to change how the store accesses 
           @changeCount = 0
           @clearMarks()
           @markNames = {}
+        load: (name, text)->
+          blockMap = {}
+          newBlocks = @parseBlocks text
+          for block, i in newBlocks
+            block._id = @newId()
+            blockMap[block._id] = block
+            if prev = newBlocks[i - 1]
+              prev.next = block._id
+              block.prev = prev._id
+          @first = newBlocks[0]?._id
+          @blocks = blockMap
+          @makeChanges =>
+            @indexBlocks()
+            @trigger 'load'
+
+`parseBlocks(text) -> blocks`: parse text into array of blocks -- DO NOT provide _id, prev, or next, they may be overwritten!
+
+        parseBlocks: (text)-> throw new Error "options.parseBlocks(text) is not implemented"
+
         newBlockIndex: (contents)-> Fingertree.fromArray contents ? [],
           identity: -> ids: Set(), length: 0
           measure: (v)-> ids: Set([v.id]), length: v.length
@@ -1365,10 +1381,6 @@ sorted in reverse order by position.
           text = ''
           @eachBlock (block)-> text += block.text
           text
-        load: (name, @first, @blocks)->
-          @makeChanges =>
-            @indexBlocks()
-            @trigger 'load'
         check: ->
           seen = {}
           first = next = @getFirst()
@@ -1529,18 +1541,9 @@ DataStoreEditingOptions
             @data.on type, @callbacks[type] = func
         dataChanged: (changes)-> preserveSelection => @changed changes
         dataLoaded: -> @trigger 'load'
-        cleanup: -> @data.remove @callbacks
+        cleanup: -> @data.off @callbacks
         initData: ->
-        load: (name, text)->
-          blockMap = {}
-          newBlocks = @parseBlocks text
-          for block, i in newBlocks
-            block._id = @newId()
-            blockMap[block._id] = block
-            if prev = newBlocks[i - 1]
-              prev.next = block._id
-              block.prev = prev._id
-          @data.load name, newBlocks[0]?._id, blockMap
+        load: (name, text)-> @data.load name, text
         edit: (prev, oldBlocks, newBlocks)-> @replaceBlocks prev, oldBlocks, newBlocks
         replaceText: (start, end, text)-> @data.replaceText start, end, text
         getBlock: (id)-> @data.getBlock id

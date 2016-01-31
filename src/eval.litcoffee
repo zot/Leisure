@@ -47,6 +47,8 @@ Evaulation support for Leisure
       # init
       #########
 
+      defaultEnv.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
+
       requirePromise = (file...)-> new Promise (resolve, reject)->
         require file, resolve
 

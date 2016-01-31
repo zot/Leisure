@@ -186,7 +186,7 @@
         return r;
       } else {
         return new Monad2('appendDataWithAttrs', function(env, cont) {
-          env.opts.appendDataToHeadline(rz(headline), !isNil(name) && name, rz(value), rz(attrs));
+          env.opts.appendDataToHeadline(rz(headline), !isNil(rz(name)) && rz(name), rz(value), rz(attrs));
           return cont(jsonConvert(rz(value)));
         });
       }
@@ -197,7 +197,7 @@
         return cont(_unit);
       });
     });
-    return evalLeisure("defMacro 'changeData' \\list . ['_changeData' ['do' | list]]\nsetData name value = _setData name (toJson value)\nappendData headline name data = _appendData headline name (toJson data)\nappendWithAttrs headline name attrs data =\n  _appendWithAttrs headline name attrs (toJson data)");
+    return evalLeisure("defMacro 'changeData' \\list . ['_changeData' ['do' | list]]\nsetData name value = _setData name (toJson value)\nappendData headline name data = _appendData headline name (toJson data)\nappendDataWithAttrs headline name attrs data =\n  _appendDataWithAttrs headline name attrs (toJson data)");
   });
 
 }).call(this);

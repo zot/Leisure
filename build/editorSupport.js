@@ -6,7 +6,7 @@
     slice = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isPrefix, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isPrefix, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -47,14 +47,40 @@
 
       function OrgData() {
         DataStore.apply(this, arguments);
-        this.namedBlocks = {};
         this.pendingObserves = new NMap();
         this.observers = new NMap();
-        this.localBlocks = {};
         this.filters = [];
-        this.populateLocalData();
+        this.initializeLocalData();
         this.pendingEvals = [];
         this.importPromise = Promise.resolve();
+      }
+
+      OrgData.prototype.change = function(changes) {
+        var ch;
+        ch = this.makeChange(changes);
+        return this.scheduleEvals().then((function(_this) {
+          return function() {
+            return _this.trigger('change', ch);
+          };
+        })(this));
+      };
+
+      OrgData.prototype.addImported = function(importFile, type, name) {
+        if (typeof importFile === 'string') {
+          if (this.importRecords[type][name]) {
+            this.importRecords[type][name].push(importFile);
+            return console.log("Warning, conflicting block of type: " + type + " imported from " + this.importRecords[type][name]);
+          } else {
+            return this.importRecords[type][name] = [importFile];
+          }
+        } else {
+          return typeof importFile === 'boolean';
+        }
+      };
+
+      OrgData.prototype.initializeLocalData = function() {
+        this.namedBlocks = {};
+        this.localBlocks = {};
         this.indexes = FingerTree.fromArray([], {
           identity: function() {
             return [];
@@ -84,32 +110,6 @@
           importedFiles: {}
         };
         this.tangles = {};
-      }
-
-      OrgData.prototype.change = function(changes) {
-        var ch;
-        ch = this.makeChange(changes);
-        return this.scheduleEvals().then((function(_this) {
-          return function() {
-            return _this.trigger('change', ch);
-          };
-        })(this));
-      };
-
-      OrgData.prototype.addImported = function(importFile, type, name) {
-        if (typeof importFile === 'string') {
-          if (this.importRecords[type][name]) {
-            this.importRecords[type][name].push(importFile);
-            return console.log("Warning, conflicting block of type: " + type + " imported from " + this.importRecords[type][name]);
-          } else {
-            return this.importRecords[type][name] = [importFile];
-          }
-        } else {
-          return typeof importFile === 'boolean';
-        }
-      };
-
-      OrgData.prototype.populateLocalData = function() {
         return transaction(this.localDocumentId()).getAll().then((function(_this) {
           return function(allData) {
             var deletes, j, len, name, results1;
@@ -168,52 +168,47 @@
         return changes;
       };
 
-      OrgData.prototype.load = function(name, first, blocks, changes) {
+      OrgData.prototype.load = function(name, text) {
         this.loadName = name;
         return this.makeChanges((function(_this) {
           return function() {
-            var block, filter, id, j, len, ref, ref1, ref2;
-            _this.populateLocalData();
-            if (!first) {
-              return OrgData.__super__.load.call(_this, first, blocks);
-            } else {
-              _this.loading = true;
-              _this.tangles = {};
-              ref = _this.filters;
-              for (j = 0, len = ref.length; j < len; j++) {
-                filter = ref[j];
-                filter.clear(_this);
-              }
-              if (!changes) {
-                changes = {
-                  sets: blocks,
-                  oldBlocks: [],
-                  newBlocks: [],
-                  first: first
-                };
-              }
-              _this.linkAllSiblings(changes);
-              for (block in _this.blockList()) {
-                _this.checkChange(block, null);
-              }
-              ref1 = changes.sets;
-              for (id in ref1) {
-                block = ref1[id];
-                _this.checkImports(block);
-              }
-              ref2 = changes.sets;
-              for (id in ref2) {
-                block = ref2[id];
-                _this.runFilters(null, block);
-                _this.checkChange(null, block);
-              }
-              _this.first = first;
-              _this.blocks = blocks;
-              _this.scheduleEvals().then(function() {
-                return OrgData.__super__.load.call(_this, name, first, blocks);
-              });
-              return _this.loading = false;
+            var block, changes, filter, id, j, len, newBlocks, ref, ref1, ref2;
+            _this.initializeLocalData();
+            _this.loading = true;
+            _this.tangles = {};
+            _this.suppressTriggers(function() {
+              return OrgData.__super__.load.call(_this, name, text);
+            });
+            ref = _this.filters;
+            for (j = 0, len = ref.length; j < len; j++) {
+              filter = ref[j];
+              filter.clear(_this);
             }
+            newBlocks = _this.blockList();
+            if (!changes) {
+              changes = {
+                sets: _this.blocks,
+                oldBlocks: [],
+                newBlocks: newBlocks,
+                first: _this.first
+              };
+            }
+            _this.linkAllSiblings(changes);
+            ref1 = changes.sets;
+            for (id in ref1) {
+              block = ref1[id];
+              _this.checkImports(block);
+            }
+            ref2 = changes.sets;
+            for (id in ref2) {
+              block = ref2[id];
+              _this.runFilters(null, block);
+              _this.checkChange(null, block);
+            }
+            _this.scheduleEvals().then(function() {
+              return _this.trigger('load');
+            });
+            return _this.loading = false;
           };
         })(this));
       };
@@ -898,7 +893,7 @@
           return this.runOnImport((function(_this) {
             return function() {
               return new Promise(function(resolve, reject) {
-                return _this.getFile(filename, function(contents) {
+                return _this.getFile(filename, (function(contents) {
                   var id, j, len, oldEvals, oldPromise, ref2;
                   oldPromise = _this.importPromise;
                   oldEvals = _this.pendingEvals;
@@ -916,6 +911,8 @@
                     _this.importPromise = oldPromise;
                     return resolve();
                   });
+                }), function(e) {
+                  return reject(displayError(e));
                 });
               });
             };
@@ -923,13 +920,17 @@
         }
       };
 
-      OrgData.prototype.getFile = function(filename, cont) {
-        return ajaxGet(new URL(filename, this.loadName).toString()).then(cont);
+      OrgData.prototype.getFile = function(filename, cont, fail) {
+        return ajaxGet(new URL(filename, this.loadName).toString()).then(cont).error(fail);
       };
 
       return OrgData;
 
     })(DataStore);
+    displayError = function(e) {
+      console.log("Error: " + e);
+      return e;
+    };
     compareSorted = function(a, b) {
       var i, j, ref;
       for (i = j = 0, ref = Math.min(a.length, b.length); 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
@@ -1225,6 +1226,8 @@
                 if (b = _this.blockBounds((parentType === 'block' ? parent : _this.data.lastChild(_this.data.getNamedBlockId(parent))))) {
                   b.start = b.end;
                   b.text = block.text;
+                  delete b.gStart;
+                  delete b.gEnd;
                   repls.push(b);
                 } else {
                   throw new Error("Attempt to append a block after nonexistant block: " + parent);

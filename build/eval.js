@@ -23,6 +23,9 @@
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert, getLeisurePromise = Runtime.getLeisurePromise;
     Promise = Bluebird.Promise;
     genSource = Gen.genSource;
+    defaultEnv.prompt = function(str, defaultValue, cont) {
+      return cont(prompt(str, defaultValue));
+    };
     requirePromise = function() {
       var file;
       file = 1 <= arguments.length ? slice.call(arguments, 0) : [];

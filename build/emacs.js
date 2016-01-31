@@ -353,9 +353,13 @@
       changeAdvice(opts.data, true, {
         getFile: {
           emacs: function(parent) {
-            return function(file, cont) {
+            return function(file, cont, fail) {
               return sendGetFile(this.emacsConnection, "file:" + file, function(contents) {
-                return cont(atob(contents));
+                if (contents) {
+                  return cont(atob(contents));
+                } else {
+                  return fail("No such file: " + file);
+                }
               });
             };
           }
