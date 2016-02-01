@@ -381,7 +381,7 @@ misrepresented as being the original software.
     getLambdaProperties = function(body, props) {
       var value;
       if (body instanceof Leisure_anno) {
-        if (!_.contains(specialAnnotations, getAnnoName(body))) {
+        if (!_.includes(specialAnnotations, getAnnoName(body))) {
           if (!props) {
             props = {};
           }
@@ -568,10 +568,10 @@ misrepresented as being the original software.
     genLets = function(ast, names, uniq) {
       var assigns, bindings, decs, letNames, letUniq, ref3;
       bindings = letList(ast, []);
-      letNames = _.foldl(bindings, (function(n, l) {
+      letNames = _.reduce(bindings, (function(n, l) {
         return cons(getLetName(l), n);
       }), names);
-      ref3 = _.foldl(bindings, (function(result, l) {
+      ref3 = _.reduce(bindings, (function(result, l) {
         var assigns, code, letName, newU, u;
         u = result[0], code = result[1], assigns = result[2];
         newU = addUniq(getLetName(l), letNames, u);

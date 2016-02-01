@@ -1,6 +1,6 @@
 Support code for Leisure
 
-    define ['./base', './ast', './runtime', './gen', './eval'], (Base, Ast, Runtime, Gen, Eval)->
+    define ['./base', './ast', './runtime', './gen', './eval', './org'], (Base, Ast, Runtime, Gen, Eval, Org)->
       {
         define
         getType
@@ -41,6 +41,9 @@ Support code for Leisure
       {
         evalLeisure
       } = Eval
+      {
+        parseCodeAttributes
+      } = Org
 
       currentDataChange = null
 
@@ -50,7 +53,7 @@ Support code for Leisure
           svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000px; position: absolute'><text id='HIDDEN_TEXT'>bubba</text></svg>"
           document.body.appendChild(svg)
           document.getElementById id
-      
+
       svgMeasureText = (text)->(style)->(f)->
         txt = getSvgElement('HIDDEN_TEXT')
         if rz style then txt.setAttribute 'style', rz style
@@ -60,10 +63,10 @@ Support code for Leisure
 
       # try to take strokeWidth into account
       svgMeasure = (content)-> primSvgMeasure content, baseStrokeWidth
-      
+
       # (unused) try to take strokeWidth into account
       svgBetterMeasure = (content)-> primSvgMeasure content, transformStrokeWidth
-      
+
       # try to take strokeWidth into account
       primSvgMeasure = (content, transformFunc)->(f)->
         svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000'><g>#{content}</g></svg>"
@@ -75,15 +78,15 @@ Support code for Leisure
         rz(f)(lz bbox.x - Math.ceil(pad/2))(lz bbox.y - Math.ceil(pad/2))(lz bbox.width + pad)(lz bbox.height + pad)
 
       baseElements = ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']
-      
+
       foldLeft = (func, val, thing)->
         if thing instanceof Leisure_cons then thing.foldl func, val
         else primFoldLeft func, val, thing, 0
-      
+
       primFoldLeft = (func, val, array, index)->
         if index < array.length then primFoldLeft func, func(val, array[index]), array, index + 1
         else val
-      
+
       getMaxStrokeWidth = (el, base, svg, transformFunc)->
         if base.nodeName in baseElements
           #hack to parse strokeWidth string by setting the width of the svg to it
@@ -95,7 +98,7 @@ Support code for Leisure
         else 0
 
       baseStrokeWidth = (el, w)-> w
-      
+
       transformStrokeWidth = (el, w)->
         if w == 0 then 0
         else
@@ -112,7 +115,7 @@ Support code for Leisure
         scratch.firstChild
 
       define 'svgMeasure', ((content)->svgMeasure(rz content)), 1
-      
+
       define 'svgMeasureText', ((text)->svgMeasureText(rz text)), 1
 
       define 'dataMod', setDataType ((op)->
@@ -159,7 +162,7 @@ Support code for Leisure
       define '_appendDataWithAttrs', (headline, name, attrs, value)->
         if r = doPartial arguments then r else
           new Monad2 'appendDataWithAttrs', (env, cont)->
-            env.opts.appendDataToHeadline rz(headline), (!isNil(name) && name), rz(value), rz(attrs)
+            env.opts.appendDataToHeadline rz(headline), (!isNil(rz name) && rz(name)), rz(value), parseCodeAttributes(rz(attrs))
             cont jsonConvert rz value
 
       define 'removeData', (name)->
@@ -171,6 +174,6 @@ Support code for Leisure
       defMacro 'changeData' \\list . ['_changeData' ['do' | list]]
       setData name value = _setData name (toJson value)
       appendData headline name data = _appendData headline name (toJson data)
-      appendWithAttrs headline name attrs data =
-        _appendWithAttrs headline name attrs (toJson data)
+      appendDataWithAttrs headline name attrs data =
+        _appendDataWithAttrs headline name attrs (toJson data)
       """

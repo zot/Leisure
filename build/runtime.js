@@ -572,7 +572,7 @@ misrepresented as being the original software.
       return this.write("ENV Error: " + ((ref1 = err.stack) != null ? ref1 : err));
     };
     defaultEnv.prompt = function() {
-      throw new Error("Environment does not support prompting!");
+      throw new Error('Environment does not support prompting!');
     };
     monadModeSync = false;
     getMonadSyncMode = function() {
@@ -917,7 +917,7 @@ misrepresented as being the original software.
           if (env.errorHandlers.length) {
             if (env.errorHandlers[env.errorHandlers.length - 1] === hnd) {
               env.errorHandlers.pop();
-            } else if (_.contains(env.errorHandlers, hnd)) {
+            } else if (_.inclues(env.errorHandlers, hnd)) {
               while (env.errorHandlers[env.errorHandlers.length - 1] !== hnd) {
                 env.errorHandlers.pop();
               }

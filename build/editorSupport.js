@@ -6,7 +6,7 @@
     slice = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isPrefix, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isPrefix, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -47,14 +47,40 @@
 
       function OrgData() {
         DataStore.apply(this, arguments);
-        this.namedBlocks = {};
         this.pendingObserves = new NMap();
         this.observers = new NMap();
-        this.localBlocks = {};
         this.filters = [];
-        this.populateLocalData();
+        this.initializeLocalData();
         this.pendingEvals = [];
         this.importPromise = Promise.resolve();
+      }
+
+      OrgData.prototype.change = function(changes) {
+        var ch;
+        ch = this.makeChange(changes);
+        return this.scheduleEvals().then((function(_this) {
+          return function() {
+            return _this.trigger('change', ch);
+          };
+        })(this));
+      };
+
+      OrgData.prototype.addImported = function(importFile, type, name) {
+        if (typeof importFile === 'string') {
+          if (this.importRecords[type][name]) {
+            this.importRecords[type][name].push(importFile);
+            return console.log("Warning, conflicting block of type: " + type + " imported from " + this.importRecords[type][name]);
+          } else {
+            return this.importRecords[type][name] = [importFile];
+          }
+        } else {
+          return typeof importFile === 'boolean';
+        }
+      };
+
+      OrgData.prototype.initializeLocalData = function() {
+        this.namedBlocks = {};
+        this.localBlocks = {};
         this.indexes = FingerTree.fromArray([], {
           identity: function() {
             return [];
@@ -84,32 +110,6 @@
           importedFiles: {}
         };
         this.tangles = {};
-      }
-
-      OrgData.prototype.change = function(changes) {
-        var ch;
-        ch = this.makeChange(changes);
-        return this.scheduleEvals().then((function(_this) {
-          return function() {
-            return _this.trigger('change', ch);
-          };
-        })(this));
-      };
-
-      OrgData.prototype.addImported = function(importFile, type, name) {
-        if (typeof importFile === 'string') {
-          if (this.importRecords[type][name]) {
-            this.importRecords[type][name].push(importFile);
-            return console.log("Warning, conflicting block of type: " + type + " imported from " + this.importRecords[type][name]);
-          } else {
-            return this.importRecords[type][name] = [importFile];
-          }
-        } else {
-          return typeof importFile === 'boolean';
-        }
-      };
-
-      OrgData.prototype.populateLocalData = function() {
         return transaction(this.localDocumentId()).getAll().then((function(_this) {
           return function(allData) {
             var deletes, j, len, name, results1;
@@ -128,6 +128,13 @@
             return results1;
           };
         })(this));
+      };
+
+      OrgData.prototype.replaceText = function(start, end, text, context) {
+        OrgData.__super__.replaceText.call(this, start, end, text, context);
+        if (context) {
+          return this.runTextFilters(context);
+        }
       };
 
       OrgData.prototype.makeChanges = function(func) {
@@ -168,52 +175,54 @@
         return changes;
       };
 
-      OrgData.prototype.load = function(name, first, blocks, changes) {
+      OrgData.prototype.load = function(name, text, context) {
         this.loadName = name;
         return this.makeChanges((function(_this) {
           return function() {
-            var block, filter, id, j, len, ref, ref1, ref2;
-            _this.populateLocalData();
-            if (!first) {
-              return OrgData.__super__.load.call(_this, first, blocks);
-            } else {
-              _this.loading = true;
-              _this.tangles = {};
-              ref = _this.filters;
-              for (j = 0, len = ref.length; j < len; j++) {
-                filter = ref[j];
-                filter.clear(_this);
-              }
-              if (!changes) {
-                changes = {
-                  sets: blocks,
-                  oldBlocks: [],
-                  newBlocks: [],
-                  first: first
-                };
-              }
-              _this.linkAllSiblings(changes);
-              for (block in _this.blockList()) {
-                _this.checkChange(block, null);
-              }
-              ref1 = changes.sets;
-              for (id in ref1) {
-                block = ref1[id];
-                _this.checkImports(block);
-              }
-              ref2 = changes.sets;
-              for (id in ref2) {
-                block = ref2[id];
-                _this.runFilters(null, block);
-                _this.checkChange(null, block);
-              }
-              _this.first = first;
-              _this.blocks = blocks;
-              _this.scheduleEvals().then(function() {
-                return OrgData.__super__.load.call(_this, name, first, blocks);
-              });
-              return _this.loading = false;
+            var block, changes, filter, id, j, len, newBlocks, ref, ref1, ref2, replacement;
+            replacement = context != null ? context : {
+              start: 0,
+              end: _this.getLength(),
+              text: text,
+              source: 'load'
+            };
+            _this.initializeLocalData();
+            _this.loading = true;
+            _this.tangles = {};
+            _this.suppressTriggers(function() {
+              return OrgData.__super__.load.call(_this, name, text);
+            });
+            ref = _this.filters;
+            for (j = 0, len = ref.length; j < len; j++) {
+              filter = ref[j];
+              filter.clear(_this);
             }
+            newBlocks = _this.blockList();
+            if (!changes) {
+              changes = {
+                sets: _this.blocks,
+                oldBlocks: [],
+                newBlocks: newBlocks,
+                first: _this.first
+              };
+            }
+            _this.linkAllSiblings(changes);
+            ref1 = changes.sets;
+            for (id in ref1) {
+              block = ref1[id];
+              _this.checkImports(block);
+            }
+            _this.runTextFilters(context);
+            ref2 = changes.sets;
+            for (id in ref2) {
+              block = ref2[id];
+              _this.runFilters(null, block, context);
+              _this.checkChange(null, block);
+            }
+            _this.scheduleEvals().then(function() {
+              return _this.trigger('load');
+            });
+            return _this.loading = false;
           };
         })(this));
       };
@@ -225,6 +234,15 @@
             return OrgData.__super__.setBlock.call(_this, id, block);
           };
         })(this));
+      };
+
+      OrgData.prototype.contextForBlock = function(id, context) {
+        var start;
+        if (start = this.offsetForBlock(id)) {
+          context.start = start;
+          context.end = start + this.getBlock(id).text.length;
+          return context;
+        }
       };
 
       OrgData.prototype.deleteBlock = function(id) {
@@ -246,15 +264,28 @@
         });
       };
 
-      OrgData.prototype.runFilters = function(oldBlock, newBlock) {
+      OrgData.prototype.runFilters = function(oldBlock, newBlock, context) {
         var filter, j, len, ref, results1;
         ref = this.filters;
         results1 = [];
         for (j = 0, len = ref.length; j < len; j++) {
           filter = ref[j];
-          results1.push(filter.replaceBlock(this, oldBlock, newBlock));
+          results1.push(filter.replaceBlock(this, oldBlock, newBlock, context));
         }
         return results1;
+      };
+
+      OrgData.prototype.runTextFilters = function(context) {
+        var filter, j, len, ref, results1;
+        if (context) {
+          ref = this.filters;
+          results1 = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            filter = ref[j];
+            results1.push(filter.replaceText(this, context));
+          }
+          return results1;
+        }
       };
 
       OrgData.prototype.parseBlocks = function(text) {
@@ -811,10 +842,10 @@
             results1.push(":" + k + " " + v);
           }
           return results1;
-        })()).join(' ')) + "\n" + (dump(data, _.merge({
+        })()).join(' ')) + "\n" + (dump(data, _.defaults(attrs != null ? attrs : {}, {
           sortKeys: true,
           flowLevel: 2
-        }, attrs != null ? attrs : {})).trim()) + "\n#+END_SRC\n";
+        })).trim()) + "\n#+END_SRC\n";
       };
 
       OrgData.prototype.checkViewChange = function(oldBlock, newBlock, isDefault) {
@@ -898,7 +929,7 @@
           return this.runOnImport((function(_this) {
             return function() {
               return new Promise(function(resolve, reject) {
-                return _this.getFile(filename, function(contents) {
+                return _this.getFile(filename, (function(contents) {
                   var id, j, len, oldEvals, oldPromise, ref2;
                   oldPromise = _this.importPromise;
                   oldEvals = _this.pendingEvals;
@@ -916,6 +947,8 @@
                     _this.importPromise = oldPromise;
                     return resolve();
                   });
+                }), function(e) {
+                  return reject(displayError(e));
                 });
               });
             };
@@ -923,13 +956,17 @@
         }
       };
 
-      OrgData.prototype.getFile = function(filename, cont) {
-        return ajaxGet(new URL(filename, this.loadName).toString()).then(cont);
+      OrgData.prototype.getFile = function(filename, cont, fail) {
+        return ajaxGet(new URL(filename, this.loadName).toString()).then(cont).error(fail);
       };
 
       return OrgData;
 
     })(DataStore);
+    displayError = function(e) {
+      console.log("Error: " + e);
+      return e;
+    };
     compareSorted = function(a, b) {
       var i, j, ref;
       for (i = j = 0, ref = Math.min(a.length, b.length); 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
@@ -959,7 +996,11 @@
       startChange: function(data) {},
       endChange: function(data) {},
       clear: function(data) {},
-      replaceBlock: function(data, oldBlock, newBlock) {}
+      replaceBlock: function(data, oldBlock, newBlock) {},
+      replaceText: function(data, arg1) {
+        var end, source, start, text;
+        start = arg1.start, end = arg1.end, text = arg1.text, source = arg1.source;
+      }
     };
     blockElementId = function(block) {
       var ref;
@@ -1217,6 +1258,7 @@
               for (name in _this.dataChanges.sharedRemoves) {
                 b = _this.blockBounds(name);
                 b.text = '';
+                b.source = 'code';
                 repls.push(b);
               }
               ref = _this.dataChanges.sharedInserts;
@@ -1225,6 +1267,9 @@
                 if (b = _this.blockBounds((parentType === 'block' ? parent : _this.data.lastChild(_this.data.getNamedBlockId(parent))))) {
                   b.start = b.end;
                   b.text = block.text;
+                  b.source = 'code';
+                  delete b.gStart;
+                  delete b.gEnd;
                   repls.push(b);
                 } else {
                   throw new Error("Attempt to append a block after nonexistant block: " + parent);
@@ -1235,6 +1280,7 @@
                 block = ref2[name];
                 b = _this.blockBounds(name);
                 b.text = block.text;
+                b.source = 'code';
                 repls.push(b);
               }
               return repls;
@@ -1703,18 +1749,18 @@
         return changes;
       };
 
-      OrgEditing.prototype.replaceText = function(start, end, text, skipEffects) {
+      OrgEditing.prototype.replaceText = function(start, end, text, context, skipEffects) {
         var j, len, repl, repls, results1;
-        if (!skipEffects && (repls = this.replaceTextEffects(start, end, text).repls)) {
+        if (!skipEffects && (repls = this.replaceTextEffects(start, end, text, context).repls)) {
           OrgEditing.__super__.replaceText.call(this, start, end, text);
           results1 = [];
           for (j = 0, len = repls.length; j < len; j++) {
             repl = repls[j];
-            results1.push(this.replaceText(repl.start, repl.end, repl.text, true));
+            results1.push(this.replaceText(repl.start, repl.end, repl.text, context, true));
           }
           return results1;
         } else {
-          return OrgEditing.__super__.replaceText.call(this, start, end, text);
+          return OrgEditing.__super__.replaceText.call(this, start, end, text, context);
         }
       };
 
@@ -1969,7 +2015,12 @@
           } else {
             end = (start += last.end());
           }
-          return this.replaceText(start, end, str, true);
+          return this.replaceText(start, end, str, {
+            start: start,
+            end: end,
+            text: str,
+            source: 'code'
+          }, true);
         }
       };
 

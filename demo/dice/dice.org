@@ -1,0 +1,369 @@
+* Monadic examples
+:properties:
+:hidden: true
+:end:
+
+Iteration/filtering:
+
+- this produces an IO value that prints [1 4], [2 3], and [3 4]
+- lifting is implicit because the bind function is polymorphic on the run time data type
+- the list monad does a Haskell/Scala-like flat map, except that it's runtime polymorphic
+- the value, if you don't run the monad, is an IO value (a bind command)
+- the value when you run it is [1 4 2 3 3 4] (not a list of IO values)
+
+#+BEGIN_SRC leisure
+do
+  p <- foreach getData 'player-ui'
+  print p
+#+END_SRC
+
+List comprehensions:
+
+- the boolean acts as an "if"
+- the expression's value is the list [3 4], like you might expect
+- you can also format the expr like this:do (x <- [1 2 3]) (x > 1) (x + 1)
+- not all of the parens are strictly necessary: do (x <- [1 2 3]) x > 1 x + 1
+
+#+BEGIN_SRC leisure
+do
+  x <- [1 2 3]
+  x > 1
+  x + 1
+#+END_SRC
+* Importing lens code
+:properties:
+:import: ../lenses.org
+:hidden: true
+:end:
+* Data
+:properties:
+:hidden: true
+:end:
+
+#+NAME: player-ui
+#+BEGIN_SRC yaml :flowLevel 3 :local
+type: player-ui
+selections:
+  - size: 4
+    selected: 3
+  - size: 6
+    selected: 0
+  - size: 8
+    selected: 0
+  - size: 10
+    selected: 0
+  - size: 12
+    selected: 0
+player: null
+#+END_SRC
+
+The dice log is a list of rolls.
+Each roll is a list of values: {size: S angle: A value: V}.
+
+#+NAME: roll-count
+#+BEGIN_SRC yaml
+count: 0
+#+END_SRC
+* PlayerData
+:properties:
+:name: PlayerData
+:end:
+* Code
+#+BEGIN_SRC leisure :results def
+selectionList sel = map (\el . [(afetch 'size' el) | (afetch 'selected' el)]) sel
+
+roll = do
+  player <- foreach getData 'player-ui'
+  print concat['Player: ' player]
+  selections = selectionList (afetch 'selections' player)
+  roll <- do
+    sizeCount <- foreach repeat 5
+    size = (sizeCount + 2) * 2
+    dice <- repeat (afetch size selections)
+    valueRand <- rand
+    angleRand <- rand
+    [{'size':size 'value':(ceil valueRand * size) 'angle':(floor angleRand * 24)}]
+  changeData
+    count <- foreach getData 'roll-count'
+    print concat['Count: ' count]
+    nextCount = (assoc 'count' count) + 1
+    setData 'roll-count' {'count' : nextCount}
+    newRoll = {'type':'roll' 'number':count 'player':(afetch 'player' player) 'roll':roll}
+    appendDataWithAttrs 'rolls' nil ':flowLevel 3 :index rolls number' newRoll
+
+playerLens = lensBuilder lensKey 'player'
+
+checkPlayer = do
+  player <- foreach getData 'player-ui'
+  playerId = playerLens lensGet player
+  isNil playerId
+  name <- foreach prompt 'Player id?'
+  js['$(body).addClass("inactive")']
+  changeData
+    playerName = concat['player-' name]
+    setData 'player-ui' (playerLens lensSet player playerName)
+    current <- getData playerName
+    isNone current
+    appendDataWithAttrs 'PlayerData' playerName ':flowLevel 3 :index players name' {"type":"player" "name":name}
+
+# DONE UP TO HERE
+
+reset = changeData
+  player <- foreach getData 'player-ui'
+  setData 'player-ui' (lensBuilder lensKey 'selections' lensSet player [{'size':4 'selected':0}{'size':6 'selected':0}{'size':8 'selected':0}{'size':10 'selected':0}{'size':12 'selected':0}])
+
+rollAndReset = do
+  roll
+  reset
+#+END_SRC
+* test
+#+BEGIN_SRC leisure :results def
+changeData (player <- foreach getData 'player-ui') (print player)
+#+END_SRC
+#+RESULTS:
+: {"player":nil "selections":[{"selected":3 "size":4} {"selected":0 "size":6} {"selected":0 "size":8} {"selected":0 "size":10} {"selected":0 "size":12}] "type":"player-ui"}
+* Data functions
+
+#+BEGIN_SRC leisure :results def
+lastBlockId = js["$('[data-shared]').last()[0].id"]
+
+sel = lensBuilder lensKey 'selections'
+
+select size count = changeData
+  print ['LEISURE SELECT ' size count]
+  data <- foreach getData 'player-ui'
+  setSelected sel data (number size) (number count)
+
+notNil = compose not isNil
+
+setSelected sel data size count = do
+  notNil (sel lensGet data)
+  h = sel lensHead
+  (h lensKey 'size' lensGet data) == size
+    setData 'player-ui' (h lensKey 'selected' lensSet data count)
+    setSelected (sel lensTail) data size count
+#+END_SRC
+
+#+BEGIN_SRC coffee :results def
+console.log "BURP"
+{Handlebars, evalLeisure} = Leisure
+window.run = evalLeisure
+
+Handlebars.registerHelper 'equals', (item1, item2)->
+  if String(Number(item1)) == String(item1) then Number(item1) == Number(item2) else item1 == item2
+
+Handlebars.registerHelper 'range', (from, to, options)->
+  res = ''
+  for i in [from..to]
+    res += options.fn String(i)
+  res
+#+END_SRC
+
+#+BEGIN_SRC index
+name: rolls
+order: desc
+#+END_SRC
+
+* Views and Data
+:properties:
+:hidden: true
+:end:
+
+#+BEGIN_SRC html :defview player
+<b>{{name}} </b>
+#+END_SRC
+
+#+BEGIN_SRC html :defview player/edit
+<label>Name:</label> <input type='text' placeholder="Name" data-value='name'>
+#+END_SRC
+
+Rewrite this in Leisure!
+
+#+BEGIN_SRC coffee :control player-ui
+#lz = Leisure.lazy
+#rz = Leisure.resolve
+#runMonad = Leisure.runMonad
+#fancyEnv = Leisure.fancyEnv()
+#
+#window.run = run = (value)-> runMonad value, fancyEnv, ->
+#
+#window.selectDie = (e)->
+#  console.log "SELECT #{e.target.name} #{e.target.value}"
+#  run rz(L_select)(e.target.name, e.target.value)
+#
+#@initializeView = (view)->
+#  holder = $(view).closest("[data-org-headline='1']")
+#  holder.attr 'game', ''
+#  h = $(holder).find("[data-view-type='player-ui/name']")?[0].offsetTop ? 0
+#  b = $(view).find('.results-box')[0]
+#  b.style.height = 'calc(100% - ' + (b.offsetTop - h + 10) + 'px)'
+#+END_SRC
+
+This is template that defines how the dice log displays.  See the dice log for more info.
+
+#+BEGIN_SRC html :defview roll
+<table>
+  <tr><td><label class='playerLabel'>{{{view player}}}:</label></td>
+  <td><div class='roll'>{{#each roll}}
+    <img src="images/d{{size}}-{{value}}-{{angle}}.png">
+  {{/each}}</div></td></tr>
+</table>
+#+END_SRC
+
+#+BEGIN_SRC html :defview player-ui/name
+{{{view player 'edit'}}}
+#+END_SRC
+
+#+BEGIN_SRC html :defview player-ui/header
+  <table>
+    <tr style='height: 1px'>
+      <td style='width: 1px; white-space: nowrap'>
+        <button onclick='run(L_roll())'>Roll</button>
+        <button onclick='run(L_rollAndReset())'>Roll and Reset</button>
+        <button onclick='run(L_reset())'>Reset</button>
+        <br>
+        {{#each selections}}
+        <div class='selector'>
+        <div class='label'>d{{size}}</div>
+        <div class='selectClip'><select name="{{size}}" onchange='selectDie(event)' size='6'>
+          {{#range 0 5}}
+            <option{{#if (equals this ../selected)}} selected{{/if}}>{{this}}</option>
+          {{/range}}
+        </select>
+        </div>
+        </div>
+        {{/each}}
+      </td>
+      <td>
+        {{#find 'players'}}{{{view this}}}{{/find}}
+      </td>
+    </tr>
+  </table>
+#+END_SRC
+
+#+BEGIN_SRC html :defview player-ui
+<div class='results-box'>
+  <div class='results'>
+    {{#find 'rolls'}}{{{view this}}}{{/find}}
+  </div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC css
+body:not(.bar_collapse) .results-box {
+  position: absolute;
+}
+body.inactive .results-box {
+  display: none;
+}
+.results-box {
+  min-width: 768px;
+  position: relative;
+  height: calc(100% - 60px);
+}
+.results-box > table {
+  height: 100%;
+  width: 100%;
+}
+.results-box td {
+  vertical-align: top;
+}
+.results {
+  background: white;
+  display: inline-block;
+  padding: 10px;
+  border: solid black 2px;
+  position: relative;
+  width: calc(100% - 20px);
+  height: calc(100% - 20px);
+  top: 0;
+  left: 0;
+  overflow: auto;
+}
+input {
+  border: solid gray 2px !important;
+}
+.results td {
+  vertical-align: middle;
+}
+.results td img {
+  width: 128px;
+}
+.selector {
+  display: inline-block;
+}
+.playerLabel {
+  display: inline-block;
+  min-width: 10ex
+}
+.selector .label {
+  text-align: center;
+  font-weight: bold;
+}
+.selectClip {
+  display: inline-block;
+  vertical-align: top;
+  overflow: hidden;
+  border: solid gray 1px;
+}
+.selectClip select {
+  padding:10px;
+  margin:-5px -25px -5px -5px;
+}
+[data-edit-mode=fancy][game] {
+  min-height: 500px;
+  position: relative;
+}
+.bar_collapse [data-edit-mode=fancy][game] {
+  position: fixed !important;
+  top: 10px !important;
+  bottom: 0px !important;
+  right: 10px !important;
+  left: 10px !important;
+  z-index: 10000 !important;
+  background: white;
+  border: 4px solid black;
+  border-radius: 10px;
+}
+
+.bar_collapse [data-edit-mode=fancy][game] [data-org-type='text'],
+.bar_collapse [data-edit-mode=fancy][game] .toggle_edit {
+  display: none;
+}
+
+label {
+  white-space: nowrap;
+}
+
+.roll {
+  border: solid gray 3px;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+#+END_SRC
+
+#+BEGIN_SRC leisure :results def
+#toggleLeisureBar
+checkPlayer
+#+END_SRC
+
+#+BEGIN_SRC cs
+window.diceLounge = Lounge
+#+END_SRC
+
+* Dice roller
+:properties:
+:note: sidbar
+:end:
+[[leisure:player-ui/name]][[leisure:player-ui/header]][[leisure:player-ui]]
+
+* Rolls go here
+:properties:
+:hidden: true
+:name: rolls
+:end:
+
+Rolls

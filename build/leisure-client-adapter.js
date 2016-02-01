@@ -357,7 +357,9 @@
       };
 
       Peer.prototype.replaceText = function(start, end, text) {
-        return this.data.replaceText(start, end, text);
+        return this.data.replaceText(start, end, text, {
+          source: 'peer'
+        });
       };
 
       Peer.prototype.registerCallbacks = function(cb) {
@@ -468,48 +470,30 @@
         return;
       }
       peer = data.peer;
-      return changeAdvice(opts, true, {
+      return changeAdvice(data, true, {
         guardedReplaceText: {
           p2p: function(parent) {
             return function(start, end, text, gStart, gEnd) {
-              var block, j, len1, offset, oldBlock, p, ref1, ref2, repl, reps;
+              var reps;
               reps = Replacements.fromArray([start, end, text]);
-              ref1 = this.data.blockOffsetForDocOffset(start), offset = ref1.offset, block = ref1.block;
-              oldBlock = this.data.getBlock(block);
-              ref2 = this.replaceTextEffects(start, end, text, true).repls;
-              for (j = 0, len1 = ref2.length; j < len1; j++) {
-                repl = ref2[j];
-                reps.replace(repl);
-              }
-              p = peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, this.getLength()), [gStart, gEnd]);
-              return p.then(((function(_this) {
-                return function(op) {
-                  var k, len2, ref3, repls, results;
-                  repls = peer.replsForTextOp(TextOperation.fromJSON(op));
-                  ref3 = Replacements.fromArray(repls).getRepls();
-                  results = [];
-                  for (k = 0, len2 = ref3.length; k < len2; k++) {
-                    repl = ref3[k];
-                    results.push(_this.replaceTextEffects(repl.start, repl.end, text));
-                  }
-                  return results;
-                };
-              })(this)))["catch"](function() {});
+              return peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, this.getLength()), [gStart, gEnd]);
             };
           }
         },
         replaceText: {
           p2p: function(parent) {
-            return function(start, end, text, skip) {
+            return function(start, end, text, context, skip) {
               var newLen, oldLen, repl;
-              oldLen = this.getLength();
-              repl = {
-                start: start,
-                end: end,
-                text: text
-              };
-              newLen = oldLen + text.length - end + start;
-              peer.editorCallbacks.change(peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen));
+              if (context.source !== 'peer') {
+                oldLen = this.getLength();
+                repl = {
+                  start: start,
+                  end: end,
+                  text: text
+                };
+                newLen = oldLen + text.length - end + start;
+                peer.editorCallbacks.change(peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen));
+              }
               return parent(start, end, text, skip);
             };
           }

@@ -339,7 +339,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
 
   getLambdaProperties = (body, props)->
     if body instanceof Leisure_anno
-      if !_.contains specialAnnotations, getAnnoName(body)
+      if !_.includes specialAnnotations, getAnnoName(body)
         if !props then props = {}
         value = getAnnoData body
         props[getAnnoName body] = arrayify value
@@ -481,8 +481,8 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
 
   genLets = (ast, names, uniq)->
     bindings = letList ast, []
-    letNames = _.foldl bindings, ((n, l)-> cons (getLetName l), n), names
-    [letUniq, decs, assigns] = _.foldl bindings, ((result, l)->
+    letNames = _.reduce bindings, ((n, l)-> cons (getLetName l), n), names
+    [letUniq, decs, assigns] = _.reduce bindings, ((result, l)->
       [u, code, assigns] = result
       newU = addUniq (getLetName l), letNames, u
       letName = uniqName (getLetName l), newU

@@ -88,52 +88,46 @@
     Observable = (function() {
       function Observable() {
         this.listeners = {};
-        this.suppressTriggers = false;
+        this.suppressingTriggers = false;
       }
 
-      Observable.prototype.add = function(obj) {
-        var callback, results1, type;
-        results1 = [];
-        for (type in obj) {
-          callback = obj[type];
-          results1.push(this.on(type, callback));
-        }
-        return results1;
-      };
-
-      Observable.prototype.remove = function(obj) {
-        var callback, results1, type;
-        results1 = [];
-        for (type in obj) {
-          callback = obj[type];
-          results1.push(this.off(type, callback));
-        }
-        return results1;
-      };
-
       Observable.prototype.on = function(type, callback) {
-        if (!this.listeners[type]) {
-          this.listeners[type] = [];
+        if (typeof type === 'object') {
+          for (type in type) {
+            callback = type[type];
+            this.on(type(callback));
+          }
+        } else {
+          if (!this.listeners[type]) {
+            this.listeners[type] = [];
+          }
+          this.listeners[type].push(callback);
         }
-        this.listeners[type].push(callback);
         return this;
       };
 
       Observable.prototype.off = function(type, callback) {
         var l;
-        if (this.listeners[type]) {
-          this.listeners[type] = (function() {
-            var j, len, ref, results1;
-            ref = this.listeners[type];
-            results1 = [];
-            for (j = 0, len = ref.length; j < len; j++) {
-              l = ref[j];
-              if (l !== callback) {
-                results1.push(l);
+        if (typeof type === 'object') {
+          for (type in type) {
+            callback = type[type];
+            this.off(type, callback);
+          }
+        } else {
+          if (this.listeners[type]) {
+            this.listeners[type] = (function() {
+              var j, len, ref, results1;
+              ref = this.listeners[type];
+              results1 = [];
+              for (j = 0, len = ref.length; j < len; j++) {
+                l = ref[j];
+                if (l !== callback) {
+                  results1.push(l);
+                }
               }
-            }
-            return results1;
-          }).call(this);
+              return results1;
+            }).call(this);
+          }
         }
         return this;
       };
@@ -141,7 +135,7 @@
       Observable.prototype.trigger = function() {
         var args, j, len, listener, ref, results1, type;
         type = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
-        if (!this.suppressTriggers) {
+        if (!this.suppressingTriggers) {
           ref = this.listeners[type] || [];
           results1 = [];
           for (j = 0, len = ref.length; j < len; j++) {
@@ -152,14 +146,14 @@
         }
       };
 
-      Observable.prototype.suppressChanges = function(func) {
+      Observable.prototype.suppressTriggers = function(func) {
         var oldSuppress;
-        oldSuppress = this.suppressTriggers;
-        this.suppressTriggers = true;
+        oldSuppress = this.suppressingTriggers;
+        this.suppressingTriggers = true;
         try {
           return func();
         } finally {
-          this.suppressTriggers = oldSuppress;
+          this.suppressingTriggers = oldSuppress;
         }
       };
 
@@ -1077,10 +1071,6 @@
     BasicEditingOptions = (function(superClass) {
       extend(BasicEditingOptions, superClass);
 
-      BasicEditingOptions.prototype.parseBlocks = function(text) {
-        throw new Error("options.parseBlocks(text) is not implemented");
-      };
-
       BasicEditingOptions.prototype.renderBlock = function(block) {
         throw new Error("options.renderBlock(block) is not implemented");
       };
@@ -1162,20 +1152,14 @@
       };
 
       BasicEditingOptions.prototype.batchReplace = function(replacementFunc, contFunc, errorFunc) {
-        var err, error, replacements;
+        var err, error;
         try {
-          replacements = validateBatch(replacementFunc());
-          this.data.batchReplace(replacements);
+          this.data.batchReplace(replacementFunc());
           return contFunc();
         } catch (error) {
           err = error;
           return errorFunc(err);
         }
-      };
-
-      BasicEditingOptions.prototype.guardedReplaceText = function(start, end, text, gStart, gEnd) {
-        this.replaceText(start, end, text);
-        return Promise.resolve();
       };
 
       BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks) {
@@ -1262,7 +1246,13 @@
       };
 
       BasicEditingOptions.prototype.load = function(name, text) {
-        this.replaceBlocks(this.blockList(), this.parseBlocks(text));
+        this.options.suppressTriggers((function(_this) {
+          return function() {
+            return _this.options.data.suppressTriggers(function() {
+              return _this.replaceText(0, _this.getLength(), text);
+            });
+          };
+        })(this));
         this.rerenderAll();
         return this.trigger('load');
       };
@@ -1418,6 +1408,33 @@
         this.clearMarks();
         this.markNames = {};
       }
+
+      DataStore.prototype.load = function(name, text) {
+        var block, blockMap, i, j, len, newBlocks, prev, ref;
+        blockMap = {};
+        newBlocks = this.parseBlocks(text);
+        for (i = j = 0, len = newBlocks.length; j < len; i = ++j) {
+          block = newBlocks[i];
+          block._id = this.newId();
+          blockMap[block._id] = block;
+          if (prev = newBlocks[i - 1]) {
+            prev.next = block._id;
+            block.prev = prev._id;
+          }
+        }
+        this.first = (ref = newBlocks[0]) != null ? ref._id : void 0;
+        this.blocks = blockMap;
+        return this.makeChanges((function(_this) {
+          return function() {
+            _this.indexBlocks();
+            return _this.trigger('load');
+          };
+        })(this));
+      };
+
+      DataStore.prototype.parseBlocks = function(text) {
+        throw new Error("options.parseBlocks(text) is not implemented");
+      };
 
       DataStore.prototype.newBlockIndex = function(contents) {
         return Fingertree.fromArray(contents != null ? contents : [], {
@@ -1591,23 +1608,29 @@
         }
       };
 
-      DataStore.prototype.batchReplace = function(sortedReplacements) {
-        var j, len, repl, results1;
+      DataStore.prototype.batchReplace = function(replacements) {
+        var j, len, ref, repl, results1;
+        ref = validateBatch(replacements);
         results1 = [];
-        for (j = 0, len = sortedReplacements.length; j < len; j++) {
-          repl = sortedReplacements[j];
-          results1.push(this.replaceText(repl.start, repl.end, repl.text));
+        for (j = 0, len = ref.length; j < len; j++) {
+          repl = ref[j];
+          results1.push(this.replaceText(repl.start, repl.end, repl.text, repl));
         }
         return results1;
       };
 
-      DataStore.prototype.replaceText = function(start, end, text) {
+      DataStore.prototype.replaceText = function(start, end, text, context) {
         var newBlocks, oldBlocks, prev, ref;
         ref = this.changesForReplacement(start, end, text), prev = ref.prev, oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks;
         if (oldBlocks) {
           this.change(this.changesFor(prev, oldBlocks.slice(), newBlocks.slice()));
           return this.floatMarks(start, end, text.length);
         }
+      };
+
+      DataStore.prototype.guardedReplaceText = function(start, end, text, gStart, gEnd) {
+        this.replaceText(start, end, text);
+        return Promise.resolve();
       };
 
       DataStore.prototype.changesForReplacement = function(start, end, text) {
@@ -1939,17 +1962,6 @@
         return text;
       };
 
-      DataStore.prototype.load = function(name, first1, blocks1) {
-        this.first = first1;
-        this.blocks = blocks1;
-        return this.makeChanges((function(_this) {
-          return function() {
-            _this.indexBlocks();
-            return _this.trigger('load');
-          };
-        })(this));
-      };
-
       DataStore.prototype.check = function() {
         var bl, first, lastBlock, next, oldBl, prev, seen;
         seen = {};
@@ -2267,33 +2279,21 @@
       };
 
       DataStoreEditingOptions.prototype.cleanup = function() {
-        return this.data.remove(this.callbacks);
+        return this.data.off(this.callbacks);
       };
 
       DataStoreEditingOptions.prototype.initData = function() {};
 
       DataStoreEditingOptions.prototype.load = function(name, text) {
-        var block, blockMap, i, j, len, newBlocks, prev, ref;
-        blockMap = {};
-        newBlocks = this.parseBlocks(text);
-        for (i = j = 0, len = newBlocks.length; j < len; i = ++j) {
-          block = newBlocks[i];
-          block._id = this.newId();
-          blockMap[block._id] = block;
-          if (prev = newBlocks[i - 1]) {
-            prev.next = block._id;
-            block.prev = prev._id;
-          }
-        }
-        return this.data.load(name, (ref = newBlocks[0]) != null ? ref._id : void 0, blockMap);
+        return this.data.load(name, text);
       };
 
       DataStoreEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks) {
         return this.replaceBlocks(prev, oldBlocks, newBlocks);
       };
 
-      DataStoreEditingOptions.prototype.replaceText = function(start, end, text) {
-        return this.data.replaceText(start, end, text);
+      DataStoreEditingOptions.prototype.replaceText = function(start, end, text, context) {
+        return this.data.replaceText(start, end, text, context);
       };
 
       DataStoreEditingOptions.prototype.getBlock = function(id) {

@@ -296,7 +296,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 
   defaultEnv.write = (str)-> process.stdout.write(str)
   defaultEnv.err = (err)-> @write "ENV Error: #{err.stack ? err}"
-  defaultEnv.prompt = ->throw new Error "Environment does not support prompting!"
+  defaultEnv.prompt = ->throw new Error 'Environment does not support prompting!'
 
   monadModeSync = false
 
@@ -515,7 +515,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
         #console.log "PROTECT CONTINUING WITH RESULT: #{result}"
         if env.errorHandlers.length
           if env.errorHandlers[env.errorHandlers.length - 1] == hnd then env.errorHandlers.pop()
-          else if _.contains(env.errorHandlers, hnd)
+          else if _.inclues(env.errorHandlers, hnd)
             while env.errorHandlers[env.errorHandlers.length - 1] != hnd
               env.errorHandlers.pop()
         cont right result), []
