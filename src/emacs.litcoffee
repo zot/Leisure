@@ -73,7 +73,7 @@ Emacs connection
           else
             targetLen = data.getDocLength() - (end - start) + text.length
             #editor.options.makeStructureChange start, end, text, repl
-            editor.options.replaceText start, end, text, context
+            editor.options.data.replaceText start, end, text, context
             endLen = data.getDocLength()
             if endLen != targetLen
               diagMessage "BAD DOC LENGTH AFTER REPLACEMENT, expected <#{targetLen}> but ggot<#{endLen}>"

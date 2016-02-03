@@ -151,6 +151,9 @@ same names for blocks other than printing a warning.
               if !@namedBlocks[name] || !(@getBlockNamed name).local then deletes.push name
             for name in deletes
               @deleteLocalBlock name
+        replaceText: (start, end, text, context)->
+          super start, end, text, context
+          if context then @runTextFilters context
         makeChanges: (func)->
           if newChange = !@changeCount
             for filter in @filters
@@ -198,8 +201,7 @@ Let's just call this poetic license for the time being...
             @loading = false
         setBlock: (id, block)->
           @makeChanges =>
-            @runTextFilters ctx = @contextForBlock id, {text: block.text, source: 'code'}
-            @runFilters @getBlock(id), block, ctx
+            @runFilters @getBlock(id), block
             super id, block
         contextForBlock: (id, context)->
           if start = @offsetForBlock id
@@ -208,8 +210,7 @@ Let's just call this poetic license for the time being...
             context
         deleteBlock: (id)->
           @makeChanges =>
-            @runTextFilters ctx = @contextForBlock id, {text: '', source: 'code'}
-            @runFilters @getBlock(id), null, ctx
+            @runFilters @getBlock(id), null
             super id
         addFilter: (filter)-> @filters.push filter
         removeFilter: (filter)-> _.remove @filters, (i)-> i == filter
@@ -472,7 +473,7 @@ that must be done regardless of the source of changes
         textForDataNamed: (name, data, attrs)->
           """
           #{if name then "#+NAME: #{name}\n" else ''}#+BEGIN_SRC yaml #{(":#{k} #{v}" for k, v of attrs).join ' '}
-          #{dump(data, _.merge {sortKeys: true, flowLevel: 2}, attrs ? {}).trim()}
+          #{dump(data, _.defaults attrs ? {}, {sortKeys: true, flowLevel: 2}).trim()}
           #+END_SRC
           
           """
@@ -697,11 +698,13 @@ may be called more than once.  changeData() returns a promise.
               for name of @dataChanges.sharedRemoves
                 b = @blockBounds name
                 b.text = ''
+                b.source = 'code'
                 repls.push b
               for name, {parent, parentType, block} of @dataChanges.sharedInserts
                 if b = @blockBounds (if parentType == 'block' then parent else @data.lastChild @data.getNamedBlockId parent)
                   b.start = b.end
                   b.text = block.text
+                  b.source = 'code'
                   delete b.gStart
                   delete b.gEnd
                   repls.push b
@@ -709,6 +712,7 @@ may be called more than once.  changeData() returns a promise.
               for name, block of @dataChanges.sharedSets
                 b = @blockBounds name
                 b.text = block.text
+                b.source = 'code'
                 repls.push b
               repls
             finally

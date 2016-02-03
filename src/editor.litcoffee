@@ -1180,7 +1180,7 @@ sorted in reverse order by position.
 
         batchReplace: (replacements)->
           for repl in validateBatch replacements
-            @replaceText repl.start, repl.end, repl.text
+            @replaceText repl.start, repl.end, repl.text, repl
         replaceText: (start, end, text, context)->
           {prev, oldBlocks, newBlocks} = @changesForReplacement start, end, text
           if oldBlocks

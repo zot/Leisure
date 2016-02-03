@@ -1,6 +1,6 @@
 Support code for Leisure
 
-    define ['./base', './ast', './runtime', './gen', './eval'], (Base, Ast, Runtime, Gen, Eval)->
+    define ['./base', './ast', './runtime', './gen', './eval', './org'], (Base, Ast, Runtime, Gen, Eval, Org)->
       {
         define
         getType
@@ -41,6 +41,9 @@ Support code for Leisure
       {
         evalLeisure
       } = Eval
+      {
+        parseCodeAttributes
+      } = Org
 
       currentDataChange = null
 
@@ -159,7 +162,7 @@ Support code for Leisure
       define '_appendDataWithAttrs', (headline, name, attrs, value)->
         if r = doPartial arguments then r else
           new Monad2 'appendDataWithAttrs', (env, cont)->
-            env.opts.appendDataToHeadline rz(headline), (!isNil(rz name) && rz(name)), rz(value), rz(attrs)
+            env.opts.appendDataToHeadline rz(headline), (!isNil(rz name) && rz(name)), rz(value), parseCodeAttributes(rz(attrs))
             cont jsonConvert rz value
 
       define 'removeData', (name)->

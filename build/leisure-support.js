@@ -2,8 +2,8 @@
 (function() {
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './ast', './runtime', './gen', './eval'], function(Base, Ast, Runtime, Gen, Eval) {
-    var Monad2, Nil, Node, _false, _identity, _true, _unit, acons, baseElements, baseStrokeWidth, cons, createNode, currentDataChange, defaultEnv, define, doPartial, evalLeisure, foldLeft, getMaxStrokeWidth, getSvgElement, getType, getValue, isNil, isPartial, jsonConvert, lazy, lc, lz, makeHamt, makeSyncMonad, newConsFrom, none, partialCall, primFoldLeft, primSvgMeasure, ref, resolve, root, runMonad2, rz, setValue, some, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml;
+  define(['./base', './ast', './runtime', './gen', './eval', './org'], function(Base, Ast, Runtime, Gen, Eval, Org) {
+    var Monad2, Nil, Node, _false, _identity, _true, _unit, acons, baseElements, baseStrokeWidth, cons, createNode, currentDataChange, defaultEnv, define, doPartial, evalLeisure, foldLeft, getMaxStrokeWidth, getSvgElement, getType, getValue, isNil, isPartial, jsonConvert, lazy, lc, lz, makeHamt, makeSyncMonad, newConsFrom, none, parseCodeAttributes, partialCall, primFoldLeft, primSvgMeasure, ref, resolve, root, runMonad2, rz, setValue, some, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml;
     ref = root = Ast, define = ref.define, getType = ref.getType, cons = ref.cons, unescapePresentationHtml = ref.unescapePresentationHtml, isNil = ref.isNil, isPartial = ref.isPartial, partialCall = ref.partialCall, doPartial = ref.doPartial, Nil = ref.Nil;
     Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
     rz = resolve;
@@ -11,6 +11,7 @@
     lc = Leisure_call;
     runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, _false = Runtime._false, _identity = Runtime._identity, _unit = Runtime._unit, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2, some = Runtime.some, none = Runtime.none, acons = Runtime.lacons;
     evalLeisure = Eval.evalLeisure;
+    parseCodeAttributes = Org.parseCodeAttributes;
     currentDataChange = null;
     getSvgElement = function(id) {
       var el, svg;
@@ -186,7 +187,7 @@
         return r;
       } else {
         return new Monad2('appendDataWithAttrs', function(env, cont) {
-          env.opts.appendDataToHeadline(rz(headline), !isNil(rz(name)) && rz(name), rz(value), rz(attrs));
+          env.opts.appendDataToHeadline(rz(headline), !isNil(rz(name)) && rz(name), rz(value), parseCodeAttributes(rz(attrs)));
           return cont(jsonConvert(rz(value)));
         });
       }

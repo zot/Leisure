@@ -130,6 +130,13 @@
         })(this));
       };
 
+      OrgData.prototype.replaceText = function(start, end, text, context) {
+        OrgData.__super__.replaceText.call(this, start, end, text, context);
+        if (context) {
+          return this.runTextFilters(context);
+        }
+      };
+
       OrgData.prototype.makeChanges = function(func) {
         var filter, j, l, len, len1, newChange, ref, ref1;
         if (newChange = !this.changeCount) {
@@ -223,12 +230,7 @@
       OrgData.prototype.setBlock = function(id, block) {
         return this.makeChanges((function(_this) {
           return function() {
-            var ctx;
-            _this.runTextFilters(ctx = _this.contextForBlock(id, {
-              text: block.text,
-              source: 'code'
-            }));
-            _this.runFilters(_this.getBlock(id), block, ctx);
+            _this.runFilters(_this.getBlock(id), block);
             return OrgData.__super__.setBlock.call(_this, id, block);
           };
         })(this));
@@ -246,12 +248,7 @@
       OrgData.prototype.deleteBlock = function(id) {
         return this.makeChanges((function(_this) {
           return function() {
-            var ctx;
-            _this.runTextFilters(ctx = _this.contextForBlock(id, {
-              text: '',
-              source: 'code'
-            }));
-            _this.runFilters(_this.getBlock(id), null, ctx);
+            _this.runFilters(_this.getBlock(id), null);
             return OrgData.__super__.deleteBlock.call(_this, id);
           };
         })(this));
@@ -845,10 +842,10 @@
             results1.push(":" + k + " " + v);
           }
           return results1;
-        })()).join(' ')) + "\n" + (dump(data, _.merge({
+        })()).join(' ')) + "\n" + (dump(data, _.defaults(attrs != null ? attrs : {}, {
           sortKeys: true,
           flowLevel: 2
-        }, attrs != null ? attrs : {})).trim()) + "\n#+END_SRC\n";
+        })).trim()) + "\n#+END_SRC\n";
       };
 
       OrgData.prototype.checkViewChange = function(oldBlock, newBlock, isDefault) {
@@ -1261,6 +1258,7 @@
               for (name in _this.dataChanges.sharedRemoves) {
                 b = _this.blockBounds(name);
                 b.text = '';
+                b.source = 'code';
                 repls.push(b);
               }
               ref = _this.dataChanges.sharedInserts;
@@ -1269,6 +1267,7 @@
                 if (b = _this.blockBounds((parentType === 'block' ? parent : _this.data.lastChild(_this.data.getNamedBlockId(parent))))) {
                   b.start = b.end;
                   b.text = block.text;
+                  b.source = 'code';
                   delete b.gStart;
                   delete b.gEnd;
                   repls.push(b);
@@ -1281,6 +1280,7 @@
                 block = ref2[name];
                 b = _this.blockBounds(name);
                 b.text = block.text;
+                b.source = 'code';
                 repls.push(b);
               }
               return repls;

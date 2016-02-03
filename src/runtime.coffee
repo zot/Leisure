@@ -117,7 +117,12 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     else booleanFor getType(rz data) == getDataType(rz func)
   define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
   # using arity makes compiling parseAst.lsr crash
-  define 'assert', (bool)->(msg)->(expr)-> rz(bool)(expr)(-> throw new Error(rz msg))
+  define 'assert', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
+    err = new Error(rz msg)
+    err.stack = "Leisure stack:\n#{err}\n   at #{L$thunkStack.reverse().join '\n   at '}\n\nJS Stack:\n#{err.stack}"
+    console.error err.stack
+    throw err
+    )
   define 'assertLog', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
     console.log new Error(rz msg).stack
     console.log "LOGGED ERROR -- RESUMING EXECUTION..."

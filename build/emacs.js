@@ -68,7 +68,7 @@
           return editor.options.load('emacs', text, context);
         } else {
           targetLen = data.getDocLength() - (end - start) + text.length;
-          editor.options.replaceText(start, end, text, context);
+          editor.options.data.replaceText(start, end, text, context);
           endLen = data.getDocLength();
           if (endLen !== targetLen) {
             return diagMessage("BAD DOC LENGTH AFTER REPLACEMENT, expected <" + targetLen + "> but ggot<" + endLen + ">");

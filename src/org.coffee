@@ -467,18 +467,20 @@ define ['lib/lazy'], (Lazy)->
       offset: @offset
       name: @name
       info: @info
-    attributes: ->
-      o = _(@info.split(keywordPropertyRE)).drop(1).map((str)-> str.trim())
-      if o.isEmpty() then null
-      else
-        attr = {}
-        for [k,v] in o.chunk(2).toArray()
-          if attr[k]
-            if !(attr[k] instanceof Array) then attr[k] = [attr[k]]
-            attr[k].push v
-          else attr[k] = v
-        attr
+    attributes: -> parseCodeAttributes @info
     lead: -> _(@info.split(keywordPropertyRE)).first()
+
+  parseCodeAttributes = (attrText)->
+    o = _(attrText.split(keywordPropertyRE)).drop(1).map((str)-> str.trim())
+    if o.isEmpty() then null
+    else
+      attr = {}
+      for [k,v] in o.chunk(2).toArray()
+        if attr[k]
+          if !(attr[k] instanceof Array) then attr[k] = [attr[k]]
+          attr[k].push v
+        else attr[k] = v
+      attr
 
   class Source extends Keyword
     constructor: (@text, @offset, @name, @info, @infoPos, @content, @contentPos)-> super @text, @offset, @name, @info
@@ -786,4 +788,5 @@ define ['lib/lazy'], (Lazy)->
     SRC_INFO
     nextOrgNode
     AttrHtml
+    parseCodeAttributes
   }

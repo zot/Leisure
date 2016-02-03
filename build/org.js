@@ -29,7 +29,7 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['lib/lazy'], function(Lazy) {
-    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, UnknownDeclaration, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, declRE, drawerRE, endRE, exampleEndRE, exampleStartRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, last, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseDrawer, parseExample, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, parseUnknown, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
+    var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, HTML_INFO, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, MeatParser, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, UnknownDeclaration, _, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, declRE, drawerRE, endRE, exampleEndRE, exampleStartRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, inListItem, keywordPropertyRE, keywordRE, last, leisurePathRE, lineBreakPat, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, meatStart, nextOrgNode, parseAttr, parseCodeAttributes, parseDrawer, parseExample, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, parseUnknown, propertyRE, resultsLineRE, resultsRE, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE;
     _ = Lazy._;
     todoKeywords = ['TODO', 'DONE'];
     declRE = /^#\+.*$/m;
@@ -1023,28 +1023,7 @@ misrepresented as being the original software.
       };
 
       Keyword.prototype.attributes = function() {
-        var attr, i, k, len, o, ref, ref1, v;
-        o = _(this.info.split(keywordPropertyRE)).drop(1).map(function(str) {
-          return str.trim();
-        });
-        if (o.isEmpty()) {
-          return null;
-        } else {
-          attr = {};
-          ref = o.chunk(2).toArray();
-          for (i = 0, len = ref.length; i < len; i++) {
-            ref1 = ref[i], k = ref1[0], v = ref1[1];
-            if (attr[k]) {
-              if (!(attr[k] instanceof Array)) {
-                attr[k] = [attr[k]];
-              }
-              attr[k].push(v);
-            } else {
-              attr[k] = v;
-            }
-          }
-          return attr;
-        }
+        return parseCodeAttributes(this.info);
       };
 
       Keyword.prototype.lead = function() {
@@ -1054,6 +1033,30 @@ misrepresented as being the original software.
       return Keyword;
 
     })(Meat);
+    parseCodeAttributes = function(attrText) {
+      var attr, i, k, len, o, ref, ref1, v;
+      o = _(attrText.split(keywordPropertyRE)).drop(1).map(function(str) {
+        return str.trim();
+      });
+      if (o.isEmpty()) {
+        return null;
+      } else {
+        attr = {};
+        ref = o.chunk(2).toArray();
+        for (i = 0, len = ref.length; i < len; i++) {
+          ref1 = ref[i], k = ref1[0], v = ref1[1];
+          if (attr[k]) {
+            if (!(attr[k] instanceof Array)) {
+              attr[k] = [attr[k]];
+            }
+            attr[k].push(v);
+          } else {
+            attr[k] = v;
+          }
+        }
+        return attr;
+      }
+    };
     Source = (function(superClass) {
       extend(Source, superClass);
 
@@ -1556,7 +1559,8 @@ misrepresented as being the original software.
       SRC_BOILERPLATE: SRC_BOILERPLATE,
       SRC_INFO: SRC_INFO,
       nextOrgNode: nextOrgNode,
-      AttrHtml: AttrHtml
+      AttrHtml: AttrHtml,
+      parseCodeAttributes: parseCodeAttributes
     };
   });
 

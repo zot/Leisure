@@ -1614,7 +1614,7 @@
         results1 = [];
         for (j = 0, len = ref.length; j < len; j++) {
           repl = ref[j];
-          results1.push(this.replaceText(repl.start, repl.end, repl.text));
+          results1.push(this.replaceText(repl.start, repl.end, repl.text, repl));
         }
         return results1;
       };
