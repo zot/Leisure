@@ -160,7 +160,11 @@ misrepresented as being the original software.
       return function(msg) {
         return function(expr) {
           return rz(bool)(expr)(function() {
-            throw new Error(rz(msg));
+            var err;
+            err = new Error(rz(msg));
+            err.stack = "Leisure stack:\n" + err + "\n   at " + (L$thunkStack.reverse().join('\n   at ')) + "\n\nJS Stack:\n" + err.stack;
+            console.error(err.stack);
+            throw err;
           });
         };
       };

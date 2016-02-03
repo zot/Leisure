@@ -218,9 +218,9 @@ This is template that defines how the dice log displays.  See the dice log for m
   <table>
     <tr style='height: 1px'>
       <td style='width: 1px; white-space: nowrap'>
-        <button onclick='run(L_roll())'>Roll</button>
-        <button onclick='run(L_rollAndReset())'>Roll and Reset</button>
-        <button onclick='run(L_reset())'>Reset</button>
+        <button onclick='run("roll")'>Roll</button>
+        <button onclick='run("rollAndReset")'>Roll and Reset</button>
+        <button onclick='run("reset")'>Reset</button>
         <br>
         {{#each selections}}
         <div class='selector'>
