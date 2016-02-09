@@ -172,8 +172,7 @@ Support code for Leisure
 
       evalLeisure """
       defMacro 'changeData' \\list . ['_changeData' ['do' | list]]
-      setData name value = _setData name (toJson value)
+      setData name data = _setData name (toJson data)
       appendData headline name data = _appendData headline name (toJson data)
-      appendDataWithAttrs headline name attrs data =
-        _appendDataWithAttrs headline name attrs (toJson data)
+      appendDataWithAttrs headline name attrs data = _appendDataWithAttrs headline name attrs (toJson data)
       """

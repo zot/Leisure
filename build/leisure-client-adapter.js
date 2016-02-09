@@ -357,7 +357,10 @@
       };
 
       Peer.prototype.replaceText = function(start, end, text) {
-        return this.data.replaceText(start, end, text, {
+        return this.data.replaceText({
+          start: start,
+          end: end,
+          text: text,
           source: 'peer'
         });
       };
@@ -470,7 +473,7 @@
         return;
       }
       peer = data.peer;
-      return changeAdvice(data, true, {
+      changeAdvice(data, true, {
         guardedReplaceText: {
           p2p: function(parent) {
             return function(start, end, text, gStart, gEnd) {
@@ -482,32 +485,37 @@
         },
         replaceText: {
           p2p: function(parent) {
-            return function(start, end, text, context, skip) {
-              var newLen, oldLen, repl;
-              if (context.source !== 'peer') {
+            return function(repl) {
+              var end, newLen, oldLen, start, text;
+              if (repl.source !== 'peer') {
                 oldLen = this.getLength();
-                repl = {
-                  start: start,
-                  end: end,
-                  text: text
-                };
+                start = repl.start, end = repl.end, text = repl.text;
                 newLen = oldLen + text.length - end + start;
                 peer.editorCallbacks.change(peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen));
               }
-              return parent(start, end, text, skip);
+              return parent(repl);
             };
           }
-        },
+        }
+      });
+      return changeAdvice(opts, true, {
         batchReplace: {
           p2p: function(parent) {
             return function(replacementFunc, cont, error) {
-              var guards, j, len1, ops, r, repls;
-              repls = validateBatch(replacementFunc()).reverse();
+              var guards, ops, r, repls;
+              repls = validateBatch(replacementFunc());
               ops = peer.opsFor(repls, this.getLength());
-              for (j = 0, len1 = repls.length; j < len1; j++) {
-                r = repls[j];
-                guards = [r.gStart, r.end];
-              }
+              guards = _.flatten((function() {
+                var j, len1, results;
+                results = [];
+                for (j = 0, len1 = repls.length; j < len1; j++) {
+                  r = repls[j];
+                  if (r.gStart != null) {
+                    results.push([r.gStart, r.gEnd]);
+                  }
+                }
+                return results;
+              })());
               return peer.sendGuardedOperation(peer.editorClient.revision, ops, guards).then(cont, error)["catch"](error);
             };
           }

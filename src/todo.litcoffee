@@ -51,7 +51,7 @@ Cycle the todo state for a headline
             else @endState.name
             newText = m[1] + ' ' + next + (if next then ' ' else '') + block.text.substring m[0].length
             start = @data.offsetForBlock block
-            @data.replaceText start, start + block.text.length, newText
+            @data.replaceText {start, end: start + block.text.length, text: newText, source: 'edit'}
         bind: (opts)->
           opts.bindings['S-RIGHT'] = (editor, e, r)=>
             if @shiftRight opts.editor.docOffset(r)

@@ -351,12 +351,11 @@ wanted to extend our experiment into programming environments.
 Leisure was already web-based, why shouldn't it exploit the powers of
 the Web?
 
-We didn't start from orgmode -- we hadn't even heard of it.  We did,
-however, already know the power of text; we had experimented with
-text-based computing environments more than [[http://ober.sourceforge.net/][10 years ago]], we even had
-a text-based auto-formatted table that could use spreadsheet formulas!
-So when we did learn about orgmode, we immediately felt a great
-affinity for it.
+We didn't start from orgmode -- we hadn't even heard of it. We did, however,
+already know the power of text; we had experimented with text-based computing
+environments more than [[http://ober.sourceforge.net/][10 years ago]], based on Oberon, Wily, and Acme, we even
+had a text-based auto-formatted table that could use spreadsheet formulas! So
+when learned about orgmode, we immediately felt a great affinity for it.
 
 We started with Markdown and it was great.  For a while.  When we
 decided that Leisure documents should contain data, as well as code,

@@ -198,7 +198,7 @@
         return cont(_unit);
       });
     });
-    return evalLeisure("defMacro 'changeData' \\list . ['_changeData' ['do' | list]]\nsetData name value = _setData name (toJson value)\nappendData headline name data = _appendData headline name (toJson data)\nappendDataWithAttrs headline name attrs data =\n  _appendDataWithAttrs headline name attrs (toJson data)");
+    return evalLeisure("defMacro 'changeData' \\list . ['_changeData' ['do' | list]]\nsetData name data = _setData name (toJson data)\nappendData headline name data = _appendData headline name (toJson data)\nappendDataWithAttrs headline name attrs data = _appendDataWithAttrs headline name attrs (toJson data)");
   });
 
 }).call(this);

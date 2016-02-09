@@ -72,11 +72,7 @@ Emacs connection
             editor.options.load 'emacs', text, context
           else
             targetLen = data.getDocLength() - (end - start) + text.length
-            #editor.options.makeStructureChange start, end, text, repl
-            editor.options.data.replaceText start, end, text, context
-            endLen = data.getDocLength()
-            if endLen != targetLen
-              diagMessage "BAD DOC LENGTH AFTER REPLACEMENT, expected <#{targetLen}> but ggot<#{endLen}>"
+            editor.options.replaceText context
 
       receiveFile = (data, msg)->
         [lead, id] = msg.match /^([^ ]+) +/
