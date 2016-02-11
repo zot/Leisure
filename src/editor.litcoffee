@@ -483,6 +483,13 @@ Events:
             end: r.start + r.length
             text: ''
             source: 'edit'
+          sel = @getSelectedDocRange()
+          @selectDocRange
+            type: 'Caret'
+            start: r.start
+            length: 0
+            scrollTop: sel.scrollTop
+            scrollLeft: sel.scrollLeft
         bind: ->
           @bindDragAndDrop()
           @bindClipboard()

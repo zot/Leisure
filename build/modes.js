@@ -376,13 +376,17 @@
         var block, pos, sel;
         sel = getSelection();
         if (sel.type === 'Caret') {
-          pos = opts.editor.docOffset(sel.getRangeAt(0));
+          pos = opts.editor.getSelectedDocRange();
           sel = opts.editor.getSelectedBlockRange();
           block = opts.getBlock(sel.block);
           if (!opts.isToggled(block) && block.type !== 'code' && sel.offset === 0 && block.text[0] === '\n' && block.text[1] !== '\n') {
             e.preventDefault();
             opts.editor.replace(e, sel, (getEventChar(e)) + '\n', false);
-            return opts.editor.domCursorForDocOffset(pos + 1).moveCaret();
+            pos.type = 'Caret';
+            pos.length = 0;
+            pos.start++;
+            opts.editor.selectDocRange(pos);
+            return;
           }
         }
         return parent(e);

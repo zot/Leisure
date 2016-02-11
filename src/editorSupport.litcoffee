@@ -113,7 +113,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
           @importPromise = Promise.resolve()
         change: (changes)->
           ch = @makeChange changes
-          @scheduleEvals().then => @trigger 'change', ch
+          @trigger 'change', ch
         addImported: (importFile, type, name)->
           if typeof importFile == 'string'
             if @importRecords[type][name]
@@ -637,8 +637,9 @@ NMap is a very simple trie.
           @dataChanges = null
           @pendingDataChanges = null
         dataChanged: (changes)->
-          super changes
-          initializePendingViews()
+          preserveSelection =>
+            super changes
+            initializePendingViews()
         dataLoaded: ->
           super()
           @rerenderAll()
@@ -1154,7 +1155,7 @@ may be called more than once.  changeData() returns a promise.
         #  .on 'mouseenter', -> configureMenu $("#selectionBubble ul")
         #$("#selectionBubble ul").menu select: (event, ui)-> console.log "MENU SELECT"; false
         monitorSelectionChange()
-    
+
       selectionMenu = """
       <div>
       <ul>
@@ -1170,7 +1171,7 @@ may be called more than once.  changeData() returns a promise.
       </ul>
       </div>
       """
-      
+
       configureMenu = (menu)->
         console.log "configure menu"
         #if getSelection().type == 'Caret'
@@ -1179,7 +1180,7 @@ may be called more than once.  changeData() returns a promise.
         #  if bl?.type == 'chunk'
         #    return menu.find("[name='insert']").removeClass 'ui-state-disabled'
         #menu.find("[name='insert']").addClass 'ui-state-disabled'
-      
+
       actualSelectionUpdate = ->
         if selectionActive
           if editor = findEditor getSelection().focusNode

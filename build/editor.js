@@ -525,7 +525,7 @@
       };
 
       LeisureEditCore.prototype.handleDelete = function(e, s, forward) {
-        var r;
+        var r, sel;
         e.preventDefault();
         r = this.getSelectedDocRange();
         if (r.type === 'None' || (r.type === 'Caret' && ((forward && r.start >= this.options.getLength() - 1) || (!forward && r.start === 0)))) {
@@ -537,11 +537,19 @@
             r.start -= 1;
           }
         }
-        return this.options.replaceText({
+        this.options.replaceText({
           start: r.start,
           end: r.start + r.length,
           text: '',
           source: 'edit'
+        });
+        sel = this.getSelectedDocRange();
+        return this.selectDocRange({
+          type: 'Caret',
+          start: r.start,
+          length: 0,
+          scrollTop: sel.scrollTop,
+          scrollLeft: sel.scrollLeft
         });
       };
 

@@ -58,11 +58,7 @@
       OrgData.prototype.change = function(changes) {
         var ch;
         ch = this.makeChange(changes);
-        return this.scheduleEvals().then((function(_this) {
-          return function() {
-            return _this.trigger('change', ch);
-          };
-        })(this));
+        return this.trigger('change', ch);
       };
 
       OrgData.prototype.addImported = function(importFile, type, name) {
@@ -1147,8 +1143,12 @@
       }
 
       OrgEditing.prototype.dataChanged = function(changes) {
-        OrgEditing.__super__.dataChanged.call(this, changes);
-        return initializePendingViews();
+        return preserveSelection((function(_this) {
+          return function() {
+            OrgEditing.__super__.dataChanged.call(_this, changes);
+            return initializePendingViews();
+          };
+        })(this));
       };
 
       OrgEditing.prototype.dataLoaded = function() {
