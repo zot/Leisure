@@ -274,14 +274,15 @@ Evaulation support for Leisure
         vars = {}
         if varDefs
           for v in (if _.isArray varDefs then varDefs else [varDefs])
-            if (eq = v.indexOf '=') > 0
-              value = v.substring(eq + 1).trim()
-              if value[0] in "'\"0123456789" then value = JSON.parse value
-              else if bl = data.getBlockNamed value
-                blockIds[bl._id] = true
-                value = bl.yaml
-              else value = value.trim()
-              vars[v.substring(0, eq).trim()] = value
+            [ignore, name, def, value] = v.match /^([^=]*)(=(.*))?$/
+            name = name.trim()
+            if !def then value = name
+            if value[0] in "'\"0123456789" then value = JSON.parse value
+            else if bl = data.getBlockNamed value
+              blockIds[bl._id] = true
+              value = bl.yaml
+            else value = value.trim()
+            vars[name] = value
         [vars, _.keys blockIds]
 
       escaped =

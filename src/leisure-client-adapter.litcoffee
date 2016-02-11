@@ -244,7 +244,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           popLastEmpty()
           #console.log "INCOMING REPLACE: #{JSON.stringify repls}"
           repls
-        replaceText: (start, end, text)-> @data.replaceText start, end, text, source: 'peer'
+        replaceText: (start, end, text)-> @data.replaceText {start, end, text, source: 'peer'}
         # OT API
         registerCallbacks: (cb)->
           if cb.client_left then @serverCallbacks = cb
@@ -301,17 +301,18 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           guardedReplaceText: p2p: (parent)-> (start, end, text, gStart, gEnd)->
             reps = Replacements.fromArray [start, end, text]
             peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, @getLength()), [gStart, gEnd])
-          replaceText: p2p: (parent)-> (start, end, text, context, skip)->
-            if context.source != 'peer'
+          replaceText: p2p: (parent)-> (repl)->
+            if repl.source != 'peer'
               oldLen = @getLength()
-              repl = {start, end, text}
+              {start, end, text} = repl
               newLen = oldLen + text.length - end + start
               peer.editorCallbacks.change peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen)
-            parent start, end, text, skip
+            parent repl
+        changeAdvice opts, true,
           batchReplace: p2p: (parent)-> (replacementFunc, cont, error)->
-            repls = validateBatch(replacementFunc()).reverse()
+            repls = validateBatch(replacementFunc())
             ops = peer.opsFor repls, @getLength()
-            guards = [r.gStart, r.end] for r in repls
+            guards = _.flatten([r.gStart, r.gEnd] for r in repls when r.gStart?)
             peer.sendGuardedOperation(peer.editorClient.revision, ops, guards)
               .then cont, error
               .catch error

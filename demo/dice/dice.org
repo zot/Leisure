@@ -68,6 +68,15 @@ count: 0
 :properties:
 :name: PlayerData
 :end:
+#+NAME: player-Bubba
+#+BEGIN_SRC yaml :flowLevel 3 :index players name
+name: Bubba
+type: player
+#+END_SRC
+* SCRATCH
+#+BEGIN_SRC leisure :results dynamic
+getData 'roll-count'
+#+END_SRC
 * Code
 #+BEGIN_SRC leisure :results def
 selectionList sel = map (\el . [(afetch 'size' el) | (afetch 'selected' el)]) sel
@@ -86,7 +95,7 @@ roll = do
   changeData
     count <- foreach getData 'roll-count'
     print concat['Count: ' count]
-    nextCount = (assoc 'count' count) + 1
+    nextCount <- (assoc 'count' count) + 1
     setData 'roll-count' {'count' : nextCount}
     newRoll = {'type':'roll' 'number':count 'player':(afetch 'player' player) 'roll':roll}
     appendDataWithAttrs 'rolls' nil ':flowLevel 3 :index rolls number' newRoll
@@ -105,8 +114,6 @@ checkPlayer = do
     current <- getData playerName
     isNone current
     appendDataWithAttrs 'PlayerData' playerName ':flowLevel 3 :index players name' {"type":"player" "name":name}
-
-# DONE UP TO HERE
 
 reset = changeData
   player <- foreach getData 'player-ui'
@@ -147,7 +154,13 @@ setSelected sel data size count = do
 #+BEGIN_SRC coffee :results def
 console.log "BURP"
 {Handlebars, evalLeisure} = Leisure
-window.run = evalLeisure
+window.run = (str)->
+  old = Leisure.defaultEnv.opts
+  Leisure.defaultEnv.opts = Lounge?.env.opts ? Leisure.findEditor(event?.srcElement)?.options
+  try
+    evalLeisure str
+  finally
+    Leisure.defaultEnv.opts = old
 
 Handlebars.registerHelper 'equals', (item1, item2)->
   if String(Number(item1)) == String(item1) then Number(item1) == Number(item2) else item1 == item2
@@ -336,7 +349,21 @@ label {
 }
 
 .roll {
-  border: solid gray 3px;
+  border: solid gr#+BEGIN_SRC yaml :flowLevel 3 :index rolls number
+number:
+  count: 0
+player: player-Bubba
+roll: []
+type: roll
+#+END_SRC
+#+BEGIN_SRC yaml :flowLevel 3 :index rolls number
+number:
+  count: 0
+player: player-Bubba
+roll: []
+type: roll
+#+END_SRC
+ay 3px;
 }
 
 .inline-block {

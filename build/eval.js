@@ -431,25 +431,27 @@
       return knownLanguages[name != null ? name.toLowerCase() : void 0];
     };
     blockVars = function(data, varDefs) {
-      var bl, blockIds, eq, i, len, ref, ref1, v, value, vars;
+      var bl, blockIds, def, i, ignore, len, name, ref, ref1, ref2, v, value, vars;
       blockIds = {};
       vars = {};
       if (varDefs) {
         ref = (_.isArray(varDefs) ? varDefs : [varDefs]);
         for (i = 0, len = ref.length; i < len; i++) {
           v = ref[i];
-          if ((eq = v.indexOf('=')) > 0) {
-            value = v.substring(eq + 1).trim();
-            if (ref1 = value[0], indexOf.call("'\"0123456789", ref1) >= 0) {
-              value = JSON.parse(value);
-            } else if (bl = data.getBlockNamed(value)) {
-              blockIds[bl._id] = true;
-              value = bl.yaml;
-            } else {
-              value = value.trim();
-            }
-            vars[v.substring(0, eq).trim()] = value;
+          ref1 = v.match(/^([^=]*)(=(.*))?$/), ignore = ref1[0], name = ref1[1], def = ref1[2], value = ref1[3];
+          name = name.trim();
+          if (!def) {
+            value = name;
           }
+          if (ref2 = value[0], indexOf.call("'\"0123456789", ref2) >= 0) {
+            value = JSON.parse(value);
+          } else if (bl = data.getBlockNamed(value)) {
+            blockIds[bl._id] = true;
+            value = bl.yaml;
+          } else {
+            value = value.trim();
+          }
+          vars[name] = value;
         }
       }
       return [vars, _.keys(blockIds)];

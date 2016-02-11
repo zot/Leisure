@@ -58,11 +58,7 @@
       OrgData.prototype.change = function(changes) {
         var ch;
         ch = this.makeChange(changes);
-        return this.scheduleEvals().then((function(_this) {
-          return function() {
-            return _this.trigger('change', ch);
-          };
-        })(this));
+        return this.trigger('change', ch);
       };
 
       OrgData.prototype.addImported = function(importFile, type, name) {
@@ -130,11 +126,9 @@
         })(this));
       };
 
-      OrgData.prototype.replaceText = function(start, end, text, context) {
-        OrgData.__super__.replaceText.call(this, start, end, text, context);
-        if (context) {
-          return this.runTextFilters(context);
-        }
+      OrgData.prototype.replaceText = function(repl) {
+        OrgData.__super__.replaceText.call(this, repl);
+        return this.runTextFilters(repl);
       };
 
       OrgData.prototype.makeChanges = function(func) {
@@ -282,7 +276,7 @@
           results1 = [];
           for (j = 0, len = ref.length; j < len; j++) {
             filter = ref[j];
-            results1.push(filter.replaceText(this, context));
+            results1.push(typeof filter.replaceText === "function" ? filter.replaceText(this, context) : void 0);
           }
           return results1;
         }
@@ -1149,8 +1143,12 @@
       }
 
       OrgEditing.prototype.dataChanged = function(changes) {
-        OrgEditing.__super__.dataChanged.call(this, changes);
-        return initializePendingViews();
+        return preserveSelection((function(_this) {
+          return function() {
+            OrgEditing.__super__.dataChanged.call(_this, changes);
+            return initializePendingViews();
+          };
+        })(this));
       };
 
       OrgEditing.prototype.dataLoaded = function() {
@@ -1740,7 +1738,7 @@
             sets: sets,
             removes: {}
           };
-        } else if (oldBlocks) {
+        } else {
           changes = this.changesFor(prev, oldBlocks, newBlocks);
         }
         if (!skipMode) {
@@ -1749,18 +1747,18 @@
         return changes;
       };
 
-      OrgEditing.prototype.replaceText = function(start, end, text, context, skipEffects) {
-        var j, len, repl, repls, results1;
-        if (!skipEffects && (repls = this.replaceTextEffects(start, end, text, context).repls)) {
-          OrgEditing.__super__.replaceText.call(this, start, end, text);
+      OrgEditing.prototype.replaceText = function(repl, skipEffects) {
+        var j, len, ref, repls, results1;
+        if (!skipEffects && (ref = this.replaceTextEffects(repl.start, repl.end, repl.text), repls = ref.repls, ref)) {
+          OrgEditing.__super__.replaceText.call(this, repl);
           results1 = [];
           for (j = 0, len = repls.length; j < len; j++) {
             repl = repls[j];
-            results1.push(this.replaceText(repl.start, repl.end, repl.text, context, true));
+            results1.push(this.replaceText(repl, true));
           }
           return results1;
         } else {
-          return OrgEditing.__super__.replaceText.call(this, start, end, text, context);
+          return OrgEditing.__super__.replaceText.call(this, repl);
         }
       };
 
@@ -1811,7 +1809,7 @@
           return this.change({
             first: this.data.getFirst(),
             removes: {},
-            sets: _.object([[block._id, block]]),
+            sets: _.fromPairs([[block._id, block]]),
             newBlocks: [block],
             oldBlocks: (oldBlock ? [oldBlock] : [])
           });
@@ -1838,7 +1836,7 @@
       };
 
       OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock, oldBlocks, newBlocks) {
-        var block, env, envM, finished, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, result, start, sync;
+        var block, env, envM, finished, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, repl, result, start, sync;
         if (change.type === 'code' && isDynamic(change) && (envM = blockEnvMaker(change))) {
           ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
           hasChange = !oldBlock || oldBlock.type !== 'code' || oldBlock.codeAttributes.results !== 'dynamic' || (oldBlock ? (oldSource = blockSource(oldBlock), newSource.content !== oldSource.content) : void 0);
@@ -1899,7 +1897,8 @@
                   }
                 }
                 start = this.offsetForNewBlock(newBlock, oldBlocks, newBlocks);
-                changes.repls.push(replacementFor(start, change.text, newBlock.text));
+                changes.repls.push(repl = replacementFor(start, change.text, newBlock.text));
+                repl.source = 'code';
               }
             }
             return sync = false;
@@ -2015,7 +2014,7 @@
           } else {
             end = (start += last.end());
           }
-          return this.replaceText(start, end, str, {
+          return this.replaceText({
             start: start,
             end: end,
             text: str,
@@ -2174,23 +2173,23 @@
       return ((ref = Leisure.findEditor(e.target)) != null ? ref.options.followLink(e) : void 0) || false;
     };
     replacementFor = function(start, oldText, newText) {
-      var end, endOff, j, l, ref, ref1, ref2, startOff;
-      end = start + ((ref = oldText.length) != null ? ref : 0);
-      for (startOff = j = 0, ref1 = Math.min(oldText.length, newText.length); 0 <= ref1 ? j < ref1 : j > ref1; startOff = 0 <= ref1 ? ++j : --j) {
-        if (oldText[startOff] !== newText[startOff]) {
-          break;
-        }
+      var endOff, lim, startOff;
+      lim = Math.min(oldText.length, newText.length);
+      startOff = endOff = 0;
+      while (startOff < lim && oldText[startOff] === newText[startOff]) {
+        startOff++;
       }
-      start += startOff;
-      for (endOff = l = 0, ref2 = Math.min(oldText.length - startOff - 1, newText.length - startOff - 1); l <= ref2; endOff = l += 1) {
-        if (oldText[oldText.length - endOff - 1] !== newText[newText.length - endOff - 1]) {
-          break;
+      if (startOff < lim) {
+        lim -= startOff;
+        endOff = 0;
+        while (endOff < lim && oldText[oldText.length - endOff - 1] === newText[newText.length - endOff - 1]) {
+          endOff++;
         }
       }
       return {
-        start: start,
-        end: end - endOff,
-        text: (startOff || endOff ? newText.substring(startOff, newText.length - endOff) : '')
+        start: start + startOff,
+        end: start + oldText.length - endOff,
+        text: newText.substring(startOff, newText.length - endOff)
       };
     };
     ajaxGet = function(url) {

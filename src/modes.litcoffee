@@ -325,13 +325,17 @@
         keyPress: (opts, parent, e)->
           sel = getSelection()
           if sel.type == 'Caret'
-            pos = opts.editor.docOffset sel.getRangeAt 0
+            pos = opts.editor.getSelectedDocRange()
             sel = opts.editor.getSelectedBlockRange()
             block = opts.getBlock sel.block
             if !opts.isToggled(block) && block.type != 'code' && sel.offset == 0 && block.text[0] == '\n' && block.text[1] != '\n'
               e.preventDefault()
               opts.editor.replace e, sel, (getEventChar e) + '\n', false
-              return opts.editor.domCursorForDocOffset(pos + 1).moveCaret()
+              pos.type = 'Caret'
+              pos.length = 0
+              pos.start++
+              opts.editor.selectDocRange pos
+              return
           parent e
         enter: (opts, parent, e)->
           block = opts.getBlock opts.idForNode getSelection().getRangeAt(0).startContainer
@@ -381,7 +385,7 @@
             else if ptNls % 2
               start--
               pos--
-          opts.replaceText start, end, ''
+          opts.replaceText {start, end, text: '', source: 'edit'}
           opts.editor.domCursorForDocOffset(pos).moveCaret()
           if pos < opts.getLength() && pos != opts.editor.docOffset opts.editor.moveForward()
             opts.editor.moveBackward()
@@ -759,12 +763,31 @@
           newText = String currentSlider.widget.slider 'value'
           if m[0] != newText
             if block.local
-              cs.editor.options.replaceText start, start + m[0].length, newText
+              cs.editor.options.replaceText {start, end: start + m[0].length, text: newText, source: 'edit'}
             else
-              #console.log "REPLACE #{m[0]} with #{newText}"
-              blockStart = cs.editor.options.data.offsetForBlock block
               cs.editor.options.awaitingGuard = true
-              Promise.using(Promise.resolve(0).disposer(-> cs.editor.options.awaitingGuard = false), (cs.editor.options.data.guardedReplaceText start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (->))
+              cs.editor.options.batchReplace (->
+                start = cs.data.getMarkLocation '__slider__'
+                blockOff = cs.data.blockOffsetForDocOffset start
+                block = cs.editor.options.getBlock blockOff.block
+                m = numPat.exec block.text.substring blockOff.offset
+                newText = String currentSlider.widget.slider 'value'
+                # just duplicating above code for now -- elegance later :)
+                if block.local
+                  cs.editor.options.replaceText {start, end: start + m[0].length, text: newText, source: 'edit'}
+                else if m[0] == newText then []
+                else
+                  blockStart = cs.editor.options.data.offsetForBlock block
+                  repl =
+                    start: start
+                    end: start + m[0].length
+                    text: newText
+                    gStart: blockStart
+                    gEnd: blockStart + block.text.length
+                  batch = [repl]
+                  for r in cs.editor.options.replaceTextEffects(repl.start, repl.end, repl.text, true).repls
+                    batch.push r
+                  batch), (-> cs.editor.options.awaitingGuard = false), (-> cs.editor.options.awaitingGuard = false)
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding

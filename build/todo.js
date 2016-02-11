@@ -54,7 +54,12 @@
           next = state ? forward ? ((ref = this.states[state.toUpperCase()]) != null ? (ref1 = ref.next) != null ? ref1.name : void 0 : void 0) || '' : ((ref2 = this.states[state.toUpperCase()]) != null ? (ref3 = ref2.prev) != null ? ref3.name : void 0 : void 0) || '' : forward ? this.startState.name : this.endState.name;
           newText = m[1] + ' ' + next + (next ? ' ' : '') + block.text.substring(m[0].length);
           start = this.data.offsetForBlock(block);
-          return this.data.replaceText(start, start + block.text.length, newText);
+          return this.data.replaceText({
+            start: start,
+            end: start + block.text.length,
+            text: newText,
+            source: 'edit'
+          });
         }
       };
 

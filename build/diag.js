@@ -174,7 +174,7 @@
         }
       }
     };
-    diagMessage = function(editor, msg) {
+    diagMessage = function(msg) {
       if (errorDisplay) {
         $(errorDisplay).html(msg);
       }

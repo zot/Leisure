@@ -126,7 +126,7 @@
             $((".structure.diag .#{b[0]}" for b in badBlocks).join ',').addClass 'error'
           else errorDisplay.html ''
 
-      diagMessage = (editor, msg)->
+      diagMessage = (msg)->
         if errorDisplay then $(errorDisplay).html msg
         console.log msg
 

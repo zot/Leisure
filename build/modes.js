@@ -376,13 +376,17 @@
         var block, pos, sel;
         sel = getSelection();
         if (sel.type === 'Caret') {
-          pos = opts.editor.docOffset(sel.getRangeAt(0));
+          pos = opts.editor.getSelectedDocRange();
           sel = opts.editor.getSelectedBlockRange();
           block = opts.getBlock(sel.block);
           if (!opts.isToggled(block) && block.type !== 'code' && sel.offset === 0 && block.text[0] === '\n' && block.text[1] !== '\n') {
             e.preventDefault();
             opts.editor.replace(e, sel, (getEventChar(e)) + '\n', false);
-            return opts.editor.domCursorForDocOffset(pos + 1).moveCaret();
+            pos.type = 'Caret';
+            pos.length = 0;
+            pos.start++;
+            opts.editor.selectDocRange(pos);
+            return;
           }
         }
         return parent(e);
@@ -452,7 +456,12 @@
             pos--;
           }
         }
-        opts.replaceText(start, end, '');
+        opts.replaceText({
+          start: start,
+          end: end,
+          text: '',
+          source: 'edit'
+        });
         opts.editor.domCursorForDocOffset(pos).moveCaret();
         if (pos < opts.getLength() && pos !== opts.editor.docOffset(opts.editor.moveForward())) {
           return opts.editor.moveBackward();
@@ -1045,7 +1054,7 @@
       }), 1);
     };
     slideValue = function() {
-      var block, blockOff, blockStart, cs, m, newText, start;
+      var block, blockOff, cs, m, newText, start;
       if ((cs = currentSlider) && !cs.editor.options.awaitingGuard) {
         start = cs.data.getMarkLocation('__slider__');
         blockOff = cs.data.blockOffsetForDocOffset(start);
@@ -1054,13 +1063,52 @@
         newText = String(currentSlider.widget.slider('value'));
         if (m[0] !== newText) {
           if (block.local) {
-            return cs.editor.options.replaceText(start, start + m[0].length, newText);
+            return cs.editor.options.replaceText({
+              start: start,
+              end: start + m[0].length,
+              text: newText,
+              source: 'edit'
+            });
           } else {
-            blockStart = cs.editor.options.data.offsetForBlock(block);
             cs.editor.options.awaitingGuard = true;
-            return Promise.using(Promise.resolve(0).disposer(function() {
+            return cs.editor.options.batchReplace((function() {
+              var batch, blockStart, j, len, r, ref, repl;
+              start = cs.data.getMarkLocation('__slider__');
+              blockOff = cs.data.blockOffsetForDocOffset(start);
+              block = cs.editor.options.getBlock(blockOff.block);
+              m = numPat.exec(block.text.substring(blockOff.offset));
+              newText = String(currentSlider.widget.slider('value'));
+              if (block.local) {
+                return cs.editor.options.replaceText({
+                  start: start,
+                  end: start + m[0].length,
+                  text: newText,
+                  source: 'edit'
+                });
+              } else if (m[0] === newText) {
+                return [];
+              } else {
+                blockStart = cs.editor.options.data.offsetForBlock(block);
+                repl = {
+                  start: start,
+                  end: start + m[0].length,
+                  text: newText,
+                  gStart: blockStart,
+                  gEnd: blockStart + block.text.length
+                };
+                batch = [repl];
+                ref = cs.editor.options.replaceTextEffects(repl.start, repl.end, repl.text, true).repls;
+                for (j = 0, len = ref.length; j < len; j++) {
+                  r = ref[j];
+                  batch.push(r);
+                }
+                return batch;
+              }
+            }), (function() {
               return cs.editor.options.awaitingGuard = false;
-            }), cs.editor.options.data.guardedReplaceText(start, start + m[0].length, newText, blockStart, blockStart + block.text.length), (function() {}));
+            }), (function() {
+              return cs.editor.options.awaitingGuard = false;
+            }));
           }
         }
       }

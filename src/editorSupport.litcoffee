@@ -113,7 +113,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
           @importPromise = Promise.resolve()
         change: (changes)->
           ch = @makeChange changes
-          @scheduleEvals().then => @trigger 'change', ch
+          @trigger 'change', ch
         addImported: (importFile, type, name)->
           if typeof importFile == 'string'
             if @importRecords[type][name]
@@ -151,9 +151,9 @@ same names for blocks other than printing a warning.
               if !@namedBlocks[name] || !(@getBlockNamed name).local then deletes.push name
             for name in deletes
               @deleteLocalBlock name
-        replaceText: (start, end, text, context)->
-          super start, end, text, context
-          if context then @runTextFilters context
+        replaceText: (repl)->
+          super repl
+          @runTextFilters repl
         makeChanges: (func)->
           if newChange = !@changeCount
             for filter in @filters
@@ -220,7 +220,7 @@ Let's just call this poetic license for the time being...
         runTextFilters: (context)->
           if context
             for filter in @filters
-              filter.replaceText this, context
+              filter.replaceText? this, context
         parseBlocks: (text)->
           if text == '' then []
           else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
@@ -637,8 +637,9 @@ NMap is a very simple trie.
           @dataChanges = null
           @pendingDataChanges = null
         dataChanged: (changes)->
-          super changes
-          initializePendingViews()
+          preserveSelection =>
+            super changes
+            initializePendingViews()
         dataLoaded: ->
           super()
           @rerenderAll()
@@ -930,16 +931,16 @@ may be called more than once.  changeData() returns a promise.
               sets: sets
               removes: {}
             }
-          else if oldBlocks
+          else
             changes = @changesFor prev, oldBlocks, newBlocks
           if !skipMode then @mode.handleChanges this, changes
           changes
-        replaceText: (start, end, text, context, skipEffects)->
-          if !skipEffects && repls = @replaceTextEffects(start, end, text, context).repls
-            super start, end, text
+        replaceText: (repl, skipEffects)->
+          if !skipEffects && {repls} = @replaceTextEffects repl.start, repl.end, repl.text
+            super repl
             for repl in repls
-              @replaceText repl.start, repl.end, repl.text, context, true
-          else super start, end, text, context
+              @replaceText repl, true
+          else super repl
 
 `changesFor(first, oldBlocks, newBlocks)` -- compute some effects immediately
 
@@ -974,7 +975,7 @@ may be called more than once.  changeData() returns a promise.
             @change
               first: @data.getFirst()
               removes: {}
-              sets: _.object [[block._id, block]]
+              sets: _.fromPairs [[block._id, block]]
               newBlocks: [block]
               oldBlocks: (if oldBlock then [oldBlock] else [])
         changesHidden: (changes)->
@@ -1025,7 +1026,8 @@ may be called more than once.  changeData() returns a promise.
                   for block, i in changes.newBlocks
                     if block._id == newBlock._id then changes.newBlocks[i] = newBlock
                   start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
-                  changes.repls.push replacementFor start, change.text, newBlock.text
+                  changes.repls.push repl = replacementFor start, change.text, newBlock.text
+                  repl.source = 'code'
               sync = false
         offsetForNewBlock: (newBlock, oldBlocks, newBlocks)->
           start = if oldBlocks.length == 0 then 0 else @data.offsetForBlock oldBlocks[0]
@@ -1084,7 +1086,7 @@ may be called more than once.  changeData() returns a promise.
               start += results.offset
               end = start + results.text.length
             else end = (start += last.end())
-            @replaceText start, end, str, {start, end, text: str, source: 'code'}, true
+            @replaceText {start, end, text: str, source: 'code'}, true
 
       trickyChange = (oldBlock, newBlock)->
         oldBlock._id != newBlock._id ||
@@ -1153,7 +1155,7 @@ may be called more than once.  changeData() returns a promise.
         #  .on 'mouseenter', -> configureMenu $("#selectionBubble ul")
         #$("#selectionBubble ul").menu select: (event, ui)-> console.log "MENU SELECT"; false
         monitorSelectionChange()
-    
+
       selectionMenu = """
       <div>
       <ul>
@@ -1169,7 +1171,7 @@ may be called more than once.  changeData() returns a promise.
       </ul>
       </div>
       """
-      
+
       configureMenu = (menu)->
         console.log "configure menu"
         #if getSelection().type == 'Caret'
@@ -1178,7 +1180,7 @@ may be called more than once.  changeData() returns a promise.
         #  if bl?.type == 'chunk'
         #    return menu.find("[name='insert']").removeClass 'ui-state-disabled'
         #menu.find("[name='insert']").addClass 'ui-state-disabled'
-      
+
       actualSelectionUpdate = ->
         if selectionActive
           if editor = findEditor getSelection().focusNode
@@ -1239,17 +1241,19 @@ may be called more than once.  changeData() returns a promise.
       followLink = (e)-> Leisure.findEditor(e.target)?.options.followLink(e) || false
 
       replacementFor = (start, oldText, newText)->
-        end = start + (oldText.length ? 0)
-        for startOff in [0...Math.min oldText.length, newText.length]
-          if oldText[startOff] != newText[startOff] then break
-        start += startOff
-        for endOff in [0..Math.min oldText.length - startOff - 1, newText.length - startOff - 1] by 1
-          if oldText[oldText.length - endOff - 1] != newText[newText.length - endOff - 1]
-            break
+        lim = Math.min oldText.length, newText.length
+        startOff = endOff = 0
+        while startOff < lim && oldText[startOff] == newText[startOff]
+          startOff++
+        if startOff < lim
+          lim -= startOff
+          endOff = 0
+          while endOff < lim && oldText[oldText.length - endOff - 1] == newText[newText.length - endOff - 1]
+            endOff++
         {
-          start
-          end: end - endOff
-          text: (if startOff || endOff then newText.substring startOff, newText.length - endOff else '')
+          start: start + startOff
+          end: start + oldText.length - endOff
+          text: newText.substring startOff, newText.length - endOff
         }
 
       ajaxGet = (url)->

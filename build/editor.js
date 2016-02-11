@@ -442,20 +442,25 @@
         if (br.type !== 'None') {
           return this.editWith((function(_this) {
             return function() {
-              var blocks, cur, endOffset, tot;
-              blocks = [br.block];
-              endOffset = br.offset;
-              if (br.type === 'Range') {
-                cur = br.block;
-                tot = br.length - br.offset - cur.text.length;
-                while (tot > 0 && cur) {
-                  blocks.push(cur = _this.options.getBlock(cur.next));
-                  if (cur) {
-                    tot -= cur.text.length;
-                  }
-                }
+              var pos, start;
+              start = _this.options.docOffsetForBlockOffset(br);
+              pos = _this.getSelectedDocRange();
+              text = text != null ? text : getEventChar(e);
+              _this.options.replaceText({
+                start: start,
+                end: start + br.length,
+                text: text,
+                source: 'edit'
+              });
+              if (select) {
+                pos.type = text.length === 0 ? 'Caret' : 'Range';
+                pos.length = text.length;
+              } else {
+                pos.type = 'Caret';
+                pos.length = 0;
+                pos.start += text.length;
               }
-              return _this.options.editBlocks(blocks, br.offset, br.length, text != null ? text : getEventChar(e), select);
+              return _this.selectDocRange(pos);
             };
           })(this));
         }
@@ -520,32 +525,32 @@
       };
 
       LeisureEditCore.prototype.handleDelete = function(e, s, forward) {
-        var bl, block, blocks, c, cont, pos;
+        var r, sel;
         e.preventDefault();
-        if (s.type === 'Caret') {
-          c = this.domCursorForCaret().firstText();
-          cont = this.options.getContainer(c.node);
-          block = this.getCopy(this.options.idForNode(cont));
-          pos = this.getTextPosition(cont, c.node, c.pos);
-          blocks = [];
-          pos += forward ? 0 : -1;
-          if (pos >= 0) {
-            blocks.push(block);
-          } else if (block.prev) {
-            blocks.push(bl = this.getCopy(block.prev));
-            pos += bl.text.length;
-          } else {
-            return;
+        r = this.getSelectedDocRange();
+        if (r.type === 'None' || (r.type === 'Caret' && ((forward && r.start >= this.options.getLength() - 1) || (!forward && r.start === 0)))) {
+          return;
+        }
+        if (r.type === 'Caret') {
+          r.length = 1;
+          if (!forward) {
+            r.start -= 1;
           }
-          return this.options.editBlocks(blocks, pos, 1, '');
         }
-      };
-
-      LeisureEditCore.prototype.editBlocks = function(blocks, start, length, newContent, select) {
-        var pos;
-        if (pos = this.options.replaceContent(blocks, start, length, newContent)) {
-          return this.domCursorForDocOffset(pos).moveCaret();
-        }
+        this.options.replaceText({
+          start: r.start,
+          end: r.start + r.length,
+          text: '',
+          source: 'edit'
+        });
+        sel = this.getSelectedDocRange();
+        return this.selectDocRange({
+          type: 'Caret',
+          start: r.start,
+          length: 0,
+          scrollTop: sel.scrollTop,
+          scrollLeft: sel.scrollLeft
+        });
       };
 
       LeisureEditCore.prototype.bind = function() {
@@ -1179,15 +1184,6 @@
         return this.changeContext = null;
       };
 
-      BasicEditingOptions.prototype.replaceContent = function(blocks, start, length, newContent) {
-        var newText, oldText, pos;
-        oldText = blockText(blocks);
-        newText = oldText.substring(0, start) + newContent + oldText.substring(start + length);
-        pos = this.data.docOffsetForBlockOffset(blocks[0]._id, start);
-        this.replaceText(pos, pos + length, newContent);
-        return pos + newContent.length;
-      };
-
       BasicEditingOptions.prototype.makeStructureChange = function(start, end, text, arg) {
         var newBlocks, offset, oldBlocks, prev;
         oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks, offset = arg.offset, prev = arg.prev;
@@ -1249,7 +1245,12 @@
         this.options.suppressTriggers((function(_this) {
           return function() {
             return _this.options.data.suppressTriggers(function() {
-              return _this.replaceText(0, _this.getLength(), text);
+              return _this.replaceText({
+                start: 0,
+                end: _this.getLength(),
+                text: text,
+                source: 'edit'
+              });
             });
           };
         })(this));
@@ -1614,13 +1615,14 @@
         results1 = [];
         for (j = 0, len = ref.length; j < len; j++) {
           repl = ref[j];
-          results1.push(this.replaceText(repl.start, repl.end, repl.text, repl));
+          results1.push(this.replaceText(repl));
         }
         return results1;
       };
 
-      DataStore.prototype.replaceText = function(start, end, text, context) {
-        var newBlocks, oldBlocks, prev, ref;
+      DataStore.prototype.replaceText = function(arg) {
+        var end, newBlocks, oldBlocks, prev, ref, start, text;
+        start = arg.start, end = arg.end, text = arg.text;
         ref = this.changesForReplacement(start, end, text), prev = ref.prev, oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks;
         if (oldBlocks) {
           this.change(this.changesFor(prev, oldBlocks.slice(), newBlocks.slice()));
@@ -1629,7 +1631,12 @@
       };
 
       DataStore.prototype.guardedReplaceText = function(start, end, text, gStart, gEnd) {
-        this.replaceText(start, end, text);
+        this.replaceText({
+          start: start,
+          end: end,
+          text: text,
+          source: 'edit'
+        });
         return Promise.resolve();
       };
 
@@ -2130,7 +2137,13 @@
       DataStore.prototype.blockOverlapsForReplacement = function(start, end, text) {
         var blocks, cur, endBlock, fullText, offset, startBlock;
         startBlock = this.blockForOffset(start);
+        if (!startBlock && start) {
+          startBlock = this.blockForOffset(start - 1);
+        }
         endBlock = this.blockForOffset(end);
+        if (!endBlock && end) {
+          endBlock = this.blockForOffset(end - 1);
+        }
         blocks = [this.getBlock(startBlock)];
         cur = startBlock;
         while (cur !== endBlock && cur.next) {
@@ -2292,8 +2305,8 @@
         return this.replaceBlocks(prev, oldBlocks, newBlocks);
       };
 
-      DataStoreEditingOptions.prototype.replaceText = function(start, end, text, context) {
-        return this.data.replaceText(start, end, text, context);
+      DataStoreEditingOptions.prototype.replaceText = function(repl) {
+        return this.data.replaceText(repl);
       };
 
       DataStoreEditingOptions.prototype.getBlock = function(id) {

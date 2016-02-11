@@ -435,15 +435,18 @@ Events:
           {block, offset, length, type: if length == 0 then 'Caret' else 'Range'}
         replace: (e, br, text, select)-> if br.type != 'None'
           @editWith =>
-            blocks = [br.block]
-            endOffset = br.offset
-            if br.type == 'Range'
-              cur = br.block
-              tot = br.length - br.offset - cur.text.length
-              while tot > 0 && cur
-                blocks.push cur = @options.getBlock cur.next
-                if cur then tot -= cur.text.length
-            @options.editBlocks blocks, br.offset, br.length, (text ? getEventChar e), select
+            start = @options.docOffsetForBlockOffset(br)
+            pos = @getSelectedDocRange()
+            text = text ? getEventChar e
+            @options.replaceText {start, end: start + br.length, text, source: 'edit'}
+            if select
+              pos.type = if text.length == 0 then 'Caret' else 'Range'
+              pos.length = text.length
+            else
+              pos.type = 'Caret'
+              pos.length = 0
+              pos.start += text.length
+            @selectDocRange pos
         backspace: (event, sel, r)->
           if sel.type == 'Range' then return @cutText event
           holderId = @idAtCaret sel
@@ -469,26 +472,24 @@ Events:
             @replace e, @getSelectedBlockRange(), ''
         handleDelete: (e, s, forward)->
           e.preventDefault()
-          if s.type == 'Caret'
-            c = @domCursorForCaret().firstText()
-            cont = @options.getContainer(c.node)
-            block = @getCopy @options.idForNode cont
-            pos = @getTextPosition cont, c.node, c.pos
-            blocks = []
-            pos += if forward then 0 else -1
-            if pos >= 0 then blocks.push block
-            else if block.prev
-              blocks.push bl = @getCopy block.prev
-              pos += bl.text.length
-            else return
-            @options.editBlocks blocks, pos, 1, ''
-
-editBlocks: at this point, just place the cursor after the newContent, later
-on it can select if start and end are different
-
-        editBlocks: (blocks, start, length, newContent, select)->
-          if pos = @options.replaceContent blocks, start, length, newContent
-            @domCursorForDocOffset(pos).moveCaret()
+          r = @getSelectedDocRange()
+          if r.type == 'None' || (r.type == 'Caret' && ((forward && r.start >= @options.getLength() - 1) || (!forward && r.start == 0)))
+            return
+          if r.type == 'Caret'
+            r.length = 1
+            if !forward then r.start -= 1
+          @options.replaceText
+            start: r.start
+            end: r.start + r.length
+            text: ''
+            source: 'edit'
+          sel = @getSelectedDocRange()
+          @selectDocRange
+            type: 'Caret'
+            start: r.start
+            length: 0
+            scrollTop: sel.scrollTop
+            scrollLeft: sel.scrollLeft
         bind: ->
           @bindDragAndDrop()
           @bindClipboard()
@@ -915,12 +916,6 @@ situations to provide STM-like change management.
           computeNewStructure this, oldBlocks, newText
         mergeChangeContext: (obj)-> @changeContext = _.merge {}, @changeContext ? {}, obj
         clearChangeContext: -> @changeContext = null
-        replaceContent: (blocks, start, length, newContent)->
-          oldText = blockText blocks
-          newText = oldText.substring(0, start) + newContent + oldText.substring start + length
-          pos = @data.docOffsetForBlockOffset blocks[0]._id, start
-          @replaceText pos, pos + length, newContent
-          pos + newContent.length
 
 Factored out because the Emacs connection calls MakeStructureChange.
 
@@ -976,7 +971,7 @@ Factored out because the Emacs connection calls MakeStructureChange.
         load: (name, text)->
           @options.suppressTriggers =>
             @options.data.suppressTriggers =>
-              @replaceText 0, @getLength(), text
+              @replaceText {start: 0, end: @getLength(), text, source: 'edit'}
           @rerenderAll()
           @trigger 'load'
         rerenderAll: -> @editor.setHtml @editor.node[0], @renderBlocks()
@@ -1180,14 +1175,14 @@ sorted in reverse order by position.
 
         batchReplace: (replacements)->
           for repl in validateBatch replacements
-            @replaceText repl.start, repl.end, repl.text, repl
-        replaceText: (start, end, text, context)->
+            @replaceText repl
+        replaceText: ({start, end, text})->
           {prev, oldBlocks, newBlocks} = @changesForReplacement start, end, text
           if oldBlocks
             @change @changesFor prev, oldBlocks.slice(), newBlocks.slice()
             @floatMarks start, end, text.length
         guardedReplaceText: (start, end, text, gStart, gEnd)->
-          @replaceText start, end, text
+          @replaceText {start, end, text, source: 'edit'}
           Promise.resolve()
         changesForReplacement: (start, end, text)->
           {blocks} = @blockOverlapsForReplacement start, end, text
@@ -1467,8 +1462,10 @@ sorted in reverse order by position.
             offset += block.text.length
           errs.errors()
         blockOverlapsForReplacement: (start, end, text)->
-          startBlock = @blockForOffset start
+          startBlock = @blockForOffset(start)
+          if !startBlock && start then startBlock = @blockForOffset(start - 1)
           endBlock = @blockForOffset end
+          if !endBlock && end then endBlock = @blockForOffset(end - 1)
           blocks = [@getBlock startBlock]
           cur = startBlock
           while cur != endBlock && cur.next
@@ -1543,7 +1540,7 @@ DataStoreEditingOptions
         initData: ->
         load: (name, text)-> @data.load name, text
         edit: (prev, oldBlocks, newBlocks)-> @replaceBlocks prev, oldBlocks, newBlocks
-        replaceText: (start, end, text, context)-> @data.replaceText start, end, text, context
+        replaceText: (repl)-> @data.replaceText repl
         getBlock: (id)-> @data.getBlock id
         getFirst: (first)-> @data.getFirst()
         change: (changes)-> if changes then @data.change changes
