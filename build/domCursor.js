@@ -892,10 +892,7 @@
         debug("select range", r, new Error('trace').stack);
         sel = getSelection();
         if (!(sel.rangeCount === 1 && sameRanges(sel.getRangeAt(0), r))) {
-          if (sel.rangeCount > 0) {
-            sel.removeAllRanges();
-          }
-          return sel.addRange(r);
+          return sel.setBaseAndExtent(r.startContainer, r.startOffset, r.endContainer, r.endOffset);
         }
       }
     };
