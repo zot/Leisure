@@ -3,13 +3,13 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './ast', './runtime', './gen', './eval', './org'], function(Base, Ast, Runtime, Gen, Eval, Org) {
-    var Monad2, Nil, Node, _false, _identity, _true, _unit, acons, baseElements, baseStrokeWidth, cons, createNode, currentDataChange, defaultEnv, define, doPartial, evalLeisure, foldLeft, getMaxStrokeWidth, getSvgElement, getType, getValue, isNil, isPartial, jsonConvert, lazy, lc, lz, makeHamt, makeSyncMonad, newConsFrom, none, parseCodeAttributes, partialCall, primFoldLeft, primSvgMeasure, ref, resolve, root, runMonad2, rz, setValue, some, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml;
+    var Monad2, Nil, Node, _false, _identity, _true, _unit, acons, baseElements, baseStrokeWidth, cons, createNode, currentDataChange, defaultEnv, define, doPartial, evalLeisure, foldLeft, getMaxStrokeWidth, getSvgElement, getType, getValue, isNil, isPartial, jsonConvert, lazy, lc, left, lz, makeHamt, makeSyncMonad, newConsFrom, none, parseCodeAttributes, partialCall, primFoldLeft, primSvgMeasure, ref, resolve, right, root, runMonad2, rz, setValue, some, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml;
     ref = root = Ast, define = ref.define, getType = ref.getType, cons = ref.cons, unescapePresentationHtml = ref.unescapePresentationHtml, isNil = ref.isNil, isPartial = ref.isPartial, partialCall = ref.partialCall, doPartial = ref.doPartial, Nil = ref.Nil;
     Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
-    runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, _false = Runtime._false, _identity = Runtime._identity, _unit = Runtime._unit, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2, some = Runtime.some, none = Runtime.none, acons = Runtime.lacons;
+    runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, _false = Runtime._false, _identity = Runtime._identity, _unit = Runtime._unit, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2, some = Runtime.some, none = Runtime.none, acons = Runtime.lacons, right = Runtime.right, left = Runtime.left;
     evalLeisure = Eval.evalLeisure;
     parseCodeAttributes = Org.parseCodeAttributes;
     currentDataChange = null;
@@ -197,6 +197,21 @@
         env.opts.removeData(rz(name));
         return cont(_unit);
       });
+    });
+    define('getImage', function(name) {
+      var data;
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        data = Lounge.opts.data;
+        return new Monad2(function(env, cont) {
+          return data.getImage(rz(name), (function(url) {
+            return cont(right(url));
+          }), function(failure) {
+            return cont(left(failure));
+          });
+        });
+      }
     });
     return evalLeisure("defMacro 'changeData' \\list . ['_changeData' ['do' | list]]\nsetData name data = _setData name (toJson data)\nappendData headline name data = _appendData headline name (toJson data)\nappendDataWithAttrs headline name attrs data = _appendDataWithAttrs headline name attrs (toJson data)");
   });

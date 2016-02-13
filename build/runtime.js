@@ -31,7 +31,7 @@ misrepresented as being the original software.
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bluebird.min', './export'], function(Base, Ast, _, Immutable, Yaml, Bluebird, Exports) {
-    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, Promise, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, lz, makeHamt, makeMonad, makeSyncMonad, mergeExports, mkProto, monadModeSync, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
+    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, Promise, Runtime, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, leisurify, lz, makeHamt, makeMonad, makeSyncMonad, mergeExports, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
     mergeExports = Exports.mergeExports;
     ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
     define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall;
@@ -1181,16 +1181,49 @@ misrepresented as being the original software.
     }));
     define('js', function(str) {
       return makeSyncMonad(function(env, cont) {
-        var err, error, result;
-        try {
-          result = eval(rz(str));
-          return cont(right(result));
-        } catch (error) {
-          err = error;
-          return cont(left(err));
-        }
+        var ref1;
+        return ((ref1 = Leisure.setLounge) != null ? ref1 : function(e, cont) {
+          return cont();
+        })(env, function() {
+          var err, error;
+          try {
+            return cont(right(leisurify(eval(rz(str)))));
+          } catch (error) {
+            err = error;
+            return cont(left(err));
+          }
+        });
       });
     });
+    leisurify = function(value) {
+      if (typeof value === 'function') {
+        if (!value.memo) {
+          value.memo = nFunction(value.length, function() {
+            var valueArgs;
+            valueArgs = arguments;
+            return new Monad2(function(env, cont) {
+              return cont(value.apply(null, _.map(valueArgs, function(x) {
+                return rz(x);
+              })));
+            });
+          });
+        }
+        return value.memo;
+      } else {
+        return value;
+      }
+    };
+    nFunction = function(nArgs, def) {
+      var i;
+      return (eval("(function (def) {\n  return function (" + (((function() {
+        var j, ref1, results;
+        results = [];
+        for (i = j = 0, ref1 = nArgs; 0 <= ref1 ? j < ref1 : j > ref1; i = 0 <= ref1 ? ++j : --j) {
+          results.push("arg" + i);
+        }
+        return results;
+      })()).join(', ')) + ") {\n    return isPartial(arguments) ? partialCall(arguments) : def.apply(null, arguments);\n  };\n})"))(def);
+    };
     define('delay', function(timeout) {
       return new Monad2(function(env, cont) {
         return setTimeout((function() {
@@ -1638,10 +1671,7 @@ misrepresented as being the original software.
       window.defaultEnv = defaultEnv;
       window.identity = identity;
     }
-    mergeExports({
-      stateValues: values
-    });
-    return {
+    Runtime = {
       requireFiles: requireFiles,
       _true: _true,
       _false: _false,
@@ -1676,8 +1706,17 @@ misrepresented as being the original software.
       makeHamt: makeHamt,
       jsonConvert: jsonConvert,
       lacons: lacons,
-      dumpMonadStack: dumpMonadStack
+      dumpMonadStack: dumpMonadStack,
+      define: define,
+      isPartial: isPartial,
+      partialCall: partialCall
     };
+    mergeExports({
+      stateValues: values,
+      runMonad: runMonad2,
+      Runtime: Runtime
+    });
+    return Runtime;
   });
 
 }).call(this);

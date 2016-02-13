@@ -1080,10 +1080,6 @@
         throw new Error("options.renderBlock(block) is not implemented");
       };
 
-      BasicEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks) {
-        throw new Error("options.edit(func) is not implemented");
-      };
-
       BasicEditingOptions.prototype.simulateCut = function(arg) {
         var html, text;
         html = arg.html, text = arg.text;
@@ -1101,10 +1097,6 @@
           event.preventDefault();
           return event.dropEffect = 'none';
         }
-      };
-
-      BasicEditingOptions.prototype.editBlocks = function(blocks, start, length, newContent, select) {
-        return this.editor.editBlocks(blocks, start, length, newContent, select);
       };
 
       function BasicEditingOptions() {
@@ -1167,10 +1159,6 @@
         }
       };
 
-      BasicEditingOptions.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks) {
-        return this.change(this.data.changesFor(prev, oldBlocks, newBlocks));
-      };
-
       BasicEditingOptions.prototype.changeStructure = function(oldBlocks, newText) {
         return computeNewStructure(this, oldBlocks, newText);
       };
@@ -1182,35 +1170,6 @@
 
       BasicEditingOptions.prototype.clearChangeContext = function() {
         return this.changeContext = null;
-      };
-
-      BasicEditingOptions.prototype.makeStructureChange = function(start, end, text, arg) {
-        var newBlocks, offset, oldBlocks, prev;
-        oldBlocks = arg.oldBlocks, newBlocks = arg.newBlocks, offset = arg.offset, prev = arg.prev;
-        try {
-          if (oldBlocks.length || newBlocks.length) {
-            return this.edit(prev, oldBlocks.slice(), newBlocks.slice());
-          }
-        } finally {
-          this.clearChangeContext();
-        }
-      };
-
-      BasicEditingOptions.prototype.change = function(changes) {
-        var block, first, id, j, len, removes, sets;
-        if (changes) {
-          first = changes.first, removes = changes.removes, sets = changes.sets;
-          this.first = first;
-          for (j = 0, len = removes.length; j < len; j++) {
-            id = removes[j];
-            this.deleteBlock(id);
-          }
-          for (id in sets) {
-            block = sets[id];
-            this.setBlock(id, block);
-          }
-          return true;
-        }
       };
 
       BasicEditingOptions.prototype.getBlock = function(id) {
@@ -2299,10 +2258,6 @@
 
       DataStoreEditingOptions.prototype.load = function(name, text) {
         return this.data.load(name, text);
-      };
-
-      DataStoreEditingOptions.prototype.edit = function(prev, oldBlocks, newBlocks) {
-        return this.replaceBlocks(prev, oldBlocks, newBlocks);
       };
 
       DataStoreEditingOptions.prototype.replaceText = function(repl) {

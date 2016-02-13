@@ -2,7 +2,7 @@ Code for local-mode.  This will not be loaded under meteor.
 
     require ['./domCursor'], (DC)-> window.DOMCursor = DC
 
-    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, GDrive)->
+    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs)->
 
       {
         OrgData
@@ -245,4 +245,4 @@ Code for local-mode.  This will not be loaded under meteor.
 
     require ['jquery'], ->
       #require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init
-      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice'], init
+      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge'], init

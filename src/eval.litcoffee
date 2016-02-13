@@ -101,26 +101,26 @@ Evaulation support for Leisure
 
       leisureEnv = (env)->
         env.presentValue = (v)-> html rz(L_showHtml) lz v
-        env.executeText = (text, props, cont)->
+        env.executeText = (text, props, cont)-> setLounge this, ->
           if !cont then cont = (x)->
             r = x.head().tail()
             if getType(r) == 'left' then new Error getLeft r
             else getRight r
           if getLeisurePromise().isResolved()
-            leisureExec env, text, props, cont, (err)=> @errorAt 0, err?.message ? err
+            leisureExec env, text, props, cont, (err)-> env.errorAt 0, err?.message ? err
           else
             if opts = env.opts then console.log "OPTS:", opts
             getLeisurePromise().then (=>
               if !env.opts then env.opts = opts
-              leisureExec env, text, props, cont, (err)=> @errorAt 0, err?.message ? err),
-            (err)=> @errorAt 0, err?.message ? err
+              leisureExec env, text, props, cont, (err)-> env.errorAt 0, err?.message ? err),
+            (err)-> env.errorAt 0, err?.message ? err
         env
 
       leisureExec = (env, text, props, cont, errCont)->
         try
           old = getValue 'parser_funcProps'
           setValue 'parser_funcProps', props
-          setLounge env, ->
+          setLounge env, =>
             result = rz(L_baseLoadString)('notebook', text)
             runMonad2 result, env, (results)->
               runNextResult results, env, (->
@@ -137,7 +137,7 @@ Evaulation support for Leisure
             sync = true
             async = true
             try
-              setLounge env, -> runMonad2 getRight(results.head().tail()), env, (res2)->
+              setLounge env, => runMonad2 getRight(results.head().tail()), env, (res2)->
                 if getType(res2) != 'unit' then env.write env.presentValue res2
                 if sync then async = false
                 else runNextResult results.tail(), env, cont, errCont
@@ -156,14 +156,15 @@ Evaulation support for Leisure
       writeValues = (env, values)-> env.write values.join '\n'
 
       setLounge = (env, func)->
+        oldLounge = window.Lounge
         window.Lounge = env
         env.opts = env.opts
         result = func()
-        window.Lounge = null
+        window.Lounge = oldLounge
         result
 
       jsEnv = (env)->
-        env.executeText = (text, props, cont)->
+        env.executeText = (text, props, cont)-> setLounge this, =>
           try
             writeValues env, value = jsEval(env, text)
           catch err
@@ -219,7 +220,7 @@ Evaulation support for Leisure
       handleErrors = (ast, func)-> walk ast, (node)-> if isError node then func node
 
       lsEnv = (env)->
-        env.executeText = (text, props, cont)->
+        env.executeText = (text, props, cont)-> setLounge this, =>
           try
             console = log: (str)=> env.write env.presentValue str
             value = setLounge env, -> eval(lispyScript._compile(text));
@@ -230,7 +231,7 @@ Evaulation support for Leisure
         env
 
       csEnv = (env)->
-        env.executeText = (text, props, cont)->
+        env.executeText = (text, props, cont)-> setLounge this, =>
           try
             writeValues env, values = jsEval env, CS.compile text, bare: true
           catch err
@@ -307,6 +308,7 @@ Evaulation support for Leisure
 
       mergeExports {
         evalLeisure
+        setLounge
       }
 
       {

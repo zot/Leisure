@@ -3,7 +3,7 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
-    slice = [].slice;
+    slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
     var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockViewType, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isPrefix, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
@@ -151,6 +151,32 @@
             }
           }
         }
+      };
+
+      OrgData.prototype.getImage = function(name, cont, fail) {
+        return this.getFile(name, (function(contents) {
+          var blob, byteArrays, i, offset, slice;
+          byteArrays = (function() {
+            var j, ref, results1;
+            results1 = [];
+            for (offset = j = 0, ref = contents.length; j < ref; offset = j += 512) {
+              slice = contents.slice(offset, offset + 512);
+              results1.push(new Uint8Array((function() {
+                var l, results2;
+                results2 = [];
+                for (i = l = 0; l < 512; i = ++l) {
+                  results2.push(slice.charCodeAt(i));
+                }
+                return results2;
+              })()));
+            }
+            return results1;
+          })();
+          blob = new Blob(byteArrays, {
+            type: 'image/png'
+          });
+          return cont(URL.createObjectURL(blob));
+        }), fail);
       };
 
       OrgData.prototype.getBlock = function(thing, changes) {
@@ -636,7 +662,7 @@
           ref2 = channels.split(' ');
           for (j = 0, len = ref2.length; j < len; j++) {
             channel = ref2[j];
-            this.triggerUpdate.apply(this, slice.call(channel.split('.')).concat([newBlock]));
+            this.triggerUpdate.apply(this, slice1.call(channel.split('.')).concat([newBlock]));
           }
         }
         return null;
@@ -644,7 +670,7 @@
 
       OrgData.prototype.triggerUpdate = function() {
         var block, channelKeys, id, items, j, ref, v;
-        channelKeys = 2 <= arguments.length ? slice.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), block = arguments[j++];
+        channelKeys = 2 <= arguments.length ? slice1.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), block = arguments[j++];
         if (items = (ref = this.observers).get.apply(ref, channelKeys)) {
           for (id in items) {
             v = items[id];
@@ -748,14 +774,14 @@
         for (j = 0, len = oldObs.length; j < len; j++) {
           ch = oldObs[j];
           if (!(indexOf.call(obs, ch) >= 0)) {
-            (ref6 = this.observers).remove.apply(ref6, slice.call(ch.split('.')).concat([getId(oldBlock)]));
+            (ref6 = this.observers).remove.apply(ref6, slice1.call(ch.split('.')).concat([getId(oldBlock)]));
           }
         }
         results1 = [];
         for (l = 0, len1 = obs.length; l < len1; l++) {
           ch = obs[l];
           if (!(indexOf.call(oldObs, ch) >= 0)) {
-            results1.push((ref7 = this.observers).add.apply(ref7, slice.call(ch.split('.')).concat([getId(block)], [true])));
+            results1.push((ref7 = this.observers).add.apply(ref7, slice1.call(ch.split('.')).concat([getId(block)], [true])));
           } else {
             results1.push(void 0);
           }
@@ -1069,7 +1095,7 @@
 
       NMap.prototype.add = function() {
         var args, i, j, l, pos, ref, value;
-        args = 2 <= arguments.length ? slice.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), value = arguments[j++];
+        args = 2 <= arguments.length ? slice1.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), value = arguments[j++];
         i = this.items;
         for (pos = l = 0, ref = args.length - 1; 0 <= ref ? l < ref : l > ref; pos = 0 <= ref ? ++l : --l) {
           if (!i[args[pos]]) {
@@ -1082,7 +1108,7 @@
 
       NMap.prototype.get = function() {
         var i, j, keys, pos, ref;
-        keys = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        keys = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
         i = this.items;
         for (pos = j = 0, ref = keys.length; 0 <= ref ? j < ref : j > ref; pos = 0 <= ref ? ++j : --j) {
           if (!i[keys[pos]]) {
@@ -1095,13 +1121,13 @@
 
       NMap.prototype.getAll = function() {
         var keys;
-        keys = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        keys = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
         return new NMap(this.get.apply(this, keys));
       };
 
       NMap.prototype.remove = function() {
         var collection, i, items, j, keys, l, path, pos, ref;
-        keys = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        keys = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
         path = [];
         items = this.items;
         for (pos = j = 0, ref = keys.length; 0 <= ref ? j < ref : j > ref; pos = 0 <= ref ? ++j : --j) {
@@ -1719,10 +1745,6 @@
         return this.mode.render(this, block, this.idPrefix);
       };
 
-      OrgEditing.prototype.replaceBlocks = function(prev, oldBlocks, newBlocks) {
-        return this.change(this.changesFor(prev, oldBlocks, newBlocks));
-      };
-
       OrgEditing.prototype.replaceTextEffects = function(start, end, text, skipMode) {
         var changes, newBlocks, oldBlocks, prev, ref, sets;
         ref = this.data.changesForReplacement(start, end, text), prev = ref.prev, oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks;
@@ -1751,12 +1773,14 @@
         var j, len, ref, repls, results1;
         if (!skipEffects && (ref = this.replaceTextEffects(repl.start, repl.end, repl.text), repls = ref.repls, ref)) {
           OrgEditing.__super__.replaceText.call(this, repl);
-          results1 = [];
-          for (j = 0, len = repls.length; j < len; j++) {
-            repl = repls[j];
-            results1.push(this.replaceText(repl, true));
+          if (repls) {
+            results1 = [];
+            for (j = 0, len = repls.length; j < len; j++) {
+              repl = repls[j];
+              results1.push(this.replaceText(repl, true));
+            }
+            return results1;
           }
-          return results1;
         } else {
           return OrgEditing.__super__.replaceText.call(this, repl);
         }
@@ -1802,17 +1826,23 @@
         return OrgEditing.__super__.change.call(this, changes);
       };
 
+      OrgEditing.prototype.replaceBlock = function(block, text, source) {
+        var offset;
+        block = this.getBlock(block);
+        offset = this.data.offsetForBlock(block);
+        return this.replaceText({
+          start: offset,
+          end: offset + block.text.length,
+          text: text,
+          source: source
+        });
+      };
+
       OrgEditing.prototype.update = function(block) {
         var oldBlock;
         oldBlock = this.getBlock(block._id);
         if (!_.isEqual(block, oldBlock)) {
-          return this.change({
-            first: this.data.getFirst(),
-            removes: {},
-            sets: _.fromPairs([[block._id, block]]),
-            newBlocks: [block],
-            oldBlocks: (oldBlock ? [oldBlock] : [])
-          });
+          return this.replaceBlock(oldBlock, block.text, 'code');
         }
       };
 
@@ -1847,7 +1877,7 @@
             env = envM({
               __proto__: defaultEnv,
               write: function() {},
-              options: this,
+              opts: this,
               data: this.data,
               prompt: function(str, defaultValue, cont) {
                 return cont(prompt(str, defaultValue));
@@ -1857,18 +1887,9 @@
             (function(_this) {
               return (function(change) {
                 env.errorAt = function(offset, msg) {
-                  var sets;
                   newBlock = setError(change, offset, msg);
                   if (newBlock !== change && !sync) {
-                    sets = {};
-                    sets[change._id] = newBlock;
-                    return opts.change({
-                      first: opts.data.getFirst(),
-                      removes: {},
-                      sets: sets,
-                      newBlocks: [newBlock],
-                      oldBlocks: [change]
-                    });
+                    return opts.replaceBlock(change, newBlock.text, 'code');
                   }
                 };
                 return env.write = function(str) {
@@ -1963,7 +1984,7 @@
           env.write = function(str) {
             result += presentHtml(str);
             if (!sync) {
-              return opts.update(newBlock = setResult(block, str));
+              return opts.update(newBlock = setResult(block, result));
             }
           };
           env.prompt = function(str, defaultValue, cont) {

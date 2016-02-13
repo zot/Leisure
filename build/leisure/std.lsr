@@ -271,7 +271,21 @@ defCase map.range func r | isRange r -> r \a b . runRepeat a b func
 
 defCase map.repeat func r | isRepeat r -> r \n . runRepeat 0 n func
 
-defCase map.option func opt | isOption opt -> opt (\x . [x]) []
+defCase map.option func opt | isOption opt -> opt (\x . some (func x)) []
+
+defCase map.either func eith | isEither eith -> eith (\_ . []) (\x . right (func x))
+
+#defCase map.string func str | isString str -> strFromList (map func (strToList str))
+
+toList x = [x]
+
+defCase toList.list l | (isCons l) || (isNil l) -> l
+
+defCase toList.opt o | isOption o -> o (\x . [x]) []
+
+defCase toList.either e | isEither e -> e (\_ . []) (\x . [x])
+
+defCase toList.string s | isString s -> strToList s
 
 # show
 ## Generic presentation
@@ -420,7 +434,7 @@ wrappedForeach l = \f . f l
 defMacro 'foreach' \list . ['wrappedForeach' list]
 
 defCase bind.wrappedForeach fe cont | hasType fe wrappedForeach ->
-  primBind (fe id) \x . doall (map id (bind x cont))
+  primBind (fe id) \x . doall (toList (bind x cont))
 
 #######################
 ## pre/postconditions
@@ -440,6 +454,18 @@ defWrapper hamtWith oldHamtWith key value hamt -> oldHamtWith
   assertType 'hamtWith key' '*string' key
   value
   hamt
+
+########################
+## convenience functions
+########################
+
+defMacro 'write[' \list . ['write' ['strCat' [(listify (head list))]]]
+
+addTokenGroup 'write[' ']'
+
+defMacro 's[' \list . ['strCat' [(listify (head list))]]
+
+addTokenGroup 's[' ']'
 
 #######################
 ## output tag functions
@@ -466,7 +492,7 @@ html x = \f . f x
 #      replaceDocument data
 #    \err . print concat['Error: ' err]
 
-defTokenPack 'util' [['->' '--' '++'] ['js[':']'] []]
+defTokenPack 'util' [['->' '--' '++'] ['js[':']' 'write[':']' 's[':']'] []]
 addStdTokenPacks ['util']
 
 #####

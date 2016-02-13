@@ -119,46 +119,44 @@
         return html(rz(L_showHtml)(lz(v)));
       };
       env.executeText = function(text, props, cont) {
-        var opts;
-        if (!cont) {
-          cont = function(x) {
-            var r;
-            r = x.head().tail();
-            if (getType(r) === 'left') {
-              return new Error(getLeft(r));
-            } else {
-              return getRight(r);
-            }
-          };
-        }
-        if (getLeisurePromise().isResolved()) {
-          return leisureExec(env, text, props, cont, (function(_this) {
-            return function(err) {
-              var ref;
-              return _this.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
-            };
-          })(this));
-        } else {
-          if (opts = env.opts) {
-            console.log("OPTS:", opts);
-          }
-          return getLeisurePromise().then(((function(_this) {
-            return function() {
-              if (!env.opts) {
-                env.opts = opts;
+        return setLounge(this, function() {
+          var opts;
+          if (!cont) {
+            cont = function(x) {
+              var r;
+              r = x.head().tail();
+              if (getType(r) === 'left') {
+                return new Error(getLeft(r));
+              } else {
+                return getRight(r);
               }
-              return leisureExec(env, text, props, cont, function(err) {
-                var ref;
-                return _this.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
-              });
             };
-          })(this)), (function(_this) {
-            return function(err) {
+          }
+          if (getLeisurePromise().isResolved()) {
+            return leisureExec(env, text, props, cont, function(err) {
               var ref;
-              return _this.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
-            };
-          })(this));
-        }
+              return env.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
+            });
+          } else {
+            if (opts = env.opts) {
+              console.log("OPTS:", opts);
+            }
+            return getLeisurePromise().then(((function(_this) {
+              return function() {
+                if (!env.opts) {
+                  env.opts = opts;
+                }
+                return leisureExec(env, text, props, cont, function(err) {
+                  var ref;
+                  return env.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
+                });
+              };
+            })(this)), function(err) {
+              var ref;
+              return env.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
+            });
+          }
+        });
       };
       return env;
     };
@@ -167,18 +165,20 @@
       try {
         old = getValue('parser_funcProps');
         setValue('parser_funcProps', props);
-        return setLounge(env, function() {
-          var result;
-          result = rz(L_baseLoadString)('notebook', text);
-          return runMonad2(result, env, function(results) {
-            return runNextResult(results, env, (function() {
-              setValue('parser_funcProps', old);
-              return (cont != null ? cont : function(x) {
-                return x;
-              })(results);
-            }), errCont);
-          });
-        });
+        return setLounge(env, (function(_this) {
+          return function() {
+            var result;
+            result = rz(L_baseLoadString)('notebook', text);
+            return runMonad2(result, env, function(results) {
+              return runNextResult(results, env, (function() {
+                setValue('parser_funcProps', old);
+                return (cont != null ? cont : function(x) {
+                  return x;
+                })(results);
+              }), errCont);
+            });
+          };
+        })(this));
       } catch (error) {
         err = error;
         return errCont(err);
@@ -193,18 +193,20 @@
           sync = true;
           async = true;
           try {
-            setLounge(env, function() {
-              return runMonad2(getRight(results.head().tail()), env, function(res2) {
-                if (getType(res2) !== 'unit') {
-                  env.write(env.presentValue(res2));
-                }
-                if (sync) {
-                  return async = false;
-                } else {
-                  return runNextResult(results.tail(), env, cont, errCont);
-                }
-              });
-            });
+            setLounge(env, (function(_this) {
+              return function() {
+                return runMonad2(getRight(results.head().tail()), env, function(res2) {
+                  if (getType(res2) !== 'unit') {
+                    env.write(env.presentValue(res2));
+                  }
+                  if (sync) {
+                    return async = false;
+                  } else {
+                    return runNextResult(results.tail(), env, cont, errCont);
+                  }
+                });
+              };
+            })(this));
           } catch (error) {
             err = error;
             errCont(err);
@@ -231,23 +233,28 @@
       return env.write(values.join('\n'));
     };
     setLounge = function(env, func) {
-      var result;
+      var oldLounge, result;
+      oldLounge = window.Lounge;
       window.Lounge = env;
       env.opts = env.opts;
       result = func();
-      window.Lounge = null;
+      window.Lounge = oldLounge;
       return result;
     };
     jsEnv = function(env) {
       env.executeText = function(text, props, cont) {
-        var err, error, value;
-        try {
-          writeValues(env, value = jsEval(env, text));
-        } catch (error) {
-          err = error;
-          this.errorAt(0, err.message);
-        }
-        return typeof cont === "function" ? cont(value) : void 0;
+        return setLounge(this, (function(_this) {
+          return function() {
+            var err, error, value;
+            try {
+              writeValues(env, value = jsEval(env, text));
+            } catch (error) {
+              err = error;
+              _this.errorAt(0, err.message);
+            }
+            return typeof cont === "function" ? cont(value) : void 0;
+          };
+        })(this));
       };
       return env;
     };
@@ -345,41 +352,47 @@
     };
     lsEnv = function(env) {
       env.executeText = function(text, props, cont) {
-        var console, err, error, value;
-        try {
-          console = {
-            log: (function(_this) {
-              return function(str) {
-                return env.write(env.presentValue(str));
+        return setLounge(this, (function(_this) {
+          return function() {
+            var console, err, error, value;
+            try {
+              console = {
+                log: function(str) {
+                  return env.write(env.presentValue(str));
+                }
               };
-            })(this)
+              value = setLounge(env, function() {
+                return eval(lispyScript._compile(text));
+              });
+              if (typeof value !== 'undefined') {
+                writeValues(env, [value]);
+              }
+            } catch (error) {
+              err = error;
+              _this.errorAt(0, err.message);
+            }
+            return typeof cont === "function" ? cont(value) : void 0;
           };
-          value = setLounge(env, function() {
-            return eval(lispyScript._compile(text));
-          });
-          if (typeof value !== 'undefined') {
-            writeValues(env, [value]);
-          }
-        } catch (error) {
-          err = error;
-          this.errorAt(0, err.message);
-        }
-        return typeof cont === "function" ? cont(value) : void 0;
+        })(this));
       };
       return env;
     };
     csEnv = function(env) {
       env.executeText = function(text, props, cont) {
-        var err, error, values;
-        try {
-          writeValues(env, values = jsEval(env, CS.compile(text, {
-            bare: true
-          })));
-        } catch (error) {
-          err = error;
-          this.errorAt(0, err.message);
-        }
-        return typeof cont === "function" ? cont(values) : void 0;
+        return setLounge(this, (function(_this) {
+          return function() {
+            var err, error, values;
+            try {
+              writeValues(env, values = jsEval(env, CS.compile(text, {
+                bare: true
+              })));
+            } catch (error) {
+              err = error;
+              _this.errorAt(0, err.message);
+            }
+            return typeof cont === "function" ? cont(values) : void 0;
+          };
+        })(this));
       };
       return env;
     };
@@ -489,7 +502,8 @@
       });
     };
     mergeExports({
-      evalLeisure: evalLeisure
+      evalLeisure: evalLeisure,
+      setLounge: setLounge
     });
     return {
       languageEnvMaker: languageEnvMaker,

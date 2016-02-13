@@ -698,12 +698,28 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     cont(Math.random())
 
   define 'js', (str)->
-    makeSyncMonad (env, cont)->
+    makeSyncMonad (env, cont)-> (Leisure.setLounge ? (e, cont)-> cont()) env, ->
       try
-        result = eval rz str
-        cont right result
+        cont right leisurify eval rz str
       catch err
         cont left err
+
+  leisurify = (value)->
+    if typeof value == 'function'
+      if !value.memo then value.memo = nFunction value.length, ->
+        valueArgs = arguments
+        new Monad2 (env, cont)-> cont value (_.map valueArgs, (x)-> rz x)...
+      value.memo
+    else value
+
+  nFunction = (nArgs, def)->
+    (eval """
+      (function (def) {
+        return function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
+          return isPartial(arguments) ? partialCall(arguments) : def.apply(null, arguments);
+        };
+      })
+    """) def
 
   define 'delay', (timeout)->
     new Monad2 (env, cont)->
@@ -1004,11 +1020,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     window.defaultEnv = defaultEnv
     window.identity = identity
 
-  mergeExports {
-    stateValues: values
-  }
-
-  {
+  Runtime = {
     requireFiles
     _true
     _false
@@ -1044,4 +1056,15 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     jsonConvert
     lacons
     dumpMonadStack
+    define
+    isPartial
+    partialCall
   }
+
+  mergeExports {
+    stateValues: values
+    runMonad: runMonad2
+    Runtime
+  }
+
+  Runtime
