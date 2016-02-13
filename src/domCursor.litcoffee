@@ -667,8 +667,7 @@ Thanks to (rangy)[this: https://github.com/timdown/rangy] for the isCollapsed lo
           debug "select range", r, new Error('trace').stack
           sel = getSelection()
           if !(sel.rangeCount == 1 && sameRanges sel.getRangeAt(0), r)
-            if sel.rangeCount > 0 then sel.removeAllRanges()
-            sel.addRange r
+            sel.setBaseAndExtent r.startContainer, r.startOffset, r.endContainer, r.endOffset
 
       sameRanges = (r1, r2)->
         r1.compareBoundaryPoints(Range.START_TO_START, r2) == 0 &&

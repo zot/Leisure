@@ -79,7 +79,6 @@ Here are the hook methods you need to provide:
   * each block's DOM should have the same id as the block and have a data-block attribute
   * non-editable parts of the DOM should have contenteditable=false
   * completely skipped parts should be non-editable and have a data-noncontent attribute
-* `edit(prev, oldBlocks, newBlocks) -> any`: The editor calls this after the user has attempted an edit.  It should make the requested change (probably by calling `replaceBlocks`) and rerender the appropriate DOM.
 
 After that, you must render the changes into HTML and replace them into the element.
 
@@ -99,7 +98,6 @@ Methods of BasicEditingOptions
 * `topRect() -> rect?`: returns null or the rectangle of a toolbar at the page top
 * `blockColumn(pos) -> colNum`: returns the start column on the page for the current block
 * `load(el, text) -> void`: parse text into blocks and replace el's contents with rendered DOM
-* `replaceBlocks(oldBlocks, newBlocks) -> removedBlocks`: override this if you need to link up the blocks, etc., like so that `renderBlock()` can return the proper next id, for instance.
 
 Packages we use
 ===============
@@ -817,10 +815,6 @@ Hook methods (required)
 
         renderBlock: (block)-> throw new Error "options.renderBlock(block) is not implemented"
 
-`edit(prev, oldBlocks, newBlocks)`: The editor calls this after the user has attempted an edit.  It should make the requested change (probably by calling `replaceBlocks`, below) and rerender the appropriate DOM.
-
-        edit: (prev, oldBlocks, newBlocks)-> throw new Error "options.edit(func) is not implemented"
-
 Hook methods (optional)
 -----------------------
 
@@ -843,12 +837,6 @@ instance, call event.preventDefault() and set the dropEffect to 'none'
           if !event.dataTransfer.getData
             event.preventDefault()
             event.dropEffect = 'none'
-
-`editBlocks(blocks, start, length, newContent, select)`: edit some blocks (just calls the editor's
-editBlocks by default).
-
-        editBlocks: (blocks, start, length, newContent, select)->
-          @editor.editBlocks blocks, start, length, newContent, select
 
 Main code
 ---------
@@ -904,36 +892,12 @@ situations to provide STM-like change management.
           catch err
             errorFunc err
 
-`replaceBlocks(oldBlocks, newBlocks) -> removedBlocks`: override this if you need to link up the blocks, etc., like so that `renderBlock()` can return the proper next id, for instance.
-
-        replaceBlocks: (prev, oldBlocks, newBlocks)->
-          @change @data.changesFor prev, oldBlocks, newBlocks
-
-
 `changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
 
         changeStructure: (oldBlocks, newText)->
           computeNewStructure this, oldBlocks, newText
         mergeChangeContext: (obj)-> @changeContext = _.merge {}, @changeContext ? {}, obj
         clearChangeContext: -> @changeContext = null
-
-Factored out because the Emacs connection calls MakeStructureChange.
-
-        makeStructureChange: (start, end, text, {oldBlocks, newBlocks, offset, prev})->
-          try
-            if oldBlocks.length || newBlocks.length
-              @edit prev, oldBlocks.slice(), newBlocks.slice()
-          finally
-            @clearChangeContext()
-        change: (changes)->
-          if changes
-            {first, removes, sets} = changes
-            @first = first
-            for id in removes
-              @deleteBlock id
-            for id, block of sets
-              @setBlock id, block
-            true
 
 `getBlock(id) -> block?`: get the current block for id
 
@@ -1539,7 +1503,6 @@ DataStoreEditingOptions
         cleanup: -> @data.off @callbacks
         initData: ->
         load: (name, text)-> @data.load name, text
-        edit: (prev, oldBlocks, newBlocks)-> @replaceBlocks prev, oldBlocks, newBlocks
         replaceText: (repl)-> @data.replaceText repl
         getBlock: (id)-> @data.getBlock id
         getFirst: (first)-> @data.getFirst()

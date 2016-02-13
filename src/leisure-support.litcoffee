@@ -37,6 +37,8 @@ Support code for Leisure
         some
         none
         lacons: acons
+        right
+        left
       } = Runtime
       {
         evalLeisure
@@ -169,6 +171,11 @@ Support code for Leisure
         new Monad2 'removeData', (env, cont)->
           env.opts.removeData rz(name)
           cont _unit
+
+      define 'getImage', (name)-> if isPartial arguments then partialCall arguments else
+        data = Lounge.opts.data
+        new Monad2 (env, cont)->
+          data.getImage rz(name), ((url)-> cont right url), (failure)-> cont left failure
 
       evalLeisure """
       defMacro 'changeData' \\list . ['_changeData' ['do' | list]]

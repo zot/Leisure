@@ -163,6 +163,13 @@ same names for blocks other than printing a warning.
           finally
             if newChange then for filter in @filters
               filter.endChange this
+        getImage: (name, cont, fail)->
+          @getFile name, ((contents)->
+            byteArrays = for offset in [0...contents.length] by 512
+              slice = contents.slice offset, offset + 512
+              new Uint8Array (slice.charCodeAt(i) for i in [0...512])
+            blob = new Blob byteArrays, type: 'image/png'
+            cont URL.createObjectURL blob), fail
         getBlock: (thing, changes)->
           if typeof thing == 'object' then thing
           else changes?.sets[thing] ? super(thing) ? @imported.data[thing]
@@ -915,8 +922,6 @@ may be called more than once.  changeData() returns a promise.
         idForNode: (node)-> $(node).closest('[data-block]')[0]?.id.match(@idPattern)?[1]
         parseBlocks: (text)-> @data.parseBlocks text
         renderBlock: (block)-> @mode.render this, block, @idPrefix
-        replaceBlocks: (prev, oldBlocks, newBlocks)->
-          @change @changesFor prev, oldBlocks, newBlocks
         replaceTextEffects: (start, end, text, skipMode)->
           {prev, oldBlocks, newBlocks} = @data.changesForReplacement start, end, text
           if !oldBlocks
@@ -938,8 +943,9 @@ may be called more than once.  changeData() returns a promise.
         replaceText: (repl, skipEffects)->
           if !skipEffects && {repls} = @replaceTextEffects repl.start, repl.end, repl.text
             super repl
-            for repl in repls
-              @replaceText repl, true
+            if repls
+              for repl in repls
+                @replaceText repl, true
           else super repl
 
 `changesFor(first, oldBlocks, newBlocks)` -- compute some effects immediately
@@ -969,15 +975,14 @@ may be called more than once.  changeData() returns a promise.
         change: (changes)->
           if changes then @mode.handleChanges this, changes
           super changes
+        replaceBlock: (block, text, source)->
+          block = @getBlock block
+          offset = @data.offsetForBlock block
+          @replaceText {start: offset, end: offset + block.text.length, text, source}
         update: (block)->
           oldBlock = @getBlock block._id
           if !_.isEqual block, oldBlock
-            @change
-              first: @data.getFirst()
-              removes: {}
-              sets: _.fromPairs [[block._id, block]]
-              newBlocks: [block]
-              oldBlocks: (if oldBlock then [oldBlock] else [])
+            @replaceBlock oldBlock, block.text, 'code'
         changesHidden: (changes)->
           if @canHideSlides()
             for change in changes.oldBlocks
@@ -998,7 +1003,7 @@ may be called more than once.  changeData() returns a promise.
               env = envM
                 __proto__: defaultEnv
                 write: ->
-                options: this
+                opts: this
                 data: @data
                 prompt: (str, defaultValue, cont)-> cont prompt(str, defaultValue)
               opts = this
@@ -1006,14 +1011,7 @@ may be called more than once.  changeData() returns a promise.
                 env.errorAt = (offset, msg)->
                   newBlock = setError change, offset, msg
                   if newBlock != change && !sync
-                    sets = {}
-                    sets[change._id] = newBlock
-                    opts.change
-                      first: opts.data.getFirst()
-                      removes: {}
-                      sets: sets
-                      newBlocks: [newBlock]
-                      oldBlocks: [change]
+                    opts.replaceBlock change, newBlock.text, 'code'
                 env.write = (str)=>
                   result += presentHtml str
                   if result[result.length - 1] != '\n' then result += '\n'
@@ -1059,7 +1057,7 @@ may be called more than once.  changeData() returns a promise.
               if newBlock != block && !sync then opts.update newBlock
             env.write = (str)->
               result += presentHtml str
-              if !sync then opts.update newBlock = setResult block, str
+              if !sync then opts.update newBlock = setResult block, result
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
             env.executeText source.content, Nil, ->
             sync = false
