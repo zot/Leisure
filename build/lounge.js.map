@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "lounge.js",
+  "sourceRoot": "..",
+  "sources": [
+    "src\\lounge.litcoffee"
+  ],
+  "names": [],
+  "mappings": ";AAEI;EAAA,MAAA,CAAO,CAAC,UAAD,CAAP,EAAqB,SAAC,OAAD;AACnB,QAAA;IACE,eACE,QADF;IAGF,aAAA,GAAgB,SAAC,IAAD;aAAS,MAAM,CAAC,IAAI,CAAC,IAAI,CAAC,aAAjB,CAA+B,IAA/B;IAAT;IAEhB,YAAA,CAAa;MACX,eAAA,aADW;KAAb;WAIA;EAXmB,CAArB;AAAA"
+}
