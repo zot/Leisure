@@ -2,7 +2,7 @@ Code for local-mode.  This will not be loaded under meteor.
 
     require ['./domCursor'], (DC)-> window.DOMCursor = DC
 
-    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs)->
+    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs, Atom)->
 
       {
         OrgData
@@ -21,9 +21,6 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         Peer
       } = P2P
-      {
-        findPeer
-      } = Webrtc
       {
         runTests
       } = Tests
@@ -49,6 +46,9 @@ Code for local-mode.  This will not be loaded under meteor.
       {
         changeAdvice
       } = Advice
+      {
+        configureAtom
+      } = Atom
 
       useP2P = true
       #useP2P = false
@@ -135,7 +135,9 @@ Code for local-mode.  This will not be loaded under meteor.
           load = new URL(load, document.location).toString()
           ED.options.loadName = load
           configureLocal ED.options
-          $.get(load, (data)-> ED.options.load load, data)
+          $.get load, (data)->
+            ED.options.load load, data
+        else configureAtom ED.options
         if theme then ED.options.setTheme theme
         if join
           setTimeout (->
@@ -208,7 +210,7 @@ Code for local-mode.  This will not be loaded under meteor.
         #  <span id='{{id}}' data-block='headline'><span class='hidden'>{{stars}}</span><span class='maintext'>{{maintext}}</span>{{EOL}}{{nop
         #  }}</span>{{#each children}}{{{render this}}}{{/each}}</span>
         #  #+END_SRC
-        #  
+        #
         #  #+BEGIN_SRC css
         #  [data-block='headline'] .maintext {
         #    font-weight: bold;
@@ -245,4 +247,4 @@ Code for local-mode.  This will not be loaded under meteor.
 
     require ['jquery'], ->
       #require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init
-      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge'], init
+      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport'], init

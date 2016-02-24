@@ -6,13 +6,12 @@
     return window.DOMCursor = DC;
   });
 
-  init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Webrtc, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs) {
-    var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, findPeer, getDocumentParams, initializePendingViews, installSelectionMenu, localResources, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
+  init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs, Atom) {
+    var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureAtom, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, getDocumentParams, initializePendingViews, installSelectionMenu, localResources, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams, editorToolbar = EditorSupport.editorToolbar;
     plainEditDiv = Modes.plainEditDiv, fancyEditDiv = Modes.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
     Peer = P2P.Peer;
-    findPeer = Webrtc.findPeer;
     runTests = Tests.runTests;
     renderView = UI.renderView, initializePendingViews = UI.initializePendingViews, withContext = UI.withContext, setPanelExpanded = UI.setPanelExpanded, localResources = UI.localResources;
     mergeExports = BrowserExports.mergeExports;
@@ -20,6 +19,7 @@
     addEmacsDataFilter = Emacs.addEmacsDataFilter;
     todoForEditor = Todo.todoForEditor;
     changeAdvice = Advice.changeAdvice;
+    configureAtom = Atom.configureAtom;
     useP2P = true;
     peer = null;
     p2pPanel = null;
@@ -152,6 +152,8 @@
         $.get(load, function(data) {
           return ED.options.load(load, data);
         });
+      } else {
+        configureAtom(ED.options);
       }
       if (theme) {
         ED.options.setTheme(theme);
@@ -179,7 +181,7 @@
   };
 
   require(['jquery'], function() {
-    return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge'], init);
+    return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport'], init);
   });
 
 }).call(this);

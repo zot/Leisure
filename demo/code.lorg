@@ -94,10 +94,10 @@ setTheme 'googie'
 #setTheme 'cthulhu'
 #+END_SRC
 #+RESULTS:
-: PARSE ERROR: 
-: 
+: PARSE ERROR:
+:
 : Parse error: ReferenceError: L_steampunk$a is not defined
-: CODE: 
+: CODE:
 : resolve(L_steampunk$a)
 : AST: anno(\@filename notebook . steampunk')
 : true
