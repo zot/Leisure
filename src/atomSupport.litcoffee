@@ -33,8 +33,8 @@ offsets <--> line/col.
                   @changing = true
                   startOff = @atomOffset start
                   endOff = @atomOffset end
-                  console.log "Leisure replace #{start}, #{end}, #{text}"
-                  console.log "-> atom replace [#{startOff.row}, #{startOff.column}], [#{endOff.row}, #{endOff.column}], #{text}"
+                  # console.log "Leisure replace #{start}, #{end}, #{text}"
+                  # console.log "-> atom replace [#{startOff.row}, #{startOff.column}], [#{endOff.row}, #{endOff.column}], #{text}"
                   atomView.editor.setTextInBufferRange [startOff, endOff], text
                 finally
                   @changing = false
@@ -46,12 +46,12 @@ offsets <--> line/col.
           p = Point.fromObject atomOffset
           @splitForLine(p.row)[0].measure().width + p.column
         handleAtomTextChanged: (e)->
-          console.log 'Atom text event', e
+          # console.log 'Atom text event', e
           start = @leisureOffset [e.start, 0]
           end = @leisureOffset [e.end + 1, 0]
           text = leisureText atomView.editor.getTextInRange [[e.start, 0], [e.end + 1 + (e.bufferDelta ? 0), 0]]
           if @opts.data.getDocSubstring(start, end) != text
-            console.log "-> Leisure replace#{if @changing then ' (index update only)' else ''}: ", {start, end, text}
+            # console.log "-> Leisure replace#{if @changing then ' (index update only)' else ''}: ", {start, end, text}
             [first, rest] = @splitForLine e.start
             for i in [e.start..e.end]
               if rest.isEmpty() then break
@@ -61,7 +61,7 @@ offsets <--> line/col.
               first = first.addLast line.length + 1
             @atomLines = first.concat rest
             if !@changing then @opts.replaceText {start, end, text, source: 'atom'}
-          else console.log 'Ignoring redundant event'
+          # else console.log 'Ignoring redundant event'
 
 
       leisureText = (text)-> text.replace NON_LEISURE_LINE_END, '\n'

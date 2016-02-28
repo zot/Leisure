@@ -60,8 +60,6 @@
                   _this.changing = true;
                   startOff = _this.atomOffset(start);
                   endOff = _this.atomOffset(end);
-                  console.log("Leisure replace " + start + ", " + end + ", " + text);
-                  console.log("-> atom replace [" + startOff.row + ", " + startOff.column + "], [" + endOff.row + ", " + endOff.column + "], " + text);
                   return atomView.editor.setTextInBufferRange([startOff, endOff], text);
                 } finally {
                   _this.changing = false;
@@ -94,16 +92,10 @@
 
       AtomSupport.prototype.handleAtomTextChanged = function(e) {
         var end, first, i, j, k, len, line, ref, ref1, ref2, ref3, ref4, rest, start, t, text;
-        console.log('Atom text event', e);
         start = this.leisureOffset([e.start, 0]);
         end = this.leisureOffset([e.end + 1, 0]);
         text = leisureText(atomView.editor.getTextInRange([[e.start, 0], [e.end + 1 + ((ref = e.bufferDelta) != null ? ref : 0), 0]]));
         if (this.opts.data.getDocSubstring(start, end) !== text) {
-          console.log("-> Leisure replace" + (this.changing ? ' (index update only)' : '') + ": ", {
-            start: start,
-            end: end,
-            text: text
-          });
           ref1 = this.splitForLine(e.start), first = ref1[0], rest = ref1[1];
           for (i = j = ref2 = e.start, ref3 = e.end; ref2 <= ref3 ? j <= ref3 : j >= ref3; i = ref2 <= ref3 ? ++j : --j) {
             if (rest.isEmpty()) {
@@ -126,8 +118,6 @@
               source: 'atom'
             });
           }
-        } else {
-          return console.log('Ignoring redundant event');
         }
       };
 
