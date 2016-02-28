@@ -76,23 +76,18 @@ class LeisureView extends ScrollView
     # Fix from @kwaak (https://github.com/webBoxio/atom-html-preview/issues/1/#issuecomment-49639162)
     # Allows for the use of relative resources (scripts, styles)
     @iframe.setAttribute 'sandbox', 'allow-scripts allow-same-origin'
-    $(@iframe).on 'load', => $(@iframe.contentWindow).on 'blur', => @activateSensor()
     @iframe.src = @leisureURL
     @iframe.view = this
     console.log 'set src of', @iframe, "to #{@leisureURL}"
     @children().remove()
-    @sensor = $ '<div name="sensor"></div>'
+    @glass = $ '<div name="glass"></div>'
     @append @iframe
-    @append @sensor
+    @append @glass
+    this.on 'mouseout', => @glass.removeClass 'hidden'
+    this.on 'mouseover', (e)=> if !e.buttons then @glass.addClass 'hidden'
     @leisureWindow = @iframe.contentWindow
     @leisureWindow.atomView = this
-    console.log 'Leisure iframe', @iframe
-    @sensor.on 'mouseover', (e)=> if !e.buttons then @activateView(null, true)
     atom.commands.dispatch 'leisure', 'html-changed'
-
-  activateView: -> @sensor.addClass 'hidden'
-
-  activateSensor: -> @sensor.removeClass 'hidden'
 
   getTitle: ->
     if @editor? then "Leisure: #{@editor.getTitle()}"

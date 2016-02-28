@@ -7,6 +7,7 @@ url = require 'url'
 {CompositeDisposable} = require 'atom'
 
 module.exports = Leisure =
+  selector: '.source.org'
   leisureView: null
   modalPanel: null
   subscriptions: null

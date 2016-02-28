@@ -3,11 +3,9 @@
   "main": "./lib/leisure",
   "version": "0.0.0",
   "description": "A short description of your package",
+  "Xtheme": "ui",
   "keywords": [
   ],
-  "activationCommands": {
-    "atom-workspace": "leisure:toggle"
-  },
   "repository": "https://github.com/atom/leisure",
   "license": "MIT",
   "engines": {
