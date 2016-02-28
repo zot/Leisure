@@ -1600,13 +1600,9 @@
       };
 
       DataStore.prototype.changesForReplacement = function(start, end, text) {
-        var blocks, change, newBlocks, newText, offset, oldBlocks, oldText, pos, prev, ref;
-        blocks = this.blockOverlapsForReplacement(start, end, text).blocks;
-        offset = this.blockOffsetForDocOffset(start).offset;
-        oldText = blockText(blocks);
-        newText = oldText.substring(0, offset) + text + oldText.substring(end - start + offset);
-        pos = this.docOffsetForBlockOffset(blocks[0]._id, start);
-        ref = change = computeNewStructure(this, blocks, newText), oldBlocks = ref.oldBlocks, newBlocks = ref.newBlocks, offset = ref.offset, prev = ref.prev;
+        var blocks, change, newBlocks, newText, offset, oldBlocks, prev, ref, ref1;
+        ref = this.blockOverlapsForReplacement(start, end, text), blocks = ref.blocks, newText = ref.newText;
+        ref1 = change = computeNewStructure(this, blocks, newText), oldBlocks = ref1.oldBlocks, newBlocks = ref1.newBlocks, offset = ref1.offset, prev = ref1.prev;
         if (oldBlocks.length || newBlocks.length) {
           return change;
         } else {
@@ -2095,18 +2091,18 @@
 
       DataStore.prototype.blockOverlapsForReplacement = function(start, end, text) {
         var blocks, cur, endBlock, fullText, offset, startBlock;
-        startBlock = this.blockForOffset(start);
+        startBlock = this.getBlock(this.blockForOffset(start));
         if (!startBlock && start) {
-          startBlock = this.blockForOffset(start - 1);
+          startBlock = this.getBlock(this.blockForOffset(start - 1));
         }
-        endBlock = this.blockForOffset(end);
+        endBlock = this.getBlock(this.blockForOffset(end));
         if (!endBlock && end) {
-          endBlock = this.blockForOffset(end - 1);
+          endBlock = this.getBlock(this.blockForOffset(end - 1));
         }
-        blocks = [this.getBlock(startBlock)];
+        blocks = [startBlock];
         cur = startBlock;
         while (cur !== endBlock && cur.next) {
-          block.push(cur = this.getBlock(cur.next));
+          blocks.push(cur = this.getBlock(cur.next));
         }
         fullText = blockText(blocks);
         offset = this.offsetForBlock(blocks[0]);
