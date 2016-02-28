@@ -153,7 +153,7 @@
           return ED.options.load(load, data);
         });
       } else {
-        configureAtom(ED.options);
+        configureAtom(ED.options, configureLocal);
       }
       if (theme) {
         ED.options.setTheme(theme);

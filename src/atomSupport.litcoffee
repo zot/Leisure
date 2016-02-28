@@ -10,6 +10,7 @@ offsets <--> line/col.
       {
         Point
       } = parent.require 'atom'
+      path = parent.require 'path'
 
       LINE_END = /\r\n|\r|\n/g
       NON_LEISURE_LINE_END = /\r\n|\r/g
@@ -66,7 +67,7 @@ offsets <--> line/col.
 
       leisureText = (text)-> text.replace NON_LEISURE_LINE_END, '\n'
 
-      configureAtom = (opts)->
+      configureAtom = (opts, cont)->
         $(document).ready ->
           if document.location.search.length > 1 && !connected
             connected = true
@@ -78,7 +79,9 @@ offsets <--> line/col.
                 # console.log "CONNECT TO ATOM EDITOR: #{editorId}", atomView, parent.atom
                 text = atomView.editor.getText()
                 window.atomSupport = new AtomSupport opts, leisureText text
-                opts.load 'atom', leisureText text
+                opts.loadName = "file:#{path.join atomView.editor.getDirectoryPath(), atomView.editor.getFileName()}"
+                opts.load opts.loadName, leisureText text
+                cont opts
                 #opts.load 'atom', '* heading\n#+BEGIN_SRC leisure :results def\n3+4\n#+END_SRC\n'
 
       {
