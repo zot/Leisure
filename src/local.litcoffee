@@ -137,7 +137,7 @@ Code for local-mode.  This will not be loaded under meteor.
           configureLocal ED.options
           $.get load, (data)->
             ED.options.load load, data
-        else configureAtom ED.options
+        else configureAtom ED.options, configureLocal
         if theme then ED.options.setTheme theme
         if join
           setTimeout (->
