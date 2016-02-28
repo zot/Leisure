@@ -1826,10 +1826,13 @@
         return OrgEditing.__super__.change.call(this, changes);
       };
 
-      OrgEditing.prototype.replaceBlock = function(block, text, source) {
-        var offset;
+      OrgEditing.prototype.replaceBlock = function(block, textOrBlock, source) {
+        var offset, text;
         block = this.getBlock(block);
         offset = this.data.offsetForBlock(block);
+        if (typeof text === 'object') {
+          text = text.text;
+        }
         return this.replaceText({
           start: offset,
           end: offset + block.text.length,
@@ -2244,6 +2247,7 @@
       parseOrgMode: parseOrgMode,
       followLink: followLink,
       defaultEnv: defaultEnv,
+      preserveSelection: preserveSelection,
       rootContext: {}
     });
     return {

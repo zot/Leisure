@@ -1149,11 +1149,7 @@ sorted in reverse order by position.
           @replaceText {start, end, text, source: 'edit'}
           Promise.resolve()
         changesForReplacement: (start, end, text)->
-          {blocks} = @blockOverlapsForReplacement start, end, text
-          offset = @blockOffsetForDocOffset(start).offset
-          oldText = blockText blocks
-          newText = oldText.substring(0, offset) + text + oldText.substring end - start + offset
-          pos = @docOffsetForBlockOffset blocks[0]._id, start
+          {blocks, newText} = @blockOverlapsForReplacement start, end, text
           {oldBlocks, newBlocks, offset, prev} = change = computeNewStructure this, blocks, newText
           if oldBlocks.length || newBlocks.length then change else {}
         computeRemovesAndNewBlockIds: (oldBlocks, newBlocks, newBlockMap, removes)->
@@ -1426,14 +1422,14 @@ sorted in reverse order by position.
             offset += block.text.length
           errs.errors()
         blockOverlapsForReplacement: (start, end, text)->
-          startBlock = @blockForOffset(start)
-          if !startBlock && start then startBlock = @blockForOffset(start - 1)
-          endBlock = @blockForOffset end
-          if !endBlock && end then endBlock = @blockForOffset(end - 1)
-          blocks = [@getBlock startBlock]
+          startBlock = @getBlock @blockForOffset(start)
+          if !startBlock && start then startBlock = @getBlock @blockForOffset(start - 1)
+          endBlock = @getBlock @blockForOffset end
+          if !endBlock && end then endBlock = @getBlock @blockForOffset(end - 1)
+          blocks = [startBlock]
           cur = startBlock
           while cur != endBlock && cur.next
-            block.push cur = @getBlock cur.next
+            blocks.push cur = @getBlock cur.next
           fullText = blockText blocks
           offset = @offsetForBlock blocks[0]
           blocks: blocks

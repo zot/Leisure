@@ -4,7 +4,6 @@ This file customizes the editor so it can handle Leisure files.  Here is the Lei
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
     define ['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], (Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree)->
-
       {
         defaultEnv
       } = Base
@@ -482,7 +481,7 @@ that must be done regardless of the source of changes
           #{if name then "#+NAME: #{name}\n" else ''}#+BEGIN_SRC yaml #{(":#{k} #{v}" for k, v of attrs).join ' '}
           #{dump(data, _.defaults attrs ? {}, {sortKeys: true, flowLevel: 2}).trim()}
           #+END_SRC
-          
+
           """
         checkViewChange: (oldBlock, newBlock, isDefault)->
           if oldBlock && ov = blockViewType oldBlock
@@ -975,9 +974,10 @@ may be called more than once.  changeData() returns a promise.
         change: (changes)->
           if changes then @mode.handleChanges this, changes
           super changes
-        replaceBlock: (block, text, source)->
+        replaceBlock: (block, textOrBlock, source)->
           block = @getBlock block
           offset = @data.offsetForBlock block
+          if typeof text == 'object' then text = text.text
           @replaceText {start: offset, end: offset + block.text.length, text, source}
         update: (block)->
           oldBlock = @getBlock block._id
@@ -1280,6 +1280,7 @@ Exports
         parseOrgMode
         followLink
         defaultEnv
+        preserveSelection
         rootContext: {}
       }
 

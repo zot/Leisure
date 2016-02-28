@@ -111,6 +111,8 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     booleanFor rz(a) == rz(b)
   define '==', (a, b)-> if isPartial arguments then partialCall arguments else
     booleanFor rz(a) == rz(b)
+  define '!=', (a, b)-> if isPartial arguments then partialCall arguments else
+    booleanFor rz(a) != rz(b)
   booleanFor = (bool)-> if bool then rz L_true else rz L_false
   define 'hasType', (data, func)-> if isPartial arguments then partialCall arguments else
     if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)

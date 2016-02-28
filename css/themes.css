@@ -1,5 +1,5 @@
 /*@import "http://netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.css";*/
-@import "http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css";
+@import "http://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css";
 body.leisureError > #login,
 body.leisureError > #leisure_bar,
 body.leisureError > * {
@@ -1923,7 +1923,7 @@ i.fa + div, i.fa + span, i.fa + div + span {
 }
 .flat .codeHeading {
     padding: 5px;
-    display: inline-block; 
+    display: inline-block;
     font-weight: bold;
 }
 .flat [data-edit-mode='fancy'] [data-org-src] {

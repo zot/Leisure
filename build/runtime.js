@@ -131,6 +131,13 @@ misrepresented as being the original software.
         return booleanFor(rz(a) === rz(b));
       }
     });
+    define('!=', function(a, b) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        return booleanFor(rz(a) !== rz(b));
+      }
+    });
     booleanFor = function(bool) {
       if (bool) {
         return rz(L_true);
