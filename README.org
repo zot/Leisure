@@ -70,11 +70,6 @@ feedback purposes, you can get the emacs code by cloning the [[https://github.co
 repository]], adding the elisp directory to your Emacs load-path, and
 requiring leisure-connection-mode.
 
-Once you have leisure-connection-mode loaded in emacs, open this file
-(which is elisp/README.org in the project) in Emacs and click the link
-in Emacs above that says "CLICKING THIS LINK".  This will open a live
-connection to the buffer that mirrors your changes.
-
 Please note, there are still bugs in the mirroring, but we may not
 know about all of them, so if you're motivated to report them in
 GitHub, that would be nice :).
