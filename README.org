@@ -1,6 +1,8 @@
 * What is Leisure?
 *NOTE: LEISURE CURRENTLY ONLY RUNS IN CHROMIUM-BASED BROWSERS (LIKE CHROME).*
 
+[[file:demo/screen.png]]
+
 Leisure is an open-source web-based platform for interactive editable documents
 in orgmode format that provides what we call *[[https://en.wikipedia.org/wiki/Illuminated_manuscript][Illuminated Programming]]*. Leisure
 documents are:
@@ -37,8 +39,6 @@ Once connected, Emacs/Atom and Leisure will mirror changes between each other.
 TEAM CTHULHU has been working (somewhat) quietly on Leisure since 2011. This is
 a new version, we've been overhauling a lot of it, and we're finally ready to
 talk more publicly about it.
-
-[[file:demo/screen.png]]
 * Getting started with changing the Leisure codebase
 ** Fetch the repo
 - [[https://github.com/zot/Leisure][Leisure repo]]
