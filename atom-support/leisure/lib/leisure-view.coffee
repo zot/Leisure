@@ -83,8 +83,6 @@ class LeisureView extends ScrollView
     @glass = $ '<div name="glass"></div>'
     @append @iframe
     @append @glass
-    this.on 'mouseout', => @glass.removeClass 'hidden'
-    this.on 'mouseover', (e)=> if !e.buttons then @glass.addClass 'hidden'
     @leisureWindow = @iframe.contentWindow
     @leisureWindow.atomView = this
     atom.commands.dispatch 'leisure', 'html-changed'
