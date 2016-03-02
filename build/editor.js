@@ -537,13 +537,13 @@
             r.start -= 1;
           }
         }
+        sel = this.getSelectedDocRange();
         this.options.replaceText({
           start: r.start,
           end: r.start + r.length,
           text: '',
           source: 'edit'
         });
-        sel = this.getSelectedDocRange();
         return this.selectDocRange({
           type: 'Caret',
           start: r.start,

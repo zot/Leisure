@@ -476,12 +476,12 @@ Events:
           if r.type == 'Caret'
             r.length = 1
             if !forward then r.start -= 1
+          sel = @getSelectedDocRange()
           @options.replaceText
             start: r.start
             end: r.start + r.length
             text: ''
             source: 'edit'
-          sel = @getSelectedDocRange()
           @selectDocRange
             type: 'Caret'
             start: r.start
