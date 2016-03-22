@@ -30,7 +30,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     lazy,
     nsLog,
   } = root = base
-  
+
   rz = resolve
   lz = lazy
   lc = Leisure_call
@@ -70,7 +70,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     '#': '$C'
     # ' ' is used for syntactically impossible characters, like gensyms
     ' ': '$S'
-  
+
   nameSub = (name)->
     s = ''
     for i in [0...name.length]
@@ -82,28 +82,30 @@ define ['./base', 'lib/lodash.min'], (base, _)->
 ###### definitions
 ######
 
+  leisureFunctionNamed = (n)-> LeisureFunctionInfo[nameSub n].def
+
   setDataType = (func, dataType)->
     if dataType then func.dataType = dataType
     func
-  
+
   setType = (func, type)->
     if type then func.type = type
     func.__proto__ = (ensureLeisureClass type).prototype
     func
 
   class LeisureObject
-  
+
   LeisureObject.prototype.__proto__ = Function.prototype
   LeisureObject.prototype.className = 'LeisureObject'
-  
+
   if !global? && (typeof window != 'undefined') then window.global = window
-  
+
   global.Leisure_Object = LeisureObject
-  
+
   supertypes = {}
-  
+
   root.leisureClassChange = 0
-  
+
   ensureLeisureClass = (leisureClass)->
     cl = "Leisure_#{nameSub leisureClass}"
     if !global[cl]?
@@ -112,16 +114,16 @@ define ['./base', 'lib/lodash.min'], (base, _)->
       global[cl].prototype.__proto__ = LeisureObject.prototype
       root.leisureClassChange++
     global[cl]
-  
+
   makeSuper = (type, supertype)->
     supertypes["Leisure_#{nameSub type}"] = "Leisure_#{nameSub supertype}"
     root.leisureClassChange++
-  
+
   ensureLeisureClass 'cons'
   ensureLeisureClass 'nil'
   supertypes.Leisure_cons = 'Leisure_Object'
   supertypes.Leisure_nil = 'Leisure_Object'
-  
+
   isNil = (obj)-> obj instanceof Leisure_nil
 
   ensureLeisureClass 'ast'
@@ -140,14 +142,14 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   ensureLeisureClass 'doc'
   ensureLeisureClass 'srcLocation'
   ensureLeisureClass 'pattern'
-  
+
   makeSuper 'lit', 'ast'
   makeSuper 'ref', 'ast'
   makeSuper 'lambda', 'ast'
   makeSuper 'apply', 'ast'
   makeSuper 'let', 'ast'
   makeSuper 'anno', 'ast'
-  
+
   astString = (ast)->
     switch getType ast
       when 'lit' then getLitVal ast
@@ -161,7 +163,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
       when 'lambda' then "\\#{getLambdaVar ast} . #{astString getLambdaBody ast}"
       when 'let' then "\\\\#{letStr ast}"
       when 'anno' then "\\@#{getAnnoName ast} #{getAnnoData ast} . #{astString getAnnoBody ast}"
-  
+
   letStr = (ast)->
     body = getLetBody ast
     binding = "(#{getLetName ast} = #{astString getLetValue ast})"
@@ -204,7 +206,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     append: (l)->cons @head(), @tail().append(l)
     toString: -> "#{@stringName()}[#{@elementString()}]"
     stringName: -> "BaseCons"
-  
+
   consEq = (a, b)-> a == b or (a instanceof Leisure_BaseCons and a.equals(b))
 
 # cons and Nil are Leisure-based so that Leisure code can work with it transparently
@@ -213,9 +215,9 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     head: -> @ ->(a)->(b)->rz a
     tail: -> @ ->(a)->(b)->rz b
     stringName: -> "Cons"
-  
+
   global.Leisure_cons = Leisure_cons
-  
+
   class Leisure_nil extends LeisureObject
     isNil: -> true
     find: -> @
@@ -232,27 +234,27 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     append: (l)-> l
     toString: -> "Cons[]"
     elementString: -> ''
-  
+
   global.Leisure_nil = Leisure_nil
-  
+
   jsType = (v)->
     t = typeof v
     if t == 'object' then v.constructor || t
     else t
-  
+
   mkProto = (protoFunc, value)->
     value.__proto__ = protoFunc.prototype
     value
-  
+
   throwError = (msg)->
     throw (if msg instanceof Error then msg else new Error(String(msg)))
-  
+
   checkType = (value, type)-> if !(value instanceof type) then throwError("Type error: expected type: #{type}, but got: #{jsType value}")
-  
+
   primCons = setDataType(((a)->(b)-> mkProto Leisure_cons, setType ((f)-> rz(f)(a)(b)), 'cons'), 'cons')
   Nil = mkProto Leisure_nil, setDataType(setType(((a)->(b)->rz b), 'nil'), 'nil')
   cons = (a, b)-> primCons(lz a)(lz b)
-  
+
   foldLeft = (func, val, thing)->
     if thing instanceof Leisure_cons then thing.foldl func, val
     else primFoldLeft func, val, thing, 0
@@ -260,14 +262,14 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   primFoldLeft = (func, val, array, index)->
     if index < array.length then primFoldLeft func, func(val, array[index]), array, index + 1
     else val
-  
+
   global.leisureFuncs = {}
   global.leisureFuncNames = Nil
   leisureAddFunc = global.leisureAddFunc = (nm)-> global.leisureFuncNames = cons(nm, global.leisureFuncNames)
   root.evalFunc = evalFunc = eval
-  
+
   root.functionCount = 0
-  
+
   global.LeisureFunctionInfo = functionInfo = {}
 
 # name a function on the first access
@@ -279,7 +281,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
         if typeof f == 'function' then f.leisureName = name
         f
       else f
-  
+
   global.LeisureNameSpaces =
     core: {}
     parser: {}
@@ -295,7 +297,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     func.leisureName = name
     arity = arity ? ((typeof func == 'function' && func.length) || 0)
     nakedDefine name, lz(func), arity, src, method, namespace, isNew || (arity > 1)
-  
+
   nakedDefine = (name, func, arity, src, method, namespace, isNew) ->
     #can't use func(), because it might do something or might fail
     #if typeof func() == 'function'
@@ -313,7 +315,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     nm = 'L_' + nameSub(name)
     if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
     #namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
-    namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = if typeof func == 'function' && func.memo
+    functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = if typeof func == 'function' && func.memo
       func.leisureName = name
       func
     else nameFunc(func, name)
@@ -350,20 +352,20 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   L_let = setDataType ((_n)-> (_v)-> (_b)-> (_r)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)(_r)), 'let'), 'let'
   L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> rz(_f)(_func)(_arg)), 'apply'), 'apply'
   L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> rz(_f)(_name)(_data)(_body)), 'anno'), 'anno'
-  
+
   getType = (f)->
     t = typeof f
     if t == 'null' then "*null"
     else if t == 'undefined' then "*undefined"
     else if f.leisureType then f.leisureType
     else (t == 'function' and f?.type) or "*#{((t == 'object') && f.constructor?.name) || t}"
-  
+
   define 'getType', ((value)-> getType rz value), 1
-  
+
   getDataType = (f)-> (typeof f == 'function' && f.dataType) || f?.leisureDataType || ''
-  
+
   define 'getDataType', ((value)-> getDataType rz value), 1
-  
+
   save = {}
 
 # lit, ref, lambda, let each need a range
@@ -374,9 +376,9 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   save.apply = apply = (f, a)->L_apply(lz f)(lz a)
   save.anno = anno = (name, data, body)-> L_anno(lz name)(lz data)(lz body)
   save.cons = cons
-  
+
   dummyPosition = cons 1, cons 0, Nil
-  
+
   getPos = (ast)->
     switch getType(ast)
       when 'lit' then getLitRange ast
@@ -385,7 +387,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
       when 'apply' then getApplyRange ast
       when 'let' then getLetRange ast
       when 'anno' then getAnnoRange ast
-  
+
   firstRange = (a, b)->
     if !a || !b then console.log "NIL = #{Nil}"
     [lineA, colA] = a.toArray()
@@ -393,7 +395,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     if lineA? && lineB?
       if lineA < lineB || (lineA == lineB && colA < colB) then a else b
     else if lineA then a else b
-  
+
   getLitVal = (lt)-> lt lz (v)-> (r)-> rz v
   getLitRange = (lt)-> lt lz (v)-> (r)-> rz r
   getRefName = (rf)-> rf lz (v)-> (r)-> rz v
@@ -421,7 +423,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   #rangeToJson = (range)-> ast2Json range
   jsonToRange = (json)-> lz consFrom(json)
   rangeToJson = (range)-> range.toArray()
-  
+
   json2AstEncodings =
     lit: (json)-> L_lit(lz json.value)(jsonToRange json.range)
     ref: (json)-> L_ref(lz json.varName)(jsonToRange json.range)
@@ -440,7 +442,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   llet = save.llet
   anno = save.anno
   cons = save.cons
-  
+
   json2Ast = (json)-> if typeof json == 'object' then json2AstEncodings[json._type] json else json
 
   ast2JsonEncodings =
@@ -478,22 +480,22 @@ define ['./base', 'lib/lodash.min'], (base, _)->
       tail: ast2Json ast.tail()
     Leisure_nil: (ast)->
       _type: 'nil'
-  
+
   ast2Json = (ast)->
     if ast2JsonEncodings[ast.constructor?.name] then ast2JsonEncodings[ast.constructor.name] ast else ast
 
 # Leisure interface to the JSON AST codec
   define 'json2Ast', ((json)-> json2Ast JSON.parse rz json), null, null, null, 'parser'
   define 'ast2Json', ((ast)-> JSON.stringify ast2Json rz ast), null, null, null, 'parser'
-  
+
   consFrom = (array, i)->
     i = i || 0
     if i < array.length then cons array[i], consFrom(array, i + 1) else Nil
-  
+
   head = (l)-> l.head()
-  
+
   tail = (l)-> l.tail()
-  
+
   root.head = head
   root.tail = tail
   root.consFrom = consFrom
@@ -549,5 +551,6 @@ define ['./base', 'lib/lodash.min'], (base, _)->
   root.isPartial = isPartial
   root.partialCall = partialCall
   root.doPartial = doPartial
+  root.leisureFunctionNamed = leisureFunctionNamed
 
   root

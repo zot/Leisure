@@ -92,6 +92,8 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
   trace = true
   #stackSize = 9
   stackSize = 20
+  genThunkStack = false
+  USE_STRICT = '"use strict";'
 
   setMegaArity = (setting)-> megaArity = setting
 
@@ -212,7 +214,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
       when Leisure_apply
         if useArity then genArifiedApply ast, names, uniq, arity
         else sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
-      when Leisure_let then sn ast, "(function(){\n", (genLets ast, names, uniq), "})()"
+      when Leisure_let then sn ast, "(function(){#{USE_STRICT}\n", (genLets ast, names, uniq), "})()"
       when Leisure_anno
         name = getAnnoName ast
         data = getAnnoData ast
@@ -278,7 +280,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     name = getLambdaVar ast
     u = addUniq name, names, uniq
     n = cons name, names
-    if curDef
+    if curDef && genThunkStack
       addLambdaProperties ast, sn ast, 'function(', (uniqName name, u), '){var old = ', genPushThunk(ast), '; var ret = ', (genUniq (getLambdaBody ast), n, u, 1), '; L$setThunkStack(old); return ret;}'
     else addLambdaProperties ast, sn ast, 'function(', (uniqName name, u), '){return ', (genUniq (getLambdaBody ast), n, u, 1), '}'
 
@@ -454,13 +456,15 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     (global ? window).L$thunkStack = stack
 
   genPushThunk = (ast)->
-    [line, offset] = locateAst ast
-    "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '#{curDef}:#{line}:#{offset}')"
+    if genThunkStack
+      [line, offset] = locateAst ast
+      "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '#{curDef}:#{line}:#{offset}')"
+    else ''
 
   lazify = (ast, body)->
-    if curDef
-      sn ast, '(function(){var stack = L$thunkStack; var f = function(){var old = ', genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()'
-    else sn ast, 'function(){return ', body, ';}'
+    if curDef && genThunkStack
+      sn ast, "(function(){#{USE_STRICT}var stack = L$thunkStack; var f = function(){var old = ", genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()'
+    else sn ast, "function(){#{USE_STRICT}return ", body, ';}'
 
   #lazify = (ast, body)-> sn ast, 'function(){return ', body, ';}'
 

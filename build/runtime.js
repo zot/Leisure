@@ -31,10 +31,10 @@ misrepresented as being the original software.
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bluebird.min', './export'], function(Base, Ast, _, Immutable, Yaml, Bluebird, Exports) {
-    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Nil, Promise, Runtime, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, leisurify, lz, makeHamt, makeMonad, makeSyncMonad, mergeExports, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
+    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Monad3, Nil, Promise, Runtime, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, checkParital, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeHamt, makeMonad, makeSyncMonad, mergeExports, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
     mergeExports = Exports.mergeExports;
     ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
-    define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall;
+    define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall, leisureFunctionNamed = Ast.leisureFunctionNamed;
     Map = Immutable.Map;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
     Promise = Bluebird.Promise;
@@ -42,6 +42,14 @@ misrepresented as being the original software.
     lz = lazy;
     lc = Leisure_call;
     gensymCounter = 0;
+    checkParital = function(func, args) {
+      if (typeof func === 'string') {
+        func = leisureFunctionNamed(func);
+      }
+      if (func.length !== args.length) {
+        return Leisure_primCall(func, 0, args);
+      }
+    };
     call = function() {
       var args;
       args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -117,27 +125,6 @@ misrepresented as being the original software.
         return rz(noneCase);
       };
     }), 'none');
-    define('eq', function(a, b) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return booleanFor(rz(a) === rz(b));
-      }
-    });
-    define('==', function(a, b) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return booleanFor(rz(a) === rz(b));
-      }
-    });
-    define('!=', function(a, b) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return booleanFor(rz(a) !== rz(b));
-      }
-    });
     booleanFor = function(bool) {
       if (bool) {
         return rz(L_true);
@@ -145,75 +132,71 @@ misrepresented as being the original software.
         return rz(L_false);
       }
     };
-    define('hasType', function(data, func) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
+    (function() {
+      'use strict';
+      define('eq', function(a, b) {
+        return checkParital(L_eq, arguments) || booleanFor(rz(a) === rz(b));
+      });
+      define('==', function(a, b) {
+        return checkParital(L_$p$p, arguments) || booleanFor(rz(a) === rz(b));
+      });
+      define('!=', function(a, b) {
+        return checkParital(L_$k$p, arguments) || booleanFor(rz(a) !== rz(b));
+      });
+      define('hasType', function(data, func) {
+        return checkPartial(L_hasType, arguments) || (typeof rz(func) === 'string' ? booleanFor(getType(rz(data)) === rz(func)) : booleanFor(getType(rz(data)) === getDataType(rz(func))));
+      });
+      define('getDataType', function(func) {
         if (typeof rz(func) === 'string') {
-          return booleanFor(getType(rz(data)) === rz(func));
+          return rz(func);
         } else {
-          return booleanFor(getType(rz(data)) === getDataType(rz(func)));
+          return getDataType(rz(func));
         }
-      }
-    });
-    define('getDataType', function(func) {
-      if (typeof rz(func) === 'string') {
-        return rz(func);
-      } else {
-        return getDataType(rz(func));
-      }
-    });
-    define('assert', function(bool) {
-      return function(msg) {
-        return function(expr) {
-          return rz(bool)(expr)(function() {
-            var err;
-            err = new Error(rz(msg));
-            err.stack = "Leisure stack:\n" + err + "\n   at " + (L$thunkStack.reverse().join('\n   at ')) + "\n\nJS Stack:\n" + err.stack;
-            console.error(err.stack);
-            throw err;
-          });
+      });
+      define('assert', function(bool) {
+        return function(msg) {
+          return function(expr) {
+            return rz(bool)(expr)(function() {
+              var err;
+              err = new Error(rz(msg));
+              err.stack = "Leisure stack:\n" + err + "\n   at " + (L$thunkStack.reverse().join('\n   at ')) + "\n\nJS Stack:\n" + err.stack;
+              console.error(err.stack);
+              throw err;
+            });
+          };
         };
-      };
-    });
-    define('assertLog', function(bool) {
-      return function(msg) {
-        return function(expr) {
-          return rz(bool)(expr)(function() {
-            console.log(new Error(rz(msg)).stack);
-            console.log("LOGGED ERROR -- RESUMING EXECUTION...");
-            return rz(expr);
-          });
+      });
+      define('assertLog', function(bool) {
+        return function(msg) {
+          return function(expr) {
+            return rz(bool)(expr)(function() {
+              console.log(new Error(rz(msg)).stack);
+              console.log("LOGGED ERROR -- RESUMING EXECUTION...");
+              return rz(expr);
+            });
+          };
         };
-      };
-    });
-    define('trace', function(msg) {
-      console.log("STACKTRACE: ", new Error(rz(msg)).stack);
-      return msg;
-    });
-    define('jsTrue', function(x) {
-      if (rz(x)) {
-        return _true;
-      } else {
-        return _false;
-      }
-    });
-    define('error', function(msg) {
-      throw new Error(rz(msg));
-    });
+      });
+      define('trace', function(msg) {
+        console.log("STACKTRACE: ", new Error(rz(msg)).stack);
+        return msg;
+      });
+      define('jsTrue', function(x) {
+        if (rz(x)) {
+          return _true;
+        } else {
+          return _false;
+        }
+      });
+      return define('error', function(msg) {
+        throw new Error(rz(msg));
+      });
+    })();
     define('+', function(x, y) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return rz(x) + rz(y);
-      }
+      return checkParital(L_$o, arguments) || rz(x) + rz(y);
     });
     define('-', function(x, y) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return rz(x) - rz(y);
-      }
+      return checkParital(L_$_, arguments) || rz(x) - rz(y);
     });
     define('*', function(x, y) {
       if (isPartial(arguments)) {
@@ -768,6 +751,18 @@ misrepresented as being the original software.
           return cont(monad);
         }
       };
+    } else if ((typeof window !== "undefined" && window !== null ? window : global).L_PROMISE_MONAD) {
+      (typeof window !== "undefined" && window !== null ? window : global).runMonad2 = runMonad2 = function(monad, env, cont) {
+        if (monad instanceof Monad2) {
+          return new window.Promise(function(resolve, reject) {
+            return monad.cmd(env, resolve);
+          }).then(cont);
+        } else if (isMonad(monad)) {
+          return monad.cmd(env, cont);
+        } else {
+          return cont(monad);
+        }
+      };
     } else {
       (typeof window !== "undefined" && window !== null ? window : global).runMonad2 = runMonad2 = function(monad, env, cont) {
         if (monad instanceof Monad2) {
@@ -842,6 +837,34 @@ misrepresented as being the original software.
     }
     Monad2.prototype.toString = function() {
       return "Monad2: " + (this.cmdToString());
+    };
+    Monad3 = (function(superClass) {
+      extend(Monad3, superClass);
+
+      function Monad3(name1, cmd, cmdToString) {
+        this.name = name1;
+        this.cmd = cmd;
+        this.cmdToString = cmdToString;
+        this.err = new Error();
+        if (typeof this.name === 'function') {
+          this.cmdToString = this.cmd;
+          this.cmd = this.name;
+          this.name = null;
+          if (!this.cmdToString) {
+            this.cmdToString = (function(_this) {
+              return function() {
+                return (name ? name + ": " : '') + _this.cmd.toString();
+              };
+            })(this);
+          }
+        }
+      }
+
+      return Monad3;
+
+    })(Monad);
+    Monad3.prototype.toString = function() {
+      return "Monad3: " + (this.cmdToString());
     };
     dumpMonadStack = function(err, env) {
       var j, len, n, ref1;
@@ -1093,6 +1116,10 @@ misrepresented as being the original software.
         });
       }
     });
+    define('debug', new Monad2('debug', function(env, cont) {
+      debugger;
+      return cont(_unit);
+    }));
     define('gensym', makeSyncMonad(function(env, cont) {
       return cont("G" + (gensymCounter++));
     }));
@@ -1315,6 +1342,7 @@ misrepresented as being the original software.
             }
           };
           functionInfo[name].newArity = true;
+          LeisureFunctionInfo.def = newDef;
           newDef.leisureName = name;
           global[nm] = global.leisureFuncNames[nm] = lz(newDef);
           return cont(def);
@@ -1721,7 +1749,9 @@ misrepresented as being the original software.
     mergeExports({
       stateValues: values,
       runMonad: runMonad2,
-      Runtime: Runtime
+      Runtime: Runtime,
+      leisureFunctionNamed: leisureFunctionNamed,
+      nameSub: nameSub
     });
     return Runtime;
   });

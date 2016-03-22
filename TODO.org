@@ -1,3 +1,8 @@
+* strict mode
+** change primitives not to use arcuments.callee
+1. Use a test with a constant for the length, isPartial(arguments.length, 5)
+2. Use a wrapper func for partials: checkPartial (a,b)-> ...
+* TODO Undo: for OT, register with UndoManager, for local, use replacements
 * BUG Parse errors cause weird results parsing
 * hide leading non-toplevel content in fancy mode
 * add resourceBase=URL parameter for resource fallback
@@ -35,7 +40,7 @@ Tangled blocks of a given language should be concatenated before evaluation
 * TODO recursive lets don't work
 * TODO make a way to specify the "original contents" of a code block so you can reset it
 * TODO try to get megaArity working
-* TODO get [[http://textcraft.org:3000/#load=/demo/dice.lorg][dice]] and [[http://textcraft.org:3000/#load=/demo/lib/lenses.lorg][lenses]] pages working again: 
+* TODO get [[http://textcraft.org:3000/#load=/demo/dice.lorg][dice]] and [[http://textcraft.org:3000/#load=/demo/lib/lenses.lorg][lenses]] pages working again:
 * TODO documentation tooltips
 * TODO document version numbers (part of metadocument?)
 * TODO Preserve document settings
@@ -202,7 +207,7 @@ immediately after the visible block
 - convert it to a named src block
 - present it as a data link
 ** Code Scopes
-use an editor that 
+use an editor that
 *** TODO select text and create a floating code scope using cursor menu
 ** TODO Collapsible document outline
 Open in a code scope to get a floating outline

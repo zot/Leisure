@@ -1,7 +1,7 @@
 Leisure's UI system uses a piece of data's "type" and the "context" (a string) to
 choose a handlebars template.
 
-    define ['handlebars', './export', './editor', './coffee-script'], (Handlebars, Exports, Editor, CoffeeScript)->
+    define ['handlebars', './export', './editor', './coffee-script', 'immutable'], (Handlebars, Exports, Editor, CoffeeScript, Immutable)->
       {
         compile
         create
@@ -12,7 +12,11 @@ choose a handlebars template.
       } = Exports
       {
         escapeHtml
+        findEditor
       } = Editor
+      {
+        Set
+      } = Immutable
 
       templates = {}
       controllers = {}
@@ -83,6 +87,10 @@ choose a handlebars template.
       mergeContext = (subcontext, func)->
         withContext _.merge({}, root.context, subcontext), func
 
+      dontRerender = (view, func)->
+        oldDonts = root.context.dontRerender ? new Set()
+        mergeContext {dontRender: oldDonts.add(view)}, func
+
       Handlebars.registerHelper 'condense', (options)->
         options.fn(options).replace(/>\s+</g, '><')
 
@@ -119,6 +127,21 @@ choose a handlebars template.
       Handlebars.registerHelper 'viewWrapper', (name, data, opts)->
         simpleRenderView "data-view='#{name}' data-requested-view='#{name}' class='view'", name, opts.fn, this
 
+      bindView = (view)->
+        name = view.getAttribute 'data-view-block-name'
+        if !(opts = findEditor(view)?.options) then return
+        for input in $(view).find 'input[data-value]'
+          path = input.getAttribute 'data-value'
+          getter = "(function(data){return data.#{path}})"
+          setter = "(function(data, value){data.#{path} = value})"
+          input.value = getter opts.getData name
+          input.onkeyup = (e)->
+            data = opts.getData name
+            setter data, input.value
+            dontRerender view, ->
+              opts.changeData ->
+                opts.setData name, data
+
       renderView = (type, contextName, data, targets, block, blockName)->
         isTop = !root.context?.topView
         requestedKey = key = viewKey type, contextName
@@ -143,6 +166,7 @@ choose a handlebars template.
         if targets
           if !isTop && block then root.context.subviews[block._id] = true
           for node in targets
+            if root.context?.dontRender?.has(node) then continue
             settings.view = node
             mergeContext settings, ->
               root.context.data = data
@@ -199,6 +223,8 @@ choose a handlebars template.
               getController(el.attr 'data-view')?.initializeView?(el, context.data)
               for img in el.find 'img'
                 refreshImage img
+              for node in el
+                bindView node
             finally
               root.currentScript = null
               activating = false

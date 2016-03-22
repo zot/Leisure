@@ -2,11 +2,12 @@
 (function() {
   var slice = [].slice;
 
-  define(['handlebars', './export', './editor', './coffee-script'], function(Handlebars, Exports, Editor, CoffeeScript) {
-    var activateScripts, activating, addController, addView, compile, configurePanels, controllers, create, defaults, escapeAttr, escapeHtml, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
+  define(['handlebars', './export', './editor', './coffee-script', 'immutable'], function(Handlebars, Exports, Editor, CoffeeScript, Immutable) {
+    var Set, activateScripts, activating, addController, addView, bindView, compile, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
     ref = window.Handlebars = Handlebars, compile = ref.compile, create = ref.create, registerHelper = ref.registerHelper;
     mergeExports = Exports.mergeExports;
-    escapeHtml = Editor.escapeHtml;
+    escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor;
+    Set = Immutable.Set;
     templates = {};
     controllers = {};
     defaults = {
@@ -108,6 +109,13 @@
     mergeContext = function(subcontext, func) {
       return withContext(_.merge({}, root.context, subcontext), func);
     };
+    dontRerender = function(view, func) {
+      var oldDonts, ref1;
+      oldDonts = (ref1 = root.context.dontRerender) != null ? ref1 : new Set();
+      return mergeContext({
+        dontRender: oldDonts.add(view)
+      }, func);
+    };
     Handlebars.registerHelper('condense', function(options) {
       return options.fn(options).replace(/>\s+</g, '><');
     });
@@ -146,8 +154,35 @@
     Handlebars.registerHelper('viewWrapper', function(name, data, opts) {
       return simpleRenderView("data-view='" + name + "' data-requested-view='" + name + "' class='view'", name, opts.fn, this);
     });
+    bindView = function(view) {
+      var getter, i, input, len, name, opts, path, ref1, ref2, results, setter;
+      name = view.getAttribute('data-view-block-name');
+      if (!(opts = (ref1 = findEditor(view)) != null ? ref1.options : void 0)) {
+        return;
+      }
+      ref2 = $(view).find('input[data-value]');
+      results = [];
+      for (i = 0, len = ref2.length; i < len; i++) {
+        input = ref2[i];
+        path = input.getAttribute('data-value');
+        getter = "(function(data){return data." + path + "})";
+        setter = "(function(data, value){data." + path + " = value})";
+        input.value = getter(opts.getData(name));
+        results.push(input.onkeyup = function(e) {
+          var data;
+          data = opts.getData(name);
+          setter(data, input.value);
+          return dontRerender(view, function() {
+            return opts.changeData(function() {
+              return opts.setData(name, data);
+            });
+          });
+        });
+      }
+      return results;
+    };
     renderView = function(type, contextName, data, targets, block, blockName) {
-      var attr, attrs, classAttr, i, isTop, key, len, node, ref1, ref2, ref3, requestedKey, results, settings, template, value;
+      var attr, attrs, classAttr, i, isTop, key, len, node, ref1, ref2, ref3, ref4, ref5, requestedKey, results, settings, template, value;
       isTop = !((ref1 = root.context) != null ? ref1.topView : void 0);
       requestedKey = key = viewKey(type, contextName);
       if (!(template = getTemplate(key))) {
@@ -191,6 +226,9 @@
         results = [];
         for (i = 0, len = targets.length; i < len; i++) {
           node = targets[i];
+          if ((ref4 = root.context) != null ? (ref5 = ref4.dontRender) != null ? ref5.has(node) : void 0 : void 0) {
+            continue;
+          }
           settings.view = node;
           results.push(mergeContext(settings, function() {
             var html, n;
@@ -262,7 +300,7 @@
     activateScripts = function(el, context) {
       if (!activating) {
         return withContext(_.merge({}, context), function() {
-          var i, img, j, k, len, len1, len2, newScript, ref1, ref2, ref3, ref4, results, script;
+          var i, img, j, k, l, len, len1, len2, len3, newScript, node, ref1, ref2, ref3, ref4, results, script;
           root.context.currentView = el;
           activating = true;
           try {
@@ -291,10 +329,14 @@
               }
             }
             ref4 = el.find('img');
-            results = [];
             for (k = 0, len2 = ref4.length; k < len2; k++) {
               img = ref4[k];
-              results.push(refreshImage(img));
+              refreshImage(img);
+            }
+            results = [];
+            for (l = 0, len3 = el.length; l < len3; l++) {
+              node = el[l];
+              results.push(bindView(node));
             }
             return results;
           } finally {
