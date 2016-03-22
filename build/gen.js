@@ -28,7 +28,7 @@ misrepresented as being the original software.
   var slice = [].slice;
 
   define(['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], function(Base, Ast, Runtime, _, SourceMap) {
-    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceNode, ThunkStack, _false, _true, _unit, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genPushThunk, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, reverseThunks, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, stackSize, strRepeat, trace, uniqName, useArity, varNameSub, verboseMsg, withFile;
+    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceNode, ThunkStack, USE_STRICT, _false, _true, _unit, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genPushThunk, genRefName, genSource, genThunkStack, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, reverseThunks, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, stackSize, strRepeat, trace, uniqName, useArity, varNameSub, verboseMsg, withFile;
     simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog;
     rz = resolve;
     lz = lazy;
@@ -46,6 +46,8 @@ misrepresented as being the original software.
     trace = false;
     trace = true;
     stackSize = 20;
+    genThunkStack = false;
+    USE_STRICT = '"use strict";';
     setMegaArity = function(setting) {
       return megaArity = setting;
     };
@@ -208,7 +210,7 @@ misrepresented as being the original software.
           }
           break;
         case Leisure_let:
-          return sn(ast, "(function(){\n", genLets(ast, names, uniq), "})()");
+          return sn(ast, "(function(){" + USE_STRICT + "\n", genLets(ast, names, uniq), "})()");
         case Leisure_anno:
           name = getAnnoName(ast);
           data = getAnnoData(ast);
@@ -291,7 +293,7 @@ misrepresented as being the original software.
       name = getLambdaVar(ast);
       u = addUniq(name, names, uniq);
       n = cons(name, names);
-      if (curDef) {
+      if (curDef && genThunkStack) {
         return addLambdaProperties(ast, sn(ast, 'function(', uniqName(name, u), '){var old = ', genPushThunk(ast), '; var ret = ', genUniq(getLambdaBody(ast), n, u, 1), '; L$setThunkStack(old); return ret;}'));
       } else {
         return addLambdaProperties(ast, sn(ast, 'function(', uniqName(name, u), '){return ', genUniq(getLambdaBody(ast), n, u, 1), '}'));
@@ -524,14 +526,18 @@ misrepresented as being the original software.
     };
     genPushThunk = function(ast) {
       var line, offset, ref3;
-      ref3 = locateAst(ast), line = ref3[0], offset = ref3[1];
-      return "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '" + curDef + ":" + line + ":" + offset + "')";
+      if (genThunkStack) {
+        ref3 = locateAst(ast), line = ref3[0], offset = ref3[1];
+        return "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '" + curDef + ":" + line + ":" + offset + "')";
+      } else {
+        return '';
+      }
     };
     lazify = function(ast, body) {
-      if (curDef) {
-        return sn(ast, '(function(){var stack = L$thunkStack; var f = function(){var old = ', genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()');
+      if (curDef && genThunkStack) {
+        return sn(ast, "(function(){" + USE_STRICT + "var stack = L$thunkStack; var f = function(){var old = ", genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()');
       } else {
-        return sn(ast, 'function(){return ', body, ';}');
+        return sn(ast, "function(){" + USE_STRICT + "return ", body, ';}');
       }
     };
     dumpAnno = function(ast) {

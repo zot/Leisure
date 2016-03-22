@@ -82,6 +82,8 @@ getData 'roll-count'
 selectionList sel = map (\el . [(afetch 'size' el) | (afetch 'selected' el)]) sel
 
 roll = do
+  #debug
+  print 'ROLL'
   player <- foreach getData 'player-ui'
   print concat['Player: ' player]
   selections = selectionList (afetch 'selections' player)
@@ -103,7 +105,9 @@ roll = do
 playerLens = lensBuilder lensKey 'player'
 
 checkPlayer = do
+  js['console.log("checking player")']
   player <- foreach getData 'player-ui'
+  js["console.log('player: " (show player) "')"]
   playerId = playerLens lensGet player
   isNil playerId
   name <- foreach prompt 'Player id?'
@@ -127,8 +131,6 @@ rollAndReset = do
 #+BEGIN_SRC leisure :results def
 changeData (player <- foreach getData 'player-ui') (print player)
 #+END_SRC
-#+RESULTS:
-: {"player":nil "selections":[{"selected":3 "size":4} {"selected":0 "size":6} {"selected":0 "size":8} {"selected":0 "size":10} {"selected":0 "size":12}] "type":"player-ui"}
 * Data functions
 
 #+BEGIN_SRC leisure :results def
@@ -155,6 +157,7 @@ setSelected sel data size count = do
 console.log "BURP"
 {Handlebars, evalLeisure} = Leisure
 window.run = (str)->
+  #debugger
   old = Leisure.defaultEnv.opts
   Leisure.defaultEnv.opts = Lounge?.env.opts ? Leisure.findEditor(event?.srcElement)?.options
   try
@@ -193,23 +196,28 @@ order: desc
 Rewrite this in Leisure!
 
 #+BEGIN_SRC coffee :control player-ui
-#lz = Leisure.lazy
-#rz = Leisure.resolve
-#runMonad = Leisure.runMonad
+lz = window.lazy
+rz = window.resolve
+runMonad = Leisure.runMonad
 #fancyEnv = Leisure.fancyEnv()
-#
-#window.run = run = (value)-> runMonad value, fancyEnv, ->
-#
-#window.selectDie = (e)->
-#  console.log "SELECT #{e.target.name} #{e.target.value}"
-#  run rz(L_select)(e.target.name, e.target.value)
-#
-#@initializeView = (view)->
-#  holder = $(view).closest("[data-org-headline='1']")
-#  holder.attr 'game', ''
-#  h = $(holder).find("[data-view-type='player-ui/name']")?[0].offsetTop ? 0
-#  b = $(view).find('.results-box')[0]
-#  b.style.height = 'calc(100% - ' + (b.offsetTop - h + 10) + 'px)'
+fancyEnv = _.clone Lounge
+fancyEnv.presentValue = (x)-> x
+
+#window.run = run = (value)->
+#  debugger
+#  fancyEnv.opts = Leisure.findEditor('[data-view="player-ui/name"]').options
+#  runMonad value, fancyEnv, ->
+
+window.selectDie = (e)->
+  console.log "SELECT #{e.target.name} #{e.target.value}"
+  run rz(L_select)(e.target.name, e.target.value)
+
+@initializeView = (view)->
+  holder = $(view).closest("[data-org-headline='1']")
+  holder.attr 'game', ''
+  h = $(holder).find("[data-view='player-ui/name']")?[0].offsetTop ? 0
+  b = $(view).find('.results-box')[0]
+  b.style.height = 'calc(100% - ' + (b.offsetTop - h + 10) + 'px)'
 #+END_SRC
 
 This is template that defines how the dice log displays.  See the dice log for more info.
@@ -349,21 +357,7 @@ label {
 }
 
 .roll {
-  border: solid gr#+BEGIN_SRC yaml :flowLevel 3 :index rolls number
-number:
-  count: 0
-player: player-Bubba
-roll: []
-type: roll
-#+END_SRC
-#+BEGIN_SRC yaml :flowLevel 3 :index rolls number
-number:
-  count: 0
-player: player-Bubba
-roll: []
-type: roll
-#+END_SRC
-ay 3px;
+  border: solid gray 3px;
 }
 
 .inline-block {
@@ -372,9 +366,21 @@ ay 3px;
 
 #+END_SRC
 
+#+BEGIN_SRC yaml :flowLevel 3 :index rolls number
+number:
+  count: 0
+player: player-Bubba
+roll: []
+type: roll
+#+END_SRC
+
 #+BEGIN_SRC leisure :results def
 #toggleLeisureBar
+debug
 checkPlayer
+do
+  player <- foreach getData 'player-ui'
+  js['console.log("Current player: ' (playerLens lensGet player) '")']
 #+END_SRC
 
 #+BEGIN_SRC cs
@@ -386,7 +392,6 @@ window.diceLounge = Lounge
 :note: sidbar
 :end:
 [[leisure:player-ui/name]][[leisure:player-ui/header]][[leisure:player-ui]]
-
 * Rolls go here
 :properties:
 :hidden: true

@@ -59,6 +59,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     nameSub
     isPartial
     partialCall
+    leisureFunctionNamed
   } = Ast
   {
     Map,
@@ -75,10 +76,15 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
   lz = lazy
   lc = Leisure_call
   gensymCounter = 0
+  #(window ? global).L_PROMISE_MONAD = true
 
 #########
 # code
 #########
+
+  checkParital = (func, args)->
+    if typeof func == 'string' then func = leisureFunctionNamed func
+    if func.length != args.length then Leisure_primCall func, 0, args
 
   call = (args...)-> basicCall(args, defaultEnv, identity)
 
@@ -107,43 +113,38 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
   right = (x)-> setType ((lCase)->(rCase)-> rz(rCase)(lz x)), 'right'
   some = (x)-> setType ((someCase)->(noneCase)-> rz(someCase)(lz x)), 'some'
   none = setType ((someCase)->(noneCase)-> rz(noneCase)), 'none'
-  define 'eq', (a, b)-> if isPartial arguments then partialCall arguments else
-    booleanFor rz(a) == rz(b)
-  define '==', (a, b)-> if isPartial arguments then partialCall arguments else
-    booleanFor rz(a) == rz(b)
-  define '!=', (a, b)-> if isPartial arguments then partialCall arguments else
-    booleanFor rz(a) != rz(b)
   booleanFor = (bool)-> if bool then rz L_true else rz L_false
-  define 'hasType', (data, func)-> if isPartial arguments then partialCall arguments else
-    if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
-    else booleanFor getType(rz data) == getDataType(rz func)
-  define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
-  # using arity makes compiling parseAst.lsr crash
-  define 'assert', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
-    err = new Error(rz msg)
-    err.stack = "Leisure stack:\n#{err}\n   at #{L$thunkStack.reverse().join '\n   at '}\n\nJS Stack:\n#{err.stack}"
-    console.error err.stack
-    throw err
-    )
-  define 'assertLog', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
-    console.log new Error(rz msg).stack
-    console.log "LOGGED ERROR -- RESUMING EXECUTION..."
-    rz expr)
-
-  define 'trace', (msg)->
-    console.log "STACKTRACE: ", new Error(rz msg).stack
-    msg
-  define 'jsTrue', (x)-> if rz(x) then _true else _false
-  define 'error', (msg)-> throw new Error rz msg
+  do ->
+    'use strict'
+    define 'eq', (a, b)-> checkParital(L_eq, arguments) || booleanFor rz(a) == rz(b)
+    define '==', (a, b)-> checkParital(L_$p$p, arguments) || booleanFor rz(a) == rz(b)
+    define '!=', (a, b)-> checkParital(L_$k$p, arguments) || booleanFor rz(a) != rz(b)
+    define 'hasType', (data, func)-> checkPartial(L_hasType, arguments) ||(if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
+    else booleanFor getType(rz data) == getDataType(rz func))
+    define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
+    # using arity makes compiling parseAst.lsr crash
+    define 'assert', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
+      err = new Error(rz msg)
+      err.stack = "Leisure stack:\n#{err}\n   at #{L$thunkStack.reverse().join '\n   at '}\n\nJS Stack:\n#{err.stack}"
+      console.error err.stack
+      throw err
+      )
+    define 'assertLog', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
+      console.log new Error(rz msg).stack
+      console.log "LOGGED ERROR -- RESUMING EXECUTION..."
+      rz expr)
+    define 'trace', (msg)->
+      console.log "STACKTRACE: ", new Error(rz msg).stack
+      msg
+    define 'jsTrue', (x)-> if rz(x) then _true else _false
+    define 'error', (msg)-> throw new Error rz msg
 
 ############
 # MATH
 ############
 
-  define '+', (x, y)-> if isPartial arguments then partialCall arguments else
-    rz(x) + rz(y)
-  define '-', (x, y)-> if isPartial arguments then partialCall arguments else
-    rz(x) - rz(y)
+  define '+', (x, y)-> checkParital(L_$o, arguments) || rz(x) + rz(y)
+  define '-', (x, y)-> checkParital(L_$_, arguments) || rz(x) - rz(y)
   define '*', (x, y)-> if isPartial arguments then partialCall arguments else
     rz(x) * rz(y)
   define '/', (x, y)-> if isPartial arguments then partialCall arguments else
@@ -408,7 +409,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 #    if i < monads.length
 #      console.log "running monad #{i}"
 #      setTimeout (-> newRunMonad monads[i](arg), defaultEnv, ((x)-> runMonads monads, i + 1, x), []), 1
-#  
+#
 #  global.L_runMonads = (monadArray)->
 #    console.log "RUNNING #{monadArray.length} monads, ..."
 #    runMonads monadArray, 0, 0
@@ -426,6 +427,13 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
         catch err
           dumpMonadStack err, env
           throw err
+      else if isMonad monad
+        #console.log "OLD MONAD: #{monad}"
+        monad.cmd(env, cont)
+      else cont monad
+  else if (window ? global).L_PROMISE_MONAD
+    (window ? global).runMonad2 = runMonad2 = (monad, env, cont)->
+      if monad instanceof Monad2 then new window.Promise((resolve, reject)-> monad.cmd(env, resolve)).then cont
       else if isMonad monad
         #console.log "OLD MONAD: #{monad}"
         monad.cmd(env, cont)
@@ -462,6 +470,17 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
         if !@cmdToString then @cmdToString = => (if @name then "#{@name}: " else '') + @cmd.toString()
 
   Monad2::toString = -> "Monad2: #{@cmdToString()}"
+
+  class Monad3 extends Monad
+    constructor: (@name, @cmd, @cmdToString)->
+      @err = new Error()
+      if typeof @name == 'function'
+        @cmdToString = @cmd
+        @cmd = @name
+        @name = null
+        if !@cmdToString then @cmdToString = => (if name then "#{name}: " else '') + @cmd.toString()
+
+  Monad3::toString = -> "Monad3: #{@cmdToString()}"
 
   dumpMonadStack = (err, env)->
     if global.L_DEBUG && !err.L_LOGGED && env.monadStack
@@ -641,6 +660,10 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 #    makeSyncMonad (env, cont)->
 #      cont (root.E = new Error(msg)).stack
 
+  define 'debug', new Monad2 'debug', (env, cont)->
+      debugger
+      cont _unit
+
   define 'gensym', makeSyncMonad (env, cont)-> cont "G#{gensymCounter++}"
 
   define 'print', (msg)->
@@ -769,6 +792,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
           return res
         throw new Error "No default definition for #{rz name}"
       functionInfo[name].newArity = true
+      LeisureFunctionInfo.def = newDef
       newDef.leisureName = name
       global[nm] = global.leisureFuncNames[nm] = lz newDef
       cont def
@@ -837,15 +861,15 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     makeHamt rz(hamt).remove rz(key)
 
 #  define 'hamtOpts', (eq)->(hash)->
-#  
+#
 #  define 'hamtAssocOpts', (hamt)->(key)->(value)->(opts)-> amt.assoc(rz(hamt), rz(key), rz(value), rz(opts))
-#  
+#
 #  define 'hamtFetchOpts', (hamt)->(key)->(opts)-> amt.get(rz(hamt), rz(key), rz(opts))
-#  
+#
 #  define 'hamtGetOpts', (hamt)->(key)->(opts)->
 #    v = amt.get(rz(hamt), rz(key), rz(opts))
 #    if v != null then some v else none
-#  
+#
 #  define 'hamtDissocOpts', (hamt)->(key)->(opts)-> amt.dissoc(rz(hamt), rz(key), rz(opts))
 
   define 'hamtPairs', (hamt)-> nextHamtPair rz(hamt).entries()
@@ -1067,6 +1091,8 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     stateValues: values
     runMonad: runMonad2
     Runtime
+    leisureFunctionNamed
+    nameSub
   }
 
   Runtime
