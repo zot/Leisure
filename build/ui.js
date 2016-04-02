@@ -140,13 +140,15 @@
       }
     });
     Handlebars.registerHelper('view', function(item, contextName, options) {
-      var block, context, data;
+      var block, context, data, yaml;
       if (!options) {
         options = contextName;
         contextName = null;
       }
       context = options != null ? options.data : void 0;
-      data = typeof item === 'string' ? (block = context.opts.editor.options.getBlock(data), block != null ? block.yaml : void 0) : (item != null ? item.yaml : void 0) && item._id ? (block = item, item.yaml) : (block = null, item);
+      block = context.opts.editor.options.getBlock(data);
+      yaml = context.opts.data.getYaml(block);
+      data = !yaml ? (block = null, item) : yaml;
       if (data != null ? data.type : void 0) {
         return renderView(data.type, contextName, data, null, false, block);
       }

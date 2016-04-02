@@ -3,8 +3,8 @@
   var slice = [].slice,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen, Exports) {
-    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, blockVars, c, cons, csEnv, defaultEnv, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, html, id, isError, jsEnv, jsEval, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, specials, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg) {
+    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, basicFormat, blockVars, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = null;
@@ -23,6 +23,8 @@
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert, getLeisurePromise = Runtime.getLeisurePromise;
     Promise = Bluebird.Promise;
     genSource = Gen.genSource;
+    safeLoad = Yaml.safeLoad, dump = Yaml.dump;
+    getCodeItems = DocOrg.getCodeItems;
     defaultEnv.prompt = function(str, defaultValue, cont) {
       return cont(prompt(str, defaultValue));
     };
@@ -86,6 +88,7 @@
       return console.log(str);
     };
     defaultEnv.errorAt = function(offset, msg) {
+      debugger;
       return console.log(msg);
     };
     id = lz(function(x) {
@@ -158,6 +161,9 @@
           }
         });
       };
+      env.createObserver = function(blockNames, text, cont) {
+        throw new Error('Leisure observers not implemented yet');
+      };
       return env;
     };
     leisureExec = function(env, text, props, cont, errCont) {
@@ -220,6 +226,31 @@
       }
       return cont();
     };
+    hasCodeAttribute = function(block, attr, value) {
+      var a, ref, ref1, ref2, word;
+      if (block.attributeWords == null) {
+        block.attributeWords = {};
+      }
+      if (!block.attributeWords[attr]) {
+        a = (ref = (ref1 = block.codeAttributes) != null ? ref1[attr] : void 0) != null ? ref : [];
+        if (!_.isArray(a)) {
+          a = a.split(' ');
+        }
+        block.attributeWords[attr] = (function() {
+          var i, len, results1;
+          results1 = [];
+          for (i = 0, len = a.length; i < len; i++) {
+            word = a[i];
+            results1.push(word.toLowerCase());
+          }
+          return results1;
+        })();
+      }
+      return ref2 = value.toLowerCase(), indexOf.call(block.attributeWords[attr], ref2) >= 0;
+    };
+    isYamlResult = function(block) {
+      return hasCodeAttribute(block, 'results', 'yaml');
+    };
     presentHtml = function(v) {
       var str;
       str = ': ' + (v instanceof Html ? v.content.replace(/\r?\n/g, '\\n') : escapeHtml(String(v).replace(/\r?\n/g, '\n: ')));
@@ -229,8 +260,33 @@
         return str + '\n';
       }
     };
+    basicFormat = function(block, prefix, items) {
+      var item, ref;
+      if (isYamlResult(block)) {
+        if (items.length === 1) {
+          items = items[0];
+        }
+        return ': ' + (dump(items, {
+          sortKeys: true,
+          flowLevel: Number((ref = block.codeAttributes.flowlevel) != null ? ref : 2)
+        })).trim().replace(/\n/g, '\n: ') + '\n';
+      } else {
+        return prefix + ((function() {
+          var i, len, results1;
+          results1 = [];
+          for (i = 0, len = items.length; i < len; i++) {
+            item = items[i];
+            results1.push(presentHtml(item));
+          }
+          return results1;
+        })()).join('');
+      }
+    };
     writeValues = function(env, values) {
       return env.write(values.join('\n'));
+    };
+    defaultEnv.formatResult = function(block, prefix, items) {
+      return basicFormat(block, prefix, items);
     };
     setLounge = function(env, func) {
       var oldLounge, result;
@@ -256,10 +312,13 @@
           };
         })(this));
       };
+      env.createObserver = function(blockNames, text, cont) {
+        throw new Error('JavaScript observers not implemented yet');
+      };
       return env;
     };
-    jsEval = function(env, text) {
-      var console, err, err2, errNode, error, error1, expr, exprText, i, len, newText, parsed, ref;
+    jsGatherResults = function(env, text, returnResults) {
+      var err, err2, errNode, error, error1, expr, exprText, i, len, newText, parsed, ref;
       try {
         parsed = acorn.parse(text);
       } catch (error) {
@@ -282,27 +341,30 @@
           return [];
         }
       }
+      if (env.silent) {
+        return text;
+      } else {
+        newText = 'var leisure_results=[];';
+        ref = parsed.body;
+        for (i = 0, len = ref.length; i < len; i++) {
+          expr = ref[i];
+          if (expr.type === 'ExpressionStatement') {
+            exprText = text.substring(expr.start, expr.end);
+            if (exprText[exprText.length - 1] === ';') {
+              exprText = exprText.substring(0, exprText.length - 1);
+            }
+            newText = newText + "leisure_results.push(" + exprText + ");";
+          } else {
+            newText += text.substring(expr.start, expr.end);
+          }
+        }
+        return newText + ";" + (returnResults ? 'return ' : '') + "leisure_results;";
+      }
+    };
+    jsBaseEval = function(env, text) {
+      var console;
       if (!env.silent) {
         env.results = [];
-        newText = 'var leisure_results=[];';
-      }
-      ref = parsed.body;
-      for (i = 0, len = ref.length; i < len; i++) {
-        expr = ref[i];
-        if (expr.type === 'ExpressionStatement') {
-          exprText = text.substring(expr.start, expr.end);
-          if (exprText[exprText.length - 1] === ';') {
-            exprText = exprText.substring(0, exprText.length - 1);
-          }
-          if (!env.silent) {
-            newText += "leisure_results.push(" + exprText + ");";
-          }
-        } else {
-          newText += text.substring(expr.start, expr.end);
-        }
-      }
-      if (!env.silent) {
-        newText += ";leisure_results;";
       }
       console = {
         log: (function(_this) {
@@ -312,9 +374,12 @@
         })(this)
       };
       return setLounge(env, function() {
-        var ref1;
-        return ((ref1 = env["eval"]) != null ? ref1 : localEval)(newText);
+        var ref;
+        return ((ref = env["eval"]) != null ? ref : localEval)(text);
       });
+    };
+    jsEval = function(env, text) {
+      return jsBaseEval(env, jsGatherResults(env, text));
     };
     findError = function(err, text) {
       var col, i, len, line, n, ref, ref1, tot, txt, x;
@@ -375,6 +440,9 @@
           };
         })(this));
       };
+      env.createObserver = function(blockNames, text, cont) {
+        throw new Error('LispyScript observers not implemented yet');
+      };
       return env;
     };
     csEnv = function(env) {
@@ -394,7 +462,93 @@
           };
         })(this));
       };
+      env.createObserver = function(blockId, blockNames, vars, text, cont) {
+        var blockSet, func, k, name, paramNames, progText, sync, v, varValues;
+        sync = false;
+        if (isYamlResult(env.data.getBlock(blockId))) {
+          env.write = (function(_this) {
+            return function(str) {
+              result += str;
+              if (result[result.length - 1] !== '\n') {
+                result += '\n';
+              }
+              if (!sync) {
+                return env.data.replaceResult(change._id, result);
+              }
+            };
+          })(this);
+        } else {
+          env.write = (function(_this) {
+            return function(str) {
+              result += presentHtml(str);
+              if (result[result.length - 1] !== '\n') {
+                result += '\n';
+              }
+              if (!sync) {
+                return env.data.replaceResult(change._id, result);
+              }
+            };
+          })(this);
+        }
+        blockSet = _.fromPairs((function() {
+          var i, len, results1;
+          results1 = [];
+          for (i = 0, len = blockNames.length; i < len; i++) {
+            name = blockNames[i];
+            results1.push([name, 'true']);
+          }
+          return results1;
+        })());
+        vars = (function() {
+          var results1;
+          results1 = [];
+          for (k in vars) {
+            v = vars[k];
+            if (!blockSet[k]) {
+              results1.push([k, v]);
+            }
+          }
+          return results1;
+        })();
+        paramNames = (blockNames.concat((function() {
+          var i, len, results1;
+          results1 = [];
+          for (i = 0, len = vars.length; i < len; i++) {
+            v = vars[i];
+            results1.push(v[0]);
+          }
+          return results1;
+        })())).join(', ');
+        varValues = (function() {
+          var i, len, results1;
+          results1 = [];
+          for (i = 0, len = vars.length; i < len; i++) {
+            v = vars[i];
+            results1.push(v[1]);
+          }
+          return results1;
+        })();
+        progText = jsGatherResults(env, CS.compile(text, {
+          bare: true
+        }), true);
+        progText = "(function(env, blockId, names, vars) {\n  return function() {\n    return setLounge(env, function() {\n      var blocks = _.map(names, function(n){var bl = env.data.getBlockNamed(n, true); return bl && env.data.getYaml(bl)});\n      if (_.every(blocks, function(b){return b != undefined;})) {\n        env.data.clearError(blockId);\n        var resultStr = '';\n        var result = (function(" + paramNames + ") {\n          " + progText + "\n        }).apply(null, blocks.concat(vars));\n        env.data.replaceResult(blockId, env.formatResult(env.data.getBlock(blockId), resultStr, result));\n        return result;\n      }\n    });\n  };\n})";
+        func = jsBaseEval(env, progText)(env, blockId, blockNames, varValues);
+        return cont(function() {
+          var err, error;
+          sync = true;
+          try {
+            func();
+          } catch (error) {
+            err = error;
+            env.data.replaceResult(blockId, ": " + (err.stack.replace(/\n/g, '\n: ')));
+          }
+          return sync = false;
+        });
+      };
       return env;
+    };
+    indentCode = function(str) {
+      return str.replace(/\n/g, '\n  ');
     };
     Html = (function() {
       function Html(content) {
@@ -444,8 +598,9 @@
       return knownLanguages[name != null ? name.toLowerCase() : void 0];
     };
     blockVars = function(data, varDefs) {
-      var bl, blockIds, def, i, ignore, len, name, ref, ref1, ref2, v, value, vars;
+      var bl, blockIds, blockNames, def, i, ignore, len, name, ref, ref1, ref2, v, value, vars;
       blockIds = {};
+      blockNames = {};
       vars = {};
       if (varDefs) {
         ref = (_.isArray(varDefs) ? varDefs : [varDefs]);
@@ -460,14 +615,15 @@
             value = JSON.parse(value);
           } else if (bl = data.getBlockNamed(value)) {
             blockIds[bl._id] = true;
-            value = bl.yaml;
+            blockNames[value] = true;
+            value = data.getYaml(bl);
           } else {
             value = value.trim();
           }
           vars[name] = value;
         }
       }
-      return [vars, _.keys(blockIds)];
+      return [vars, _.keys(blockIds), _.keys(blockNames)];
     };
     escaped = {
       '\b': "\\b",
@@ -516,7 +672,9 @@
       escapeString: escapeString,
       unescapeString: unescapeString,
       evalLeisure: evalLeisure,
-      setLounge: setLounge
+      setLounge: setLounge,
+      hasCodeAttribute: hasCodeAttribute,
+      isYamlResult: isYamlResult
     };
   });
 

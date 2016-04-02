@@ -26,6 +26,9 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         Html
         presentHtml
         setLounge
+        blockVars
+        hasCodeAttribute
+        isYamlResult
       } = Eval
       {
         LeisureEditCore
@@ -104,7 +107,9 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       class OrgData extends DataStore
         constructor: ->
           DataStore.apply this, arguments
-          @pendingObserves = new NMap()
+          @disableObservation = true
+          @pendingObserves = {}
+          @running = {}
           @observers = new NMap()
           @filters = []
           @initializeLocalData()
@@ -113,6 +118,11 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         change: (changes)->
           ch = @makeChange changes
           @trigger 'change', ch
+        allowObservation: (func)->
+          old = @disableObservation
+          @disableObservation = false
+          func()
+          @disableObservation = old
         addImported: (importFile, type, name)->
           if typeof importFile == 'string'
             if @importRecords[type][name]
@@ -153,6 +163,7 @@ same names for blocks other than printing a warning.
         replaceText: (repl)->
           super repl
           @runTextFilters repl
+          @scheduleEvals()
         makeChanges: (func)->
           if newChange = !@changeCount
             for filter in @filters
@@ -324,8 +335,8 @@ that must be done regardless of the source of changes
           @checkControlChange oldBlock, newBlock, isDefault
         checkIndexChange: (oldBlock, newBlock, isDefault)->
           if newBlock
-            if (index = newBlock.codeAttributes?.index) && newBlock.yaml
-              newBlock.keys = (for key in ((k.trim().split keySplitPat) for k in index.split ',') when v = newBlock.yaml[_.last(key).trim()]
+            if (index = newBlock.codeAttributes?.index) && yaml = @getYaml newBlock
+              newBlock.keys = (for key in ((k.trim().split keySplitPat) for k in index.split ',') when v = yaml[_.last(key).trim()]
                 [key[0].trim(), v, newBlock._id]).sort compareSorted
             else delete newBlock.keys
           if !(oldBlock?.keys && newBlock.keys && _.isEqual newBlock.keys, oldBlock.keys)
@@ -375,28 +386,31 @@ that must be done regardless of the source of changes
           @pendingEvals = []
           for func in e
             func()
-          if !_.isEmpty @pendingObserves.items
-            for block, targets of @pendingObserves.items
-              for target of targets
-                @runObserver block, target
-            @pendingObserves.clear()
+          if !_.isEmpty @pendingObserves
+            @allowObservation =>
+              blocked = {}
+              oldRunning = {}
+              while !_.isEmpty @pendingObserves
+                p = @pendingObserves
+                @pendingObserves = {}
+                for blockId of p
+                  if !@running[blockId] && (block = @getBlock(blockId))
+                    blocked[blockId] = true
+                    oldRunning[blockId] = @running[blockId]
+                    @running[blockId] = true
+                    obs = block.observer
+                    block.observer?.observe?()
+                    if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
+              for k of blocked
+                @running[k] = oldRunning[k]
           Promise.all promises
-        checkChannelChange: (oldBlock, newBlock)->
-          if type = newBlock?.yaml?.type then @triggerUpdate 'type', type, newBlock
-          if name = newBlock?.codeName then @triggerUpdate 'block', name, newBlock
-          if channels = newBlock?.codeAttributes?.channels
-            for channel in channels.split ' '
-              @triggerUpdate (channel.split '.')..., newBlock
-          null
         triggerUpdate: (channelKeys..., block)->
           if items = @observers.get channelKeys...
             for id, v of items
               # verify that it's exactly equal to true
               # if not, then it's not really an observer
-              if v == true then @addPendingObserver id, block
+              if v == true && !@running[id] then @pendingObserves[id] = true
           null
-        addPendingObserver: (observer, triggerBlock)->
-          @pendingObserves.add getId(observer), getId(triggerBlock), true
         checkPropChange: (oldBlock, newBlock, isDefault)->
           if !isDefault && !newBlock?.level && !_.isEqual(oldBlock?.properties, newBlock?.properties) && parent = @parent newBlock ? oldBlock
             newProperties = _.defaults @parseBlocks(parent.text).properties ? {}, newBlock.properties ? {}
@@ -411,6 +425,7 @@ that must be done regardless of the source of changes
           if isCss newBlock
             $('head').append "<style id='css-#{blockElementId newBlock}'>#{blockSource newBlock}</style>"
         checkCodeChange: (oldBlock, newBlock, isDefault)->
+          if newBlock && @running[newBlock._id] then return
           oldName = oldBlock?.codeName ? (oldBlock?.type == 'headline' && oldBlock?.properties?.name)
           newName = newBlock?.codeName ? (newBlock?.type == 'headline' && newBlock?.properties?.name)
           if oldName != newName
@@ -425,20 +440,30 @@ that must be done regardless of the source of changes
             if !@tangles[lang]
               @tangles[lang] = [defaultEnv.opts, '']
             @tangles[lang][1] += source.content
-          else if (resultType = newBlock?.codeAttributes?.results?.toLowerCase() == 'def') || (resultType = newBlock?.codeAttributes?.observe && 'observe')
+          else if (resultType = newBlock?.codeAttributes?.results?.toLowerCase() == 'def') || (resultType = newBlock?.codeAttributes?.observe? && 'observe')
             opts = defaultEnv.opts
             @queueEval =>
               oldOpts = defaultEnv.opts
               defaultEnv.opts = opts
               if resultType == 'observe'
                 observer = newBlock.observer = {}
-                @executeBlock newBlock, (env)->
-                  env.eval = (text)-> controllerEval.call observer, text
                 @updateObserver newBlock, oldBlock
+                env = @env(newBlock.language)
+                # env.eval = (text)-> controllerEval.call observer, text
+                env.createObserver newBlock._id, blocksObserved(newBlock), blockVars(this, newBlock.codeAttributes.var)[0], blockSource(newBlock), (obs)->
+                  newBlock.observer.observe = obs
               else @executeBlock newBlock
               defaultEnv.opts = oldOpts
+        checkChannelChange: (oldBlock, newBlock)-> if !@disableObservation
+          if type = @getYaml(newBlock)?.type then @triggerUpdate 'type', type, newBlock
+          if name = newBlock?.codeName then @triggerUpdate 'block', name, newBlock
+          if channels = newBlock?.codeAttributes?.channels
+            for channel in channels.split ' '
+              @triggerUpdate (channel.split '.')..., newBlock
+          null
         updateObserver: (block, oldBlock)->
-          obs = block.codeAttributes?.observe?.split(' ') ? []
+          obs = @decodeObservers block
+          block.observing = obs
           oldObs = oldBlock?.codeAttributes?.observe?.split(' ') ? []
           for ch in oldObs
             if !(ch in obs)
@@ -446,10 +471,6 @@ that must be done regardless of the source of changes
           for ch in obs
             if !(ch in oldObs)
               @observers.add (ch.split '.')..., getId(block), true
-        runObserver: (observer, block)->
-          obs = @getBlock observer
-          block = @getBlock block
-          obs.observer?.observe block?.yaml, block
         getNamedBlockId: (name)-> @namedBlocks[name] ? @importedData[name]
         setBlockName: (name, blockId, isDefault)->
           (if isDefault then @importedData else @namedBlocks)[name] = blockId
@@ -494,6 +515,7 @@ that must be done regardless of the source of changes
           if (isControl(oldBlock) || isControl(newBlock)) && (oldBlock?.type != 'code' || blockSource(oldBlock) != blockSource(newBlock) || isControl(oldBlock) != isControl(newBlock))
             @queueEval => @changeController oldBlock, newBlock, isDefault
         changeController: (oldBlock, newBlock, isDefault)->
+          if newBlock && @running[newBlock._id] then return
           if oldBlock && ov = blockViewType oldBlock, 'control', isDefault
             removeController ov
           if vt = blockViewType newBlock, 'control'
@@ -535,6 +557,42 @@ that must be done regardless of the source of changes
                   @importPromise = oldPromise
                   resolve()), (e)=> reject displayError e
         getFile: (filename, cont, fail)-> ajaxGet(new URL(filename, @loadName).toString()).then(cont).error(fail)
+        decodeObservers: (block)->
+          finalObs = []
+          obs = block.codeAttributes?.observe?.split(' ') ? []
+          for ob in obs
+            if ob in ['vars', '']
+              finalObs.push ("block.#{v}" for v in blockVars(this, block.codeAttributes?.var)[2])...
+            else finalObs.push ob
+          finalObs
+        runBlock: (block, func)->
+          id = getId block
+          r = @running[id]
+          @running[id] = true
+          try
+            func()
+          finally
+            @running[id] = r
+        replaceResult: (block, str)->
+          block = @getBlock (if typeof block == 'string' then block else block._id)
+          @runBlock block, =>
+            replaceResult this, this, block, str
+        clearError: (block)->
+          block = @getBlock (if typeof block == 'string' then block else block._id)
+          {error, results} = blockCodeItems this, block
+          if error
+            start = @offsetForBlock(block) + error.offset
+            @runBlock block, => @replaceText {start, end: start + error.text.length, text: '', source: 'code'}, true
+        getYaml: (block)->
+          block = @getBlock block
+          block.yaml ? (block.yaml = if isYamlResult block
+            {results} = blockCodeItems this, block
+            if results
+              firstResult = results.text.indexOf('\n') + 1
+              safeLoad results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
+          else null)
+
+      blocksObserved = (block)-> ob.replace /^block\./, '' for ob in block.observing when ob.match /^block\./
 
       displayError = (e)->
         console.log "Error: #{e}"
@@ -777,7 +835,7 @@ may be called more than once.  changeData() returns a promise.
             block
           else if info = @dataChanges.sharedInserts[name] then info.block
           else @data.getBlockNamed name
-          block?.yaml
+          @data.getYaml block
         setData: (name, value, codeOpts)->
           @checkChanging()
           @verifyDataObject "set #{name} to ", value
@@ -824,12 +882,12 @@ may be called more than once.  changeData() returns a promise.
             @withNewContext =>
               for node in viewNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
-                if data = (block = @blockForNode node)?.yaml
+                if data = @data.getYaml block = @blockForNode node
                   [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
                   renderView view, name, data, node, block
               for node in nameNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
-                if data = (blk = @data.getBlockNamed(blkName = node.attr 'data-view-block-name'))?.yaml
+                if data = @data.getYaml blk = @data.getBlockNamed(blkName = node.attr 'data-view-block-name')
                   [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
                   renderView view, name, data, node, blk, blkName
           else super changes
@@ -941,11 +999,11 @@ may be called more than once.  changeData() returns a promise.
           changes
         replaceText: (repl, skipEffects)->
           if !skipEffects && {repls} = @replaceTextEffects repl.start, repl.end, repl.text
-            super repl
+            @data.allowObservation => super repl
             if repls
               for repl in repls
                 @replaceText repl, true
-          else super repl
+          else @data.allowObservation => super repl
 
 `changesFor(first, oldBlocks, newBlocks)` -- compute some effects immediately
 
@@ -959,6 +1017,7 @@ may be called more than once.  changeData() returns a promise.
             if @checkPropertyChange changes, change, oldBlock
               changedProperties.push change._id
             @checkCodeChange changes, change, oldBlock, oldBlocks, newBlocks
+            #@data.checkChannelChange oldBlock, change, true
           for change in changedProperties
             if parent = @data.parent(change, changes)?._id
               if !computedProperties[parent]
@@ -991,9 +1050,9 @@ may be called more than once.  changeData() returns a promise.
         checkPropertyChange: (changes, change, oldBlock)->
           change.type == 'chunk' && !_.isEqual change.properties, @getBlock(change._id)?.properties
         checkCodeChange: (changes, change, oldBlock, oldBlocks, newBlocks)->
-          if change.type == 'code' && isDynamic(change) && envM = blockEnvMaker(change)
+          if !@data.running[change._id] && change.type == 'code' && isDynamic(change) && !isObserver(change) && envM = blockEnvMaker(change)
             {source: newSource, results: newResults} = blockCodeItems this, change
-            hasChange = !oldBlock || oldBlock.type != 'code' || oldBlock.codeAttributes.results != 'dynamic' || if oldBlock
+            hasChange = !oldBlock || oldBlock.type != 'code' || !(isDynamic(oldBlock) && !isObserver(oldBlock)) || if oldBlock
               oldSource = blockSource oldBlock
               newSource.content != oldSource.content
             if hasChange
@@ -1073,18 +1132,20 @@ may be called more than once.  changeData() returns a promise.
             alert "Elisp links not supported:\n#{e.target.href}"
           else open e.target.href
           false
-        replaceResult: (block, str)->
-          if typeof block != 'string' then blockId = block._id
-          if current = @data.getBlock block
-            start = @data.offsetForBlock current
-            {results, last} = blockCodeItems this, current
-            if str[str.length - 1] != '\n' then str += '\n'
-            str = "#+RESULTS:\n" + str
-            if results
-              start += results.offset
-              end = start + results.text.length
-            else end = (start += last.end())
-            @replaceText {start, end, text: str, source: 'code'}, true
+        replaceResult: (block, str)-> replaceResult this, @data, block, str
+
+      replaceResult = (source, data, block, str)->
+        if typeof block != 'string' then blockId = block._id
+        if current = data.getBlock block
+          start = data.offsetForBlock current
+          {results, last} = blockCodeItems this, current
+          if str[str.length - 1] != '\n' then str += '\n'
+          str = "#+RESULTS:\n" + str
+          if results
+            start += results.offset
+            end = start + results.text.length
+          else end = (start += last.end())
+          source.replaceText {start, end, text: str, source: 'code'}, true
 
       trickyChange = (oldBlock, newBlock)->
         oldBlock._id != newBlock._id ||
@@ -1128,7 +1189,9 @@ may be called more than once.  changeData() returns a promise.
             newBlock[prop] = value
           newBlock
 
-      isDynamic = (block)-> block.codeAttributes?.results == 'dynamic'
+      isDynamic = (block)-> hasCodeAttribute block, 'results', 'dynamic'
+
+      isObserver = (block)-> block?.codeAttributes?.observe
 
       blockEnvMaker = (block)-> languageEnvMaker block.language
 
@@ -1270,6 +1333,7 @@ may be called more than once.  changeData() returns a promise.
 Exports
 
       mergeExports {
+        blockCodeItems
         findEditor
         showHide
         toolbarFor

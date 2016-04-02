@@ -3,12 +3,12 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './lib/prism-leisure'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
-    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html, blockVars = Eval.blockVars;
+    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html, blockVars = Eval.blockVars, isYamlResult = Eval.isYamlResult;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, getEventChar = Editor.getEventChar;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr, nextImageSrc = UI.nextImageSrc, prevImageSrc = UI.prevImageSrc, pushPendingInitialzation = UI.pushPendingInitialzation;
     mergeExports = BrowserExports.mergeExports;
@@ -53,25 +53,25 @@
         return results1;
       },
       render: function(opts, block, prefix, replace) {
-        var attrs, error, pos, ref, ref1, ref2, ref3, result, results, source, text;
+        var attrs, error, name, pos, ref, ref1, ref2, ref3, ref4, result, results, source, text;
         opts.trigger('render', opts.editor, block);
-        ref = blockCodeItems(this, block), source = ref.source, error = ref.error, results = ref.results;
+        ref = blockCodeItems(this, block), name = ref.name, source = ref.source, error = ref.error, results = ref.results;
         attrs = "id='" + prefix + block._id + "' data-block='" + block.type + "'";
         if (block.type === 'headline') {
           attrs += " data-headline='" + block.level + "'";
         }
-        text = '';
         if (!results && !error) {
-          text += this.renderMainBlock(block);
+          text = this.renderMainBlock(block);
         } else {
+          text = name ? this.renderMainText(block.text.substring(0, source != null ? source.offset : void 0)) : '';
           if (!error) {
-            text += this.renderMainText(block.text.substring(0, (ref1 = results != null ? results.offset : void 0) != null ? ref1 : block.text.length));
+            text += this.renderMainText(block.text.substring(source.offset, (ref1 = results != null ? results.offset : void 0) != null ? ref1 : block.text.length));
           } else {
             pos = source.offset + source.contentPos + Number(error.info.match(/([^,]*),/)[1]) - 1;
-            text += escapeHtml(block.text.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, (ref2 = results != null ? results.offset : void 0) != null ? ref2 : block.text.length));
+            text = escapeHtml(block.text.substring((ref2 = name != null ? name.offset : void 0) != null ? ref2 : 0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, (ref3 = results != null ? results.offset : void 0) != null ? ref3 : block.text.length));
           }
           if (results != null) {
-            text += "" + (escapeHtml((ref3 = results != null ? results.text : void 0) != null ? ref3 : '')) + (escapeHtml(block.text.substring(results.offset + results.text.length)));
+            text += "" + (escapeHtml((ref4 = results != null ? results.text : void 0) != null ? ref4 : '')) + (escapeHtml(block.text.substring(results.offset + results.text.length)));
           }
         }
         result = "<span " + attrs + ">" + text + "</span>";
@@ -166,30 +166,21 @@
       return fancyMode.render(UI.context.opts, block, UI.context.prefix)[0];
     });
     Handlebars.registerHelper('renderHtml', function(html) {
-      var data, id, ids, opts, ref, ref1, ref10, ref11, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, varSetting, vars;
+      var data, id, ids, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, vars;
       ref4 = blockVars((ref = UI.context) != null ? (ref1 = ref.opts) != null ? ref1.data : void 0 : void 0, (ref2 = this.block) != null ? (ref3 = ref2.codeAttributes) != null ? ref3["var"] : void 0 : void 0), vars = ref4[0], ids = ref4[1];
-      varSetting = (ref5 = this.block) != null ? (ref6 = ref5.codeAttributes) != null ? ref6["var"] : void 0 : void 0;
-      data = (ref7 = UI.context) != null ? (ref8 = ref7.opts) != null ? ref8.data : void 0 : void 0;
-      if (ids.length > 0 && (id = (ref9 = (ref10 = UI.context) != null ? ref10.simpleViewId : void 0) != null ? ref9 : this.id) && (opts = (ref11 = UI.context) != null ? ref11.opts : void 0)) {
+      data = (ref5 = UI.context) != null ? (ref6 = ref5.opts) != null ? ref6.data : void 0 : void 0;
+      if (ids.length > 0 && (id = (ref7 = (ref8 = UI.context) != null ? ref8.simpleViewId : void 0) != null ? ref7 : this.id) && (opts = (ref9 = UI.context) != null ? ref9.opts : void 0)) {
         pushPendingInitialzation((function(_this) {
           return function() {
-            var block, blocks, controller, controllerName, env, j, len, len1, n, node, ref12, v, viewNode;
+            var block, blocks, controller, controllerName, env, j, len, node, ref10, viewNode;
             viewNode = $("#" + id);
             if ((node = opts.nodeForId(_this.block._id)) && (node[0] === viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)) {
-              blocks = (ref12 = node.attr('data-observe')) != null ? ref12 : '';
+              blocks = (ref10 = node.attr('data-observe')) != null ? ref10 : '';
               for (j = 0, len = ids.length; j < len; j++) {
                 id = ids[j];
                 blocks += " " + id;
               }
               node.attr('data-observe', blocks);
-              if (varSetting && !_.isEmpty(varSetting)) {
-                for (n = 0, len1 = varSetting.length; n < len1; n++) {
-                  v = varSetting[n];
-                  if (id = data.namedBlocks[v]) {
-                    blocks += " " + id;
-                  }
-                }
-              }
             }
             if (controllerName = _this.block.codeAttributes.controller) {
               if (!(controller = singleControllers[controllerName])) {
@@ -715,7 +706,7 @@
             name: name ? name.text.substring(name.info) : '',
             afterName: name ? this.renderOrg(opts, cleanOrg(block.text.substring(name.end(), source.offset)), true) : '',
             inter: results ? block.text.substring(source.end(), results != null ? results.offset : void 0) : block.text.substring(source.end()),
-            results: !results ? '' : hideResults ? "<span class='hidden'>" + (escapeHtml(results.text)) + "</span>" : resultsArea(opts, results.text),
+            results: !results ? '' : hideResults ? "<span class='hidden'>" + (escapeHtml(results.text)) + "</span>" : resultsArea(opts, results.text, block),
             beforeResults: block.text.substring(0, (ref3 = results != null ? results.offset : void 0) != null ? ref3 : source.end())
           };
           sourceData.text = this.renderCodeOrg(opts, sourceData);
@@ -756,7 +747,7 @@
             text += (this.renderView(key, block.language, null, context))[0];
             return [org.end(), text];
           } else if (name === 'results') {
-            return [org.end(), resultsArea(opts, org.allText())];
+            return [org.end(), resultsArea(opts, org.allText(), block)];
           } else {
             return [pos, text];
           }
@@ -830,11 +821,11 @@
         return text;
       },
       renderLink: function(opts, org) {
-        var block, c, data, desc, error, guts, ignore, j, leisureMatch, len, obj, objectName, ref, ref1, src, title, type, typeName, viewName;
+        var block, c, data, desc, error, guts, ignore, j, leisureMatch, len, obj, objectName, ref, src, title, type, typeName, viewName;
         if (leisureMatch = org.isLeisure()) {
           ignore = leisureMatch[0], objectName = leisureMatch[1], viewName = leisureMatch[2], typeName = leisureMatch[3];
           data = UI.context.opts.data;
-          error = !(obj = data.getBlockNamed(objectName)) ? "No object named " + objectName : !(obj = (ref = (block = data.getBlockNamed(objectName))) != null ? ref.yaml : void 0) ? "Object " + objectName + " isn't yaml" : !(type = typeName || (obj != null ? obj.type : void 0)) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
+          error = !(obj = data.getBlockNamed(objectName)) ? "No object named " + objectName : !(obj = data.getYaml(block = data.getBlockNamed(objectName))) ? "Object " + objectName + " isn't yaml" : !(type = typeName || (obj != null ? obj.type : void 0)) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
           if (error) {
             return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'><b>✖</b></span>" + (fancyHtml(org.allText()));
           } else {
@@ -849,9 +840,9 @@
           return (opts.renderImage(src, title)) + "<span class='hidden link'>" + (escapeHtml(org.allText())) + "</span>";
         } else {
           guts = '';
-          ref1 = org.children;
-          for (j = 0, len = ref1.length; j < len; j++) {
-            c = ref1[j];
+          ref = org.children;
+          for (j = 0, len = ref.length; j < len; j++) {
+            c = ref[j];
             guts += this.renderOrg(opts, c);
           }
           if (!guts) {
@@ -1145,9 +1136,14 @@
       var ref;
       return (ref = workSpan().text(text).html()) != null ? ref : '';
     };
-    resultsArea = function(opts, results) {
+    resultsArea = function(opts, results, block) {
       var firstResult;
-      if (!(firstResult = results.indexOf('\n') + 1) || results[firstResult] === ':') {
+      firstResult = results.indexOf('\n') + 1;
+      if (false && isYamlResult(block)) {
+        return "<span class='hidden'>" + (results.substring(0, firstResult)) + "</span><span class='yaml results-verbatim' data-noncontent>" + (results.substring(firstResult).replace(/^(: )(.*\n)/gm, function(m, g1, g2) {
+          return goodHtml(g2);
+        })) + "</span>";
+      } else if (!firstResult || results[firstResult] === ':') {
         return "<span class='hidden'>" + (goodText(results)) + "</span><span class='results-verbatim' data-noncontent>" + (results.substring(firstResult).replace(/^(: )(.*\n)/gm, function(m, g1, g2) {
           return goodHtml(g2);
         })) + "</span>";
