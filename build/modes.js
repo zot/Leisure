@@ -89,7 +89,17 @@
         }
       },
       renderMainText: function(txt) {
-        return this.renderMeat(parseMeat(txt, 0, '', true)[0]);
+        var org, pos, remaining, result;
+        result = '';
+        remaining = txt;
+        pos = 0;
+        while (remaining) {
+          org = parseMeat(remaining, 0, '', true)[0];
+          result += this.renderMeat(org);
+          pos += org.offset + org.allText().length;
+          remaining = txt.substring(pos);
+        }
+        return result;
       },
       renderMeat: function(org) {
         var result;

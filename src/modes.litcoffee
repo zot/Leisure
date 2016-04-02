@@ -129,7 +129,16 @@
             {text} = parseOrgMode(block.text).children[0].partOffsets()
             "<span class='plain-headline maintext'>#{escapeHtml txt.substring 0, text.start}#{@renderMainText txt.substring(text.start, text.end)}#{escapeHtml txt.substring text.end}</span>"
           else @renderMeat parseOrgMode(block.text).children[0]
-        renderMainText: (txt)-> @renderMeat parseMeat(txt, 0, '', true)[0]
+        renderMainText: (txt)->
+          result = ''
+          remaining = txt
+          pos = 0
+          while remaining
+            [org] = parseMeat(remaining, 0, '', true)
+            result += @renderMeat org
+            pos += org.offset + org.allText().length
+            remaining = txt.substring pos
+          result
         renderMeat: (org)->
           result = ''
           while org
