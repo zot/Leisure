@@ -1411,7 +1411,7 @@ body.slides.firstSlide #prevSlide {
     font-style: normal;
 }
 .codename {
-    padding-left: 2px;
+    /* padding-left: 2px; */
     font-style: italic;
 }
 .code-content {

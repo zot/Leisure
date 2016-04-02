@@ -82,7 +82,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 # code
 #########
 
-  checkParital = (func, args)->
+  checkPartial = (func, args)->
     if typeof func == 'string' then func = leisureFunctionNamed func
     if func.length != args.length then Leisure_primCall func, 0, args
 
@@ -116,9 +116,9 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
   booleanFor = (bool)-> if bool then rz L_true else rz L_false
   do ->
     'use strict'
-    define 'eq', (a, b)-> checkParital(L_eq, arguments) || booleanFor rz(a) == rz(b)
-    define '==', (a, b)-> checkParital(L_$p$p, arguments) || booleanFor rz(a) == rz(b)
-    define '!=', (a, b)-> checkParital(L_$k$p, arguments) || booleanFor rz(a) != rz(b)
+    define 'eq', (a, b)-> checkPartial(L_eq, arguments) || booleanFor rz(a) == rz(b)
+    define '==', (a, b)-> checkPartial(L_$p$p, arguments) || booleanFor rz(a) == rz(b)
+    define '!=', (a, b)-> checkPartial(L_$k$p, arguments) || booleanFor rz(a) != rz(b)
     define 'hasType', (data, func)-> checkPartial(L_hasType, arguments) ||(if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
     else booleanFor getType(rz data) == getDataType(rz func))
     define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
@@ -143,8 +143,8 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 # MATH
 ############
 
-  define '+', (x, y)-> checkParital(L_$o, arguments) || rz(x) + rz(y)
-  define '-', (x, y)-> checkParital(L_$_, arguments) || rz(x) - rz(y)
+  define '+', (x, y)-> checkPartial(L_$o, arguments) || rz(x) + rz(y)
+  define '-', (x, y)-> checkPartial(L_$_, arguments) || rz(x) - rz(y)
   define '*', (x, y)-> if isPartial arguments then partialCall arguments else
     rz(x) * rz(y)
   define '/', (x, y)-> if isPartial arguments then partialCall arguments else

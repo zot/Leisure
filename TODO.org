@@ -1,28 +1,25 @@
-* strict mode
-** change primitives not to use arcuments.callee
+* TODO finish observers for JS, LispyScript, Leisure
+* TODO TiddlyWiki view style
+* TODO New output type, "view" that shows results as a view
+** optional type or type/name param overrides type of result
+** results for normal code
+** yaml blocks themselvesa
+* TODO finish using strict mode
+** change rest of primitives not to use arcuments.callee
 1. Use a test with a constant for the length, isPartial(arguments.length, 5)
 2. Use a wrapper func for partials: checkPartial (a,b)-> ...
 * TODO Undo: for OT, register with UndoManager, for local, use replacements
 * BUG Parse errors cause weird results parsing
-* hide leading non-toplevel content in fancy mode
-* add resourceBase=URL parameter for resource fallback
+* BUG hide leading non-toplevel content in fancy mode
+* TODO add resourceBase=URL parameter for resource fallback
 ** helps  collaboration on standard resources
-* collaboration clients should fetch unknown resources from master
+* TODO collaboration clients should fetch unknown resources from master
 * TODO Views that contain select Leisure content, like search does
-* TODO Allow block results as input (key Babel feature)
-  - Allows piping
-  - Operate on org file itself
-  - Document observers can auto-update
-  - Blocks can observe their input's results
 * BUG Make OT replaceText skip local blocks
 * BUG Search changes don't propagate collaboratively
 * TODO Should Yaml blocks only auto-update only for :results dynamic?
 ** Maybe have c-c c-c update the cache number in the results block?
 * TODO c-c c-c in emacs should evaluate in the connected browser
-* TODO New results type, "view"
-** optional type or type/name param overrides type of result
-** results for normal code
-** yaml blocks themselvesa
 * TODO :exports code/results/both controls fancy display
 * TODO Need fancy gizmos to control header args
 * TODO Support :tangle yes (also for internal code base)
@@ -1073,6 +1070,16 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE new results type yaml
+CLOSED: [2016-04-02 Sat 16:58]
+- example with :results yaml :level 2, just pass properties to yaml as options
+** DONE Allow block results as input (key Babel feature)
+CLOSED: [2016-04-02 Sat 16:57]
+- Allows piping
+- Operate on org file itself
+- Document observers can auto-update
+- Blocks can observe their input's results
+- Blocks can reformat data blocks for better input to views or other blocks
 ** DONE Backspace at end of line scrolls the page
 CLOSED: [2016-03-02 Wed 23:03]
 ** DONE in slide mode, down/forward can move past the end of the visible text

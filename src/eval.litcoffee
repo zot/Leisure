@@ -1,6 +1,6 @@
 Evaulation support for Leisure
 
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen, Exports)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = null
@@ -42,6 +42,13 @@ Evaulation support for Leisure
       {
         genSource
       } = Gen
+      {
+        safeLoad
+        dump
+      } = Yaml
+      {
+        getCodeItems
+      } = DocOrg
 
       #########
       # init
@@ -86,7 +93,7 @@ Evaulation support for Leisure
       #########
 
       defaultEnv.write = (str)-> console.log str
-      defaultEnv.errorAt = (offset, msg)-> console.log msg
+      defaultEnv.errorAt = (offset, msg)-> debugger; console.log msg
 
       id = lz (x)-> rz x
       getLeft = (x)-> x(id)(id)
@@ -114,6 +121,7 @@ Evaulation support for Leisure
               if !env.opts then env.opts = opts
               leisureExec env, text, props, cont, (err)-> env.errorAt 0, err?.message ? err),
             (err)-> env.errorAt 0, err?.message ? err
+        env.createObserver = (blockNames, text, cont)-> throw new Error 'Leisure observers not implemented yet'
         env
 
       leisureExec = (env, text, props, cont, errCont)->
@@ -148,12 +156,30 @@ Evaulation support for Leisure
           results = results.tail()
         cont()
 
+      hasCodeAttribute = (block, attr, value)->
+        if !block.attributeWords? then block.attributeWords = {}
+        if !block.attributeWords[attr]
+          a = block.codeAttributes?[attr] ? []
+          if !_.isArray a then a = a.split ' '
+          block.attributeWords[attr] = (word.toLowerCase() for word in a)
+        value.toLowerCase() in block.attributeWords[attr]
+
+      isYamlResult = (block)-> hasCodeAttribute block, 'results', 'yaml'
+
       presentHtml = (v)->
         str = ': ' + (if v instanceof Html then v.content.replace(/\r?\n/g, '\\n')
         else escapeHtml String(v).replace(/\r?\n/g, '\n: '))
         if _.last(str) == '\n' then str else str + '\n'
 
+      basicFormat = (block, prefix, items)->
+        if isYamlResult block
+          if items.length == 1 then items = items[0]
+          ': ' + (dump items, {sortKeys: true, flowLevel: Number block.codeAttributes.flowlevel ? 2}).trim().replace(/\n/g, '\n: ') + '\n'
+        else prefix + (presentHtml item for item in items).join ''
+
       writeValues = (env, values)-> env.write values.join '\n'
+
+      defaultEnv.formatResult = (block, prefix, items)-> basicFormat block, prefix, items
 
       setLounge = (env, func)->
         oldLounge = window.Lounge
@@ -170,9 +196,10 @@ Evaulation support for Leisure
           catch err
             @errorAt 0, err.message
           cont? value
+        env.createObserver = (blockNames, text, cont)-> throw new Error 'JavaScript observers not implemented yet'
         env
 
-      jsEval = (env, text)->
+      jsGatherResults = (env, text, returnResults)->
         try
           parsed = acorn.parse text
         catch err
@@ -186,19 +213,25 @@ Evaulation support for Leisure
             else
               env.errorAt findError(err.message, text), err2.message
             return []
+        if env.silent then text
+        else
+          newText = 'var leisure_results=[];'
+          for expr in parsed.body
+            if expr.type == 'ExpressionStatement'
+              exprText = text.substring expr.start, expr.end
+              if exprText[exprText.length - 1] == ';'
+                exprText = exprText.substring(0, exprText.length - 1)
+              newText = "#{newText}leisure_results.push(#{exprText});"
+            else newText += text.substring expr.start, expr.end
+          "#{newText};#{if returnResults then 'return ' else ''}leisure_results;"
+
+      jsBaseEval = (env, text)->
         if !env.silent
           env.results = []
-          newText = 'var leisure_results=[];'
-        for expr in parsed.body
-          if expr.type == 'ExpressionStatement'
-            exprText = text.substring expr.start, expr.end
-            if exprText[exprText.length - 1] == ';'
-              exprText = exprText.substring(0, exprText.length - 1)
-            if !env.silent then newText += "leisure_results.push(" + exprText + ");"
-          else newText += text.substring expr.start, expr.end
-        if !env.silent then newText += ";leisure_results;"
         console = log: (str)=> env.write env.presentValue str
-        setLounge env, -> (env.eval ? localEval) newText
+        setLounge env, -> (env.eval ? localEval) text
+
+      jsEval = (env, text)-> jsBaseEval env, jsGatherResults env, text
 
       findError = (err, text)->
         [x, line, col] = err.match(/\(([0-9]*):([0-9]*)\)/)
@@ -228,6 +261,7 @@ Evaulation support for Leisure
           catch err
             @errorAt 0, err.message
           cont? value
+        env.createObserver = (blockNames, text, cont)-> throw new Error 'LispyScript observers not implemented yet'
         env
 
       csEnv = (env)->
@@ -237,7 +271,52 @@ Evaulation support for Leisure
           catch err
             @errorAt 0, err.message
           cont? values
+        env.createObserver = (blockId, blockNames, vars, text, cont)->
+          sync = false
+          if isYamlResult env.data.getBlock(blockId)
+            env.write = (str)=>
+              result += str
+              if result[result.length - 1] != '\n' then result += '\n'
+              if !sync then env.data.replaceResult change._id, result
+          else
+            env.write = (str)=>
+              result += presentHtml str
+              if result[result.length - 1] != '\n' then result += '\n'
+              if !sync then env.data.replaceResult change._id, result
+          blockSet = _.fromPairs([name, 'true'] for name in blockNames)
+          vars = ([k, v] for k, v of vars when !blockSet[k])
+          paramNames = (blockNames.concat (v[0] for v in vars)).join ', '
+          varValues = (v[1] for v in vars)
+          progText = jsGatherResults env, CS.compile(text, bare: true), true
+          progText = """
+            (function(env, blockId, names, vars) {
+              return function() {
+                return setLounge(env, function() {
+                  var blocks = _.map(names, function(n){var bl = env.data.getBlockNamed(n, true); return bl && env.data.getYaml(bl)});
+                  if (_.every(blocks, function(b){return b != undefined;})) {
+                    env.data.clearError(blockId);
+                    var resultStr = '';
+                    var result = (function(#{paramNames}) {
+                      #{progText}
+                    }).apply(null, blocks.concat(vars));
+                    env.data.replaceResult(blockId, env.formatResult(env.data.getBlock(blockId), resultStr, result));
+                    return result;
+                  }
+                });
+              };
+            })
+          """
+          func = jsBaseEval(env, progText)(env, blockId, blockNames, varValues)
+          cont ->
+            sync = true
+            try
+              func()
+            catch err
+              env.data.replaceResult blockId, ": #{err.stack.replace /\n/g, '\n: '}"
+            sync = false
         env
+
+      indentCode = (str)-> str.replace /\n/g, '\n  '
 
       class Html
         constructor: (content)-> @content = String(content)
@@ -272,6 +351,7 @@ Evaulation support for Leisure
 
       blockVars = (data, varDefs)->
         blockIds = {}
+        blockNames = {}
         vars = {}
         if varDefs
           for v in (if _.isArray varDefs then varDefs else [varDefs])
@@ -281,10 +361,11 @@ Evaulation support for Leisure
             if value[0] in "'\"0123456789" then value = JSON.parse value
             else if bl = data.getBlockNamed value
               blockIds[bl._id] = true
-              value = bl.yaml
+              blockNames[value] = true
+              value = data.getYaml bl
             else value = value.trim()
             vars[name] = value
-        [vars, _.keys blockIds]
+        [vars, _.keys(blockIds), _.keys(blockNames)]
 
       escaped =
         '\b': "\\b"
@@ -323,4 +404,6 @@ Evaulation support for Leisure
         unescapeString
         evalLeisure
         setLounge
+        hasCodeAttribute
+        isYamlResult
       }

@@ -1,0 +1,78 @@
+'name': 'Org'
+'scopeName': 'source.org'
+'fileTypes': [
+  'org'
+  'lorg'
+]
+'patterns': [
+  {
+    match: '^\\*\\s+((TODO|DONE)\\s+)?.*((:\\S+)*\\s*)$'
+    name: 'line.headline.ol1.entity.highlight'
+    captures:
+      2: name: 'name.todo'
+      4: name: 'name.tag'
+  }
+  {
+    match: '^\\*\\*\\s+((TODO|DONE)\\s+)?.*((:\\S+)*\\s*)$'
+    name: 'line.headline.ol2.entity.highlight'
+    captures:
+      2: name: 'name.todo'
+      4: name: 'name.tag'
+  }
+  {
+    match: '^\\*\\*\\*\\s+((TODO|DONE)\\s+)?.*((:\\S+)*\\s*)$'
+    name: 'line.headline.ol3.entity.highlight'
+    captures:
+      2: name: 'name.todo'
+      4: name: 'name.tag'
+  }
+  {
+    match: '^\\*\\*\\*\\*\\s+((TODO|DONE)\\s+)?.*((:\\S+)*\\s*)$'
+    name: 'line.headline.ol4.entity.highlight'
+    captures:
+      2: name: 'name.todo'
+      4: name: 'name.tag'
+  }
+  {
+    match: '^\\*\\*\\*\\*\\*\\s+((TODO|DONE)\\s+)?.*((:\\S+)*\\s*)$'
+    name: 'line.headline.ol5.entity.highlight'
+    captures:
+      2: name: 'name.todo'
+      4: name: 'name.tag'
+  }
+  {
+    match: '^\\*\\*\\*\\*\\*\\*\\s+((TODO|DONE)\\s+)?.*((:\\S+)*\\s*)$'
+    name: 'line.headline.ol6.entity.highlight'
+    captures:
+      2: name: 'name.todo'
+      4: name: 'name.tag'
+  }
+  {
+    match: '^\\*\\*\\*\\*\\*\\*\\*\\s+((TODO|DONE)\\s+)?.*((:\\S+)*\\s*)$'
+    name: 'line.headline.ol7.entity.highlight'
+    captures:
+      2: name: 'name.todo'
+      4: name: 'name.tag'
+  }
+  {
+    match: '^\\*\\*\\*\\*\\*\\*\\*\\*+\\s+((TODO|DONE)\\s+)?.*((:\\S+)*\\s*)$'
+    name: 'line.headline.ol8.entity.highlight'
+    captures:
+      2: name: 'name.todo'
+      4: name: 'name.tag'
+  }
+  {
+    match: '^\\s*-.*$'
+    name: 'line.list'
+  }
+  {
+    match: '^\\s*#\\+(?!BEGIN_SRC|END_SRC).*$'
+    name: 'line.keyword'
+  }
+  {
+    begin: '^\\s*#\\+BEGIN_SRC.*$'
+    name: 'line.code-block'
+    'contentName': 'line.code-content'
+    end: '^\\s*#\\+END_SRC.*$'
+  }
+]

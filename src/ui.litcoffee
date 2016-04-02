@@ -112,15 +112,12 @@ choose a handlebars template.
           options = contextName
           contextName = null
         context = options?.data
-        data = if typeof item == 'string'
-          block = context.opts.editor.options.getBlock data
-          block?.yaml
-        else if item?.yaml && item._id
-          block = item
-          item.yaml
-        else
+        block = context.opts.editor.options.getBlock data
+        yaml = context.opts.data.getYaml block
+        data = if !yaml
           block = null
           item
+        else yaml
         if data?.type
           renderView data.type, contextName, data, null, false, block
 

@@ -11,11 +11,17 @@ atom = window.atom
 # OrgEditor loads atom-tools into an iframe
 class OrgEditor extends Disposable
   constructor: (@textEditor)->
+    @textEditor.LeisureTools = this
     @doc = document
     console.log 'ORG EDITOR', @textEditor
     console.log 'document', @doc
     @subscriptions = new CompositeDisposable
+    @subscriptions.add disposalAction: =>
+      console.log 'ORG EDITOR DISPOSING'
+      @textEditor.LeisureTools = null
+      @textEditor = null
     @subscriptions.add @textEditor.onDidChange ({start, end, bufferDelta})=> @changed start, end, bufferDelta
+    @subscriptions.add @textEditor.onDidDestroy => @disposalAction()
     @toolsPromise = new Promise (resolve)=>
       @resolveTools = resolve
       @iframe = document.createElement('iframe')
@@ -26,9 +32,7 @@ class OrgEditor extends Disposable
   setTools: (@tools)->
     console.log 'tools', @tools
     @resolveTools()
-  disposalAction: ->
-    console.log 'DISPOSING'
-    @subscriptions.dispose()
+  disposalAction: -> @subscriptions.dispose()
   changed: (start, end, bufferDelta)->
     @toolsPromise.then ->
       console.log "CHANGED: #{start}"
@@ -62,18 +66,17 @@ module.exports = Leisure =
 
     # Register command that toggles this view
     @subscriptions.add atom.commands.add 'atom-workspace', 'leisure:toggle': => @toggle()
-    @subscriptions.add atom.workspace.onDidAddTextEditor ({textEditor})=>
-      @subscriptions.add new OrgEditor textEditor
+    # @subscriptions.add atom.workspace.onDidAddTextEditor ({textEditor})=>
+    #   @subscriptions.add new OrgEditor textEditor
 
-  deactivate: ->
-    @subscriptions.dispose()
+  deactivate: -> @subscriptions.dispose()
 
   toggle: -> if editor = atom.workspace.getActiveTextEditor()
     uri = "leisure://editor/#{editor.id}"
     previewPane = atom.workspace.paneForURI(uri)
-    if previewPane
-      previewPane.destroyItem(previewPane.itemForURI(uri))
+    if previewPane then previewPane.destroyItem(previewPane.itemForURI(uri))
     else
+      if !editor.LeisureTools then @subscriptions.add new OrgEditor editor
       previousActivePane = atom.workspace.getActivePane()
       atom.workspace.open(uri, split: 'right', searchAllPanes: true).done (leisureView) ->
         if leisureView instanceof LeisureView

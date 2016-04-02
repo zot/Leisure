@@ -1,0 +1,63 @@
+@olMin: @syntax-color-modified;
+@olMax: contrast(@olMin);
+@ol1: mix(@olMax, @olMin, percentage(0/7));
+@ol2: mix(@olMax, @olMin, percentage(1/7));
+@ol3: mix(@olMax, @olMin, percentage(2/7));
+@ol4: mix(@olMax, @olMin, percentage(3/7));
+@ol5: mix(@olMax, @olMin, percentage(4/7));
+@ol6: mix(@olMax, @olMin, percentage(5/7));
+@ol7: mix(@olMax, @olMin, percentage(6/7));
+@ol8: mix(@olMax, @olMin, percentage(7/7));
+
+.source.org {
+  .code-content {
+    display: block;
+  }
+  .todo, .tag {
+    font-style: italic;
+  }
+  .headline {
+    font-weight: bold;
+  }
+  .ol1 {
+    color: @ol1;
+    background-color: contrast(@ol1);
+    // font-size: 130%;
+  }
+  .ol2 {
+    color: @ol2;
+    background-color: contrast(@ol2);
+  }
+  .ol3 {
+    color: @ol3;
+    background-color: contrast(@ol3);
+  }
+  .ol4 {
+    color: @ol4;
+    background-color: contrast(@ol4);
+  }
+  .ol5 {
+    color: @ol5;
+    background-color: contrast(@ol5);
+  }
+  .ol6 {
+    color: @ol6;
+    background-color: contrast(@ol6);
+  }
+  .ol7 {
+    color: @ol7;
+    background-color: contrast(@ol7);
+  }
+  .ol8 {
+    color: @ol8;
+    background-color: contrast(@ol8);
+  }
+  .code-block {
+    color: #000088;
+    background-color: #FFFFE0;
+  }
+  .code-content {
+    color: #FFFFE0;
+    background-color: #6f6f6f;
+  }
+}

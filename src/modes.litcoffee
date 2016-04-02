@@ -41,6 +41,7 @@
         escapeHtml
         html
         blockVars
+        isYamlResult
       } = Eval
       {
         LeisureEditCore
@@ -107,17 +108,17 @@
             @render opts, block, prefix, replace
         render: (opts, block, prefix, replace)->
           opts.trigger 'render', opts.editor, block
-          {source, error, results} = blockCodeItems this, block
+          {name, source, error, results} = blockCodeItems this, block
           attrs = "id='#{prefix}#{block._id}' data-block='#{block.type}'"
           if block.type == 'headline' then attrs += " data-headline='#{block.level}'"
-          text = ''
           #if !results && !error then text += "#{escapeHtml block.text}"
-          if !results && !error then text += @renderMainBlock block
+          if !results && !error then text = @renderMainBlock block
           else
-            if !error then text += @renderMainText block.text.substring(0, results?.offset ? block.text.length)
+            text = if name then @renderMainText block.text.substring 0, source?.offset else ''
+            if !error then text += @renderMainText block.text.substring(source.offset, results?.offset ? block.text.length)
             else
               pos = source.offset + source.contentPos + Number(error.info.match(/([^,]*),/)[1]) - 1
-              text += escapeHtml(block.text.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, results?.offset ? block.text.length))
+              text = escapeHtml(block.text.substring(name?.offset ? 0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + escapeHtml(block.text.substring(pos, results?.offset ? block.text.length))
             if results? then text += "#{escapeHtml results?.text ? ''}#{escapeHtml block.text.substring(results.offset + results.text.length)}"
           result = "<span #{attrs}>#{text}</span>"
           maybeReplaceHtml block, prefix, result, replace
@@ -176,7 +177,6 @@
 
       Handlebars.registerHelper 'renderHtml', (html)->
         [vars, ids] = blockVars UI.context?.opts?.data, this.block?.codeAttributes?.var
-        varSetting = this.block?.codeAttributes?.var
         data = UI.context?.opts?.data
         if ids.length > 0 && (id = UI.context?.simpleViewId ? this.id) && (opts = UI.context?.opts)
           pushPendingInitialzation =>
@@ -186,10 +186,6 @@
               for id in ids
                 blocks += " #{id}"
               node.attr 'data-observe', blocks
-              if varSetting && !_.isEmpty(varSetting)
-                for v in varSetting
-                  if id = data.namedBlocks[v]
-                    blocks += " #{id}"
             if controllerName = @block.codeAttributes.controller
               if !(controller = singleControllers[controllerName])
                 if block = opts.data.getBlockNamed controllerName
@@ -532,7 +528,7 @@
               m[KW_BOILERPLATE]
             # this argument object to renderView is total overkill
             UI.context.currentView = targets = replacementTargets block, prefix, replace
-            sourceData = 
+            sourceData =
               id: prefix + block._id
               codeItems: items
               language: block.language
@@ -548,7 +544,7 @@
               inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
               results: if !results then ''
               else if hideResults then "<span class='hidden'>#{escapeHtml results.text}</span>"
-              else resultsArea opts, results.text
+              else resultsArea opts, results.text, block
               beforeResults: block.text.substring 0, results?.offset ? source.end()
             sourceData.text = @renderCodeOrg opts, sourceData
             @renderView key, lang, block.next, sourceData, targets
@@ -576,7 +572,7 @@
                 text += fancyHtml block.text.substring pos, org.offset
               text += (@renderView key, block.language, null, context)[0]
               [org.end(), text]
-            else if name == 'results' then [org.end(), resultsArea opts, org.allText()]
+            else if name == 'results' then [org.end(), resultsArea opts, org.allText(), block]
             else [pos, text]
           else [pos, text]
         renderOrgChunk: (opts, org)->
@@ -621,7 +617,7 @@
             data = UI.context.opts.data
             error = if !obj = data.getBlockNamed objectName
               "No object named #{objectName}"
-            else if !obj = (block = data.getBlockNamed objectName)?.yaml
+            else if !obj = data.getYaml block = data.getBlockNamed objectName
               "Object #{objectName} isn't yaml"
             else if !(type = (typeName || obj?.type))
               "No type field in object #{objectName}"
@@ -813,8 +809,11 @@
 
       goodText = (text)-> workSpan().text(text).html() ? ''
 
-      resultsArea = (opts, results)->
-        if !(firstResult = results.indexOf('\n') + 1) || results[firstResult] == ':'
+      resultsArea = (opts, results, block)->
+        firstResult = results.indexOf('\n') + 1
+        if false && isYamlResult block
+          "<span class='hidden'>#{results.substring 0, firstResult}</span><span class='yaml results-verbatim' data-noncontent>#{results.substring(firstResult).replace /^(: )(.*\n)/gm, (m, g1, g2)-> goodHtml(g2)}</span>"
+        else if !firstResult || results[firstResult] == ':'
           "<span class='hidden'>#{goodText results}</span><span class='results-verbatim' data-noncontent>#{results.substring(firstResult).replace /^(: )(.*\n)/gm, (m, g1, g2)-> goodHtml(g2)}</span>"
         else "<span class='hidden'>#{results.substring 0, firstResult}</span>#{fancyMode.renderOrg opts, cleanOrg results.substring(firstResult)}"
 

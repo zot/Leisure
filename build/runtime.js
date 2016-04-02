@@ -31,7 +31,7 @@ misrepresented as being the original software.
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bluebird.min', './export'], function(Base, Ast, _, Immutable, Yaml, Bluebird, Exports) {
-    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Monad3, Nil, Promise, Runtime, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, checkParital, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeHamt, makeMonad, makeSyncMonad, mergeExports, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
+    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Monad3, Nil, Promise, Runtime, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, checkPartial, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeHamt, makeMonad, makeSyncMonad, mergeExports, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
     mergeExports = Exports.mergeExports;
     ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
     define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall, leisureFunctionNamed = Ast.leisureFunctionNamed;
@@ -42,7 +42,7 @@ misrepresented as being the original software.
     lz = lazy;
     lc = Leisure_call;
     gensymCounter = 0;
-    checkParital = function(func, args) {
+    checkPartial = function(func, args) {
       if (typeof func === 'string') {
         func = leisureFunctionNamed(func);
       }
@@ -135,13 +135,13 @@ misrepresented as being the original software.
     (function() {
       'use strict';
       define('eq', function(a, b) {
-        return checkParital(L_eq, arguments) || booleanFor(rz(a) === rz(b));
+        return checkPartial(L_eq, arguments) || booleanFor(rz(a) === rz(b));
       });
       define('==', function(a, b) {
-        return checkParital(L_$p$p, arguments) || booleanFor(rz(a) === rz(b));
+        return checkPartial(L_$p$p, arguments) || booleanFor(rz(a) === rz(b));
       });
       define('!=', function(a, b) {
-        return checkParital(L_$k$p, arguments) || booleanFor(rz(a) !== rz(b));
+        return checkPartial(L_$k$p, arguments) || booleanFor(rz(a) !== rz(b));
       });
       define('hasType', function(data, func) {
         return checkPartial(L_hasType, arguments) || (typeof rz(func) === 'string' ? booleanFor(getType(rz(data)) === rz(func)) : booleanFor(getType(rz(data)) === getDataType(rz(func))));
@@ -193,10 +193,10 @@ misrepresented as being the original software.
       });
     })();
     define('+', function(x, y) {
-      return checkParital(L_$o, arguments) || rz(x) + rz(y);
+      return checkPartial(L_$o, arguments) || rz(x) + rz(y);
     });
     define('-', function(x, y) {
-      return checkParital(L_$_, arguments) || rz(x) - rz(y);
+      return checkPartial(L_$_, arguments) || rz(x) - rz(y);
     });
     define('*', function(x, y) {
       if (isPartial(arguments)) {
