@@ -1241,7 +1241,9 @@
       slideValue: slideValue,
       mayHideValueSlider: mayHideValueSlider,
       setSliding: setSliding,
-      cleanOrg: cleanOrg
+      cleanOrg: cleanOrg,
+      showsCode: showsCode,
+      showsResults: showsResults
     });
     return {
       plainMode: plainMode,

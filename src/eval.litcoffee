@@ -283,9 +283,10 @@ Evaulation support for Leisure
               result += presentHtml str
               if result[result.length - 1] != '\n' then result += '\n'
               if !sync then env.data.replaceResult change._id, result
-          blockSet = _.fromPairs([name, 'true'] for name in blockNames)
-          vars = ([k, v] for k, v of vars when !blockSet[k])
-          paramNames = (blockNames.concat (v[0] for v in vars)).join ', '
+          varsForBlocks = _.fromPairs ([v, k] for k, v of vars)
+          blockNames = _.fromPairs ([block, varsForBlocks[block]] for block in blockNames)
+          vars = ([k, v] for k, v of vars when !blockNames[v])
+          paramNames = (v for k, v of blockNames).concat(v[0] for v in vars).join ', '
           varValues = (v[1] for v in vars)
           progText = jsGatherResults env, CS.compile(text, bare: true), true
           progText = """
@@ -306,7 +307,7 @@ Evaulation support for Leisure
               };
             })
           """
-          func = jsBaseEval(env, progText)(env, blockId, blockNames, varValues)
+          func = jsBaseEval(env, progText)(env, blockId, (k for k, v of blockNames), varValues)
           cont ->
             sync = true
             try
@@ -361,11 +362,11 @@ Evaulation support for Leisure
             if value[0] in "'\"0123456789" then value = JSON.parse value
             else if bl = data.getBlockNamed value
               blockIds[bl._id] = true
-              blockNames[value] = true
+              blockNames[name] = value
               value = data.getYaml bl
             else value = value.trim()
             vars[name] = value
-        [vars, _.keys(blockIds), _.keys(blockNames)]
+        [vars, _.keys(blockIds), blockNames]
 
       escaped =
         '\b': "\\b"

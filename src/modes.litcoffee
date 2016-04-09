@@ -537,12 +537,12 @@
               m[KW_BOILERPLATE]
             # this argument object to renderView is total overkill
             UI.context.currentView = targets = replacementTargets block, prefix, replace
-            sourceData =
+            sourceData = {
               id: prefix + block._id
               codeItems: items
               language: block.language
-              hideResults: hideResults
-              block: block
+              hideResults
+              block
               header: block.text.substring 0, block.codePrelen
               source: blockSource block
               footer: block.text.substring block.text.length - block.codePostlen, source.end()
@@ -555,6 +555,7 @@
               else if hideResults then "<span class='hidden'>#{escapeHtml results.text}</span>"
               else resultsArea opts, results.text, block
               beforeResults: block.text.substring 0, results?.offset ? source.end()
+            }
             sourceData.text = @renderCodeOrg opts, sourceData
             @renderView key, lang, block.next, sourceData, targets
           else plainMode.render opts, block, prefix, replace
@@ -885,6 +886,8 @@ Exports
         mayHideValueSlider
         setSliding
         cleanOrg
+        showsCode
+        showsResults
       }
 
       {

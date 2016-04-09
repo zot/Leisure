@@ -1,4 +1,4 @@
-@olMin: @syntax-color-modified;
+@olMin:@syntax-color-modified;
 @olMax: contrast(@olMin);
 @ol1: mix(@olMax, @olMin, percentage(0/7));
 @ol2: mix(@olMax, @olMin, percentage(1/7));
@@ -21,43 +21,51 @@
   }
   .ol1 {
     color: @ol1;
-    background-color: contrast(@ol1);
+    background-color: fade(contrast(@ol1), 0.6);
     // font-size: 130%;
   }
   .ol2 {
     color: @ol2;
-    background-color: contrast(@ol2);
+    background-color: fade(contrast(@ol2), 0.6);
   }
   .ol3 {
     color: @ol3;
-    background-color: contrast(@ol3);
+    background-color: fade(contrast(@ol3), 0.6);
   }
   .ol4 {
     color: @ol4;
-    background-color: contrast(@ol4);
+    background-color: fade(contrast(@ol4), 0.6);
   }
   .ol5 {
     color: @ol5;
-    background-color: contrast(@ol5);
+    background-color: fade(contrast(@ol5), 0.6);
   }
   .ol6 {
     color: @ol6;
-    background-color: contrast(@ol6);
+    background-color: fade(contrast(@ol6), 0.6);
   }
   .ol7 {
     color: @ol7;
-    background-color: contrast(@ol7);
+    background-color: fade(contrast(@ol7), 0.6);
   }
   .ol8 {
     color: @ol8;
-    background-color: contrast(@ol8);
+    background-color: fade(contrast(@ol8), 0.6);
   }
   .code-block {
     color: #000088;
-    background-color: #FFFFE0;
+    background-color: rgba(255, 255, 200, 0.6);
   }
   .code-content {
-    color: #FFFFE0;
-    background-color: #6f6f6f;
+    color: contrast(rgba(200, 200, 200, 0.6));
+    background-color: rgba(220, 220, 220, 0.6);
   }
+  // .selection {
+  //   background: #DDD;
+  // }
+  // atom-text-editor::shadow {
+  //   .selection .region {
+  //     background-color: yellow;
+  //   }
+  // }
 }

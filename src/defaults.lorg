@@ -387,11 +387,13 @@ render this
 class='hidden'>{{footer}}</span>{{#if
 inter}}<div>{{inter}}</div>{{/if}}{{#if
 results}}{{#if hideResults}}{{{results}}}{{else}}<div
-class='code-results' data-org-src>{{{results}}}</div>{{/if}}{{/if}}</span>
+class='code-results' data-org-src>{{{results}}}</div>{{/if}}{{/if}}{{> codeMenuButton}}</span>
 #+END_SRC
 
 #+BEGIN_SRC cs :control leisure-code
-@initializeView = (view)-> Leisure.createValueSliders()
+@initializeView = (view)->
+  Leisure.createValueSliders()
+  Leisure.initCodeMenu view
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code-boiler
@@ -421,11 +423,14 @@ data-lang='{{language}}'><span class='hidden'>{{block.text}}</span><span data-no
 id='{{id}}'
 data-block='code'
 contenteditable='false'
-data-lang='{{language}}'><span class='hidden'>{{beforeResults}}</span>{{{results}}}</span>
+class='code-results'
+data-org-src
+data-lang='{{language}}'><span class='hidden'>{{beforeResults}}</span>{{{results}}}{{> codeMenuButton}}</span>
 #+END_SRC
 
 #+BEGIN_SRC cs :control leisure-code/results-only
 @initializeView = (v)->
+  Leisure.initCodeMenu v
   for img in v.find('img')
     Leisure.UI.refreshImage img
 #+END_SRC
@@ -526,6 +531,9 @@ data-org-type='results'
 }
 .code-doc {
   position: relative;
+}
+[data-edit-mode='fancy'] [data-view="leisure-code/results-only"] [data-org-src].code-results {
+  display: inline-block;
 }
 [data-view="leisure-code-src-line"] {
   order: 2;
@@ -660,5 +668,169 @@ span[data-block='code'].fancy {
   /*background: white;*/
   color: black;
   overflow: auto;
+}
+#+END_SRC
+* Code buttons
+#+BEGIN_SRC coffee :results def
+Handlebars.registerPartial 'codeMenuButton', """
+<div name='codeMenuButton' data-widget-holder data-noncontent><button data-widget-button><div data-widget-border></div></button></div>
+"""
+codeMenuString = """
+  <div id='codeMenu' data-noncontent>
+    <ul>
+      <li class='hide code' name='toggleShowCode'><a href='javascript:void(0)'><span>Show code</span></a>
+      <li class='show code' name='toggleShowCode'><a href='javascript:void(0)'><span>Hide code</span></a>
+      <li class='hide results' name='toggleShowResults'><a href='javascript:void(0)'><span>Show results</span></a>
+      <li class='show results' name='toggleShowResults'><a href='javascript:void(0)'><span>Hide results</span></a>
+      <li class='not dynamic' name='toggleDynamic'><a href='javascript:void(0)'><span>Make dynamic</span></a>
+      <li class='is dynamic' name='toggleDynamic'><a href='javascript:void(0)'><span>Make static</span></a>
+    </ul>
+  </div>
+"""
+menu = $('#codeMenu')
+menu.remove()
+$(document.body).append codeMenuString
+menu = $('#codeMenu')
+menu.find('ul').menu()
+menu.show()
+hideMenu = ->
+  menu.removeClass 'show'
+  menu.data lounge: null
+menu.data
+  show: (opts, blockId)->
+    menu.data {opts, block: opts.data.parsedCodeBlock blockId}
+    menu.addClass 'show'
+  hide: hideMenu
+menuEvent = (func)-> (e)-> func e, menu.data('opts'), menu.data 'block'
+menu.on 'mouseleave', hideMenu
+menu.find('.code').on 'click', menuEvent (e, opts, block)->
+  if $(e.currentTarget).is('.hide')
+    console.log block.block._id,'show code'
+    block.setExports true, block.exportsResults()
+  else
+    console.log block.block._id, 'hide code'
+    block.setExports false, block.exportsResults()
+  block.save()
+  hideMenu()
+menu.find('.results').on 'click', menuEvent (e, opts, block)->
+  if $(e.currentTarget).is('.hide')
+    console.log block.block._id, 'show results'
+    block.setExports block.exportsCode(), true
+  else
+    console.log block.block._id, 'hide results'
+    block.setExports block.exportsCode(), false
+  block.save()
+  hideMenu()
+menu.find('.dynamic').on 'click', menuEvent (e, opts, block)->
+  if $(e.currentTarget).is('.is')
+    console.log block.block._id, 'make static'
+    block.setDynamic false
+  else
+    console.log block.block._id, 'make dynamic'
+    block.setDynamic true
+  block.save()
+  hideMenu()
+Leisure.initCodeMenu = (view)->
+  opts = Leisure.findEditor(view).options
+  blockId = opts.idForNode(view.find '[data-block]')
+  $(view).find('[name=codeMenuButton] [data-widget-button]').on 'click', (e)->
+    console.log "CLICK!"
+    menu = $('#codeMenu')
+    block = opts.data.parsedCodeBlock blockId
+    if !block.exportsCode() then menu.addClass 'hidingCode'
+    else menu.removeClass 'hidingCode'
+    if !block.exportsResults() then menu.addClass 'hidingResults'
+    else menu.removeClass 'hidingResults'
+    if block.isDynamic() then menu.addClass 'dynamic'
+    else menu.removeClass 'dynamic'
+    button = $(view).find('[name=codeMenuButton]')
+    offset = button.offset()
+    menu[0].style.top = offset.top
+    menu[0].style.left = offset.left
+    setTimeout (-> menu.data('show')(opts, blockId)), 1
+#+END_SRC
+
+#+BEGIN_SRC css
+#codeMenu {
+  display: none !important;
+}
+#codeMenu.show {
+  display: inline-block !important;
+  position: absolute;
+}
+#codeMenu.hidingCode .hide.code,
+#codeMenu.hidingResults .hide.results,
+#codeMenu.dynamic .is.dynamic {
+  display: initial;
+}
+#codeMenu.hidingCode .show.code,
+#codeMenu .hide.code,
+#codeMenu.hidingResults .show.results,
+#codeMenu .hide.results,
+#codeMenu.dynamic .not.dynamic,
+#codeMenu .is.dynamic {
+  display: none;
+}
+@keyframes border-pulse {
+  0% {
+    border-color: #888;
+  }
+  50% {
+    border-color: black;
+  }
+  100% {
+    border-color: #888;
+  }
+}
+[data-widget-holder], [data-widget-button], [data-widget-border] {
+  display: inline-block;
+  position: absolute;
+}
+[data-widget-holder] {
+  width: 1em;
+  height: 1em;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+[data-widget-button] {
+  -webkit-appearance: none;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 200%;
+  background: rgba(255, 0, 0, 0.3);
+  transform-origin: bottom left;
+  transform: rotate(-45deg) translate(0, 2px);
+  border-bottom: solid rgb(60, 60, 60) 2px;
+  border-right: none;
+  border-left: none;
+  border-top: none;
+  overflow: hidden;
+  padding: inherit;
+  font-size: inherit;
+  box-sizing: initial;
+}
+[data-widget-button]:hover {
+  transform: none;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  border: solid rgb(60, 60, 60) 2px;
+  animation: border-pulse 2s linear infinite;
+  background: rgba(255, 0, 0, 0.3);
+}
+[data-widget-border] {
+  bottom: 0;
+  left: 0;
+  border: solid rgb(60, 60, 60) 2px;
+  border-bottom: none;
+  border-right: none;
+  width: calc(1em - 2px);
+  height: calc(1em - 2px);
+  transform: rotate(45deg);
+  transform-origin: bottom left;
+}
+[data-widget-button]:hover [data-widget-border] {
+  display: none;
 }
 #+END_SRC

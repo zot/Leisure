@@ -10,6 +10,7 @@
         UnknownDeclaration
         Results
         parseOrgMode
+        Fragment
       } = Org
 
       {
@@ -18,6 +19,93 @@
       } = Yaml
 
       {_: _L} = Lazy
+
+      class ParsedCodeBlock
+        constructor: (block)-> if typeof block == 'string' then @setBlockText block else @init block
+        clone: -> new ParsedCodeBlock @block
+        getOrg: -> blockOrg @block
+        toString: -> "Parsed:\n  #{@block.text.replace(/\n/g, '\n  ')}"
+        init: (@block)->
+          org = blockOrg @block
+          if org instanceof Fragment || org instanceof Headline then org = org.children[0]
+          @items = getCodeItems org
+        setBlockText: (str)->
+          if (bl = orgDoc parseOrgMode str.replace /\r\n/g, '\n').length != 1 || bl[0].text != str
+            throw new Error "Bad code block: '#{str}'"
+          bl[0]._id = @block?._id
+          @init bl[0]
+        spliceItem: (itemName, str)->
+          if str && _.last(str) != '\n' then str += '\n'
+          item = @items[itemName]
+          @setBlockText if item then @block.text.substring(0, item.offset) + str + @block.text.substring(item.offset + item.text.length)
+          else @block.text + "#+#{itemName.toUpperCase()}:\n#{str}"
+        setCodeInfo: (info)->
+          {text} = @block
+          {source} = @items
+          infoStart = source.offset + source.infoPos
+          @setBlockText text.substring(0, infoStart) + info + text.substring infoStart + source.info.length
+        setCodeAttribute: (name, value)->
+          info = @items.source.info ? ''
+          @setCodeInfo if @block.codeAttributes?[name.toLowerCase()]?
+            m = info.match new RegExp "^((|.*\\S)(\\s*))(:#{escapeRegexp name})((\\s+[^:]*)?(?=:|$))", 'i'
+            prefix = m.index + m[1].length + m[4].length
+            suffix = info.substring prefix + m[5].length
+            if suffix then suffix = ' ' + suffix
+            if !value? then info.substring(0, m.index + m[2].length) + suffix
+            else info.substring(0, prefix) + ' ' + value + suffix
+          else if !value? then info
+          else info + " :#{name}" + (if value then ' ' + value else '')
+        setResults: (str)-> @spliceItem 'results', str
+        setError: (str)-> @spliceItem 'error', str
+        addResultType: (str)->
+          types = @getResultTypes()
+          if !(str in types)
+            results = @block.codeAttributes?.results
+            @setCodeAttribute 'results', if results then "#{results} #{str}" else str
+        removeResultType: (str)->
+          types = @getResultTypes()
+          if str.toLowerCase() in types
+            res = @block.codeAttributes?.results
+            values = res.toLowerCase().split /(\s+)/
+            start = values.indexOf str.toLowerCase()
+            end = start + 1
+            if start > 0 then start--
+            else if end < values.length then end++
+            prefix = 0
+            for i in [0...start]
+              prefix += values[i].length
+            len = 0
+            for i in [start...end]
+              len += values[i].length
+              values[i] = false
+            @setCodeAttribute 'results', if _.some values
+              res.substring(0, prefix) + res.substring(prefix + len)
+        setExports: (code, results)->
+          @setCodeAttribute 'exports', if !code || !results then (code && 'code') || (results && 'results') || 'none'
+        exportsCode: -> @getExports() in ['code', 'both']
+        exportsResults: ->  @getExports() in ['results', 'both']
+        getExports: -> @block.codeAttributes?.exports?.toLowerCase() || 'both'
+        getResultTypes: -> @block.codeAttributes?.results?.toLowerCase().split(' ') ? []
+        setDynamic: (state)->
+          if @isDynamic() != state
+            if state then @addResultType 'dynamic'
+            else @removeResultType 'dynamic'
+        isDynamic: -> 'dynamic' in @getResultTypes()
+
+      escapeRegexp = (str)-> str.replace /[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'
+
+      blockOrg = (block)->
+        text = if typeof block == 'string' then block else block.text
+        org = parseOrgMode text
+        org = if org.children.length == 1 then org.children[0]
+        else
+          frag = new Fragment org.offset, org.children
+          frag
+        if typeof block == 'object'
+          org.nodeId = block._id
+          org.shared = block.type
+        org.linkNodes()
+        org
 
       getCodeItems = (org)->
         if !getSourceNodeType org then {}
@@ -32,6 +120,7 @@
               else if type == 'name' then return result
               if result[type]? then return result
               result.last = result[type] = org
+              if type == 'name' && org.next.constructor == Meat && org.next.next instanceof Source then result.doc = org.next
               if type == 'results' then break
             else if org instanceof Drawer || org instanceof Keyword || org instanceof UnknownDeclaration then break
             org = org.next
@@ -179,6 +268,7 @@
               obj.yaml = safeLoad source.content
             catch err
               obj.yaml = null
+          else if isText source then obj.yaml = source.content
           [_L([obj]), last.next]
 
       createHtmlBlockDoc = (org)->
@@ -191,6 +281,8 @@
           [_L([obj]), org.next]
 
       isYaml = (org)-> org instanceof Source && org.info.match /^ *yaml\b/i
+
+      isText = (org)-> org instanceof Source && org.info.match /^ *(text|string)\b/i
 
       checkSingleNode = (text)->
         docs = {}
@@ -222,4 +314,6 @@
         crnl
         lineCodeBlockType
         blockSource
+        ParsedCodeBlock
+        blockOrg
       }

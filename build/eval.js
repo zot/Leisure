@@ -463,7 +463,7 @@
         })(this));
       };
       env.createObserver = function(blockId, blockNames, vars, text, cont) {
-        var blockSet, func, k, name, paramNames, progText, sync, v, varValues;
+        var block, func, k, paramNames, progText, sync, v, varValues, varsForBlocks;
         sync = false;
         if (isYamlResult(env.data.getBlock(blockId))) {
           env.write = (function(_this) {
@@ -490,12 +490,21 @@
             };
           })(this);
         }
-        blockSet = _.fromPairs((function() {
+        varsForBlocks = _.fromPairs((function() {
+          var results1;
+          results1 = [];
+          for (k in vars) {
+            v = vars[k];
+            results1.push([v, k]);
+          }
+          return results1;
+        })());
+        blockNames = _.fromPairs((function() {
           var i, len, results1;
           results1 = [];
           for (i = 0, len = blockNames.length; i < len; i++) {
-            name = blockNames[i];
-            results1.push([name, 'true']);
+            block = blockNames[i];
+            results1.push([block, varsForBlocks[block]]);
           }
           return results1;
         })());
@@ -504,13 +513,21 @@
           results1 = [];
           for (k in vars) {
             v = vars[k];
-            if (!blockSet[k]) {
+            if (!blockNames[v]) {
               results1.push([k, v]);
             }
           }
           return results1;
         })();
-        paramNames = (blockNames.concat((function() {
+        paramNames = ((function() {
+          var results1;
+          results1 = [];
+          for (k in blockNames) {
+            v = blockNames[k];
+            results1.push(v);
+          }
+          return results1;
+        })()).concat((function() {
           var i, len, results1;
           results1 = [];
           for (i = 0, len = vars.length; i < len; i++) {
@@ -518,7 +535,7 @@
             results1.push(v[0]);
           }
           return results1;
-        })())).join(', ');
+        })()).join(', ');
         varValues = (function() {
           var i, len, results1;
           results1 = [];
@@ -532,7 +549,15 @@
           bare: true
         }), true);
         progText = "(function(env, blockId, names, vars) {\n  return function() {\n    return setLounge(env, function() {\n      var blocks = _.map(names, function(n){var bl = env.data.getBlockNamed(n, true); return bl && env.data.getYaml(bl)});\n      if (_.every(blocks, function(b){return b != undefined;})) {\n        env.data.clearError(blockId);\n        var resultStr = '';\n        var result = (function(" + paramNames + ") {\n          " + progText + "\n        }).apply(null, blocks.concat(vars));\n        env.data.replaceResult(blockId, env.formatResult(env.data.getBlock(blockId), resultStr, result));\n        return result;\n      }\n    });\n  };\n})";
-        func = jsBaseEval(env, progText)(env, blockId, blockNames, varValues);
+        func = jsBaseEval(env, progText)(env, blockId, (function() {
+          var results1;
+          results1 = [];
+          for (k in blockNames) {
+            v = blockNames[k];
+            results1.push(k);
+          }
+          return results1;
+        })(), varValues);
         return cont(function() {
           var err, error;
           sync = true;
@@ -615,7 +640,7 @@
             value = JSON.parse(value);
           } else if (bl = data.getBlockNamed(value)) {
             blockIds[bl._id] = true;
-            blockNames[value] = true;
+            blockNames[name] = value;
             value = data.getYaml(bl);
           } else {
             value = value.trim();
@@ -623,7 +648,7 @@
           vars[name] = value;
         }
       }
-      return [vars, _.keys(blockIds), _.keys(blockNames)];
+      return [vars, _.keys(blockIds), blockNames];
     };
     escaped = {
       '\b': "\\b",

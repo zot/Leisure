@@ -1,3 +1,29 @@
+* use promises for lazy code in Leisure so we can use Chrome's async support
+* TODO don't use CSS inserted content for character sheets because it doesn't copy?
+* TODO View on a block's content
+** Edit a src block's content
+** Edit a headline's content
+** creates a local editor, like search does
+* TODO Restructure code creation
+** compiler for (optionally parameterized) code stores it in the block object on demand
+** observer creator that puts function in block that calls compiled code
+** :post blockname(*this*) sends current block as first var to blockname and uses results
+* TODO index observers that maintain a corresponding, separate index
+** :observeindex characters formatted-characters name :headline Formatted characters
+** observes the "characters" index and creates/destroys corresponding blocks in the "formatted-characters" index
+** outputs into the specified headline, or its own headline if none given
+** sends the new block as the value of the first variable
+* TODO Leisure hosting service, throttled with service levels
+** Account-based (anonymous for gists with very limited collaboration
+** Throttleg
+** Connection limit
+** Session limit (number of active sessions)
+** Document metadata for permissions
+** Backup
+* TODO Validate yaml blocks and show errors
+* TODO Leisure bar option to hide code block control widgets
+* TODO handle :exports none, just show the control widget
+* TODO code blocks for handlebar partials
 * TODO finish observers for JS, LispyScript, Leisure
 * TODO TiddlyWiki view style
 * TODO New output type, "view" that shows results as a view
