@@ -1,8 +1,8 @@
 * Data
 
 #+NAME: character-sheet
-#+BEGIN_SRC text :post character-formatter(*this*) :index players name :exports code
-name: Bill
+#+BEGIN_SRC text :post formatted-character-sheet(*this*) :flowlevel -1 :results dynamic :exports code
+name: Bill
 ruche: 11
 character: Golden Monkey
 currentRuche: 7
@@ -29,65 +29,6 @@ item: Ribbon of Access [truth]
 item: Audio Telescope
 ◇ Perception d10
 ✫ Ranged perception: range 3
-#+END_SRC
-
-#+BEGIN_HTML :var player=formatted-character-sheet
-<div class='characterSheetHolder'>
-  <div class='characterSheet'>
-    {{#each player.errors}}<div class='error bx'>{{this}}</div>{{/each}}
-    <div class='player bx'>{{player.name}} {{player.extraRuche}}</div>
-    <div class='characterName bx'>{{player.characters.[0].name}} {{player.cost}}</div>
-    {{#each player.characters}}
-      {{#unless @first}}<div class='character bx'>{{name}}{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}} ({{allocatedRuche}})</div>{{/unless}}
-      <div class='ruche bx'><div class='current-ruche'></div><div class='max-ruche'>{{allocatedRuche}}</div></div>
-      {{#if @first}}
-        <div class='health'><div class='stressLabel'> </div></div>
-        <div class='composure'><div class='stressLabel'> </div></div>
-      {{/if}}
-      {{#each consequences}}
-        <div class='consequence {{level}} bx'>☠{{#if number}} {{number}}{{/if}} {{level}} {{capitalize name}}</div>
-      {{/each}}
-      {{#each aspects}}
-        <div class='aspect bx'>❂
-          {{#if highConcept}}
-            [High Concept{{#if attribute}}/{{capitalize attribute}}{{/if}}]
-          {{else}}
-            {{#if trouble}}
-              [Trouble{{#if attribute}}/{{capitalize attribute}}{{/if}}]
-            {{else}}
-              {{#if attribute}}[{{capitalize attribute}}]{{/if}}
-            {{/if}}
-          {{/if}}
-          {{capitalize name}}
-        </div>
-      {{/each}}
-      {{#each traits}}
-        {{#if focus}}
-          <div class='focus trait bx'>◆ {{capitalize focus}} d{{value}}</div>
-        {{else}}
-          <div class='trait bx'>◇ {{capitalize name}} d{{value}}</div>
-        {{/if}}
-        {{#each abilities}}
-          <div class='ability bx'>✫ {{capitalize name}}{{#if attribute}} [{{capitalize attribute}}]{{/if}}:
-            {{#each effects}}
-              {{capitalize type}} {{value}}{{#unless @last}},{{/unless}}
-            {{/each}}
-          </div>
-        {{/each}}
-      {{/each}}
-    {{/each}}
-  </div>
-</div>
-#+END_HTML
-* code
-:properties:
-:hidden: true
-:end:
-#+NAME: formatted-character-sheet
-#+BEGIN_SRC coffee :var player=character-sheet :observe :results yaml :flowlevel -1
-do ->
-  {Vele} = this
-  Vele.parse player
 #+END_SRC
 #+RESULTS:
 : characters:
@@ -182,7 +123,63 @@ do ->
 :     type: item
 : cost: 51
 : extraRuche: '11'
-: name: Bill
+: name: "Bill\x13\x13\x13"
+
+#+BEGIN_HTML :var player=character-sheet
+<div class='characterSheetHolder'>
+  <div class='characterSheet'>
+    {{#each player.errors}}<div class='error bx'>{{this}}</div>{{/each}}
+    <div class='player bx'>{{player.name}} {{player.extraRuche}}</div>
+    <div class='characterName bx'>{{player.characters.[0].name}} {{player.cost}}</div>
+    {{#each player.characters}}
+      {{#unless @first}}<div class='character bx'>{{name}}{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}} ({{allocatedRuche}})</div>{{/unless}}
+      <div class='ruche bx'><div class='current-ruche'></div><div class='max-ruche'>{{allocatedRuche}}</div></div>
+      {{#if @first}}
+        <div class='health'><div class='stressLabel'> </div></div>
+        <div class='composure'><div class='stressLabel'> </div></div>
+      {{/if}}
+      {{#each consequences}}
+        <div class='consequence {{level}} bx'>☠{{#if number}} {{number}}{{/if}} {{level}} {{capitalize name}}</div>
+      {{/each}}
+      {{#each aspects}}
+        <div class='aspect bx'>❂
+          {{#if highConcept}}
+            [High Concept{{#if attribute}}/{{capitalize attribute}}{{/if}}]
+          {{else}}
+            {{#if trouble}}
+              [Trouble{{#if attribute}}/{{capitalize attribute}}{{/if}}]
+            {{else}}
+              {{#if attribute}}[{{capitalize attribute}}]{{/if}}
+            {{/if}}
+          {{/if}}
+          {{capitalize name}}
+        </div>
+      {{/each}}
+      {{#each traits}}
+        <div class='trait bx{{#if focus}}
+            focus'>◆ {{capitalize focus}}
+          {{else}}'>◇ {{capitalize name}}
+          {{/if}} d{{value}}{{#if stress}} {{stress}}{{/if}}</div>
+        {{#each abilities}}
+          <div class='ability bx'>✫ {{capitalize name}}{{#if attribute}} [{{capitalize attribute}}]{{/if}}:
+            {{#each effects}}
+              {{capitalize type}} {{value}}{{#unless @last}},{{/unless}}
+            {{/each}}
+          </div>
+        {{/each}}
+      {{/each}}
+    {{/each}}
+  </div>
+</div>
+#+END_HTML
+* code
+:properties:
+:hidden: true
+:end:
+#+NAME: formatted-character-sheet
+#+BEGIN_SRC coffee :var player
+@Vele.parse player
+#+END_SRC
 
 #+BEGIN_SRC coffee :results def
 if !@Vele
@@ -204,10 +201,10 @@ if !@Vele
   getLineKey = (line)->
     line = line.trim()
     if m = line.match basicLinePat
-      [ignore, key, value] = m
+      [..., key, value] = m
       {key, value: value.trim()}
     else if m = line.match specialLinePat
-      [ignore, char, value] = m
+      [..., char, value] = m
       if char.length == 1 && (i = specialLineKeys.chars.indexOf(char)) != -1 then key: specialLineKeys.keys[i], value: value.trim()
       else key: 'character', value: char.trim()
     else {}
@@ -300,7 +297,7 @@ if !@Vele
     currentRuche: (str)-> @curCharacter().currentRuche = Number str
     aspect: (str)->
       if str
-        [ignore, primary, secondary, name] = str.match aspectPat
+        [..., primary, secondary, name] = str.match aspectPat
         aspect = {name}
         if primary
           if type = cleanAspectType primary
@@ -325,7 +322,7 @@ if !@Vele
     trait: (str)-> @parseTrait 'name', str
     parseTrait: (tag, str)->
       if m = str.match traitPat
-        [ignore, name, value, stress] = m
+        [..., name, value, stress] = m
         obj = {value: Number value}
         obj[tag] = name
         if stress
@@ -338,64 +335,23 @@ if !@Vele
     ability: (str)->
       if !@curTrait() then @addError "Attempt to create ability without a trait"
       else if m = str.match abilityPat
-        [ignore, name, attribute, effectsStr] = m
+        [..., name, attribute, effectsStr] = m
         @curAbilities().push ability = {name, effects: []}
         if attribute
           if attr = cleanAttribute attribute
             ability.attribute = attr
             if !(attr in @curAttributes()) then @curAttributes().push attr
           else @addError "Couldn't parse attribute '#{attribute}'"
-        if @curAbilities().length > 1 then @curCharacter().allocatedRuche++
+        if @curAbilities().length > 1 then @curCharacter().allocatedRuche += 3
         for effect, i in effectsStr.split /\s*,\s*/
           if m = effect.match effectPat
             ability.effects.push type: m[1], value: Number m[2]
-            if ability.effects.length > 1 then @curCharacter().allocatedRuche++
+            if ability.effects.length > 1 then @curCharacter().allocatedRuche += 3
             @curCharacter().allocatedRuche += Number m[2]
           else @addError "Couldn't parse effect ##{i}"
       else @addError "Couldn't parse ability"
   @Vele =
     parse: (str)-> new PlayerParser().parse(str)
-#+END_SRC
-
-#+NAME: billX
-#+BEGIN_SRC yaml
-name: Bill
-extraRuche: 11
-characters:
-  - name: Golden Monkey
-    traits:
-      - focus: Scrahv Ninja (not martial arts)
-        value: 12
-        abilities:
-          - name: Scrahv Obscurement
-            effects:
-              - type: fiction
-                value: 2
-      - name: Toughness
-        value: 10
-      - name: Stony resilience
-        value: 12
-        stress: composure
-    aspects:
-      - name: Agent of the Order
-        attribute: truth
-        highConcept: true
-      - name: On loan from the hand
-        trouble: true
-      - name: Harvester of knowledge
-        attribute: order
-    consequences:
-      - name: Smacked
-        level: mild
-  - name: Mask of Disguise
-    attribute: truth
-    traits:
-      - focus: Seamless finish
-        abilities:
-          - name: Disguises
-            effects:
-              - type: create
-                value: 8
 #+END_SRC
 * Helpers
 :properties:
@@ -403,6 +359,13 @@ characters:
 :end:
 #+BEGIN_SRC coffee :results def
 Handlebars.registerHelper 'capitalize', (v)-> v[0].toUpperCase() + v[1..]
+$('''
+<a name="tc" target="_blank" href="http://www.teamcthulhu.com" class='tc-banner'>
+  <button name="team_cthulhu" title="x">
+    <span><img src="css/images/eldersign.png">TEAM CTHULHU</span>
+  </button>
+</a>
+''').appendTo(document.body).find('button').button()
 #+END_SRC
 * Styles
 :properties:
@@ -416,6 +379,20 @@ Handlebars.registerHelper 'capitalize', (v)-> v[0].toUpperCase() + v[1..]
   .characterSheet {
     top: 1em;
   }
+  [data-view=leisure-toolbar].collapse ~ .tc-banner {
+    display: none !important;
+  }
+}
+.tc-banner {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 100;
+  white-space: nowrap;
+}
+[data-view=leisure-toolbar].collapse ~ .tc-banner {
+  display: initial;
 }
 [data-view=leisure-toolbar] {
   z-index: 2;

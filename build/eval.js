@@ -4,7 +4,7 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg) {
-    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, basicFormat, blockVars, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
+    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, basicFormat, blockSource, blockVars, blocksObserved, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = null;
@@ -24,7 +24,7 @@
     Promise = Bluebird.Promise;
     genSource = Gen.genSource;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
-    getCodeItems = DocOrg.getCodeItems;
+    getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     defaultEnv.prompt = function(str, defaultValue, cont) {
       return cont(prompt(str, defaultValue));
     };
@@ -249,7 +249,8 @@
       return ref2 = value.toLowerCase(), indexOf.call(block.attributeWords[attr], ref2) >= 0;
     };
     isYamlResult = function(block) {
-      return hasCodeAttribute(block, 'results', 'yaml');
+      var ref;
+      return hasCodeAttribute(block, 'results', 'yaml') || ((ref = block.language) === 'text' || ref === 'string');
     };
     presentHtml = function(v) {
       var str;
@@ -296,6 +297,12 @@
       result = func();
       window.Lounge = oldLounge;
       return result;
+    };
+    textEnv = function(env) {
+      env.executeText = function(text) {
+        return text;
+      };
+      return env;
     };
     jsEnv = function(env) {
       env.executeText = function(text, props, cont) {
@@ -462,113 +469,40 @@
           };
         })(this));
       };
-      env.createObserver = function(blockId, blockNames, vars, text, cont) {
-        var block, func, k, paramNames, progText, sync, v, varValues, varsForBlocks;
-        sync = false;
-        if (isYamlResult(env.data.getBlock(blockId))) {
-          env.write = (function(_this) {
-            return function(str) {
-              result += str;
-              if (result[result.length - 1] !== '\n') {
-                result += '\n';
-              }
-              if (!sync) {
-                return env.data.replaceResult(change._id, result);
-              }
-            };
-          })(this);
-        } else {
-          env.write = (function(_this) {
-            return function(str) {
-              result += presentHtml(str);
-              if (result[result.length - 1] !== '\n') {
-                result += '\n';
-              }
-              if (!sync) {
-                return env.data.replaceResult(change._id, result);
-              }
-            };
-          })(this);
+      env.compileBlock = function(block) {
+        var blockName, blocks, constName, consts, i, name, ref, ref1, src, value, varNames, vars;
+        block = env.data.getBlock(block);
+        ref = blockVars(env.data, block.codeAttributes["var"]), i = ref.length - 2, vars = ref[i++], varNames = ref[i++];
+        src = blockSource(block);
+        blocks = {};
+        consts = {};
+        for (name in vars) {
+          value = vars[name];
+          if (Number(value) === value || (ref1 = value[0], indexOf.call("'\"", ref1) >= 0)) {
+            consts[name] = value;
+          } else {
+            blocks[name] = value;
+          }
         }
-        varsForBlocks = _.fromPairs((function() {
+        return jsBaseEval(env, "(function(__data) {\n  return function (__cont, " + (varNames.join(', ')) + ") {\n    " + (((function() {
           var results1;
           results1 = [];
-          for (k in vars) {
-            v = vars[k];
-            results1.push([v, k]);
+          for (constName in consts) {
+            value = consts[constName];
+            results1.push("if (" + constName + " == undefined) " + constName + " = " + value + ";");
           }
           return results1;
-        })());
-        blockNames = _.fromPairs((function() {
-          var i, len, results1;
-          results1 = [];
-          for (i = 0, len = blockNames.length; i < len; i++) {
-            block = blockNames[i];
-            results1.push([block, varsForBlocks[block]]);
-          }
-          return results1;
-        })());
-        vars = (function() {
+        })()).join('\n  ')) + "\n    " + (((function() {
           var results1;
           results1 = [];
-          for (k in vars) {
-            v = vars[k];
-            if (!blockNames[v]) {
-              results1.push([k, v]);
-            }
+          for (blockName in blocks) {
+            value = blocks[blockName];
+            results1.push("player = player || __data.getYaml(__data.getBlockNamed('" + value + "'));");
           }
           return results1;
-        })();
-        paramNames = ((function() {
-          var results1;
-          results1 = [];
-          for (k in blockNames) {
-            v = blockNames[k];
-            results1.push(v);
-          }
-          return results1;
-        })()).concat((function() {
-          var i, len, results1;
-          results1 = [];
-          for (i = 0, len = vars.length; i < len; i++) {
-            v = vars[i];
-            results1.push(v[0]);
-          }
-          return results1;
-        })()).join(', ');
-        varValues = (function() {
-          var i, len, results1;
-          results1 = [];
-          for (i = 0, len = vars.length; i < len; i++) {
-            v = vars[i];
-            results1.push(v[1]);
-          }
-          return results1;
-        })();
-        progText = jsGatherResults(env, CS.compile(text, {
+        })()).join('\n  ')) + "\n    var res = (function() {" + (jsGatherResults(env, CS.compile(src, {
           bare: true
-        }), true);
-        progText = "(function(env, blockId, names, vars) {\n  return function() {\n    return setLounge(env, function() {\n      var blocks = _.map(names, function(n){var bl = env.data.getBlockNamed(n, true); return bl && env.data.getYaml(bl)});\n      if (_.every(blocks, function(b){return b != undefined;})) {\n        env.data.clearError(blockId);\n        var resultStr = '';\n        var result = (function(" + paramNames + ") {\n          " + progText + "\n        }).apply(null, blocks.concat(vars));\n        env.data.replaceResult(blockId, env.formatResult(env.data.getBlock(blockId), resultStr, result));\n        return result;\n      }\n    });\n  };\n})";
-        func = jsBaseEval(env, progText)(env, blockId, (function() {
-          var results1;
-          results1 = [];
-          for (k in blockNames) {
-            v = blockNames[k];
-            results1.push(k);
-          }
-          return results1;
-        })(), varValues);
-        return cont(function() {
-          var err, error;
-          sync = true;
-          try {
-            func();
-          } catch (error) {
-            err = error;
-            env.data.replaceResult(blockId, ": " + (err.stack.replace(/\n/g, '\n: ')));
-          }
-          return sync = false;
-        });
+        }), true)) + "})();\n    return __cont ? __cont(res) : res;\n  };\n})")(env.data);
       };
       return env;
     };
@@ -612,7 +546,9 @@
       lisp: lsEnv,
       cs: csEnv,
       coffee: csEnv,
-      coffeescript: csEnv
+      coffeescript: csEnv,
+      text: textEnv,
+      string: textEnv
     };
     localEval = (function(html) {
       return function(x) {
@@ -622,33 +558,51 @@
     languageEnvMaker = function(name) {
       return knownLanguages[name != null ? name.toLowerCase() : void 0];
     };
+    blocksObserved = function(block) {
+      var i, len, ob, ref, results1;
+      ref = block.observing;
+      results1 = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        ob = ref[i];
+        if (ob.match(/^block\./)) {
+          results1.push(ob.replace(/^block\./, ''));
+        }
+      }
+      return results1;
+    };
     blockVars = function(data, varDefs) {
-      var bl, blockIds, blockNames, def, i, ignore, len, name, ref, ref1, ref2, v, value, vars;
+      var bl, blockIds, blockNames, def, name, v, value, varNames, vars;
       blockIds = {};
       blockNames = {};
       vars = {};
-      if (varDefs) {
-        ref = (_.isArray(varDefs) ? varDefs : [varDefs]);
-        for (i = 0, len = ref.length; i < len; i++) {
-          v = ref[i];
-          ref1 = v.match(/^([^=]*)(=(.*))?$/), ignore = ref1[0], name = ref1[1], def = ref1[2], value = ref1[3];
-          name = name.trim();
-          if (!def) {
-            value = name;
+      varNames = (function() {
+        var i, j, len, ref, ref1, ref2, results1;
+        if (varDefs) {
+          ref = (_.isArray(varDefs) ? varDefs : [varDefs]);
+          results1 = [];
+          for (i = 0, len = ref.length; i < len; i++) {
+            v = ref[i];
+            ref1 = v.match(/^([^=]*)(=(.*))?$/), j = ref1.length - 3, name = ref1[j++], def = ref1[j++], value = ref1[j++];
+            name = name.trim();
+            if (!def) {
+              value = name;
+            }
+            if (ref2 = value[0], indexOf.call("'\"0123456789", ref2) >= 0) {
+              value = JSON.parse(value);
+            } else if (bl = data.getBlockNamed(value)) {
+              blockIds[bl._id] = true;
+              blockNames[name] = value;
+              value = data.getYaml(bl);
+            } else {
+              value = value.trim();
+            }
+            vars[name] = value;
+            results1.push(name);
           }
-          if (ref2 = value[0], indexOf.call("'\"0123456789", ref2) >= 0) {
-            value = JSON.parse(value);
-          } else if (bl = data.getBlockNamed(value)) {
-            blockIds[bl._id] = true;
-            blockNames[name] = value;
-            value = data.getYaml(bl);
-          } else {
-            value = value.trim();
-          }
-          vars[name] = value;
+          return results1;
         }
-      }
-      return [vars, _.keys(blockIds), blockNames];
+      })();
+      return [vars, _.keys(blockIds), blockNames, varNames != null ? varNames : []];
     };
     escaped = {
       '\b': "\\b",
@@ -692,6 +646,7 @@
       Html: Html,
       escapeHtml: escapeHtml,
       blockVars: blockVars,
+      blocksObserved: blocksObserved,
       knownLanguages: knownLanguages,
       presentHtml: presentHtml,
       escapeString: escapeString,

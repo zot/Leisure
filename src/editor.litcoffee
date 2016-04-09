@@ -597,7 +597,7 @@ Events:
               else if (modifyingKey c, e) && !isAlphabetic e
                 @char = getEventChar e
                 @keyPress e
-          @node.on 'keypress', (e)=> @keyPress e
+          @node.on 'keypress', (e)=> if !e.altKey && !e.metaKey && !e.ctrlKey then @keyPress e
         enter: (e)->
           e.preventDefault()
           @replace e, @getSelectedBlockRange(), '\n', false

@@ -263,11 +263,11 @@
           if name then obj.codeName = name.info.trim()
           if obj.codeAttributes?.local? then obj.local = true
           if l = source.lead() then obj.language = l.trim()
-          if isYaml source
-            try
-              obj.yaml = safeLoad source.content
-            catch err
-              obj.yaml = null
+          if isYamlResult(obj) || isYaml source
+            if yamlSrc = (if isYaml source then source.content else results?.content().replace /^: /g, '')
+              try
+                obj.yaml = safeLoad yamlSrc
+              catch err
           else if isText source then obj.yaml = source.content
           [_L([obj]), last.next]
 
@@ -281,6 +281,8 @@
           [_L([obj]), org.next]
 
       isYaml = (org)-> org instanceof Source && org.info.match /^ *yaml\b/i
+
+      isYamlResult = (block)-> block.codeAttributes?.results?.match(/\byaml\b/) || block.codeAttributes?.post
 
       isText = (org)-> org instanceof Source && org.info.match /^ *(text|string)\b/i
 
@@ -311,6 +313,7 @@
         docRoot
         linkDocs
         isYaml
+        isText
         crnl
         lineCodeBlockType
         blockSource

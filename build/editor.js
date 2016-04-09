@@ -766,7 +766,9 @@
         })(this));
         return this.node.on('keypress', (function(_this) {
           return function(e) {
-            return _this.keyPress(e);
+            if (!e.altKey && !e.metaKey && !e.ctrlKey) {
+              return _this.keyPress(e);
+            }
           };
         })(this));
       };
