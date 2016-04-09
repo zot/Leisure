@@ -1,0 +1,32 @@
+#+TITLE: Data views
+
+
+
+* TODO EDITING MESSED UP
+in the process of changing all editing to use replaceText instead of block-oriented approach
+* :exports shows code, results, both, or none in fancy mode
+* :results view, view=/NAME, view=TYPE/NAME
+* result types
+- drawer: marked up as org but bounded in drawer
+- raw: marked up as org
+- file: produces a file link
+- html: puts results in an html block
+- code: puts results in a src block of same type
+* testinQQgggghqzqqqqqoq
+#+BEGIN_SRC sh :results code
+echo '<b>duh</b>'
+#+END_SRC
+
+#+BEGIN_SRC sh
+<b>duh</b>
+#+END_SRC
+
+#+BEGIN_SRC cs :results dynamic
+2
+3
+1332
+#+END_SRC
+#+RESULTS:
+: 2
+: 3
+: 1332

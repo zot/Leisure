@@ -129,7 +129,16 @@
             {text} = parseOrgMode(block.text).children[0].partOffsets()
             "<span class='plain-headline maintext'>#{escapeHtml txt.substring 0, text.start}#{@renderMainText txt.substring(text.start, text.end)}#{escapeHtml txt.substring text.end}</span>"
           else @renderMeat parseOrgMode(block.text).children[0]
-        renderMainText: (txt)-> @renderMeat parseMeat(txt, 0, '', true)[0]
+        renderMainText: (txt)->
+          result = ''
+          remaining = txt
+          pos = 0
+          while remaining
+            [org] = parseMeat(remaining, 0, '', true)
+            result += @renderMeat org
+            pos += org.offset + org.allText().length
+            remaining = txt.substring pos
+          result
         renderMeat: (org)->
           result = ''
           while org
@@ -528,12 +537,12 @@
               m[KW_BOILERPLATE]
             # this argument object to renderView is total overkill
             UI.context.currentView = targets = replacementTargets block, prefix, replace
-            sourceData =
+            sourceData = {
               id: prefix + block._id
               codeItems: items
               language: block.language
-              hideResults: hideResults
-              block: block
+              hideResults
+              block
               header: block.text.substring 0, block.codePrelen
               source: blockSource block
               footer: block.text.substring block.text.length - block.codePostlen, source.end()
@@ -546,6 +555,7 @@
               else if hideResults then "<span class='hidden'>#{escapeHtml results.text}</span>"
               else resultsArea opts, results.text, block
               beforeResults: block.text.substring 0, results?.offset ? source.end()
+            }
             sourceData.text = @renderCodeOrg opts, sourceData
             @renderView key, lang, block.next, sourceData, targets
           else plainMode.render opts, block, prefix, replace
@@ -876,6 +886,8 @@ Exports
         mayHideValueSlider
         setSliding
         cleanOrg
+        showsCode
+        showsResults
       }
 
       {

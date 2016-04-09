@@ -17,6 +17,8 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         orgDoc
         getCodeItems
         blockSource
+        blockOrg: docBlockOrg
+        ParsedCodeBlock
       } = DocOrg
       {
         Nil
@@ -85,24 +87,16 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       localDb = null
       localStore = null
       deleteStore = false
-      bubbleTopOffset = -5;
-      bubbleLeftOffset = 0;
+      bubbleTopOffset = -5
+      bubbleLeftOffset = 0
       keySplitPat = new RegExp ' +'
 
-      blockOrg = (data, blockOrText)->
-        text = if typeof blockOrText == 'string' then data.getBlock(blockOrText) ? blockOrText else blockOrText.text
-        org = parseOrgMode text
-        org = if org.children.length == 1 then org.children[0]
-        else
-          frag = new Fragment org.offset, org.children
-          frag
-        if typeof blockOrText == 'object'
-          org.nodeId = blockOrText._id
-          org.shared = blockOrText.type
-        org.linkNodes()
-        org
+      blockOrg = (data, blockOrText)-> docBlockOrg (if typeof blockOrText == 'string' then data.getBlock blockOrText) ? blockOrText
 
-`OrgData` -- a DataStore that supports block-structured org file data.  Each block has type 'headline', 'code', or 'chunk'.  Blocks use nextSibling and previousSibling ids to indicate the tree structure of the org document (there are no direct parent/child links).
+`OrgData` -- a DataStore that supports block-structured org file data.
+Each block has type 'headline', 'code', or 'chunk'.  Blocks use nextSibling
+and previousSibling ids to indicate the tree structure of the org document
+(there are no direct parent/child links).
 
       class OrgData extends DataStore
         constructor: ->
@@ -450,7 +444,7 @@ that must be done regardless of the source of changes
                 @updateObserver newBlock, oldBlock
                 env = @env(newBlock.language)
                 # env.eval = (text)-> controllerEval.call observer, text
-                env.createObserver newBlock._id, blocksObserved(newBlock), blockVars(this, newBlock.codeAttributes.var)[0], blockSource(newBlock), (obs)->
+                env.createObserver newBlock._id, blocksObserved(newBlock), blockVars(this, newBlock.codeAttributes.var)[2], blockSource(newBlock), (obs)->
                   newBlock.observer.observe = obs
               else @executeBlock newBlock
               defaultEnv.opts = oldOpts
@@ -562,7 +556,7 @@ that must be done regardless of the source of changes
           obs = block.codeAttributes?.observe?.split(' ') ? []
           for ob in obs
             if ob in ['vars', '']
-              finalObs.push ("block.#{v}" for v in blockVars(this, block.codeAttributes?.var)[2])...
+              finalObs.push ("block.#{v}" for k, v of blockVars(this, block.codeAttributes?.var)[2])...
             else finalObs.push ob
           finalObs
         runBlock: (block, func)->
@@ -591,6 +585,15 @@ that must be done regardless of the source of changes
               firstResult = results.text.indexOf('\n') + 1
               safeLoad results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
           else null)
+        parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, block
+
+      class EditorParsedCodeBlock extends ParsedCodeBlock
+        constructor: (@data, block)->
+          super @data.getBlock(block) || block
+        clone: -> new EditorParsedCodeBlock @data, @block
+        save: ->
+          start = @data.offsetForBlock @block._id
+          @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
 
       blocksObserved = (block)-> ob.replace /^block\./, '' for ob in block.observing when ob.match /^block\./
 
@@ -1346,6 +1349,9 @@ Exports
         defaultEnv
         preserveSelection
         rootContext: {}
+        isDynamic
+        ParsedCodeBlock
+        setLounge
       }
 
       {

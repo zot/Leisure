@@ -1,0 +1,59 @@
+* TODO Headlinesadfasdf
+** asdf
+*** duh
+**** dur
+***** asdf
+****** asdf
+Sliding the number mangles the code block unless there's an extra newline
+
+#+BEGIN_SRC leisure :results def
+do
+  print2 1
+  debug
+  print2 2
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+3+4
+#+END_SRC
+#+RESULTS:
+: 7
+
+#+BEGIN_HTML :var person
+Name: {{person.name}}
+#+END_HTML
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#+NAME: person
+#+BEGIN_SRC yaml
+name: fred
+#+END_SRC

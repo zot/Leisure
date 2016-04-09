@@ -1,0 +1,529 @@
+* Data
+
+#+NAME: character-sheet
+#+BEGIN_SRC text :post character-formatter(*this*) :index players name :exports code
+name: Bill
+ruche: 11
+character: Golden Monkey
+currentRuche: 7
+☠ tmp derp
+☠ moderate slubba
+❂ [hc/truth] Agent of the Order
+❂ [trbl] On Loan from the Hand
+❂ Harvester of Knowledge
+❂ X
+❂ X
+◆ Scrahv Ninja (not martial arts) d12
+✫ Scrahv Obscurement [truth]: fiction 2
+◇ Stony resilience d12 composure
+◇ Toughness d10
+◇ Hand to Hand Combat d8
+◇ Scholar d6
+◇ Overly Reasonable d4
+item: Mask of Disguise [truth]
+◇ Seamless Finish d12
+✫ Disguises: Create 8
+item: Ribbon of Access [truth]
+◇ Strong Ribbon d6
+✫ Physical bypass: fiction 2
+item: Audio Telescope
+◇ Perception d10
+✫ Ranged perception: range 3
+#+END_SRC
+
+#+BEGIN_HTML :var player=formatted-character-sheet
+<div class='characterSheetHolder'>
+  <div class='characterSheet'>
+    {{#each player.errors}}<div class='error bx'>{{this}}</div>{{/each}}
+    <div class='player bx'>{{player.name}} {{player.extraRuche}}</div>
+    <div class='characterName bx'>{{player.characters.[0].name}} {{player.cost}}</div>
+    {{#each player.characters}}
+      {{#unless @first}}<div class='character bx'>{{name}}{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}} ({{allocatedRuche}})</div>{{/unless}}
+      <div class='ruche bx'><div class='current-ruche'></div><div class='max-ruche'>{{allocatedRuche}}</div></div>
+      {{#if @first}}
+        <div class='health'><div class='stressLabel'> </div></div>
+        <div class='composure'><div class='stressLabel'> </div></div>
+      {{/if}}
+      {{#each consequences}}
+        <div class='consequence {{level}} bx'>☠{{#if number}} {{number}}{{/if}} {{level}} {{capitalize name}}</div>
+      {{/each}}
+      {{#each aspects}}
+        <div class='aspect bx'>❂
+          {{#if highConcept}}
+            [High Concept{{#if attribute}}/{{capitalize attribute}}{{/if}}]
+          {{else}}
+            {{#if trouble}}
+              [Trouble{{#if attribute}}/{{capitalize attribute}}{{/if}}]
+            {{else}}
+              {{#if attribute}}[{{capitalize attribute}}]{{/if}}
+            {{/if}}
+          {{/if}}
+          {{capitalize name}}
+        </div>
+      {{/each}}
+      {{#each traits}}
+        {{#if focus}}
+          <div class='focus trait bx'>◆ {{capitalize focus}} d{{value}}</div>
+        {{else}}
+          <div class='trait bx'>◇ {{capitalize name}} d{{value}}</div>
+        {{/if}}
+        {{#each abilities}}
+          <div class='ability bx'>✫ {{capitalize name}}{{#if attribute}} [{{capitalize attribute}}]{{/if}}:
+            {{#each effects}}
+              {{capitalize type}} {{value}}{{#unless @last}},{{/unless}}
+            {{/each}}
+          </div>
+        {{/each}}
+      {{/each}}
+    {{/each}}
+  </div>
+</div>
+#+END_HTML
+* code
+:properties:
+:hidden: true
+:end:
+#+NAME: formatted-character-sheet
+#+BEGIN_SRC coffee :var player=character-sheet :observe :results yaml :flowlevel -1
+do ->
+  {Vele} = this
+  Vele.parse player
+#+END_SRC
+#+RESULTS:
+: characters:
+:   - allocatedRuche: 7
+:     aspects:
+:       - attribute: truth
+:         highConcept: true
+:         name: Agent of the Order
+:       - name: On Loan from the Hand
+:         trouble: true
+:       - name: Harvester of Knowledge
+:       - name: X
+:       - name: X
+:     attributes:
+:       - truth
+:     baseRuche: 20
+:     composure: 4
+:     consequences:
+:       - level: tmp
+:         name: derp
+:         number: 0
+:       - level: moderate
+:         name: slubba
+:         number: 2
+:     cost: 27
+:     currentRuche: 7
+:     health: 2
+:     name: Golden Monkey
+:     traits:
+:       - abilities:
+:           - attribute: truth
+:             effects:
+:               - type: fiction
+:                 value: 2
+:             name: Scrahv Obscurement
+:         focus: Scrahv Ninja (not martial arts)
+:         value: 12
+:       - name: Stony resilience
+:         stress: composure
+:         value: 12
+:       - name: Toughness
+:         value: 10
+:       - name: Hand to Hand Combat
+:         value: 8
+:       - name: Scholar
+:         value: 6
+:       - name: Overly Reasonable
+:         value: 4
+:     type: character
+:   - allocatedRuche: 8
+:     attributes:
+:       - truth
+:     baseRuche: 5
+:     cost: 13
+:     name: Mask of Disguise
+:     traits:
+:       - abilities:
+:           - effects:
+:               - type: Create
+:                 value: 8
+:             name: Disguises
+:         name: Seamless Finish
+:         value: 12
+:     type: item
+:   - allocatedRuche: 2
+:     attributes:
+:       - truth
+:     baseRuche: 2
+:     cost: 4
+:     name: Ribbon of Access
+:     traits:
+:       - abilities:
+:           - effects:
+:               - type: fiction
+:                 value: 2
+:             name: Physical bypass
+:         name: Strong Ribbon
+:         value: 6
+:     type: item
+:   - allocatedRuche: 3
+:     baseRuche: 4
+:     cost: 7
+:     name: Audio Telescope
+:     traits:
+:       - abilities:
+:           - effects:
+:               - type: range
+:                 value: 3
+:             name: Ranged perception
+:         name: Perception
+:         value: 10
+:     type: item
+: cost: 51
+: extraRuche: '11'
+: name: Bill
+
+#+BEGIN_SRC coffee :results def
+if !@Vele
+  basicLinePat = /^(\S+):(.*)$/
+  aspectPat = /^(?:\[([^\/\]]+)(?:\/(.*))?\]\s+)?(\S.*)$/
+  traitPat = /^(.*\S)\s+d([1468][02]?)(?:\s+(composure|health))?$/i
+  highConceptPat = /^hc|high\s*concept$/
+  troublePat = /^tr|trbl|trouble$/
+  attributePat = /^order|purity|mercy|truth|nurture|creation|chaos|corruption|domination|scheming|strife|madness$/
+  consequenceTypePat = /^(mild|moderate|severe|extreme|tmp)\s+(\S.*)$/i
+  abilityPat = /^([^\[\]:]*[^\[\]:\s])\s*(?:\[(.*)\])?:\s*(\S.*)$/
+  effectPat = /^(.*\S)\s+([0-9]+)$/
+  characterPat = /^([^\[\]]+?)\s*(?:\[(.*)\])?$/
+  specialLinePat = /^(❂|◆|◇|✫|☠|[^:\s]+\s*(?:[^:].*|$))(.*)$/
+  consequenceValues = ['tmp', 'mild', 'moderate', 'severe', 'extreme']
+  specialLineKeys =
+    chars: "❂◆◇✫☠"
+    keys: ['aspect', 'focus', 'trait', 'ability', 'consequence']
+  getLineKey = (line)->
+    line = line.trim()
+    if m = line.match basicLinePat
+      [ignore, key, value] = m
+      {key, value: value.trim()}
+    else if m = line.match specialLinePat
+      [ignore, char, value] = m
+      if char.length == 1 && (i = specialLineKeys.chars.indexOf(char)) != -1 then key: specialLineKeys.keys[i], value: value.trim()
+      else key: 'character', value: char.trim()
+    else {}
+  cleanAspectType = (str)->
+    str = str.trim().toLowerCase()
+    if str.match highConceptPat then 'highConcept'
+    else if str.match troublePat then 'trouble'
+  cleanAttribute = (str)->
+    str = str.trim().toLowerCase()
+    if str.match attributePat then str
+  capitalizeList = (list)-> item[0].toUpperCase() + item[1..] for item in list
+  andIt = (list)->
+    if list.length == 1 then list[0]
+    else if list.length == 2 then list[0] + " and " + list[1]
+    else _.dropRight(list).join(', ') + ", and " + _.last list
+  class PlayerParser
+    constructor: ->
+      @value =
+        characters: []
+        cost: 0
+    parse: (str)->
+      error = false
+      @lines = []
+      for line, i in str.split('\n') when line.trim()
+        @lines.push line
+        @pos = i
+        {key, value} = getLineKey line
+        if key
+          if @pos == 0 then @value.name = value
+          else if @pos == 1 then @value.extraRuche = value
+          else if this[key]
+            try
+              this[key].call this, value, line
+            catch err
+              debugger
+              @addError "Error parsing line #{@pos}: #{line}\n#{err.stack}", true
+          else @unknownKey key, @pos, line
+        else @addError "Couldn't parse line #{@pos}: #{line}", true
+      mainChar = @value.characters[0]
+      for char, i in @value.characters
+        @value.cost += char.cost = char.baseRuche + char.allocatedRuche
+      aspectAttrs = (aspect.attribute for aspect in mainChar.aspects when aspect.attribute)
+      mainAttrs = mainChar.attributes ? []
+      for trait in mainChar.traits when trait.abilities
+        for ability in trait.abilities when ability.attribute
+          if !(ability.attribute in mainAttrs)
+            mainAttrs.push ability.attribute
+      for char in @value.characters[1..] when char.attributes
+        for attr in char.attributes
+          if !(attr in mainAttrs)
+            mainAttrs.push attr
+      if mainAttrs.length then mainChar.attributes = mainAttrs
+      extra = (attr for attr in aspectAttrs when !(attr in mainAttrs))
+      missing = (attr for attr in mainAttrs when !(attr in aspectAttrs))
+      if extra.length then @addError "#{andIt capitalizeList extra} should not be in the PC aspects", true
+      if missing.length then @addError "#{andIt capitalizeList missing} #{if missing.length == 1 then 'is' else 'are'} missing from the PC aspects", true
+      @value
+    addError: (err, noLocation)->
+      if !noLocation then err = "#{err} on line #{@pos}: #{@lines[@pos]}"
+      if !@value.errors then @value.errors = []
+      @value.errors.push err
+    unknownKey: (key, index, line)-> @addError "Unknown key: #{key}"
+    character: (name, line, item)->
+      @value.characters.push
+        name: name
+        baseRuche: 0
+        allocatedRuche: 0
+      if item then @curCharacter().type = 'item'
+      else
+        @curCharacter().type = 'character'
+        @curCharacter().health = 2
+        @curCharacter().composure = 2
+      if (m = name.match characterPat) && m[2]
+        if att = cleanAttribute m[2]
+          @curCharacter().name = m[1]
+          if !(att in @curAttributes()) then @curAttributes().push att
+        else @addError "Couldn't parse attribute in name"
+    item: (name, line)-> @character name, line, true
+    curCharacter: -> _.last @value.characters
+    owner: ->
+      for char in @value.characters by -1
+        if char.type == 'character' then return char
+      null
+    curTraits: -> @curCharacter().traits ? @curCharacter().traits = []
+    curTrait: -> _.last @curCharacter().traits
+    curAbilities: -> @curTrait().abilities ? @curTrait().abilities = []
+    curAspects: -> @curCharacter().aspects ? @curCharacter().aspects = []
+    curConsequences: -> @curCharacter().consequences ? @curCharacter().consequences = []
+    curAttributes: -> @curCharacter().attributes ? @curCharacter().attributes = []
+    currentRuche: (str)-> @curCharacter().currentRuche = Number str
+    aspect: (str)->
+      if str
+        [ignore, primary, secondary, name] = str.match aspectPat
+        aspect = {name}
+        if primary
+          if type = cleanAspectType primary
+            aspect[type] = true
+            if secondary
+              if !(attribute = cleanAttribute secondary)
+                return @addError "Unknown aspect attribute '#{secondary}'"
+              aspect.attribute = attribute
+              if !(attribute in @curAttributes()) then @curAttributes().push attribute
+          else if aspect.attribute = cleanAttribute primary
+            if !(aspect.attribute in @curAttributes()) then @curAttributes().push aspect.attribute
+          else return @addError "Unknown aspect type or attribute '#{primary}'"
+        @curAspects().push aspect
+        @curCharacter().allocatedRuche++
+    consequence: (str)->
+      if m = str.match consequenceTypePat then @curConsequences().push
+        level: m[1].toLowerCase()
+        name: m[2]
+        number: consequenceValues.indexOf m[1].toLowerCase()
+      else @addError "Couldn't parse consequence"
+    focus: (str)-> @parseTrait 'focus', str
+    trait: (str)-> @parseTrait 'name', str
+    parseTrait: (tag, str)->
+      if m = str.match traitPat
+        [ignore, name, value, stress] = m
+        obj = {value: Number value}
+        obj[tag] = name
+        if stress
+          obj.stress = stress
+          if obj.value in [8, 10] && @owner()[stress] < 3 then @owner()[stress] = 3
+          else if obj.value == 12 && @owner()[stress] < 4 then @owner()[stress] = 4
+        @curTraits().push obj
+        @curCharacter().baseRuche += obj.value / 2 - 1
+      else @addError "Couldn't parse trait"
+    ability: (str)->
+      if !@curTrait() then @addError "Attempt to create ability without a trait"
+      else if m = str.match abilityPat
+        [ignore, name, attribute, effectsStr] = m
+        @curAbilities().push ability = {name, effects: []}
+        if attribute
+          if attr = cleanAttribute attribute
+            ability.attribute = attr
+            if !(attr in @curAttributes()) then @curAttributes().push attr
+          else @addError "Couldn't parse attribute '#{attribute}'"
+        if @curAbilities().length > 1 then @curCharacter().allocatedRuche++
+        for effect, i in effectsStr.split /\s*,\s*/
+          if m = effect.match effectPat
+            ability.effects.push type: m[1], value: Number m[2]
+            if ability.effects.length > 1 then @curCharacter().allocatedRuche++
+            @curCharacter().allocatedRuche += Number m[2]
+          else @addError "Couldn't parse effect ##{i}"
+      else @addError "Couldn't parse ability"
+  @Vele =
+    parse: (str)-> new PlayerParser().parse(str)
+#+END_SRC
+
+#+NAME: billX
+#+BEGIN_SRC yaml
+name: Bill
+extraRuche: 11
+characters:
+  - name: Golden Monkey
+    traits:
+      - focus: Scrahv Ninja (not martial arts)
+        value: 12
+        abilities:
+          - name: Scrahv Obscurement
+            effects:
+              - type: fiction
+                value: 2
+      - name: Toughness
+        value: 10
+      - name: Stony resilience
+        value: 12
+        stress: composure
+    aspects:
+      - name: Agent of the Order
+        attribute: truth
+        highConcept: true
+      - name: On loan from the hand
+        trouble: true
+      - name: Harvester of knowledge
+        attribute: order
+    consequences:
+      - name: Smacked
+        level: mild
+  - name: Mask of Disguise
+    attribute: truth
+    traits:
+      - focus: Seamless finish
+        abilities:
+          - name: Disguises
+            effects:
+              - type: create
+                value: 8
+#+END_SRC
+* Helpers
+:properties:
+:hidden: true
+:end:
+#+BEGIN_SRC coffee :results def
+Handlebars.registerHelper 'capitalize', (v)-> v[0].toUpperCase() + v[1..]
+#+END_SRC
+* Styles
+:properties:
+:hidden: true
+:end:
+#+BEGIN_SRC css
+@media print {
+  [data-view=leisure-toolbar] {
+    display: none;
+  }
+  .characterSheet {
+    top: 1em;
+  }
+}
+[data-view=leisure-toolbar] {
+  z-index: 2;
+}
+[data-view=leisure-toolbar].collapse + [maindoc] .characterSheetHolder {
+  z-index: 99;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+}
+.error {
+  white-space: normal;
+  background: pink;
+}
+.characterSheetHolder {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1;
+}
+[data-view=leisure-toolbar].collapse + [maindoc] .characterSheet {
+  right: initial;
+  left: 2em;
+}
+.characterSheet {
+  width: 50ex;
+  display: inline-flex;
+  flex-wrap: wrap;
+  position: absolute;
+  top: 3em;
+  right: 2em;
+  z-index: 1;
+}
+.bx {
+  border: solid black 1px;
+  flex-basis: 100%;
+  font-weight: bold;
+  padding: 2px;
+}
+.player,
+.characterName {
+  display: inline-block;
+  font-weight: bold;
+}
+.player {
+  background: #0000ff;
+  color: white;
+  flex-basis: 20ex;
+}
+.characterName {
+  flex-grow: 1;
+  flex-basis: 10ex;
+}
+.current-ruche {
+  display: inline-block;
+  width: 5ex;
+  height: 100%;
+  border-right: solid black 2px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.current-ruche::before {
+  content: "\0000a0";
+}
+.max-ruche {
+  display: inline-block;
+  width: calc(100% - 5ex - 6px);
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.max-ruche::before {
+  content: "\0000a0Max Ruche ";
+}
+.stressLabel {
+  background: #cccccc;
+}
+.health-box .stressLabel::before {
+  content: "Health";
+}
+.compousre-box .stressLabel::before {
+  content: "Comp";
+}
+.health {
+  background: #f4cccc;
+}
+.composure {
+  background: #c9daf8;
+}
+.ruche {
+  background: #b6d7a8;
+  padding: 0;
+}
+.character, .characterName {
+  background: #c9daf8;
+}
+.trait {
+  background: #a2c4c9;
+  font-weight: bold;
+}
+.ability {
+  background: #b6d7a8;
+}
+.aspect {
+  background: #e7c9af;
+}
+.consequence {
+  background: #ea9999;
+}
+#+END_SRC

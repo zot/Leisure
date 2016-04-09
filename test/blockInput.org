@@ -1,0 +1,17 @@
+* Test
+#+NAME: smeg
+#+BEGIN_SRC yaml
+- a0b0
+- c0d0
+#+END_SRC
+
+#+NAME: floop
+#+BEGIN_SRC coffee :var smeg :var duppa=3 :observe :results yaml
+_.map smeg, (v)-> _.chunk v, 2
+#+END_SRC
+#+ERROR: 0, derp
+
+#+BEGIN_SRC coffee :var floop :observe :results yaml
+debugger
+[floop, floop.length]
+#+END_SRC

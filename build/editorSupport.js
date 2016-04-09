@@ -6,10 +6,10 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
-    var DataStore, DataStoreEditingOptions, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
-    orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
+    orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, presentHtml = Eval.presentHtml, setLounge = Eval.setLounge, blockVars = Eval.blockVars, hasCodeAttribute = Eval.hasCodeAttribute, isYamlResult = Eval.isYamlResult;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection;
@@ -31,16 +31,8 @@
     bubbleLeftOffset = 0;
     keySplitPat = new RegExp(' +');
     blockOrg = function(data, blockOrText) {
-      var frag, org, ref, text;
-      text = typeof blockOrText === 'string' ? (ref = data.getBlock(blockOrText)) != null ? ref : blockOrText : blockOrText.text;
-      org = parseOrgMode(text);
-      org = org.children.length === 1 ? org.children[0] : (frag = new Fragment(org.offset, org.children), frag);
-      if (typeof blockOrText === 'object') {
-        org.nodeId = blockOrText._id;
-        org.shared = blockOrText.type;
-      }
-      org.linkNodes();
-      return org;
+      var ref;
+      return docBlockOrg((ref = (typeof blockOrText === 'string' ? data.getBlock(blockOrText) : void 0)) != null ? ref : blockOrText);
     };
     OrgData = (function(superClass) {
       extend(OrgData, superClass);
@@ -768,7 +760,7 @@
                 observer = newBlock.observer = {};
                 _this.updateObserver(newBlock, oldBlock);
                 env = _this.env(newBlock.language);
-                env.createObserver(newBlock._id, blocksObserved(newBlock), blockVars(_this, newBlock.codeAttributes["var"])[0], blockSource(newBlock), function(obs) {
+                env.createObserver(newBlock._id, blocksObserved(newBlock), blockVars(_this, newBlock.codeAttributes["var"])[2], blockSource(newBlock), function(obs) {
                   return newBlock.observer.observe = obs;
                 });
               } else {
@@ -1011,18 +1003,18 @@
       };
 
       OrgData.prototype.decodeObservers = function(block) {
-        var finalObs, j, len, ob, obs, ref, ref1, ref2, v;
+        var finalObs, j, k, len, ob, obs, ref, ref1, ref2, v;
         finalObs = [];
         obs = (ref = (ref1 = block.codeAttributes) != null ? (ref2 = ref1.observe) != null ? ref2.split(' ') : void 0 : void 0) != null ? ref : [];
         for (j = 0, len = obs.length; j < len; j++) {
           ob = obs[j];
           if (ob === 'vars' || ob === '') {
             finalObs.push.apply(finalObs, (function() {
-              var l, len1, ref3, ref4, results1;
+              var ref3, ref4, results1;
               ref4 = blockVars(this, (ref3 = block.codeAttributes) != null ? ref3["var"] : void 0)[2];
               results1 = [];
-              for (l = 0, len1 = ref4.length; l < len1; l++) {
-                v = ref4[l];
+              for (k in ref4) {
+                v = ref4[k];
                 results1.push("block." + v);
               }
               return results1;
@@ -1080,9 +1072,39 @@
         return (ref = block.yaml) != null ? ref : (block.yaml = isYamlResult(block) ? ((ref1 = blockCodeItems(this, block), results = ref1.results, ref1), results ? (firstResult = results.text.indexOf('\n') + 1, safeLoad(results.text.substring(firstResult).replace(/(^|\n): /gm, '$1'))) : void 0) : null);
       };
 
+      OrgData.prototype.parsedCodeBlock = function(block) {
+        return new EditorParsedCodeBlock(this, block);
+      };
+
       return OrgData;
 
     })(DataStore);
+    EditorParsedCodeBlock = (function(superClass) {
+      extend(EditorParsedCodeBlock, superClass);
+
+      function EditorParsedCodeBlock(data1, block) {
+        this.data = data1;
+        EditorParsedCodeBlock.__super__.constructor.call(this, this.data.getBlock(block) || block);
+      }
+
+      EditorParsedCodeBlock.prototype.clone = function() {
+        return new EditorParsedCodeBlock(this.data, this.block);
+      };
+
+      EditorParsedCodeBlock.prototype.save = function() {
+        var start;
+        start = this.data.offsetForBlock(this.block._id);
+        return this.data.replaceText({
+          start: start,
+          end: start + this.data.getBlock(this.block._id).text.length,
+          text: this.block.text,
+          source: 'code'
+        });
+      };
+
+      return EditorParsedCodeBlock;
+
+    })(ParsedCodeBlock);
     blocksObserved = function(block) {
       var j, len, ob, ref, results1;
       ref = block.observing;
@@ -2375,7 +2397,10 @@
       followLink: followLink,
       defaultEnv: defaultEnv,
       preserveSelection: preserveSelection,
-      rootContext: {}
+      rootContext: {},
+      isDynamic: isDynamic,
+      ParsedCodeBlock: ParsedCodeBlock,
+      setLounge: setLounge
     });
     return {
       createLocalData: createLocalData,

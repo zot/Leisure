@@ -1,0 +1,40 @@
+* numbers
+#+BEGIN_SRC leisure :results dynamic
+ascending x = [x | ascending x + 1]
+naturals = ascending 1
+evens = map (* 2) naturals
+print (at naturals 4)
+print (at evens 4)
+#+END_SRC
+#+RESULTS:
+: 5
+: 10
+
+#+BEGIN_SRC leisure :results dynamic
+at [1 2 3 4] 2
+#+END_SRC
+#+RESULTS:
+: 3
+
+* Hello
+duhasdfasdfasdfdas
+(leisure/conInfo-websocket leisure/bufferConnection)
+(setf leisure/bufferConnection nil)
+(leisure/withBuffer leisure/bufferConnection
+  (message (current-buffer)))
+(leisure/getBuffer leisure/bufferConnection)
+(leisure/conInfo-bufferName leisure/bufferConnection)
+#+BEGIN_SRC css
+
+#+END_SRC
+
+* Duh
+- duhaaa
+- asdf
+- adsf
+adsfsdf
+con
+asdf
+asdfasdf
+asddf
+asdfd
