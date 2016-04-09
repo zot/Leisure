@@ -48,6 +48,7 @@ Evaulation support for Leisure
       } = Yaml
       {
         getCodeItems
+        blockSource
       } = DocOrg
 
       #########
@@ -164,7 +165,7 @@ Evaulation support for Leisure
           block.attributeWords[attr] = (word.toLowerCase() for word in a)
         value.toLowerCase() in block.attributeWords[attr]
 
-      isYamlResult = (block)-> hasCodeAttribute block, 'results', 'yaml'
+      isYamlResult = (block)-> hasCodeAttribute(block, 'results', 'yaml') || block.language in ['text', 'string']
 
       presentHtml = (v)->
         str = ': ' + (if v instanceof Html then v.content.replace(/\r?\n/g, '\\n')
@@ -188,6 +189,10 @@ Evaulation support for Leisure
         result = func()
         window.Lounge = oldLounge
         result
+
+      textEnv = (env)->
+        env.executeText = (text)-> text
+        env
 
       jsEnv = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
@@ -271,50 +276,26 @@ Evaulation support for Leisure
           catch err
             @errorAt 0, err.message
           cont? values
-        env.createObserver = (blockId, blockNames, vars, text, cont)->
-          sync = false
-          if isYamlResult env.data.getBlock(blockId)
-            env.write = (str)=>
-              result += str
-              if result[result.length - 1] != '\n' then result += '\n'
-              if !sync then env.data.replaceResult change._id, result
-          else
-            env.write = (str)=>
-              result += presentHtml str
-              if result[result.length - 1] != '\n' then result += '\n'
-              if !sync then env.data.replaceResult change._id, result
-          varsForBlocks = _.fromPairs ([v, k] for k, v of vars)
-          blockNames = _.fromPairs ([block, varsForBlocks[block]] for block in blockNames)
-          vars = ([k, v] for k, v of vars when !blockNames[v])
-          paramNames = (v for k, v of blockNames).concat(v[0] for v in vars).join ', '
-          varValues = (v[1] for v in vars)
-          progText = jsGatherResults env, CS.compile(text, bare: true), true
-          progText = """
-            (function(env, blockId, names, vars) {
-              return function() {
-                return setLounge(env, function() {
-                  var blocks = _.map(names, function(n){var bl = env.data.getBlockNamed(n, true); return bl && env.data.getYaml(bl)});
-                  if (_.every(blocks, function(b){return b != undefined;})) {
-                    env.data.clearError(blockId);
-                    var resultStr = '';
-                    var result = (function(#{paramNames}) {
-                      #{progText}
-                    }).apply(null, blocks.concat(vars));
-                    env.data.replaceResult(blockId, env.formatResult(env.data.getBlock(blockId), resultStr, result));
-                    return result;
-                  }
-                });
-              };
-            })
-          """
-          func = jsBaseEval(env, progText)(env, blockId, (k for k, v of blockNames), varValues)
-          cont ->
-            sync = true
-            try
-              func()
-            catch err
-              env.data.replaceResult blockId, ": #{err.stack.replace /\n/g, '\n: '}"
-            sync = false
+        env.compileBlock = (block)->
+          block = env.data.getBlock block
+          [..., vars, varNames] = blockVars env.data, block.codeAttributes.var
+          src = blockSource(block)
+          blocks = {}
+          consts = {}
+          for name, value of vars
+            if Number(value) == value || value[0] in "'\""
+              consts[name] = value
+            else blocks[name] = value
+          jsBaseEval(env, """
+          (function(__data) {
+            return function (__cont, #{varNames.join ', '}) {
+              #{("if (#{constName} == undefined) #{constName} = #{value};" for constName, value of consts).join('\n  ')}
+              #{("player = player || __data.getYaml(__data.getBlockNamed('#{value}'));" for blockName, value of blocks).join('\n  ')}
+              var res = (function() {#{jsGatherResults env, CS.compile(src, bare: true), true}})();
+              return __cont ? __cont(res) : res;
+            };
+          })
+          """)(env.data)
         env
 
       indentCode = (str)-> str.replace /\n/g, '\n  '
@@ -345,18 +326,22 @@ Evaulation support for Leisure
         cs: csEnv
         coffee: csEnv
         coffeescript: csEnv
+        text: textEnv
+        string: textEnv
 
       localEval = do (html)-> (x)-> eval x
 
       languageEnvMaker = (name)-> knownLanguages[name?.toLowerCase()]
 
+      blocksObserved = (block)-> ob.replace /^block\./, '' for ob in block.observing when ob.match /^block\./
+
       blockVars = (data, varDefs)->
         blockIds = {}
         blockNames = {}
         vars = {}
-        if varDefs
+        varNames = if varDefs
           for v in (if _.isArray varDefs then varDefs else [varDefs])
-            [ignore, name, def, value] = v.match /^([^=]*)(=(.*))?$/
+            [..., name, def, value] = v.match /^([^=]*)(=(.*))?$/
             name = name.trim()
             if !def then value = name
             if value[0] in "'\"0123456789" then value = JSON.parse value
@@ -366,7 +351,8 @@ Evaulation support for Leisure
               value = data.getYaml bl
             else value = value.trim()
             vars[name] = value
-        [vars, _.keys(blockIds), blockNames]
+            name
+        [vars, _.keys(blockIds), blockNames, varNames ? []]
 
       escaped =
         '\b': "\\b"
@@ -399,6 +385,7 @@ Evaulation support for Leisure
         Html
         escapeHtml
         blockVars
+        blocksObserved
         knownLanguages
         presentHtml
         escapeString

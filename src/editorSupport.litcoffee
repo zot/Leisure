@@ -29,6 +29,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         presentHtml
         setLounge
         blockVars
+        blocksObserved
         hasCodeAttribute
         isYamlResult
       } = Eval
@@ -90,6 +91,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       bubbleTopOffset = -5
       bubbleLeftOffset = 0
       keySplitPat = new RegExp ' +'
+      postCallPat = /^([^(]*)\((.*)\)/
 
       blockOrg = (data, blockOrText)-> docBlockOrg (if typeof blockOrText == 'string' then data.getBlock blockOrText) ? blockOrText
 
@@ -440,14 +442,31 @@ that must be done regardless of the source of changes
               oldOpts = defaultEnv.opts
               defaultEnv.opts = opts
               if resultType == 'observe'
-                observer = newBlock.observer = {}
                 @updateObserver newBlock, oldBlock
-                env = @env(newBlock.language)
-                # env.eval = (text)-> controllerEval.call observer, text
-                env.createObserver newBlock._id, blocksObserved(newBlock), blockVars(this, newBlock.codeAttributes.var)[2], blockSource(newBlock), (obs)->
-                  newBlock.observer.observe = obs
+                @createObserver newBlock
               else @executeBlock newBlock
               defaultEnv.opts = oldOpts
+        createObserver: (block)->
+          env = @env block.language
+          blockId = block._id
+          sync = false
+          if isYamlResult block
+            env.write = (str)->
+              result += str
+              if result[result.length - 1] != '\n' then result += '\n'
+              if !sync then @replaceResult change._id, result
+          else
+            env.write = (str)->
+              result += presentHtml str
+              if result[result.length - 1] != '\n' then result += '\n'
+              if !sync then @replaceResult change._id, result
+          block.observer = observe: =>
+            sync = true
+            try
+              @replaceResult blockId, env.formatResult @getBlock(blockId), '', @getCode(blockId)()
+            catch err
+              @replaceResult blockId, ": #{err.stack.replace /\n/g, '\n: '}"
+            sync = false
         checkChannelChange: (oldBlock, newBlock)-> if !@disableObservation
           if type = @getYaml(newBlock)?.type then @triggerUpdate 'type', type, newBlock
           if name = newBlock?.codeName then @triggerUpdate 'block', name, newBlock
@@ -525,11 +544,11 @@ that must be done regardless of the source of changes
               env.silent = true
               env.write = ->
         env: (language, envConf)->
-          env = languageEnvMaker(language) __proto__: defaultEnv
-          env.data = this
-          env.write = ->
-          envConf?(env)
-          env
+          if env = languageEnvMaker(language)?(__proto__: defaultEnv)
+            env.data = this
+            env.write = ->
+            envConf?(env)
+            env
         executeText: (language, text, cont, envConf)->
           @env(language, envConf).executeText text, Nil, (cont ? (x)-> x)
         checkImports: (block)->
@@ -585,7 +604,25 @@ that must be done regardless of the source of changes
               firstResult = results.text.indexOf('\n') + 1
               safeLoad results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
           else null)
+        getCode: (block)->
+          block = @getBlock block
+          block.code ? block.code = if isText(block) then @addPostProcessing block, (cont)-> cont?([blockSource block]) ? [blockSource block]
+          else if env = @env(block.language) then @addPostProcessing block, env.compileBlock block
         parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, block
+        addPostProcessing: (block, func)->
+          if m = block.codeAttributes.post?.match postCallPat
+            [..., blockName, argNames] = m
+            argNames = argNames.trim().split '\s*,\s*'
+            blockName = blockName.trim()
+            (cont, args...)=>
+              if postProcessor = @getCode @getBlockNamed blockName
+                func ((result)=>
+                  if result.length == 1 then result = result[0]
+                  postProcessor cont, (for arg in argNames
+                    if arg == '*this*' then result
+                    else if `Number(arg) == arg` || arg[0] in "'\"" then JSON.parse arg
+                    else @getBlockNamed arg)...), args...
+          else func
 
       class EditorParsedCodeBlock extends ParsedCodeBlock
         constructor: (@data, block)->
@@ -594,8 +631,6 @@ that must be done regardless of the source of changes
         save: ->
           start = @data.offsetForBlock @block._id
           @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
-
-      blocksObserved = (block)-> ob.replace /^block\./, '' for ob in block.observing when ob.match /^block\./
 
       displayError = (e)->
         console.log "Error: #{e}"
@@ -631,6 +666,8 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       controllerEval = (txt)-> eval txt
 
       isCss = (block)-> block?.language == 'css'
+
+      isText = (block)-> block?.language.trim() in ['text', 'string']
 
       isControl = (block)-> block?.type == 'code' && block.codeAttributes?.control
 
@@ -1079,8 +1116,14 @@ may be called more than once.  changeData() returns a promise.
                   if result[result.length - 1] != '\n' then result += '\n'
                   if !sync then @replaceResult change._id, result
               finished = {}
-              if finished == env.executeText newSource.content, Nil, (-> finished)
+              res = (if change.codeAttributes?.post then @data.getCode(newBlock)((data)->
+                result = env.formatResult newBlock, '', data
+                finished)
+              else env.executeText newSource.content, Nil, (-> finished))
+              if finished == res
+                oldCode = newBlock.code
                 newBlock = setResult newBlock, result
+                newBlock.code = oldCode
                 if newBlock.text != change.text
                   changes.sets[newBlock._id] = newBlock
                   for block, i in changes.newBlocks

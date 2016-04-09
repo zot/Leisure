@@ -3,7 +3,7 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./org', 'lib/js-yaml', 'lib/lazy'], function(Org, Yaml, Lazy) {
-    var Drawer, Fragment, HTML, Headline, Keyword, Meat, ParsedCodeBlock, Results, Source, UnknownDeclaration, _L, blockOrg, blockSource, checkMerged, checkProps, checkSingleNode, createChildrenDocs, createCodeBlockDoc, createDocFromOrg, createHtmlBlockDoc, createOrgDoc, crnl, docRoot, dump, escapeRegexp, getCodeItems, getSourceNodeType, isCodeBlock, isMergeable, isSourceEnd, isText, isYaml, lineCodeBlockType, linkDocs, orgDoc, parseOrgMode, replaceOrgDoc, safeLoad;
+    var Drawer, Fragment, HTML, Headline, Keyword, Meat, ParsedCodeBlock, Results, Source, UnknownDeclaration, _L, blockOrg, blockSource, checkMerged, checkProps, checkSingleNode, createChildrenDocs, createCodeBlockDoc, createDocFromOrg, createHtmlBlockDoc, createOrgDoc, crnl, docRoot, dump, escapeRegexp, getCodeItems, getSourceNodeType, isCodeBlock, isMergeable, isSourceEnd, isText, isYaml, isYamlResult, lineCodeBlockType, linkDocs, orgDoc, parseOrgMode, replaceOrgDoc, safeLoad;
     Headline = Org.Headline, Source = Org.Source, HTML = Org.HTML, Keyword = Org.Keyword, Drawer = Org.Drawer, Meat = Org.Meat, UnknownDeclaration = Org.UnknownDeclaration, Results = Org.Results, parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
     _L = Lazy._;
@@ -420,7 +420,7 @@
       return ['', _L(), children];
     };
     createCodeBlockDoc = function(org) {
-      var attr, err, error, expected, first, firstOffset, l, last, name, nm, obj, ref, ref1, ref2, results, source, text, val;
+      var attr, err, error, expected, first, firstOffset, l, last, name, nm, obj, ref, ref1, ref2, results, source, text, val, yamlSrc;
       text = '';
       ref = getCodeItems(org), first = ref.first, name = ref.name, source = ref.source, last = ref.last, expected = ref.expected, results = ref.results;
       if (!first) {
@@ -472,12 +472,13 @@
         if (l = source.lead()) {
           obj.language = l.trim();
         }
-        if (isYaml(source)) {
-          try {
-            obj.yaml = safeLoad(source.content);
-          } catch (error) {
-            err = error;
-            obj.yaml = null;
+        if (isYamlResult(obj) || isYaml(source)) {
+          if (yamlSrc = (isYaml(source) ? source.content : results != null ? results.content().replace(/^: /g, '') : void 0)) {
+            try {
+              obj.yaml = safeLoad(yamlSrc);
+            } catch (error) {
+              err = error;
+            }
           }
         } else if (isText(source)) {
           obj.yaml = source.content;
@@ -503,6 +504,10 @@
     };
     isYaml = function(org) {
       return org instanceof Source && org.info.match(/^ *yaml\b/i);
+    };
+    isYamlResult = function(block) {
+      var ref, ref1, ref2;
+      return ((ref = block.codeAttributes) != null ? (ref1 = ref.results) != null ? ref1.match(/\byaml\b/) : void 0 : void 0) || ((ref2 = block.codeAttributes) != null ? ref2.post : void 0);
     };
     isText = function(org) {
       return org instanceof Source && org.info.match(/^ *(text|string)\b/i);
@@ -536,6 +541,7 @@
       docRoot: docRoot,
       linkDocs: linkDocs,
       isYaml: isYaml,
+      isText: isText,
       crnl: crnl,
       lineCodeBlockType: lineCodeBlockType,
       blockSource: blockSource,
