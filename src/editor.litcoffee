@@ -1397,9 +1397,9 @@ sorted in reverse order by position.
         diag: -> @trigger 'diag', @verifyIndex()
         verifyIndex: ->
           iArray = @indexArray()
-          treeIds = _.pluck iArray, 'id'
+          treeIds = _.map iArray, _.property 'id'
           bArray = @blockArray()
-          blockIds = _.pluck bArray, '_id'
+          blockIds = _.map bArray, _.property '_id'
           if !_.isEqual treeIds, blockIds
             console.warn "INDEX ERROR:\nEXPECTED: #{JSON.stringify blockIds}\nBUT GOT: #{JSON.stringify treeIds}"
           last = null

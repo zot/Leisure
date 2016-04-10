@@ -1138,21 +1138,31 @@
               cont = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
               if (postProcessor = _this.getCode(_this.getBlockNamed(blockName))) {
                 return func.apply(null, [(function(result) {
-                  var arg;
+                  var arg, argBlock, argData;
                   if (result.length === 1) {
                     result = result[0];
+                  }
+                  blockVars = {};
+                  if (typeof Lounge !== "undefined" && Lounge !== null) {
+                    Lounge.blockVars = blockVars;
                   }
                   return postProcessor.apply(null, [cont].concat(slice1.call((function() {
                     var l, len, ref1, results1;
                     results1 = [];
                     for (l = 0, len = argNames.length; l < len; l++) {
                       arg = argNames[l];
-                      if (arg === '*this*') {
-                        results1.push(result);
-                      } else if (Number(arg) == arg || (ref1 = arg[0], indexOf.call("'\"", ref1) >= 0)) {
+                      if (Number(arg) == arg || (ref1 = arg[0], indexOf.call("'\"", ref1) >= 0)) {
                         results1.push(JSON.parse(arg));
                       } else {
-                        results1.push(this.getBlockNamed(arg));
+                        if (arg === '*this*') {
+                          argBlock = block;
+                          argData = result;
+                        } else {
+                          argBlock = this.getBlockNamed(arg);
+                          argData = this.getYaml(argData);
+                        }
+                        blockVars[arg] = argBlock;
+                        results1.push(argData);
                       }
                     }
                     return results1;
@@ -1184,12 +1194,16 @@
       EditorParsedCodeBlock.prototype.save = function() {
         var start;
         start = this.data.offsetForBlock(this.block._id);
-        return this.data.replaceText({
-          start: start,
-          end: start + this.data.getBlock(this.block._id).text.length,
-          text: this.block.text,
-          source: 'code'
-        });
+        return this.data.runBlock(this.block, (function(_this) {
+          return function() {
+            return _this.data.replaceText({
+              start: start,
+              end: start + _this.data.getBlock(_this.block._id).text.length,
+              text: _this.block.text,
+              source: 'code'
+            });
+          };
+        })(this));
       };
 
       return EditorParsedCodeBlock;
@@ -2131,10 +2145,14 @@
               });
             })(this)(change);
             finished = {};
-            res = (((ref1 = change.codeAttributes) != null ? ref1.post : void 0) ? this.data.getCode(newBlock)(function(data) {
-              result = env.formatResult(newBlock, '', data);
-              return finished;
-            }) : env.executeText(newSource.content, Nil, (function() {
+            res = (((ref1 = change.codeAttributes) != null ? ref1.post : void 0) ? setLounge(env, (function(_this) {
+              return function() {
+                return _this.data.getCode(newBlock)(function(data) {
+                  result = env.formatResult(newBlock, '', data);
+                  return finished;
+                });
+              };
+            })(this)) : env.executeText(newSource.content, Nil, (function() {
               return finished;
             })));
             if (finished === res) {

@@ -2054,9 +2054,9 @@
       DataStore.prototype.verifyIndex = function() {
         var bArray, blockIds, errs, iArray, j, last, len, node, offset, ref, treeIds;
         iArray = this.indexArray();
-        treeIds = _.pluck(iArray, 'id');
+        treeIds = _.map(iArray, _.property('id'));
         bArray = this.blockArray();
-        blockIds = _.pluck(bArray, '_id');
+        blockIds = _.map(bArray, _.property('_id'));
         if (!_.isEqual(treeIds, blockIds)) {
           console.warn("INDEX ERROR:\nEXPECTED: " + (JSON.stringify(blockIds)) + "\nBUT GOT: " + (JSON.stringify(treeIds)));
         }

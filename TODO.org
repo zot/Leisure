@@ -1,9 +1,15 @@
-* Filter control characters out from inserts
-* use promises for lazy code in Leisure so we can use Chrome's async support
+* Make a drawer for "uncommitted" content
+* TODO load *and save* gists or fiddles
+* TODO Martini button in Leisure bar that toggles the entire page
 * TODO View on a block's content
 ** Edit a src block's content
 ** Edit a headline's content
 ** creates a local editor, like search does
+* TODO Make post processing fire on execute c-c c-c for data blocks
+* TODO Leisure bar option to hide code parameter details
+* TODO Leisure bar option to hide code block control widgets
+* TODO TiddlyWiki view style
+* TODO try using promises for lazy code to hook into Chrome's async debug support
 * TODO index observers that maintain a corresponding, separate index
 ** :observeindex characters formatted-characters name :headline Formatted characters
 ** observes the "characters" index and creates/destroys corresponding blocks in the "formatted-characters" index
@@ -17,11 +23,9 @@
 ** Document metadata for permissions
 ** Backup
 * TODO Validate yaml blocks and show errors
-* TODO Leisure bar option to hide code block control widgets
 * TODO handle :exports none, just show the control widget
 * TODO code blocks for handlebar partials
 * TODO finish observers for JS, LispyScript, Leisure
-* TODO TiddlyWiki view style
 * TODO New output type, "view" that shows results as a view
 ** optional type or type/name param overrides type of result
 ** results for normal code
@@ -36,24 +40,22 @@
 * TODO add resourceBase=URL parameter for resource fallback
 ** helps  collaboration on standard resources
 * TODO collaboration clients should fetch unknown resources from master
-* TODO Views that contain select Leisure content, like search does
 * BUG Make OT replaceText skip local blocks
-* BUG Search changes don't propagate collaboratively
 * TODO Should Yaml blocks only auto-update only for :results dynamic?
 ** Maybe have c-c c-c update the cache number in the results block?
 * TODO c-c c-c in emacs should evaluate in the connected browser
 * TODO :exports code/results/both controls fancy display
-* TODO Need fancy gizmos to control header args
 * TODO Support :tangle yes (also for internal code base)
 Tangled blocks of a given language should be concatenated before evaluation
 * BUG numbered lists don't parse as lists
+* BUG Search changes don't propagate collaboratively
 * BUG search is broken
+* BUG search not updating
 * BUG changing hidden from true to false is not updating properly
 * BUG splitting a dynamic code block in Emacs causes problems in Leisure
 * BUG splitting a code block directly above a dynamic one in Emacs causes problems in Leisure
 * BUG toggling show/hide in slide mode dies
 * BUG problem editing headline in slide mode
-* BUG search not updating
 * TODO view changes aren't updating
 * TODO editable shapes in data blocks
 * TODO recursive lets don't work
@@ -119,13 +121,11 @@ Check [[https://github.com/fniessen/org-html-themes]]
 * TODO mode to only show blocks with certain tags
 hides cruft so you can just look at the code
 * TODO indicate the age of each block
-* TODO make headlines bigger in plain mode
 * TODO when diag is enabled, check inserted text
 * TODO slider stays up when you scroll and doesn't scroll with the page
 * TODO load parameter so people can view the example without Emacs
   provide plantuml and ditaa files for the current text (use /tmp/blah on the site)
 * TODO allow links in simple markup (but not inside other links)        :org:
-* TODO load *and save* gists or fiddles
 * TODO use :exports to control code appearance
   :exports code
   :exports both
@@ -142,7 +142,6 @@ hides cruft so you can just look at the code
 * TODO make errors insert into highlighted syntax (check out Prism's [[http://prismjs.com/extending.html#writing-plugins][hooks]])
 * TODO Make editor use docOffsets and domCursors, remove getPositionForBlock, etc.
 * TODO erroneous links should have tooltips on the entire link, not just the X
-* TODO make p2p use emacs protocol
 * Project list
 - fix up look and feel
 - host services
@@ -213,7 +212,6 @@ Basically tramp for Leisure
 * TODO check whether we should use browserify instead of requirejs
 we'll keep requirejs for now, but browserify looks to be much simpler and friendlier to use
 * TODO Look at supporting [[http://sweetjs.org/][sweetjs]]
-* TODO verify whether @ needs a fat arrow in runtime.coffee:Leisure_token.prototype.toString()
 * TODO code comments and metadocuments
 - keep comments in the metadocument?
 - secure comment edit/insert using OAuth?
@@ -1092,6 +1090,10 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE Need fancy gizmos to control header args
+CLOSED: [2016-04-10 Sun 03:01]
+** DONE Filter control characters out from inserts
+CLOSED: [2016-04-10 Sun 02:37]
 ** DONE Restructure code creation
 CLOSED: [2016-04-10 Sun 02:15]
 *** compiler for (optionally parameterized) code stores it in the block object on demand

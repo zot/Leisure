@@ -618,10 +618,19 @@ that must be done regardless of the source of changes
               if postProcessor = @getCode @getBlockNamed blockName
                 func ((result)=>
                   if result.length == 1 then result = result[0]
+                  blockVars = {}
+                  Lounge?.blockVars = blockVars
                   postProcessor cont, (for arg in argNames
-                    if arg == '*this*' then result
-                    else if `Number(arg) == arg` || arg[0] in "'\"" then JSON.parse arg
-                    else @getBlockNamed arg)...), args...
+                    if `Number(arg) == arg` || arg[0] in "'\"" then JSON.parse arg
+                    else
+                      if arg == '*this*'
+                        argBlock = block
+                        argData = result
+                      else
+                        argBlock = @getBlockNamed arg
+                        argData = @getYaml argData
+                      blockVars[arg] = argBlock
+                      argData)...), args...
           else func
 
       class EditorParsedCodeBlock extends ParsedCodeBlock
@@ -630,7 +639,7 @@ that must be done regardless of the source of changes
         clone: -> new EditorParsedCodeBlock @data, @block
         save: ->
           start = @data.offsetForBlock @block._id
-          @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
+          @data.runBlock @block, => @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
 
       displayError = (e)->
         console.log "Error: #{e}"
@@ -1116,7 +1125,7 @@ may be called more than once.  changeData() returns a promise.
                   if result[result.length - 1] != '\n' then result += '\n'
                   if !sync then @replaceResult change._id, result
               finished = {}
-              res = (if change.codeAttributes?.post then @data.getCode(newBlock)((data)->
+              res = (if change.codeAttributes?.post then setLounge env, => @data.getCode(newBlock)((data)->
                 result = env.formatResult newBlock, '', data
                 finished)
               else env.executeText newSource.content, Nil, (-> finished))
