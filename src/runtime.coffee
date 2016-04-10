@@ -977,7 +977,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 #######################
 
   ensureLeisureClass 'token'
-  Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{posString tokenPos(@)})"
+  Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(this))}, #{posString tokenPos(this)})"
 
   tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
   tokenPos = (t)-> t(lz (txt)->(pos)-> rz pos)

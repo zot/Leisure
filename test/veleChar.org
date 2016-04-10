@@ -178,7 +178,16 @@ item: Audio Telescope
 :end:
 #+NAME: formatted-character-sheet
 #+BEGIN_SRC coffee :var player
-@Vele.parse player
+do =>
+  result = @Vele.parse player
+  if m = result.errors?[0]?.match /^(.*) on line ([0-9]+)/
+    lines = player.split(/(\n)/)
+    offset = 0
+    for i in [0...Number(m[2])]
+      offset = player.indexOf('\n', offset) + 1
+    console.log "Error at #{offset}: #{m[1]}"
+    Lounge?.errorAt offset + 1, m[1]
+  result
 #+END_SRC
 
 #+BEGIN_SRC coffee :results def
