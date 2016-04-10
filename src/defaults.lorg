@@ -579,6 +579,10 @@ data-org-type='results'
 .view [data-block] .code-text * {
   white-space: pre;
 }
+.view [data-block][data-lang=text] .code-text .unknown-language,
+.view [data-block][data-lang=string] .code-text .unknown-language {
+  font-family: Arial;
+}
 .fancy .view [data-block] .maintext {
   white-space: normal;
 }

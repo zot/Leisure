@@ -183,10 +183,10 @@ do =>
   if m = result.errors?[0]?.match /^(.*) on line ([0-9]+)/
     lines = player.split(/(\n)/)
     offset = 0
-    for i in [0...Number(m[2])]
+    for i in [0...Number(m[2]) + 1]
       offset = player.indexOf('\n', offset) + 1
     console.log "Error at #{offset}: #{m[1]}"
-    Lounge?.errorAt offset + 1, m[1]
+    Lounge?.errorAt offset, m[1]
   result
 #+END_SRC
 
