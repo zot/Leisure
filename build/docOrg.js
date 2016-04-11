@@ -473,7 +473,8 @@
           obj.language = l.trim();
         }
         if (isYamlResult(obj) || isYaml(source)) {
-          if (yamlSrc = (isYaml(source) ? source.content : results != null ? results.content().replace(/^: /g, '') : void 0)) {
+          yamlSrc = (isYaml(source) && !results ? source.content : (obj.computedYaml = true, results != null ? results.content().replace(/^: /gm, '') : void 0));
+          if (yamlSrc) {
             try {
               obj.yaml = safeLoad(yamlSrc);
             } catch (error) {

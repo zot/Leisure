@@ -607,6 +607,9 @@ that must be done regardless of the source of changes
         getCode: (block)->
           block = @getBlock block
           block.code ? block.code = if isText(block) then @addPostProcessing block, (cont)-> cont?([blockSource block]) ? [blockSource block]
+          else if block.language == 'yaml' then @addPostProcessing block, (cont)->
+            yaml = (!block.computedYaml && block.yaml) || safeLoad blockSource block
+            cont?([yaml]) ? [yaml]
           else if env = @env(block.language) then @addPostProcessing block, env.compileBlock block
         parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, block
         addPostProcessing: (block, func)->
