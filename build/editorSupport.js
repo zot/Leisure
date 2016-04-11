@@ -6,7 +6,7 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
-    var DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock;
@@ -1121,7 +1121,7 @@
           return (ref1 = typeof cont === "function" ? cont([blockSource(block)]) : void 0) != null ? ref1 : [blockSource(block)];
         }) : block.language === 'yaml' ? this.addPostProcessing(block, function(cont) {
           var ref1, yaml;
-          yaml = (!block.computedYaml && block.yaml) || safeLoad(blockSource(block));
+          yaml = (!block.computedYaml && block.yaml) || parseYaml(blockSource(block));
           return (ref1 = typeof cont === "function" ? cont([yaml]) : void 0) != null ? ref1 : [yaml];
         }) : (env = this.env(block.language)) ? this.addPostProcessing(block, env.compileBlock(block)) : void 0;
       };
@@ -2454,6 +2454,15 @@
       var ref;
       return ((ref = Leisure.findEditor(e.target)) != null ? ref.options.followLink(e) : void 0) || false;
     };
+    parseYaml = function(yaml) {
+      var err, error1;
+      try {
+        return safeLoad(yaml);
+      } catch (error1) {
+        err = error1;
+        return null;
+      }
+    };
     replacementFor = function(start, oldText, newText) {
       var endOff, lim, startOff;
       lim = Math.min(oldText.length, newText.length);
@@ -2510,7 +2519,9 @@
       rootContext: {},
       isDynamic: isDynamic,
       ParsedCodeBlock: ParsedCodeBlock,
-      setLounge: setLounge
+      setLounge: setLounge,
+      parseYaml: parseYaml,
+      blockSource: blockSource
     });
     return {
       createLocalData: createLocalData,
@@ -2531,7 +2542,8 @@
       getDocumentParams: getDocumentParams,
       basicDataFilter: basicDataFilter,
       replacementFor: replacementFor,
-      ajaxGet: ajaxGet
+      ajaxGet: ajaxGet,
+      parseYaml: parseYaml
     };
   });
 
