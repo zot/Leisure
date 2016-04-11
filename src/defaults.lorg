@@ -608,15 +608,6 @@ span[data-block='code'].fancy {
   vertical-align: middle;
   background: lightgray;
 }
-.source {
-  position: relative;
-  display: block;
-  border: solid 3px blue;
-}
-.results {
-  display: block;
-  border: solid 3px green;
-}
 /* patches for theme problems */
 [data-org-src].code-results,
 [data-org-src].code-text {
@@ -680,100 +671,48 @@ Handlebars.registerPartial 'codeMenuButton', """
 <div name='codeMenuButton' data-widget-holder data-noncontent><button data-widget-button><div data-widget-border></div></button></div>
 """
 codeMenuString = """
-  <div id='codeMenu' data-noncontent>
-    <ul>
-      <li class='hide code' name='toggleShowCode'><a href='javascript:void(0)'><span>Show code</span></a>
-      <li class='show code' name='toggleShowCode'><a href='javascript:void(0)'><span>Hide code</span></a>
-      <li class='hide results' name='toggleShowResults'><a href='javascript:void(0)'><span>Show results</span></a>
-      <li class='show results' name='toggleShowResults'><a href='javascript:void(0)'><span>Hide results</span></a>
-      <li class='not dynamic' name='toggleDynamic'><a href='javascript:void(0)'><span>Make dynamic</span></a>
-      <li class='is dynamic' name='toggleDynamic'><a href='javascript:void(0)'><span>Make static</span></a>
-    </ul>
-  </div>
+  <ul id='codeMenu'>
+    <li class='show code' value='toggleShowCode'>Show code
+    <li class='hide code' value='toggleShowCode'>Hide code
+    <li class='show results' value='toggleShowResults'>Show results
+    <li class='hide results' value='toggleShowResults'>Hide results
+    <li class='set dynamic' value='toggleDynamic'>Make dynamic
+    <li class='clear dynamic' value='toggleDynamic'>Make static
+  </ul>
 """
 menu = $('#codeMenu')
 menu.remove()
 $(document.body).append codeMenuString
-menu = $('#codeMenu')
-menu.find('ul').menu()
-menu.show()
-hideMenu = ->
-  menu.removeClass 'show'
-  menu.data lounge: null
-menu.data
-  show: (opts, blockId)->
-    menu.data {opts, block: opts.data.parsedCodeBlock blockId}
-    menu.addClass 'show'
-  hide: hideMenu
-menuEvent = (func)-> (e)-> func e, menu.data('opts'), menu.data 'block'
-menu.on 'mouseleave', hideMenu
-menu.find('.code').on 'click', menuEvent (e, opts, block)->
-  if $(e.currentTarget).is('.hide')
-    console.log block.block._id,'show code'
-    block.setExports true, block.exportsResults()
-  else
-    console.log block.block._id, 'hide code'
-    block.setExports false, block.exportsResults()
-  block.save()
-  hideMenu()
-menu.find('.results').on 'click', menuEvent (e, opts, block)->
-  if $(e.currentTarget).is('.hide')
-    console.log block.block._id, 'show results'
-    block.setExports block.exportsCode(), true
-  else
-    console.log block.block._id, 'hide results'
-    block.setExports block.exportsCode(), false
-  block.save()
-  hideMenu()
-menu.find('.dynamic').on 'click', menuEvent (e, opts, block)->
-  if $(e.currentTarget).is('.is')
-    console.log block.block._id, 'make static'
-    block.setDynamic false
-  else
-    console.log block.block._id, 'make dynamic'
-    block.setDynamic true
-  block.save()
-  hideMenu()
+menu = $('#codeMenu').hide().menu
+  select: (e, ui)->
+    menu.hide()
+    block = menu.data 'block'
+    menu.data block: null
+    if ui.item.is '.code' then block.setExports ui.item.is('.show'), block.exportsResults()
+    else if ui.item.is '.results' then block.setExports block.exportsCode(), ui.item.is('.show')
+    else if ui.item.is '.dynamic' then block.setDynamic ui.item.is '.set'
+    block.save()
+menu.on 'mouseleave', -> menu.hide()
 Leisure.initCodeMenu = (view)->
   opts = Leisure.findEditor(view).options
   blockId = opts.idForNode(view.find '[data-block]')
   $(view).find('[name=codeMenuButton] [data-widget-button]').on 'click', (e)->
     console.log "CLICK!"
-    menu = $('#codeMenu')
     block = opts.data.parsedCodeBlock blockId
-    if !block.exportsCode() then menu.addClass 'hidingCode'
-    else menu.removeClass 'hidingCode'
-    if !block.exportsResults() then menu.addClass 'hidingResults'
-    else menu.removeClass 'hidingResults'
-    if block.isDynamic() then menu.addClass 'dynamic'
-    else menu.removeClass 'dynamic'
-    button = $(view).find('[name=codeMenuButton]')
-    offset = button.offset()
-    menu[0].style.top = offset.top
-    menu[0].style.left = offset.left
-    setTimeout (-> menu.data('show')(opts, blockId)), 1
+    menu = $('#codeMenu')
+    menu.find('li').show()
+    menu.find(if block.exportsCode() then '.show.code' else '.hide.code').hide()
+    menu.find(if block.exportsResults() then '.show.results' else '.hide.results').hide()
+    menu.find(if block.isDynamic() then '.set.dynamic' else '.clear.dynamic').hide()
+    menu.data block: block
+    menu.show()
+    menu.position my: 'left top', of: $(view).find('[name=codeMenuButton]'), at: 'left top'
 #+END_SRC
 
 #+BEGIN_SRC css
 #codeMenu {
-  display: none !important;
-}
-#codeMenu.show {
-  display: inline-block !important;
+  display: inline-block;
   position: absolute;
-}
-#codeMenu.hidingCode .hide.code,
-#codeMenu.hidingResults .hide.results,
-#codeMenu.dynamic .is.dynamic {
-  display: initial;
-}
-#codeMenu.hidingCode .show.code,
-#codeMenu .hide.code,
-#codeMenu.hidingResults .show.results,
-#codeMenu .hide.results,
-#codeMenu.dynamic .not.dynamic,
-#codeMenu .is.dynamic {
-  display: none;
 }
 @keyframes border-pulse {
   0% {

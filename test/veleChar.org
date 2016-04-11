@@ -6,16 +6,16 @@ name: Bill
 ruche: 11
 character: Golden Monkey
 currentRuche: 7
-☠ tmp derp
+consequence: tmp derp
 ☠ moderate slubba
-❂ [hc/truth] Agent of the Order
+aspect: [hc/truth] Agent of the Order
 ❂ [trbl] On Loan from the Hand
 ❂ Harvester of Knowledge
 ❂ X
 ❂ X
-◆ Scrahv Ninja (not martial arts) d12
-✫ Scrahv Obscurement [truth]: fiction 2
-◇ Stony resilience d12 composure
+focus: Scrahv Ninja (not martial arts) d12
+ability: Scrahv Obscurement [truth]: fiction 2
+trait: Stony resilience d12 composure
 ◇ Toughness d10
 ◇ Hand to Hand Combat d8
 ◇ Scholar d6
