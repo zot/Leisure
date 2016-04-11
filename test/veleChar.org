@@ -1,4 +1,7 @@
 * Data
+#+BEGIN_SRC leisure :results def
+x = 3
+#+END_SRC
 
 #+NAME: character-sheet
 #+BEGIN_SRC text :post formatted-character-sheet(*this*) :flowlevel -1 :results dynamic :exports code

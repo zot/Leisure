@@ -180,8 +180,12 @@
     });
   };
 
-  require(['jquery'], function() {
-    return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport'], init);
+  require(['jquery', 'lib/lodash.min'], function() {
+    return require(['acorn', 'acorn_walk'], function() {
+      return require(['acorn_loose'], function() {
+        return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport'], init);
+      });
+    });
   });
 
 }).call(this);

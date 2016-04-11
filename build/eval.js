@@ -3,16 +3,13 @@
   var slice = [].slice,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], function(Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg) {
-    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, basicFormat, blockSource, blockVars, blocksObserved, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues;
+  define.amd = true;
+
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg) {
+    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, basicFormat, blockSource, blockVars, blocksObserved, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
-    acornLoose = null;
-    setTimeout((function() {
-      return require(['acorn_loose'], function(AcornLoose) {
-        return acornLoose = AcornLoose;
-      });
-    }), 1);
+    acornLoose = AcornLoose;
     lispyScript = lsrequire("lispyscript");
     getType = Ast.getType, cons = Ast.cons, unescapePresentationHtml = Ast.unescapePresentationHtml, Nil = Ast.Nil;
     mergeExports = Exports.mergeExports;
@@ -47,6 +44,8 @@
         }).then(function() {
           return new Promise(function(resolve, reject) {
             return simpleEval('resetStdTokenPacks', resolve, reject);
+          })["catch"](function(err) {
+            return console.error("ERROR LOADING LEISURE SYSTEM!\n" + err.stack);
           });
         });
       }
@@ -250,7 +249,7 @@
     };
     isYamlResult = function(block) {
       var ref;
-      return hasCodeAttribute(block, 'results', 'yaml') || ((ref = block.language) === 'text' || ref === 'string');
+      return hasCodeAttribute(block, 'results', 'yaml') || ((ref = block.language) === 'text' || ref === 'string' || ref === 'yaml');
     };
     presentHtml = function(v) {
       var str;
@@ -301,6 +300,12 @@
     textEnv = function(env) {
       env.executeText = function(text) {
         return text;
+      };
+      return env;
+    };
+    yamlEnv = function(env) {
+      env.executeText = function(text) {
+        return safeLoad(text);
       };
       return env;
     };
@@ -497,7 +502,7 @@
           results1 = [];
           for (blockName in blocks) {
             value = blocks[blockName];
-            results1.push("player = player || __data.getYaml(__data.getBlockNamed('" + value + "'));");
+            results1.push(blockName + " = " + blockName + " || __data.getYaml(__data.getBlockNamed('" + value + "'));");
           }
           return results1;
         })()).join('\n  ')) + "\n    var res = (function() {" + (jsGatherResults(env, CS.compile(src, {
@@ -548,7 +553,8 @@
       coffee: csEnv,
       coffeescript: csEnv,
       text: textEnv,
-      string: textEnv
+      string: textEnv,
+      yaml: yamlEnv
     };
     localEval = (function(html) {
       return function(x) {

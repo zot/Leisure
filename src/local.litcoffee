@@ -245,6 +245,6 @@ Code for local-mode.  This will not be loaded under meteor.
         #  """ + '\n'
         $('#globalLoad').remove()
 
-    require ['jquery'], ->
+    require ['jquery', 'lib/lodash.min'], -> require ['acorn', 'acorn_walk'], -> require ['acorn_loose'], ->
       #require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init
       require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport'], init

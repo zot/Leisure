@@ -1119,6 +1119,10 @@
         return (ref = block.code) != null ? ref : block.code = isText(block) ? this.addPostProcessing(block, function(cont) {
           var ref1;
           return (ref1 = typeof cont === "function" ? cont([blockSource(block)]) : void 0) != null ? ref1 : [blockSource(block)];
+        }) : block.language === 'yaml' ? this.addPostProcessing(block, function(cont) {
+          var ref1, yaml;
+          yaml = (!block.computedYaml && block.yaml) || safeLoad(blockSource(block));
+          return (ref1 = typeof cont === "function" ? cont([yaml]) : void 0) != null ? ref1 : [yaml];
         }) : (env = this.env(block.language)) ? this.addPostProcessing(block, env.compileBlock(block)) : void 0;
       };
 

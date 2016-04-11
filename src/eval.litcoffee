@@ -1,10 +1,10 @@
 Evaulation support for Leisure
 
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], (Base, Ast, Runtime, Acorn, AcornWalk, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg)->
+    define.amd = true
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg)->
       acorn = Acorn
       acornWalk = AcornWalk
-      acornLoose = null
-      setTimeout (-> require ['acorn_loose'], (AcornLoose)-> acornLoose = AcornLoose), 1
+      acornLoose = AcornLoose
       lispyScript = lsrequire("lispyscript")
       {
         getType
@@ -70,6 +70,7 @@ Evaulation support for Leisure
             .then -> requirePromise './leisure/svg'
             .then -> new Promise (resolve, reject)->
               simpleEval 'resetStdTokenPacks', resolve, reject
+            .catch (err)-> console.error "ERROR LOADING LEISURE SYSTEM!\n#{err.stack}"
         leisurePromise
 
       simpleEval = (txt, success, fail)->
@@ -165,7 +166,7 @@ Evaulation support for Leisure
           block.attributeWords[attr] = (word.toLowerCase() for word in a)
         value.toLowerCase() in block.attributeWords[attr]
 
-      isYamlResult = (block)-> hasCodeAttribute(block, 'results', 'yaml') || block.language in ['text', 'string']
+      isYamlResult = (block)-> hasCodeAttribute(block, 'results', 'yaml') || block.language in ['text', 'string', 'yaml']
 
       presentHtml = (v)->
         str = ': ' + (if v instanceof Html then v.content.replace(/\r?\n/g, '\\n')
@@ -192,6 +193,10 @@ Evaulation support for Leisure
 
       textEnv = (env)->
         env.executeText = (text)-> text
+        env
+
+      yamlEnv = (env)->
+        env.executeText = (text)-> safeLoad text
         env
 
       jsEnv = (env)->
@@ -290,7 +295,7 @@ Evaulation support for Leisure
           (function(__data) {
             return function (__cont, #{varNames.join ', '}) {
               #{("if (#{constName} == undefined) #{constName} = #{value};" for constName, value of consts).join('\n  ')}
-              #{("player = player || __data.getYaml(__data.getBlockNamed('#{value}'));" for blockName, value of blocks).join('\n  ')}
+              #{("#{blockName} = #{blockName} || __data.getYaml(__data.getBlockNamed('#{value}'));" for blockName, value of blocks).join('\n  ')}
               var res = (function() {#{jsGatherResults env, CS.compile(src, bare: true), true}})();
               return __cont ? __cont(res) : res;
             };
@@ -328,6 +333,7 @@ Evaulation support for Leisure
         coffeescript: csEnv
         text: textEnv
         string: textEnv
+        yaml: yamlEnv
 
       localEval = do (html)-> (x)-> eval x
 

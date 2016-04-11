@@ -264,7 +264,11 @@
           if obj.codeAttributes?.local? then obj.local = true
           if l = source.lead() then obj.language = l.trim()
           if isYamlResult(obj) || isYaml source
-            if yamlSrc = (if isYaml source then source.content else results?.content().replace /^: /g, '')
+            yamlSrc = (if isYaml(source) && !results then source.content
+            else
+              obj.computedYaml = true
+              results?.content().replace /^: /gm, '')
+            if yamlSrc
               try
                 obj.yaml = safeLoad yamlSrc
               catch err
