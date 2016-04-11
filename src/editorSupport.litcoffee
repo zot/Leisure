@@ -608,7 +608,7 @@ that must be done regardless of the source of changes
           block = @getBlock block
           block.code ? block.code = if isText(block) then @addPostProcessing block, (cont)-> cont?([blockSource block]) ? [blockSource block]
           else if block.language == 'yaml' then @addPostProcessing block, (cont)->
-            yaml = (!block.computedYaml && block.yaml) || safeLoad blockSource block
+            yaml = (!block.computedYaml && block.yaml) || parseYaml blockSource block
             cont?([yaml]) ? [yaml]
           else if env = @env(block.language) then @addPostProcessing block, env.compileBlock block
         parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, block
@@ -1358,6 +1358,12 @@ may be called more than once.  changeData() returns a promise.
         documentParams
 
       followLink = (e)-> Leisure.findEditor(e.target)?.options.followLink(e) || false
+
+      parseYaml = (yaml)->
+        try
+          safeLoad yaml
+        catch err
+          null
 
       replacementFor = (start, oldText, newText)->
         lim = Math.min oldText.length, newText.length

@@ -1,6 +1,7 @@
-* Make a drawer for "uncommitted" content
-* TODO load *and save* gists or fiddles
 * TODO Martini button in Leisure bar that toggles the entire page
+* TODO structural keybord commands
+* TODO Make a drawer for "uncommitted" content
+* TODO load *and save* gists or fiddles
 * TODO View on a block's content
 ** Edit a src block's content
 ** Edit a headline's content
