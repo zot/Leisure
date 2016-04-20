@@ -2134,7 +2134,7 @@
           }
           first = repl.gStart;
         }
-        return repls;
+        return _.orderBy(guardedReplacements, 'end', 'desc');
       }
     };
     BlockErrors = (function() {

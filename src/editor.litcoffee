@@ -1448,7 +1448,7 @@ guard regions overlap.
           for repl in repls
             if first < repl.gEnd then throw new Error "Attempt to perform overlapping replacements in batch"
             first = repl.gStart
-          repls
+          _.orderBy guardedReplacements, 'end', 'desc'
 
       class BlockErrors
         constructor: ->

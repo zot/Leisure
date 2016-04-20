@@ -94,7 +94,7 @@ stripNesting l = isCons l
     stripNesting h
     map stripNesting l
   l
-  
+
 
 simplify exprString = do
   list <- scanLineM exprString
@@ -434,7 +434,8 @@ wrappedForeach l = \f . f l
 defMacro 'foreach' \list . ['wrappedForeach' list]
 
 defCase bind.wrappedForeach fe cont | hasType fe wrappedForeach ->
-  primBind (fe id) \x . doall (toList (bind x cont))
+  primBind (fe id) \x .
+    foldr (\el acc . primBind (primBind el cont) \elVal . primBind acc \accVal . [elVal | accVal]) [] (toList x)
 
 #######################
 ## pre/postconditions

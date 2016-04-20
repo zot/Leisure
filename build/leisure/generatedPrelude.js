@@ -387,7 +387,7 @@ define([], function(){
 
   return resolve(L_parens)(L_start_0, L_end_1, L_content)})();
 })))},
-    function(){return resolve(L_newDefine)("stripParens", 1, "stripParens p = isParens p (parensContent p) p", lazy(function(L_p){return resolve(L_isParens)(L_p)(function(){"use strict";return resolve(L_parensContent)(L_p);})(L_p)}))},
+    function(){return resolve(L_newDefine)("stripParens", 1, "stripParens p = isParens p (stripParens (parensContent p)) p", lazy(function(L_p){return resolve(L_isParens)(L_p)(function(){"use strict";return resolve(L_stripParens)(function(){"use strict";return resolve(L_parensContent)(L_p);});})(L_p)}))},
     function(){return resolve(L_newDefine)("parseErr", 2, "parseErr msg1 msg2 = err (strCat (cons msg1 (cons msg2 nil)))", lazy((function(L_msg1, L_msg2) {
     return arguments.callee.length != arguments.length
         ? Leisure_primCall(arguments.callee, 0, arguments)

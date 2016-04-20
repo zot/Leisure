@@ -93,11 +93,16 @@ misrepresented as being the original software.
     LeisureObject = (function() {
       function LeisureObject() {}
 
+      LeisureObject.prototype.className = 'LeisureObject';
+
+      LeisureObject.prototype.toString = function() {
+        return this.leisureName;
+      };
+
       return LeisureObject;
 
     })();
     LeisureObject.prototype.__proto__ = Function.prototype;
-    LeisureObject.prototype.className = 'LeisureObject';
     if ((typeof global === "undefined" || global === null) && (typeof window !== 'undefined')) {
       window.global = window;
     }
@@ -544,7 +549,7 @@ misrepresented as being the original software.
       if (!method && global.noredefs && (global[nm] != null)) {
         throwError("[DEF] Attempt to redefine definition: " + name);
       }
-      functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = typeof func === 'function' && func.memo ? (func.leisureName = name, func) : nameFunc(func, name);
+      functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = typeof func === 'function' && func.memo ? (func.leisureName = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
       if (root.currentNameSpace) {
         LeisureNameSpaces[namespace != null ? namespace : root.currentNameSpace][nameSub(name)] = namedFunc;
         nsLog("DEFINING " + name + " FOR " + root.currentNameSpace);

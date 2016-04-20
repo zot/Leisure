@@ -1,3 +1,8 @@
+* Write program to test new vele mechanics
+* implement dofold
+dofold i <- 0
+  x <- range 0 100
+  i + x
 * TODO Martini button in Leisure bar that toggles the entire page
 * TODO structural keybord commands
 * TODO Make a drawer for "uncommitted" content
