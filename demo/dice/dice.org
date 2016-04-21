@@ -1,3 +1,8 @@
+* Dice roller
+:properties:
+:note: sidbar
+:end:
+[[leisure:player-ui/name]][[leisure:player-ui/header]][[leisure:player-ui]]
 * Monadic examples
 :properties:
 :hidden: true
@@ -87,19 +92,22 @@ roll = do
   player <- foreach getData 'player-ui'
   print concat['Player: ' player]
   selections = selectionList (afetch 'selections' player)
-  roll <- do
+  result <- do
     sizeCount <- foreach repeat 5
     size = (sizeCount + 2) * 2
-    dice <- repeat (afetch size selections)
+    dice <- foreach repeat (afetch size selections)
     valueRand <- rand
     angleRand <- rand
+    #print concat['roll die #' dice ': ' valueRand]
     [{'size':size 'value':(ceil valueRand * size) 'angle':(floor angleRand * 24)}]
+  print concat['roll: ' result]
+  debug
   changeData
     count <- foreach getData 'roll-count'
     print concat['Count: ' count]
     nextCount <- (assoc 'count' count) + 1
     setData 'roll-count' {'count' : nextCount}
-    newRoll = {'type':'roll' 'number':count 'player':(afetch 'player' player) 'roll':roll}
+    newRoll = {'type':'roll' 'number':count 'player':(afetch 'player' player) 'roll':result}
     appendDataWithAttrs 'rolls' nil ':flowLevel 3 :index rolls number' newRoll
 
 playerLens = lensBuilder lensKey 'player'
@@ -198,8 +206,8 @@ Rewrite this in Leisure!
 #+BEGIN_SRC coffee :control player-ui
 lz = window.lazy
 rz = window.resolve
-runMonad = Leisure.runMonad
-#fancyEnv = Leisure.fancyEnv()
+runMonad = (m)-> Leisure.runMonad m, fancyEnv, (->)
+##fancyEnv = Leisure.fancyEnv()
 fancyEnv = _.clone Lounge
 fancyEnv.presentValue = (x)-> x
 
@@ -210,9 +218,11 @@ fancyEnv.presentValue = (x)-> x
 
 window.selectDie = (e)->
   console.log "SELECT #{e.target.name} #{e.target.value}"
-  run rz(L_select)(e.target.name, e.target.value)
+  runMonad rz(L_select)(e.target.name, e.target.value)
 
 @initializeView = (view)->
+  fancyEnv.opts = Leisure.UI.context.opts
+  #debugger
   holder = $(view).closest("[data-org-headline='1']")
   holder.attr 'game', ''
   h = $(holder).find("[data-view='player-ui/name']")?[0].offsetTop ? 0
@@ -387,15 +397,8 @@ do
 window.diceLounge = Lounge
 #+END_SRC
 
-* Dice roller
-:properties:
-:note: sidbar
-:end:
-[[leisure:player-ui/name]][[leisure:player-ui/header]][[leisure:player-ui]]
 * Rolls go here
 :properties:
 :hidden: true
 :name: rolls
 :end:
-
-Rolls

@@ -1,0 +1,32 @@
+* List comprehensions
+#+BEGIN_SRC leisure :results dynamic
+do
+  x <- [1 2 3]
+  x > 1
+  x + 1
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  x <- [1 2 3]
+  x > 1
+  y <- [4 5 6]
+  (x + 1) * y
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  x <- flat [1 2 3]
+  x > 1
+  y <- [4 5 6]
+  (x + 1) * y
+#+END_SRC
+* These don't work yet
+#+BEGIN_SRC leisure :results dynamic
+do
+  setValue 'list' [1 2 3]
+  x <- flat run getValue 'list'
+  x > 1
+  y <- [4 5 6]
+  (x + 1) * y
+#+END_SRC

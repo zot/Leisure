@@ -804,6 +804,7 @@ may be called more than once.  changeData() returns a promise.
           result = null
           @batchReplace (=>
             dataChanges = @dataChanges =
+              anonymousInsertCount: 0
               sharedRemoves: {}
               sharedInserts: {}
               sharedSets: {}
@@ -819,12 +820,7 @@ may be called more than once.  changeData() returns a promise.
                 repls.push b
               for name, {parent, parentType, block} of @dataChanges.sharedInserts
                 if b = @blockBounds (if parentType == 'block' then parent else @data.lastChild @data.getNamedBlockId parent)
-                  b.start = b.end
-                  b.text = block.text
-                  b.source = 'code'
-                  delete b.gStart
-                  delete b.gEnd
-                  repls.push b
+                  repls.push start: b.end, end: b.end, source: 'code', text: block.text
                 else throw new Error "Attempt to append a block after nonexistant block: #{parent}"
               for name, block of @dataChanges.sharedSets
                 b = @blockBounds name
@@ -873,7 +869,7 @@ may be called more than once.  changeData() returns a promise.
           @verifyDataObject "append", value
           if name && @getData(name)
             throw new Error "Attempt to add block with duplicate name: #{name}"
-          @dataChanges.sharedInserts[name] = {
+          @dataChanges.sharedInserts[name || "#+#{@dataChanges.anonymousInsertCount++}+#"] = {
             parentType
             parent
             block: @data.parseBlocks(@data.textForDataNamed(name, value, codeOpts))[0]

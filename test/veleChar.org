@@ -4,7 +4,7 @@ x = 3
 #+END_SRC
 
 #+NAME: character-sheet
-#+BEGIN_SRC text :post formatted-character-sheet(*this*) :flowlevel -1 :results dynamic :exports code
+#+BEGIN_SRC text :post formatted-character-sheet(*this*) :flowlevel -1 :results dynamic :exports code :index players name
 name: Bill
 ruche: 11
 character: Golden Monkey
@@ -129,12 +129,16 @@ item: Audio Telescope
 : name: "Bill\x13\x13\x13"
 
 #+BEGIN_HTML :var player=character-sheet
+{{{view player}}}
+#+END_HTML
+
+#+BEGIN_SRC html :defview character-sheet
 <div class='characterSheetHolder'>
   <div class='characterSheet'>
-    {{#each player.errors}}<div class='error bx'>{{this}}</div>{{/each}}
-    <div class='player bx'>{{player.name}} {{player.extraRuche}}</div>
-    <div class='characterName bx'>{{player.characters.[0].name}} {{player.cost}}</div>
-    {{#each player.characters}}
+    {{#each errors}}<div class='error bx'>{{this}}</div>{{/each}}
+    <div class='player bx'>{{name}} {{extraRuche}}</div>
+    <div class='characterName bx'>{{characters.[0].name}} {{cost}}</div>
+    {{#each characters}}
       {{#unless @first}}<div class='character bx'>{{name}}{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}} ({{allocatedRuche}})</div>{{/unless}}
       <div class='ruche bx'><div class='current-ruche'></div><div class='max-ruche'>{{allocatedRuche}}</div></div>
       {{#if @first}}
@@ -174,7 +178,7 @@ item: Audio Telescope
     {{/each}}
   </div>
 </div>
-#+END_HTML
+#+END_SRC
 * code
 :properties:
 :hidden: true
@@ -183,6 +187,7 @@ item: Audio Telescope
 #+BEGIN_SRC coffee :var player
 do =>
   result = @Vele.parse player
+  result.type = 'character-sheet'
   if m = result.errors?[0]?.match /^(.*) on line ([0-9]+)/
     lines = player.split(/(\n)/)
     offset = 0

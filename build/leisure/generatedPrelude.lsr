@@ -18,7 +18,8 @@ setNameSpace 'core'
 # IO SUPPORT
 #############
 
-isMonad x = or (eq (getType x) 'monad') (eq (getType x) 'monad2')
+#isMonad is now a primitive
+#isMonad x = or (hasType x 'monad') (hasType x '*Monad2')
 
 asIO x = x
 fakereturn x = x
@@ -375,7 +376,7 @@ parensFromToks left right content = \\
   end = addFilepos (tokenFilepos right) (strLen (tokenString right))
   .
   parens start end content
-stripParens p = isParens p (parensContent p) p
+stripParens p = isParens p (stripParens (parensContent p)) p
 
 parseErr msg1 msg2 = err (strCat (cons msg1 (cons msg2 nil)))
 

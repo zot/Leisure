@@ -1504,6 +1504,7 @@
           return function() {
             var b, block, name, parent, parentType, ref, ref1, ref2, repls;
             dataChanges = _this.dataChanges = {
+              anonymousInsertCount: 0,
               sharedRemoves: {},
               sharedInserts: {},
               sharedSets: {},
@@ -1523,12 +1524,12 @@
               for (name in ref) {
                 ref1 = ref[name], parent = ref1.parent, parentType = ref1.parentType, block = ref1.block;
                 if (b = _this.blockBounds((parentType === 'block' ? parent : _this.data.lastChild(_this.data.getNamedBlockId(parent))))) {
-                  b.start = b.end;
-                  b.text = block.text;
-                  b.source = 'code';
-                  delete b.gStart;
-                  delete b.gEnd;
-                  repls.push(b);
+                  repls.push({
+                    start: b.end,
+                    end: b.end,
+                    source: 'code',
+                    text: block.text
+                  });
                 } else {
                   throw new Error("Attempt to append a block after nonexistant block: " + parent);
                 }
@@ -1634,7 +1635,7 @@
         if (name && this.getData(name)) {
           throw new Error("Attempt to add block with duplicate name: " + name);
         }
-        return this.dataChanges.sharedInserts[name] = {
+        return this.dataChanges.sharedInserts[name || ("#+" + (this.dataChanges.anonymousInsertCount++) + "+#")] = {
           parentType: parentType,
           parent: parent,
           block: this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0]

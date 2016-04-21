@@ -124,20 +124,30 @@
       return '';
     });
     Handlebars.registerHelper('find', function() {
-      var data, i, item, j, len, name, options, ref1, ref2, res;
+      var data, i, item, items, j, len, name, options, ref1, res;
       name = 2 <= arguments.length ? slice.call(arguments, 0, i = arguments.length - 1) : (i = 0, []), options = arguments[i++];
       data = options.data.opts.data;
-      if (name.length === 2) {
-        return data.find(name[0], name[1]);
-      } else {
-        res = '';
-        ref2 = (ref1 = data.find(name[0])) != null ? ref1 : [];
-        for (j = 0, len = ref2.length; j < len; j++) {
-          item = ref2[j];
-          res += options.fn(item);
-        }
-        return res;
+      items = name.length === 1 ? data.find(name[0]) : data.find(name[0], name[1]);
+      res = "<span data-find-index='" + name[0] + "'>";
+      ref1 = items != null ? items : [];
+      for (j = 0, len = ref1.length; j < len; j++) {
+        item = ref1[j];
+        res += options.fn(data.getYaml(item), options);
       }
+      return res + "</span>";
+    });
+    Handlebars.registerHelper('findReverse', function() {
+      var data, i, item, items, j, len, name, options, ref1, res;
+      name = 2 <= arguments.length ? slice.call(arguments, 0, i = arguments.length - 1) : (i = 0, []), options = arguments[i++];
+      data = options.data.opts.data;
+      items = name.length === 1 ? data.find(name[0]) : data.find(name[0], name[1]);
+      res = '';
+      ref1 = (items != null ? items : []).reverse();
+      for (j = 0, len = ref1.length; j < len; j++) {
+        item = ref1[j];
+        res += options.fn(data.getYaml(item), options);
+      }
+      return res;
     });
     Handlebars.registerHelper('view', function(item, contextName, options) {
       var block, context, data, yaml;
@@ -146,9 +156,7 @@
         contextName = null;
       }
       context = options != null ? options.data : void 0;
-      block = context.opts.editor.options.getBlock(data);
-      yaml = context.opts.data.getYaml(block);
-      data = !yaml ? (block = null, item) : yaml;
+      data = ((block = context.opts.editor.options.getBlock(data)) && (yaml = context.opts.data.getYaml(block)) ? yaml : (block = null, item));
       if (data != null ? data.type : void 0) {
         return renderView(data.type, contextName, data, null, false, block);
       }

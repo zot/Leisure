@@ -100,24 +100,30 @@ choose a handlebars template.
 
       Handlebars.registerHelper 'find', (name..., options)->
         data = options.data.opts.data
-        if name.length == 2 then data.find name[0], name[1]
-        else
-          res = ''
-          for item in data.find(name[0]) ? []
-            res += options.fn item
-          res
+        items = if name.length == 1 then data.find(name[0]) else data.find name[0], name[1]
+        res = "<span data-find-index='#{name[0]}'>"
+        for item in items ? []
+          res += options.fn data.getYaml(item), options
+        res + "</span>"
+
+      Handlebars.registerHelper 'findReverse', (name..., options)->
+        data = options.data.opts.data
+        items = if name.length == 1 then data.find(name[0]) else data.find name[0], name[1]
+        res = ''
+        for item in (items ? []).reverse()
+          res += options.fn data.getYaml(item), options
+        res
 
       Handlebars.registerHelper 'view', (item, contextName, options)->
         if !options
           options = contextName
           contextName = null
         context = options?.data
-        block = context.opts.editor.options.getBlock data
-        yaml = context.opts.data.getYaml block
-        data = if !yaml
+        data = (if (block = context.opts.editor.options.getBlock data) && yaml = context.opts.data.getYaml block
+          yaml
+        else
           block = null
-          item
-        else yaml
+          item)
         if data?.type
           renderView data.type, contextName, data, null, false, block
 

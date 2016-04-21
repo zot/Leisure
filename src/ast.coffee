@@ -94,9 +94,11 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     func
 
   class LeisureObject
+    className: 'LeisureObject'
+    toString: -> @leisureName
 
   LeisureObject.prototype.__proto__ = Function.prototype
-  LeisureObject.prototype.className = 'LeisureObject'
+#  LeisureObject.prototype.className = 'LeisureObject'
 
   if !global? && (typeof window != 'undefined') then window.global = window
 
@@ -317,6 +319,7 @@ define ['./base', 'lib/lodash.min'], (base, _)->
     #namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
     functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = if typeof func == 'function' && func.memo
       func.leisureName = name
+      if func.__proto__ == Function.prototype then func.__proto__ = LeisureObject
       func
     else nameFunc(func, name)
     if root.currentNameSpace
