@@ -1,7 +1,6 @@
 define([], function(){
   return L_runMonads([
     function(){return resolve(L_setNameSpace)("core")},
-    function(){return resolve(L_newDefine)("isMonad", 1, "isMonad x = or (eq (getType x) 'monad') (eq (getType x) 'monad2')", lazy(function(L_x){return resolve(L_or)(function(){"use strict";return resolve(L_eq)(function(){"use strict";return resolve(L_getType)(L_x);}, "monad");}, function(){"use strict";return resolve(L_eq)(function(){"use strict";return resolve(L_getType)(L_x);}, "monad2");})}))},
     function(){return resolve(L_newDefine)("asIO", 1, "asIO x = x", lazy(function(L_x){return resolve(L_x)}))},
     function(){return resolve(L_newDefine)("fakereturn", 1, "fakereturn x = x", lazy(function(L_x){return resolve(L_x)}))},
     function(){return resolve(L_newDefine)("wrap", 1, "wrap x = x", lazy(function(L_x){return resolve(L_x)}))},

@@ -489,6 +489,10 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
       (console.log "#{n.name}: #{n.stack()}") for n in env.monadStack
       console.log()
 
+  define 'isMonad', (m)->
+    val = rz(m)
+    if isMonad(val) || val instanceof Monad2 || val instanceof Monad3 then _true else _false
+
   define 'dumpStack', new Monad2 (env, cont)->
     e = new Error()
     dumpMonadStack e, env
@@ -501,7 +505,8 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     "defer #{rz v}"
 
   define 'bind', bind = (m, binding)-> if isPartial arguments then partialCall arguments else
-    b = new Monad2 'bind', ((env, cont)->
+    bnd = new Monad2 'bind', ((env, cont)->
+      b = bnd
       while b instanceof Monad2 && b.isBind
         sync = true
         async = true
@@ -512,10 +517,10 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
         sync = false
         if async then return _unit
       runMonad2 b, env, cont)
-    b.isBind = true
-    b.arg = m
-    b.binding = binding
-    b
+    bnd.isBind = true
+    bnd.arg = m
+    bnd.binding = binding
+    bnd
 
   define 'pierce', (value)->
     new Monad2 'bind', (env, cont)->

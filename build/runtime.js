@@ -879,6 +879,15 @@ misrepresented as being the original software.
         return console.log();
       }
     };
+    define('isMonad', function(m) {
+      var val;
+      val = rz(m);
+      if (isMonad(val) || val instanceof Monad2 || val instanceof Monad3) {
+        return _true;
+      } else {
+        return _false;
+      }
+    });
     define('dumpStack', new Monad2(function(env, cont) {
       var e;
       e = new Error();
@@ -896,12 +905,13 @@ misrepresented as being the original software.
       });
     });
     define('bind', bind = function(m, binding) {
-      var b;
+      var bnd;
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        b = new Monad2('bind', (function(env, cont) {
-          var async, sync;
+        bnd = new Monad2('bind', (function(env, cont) {
+          var async, b, sync;
+          b = bnd;
           while (b instanceof Monad2 && b.isBind) {
             sync = true;
             async = true;
@@ -920,10 +930,10 @@ misrepresented as being the original software.
           }
           return runMonad2(b, env, cont);
         }));
-        b.isBind = true;
-        b.arg = m;
-        b.binding = binding;
-        return b;
+        bnd.isBind = true;
+        bnd.arg = m;
+        bnd.binding = binding;
+        return bnd;
       }
     });
     define('pierce', function(value) {

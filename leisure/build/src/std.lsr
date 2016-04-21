@@ -369,11 +369,7 @@ defCase present.none obj | hasType obj none -> "none"
 defCase presentHtml.html obj | hasType obj html -> obj id
 
 ## bind
-# If the cont result is not the same type as the monad, we call unit
-# We could raise an error but for now we'll just auto-convert
-#
-# At this point, boolean monads return unit for "false" values
-# and the list monad ellides unit values from results
+# binding false returns unit and the list binding ellides unit values from results
 #
 # This makes bind useful for list comprehensions, like this:
 #
@@ -411,31 +407,46 @@ isCaseResult v = hasType v caseResult
 case test res = test (caseResult res) unit
 
 defCase bind.caseResult data cont | isCaseResult data -> data id
+defCase bind.cons list cont | hasType list cons -> monadicMap cont list
 
-# the first def is for if we can get IO to auto-convert values...
-#defCase bind.cons list cont | hasType list cons -> map cont list
-defCase bind.cons list cont | hasType list cons -> map cont list
-defCase bind.range r cont | hasType r range -> map cont r
-defCase bind.repeat r cont | hasType r repeat -> map cont r
+monadicMap cont list = foldr (\el acc . maybeBind (cont el) \elVal . maybeBind acc \accVal .
+  elVal == unit
+    accVal
+    [elVal | accVal]) [] list
 
-subbind m cont = bind (wrapped m) cont
+maybeBind item cont = isMonad item
+  primBind item cont
+  cont item
 
-defCase subbind.monad m cont | or (hasType m '*Monad2') (hasType m 'monad') -> bind m cont
-defCase subbind.boolean m cont | m == false -> cont unit
-defCase subbind.option m cont | hasType m none -> cont unit
-defCase subbind.either m cont | hasType m left -> cont unit
+defCase bind.range r cont | hasType r range -> monadicMap cont (toList r)
+defCase bind.repeat r cont | hasType r repeat -> monadicMap cont (toList r)
+defCase bind.true m cont | m == true -> cont true
+defCase bind.false m cont | m == false -> unit
+defCase bind.some m cont | hasType m some -> cont (m id)
+defCase bind.none m cont | hasType m none -> unit
+defCase bind.left m cont | hasType m left -> unit
+defCase bind.right m cont | hasType m left -> cont (m id)
 
 #######################
-## monadic iteration
+## fun with sequences
 #######################
 
-wrappedForeach l = \f . f l
+defMacro 'flat' \list . ['wrappedFlat' list]
 
-defMacro 'foreach' \list . ['wrappedForeach' list]
+wrappedFlat m = \f . f m
 
-defCase bind.wrappedForeach fe cont | hasType fe wrappedForeach ->
-  primBind (fe id) \x .
-    foldr (\el acc . primBind (primBind el cont) \elVal . primBind acc \accVal . [elVal | accVal]) [] (toList x)
+defCase bind.wrappedFlat m cont | hasType m wrappedFlat ->
+ maybeBind (m id) \x . foldr1 (\el acc . append el acc) (bind x cont)
+
+#######################
+## running
+#######################
+
+defMacro 'run' \list . ['wrappedRun' list]
+
+wrappedRun m = \f . f m
+
+defCase bind.wrappedRun m cont | hasType m wrappedRun -> maybeBind (m id) \x . bind x cont
 
 #######################
 ## pre/postconditions

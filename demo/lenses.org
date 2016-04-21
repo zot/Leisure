@@ -1,0 +1,174 @@
+* Lenses
+Lenses give let you view and change data inside a data structure in a functional way.
+
+Thanks to Perrin (Cryptic Swarm) for info on lenses and helping to simplify this code!
+
+** using lenses
+
+- lensGet lens obj -- get the lens data from obj
+- lensSet lens obj value -- return a new obj with the lens data set to value
+
+** high-level lens manipulation (using the lens builder)
+
+- lensBuilder -- creates a new lens builder
+- aBuilder lensHead -- moves the lens to the head
+- aBuilder lensTail -- moves the lens to the tail
+- aBuilder lensKey k -- moves the lens to the key
+- aBuilder lensGet data -- retrieve the value from data at the lens location
+- aBuilder lensSet data value -- set the value in data at the lens location
+- makeLensBuilder lens -- creates a lens builder on lens
+- aBuilder id -- retrieve the lens from the builder
+
+** low-level lens manipulation
+
+- lens path getter setter -- creates a lens.  Path is just for diagnostics, so a lens can print out its path for you
+- lensPath lens -- get the path for lens (for diagnostics); the path is a difference list
+- lensCompose l1 l2 -- make a lens based on moving l1 from l2's position
+- makeLensId -- returns a basic lens
+- makeLensHead lens -- moves a lens to the head of where it is looking
+- makeLensTail lens -- moves a lens to the head of where it is looking
+- maleLensKey lens key -- moves the lens to the assoc key position
+
+** Example usage
+
+Get and set the second item in a list
+
+#+BEGIN_SRC leisure :results dynamic
+data = [1 2 3]
+l = lensBuilder lensTail lensHead
+dataValue = l lensGet data
+changedData = l lensSet data 'NEW VALUE'
+
+message concat['data: ' data]
+message concat['lens builder: ' l]
+message concat['lens value: ' dataValue]
+message concat['data after changing the lens value: ' changedData]
+#+END_SRC
+
+Get and set the item at key 'b' in the second item in a list
+
+#+BEGIN_SRC leisure :results dynamic
+data = [1 {'a':'value a' 'b':'value b'} 3]
+l = lensBuilder lensTail lensHead
+l2 = l lensKey 'b'
+dataValue = l2 lensGet data
+changedData = l2 lensSet data 'NEW VALUE'
+
+message concat['data: ' data]
+message concat['lens builder: ' l2]
+message concat['lens value: ' dataValue]
+message concat['data after changing the lens value: ' changedData]
+#+END_SRC
+
+Primitive lens manipulation
+
+#+BEGIN_SRC leisure :results dynamic
+data = [1 2 3]
+l3 = lensCompose makeLensHead makeLensTail
+dataValue = lensGet l3 data
+changedData = lensSet l3 data 'NEW VALUE'
+
+message concat['data: ' data]
+message concat['lens: ' l3]
+message concat['lens value: ' dataValue]
+message concat['data after changing the lens value: ' changedData]
+#+END_SRC
+
+* lens code
+Primitive lens code.  To understand makeLensId, remember that false just returns
+its second argument and id is an empty difference list.
+
+#+BEGIN_SRC leisure :results def
+lens path getter setter = \f . f path getter setter
+
+lensPath l = l \path getter setter . path
+
+lensGet l = l \path getter setter . getter
+
+lensSet l = l \path getter setter . setter
+
+lensCompose a b = lens
+  dlAppend (lensPath a) (lensPath b)
+  \obj . (lensGet a) (lensGet b obj)
+  \obj value . lensSet b obj (lensSet a (lensGet b obj) value)
+
+makeLensId = lens id id false
+
+makeLensHead = lens
+  dl 'head'
+  head
+  \obj value . cons value (tail obj)
+
+makeLensTail = lens
+  dl 'tail'
+  tail
+  \obj value . cons (head obj) value
+
+makeLensKey key = lens
+  dl concat["@" key]
+  \obj . afetch key obj
+  \obj value . aconsf key value obj
+
+defCase showBase.lens func obj | hasType obj lens -> concat['(' (intercalate (cons 'lens' (lensPath obj [])) ' ') ')']
+#+END_SRC
+
+* The lens builder
+The lens builder.  This is a convenience layer so you can create
+lenses by providing a path to walk the data structure.  This example
+goes to the tail of a list, then to the head of that, and then gets
+the "hello" item out of that:
+
+#+BEGIN_SRC leisure :results dynamic
+l = lensBuilder lensTail lensHead lensKey 'hello'
+data = [1 {'hello':'HELLO VALUE' 'goodbye':'GOODBYE VALUE'} 2 3 4]
+l lensGet data
+#+END_SRC
+
+The builder code is a little arcane and relies on a Lambda Calculus
+trick that's similar to double-dispatching or monads.  The trick is a
+comfortable way to make a "holder," apply several "modifiers," and
+then "use" the holder, by saying
+
+holder mod arg... mod arg... use arg...
+
+The holder is just a value wrapper, like (holder l = \f . f l) and
+each modifier takes the value as its first argument and returns a new
+holder.  The final use takes the latest value as its first argument
+and returns the result of the use.
+
+#+BEGIN_SRC leisure :results def
+lensBuilder = makeLensBuilder makeLensId
+
+makeLensBuilder l = \f . f l
+
+lensHead = compose makeLensBuilder (lensCompose makeLensHead)
+
+lensTail = compose makeLensBuilder (lensCompose makeLensTail)
+
+lensKey l key = makeLensBuilder (lensCompose (makeLensKey key) l)
+
+defCase showBase.lensBuilder func obj | hasType obj makeLensBuilder -> concat['(' (intercalate (cons 'lensBuilder' (reverse (lensPath (obj id) []))) ' ') ')']
+#+END_SRC
+
+Diagnostics
+
+#+BEGIN_SRC leisure :results def
+message m = \f . f m
+
+defCase showBase.message func obj | hasType obj message -> obj id
+#+END_SRC
+* Aside
+:properties:
+:note: sidebar
+:end:
+By the way, you can define a convenient list syntax in pure Lambda
+Calculus using this technique by defining functions '[', ']', ',', and
+'|':
+
+[ = \item c . c \rest . cons item rest
+
+, = \f item c . c \rest . f (cons item rest)
+
+] = \f . f nil
+
+| = \f rest g . f rest
