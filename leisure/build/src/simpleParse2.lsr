@@ -249,18 +249,22 @@ useTokenPack 'infix'
 ## DO
 ################
 
-defMacro 'do' \list . handleDo list false id
+defMacro 'do' \list . handleDo list false nil id
 
-handleDo list inLet cont = list
-  \h t D . isNil t
-    cont (inLet ['.' h] [h])
-    doClause (stripParens h) h nil inLet \newInLet chain .
-      handleDo t newInLet \rest . cont (chain rest)
-  cont nil
+handleDo list inLet foldVar cont = list
+ \h t D . isNil t
+   cont (inLet ['.' h] [h])
+   \\
+     next = doClause (stripParens h) h nil inLet cons
+     .
+     next \newInLet chain . handleDo t newInLet foldVar \rest . cont (chain rest)
+ cont nil
 
 doClause steppingClause clause prefix inLet cont = \\
-  makeBind var monad = cont false \rest . inLet (cons '.') id
-    ['bind' monad ['\\' var '.' | rest]]
+  makeBind var value = cont false \rest . inLet (cons '.') id
+    ['bind' value ['\\' var '.' | rest]]
+  makeBind2 accVar init var value = cont false \rest . inLet (cons '.') id
+    ['bind2' init value ['\\' accVar var '.' | rest]]
   h = head steppingClause
   t = tail steppingClause
   .
@@ -277,12 +281,37 @@ doClause steppingClause clause prefix inLet cont = \\
               makeBind (isNil prefix '_' (head prefix)) t
               parseErr "More than one variable in do-clause: " clause
             makeBind '_' t
-        doClause t clause [h | prefix] inLet cont
+        isTokenString h '<-|'
+          ifNotErr (checkFoldFormat t clause)
+            \x . x \var init rest . makeBind2 var init (isNil prefix '_' (head prefix)) rest
+          doClause t clause [h | prefix] inLet cont
     makeBind '_' clause
+
+checkFoldFormat l clause = partition [] (flip isTokenString '=') l \var eq rest .
+  isNil eq
+    parseErr "Bad fold format, expected '=': " clause
+    not 1 == (length var)
+      parseErr "Bad fold format, expected one accumulator variable: " clause
+      partition [] (flip isTokenString '|') rest \init pipe results .
+        isNil pipe
+          parseErr "Bad fold format, expected '|' after init: " clause
+          triple (head var) init results
+
+triple a b c = \f . f a b c
+
+partition res func list = isNil list
+  triple [] [] []
+  func (head list)
+    triple (reverse res) (head list) (tail list)
+    partition [(head list) | res] func (tail list)
+
+bind2 i m cont = bind m (cont i)
 
 addToken '<-'
 
-defTokenPack 'do' [['<-'] [] []]
+addToken '<-|'
+
+defTokenPack 'do' [['<-' '<-|'] [] []]
 
 addStdTokenPacks ['do' 'list' 'infix']
 resetStdTokenPacks

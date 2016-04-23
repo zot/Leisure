@@ -251,7 +251,7 @@ makeCaseArgs orig funcName altName rest args = rest
 
 makeCaseCondition orig funcName altName args rest cond = rest
   \h t D . isTokenString h '->'
-    foldr1 append [['advise' funcName altName (length args) '\\'] args ['.' (cond nil) ['some' t] 'none']]
+    ['bind' (foldr1 append [['advise' funcName altName (length args) '\\'] args ['.' (cond nil) ['some' t] 'none']]) ['\\' '_' '.' 'unit']]
     makeCaseCondition orig funcName altName args t (dlPush cond h)
  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
@@ -267,25 +267,23 @@ defCase equal.cons a b | and (isCons a) (isCons b) -> and
 # sequences
 ######################
 
-defCase map.range func r | isRange r -> r \a b . runRepeat a b func
-
-defCase map.repeat func r | isRepeat r -> r \n . runRepeat 0 n func
-
-defCase map.option func opt | isOption opt -> opt (\x . some (func x)) []
-
-defCase map.either func eith | isEither eith -> eith (\_ . []) (\x . right (func x))
-
-#defCase map.string func str | isString str -> strFromList (map func (strToList str))
+defCase map.listy func l | not (isList l) -> map func (toList l)
 
 toList x = [x]
 
 defCase toList.list l | (isCons l) || (isNil l) -> l
-
+defCase toList.repeat r | isRepeat r -> runRepeat 0 (r id) id
+defCase toList.range r | isRange r -> r \a b . runRepeat a b id
 defCase toList.opt o | isOption o -> o (\x . [x]) []
-
 defCase toList.either e | isEither e -> e (\_ . []) (\x . [x])
-
 defCase toList.string s | isString s -> strToList s
+
+# folding
+
+defCase bind2.listLike init list cont | isListLike list -> foldl (\acc el . maybeBind acc \accVal . cont accVal el) init (toList list)
+
+# you can add more cases to isListLike if you want
+isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString])
 
 # show
 ## Generic presentation
@@ -293,20 +291,14 @@ defCase toList.string s | isString s -> strToList s
 showBase func obj = func obj
 
 defCase showBase.unit func obj | hasType obj unit -> ''
-
 defCase showBase.some func obj | hasType obj some -> concat["(some " (showBase func (obj id false)) ")"]
-
 defCase showBase.some2 func obj | hasType obj some2 -> concat["(some2 " (obj (\a b . showBase func [a ', ' b]) false) ")"]
-
 defCase showBase.err func obj | hasType obj err -> concat["(err " (obj id) ")"]
-
 defCase showBase.token func obj | hasType obj token -> obj \str pos .
   isFilepos pos
     pos \file line offset . concat['token ' str ' ' file ' ' line ' ' offset]
     concat['(token ' str ' ' pos ')']
-
 defCase showBase.filepos func obj | hasType obj filepos -> obj \file line offset . concat['(filepos ' file ' ' line ' ' offset ')']
-
 defCase showBase.cons func obj | hasType obj cons -> concatFlat['[' (showBase func (head obj)) (showConsElements func (tail obj))  ']']
 
 showConsElements func list = isCons list
@@ -319,7 +311,6 @@ defCase showBase.range func obj | hasType obj range -> obj \start end .
   concat['(range ' start ' ' end ')']
 
 defCase showBase.repeat func obj | hasType obj repeat -> concat['(repeat ' (obj id) ')']
-
 defCase showBase.hamt func obj | hasType obj hamt -> concatFlat[
   'hamt{'
   intersperse (map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) (hamtPairs obj)) ' '
@@ -331,7 +322,6 @@ defCase showBase.assoc func obj | (isAlist obj) && (not (isNil obj)) -> concatFl
   '}']
 
 defCase showBase.left func obj | hasType obj left -> concat["(left " (showBase func (obj id id)) ")"]
-
 defCase showBase.right func obj | hasType obj right -> concat["(right " (showBase func (obj id id)) ")"]
 
 ## presentation
@@ -345,7 +335,6 @@ present x = x
 presentHtml x = escapeHtml (present x)
 
 defCase present.string obj | (getType obj) == '*string' -> jsonStringify obj id id
-
 defCase present.func obj | (getType obj) == '*function' -> presentFunction obj
 
 presentFunction obj = do
@@ -407,7 +396,7 @@ isCaseResult v = hasType v caseResult
 case test res = test (caseResult res) unit
 
 defCase bind.caseResult data cont | isCaseResult data -> data id
-defCase bind.cons list cont | hasType list cons -> monadicMap cont list
+defCase bind.listLike list cont | isListLike list -> monadicMap cont list
 
 monadicMap cont list = foldr (\el acc . maybeBind (cont el) \elVal . maybeBind acc \accVal .
   elVal == unit
@@ -418,14 +407,14 @@ maybeBind item cont = isMonad item
   primBind item cont
   cont item
 
-defCase bind.range r cont | hasType r range -> monadicMap cont (toList r)
-defCase bind.repeat r cont | hasType r repeat -> monadicMap cont (toList r)
+#defCase bind.range r cont | hasType r range -> monadicMap cont (toList r)
+#defCase bind.repeat r cont | hasType r repeat -> monadicMap cont (toList r)
 defCase bind.true m cont | m == true -> cont true
 defCase bind.false m cont | m == false -> unit
 defCase bind.some m cont | hasType m some -> cont (m id)
 defCase bind.none m cont | hasType m none -> unit
 defCase bind.left m cont | hasType m left -> unit
-defCase bind.right m cont | hasType m left -> cont (m id)
+defCase bind.right m cont | hasType m right -> cont (m id)
 
 #######################
 ## fun with sequences
