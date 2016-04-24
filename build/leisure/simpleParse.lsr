@@ -20,7 +20,10 @@ setNameSpace 'core'
 
 asIO x = x
 fakereturn x = x
-wrap x = x
+#wrap x = x
+bind x cont = isMonad x
+  primBind x cont
+  cont x
 
 ############
 # Trampolines

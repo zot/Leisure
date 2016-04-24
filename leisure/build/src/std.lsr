@@ -267,7 +267,10 @@ defCase equal.cons a b | and (isCons a) (isCons b) -> and
 # sequences
 ######################
 
-defCase map.listy func l | not (isList l) -> map func (toList l)
+# you can add more cases to isListLike if you want
+isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString])
+
+defCase map.listLike func l | not (isListLike l) -> map func (toList l)
 
 toList x = [x]
 
@@ -281,9 +284,6 @@ defCase toList.string s | isString s -> strToList s
 # folding
 
 defCase bind2.listLike init list cont | isListLike list -> foldl (\acc el . maybeBind acc \accVal . cont accVal el) init (toList list)
-
-# you can add more cases to isListLike if you want
-isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString])
 
 # show
 ## Generic presentation
@@ -396,12 +396,27 @@ isCaseResult v = hasType v caseResult
 case test res = test (caseResult res) unit
 
 defCase bind.caseResult data cont | isCaseResult data -> data id
-defCase bind.listLike list cont | isListLike list -> monadicMap cont list
 
-monadicMap cont list = foldr (\el acc . maybeBind (cont el) \elVal . maybeBind acc \accVal .
+foreachWrapper x = \f . f x
+
+defMacro 'foreach' \list . ['foreachWrapper' list]
+
+defCase bind.foreach fe cont | hasType fe foreachWrapper  ->
+  maybeBind (fe id) \x . monadicMap false cont (toList x)
+
+defMacro 'foreachFlat' \list . ['foreachFlatWrapper' list]
+
+foreachFlatWrapper m = \f . f m
+
+defCase bind.foreachFlatWrapper fe cont | hasType fe foreachFlatWrapper ->
+  maybeBind (fe id) \x . monadicMap true cont (toList x)
+
+monadicMap isFlat cont list = foldr (\el acc . maybeBind (cont el) \elVal . maybeBind acc \accVal .
   elVal == unit
     accVal
-    [elVal | accVal]) [] list
+    isFlat
+      append elVal accVal
+      [elVal | accVal]) [] list
 
 maybeBind item cont = isMonad item
   primBind item cont
@@ -415,17 +430,6 @@ defCase bind.some m cont | hasType m some -> cont (m id)
 defCase bind.none m cont | hasType m none -> unit
 defCase bind.left m cont | hasType m left -> unit
 defCase bind.right m cont | hasType m right -> cont (m id)
-
-#######################
-## fun with sequences
-#######################
-
-defMacro 'flat' \list . ['wrappedFlat' list]
-
-wrappedFlat m = \f . f m
-
-defCase bind.wrappedFlat m cont | hasType m wrappedFlat ->
- maybeBind (m id) \x . foldr1 (\el acc . append el acc) (bind x cont)
 
 #######################
 ## running
