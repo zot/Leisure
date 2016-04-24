@@ -18,12 +18,12 @@ setNameSpace 'core'
 # IO SUPPORT
 #############
 
-#isMonad is now a primitive
-#isMonad x = or (hasType x 'monad') (hasType x '*Monad2')
-
 asIO x = x
 fakereturn x = x
-wrap x = x
+#wrap x = x
+bind x cont = isMonad x
+  primBind x cont
+  cont x
 
 ############
 # Trampolines

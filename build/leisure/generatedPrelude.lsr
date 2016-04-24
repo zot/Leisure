@@ -18,12 +18,12 @@ setNameSpace 'core'
 # IO SUPPORT
 #############
 
-#isMonad is now a primitive
-#isMonad x = or (hasType x 'monad') (hasType x '*Monad2')
-
 asIO x = x
 fakereturn x = x
-wrap x = x
+#wrap x = x
+bind x cont = isMonad x
+  primBind x cont
+  cont x
 
 ############
 # Trampolines
@@ -1582,26 +1582,48 @@ useTokenPack 'infix'
 ## DO
 ################
 
-defMacro 'do' \list . handleDo list false id
+defMacro 'do' \list . withRecur
+  handleDo list false nil id
 
-handleDo list inLet cont = list
+defMacro 'doFold' \list . \\
+  first = stripParens (head (stripParens list))
+  foldVar = at first 0
+  eq = at first 1
+  init = drop 2 first
+  rest = tail (stripParens list)
+  code = withRecur
+    handleDo rest true foldVar id
+  .
+  (isCons (stripParens list)) && (length (stripParens list)) > 0 && (isCons first) && (length first) > 2 && (isTokenString eq '=')
+    ifNotErr code \x . log x ['\\\\' (head (stripParens list)) | x]
+    parseErr "Bad initializer in doFold: " list
+
+handleDo list inLet foldVar cont = list
   \h t D . isNil t
     cont (inLet ['.' h] [h])
-    doClause (stripParens h) h nil inLet \newInLet chain .
-      handleDo t newInLet \rest . cont (chain rest)
+    \\
+      next = doClause (stripParens h) h nil inLet foldVar triple
+      newInLet = triple1 next
+      newFoldVar = triple2 next
+      chain = triple3 next
+      .
+      recur
+        handleDo t newInLet foldVar \rest . cont (chain rest)
   cont nil
 
-doClause steppingClause clause prefix inLet cont = \\
-  makeBind var monad = cont false \rest . inLet (cons '.') id
-    ['bind' monad ['\\' var '.' | rest]]
+doClause steppingClause clause prefix inLet foldVar cont = \\
+  makeBind var value = cont false foldVar \rest . inLet (cons '.') id
+    isNil foldVar
+      ['bind' value ['\\' var '.' | rest]]
+      ['bind2' foldVar value ['\\' foldVar var '.' | rest]]
   h = head steppingClause
   t = tail steppingClause
   .
   isCons steppingClause
     isTokenString h '='
       inLet
-        cont true \rest . [clause | rest]
-        cont true \rest . ['\\\\' clause | rest]
+        cont true foldVar \rest . [clause | rest]
+        cont true foldVar \rest . ['\\\\' clause | rest]
       isTokenString h '<-'
         isNil t
           parseErr "No monad in do-clause: " clause
@@ -1610,12 +1632,37 @@ doClause steppingClause clause prefix inLet cont = \\
               makeBind (isNil prefix '_' (head prefix)) t
               parseErr "More than one variable in do-clause: " clause
             makeBind '_' t
-        doClause t clause [h | prefix] inLet cont
+        doClause t clause [h | prefix] inLet foldVar cont
     makeBind '_' clause
+
+checkFoldFormat l clause = partition [] (flip isTokenString '=') l \var eq rest .
+  isNil eq
+    parseErr "Bad fold format, expected '=': " clause
+    not 1 == (length var)
+      parseErr "Bad fold format, expected one accumulator variable: " clause
+      partition [] (flip isTokenString '|') rest \init pipe results .
+        isNil pipe
+          parseErr "Bad fold format, expected '|' after init: " clause
+          triple (head var) init results
+
+triple a b c = \f . f a b c
+triple1 t = t \a b c . a
+triple2 t = t \a b c . b
+triple3 t = t \a b c . c
+
+partition res func list = isNil list
+  triple [] [] []
+  func (head list)
+    triple (reverse res) (head list) (tail list)
+    partition [(head list) | res] func (tail list)
+
+bind2 i m cont = bind m (cont i)
 
 addToken '<-'
 
-defTokenPack 'do' [['<-'] [] []]
+addToken '<-|'
+
+defTokenPack 'do' [['<-' '<-|'] [] []]
 
 addStdTokenPacks ['do' 'list' 'infix']
 resetStdTokenPacks
