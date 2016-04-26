@@ -236,7 +236,7 @@ updateButton = (view, hiding)->
   width: 8em;
 }
 [name='p2pHost'] {
-  width: 15ex;
+  width: 30ex;
 }
 .connected .when-not-connected,
 .not-connected .when-connected {

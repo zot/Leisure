@@ -77,11 +77,15 @@
         activateScripts: {
           local: function(parent) {
             return function(el, context) {
-              var errorEvt, i, img, len, ref, results, ret;
+              var errorEvt, i, img, len, ref, removeEvents, results, ret;
               ret = parent(el, context);
               errorEvt = function(e) {
                 checkImage(opts, e.target);
-                return e.target.removeEventListener('load', errorEvt);
+                return removeEvents(e);
+              };
+              removeEvents = function(e) {
+                e.target.removeEventListener('load', removeEvents);
+                return e.target.removeEventListener('error', errorEvt);
               };
               ref = $(el).find('img');
               results = [];
@@ -90,7 +94,7 @@
                 if (!img.complete && !localResources[img.src]) {
                   img.addEventListener('error', errorEvt);
                   results.push(img.addEventListener('load', function(e) {
-                    return e.target.removeEventListener(errorEvt);
+                    return removeEvents;
                   }));
                 } else {
                   results.push(checkImage(opts, img));

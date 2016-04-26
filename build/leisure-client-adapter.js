@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements', './export'], function(jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep, Exports) {
-    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, getDocumentParams, isDelete, isInsert, isRetain, mergeExports, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, validateBatch;
+    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, fileTypes, getDocumentParams, isDelete, isInsert, isRetain, mergeExports, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, typeForFile, validateBatch;
     mergeExports = Exports.mergeExports;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
@@ -14,6 +14,13 @@
     TextOperation = OT.TextOperation, Selection = OT.Selection, EditorClient = OT.EditorClient;
     isRetain = TextOperation.isRetain, isInsert = TextOperation.isInsert, isDelete = TextOperation.isDelete;
     Replacements = Rep.Replacements, replacements = Rep.replacements;
+    fileTypes = {
+      png: 'image/png',
+      gif: 'image/gif',
+      bmp: 'image/bmp',
+      xpm: 'image/xpm',
+      svg: 'image/svg+xml'
+    };
     diag = function() {
       var args;
       args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
@@ -123,10 +130,10 @@
           });
         } else if (_.isArray(repls)) {
           return this.baseOpsFor(totalLength, function(f) {
-            var j, last, len1, repl, results;
+            var j, last, repl, results;
             last = 0;
             results = [];
-            for (j = 0, len1 = repls.length; j < len1; j++) {
+            for (j = repls.length - 1; j >= 0; j += -1) {
               repl = repls[j];
               f(repl.start - last, repl.end - repl.start, repl.text);
               results.push(last = repl.end);
@@ -285,7 +292,26 @@
               approval: true
             });
           },
-          slaveDisconnect: function(msg) {}
+          slaveDisconnect: function(msg) {},
+          requestFile: function(arg) {
+            var filename, id, slaveId;
+            slaveId = arg.slaveId, filename = arg.filename, id = arg.id;
+            return this.editor.options.data.getFile(filename, ((function(_this) {
+              return function(content) {
+                return _this.send('fileContent', {
+                  slaveId: slaveId,
+                  id: id,
+                  content: btoa(content)
+                });
+              };
+            })(this)), (function(failure) {
+              return this.send('fileError', {
+                slaveId: slaveId,
+                id: id,
+                failure: failure
+              });
+            }));
+          }
         };
         this.connect("http://" + this.host + "/Leisure/create", (function(_this) {
           return function() {
@@ -301,17 +327,125 @@
       };
 
       Peer.prototype.connectToSession = function(url, connected, newConnectionFunc) {
-        var ref1;
+        var fileRequestCount, getFile, peer, pendingRequests, ref1;
         this.url = url;
         this.newConnectionFunc = newConnectionFunc;
         this.type = 'Slave';
         this.newConnectionFunc = (ref1 = this.newConnectionFunc) != null ? ref1 : function() {};
+        this.localResources = {};
+        this.imageSizes = {};
+        this.imgCount = 0;
+        fileRequestCount = 0;
+        pendingRequests = new Map();
+        peer = this;
+        getFile = function(filename, cont, fail) {
+          var id;
+          id = "request-" + (fileRequestCount++);
+          pendingRequests = pendingRequests.set(id, [cont, fail]);
+          return peer.send('requestFile', {
+            id: id,
+            filename: filename
+          });
+        };
+        changeAdvice(this.editor.options.data, true, {
+          getFile: {
+            p2p: function(parent) {
+              return getFile;
+            }
+          }
+        });
+        changeAdvice(this.editor, true, {
+          activateScripts: {
+            p2p: function(parent) {
+              return function(el, context) {
+                var img, j, len1, name, ref2, ref3, ref4, ret, src;
+                ret = parent(el, context);
+                ref2 = $(el).find('img');
+                for (j = 0, len1 = ref2.length; j < len1; j++) {
+                  img = ref2[j];
+                  src = img.getAttribute('src');
+                  if (!src.match('^.*:.*')) {
+                    name = (ref3 = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref3[1] : void 0;
+                    src = "file:" + src;
+                  } else {
+                    name = (ref4 = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref4[1] : void 0;
+                  }
+                  if (name) {
+                    if (!img.id) {
+                      img.id = "p2p-image-" + (peer.imgCount++);
+                    }
+                    img.src = '';
+                    peer.fetchImage(img.id, src);
+                  }
+                }
+                return ret;
+              };
+            }
+          }
+        });
+        this.fetchImage = function(imgId, src) {
+          var data, img;
+          if (img = $("#" + imgId)[0]) {
+            if (data = this.localResources[src]) {
+              if (data instanceof Promise) {
+                return data.then((function(_this) {
+                  return function(data) {
+                    return _this.replaceImage(img, src, data);
+                  };
+                })(this));
+              } else {
+                return preserveSelection((function(_this) {
+                  return function(range) {
+                    return _this.replaceImage(img, src, data);
+                  };
+                })(this));
+              }
+            } else {
+              return this.localResources[src] = new Promise((function(_this) {
+                return function(resolve, reject) {
+                  return getFile(src, (function(file) {
+                    data = _this.localResources[src] = "data:" + (typeForFile(src)) + ";base64," + (btoa(file));
+                    preserveSelection(function(range) {
+                      return _this.replaceImage(img, src, data);
+                    });
+                    return resolve(data);
+                  }), reject);
+                };
+              })(this));
+            }
+          }
+        };
+        this.replaceImage = function(img, src, data) {
+          return setTimeout(((function(_this) {
+            return function() {
+              img.src = data;
+              return img.onload = function() {
+                img.removeAttribute('style');
+                return _this.imageSizes[src] = " style='height: " + img.height + "px; width: " + img.width + "px'";
+              };
+            };
+          })(this)), 0);
+        };
         this.handler = {
           __proto__: Peer.prototype.handler,
           connected: function(msg) {
             this.finishConnected(msg);
             this.editor.options.load('shared', msg.doc);
             return this.docSnap = msg.doc;
+          },
+          fileContent: function(arg) {
+            var cont, content, id;
+            id = arg.id, content = arg.content;
+            cont = pendingRequests.get(id)[0];
+            pendingRequests = pendingRequests.remove(id);
+            return cont(atob(content));
+          },
+          fileError: function(arg) {
+            var cont, fail, failure, id, ref2;
+            id = arg.id, failure = arg.failure;
+            ref2 = pendingRequests.get(id), cont = ref2[0], fail = ref2[1];
+            pendingRequests = pendingRequests.remove(id);
+            return fail(failure);
           }
         };
         return this.connect(this.url, (function(_this) {
@@ -466,6 +600,11 @@
       return Peer;
 
     })();
+    typeForFile = function(name) {
+      var ext, ignore, ref1;
+      ref1 = name.match(/\.([^#.]*)(#.*)?$/), ignore = ref1[0], ext = ref1[1];
+      return fileTypes[ext];
+    };
     configureOpts = function(opts) {
       var data, peer;
       data = opts.data;
@@ -504,19 +643,23 @@
             return function(replacementFunc, cont, error) {
               var guards, ops, r, repls;
               repls = validateBatch(replacementFunc());
-              ops = peer.opsFor(repls, this.getLength());
-              guards = _.flatten((function() {
-                var j, len1, results;
-                results = [];
-                for (j = 0, len1 = repls.length; j < len1; j++) {
-                  r = repls[j];
-                  if (r.gStart != null) {
-                    results.push([r.gStart, r.gEnd]);
+              if (repls.length) {
+                ops = peer.opsFor(repls, this.getLength());
+                guards = _.flatten((function() {
+                  var j, len1, results;
+                  results = [];
+                  for (j = 0, len1 = repls.length; j < len1; j++) {
+                    r = repls[j];
+                    if (r.gStart != null) {
+                      results.push([r.gStart, r.gEnd]);
+                    }
                   }
-                }
-                return results;
-              })());
-              return peer.sendGuardedOperation(peer.editorClient.revision, ops, guards).then(cont, error)["catch"](error);
+                  return results;
+                })());
+                return peer.sendGuardedOperation(peer.editorClient.revision, ops, guards).then(cont, error)["catch"](error);
+              } else {
+                return cont();
+              }
             };
           }
         }

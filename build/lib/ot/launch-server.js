@@ -403,6 +403,18 @@
             return slave.sendError(disapprovedError());
           }
         }
+      },
+      fileContent: function(msg) {
+        var id;
+        id = msg.slaveId;
+        delete msg.slaveId;
+        return this.slaves[id].send(msg);
+      },
+      fileError: function(msg) {
+        var id;
+        id = msg.slaveId;
+        delete msg.slaveId;
+        return this.slaves[id].send(msg);
       }
     };
 
@@ -442,6 +454,10 @@
           peerId: this.connectionId,
           peerName: this.name
         });
+      },
+      requestFile: function(msg) {
+        msg.slaveId = this.connectionId;
+        return this.master.send(msg);
       }
     };
 

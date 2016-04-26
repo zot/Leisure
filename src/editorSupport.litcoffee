@@ -883,7 +883,7 @@ may be called more than once.  changeData() returns a promise.
             block
           else if info = @dataChanges.sharedInserts[name] then info.block
           else @data.getBlockNamed name
-          @data.getYaml block
+          block && (@data.getYaml block)
         setData: (name, value, codeOpts)->
           @checkChanging()
           @verifyDataObject "set #{name} to ", value

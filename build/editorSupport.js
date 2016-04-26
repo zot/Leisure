@@ -1648,7 +1648,7 @@
           this.checkChanging();
         }
         block = skipCheck && !this.dataChanges ? this.data.getBlockNamed(name) : this.dataChanges.localRemoves[name] || this.dataChanges.sharedRemoves[name] ? null : (block = this.dataChanges.localSets[name] || this.dataChanges.sharedSets[name]) ? block : (info = this.dataChanges.sharedInserts[name]) ? info.block : this.data.getBlockNamed(name);
-        return this.data.getYaml(block);
+        return block && (this.data.getYaml(block));
       };
 
       OrgEditing.prototype.setData = function(name, value, codeOpts) {
