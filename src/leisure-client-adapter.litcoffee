@@ -247,7 +247,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 src = img.getAttribute 'src'
                 if !src.match '^.*:.*'
                   name = src.match(/([^#?]*)([#?].*)?$/)?[1]
-                  src = "file:#{src}"
+                  src = "#{src}"
                 else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
                 if name
                   if !img.id then img.id = "p2p-image-#{peer.imgCount++}"

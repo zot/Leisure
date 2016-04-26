@@ -366,7 +366,7 @@
                   src = img.getAttribute('src');
                   if (!src.match('^.*:.*')) {
                     name = (ref3 = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref3[1] : void 0;
-                    src = "file:" + src;
+                    src = "" + src;
                   } else {
                     name = (ref4 = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref4[1] : void 0;
                   }
