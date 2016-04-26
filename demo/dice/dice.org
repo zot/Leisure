@@ -38,11 +38,6 @@ count: 0
 :name: PlayerData
 :hidden: true
 :end:
-#+NAME: player-Bubba
-#+BEGIN_SRC yaml :flowLevel 3 :index players name
-name: Bubba
-type: player
-#+END_SRC
 * Roll Data
 :properties:
 :hidden: true
