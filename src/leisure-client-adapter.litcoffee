@@ -49,6 +49,7 @@ misrepresented as being the original software.
         basicDataFilter
         replacementFor
         ajaxGet
+        makeImageBlob
       } = Support
       {
         changeAdvice
@@ -262,7 +263,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 else preserveSelection (range)=> @replaceImage img, src, data
               else @localResources[src] = new Promise (resolve, reject)=>
                 getFile src, ((file)=>
-                  data = @localResources[src] = "data:#{typeForFile src};base64,#{btoa file}"
+                  data = @localResources[src] = makeImageBlob src, file
                   preserveSelection (range)=> @replaceImage img, src, data
                   resolve data), reject
           @replaceImage = (img, src, data)-> setTimeout (=>

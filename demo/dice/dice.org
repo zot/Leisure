@@ -248,7 +248,6 @@ window.selectDie = (e)->
   count = 3
   scrollIt = ->
     if count-- > 0
-      console.log "SCROLLING DOWN..."
       r?.scrollTop = r.scrollHeight
       setTimeout scrollIt, 250
   scrollIt()

@@ -171,11 +171,8 @@ same names for blocks other than printing a warning.
               filter.endChange this
         getImage: (name, cont, fail)->
           @getFile name, ((contents)->
-            byteArrays = for offset in [0...contents.length] by 512
-              slice = contents.slice offset, offset + 512
-              new Uint8Array (slice.charCodeAt(i) for i in [0...512])
-            blob = new Blob byteArrays, type: 'image/png'
-            cont URL.createObjectURL blob), fail
+            if url = makeImageBlob name, contents then cont url else fail "Couldn't create image for #{{name}}"
+          ), fail
         getBlock: (thing, changes)->
           if typeof thing == 'object' then thing
           else changes?.sets[thing] ? super(thing) ? @imported.data[thing]
@@ -635,6 +632,14 @@ that must be done regardless of the source of changes
                       blockVars[arg] = argBlock
                       argData)...), args...
           else func
+
+      makeImageBlob = (name, contents)->
+        if m = name.match /png|gif|bmp|xpm|svg+xml/
+          byteArrays = for offset in [0...contents.length] by 512
+            slice = contents.slice offset, offset + 512
+            new Uint8Array (slice.charCodeAt(i) for i in [0...512])
+          blob = new Blob byteArrays, type: "image/#{m[0]}"
+          URL.createObjectURL blob
 
       class EditorParsedCodeBlock extends ParsedCodeBlock
         constructor: (@data, block)->
@@ -1434,4 +1439,5 @@ Exports
         replacementFor
         ajaxGet
         parseYaml
+        makeImageBlob
       }
