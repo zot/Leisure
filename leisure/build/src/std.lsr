@@ -268,9 +268,7 @@ defCase equal.cons a b | and (isCons a) (isCons b) -> and
 ######################
 
 # you can add more cases to isListLike if you want
-isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString])
-
-defCase map.listLike func l | not (isListLike l) -> map func (toList l)
+isListLike l = contains [isCons isNil isRepeat isRange isOption isEither isString] l
 
 toList x = [x]
 
@@ -280,6 +278,8 @@ defCase toList.range r | isRange r -> r \a b . runRepeat a b id
 defCase toList.opt o | isOption o -> o (\x . [x]) []
 defCase toList.either e | isEither e -> e (\_ . []) (\x . [x])
 defCase toList.string s | isString s -> strToList s
+
+defCase map.listLike func l | isListLike l -> map func (toList l)
 
 # folding
 
@@ -374,12 +374,12 @@ defCase showBase.wrapped func v | hasType v wrapped -> concat['wrapped ' (showBa
 
 defCase bind.wrapped v cont | hasType v wrapped -> cont (v id)
 
-defCase bind.bool opt cont | or (opt == true) (opt == false) -> opt
+defCase bind.bool bool cont | or (bool == true) (bool == false) -> bool
   cont true
   unit
 
-defCase bind.option opt cont | isOption opt -> opt
-  \value . some (cont value)
+defCase bind.option opt cont | isOption opt -> log "USING OPTION BIND" opt
+  \value . cont value
   none
 
 defCase bind.either either cont | isEither either -> either
@@ -397,39 +397,30 @@ case test res = test (caseResult res) unit
 
 defCase bind.caseResult data cont | isCaseResult data -> data id
 
-foreachWrapper x = \f . f x
+forWrapper x = \f . f x
 
-defMacro 'foreach' \list . ['foreachWrapper' list]
+defMacro 'for' \list . ['forWrapper' list]
 
-defCase bind.foreach fe cont | hasType fe foreachWrapper  ->
-  maybeBind (fe id) \x . monadicMap false cont (toList x)
+defCase bind.forWrapper fe cont | hasType fe forWrapper  ->
+  bind (fe id) \x . monadicMap false cont x
 
-defMacro 'foreachFlat' \list . ['foreachFlatWrapper' list]
+defMacro 'forFlat' \list . ['forFlatWrapper' list]
 
-foreachFlatWrapper m = \f . f m
+forFlatWrapper m = \f . f m
 
-defCase bind.foreachFlatWrapper fe cont | hasType fe foreachFlatWrapper ->
-  maybeBind (fe id) \x . monadicMap true cont (toList x)
+defCase bind.forFlatWrapper fe cont | hasType fe forFlatWrapper ->
+  bind (fe id) \x . monadicMap true cont x
 
 monadicMap isFlat cont list = foldr (\el acc . maybeBind (cont el) \elVal . maybeBind acc \accVal .
   elVal == unit
     accVal
     isFlat
       append elVal accVal
-      [elVal | accVal]) [] list
+      [elVal | accVal]) [] (toList list)
 
 maybeBind item cont = isMonad item
   primBind item cont
   cont item
-
-#defCase bind.range r cont | hasType r range -> monadicMap cont (toList r)
-#defCase bind.repeat r cont | hasType r repeat -> monadicMap cont (toList r)
-defCase bind.true m cont | m == true -> cont true
-defCase bind.false m cont | m == false -> unit
-defCase bind.some m cont | hasType m some -> cont (m id)
-defCase bind.none m cont | hasType m none -> unit
-defCase bind.left m cont | hasType m left -> unit
-defCase bind.right m cont | hasType m right -> cont (m id)
 
 #######################
 ## running
@@ -439,7 +430,7 @@ defMacro 'run' \list . ['wrappedRun' list]
 
 wrappedRun m = \f . f m
 
-defCase bind.wrappedRun m cont | hasType m wrappedRun -> maybeBind (m id) \x . bind x cont
+defCase bind.wrappedRun m cont | hasType m wrappedRun -> bind (m id) \x . bind x cont
 
 #######################
 ## pre/postconditions

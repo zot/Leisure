@@ -32,7 +32,7 @@ in as long as you mark it as data-noncontent, etc.
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-toolbar
-{{#condense}}
+{{#condense 'true'}}
 <div name='buttons' style="position: relative;">
   <div style='position: relative; display: inline-block; width: calc(100% - 13em)'>
     <button name='leisure_grip' title='x'>
@@ -236,7 +236,7 @@ updateButton = (view, hiding)->
   width: 8em;
 }
 [name='p2pHost'] {
-  width: 15ex;
+  width: 30ex;
 }
 .connected .when-not-connected,
 .not-connected .when-connected {

@@ -202,7 +202,9 @@
                   env["eval"] = function(text) {
                     return controllerEval.call(controller, text);
                   };
-                  env.write = function(str) {};
+                  env.write = function(str) {
+                    return console.log(str);
+                  };
                   env.errorAt = function(offset, msg) {
                     return console.log(msg);
                   };

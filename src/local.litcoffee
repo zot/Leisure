@@ -89,16 +89,22 @@ Code for local-mode.  This will not be loaded under meteor.
       configureLocal = (opts)->
         u = new URL '.', opts.loadName
         opts.data.localURL = u.href
+        localActivateScripts opts
+
+      Leisure.localActivateScripts = localActivateScripts = (opts)->
         changeAdvice opts.editor, true,
           activateScripts: local: (parent)->(el, context)->
             ret = parent el, context
             errorEvt = (e)->
               checkImage opts, e.target
-              e.target.removeEventListener 'load', errorEvt
+              removeEvents e
+            removeEvents = (e)->
+              e.target.removeEventListener 'load', removeEvents
+              e.target.removeEventListener 'error', errorEvt
             for img in $(el).find 'img'
               if !img.complete && !localResources[img.src]
                 img.addEventListener 'error', errorEvt
-                img.addEventListener 'load', (e)-> e.target.removeEventListener errorEvt
+                img.addEventListener 'load', (e)-> removeEvents
               else checkImage opts, img
 
       checkImage = (opts, img)->
@@ -109,8 +115,12 @@ Code for local-mode.  This will not be loaded under meteor.
           else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
           if name && !img.leisureLoaded
             img.leisureLoaded = true
-            u = new URL name, opts.loadName
-            localResources[img.src] = img.src = u.href
+            try
+              u = new URL name, opts.data.loadName
+              localResources[img.src] = img.src = u.href
+              img.onerror = (e)-> opts.imageError img, e
+            catch err
+              opts.imageError img, err
 
       $(document).ready ->
         runTests()

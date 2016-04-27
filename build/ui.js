@@ -110,14 +110,19 @@
       return withContext(_.merge({}, root.context, subcontext), func);
     };
     dontRerender = function(view, func) {
-      var oldDonts, ref1;
-      oldDonts = (ref1 = root.context.dontRerender) != null ? ref1 : new Set();
+      var oldDonts, ref1, ref2;
+      oldDonts = (ref1 = (ref2 = root.context) != null ? ref2.dontRender : void 0) != null ? ref1 : new Set();
       return mergeContext({
         dontRender: oldDonts.add(view)
       }, func);
     };
-    Handlebars.registerHelper('condense', function(options) {
-      return options.fn(options).replace(/>\s+</g, '><');
+    Handlebars.registerHelper('condense', function(extreme, options) {
+      if (options && extreme) {
+        return options.fn(this).replace(/>\s+</g, '><');
+      } else {
+        options = options || extreme;
+        return options.fn(this).replace(/>[ ]+</g, '><').replace(/^\s*\n/gm, '').replace(/>\s+$/gm, '>').replace(/^\s+</gm, '<');
+      }
     });
     Handlebars.registerHelper('debug', function(options) {
       debugger;
@@ -156,9 +161,9 @@
         contextName = null;
       }
       context = options != null ? options.data : void 0;
-      data = ((block = context.opts.editor.options.getBlock(data)) && (yaml = context.opts.data.getYaml(block)) ? yaml : (block = null, item));
+      data = ((block = context.opts.data.getBlockNamed(item)) && (yaml = context.opts.data.getYaml(block)) ? yaml : (block = null, item));
       if (data != null ? data.type : void 0) {
-        return renderView(data.type, contextName, data, null, false, block);
+        return renderView(data.type, contextName, data, null, block);
       }
     });
     Handlebars.registerHelper('viewWrapper', function(name, data, opts) {
@@ -166,7 +171,6 @@
     });
     bindView = function(view) {
       var getter, i, input, len, name, opts, path, ref1, ref2, results, setter;
-      name = view.getAttribute('data-view-block-name');
       if (!(opts = (ref1 = findEditor(view)) != null ? ref1.options : void 0)) {
         return;
       }
@@ -174,25 +178,40 @@
       results = [];
       for (i = 0, len = ref2.length; i < len; i++) {
         input = ref2[i];
-        path = input.getAttribute('data-value');
-        getter = "(function(data){return data." + path + "})";
-        setter = "(function(data, value){data." + path + " = value})";
-        input.value = getter(opts.getData(name));
-        results.push(input.onkeyup = function(e) {
-          var data;
-          data = opts.getData(name);
-          setter(data, input.value);
-          return dontRerender(view, function() {
-            return opts.changeData(function() {
-              return opts.setData(name, data);
-            });
-          });
-        });
+        if (name = $(input).closest('[data-view-block-name]').attr('data-view-block-name')) {
+          path = input.getAttribute('data-value');
+          getter = eval("(function(data){return data." + path + "})");
+          setter = eval("(function(data, value){data." + path + " = value})");
+          input.value = getter(opts.data.getYaml(opts.data.getBlockNamed(name)));
+          results.push((function(name) {
+            input.onkeypress = function(e) {
+              return e.stopPropagation();
+            };
+            input.onkeydown = function(e) {
+              console.log('derp');
+              return e.stopPropagation();
+            };
+            return input.onkeyup = function(e) {
+              var data;
+              e.stopPropagation();
+              data = _.clone(opts.data.getYaml(opts.data.getBlockNamed(name)), true);
+              setter(data, input.value);
+              return dontRerender(view, function() {
+                return opts.changeData(function() {
+                  return opts.setData(name, data);
+                });
+              });
+            };
+          })(name));
+        } else {
+          results.push(void 0);
+        }
       }
       return results;
     };
     renderView = function(type, contextName, data, targets, block, blockName) {
       var attr, attrs, classAttr, i, isTop, key, len, node, ref1, ref2, ref3, ref4, ref5, requestedKey, results, settings, template, value;
+      blockName = blockName != null ? blockName : block != null ? block.codeName : void 0;
       isTop = !((ref1 = root.context) != null ? ref1.topView : void 0);
       requestedKey = key = viewKey(type, contextName);
       if (!(template = getTemplate(key))) {

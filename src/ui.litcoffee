@@ -88,11 +88,19 @@ choose a handlebars template.
         withContext _.merge({}, root.context, subcontext), func
 
       dontRerender = (view, func)->
-        oldDonts = root.context.dontRerender ? new Set()
+        oldDonts = root.context?.dontRender ? new Set()
         mergeContext {dontRender: oldDonts.add(view)}, func
 
-      Handlebars.registerHelper 'condense', (options)->
-        options.fn(options).replace(/>\s+</g, '><')
+      Handlebars.registerHelper 'condense', (extreme, options)->
+        if options && extreme
+          options.fn(this).replace />\s+</g, '><'
+        else
+          options = options || extreme
+          options.fn(this)
+            .replace(/>[ ]+</g, '><')
+            .replace(/^\s*\n/gm, '')
+            .replace(/>\s+$/gm, '>')
+            .replace(/^\s+</gm, '<')
 
       Handlebars.registerHelper 'debug', (options)->
         debugger
@@ -119,33 +127,41 @@ choose a handlebars template.
           options = contextName
           contextName = null
         context = options?.data
-        data = (if (block = context.opts.editor.options.getBlock data) && yaml = context.opts.data.getYaml block
+        data = (if (block = context.opts.data.getBlockNamed item) && yaml = context.opts.data.getYaml block
           yaml
         else
           block = null
           item)
         if data?.type
-          renderView data.type, contextName, data, null, false, block
+          renderView data.type, contextName, data, null, block
 
       Handlebars.registerHelper 'viewWrapper', (name, data, opts)->
         simpleRenderView "data-view='#{name}' data-requested-view='#{name}' class='view'", name, opts.fn, this
 
       bindView = (view)->
-        name = view.getAttribute 'data-view-block-name'
+        #name = view.getAttribute 'data-view-block-name'
         if !(opts = findEditor(view)?.options) then return
         for input in $(view).find 'input[data-value]'
-          path = input.getAttribute 'data-value'
-          getter = "(function(data){return data.#{path}})"
-          setter = "(function(data, value){data.#{path} = value})"
-          input.value = getter opts.getData name
-          input.onkeyup = (e)->
-            data = opts.getData name
-            setter data, input.value
-            dontRerender view, ->
-              opts.changeData ->
-                opts.setData name, data
+          if name = $(input).closest('[data-view-block-name]').attr 'data-view-block-name'
+            path = input.getAttribute 'data-value'
+            getter = eval "(function(data){return data.#{path}})"
+            setter = eval "(function(data, value){data.#{path} = value})"
+            input.value = getter opts.data.getYaml opts.data.getBlockNamed name
+            do (name)->
+              input.onkeypress = (e)-> e.stopPropagation()
+              input.onkeydown = (e)->
+                console.log 'derp'
+                e.stopPropagation()
+              input.onkeyup = (e)->
+                e.stopPropagation()
+                data = _.clone opts.data.getYaml(opts.data.getBlockNamed name), true
+                setter data, input.value
+                dontRerender view, ->
+                  opts.changeData ->
+                    opts.setData name, data
 
       renderView = (type, contextName, data, targets, block, blockName)->
+        blockName = blockName ? block?.codeName
         isTop = !root.context?.topView
         requestedKey = key = viewKey type, contextName
         if !(template = getTemplate key)

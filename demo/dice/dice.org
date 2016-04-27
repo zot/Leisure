@@ -2,49 +2,13 @@
 :properties:
 :note: sidbar
 :end:
-[[leisure:player-ui/name]][[leisure:player-ui/header]][[leisure:player-ui]]
-* Monadic examples
+#+BEGIN_HTML
+{{{view 'player-ui' 'name'}}}{{{view 'player-ui' 'header'}}}{{{view 'player-ui'}}}
+#+END_HTML
+* Shared Data
 :properties:
 :hidden: true
 :end:
-
-Iteration/filtering:
-
-- this produces an IO value that prints [1 4], [2 3], and [3 4]
-- lifting is implicit because the bind function is polymorphic on the run time data type
-- the list monad does a Haskell/Scala-like flat map, except that it's runtime polymorphic
-- the value, if you don't run the monad, is an IO value (a bind command)
-- the value when you run it is [1 4 2 3 3 4] (not a list of IO values)
-
-#+BEGIN_SRC leisure
-do
-  p <- foreach getData 'player-ui'
-  print p
-#+END_SRC
-
-List comprehensions:
-
-- the boolean acts as an "if"
-- the expression's value is the list [3 4], like you might expect
-- you can also format the expr like this:do (x <- [1 2 3]) (x > 1) (x + 1)
-- not all of the parens are strictly necessary: do (x <- [1 2 3]) x > 1 x + 1
-
-#+BEGIN_SRC leisure
-do
-  x <- [1 2 3]
-  x > 1
-  x + 1
-#+END_SRC
-* Importing lens code
-:properties:
-:import: ../lenses.org
-:hidden: true
-:end:
-* Data
-:properties:
-:hidden: true
-:end:
-
 #+NAME: player-ui
 #+BEGIN_SRC yaml :flowLevel 3 :local
 type: player-ui
@@ -69,56 +33,103 @@ Each roll is a list of values: {size: S angle: A value: V}.
 #+BEGIN_SRC yaml
 count: 0
 #+END_SRC
-* PlayerData
+* Player Data
 :properties:
 :name: PlayerData
+:hidden: true
 :end:
-#+NAME: player-Bubba
-#+BEGIN_SRC yaml :flowLevel 3 :index players name
-name: Bubba
-type: player
+* Roll Data
+:properties:
+:hidden: true
+:name: rolls
+:end:
+* Monadic examples
+:properties:
+:hidden: true
+:end:
+
+Iteration/filtering:
+
+- this produces an IO value that prints [1 4], [2 3], and [3 4]
+- lifting is implicit because the bind function is polymorphic on the run time data type
+- the list monad does a Haskell/Scala-like flat map, except that it's runtime polymorphic
+- the value, if you don't run the monad, is an IO value (a bind command)
+- the value when you run it is [1 4 2 3 3 4] (not a list of IO values)
+
+#+BEGIN_SRC leisure
+do
+  p <- run getData 'player-ui'
+  print p
 #+END_SRC
+
+List comprehensions:
+
+- the boolean acts as an "if"
+- the expression's value is the list [3 4], like you might expect
+- you can also format the expr like this:do (x <- for [1 2 3]) (x > 1) (x + 1)
+- not all of the parens are strictly necessary: do (x <- for [1 2 3]) x > 1 x + 1
+
+#+BEGIN_SRC leisure
+do
+  x <- for [1 2 3]
+  x > 1
+  x + 1
+#+END_SRC
+* Importing lens code
+:properties:
+:import: ../lenses.org
+:hidden: true
+:end:
 * SCRATCH
+:properties:
+:hidden: true
+:end:
+
 #+BEGIN_SRC leisure :results dynamic
 getData 'roll-count'
 #+END_SRC
 * Code
+:properties:
+:hidden: true
+:end:
+
 #+BEGIN_SRC leisure :results def
 selectionList sel = map (\el . [(afetch 'size' el) | (afetch 'selected' el)]) sel
 
 roll = do
   #debug
   print 'ROLL'
-  player <- foreach getData 'player-ui'
-  print concat['Player: ' player]
+  player <- run getData 'player-ui'
+  print['Player: ' player]
   selections = selectionList (afetch 'selections' player)
   result <- do
-    sizeCount <- foreach repeat 5
+    sizeCount <- forFlat repeat 5
     size = (sizeCount + 2) * 2
-    dice <- foreach repeat (afetch size selections)
+    dice <- for repeat (afetch size selections)
     valueRand <- rand
     angleRand <- rand
-    #print concat['roll die #' dice ': ' valueRand]
-    [{'size':size 'value':(ceil valueRand * size) 'angle':(floor angleRand * 24)}]
-  print concat['roll: ' result]
-  debug
+    #print['roll die #' dice ': ' valueRand]
+    {'size':size 'value':(ceil valueRand * size) 'angle':(floor angleRand * 24)}
+  print['roll: ' result]
+  #debug
   changeData
-    count <- foreach getData 'roll-count'
-    print concat['Count: ' count]
-    nextCount <- (assoc 'count' count) + 1
+    count <- run getData 'roll-count'
+    print['Count: ' count]
+    nextCount = (assoc 'count' count id nil) + 1
+    print['Next Count: ' nextCount ' (' (assoc 'count' count) ' + 1)']
     setData 'roll-count' {'count' : nextCount}
-    newRoll = {'type':'roll' 'number':count 'player':(afetch 'player' player) 'roll':result}
+    newRoll = {'type':'roll' 'number':nextCount 'player':(afetch 'player' player) 'roll':result}
     appendDataWithAttrs 'rolls' nil ':flowLevel 3 :index rolls number' newRoll
 
 playerLens = lensBuilder lensKey 'player'
 
 checkPlayer = do
   js['console.log("checking player")']
-  player <- foreach getData 'player-ui'
+  player <- run getData 'player-ui'
   js["console.log('player: " (show player) "')"]
   playerId = playerLens lensGet player
   isNil playerId
-  name <- foreach prompt 'Player id?'
+  name <- run prompt 'Player id?'
   js['$(body).addClass("inactive")']
   changeData
     playerName = concat['player-' name]
@@ -128,7 +139,7 @@ checkPlayer = do
     appendDataWithAttrs 'PlayerData' playerName ':flowLevel 3 :index players name' {"type":"player" "name":name}
 
 reset = changeData
-  player <- foreach getData 'player-ui'
+  player <- run getData 'player-ui'
   setData 'player-ui' (lensBuilder lensKey 'selections' lensSet player [{'size':4 'selected':0}{'size':6 'selected':0}{'size':8 'selected':0}{'size':10 'selected':0}{'size':12 'selected':0}])
 
 rollAndReset = do
@@ -136,10 +147,17 @@ rollAndReset = do
   reset
 #+END_SRC
 * test
+:properties:
+:hidden: true
+:end:
+
 #+BEGIN_SRC leisure :results def
-changeData (player <- foreach getData 'player-ui') (print player)
+changeData (player <- run getData 'player-ui') (print player)
 #+END_SRC
 * Data functions
+:properties:
+:hidden: true
+:end:
 
 #+BEGIN_SRC leisure :results def
 lastBlockId = js["$('[data-shared]').last()[0].id"]
@@ -148,7 +166,7 @@ sel = lensBuilder lensKey 'selections'
 
 select size count = changeData
   print ['LEISURE SELECT ' size count]
-  data <- foreach getData 'player-ui'
+  data <- run getData 'player-ui'
   setSelected sel data (number size) (number count)
 
 notNil = compose not isNil
@@ -194,7 +212,7 @@ order: desc
 :end:
 
 #+BEGIN_SRC html :defview player
-<b>{{name}} </b>
+<b>{{name}}</b>
 #+END_SRC
 
 #+BEGIN_SRC html :defview player/edit
@@ -226,8 +244,18 @@ window.selectDie = (e)->
   holder = $(view).closest("[data-org-headline='1']")
   holder.attr 'game', ''
   h = $(holder).find("[data-view='player-ui/name']")?[0].offsetTop ? 0
-  b = $(view).find('.results-box')[0]
-  b.style.height = 'calc(100% - ' + (b.offsetTop - h + 10) + 'px)'
+  r = $(view).find('.results')[0]
+  count = 3
+  scrollIt = ->
+    if count-- > 0
+      r?.scrollTop = r.scrollHeight
+      setTimeout scrollIt, 250
+  scrollIt()
+#+END_SRC
+
+#+BEGIN_SRC coffee :control player-ui/header
+@initializeView = (view)->
+  $(view).find('input [type="radio"]').buttonset()
 #+END_SRC
 
 This is template that defines how the dice log displays.  See the dice log for more info.
@@ -255,18 +283,19 @@ This is template that defines how the dice log displays.  See the dice log for m
         <br>
         {{#each selections}}
         <div class='selector'>
-        <div class='label'>d{{size}}</div>
-        <div class='selectClip'><select name="{{size}}" onchange='selectDie(event)' size='6'>
-          {{#range 0 5}}
-            <option{{#if (equals this ../selected)}} selected{{/if}}>{{this}}</option>
-          {{/range}}
-        </select>
-        </div>
+          <div><input type="radio" id="radio{{size}}" name="mainTrait"></div>
+          <div class='label'>d{{size}}</div>
+          <div class='selectClip'><select name="{{size}}" onchange='selectDie(event)' size='6'>
+            {{#range 0 5}}
+              <option{{#if (equals this ../selected)}} selected{{/if}}>{{this}}</option>
+            {{/range}}
+          </select>
+          </div>
         </div>
         {{/each}}
       </td>
       <td>
-        {{#find 'players'}}{{{view this}}}{{/find}}
+        {{#find 'players'}}<div>{{{view this}}}</div>{{/find}}
       </td>
     </tr>
   </table>
@@ -290,7 +319,8 @@ body.inactive .results-box {
 .results-box {
   min-width: 768px;
   position: relative;
-  height: calc(100% - 60px);
+  height: calc(100% - 8em - 2em * 4);
+  width: calc(100% - 4ex);
 }
 .results-box > table {
   height: 100%;
@@ -322,6 +352,8 @@ input {
 }
 .selector {
   display: inline-block;
+  margin-left: 0.5ex;
+  margin-right: 0.5ex;
 }
 .playerLabel {
   display: inline-block;
@@ -341,11 +373,25 @@ input {
   padding:10px;
   margin:-5px -25px -5px -5px;
 }
+.tc-banner {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 100;
+  white-space: nowrap;
+}
+[data-view=leisure-toolbar].collapse ~ .tc-banner {
+  display: initial;
+}
+[data-view=leisure-toolbar] {
+  z-index: 2;
+}
 [data-edit-mode=fancy][game] {
   min-height: 500px;
   position: relative;
 }
-.bar_collapse [data-edit-mode=fancy][game] {
+[data-view=leisure-toolbar].collapse + [maindoc] [game] {
   position: fixed !important;
   top: 10px !important;
   bottom: 0px !important;
@@ -357,8 +403,8 @@ input {
   border-radius: 10px;
 }
 
-.bar_collapse [data-edit-mode=fancy][game] [data-org-type='text'],
-.bar_collapse [data-edit-mode=fancy][game] .toggle_edit {
+[data-view=leisure-toolbar].collapse + [maindoc] [data-edit-mode=fancy][game] [data-org-type='text'],
+[data-view=leisure-toolbar].collapse + [maindoc] [data-edit-mode=fancy][game] .toggle_edit {
   display: none;
 }
 
@@ -376,29 +422,17 @@ label {
 
 #+END_SRC
 
-#+BEGIN_SRC yaml :flowLevel 3 :index rolls number
-number:
-  count: 0
-player: player-Bubba
-roll: []
-type: roll
-#+END_SRC
-
 #+BEGIN_SRC leisure :results def
 #toggleLeisureBar
-debug
+#debug
 checkPlayer
 do
-  player <- foreach getData 'player-ui'
+  player <- run getData 'player-ui'
   js['console.log("Current player: ' (playerLens lensGet player) '")']
+  js["Leisure.findEditor($('[maindoc]')[0]).options.hideToolbar()"]
+  js["$('[name=p2pHost]').val('textcraft.org:1999')"]
 #+END_SRC
 
 #+BEGIN_SRC cs
 window.diceLounge = Lounge
 #+END_SRC
-
-* Rolls go here
-:properties:
-:hidden: true
-:name: rolls
-:end:

@@ -49,7 +49,8 @@ misrepresented as being the original software.
         basicDataFilter
         replacementFor
         ajaxGet
-     } = Support
+        makeImageBlob
+      } = Support
       {
         changeAdvice
         afterMethod
@@ -76,6 +77,13 @@ misrepresented as being the original software.
         Replacements
         replacements
       } = Rep
+
+      fileTypes =
+        png: 'image/png'
+        gif: 'image/gif'
+        bmp: 'image/bmp'
+        xpm: 'image/xpm'
+        svg: 'image/svg+xml'
 
       diag = (args...)-> console.log args...
 
@@ -127,7 +135,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 f offset, length, text
           else if _.isArray repls then @baseOpsFor totalLength, (f)->
             last = 0
-            for repl in repls
+            for repl in repls by -1
               f repl.start - last, repl.end - repl.start, repl.text
               last = repl.end
         baseOpsFor: (totalLength, iterate)->
@@ -209,6 +217,10 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             slaveConnect: (msg)->
               @send 'slaveApproval', slaveId: msg.slaveId, approval: true
             slaveDisconnect: (msg)->
+            requestFile: ({slaveId, filename, id})->
+              @editor.options.data.getFile filename, ((content)=>
+                @send 'fileContent', {slaveId, id, content: btoa(content)}), ((failure)->
+                @send 'fileError', {slaveId, id, failure})
           @connect "http://#{@host}/Leisure/create", =>
             @send 'initDoc', doc: @data.getText(), name: @name
             @docSnap = @data.getText()
@@ -217,12 +229,61 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         connectToSession: (@url, connected, @newConnectionFunc)->
           @type = 'Slave'
           @newConnectionFunc = @newConnectionFunc ? ->
+          @localResources = {}
+          @imageSizes = {}
+          @imgCount = 0
+          fileRequestCount = 0
+          pendingRequests = new Map()
+          peer = this
+          getFile = (filename, cont, fail)->
+            id = "request-#{fileRequestCount++}"
+            pendingRequests = pendingRequests.set(id, [cont, fail])
+            peer.send 'requestFile', {id, filename}
+          changeAdvice @editor.options.data, true,
+            getFile: p2p: (parent)-> getFile
+          Leisure.localActivateScripts @editor.options
+          changeAdvice @editor.options, true,
+            imageError: p2p: (parent)->(img, e)->
+              src = img.getAttribute 'src'
+              if !src.match '^.*:.*'
+                name = src.match(/([^#?]*)([#?].*)?$/)?[1]
+                src = "#{src}"
+              else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
+              if name
+                if !img.id then img.id = "p2p-image-#{peer.imgCount++}"
+                img.src = ''
+                peer.fetchImage img.id, src
+          @fetchImage = (imgId, src)->
+            if img = $("##{imgId}")[0]
+              if data = @localResources[src]
+                if data instanceof Promise then data.then (data)=>
+                  @replaceImage img, src, data
+                else preserveSelection (range)=> @replaceImage img, src, data
+              else @localResources[src] = new Promise (resolve, reject)=>
+                getFile src, ((file)=>
+                  data = @localResources[src] = makeImageBlob src, file
+                  preserveSelection (range)=> @replaceImage img, src, data
+                  resolve data), reject
+          @replaceImage = (img, src, data)-> setTimeout (=>
+            img.src = data
+            img.onload = =>
+              img.removeAttribute 'style'
+              @imageSizes[src] = " style='height: #{img.height}px; width: #{img.width}px'"
+            ), 0
           @handler =
             __proto__: Peer::handler
             connected: (msg)->
               @finishConnected msg
               @editor.options.load 'shared', msg.doc
               @docSnap = msg.doc
+            fileContent: ({id, content})->
+              [cont] = pendingRequests.get(id)
+              pendingRequests = pendingRequests.remove(id)
+              cont atob(content)
+            fileError: ({id, failure})->
+              [cont, fail] = pendingRequests.get(id)
+              pendingRequests = pendingRequests.remove(id)
+              fail failure
           @connect @url, =>
             @send 'intro', name: @name
             connected?()
@@ -293,6 +354,10 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @send 'guardedOperation', {revision, operation, guards, guardId, selection: @editorClient.selection}
           new Promise (success, failure)=> @guardPromises[guardId] = [success, failure]
 
+      typeForFile = (name)->
+        [ignore, ext] = name.match /\.([^#.]*)(#.*)?$/
+        fileTypes[ext]
+
       configureOpts = (opts)->
         data = opts.data
         if !data.peer then return
@@ -311,11 +376,13 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         changeAdvice opts, true,
           batchReplace: p2p: (parent)-> (replacementFunc, cont, error)->
             repls = validateBatch(replacementFunc())
-            ops = peer.opsFor repls, @getLength()
-            guards = _.flatten([r.gStart, r.gEnd] for r in repls when r.gStart?)
-            peer.sendGuardedOperation(peer.editorClient.revision, ops, guards)
-              .then cont, error
-              .catch error
+            if repls.length
+              ops = peer.opsFor repls, @getLength()
+              guards = _.flatten([r.gStart, r.gEnd] for r in repls when r.gStart?)
+              peer.sendGuardedOperation(peer.editorClient.revision, ops, guards)
+                .then cont, error
+                .catch error
+            else cont()
 
       window.randomUserName = randomUserName = (done)->
         Promise

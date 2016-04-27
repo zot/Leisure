@@ -1,3 +1,6 @@
+* P2P should transmit document name to slaves if it's a public URL
+* TODO Undo: for OT, register with UndoManager, for local, use replacements
+* Finish the big arity substitution for primitives and codegen
 * Write program to test new vele mechanics
 * implement dofold
 dofold i <- 0
@@ -40,7 +43,6 @@ dofold i <- 0
 ** change rest of primitives not to use arcuments.callee
 1. Use a test with a constant for the length, isPartial(arguments.length, 5)
 2. Use a wrapper func for partials: checkPartial (a,b)-> ...
-* TODO Undo: for OT, register with UndoManager, for local, use replacements
 * BUG Parse errors cause weird results parsing
 * BUG hide leading non-toplevel content in fancy mode
 * TODO add resourceBase=URL parameter for resource fallback

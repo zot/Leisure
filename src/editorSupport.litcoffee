@@ -171,11 +171,8 @@ same names for blocks other than printing a warning.
               filter.endChange this
         getImage: (name, cont, fail)->
           @getFile name, ((contents)->
-            byteArrays = for offset in [0...contents.length] by 512
-              slice = contents.slice offset, offset + 512
-              new Uint8Array (slice.charCodeAt(i) for i in [0...512])
-            blob = new Blob byteArrays, type: 'image/png'
-            cont URL.createObjectURL blob), fail
+            if url = makeImageBlob name, contents then cont url else fail "Couldn't create image for #{{name}}"
+          ), fail
         getBlock: (thing, changes)->
           if typeof thing == 'object' then thing
           else changes?.sets[thing] ? super(thing) ? @imported.data[thing]
@@ -542,11 +539,11 @@ that must be done regardless of the source of changes
             envConf? env
             if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
               env.silent = true
-              env.write = ->
+              env.write = (str)-> console.log str
         env: (language, envConf)->
           if env = languageEnvMaker(language)?(__proto__: defaultEnv)
             env.data = this
-            env.write = ->
+            env.write = (str)-> console.log str
             envConf?(env)
             env
         executeText: (language, text, cont, envConf)->
@@ -636,13 +633,23 @@ that must be done regardless of the source of changes
                       argData)...), args...
           else func
 
+      makeImageBlob = (name, contents)->
+        if m = name.match /png|gif|bmp|xpm|svg+xml/
+          byteArrays = for offset in [0...contents.length] by 512
+            slice = contents.slice offset, offset + 512
+            new Uint8Array (slice.charCodeAt(i) for i in [0...512])
+          blob = new Blob byteArrays, type: "image/#{m[0]}"
+          URL.createObjectURL blob
+
       class EditorParsedCodeBlock extends ParsedCodeBlock
         constructor: (@data, block)->
           super @data.getBlock(block) || block
         clone: -> new EditorParsedCodeBlock @data, @block
-        save: ->
+        save: (withUpdates)->
           start = @data.offsetForBlock @block._id
-          @data.runBlock @block, => @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
+          replaceBlock = => @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
+          if withUpdates then replaceBlock()
+          else @data.runBlock @block, replaceBlock
 
       displayError = (e)->
         console.log "Error: #{e}"
@@ -752,6 +759,11 @@ NMap is a very simple trie.
           @toggledSlides = {}
           @dataChanges = null
           @pendingDataChanges = null
+        runBlock: (block, replace)-> @data.runBlock block, replace
+        parsedCodeBlock: (block)->
+          pb = @data.parsedCodeBlock block
+          pb.data = this
+          pb
         dataChanged: (changes)->
           preserveSelection =>
             super changes
@@ -883,7 +895,7 @@ may be called more than once.  changeData() returns a promise.
             block
           else if info = @dataChanges.sharedInserts[name] then info.block
           else @data.getBlockNamed name
-          @data.getYaml block
+          block && (@data.getYaml block)
         setData: (name, value, codeOpts)->
           @checkChanging()
           @verifyDataObject "set #{name} to ", value
@@ -986,6 +998,7 @@ may be called more than once.  changeData() returns a promise.
         canHideSlides: -> @hiding && @mode == Leisure.fancyMode
         shouldHide: (thing)->
           @canHideSlides() && (slide = @slideFor thing) && @isHidden(slide) && !@isToggled(slide)
+        imageError: (img, e)->
         setEditor: (ed)->
           super ed
           $(ed.node).addClass 'leisure-editor'
@@ -1434,4 +1447,5 @@ Exports
         replacementFor
         ajaxGet
         parseYaml
+        makeImageBlob
       }

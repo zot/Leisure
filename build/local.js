@@ -7,7 +7,7 @@
   });
 
   init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs, Atom) {
-    var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureAtom, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, getDocumentParams, initializePendingViews, installSelectionMenu, localResources, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
+    var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureAtom, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, getDocumentParams, initializePendingViews, installSelectionMenu, localActivateScripts, localResources, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams, editorToolbar = EditorSupport.editorToolbar;
     plainEditDiv = Modes.plainEditDiv, fancyEditDiv = Modes.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
@@ -73,15 +73,22 @@
       var u;
       u = new URL('.', opts.loadName);
       opts.data.localURL = u.href;
+      return localActivateScripts(opts);
+    };
+    Leisure.localActivateScripts = localActivateScripts = function(opts) {
       return changeAdvice(opts.editor, true, {
         activateScripts: {
           local: function(parent) {
             return function(el, context) {
-              var errorEvt, i, img, len, ref, results, ret;
+              var errorEvt, i, img, len, ref, removeEvents, results, ret;
               ret = parent(el, context);
               errorEvt = function(e) {
                 checkImage(opts, e.target);
-                return e.target.removeEventListener('load', errorEvt);
+                return removeEvents(e);
+              };
+              removeEvents = function(e) {
+                e.target.removeEventListener('load', removeEvents);
+                return e.target.removeEventListener('error', errorEvt);
               };
               ref = $(el).find('img');
               results = [];
@@ -90,7 +97,7 @@
                 if (!img.complete && !localResources[img.src]) {
                   img.addEventListener('error', errorEvt);
                   results.push(img.addEventListener('load', function(e) {
-                    return e.target.removeEventListener(errorEvt);
+                    return removeEvents;
                   }));
                 } else {
                   results.push(checkImage(opts, img));
@@ -103,7 +110,7 @@
       });
     };
     checkImage = function(opts, img) {
-      var name, ref, ref1, src, u;
+      var err, error, name, ref, ref1, src, u;
       if ((img.complete && !img.naturalHeight) || localResources[img.src]) {
         src = img.getAttribute('src');
         if (!src.match('^.*:.*')) {
@@ -113,8 +120,16 @@
         }
         if (name && !img.leisureLoaded) {
           img.leisureLoaded = true;
-          u = new URL(name, opts.loadName);
-          return localResources[img.src] = img.src = u.href;
+          try {
+            u = new URL(name, opts.data.loadName);
+            localResources[img.src] = img.src = u.href;
+            return img.onerror = function(e) {
+              return opts.imageError(img, e);
+            };
+          } catch (error) {
+            err = error;
+            return opts.imageError(img, err);
+          }
         }
       }
     };

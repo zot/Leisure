@@ -6,7 +6,7 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
-    var DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock;
@@ -159,27 +159,14 @@
 
       OrgData.prototype.getImage = function(name, cont, fail) {
         return this.getFile(name, (function(contents) {
-          var blob, byteArrays, i, offset, slice;
-          byteArrays = (function() {
-            var j, ref, results1;
-            results1 = [];
-            for (offset = j = 0, ref = contents.length; j < ref; offset = j += 512) {
-              slice = contents.slice(offset, offset + 512);
-              results1.push(new Uint8Array((function() {
-                var l, results2;
-                results2 = [];
-                for (i = l = 0; l < 512; i = ++l) {
-                  results2.push(slice.charCodeAt(i));
-                }
-                return results2;
-              })()));
-            }
-            return results1;
-          })();
-          blob = new Blob(byteArrays, {
-            type: 'image/png'
-          });
-          return cont(URL.createObjectURL(blob));
+          var url;
+          if (url = makeImageBlob(name, contents)) {
+            return cont(url);
+          } else {
+            return fail("Couldn't create image for " + {
+              name: name
+            });
+          }
         }), fail);
       };
 
@@ -979,7 +966,9 @@
           }
           if ((ref = typeof newBlock !== "undefined" && newBlock !== null ? (ref1 = newBlock.codeAttributes) != null ? (ref2 = ref1.results) != null ? ref2.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref === 'silent') {
             env.silent = true;
-            return env.write = function() {};
+            return env.write = function(str) {
+              return console.log(str);
+            };
           }
         });
       };
@@ -990,7 +979,9 @@
           __proto__: defaultEnv
         }) : void 0) {
           env.data = this;
-          env.write = function() {};
+          env.write = function(str) {
+            return console.log(str);
+          };
           if (typeof envConf === "function") {
             envConf(env);
           }
@@ -1183,6 +1174,31 @@
       return OrgData;
 
     })(DataStore);
+    makeImageBlob = function(name, contents) {
+      var blob, byteArrays, i, m, offset, slice;
+      if (m = name.match(/png|gif|bmp|xpm|svg+xml/)) {
+        byteArrays = (function() {
+          var j, ref, results1;
+          results1 = [];
+          for (offset = j = 0, ref = contents.length; j < ref; offset = j += 512) {
+            slice = contents.slice(offset, offset + 512);
+            results1.push(new Uint8Array((function() {
+              var l, results2;
+              results2 = [];
+              for (i = l = 0; l < 512; i = ++l) {
+                results2.push(slice.charCodeAt(i));
+              }
+              return results2;
+            })()));
+          }
+          return results1;
+        })();
+        blob = new Blob(byteArrays, {
+          type: "image/" + m[0]
+        });
+        return URL.createObjectURL(blob);
+      }
+    };
     EditorParsedCodeBlock = (function(superClass) {
       extend(EditorParsedCodeBlock, superClass);
 
@@ -1195,10 +1211,10 @@
         return new EditorParsedCodeBlock(this.data, this.block);
       };
 
-      EditorParsedCodeBlock.prototype.save = function() {
-        var start;
+      EditorParsedCodeBlock.prototype.save = function(withUpdates) {
+        var replaceBlock, start;
         start = this.data.offsetForBlock(this.block._id);
-        return this.data.runBlock(this.block, (function(_this) {
+        replaceBlock = (function(_this) {
           return function() {
             return _this.data.replaceText({
               start: start,
@@ -1207,7 +1223,12 @@
               source: 'code'
             });
           };
-        })(this));
+        })(this);
+        if (withUpdates) {
+          return replaceBlock();
+        } else {
+          return this.data.runBlock(this.block, replaceBlock);
+        }
       };
 
       return EditorParsedCodeBlock;
@@ -1401,6 +1422,17 @@
         this.dataChanges = null;
         this.pendingDataChanges = null;
       }
+
+      OrgEditing.prototype.runBlock = function(block, replace) {
+        return this.data.runBlock(block, replace);
+      };
+
+      OrgEditing.prototype.parsedCodeBlock = function(block) {
+        var pb;
+        pb = this.data.parsedCodeBlock(block);
+        pb.data = this;
+        return pb;
+      };
 
       OrgEditing.prototype.dataChanged = function(changes) {
         return preserveSelection((function(_this) {
@@ -1648,7 +1680,7 @@
           this.checkChanging();
         }
         block = skipCheck && !this.dataChanges ? this.data.getBlockNamed(name) : this.dataChanges.localRemoves[name] || this.dataChanges.sharedRemoves[name] ? null : (block = this.dataChanges.localSets[name] || this.dataChanges.sharedSets[name]) ? block : (info = this.dataChanges.sharedInserts[name]) ? info.block : this.data.getBlockNamed(name);
-        return this.data.getYaml(block);
+        return block && (this.data.getYaml(block));
       };
 
       OrgEditing.prototype.setData = function(name, value, codeOpts) {
@@ -1871,6 +1903,8 @@
         var slide;
         return this.canHideSlides() && (slide = this.slideFor(thing)) && this.isHidden(slide) && !this.isToggled(slide);
       };
+
+      OrgEditing.prototype.imageError = function(img, e) {};
 
       OrgEditing.prototype.setEditor = function(ed) {
         var opts;
@@ -2544,7 +2578,8 @@
       basicDataFilter: basicDataFilter,
       replacementFor: replacementFor,
       ajaxGet: ajaxGet,
-      parseYaml: parseYaml
+      parseYaml: parseYaml,
+      makeImageBlob: makeImageBlob
     };
   });
 

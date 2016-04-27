@@ -229,6 +229,14 @@ Handle a message from the connected browser
               slave.send type: 'connected', id: slave.connectionId, doc: @otServer.document, revision: @otServer.operations.length, peers: @peers()
               @slaves[slaveId] = slave
             else slave.sendError disapprovedError()
+        fileContent: (msg)->
+          id = msg.slaveId
+          delete msg.slaveId
+          @slaves[id].send msg
+        fileError: (msg)->
+          id = msg.slaveId
+          delete msg.slaveId
+          @slaves[id].send msg
 
     class SlaveHandler extends MessageHandler
       type: 'Slave'
@@ -244,6 +252,9 @@ Handle a message from the connected browser
         __proto__: MessageHandler::handler
         intro: ({@name})->
           @broadcast type: 'connection', peerId: @connectionId, peerName: @name
+        requestFile: (msg)->
+          msg.slaveId = @connectionId
+          @master.send msg
 
     startServer = (port)->
       console.log 'serve: ' + path.dirname(process.cwd())
