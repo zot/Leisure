@@ -268,9 +268,7 @@ defCase equal.cons a b | and (isCons a) (isCons b) -> and
 ######################
 
 # you can add more cases to isListLike if you want
-isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString])
-
-defCase map.listLike func l | not (isListLike l) -> map func (toList l)
+isListLike l = contains [isCons isNil isRepeat isRange isOption isEither isString] l
 
 toList x = [x]
 
@@ -280,6 +278,8 @@ defCase toList.range r | isRange r -> r \a b . runRepeat a b id
 defCase toList.opt o | isOption o -> o (\x . [x]) []
 defCase toList.either e | isEither e -> e (\_ . []) (\x . [x])
 defCase toList.string s | isString s -> strToList s
+
+defCase map.listLike func l | isListLike l -> map func (toList l)
 
 # folding
 

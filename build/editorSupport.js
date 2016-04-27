@@ -966,7 +966,9 @@
           }
           if ((ref = typeof newBlock !== "undefined" && newBlock !== null ? (ref1 = newBlock.codeAttributes) != null ? (ref2 = ref1.results) != null ? ref2.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref === 'silent') {
             env.silent = true;
-            return env.write = function() {};
+            return env.write = function(str) {
+              return console.log(str);
+            };
           }
         });
       };
@@ -977,7 +979,9 @@
           __proto__: defaultEnv
         }) : void 0) {
           env.data = this;
-          env.write = function() {};
+          env.write = function(str) {
+            return console.log(str);
+          };
           if (typeof envConf === "function") {
             envConf(env);
           }
@@ -1207,10 +1211,10 @@
         return new EditorParsedCodeBlock(this.data, this.block);
       };
 
-      EditorParsedCodeBlock.prototype.save = function() {
-        var start;
+      EditorParsedCodeBlock.prototype.save = function(withUpdates) {
+        var replaceBlock, start;
         start = this.data.offsetForBlock(this.block._id);
-        return this.data.runBlock(this.block, (function(_this) {
+        replaceBlock = (function(_this) {
           return function() {
             return _this.data.replaceText({
               start: start,
@@ -1219,7 +1223,12 @@
               source: 'code'
             });
           };
-        })(this));
+        })(this);
+        if (withUpdates) {
+          return replaceBlock();
+        } else {
+          return this.data.runBlock(this.block, replaceBlock);
+        }
       };
 
       return EditorParsedCodeBlock;
@@ -1413,6 +1422,17 @@
         this.dataChanges = null;
         this.pendingDataChanges = null;
       }
+
+      OrgEditing.prototype.runBlock = function(block, replace) {
+        return this.data.runBlock(block, replace);
+      };
+
+      OrgEditing.prototype.parsedCodeBlock = function(block) {
+        var pb;
+        pb = this.data.parsedCodeBlock(block);
+        pb.data = this;
+        return pb;
+      };
 
       OrgEditing.prototype.dataChanged = function(changes) {
         return preserveSelection((function(_this) {
@@ -1883,6 +1903,8 @@
         var slide;
         return this.canHideSlides() && (slide = this.slideFor(thing)) && this.isHidden(slide) && !this.isToggled(slide);
       };
+
+      OrgEditing.prototype.imageError = function(img, e) {};
 
       OrgEditing.prototype.setEditor = function(ed) {
         var opts;

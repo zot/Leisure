@@ -201,7 +201,7 @@
                   controller = singleControllers[controllerName] = {}
                   env = blockEnvMaker(block) __proto__: defaultEnv
                   env.eval = (text)-> controllerEval.call controller, text
-                  env.write = (str)->
+                  env.write = (str)-> console.log str
                   env.errorAt = (offset, msg)-> console.log msg
                   env.executeText blockSource(block), Nil, (->)
               controller?.initializeView viewNode[0], vars

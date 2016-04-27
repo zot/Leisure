@@ -89,6 +89,9 @@ Code for local-mode.  This will not be loaded under meteor.
       configureLocal = (opts)->
         u = new URL '.', opts.loadName
         opts.data.localURL = u.href
+        localActivateScripts opts
+
+      Leisure.localActivateScripts = localActivateScripts = (opts)->
         changeAdvice opts.editor, true,
           activateScripts: local: (parent)->(el, context)->
             ret = parent el, context
@@ -112,8 +115,12 @@ Code for local-mode.  This will not be loaded under meteor.
           else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
           if name && !img.leisureLoaded
             img.leisureLoaded = true
-            u = new URL name, opts.loadName
-            localResources[img.src] = img.src = u.href
+            try
+              u = new URL name, opts.data.loadName
+              localResources[img.src] = img.src = u.href
+              img.onerror = (e)-> opts.imageError img, e
+            catch err
+              opts.imageError img, err
 
       $(document).ready ->
         runTests()

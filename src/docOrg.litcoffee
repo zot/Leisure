@@ -56,6 +56,7 @@
           else if !value? then info
           else info + " :#{name}" + (if value then ' ' + value else '')
         setResults: (str)-> @spliceItem 'results', str
+        setSource: (str)-> @spliceItem 'source', str
         setError: (str)-> @spliceItem 'error', str
         addResultType: (str)->
           types = @getResultTypes()

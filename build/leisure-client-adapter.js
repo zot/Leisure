@@ -354,31 +354,26 @@
             }
           }
         });
-        changeAdvice(this.editor, true, {
-          activateScripts: {
+        Leisure.localActivateScripts(this.editor.options);
+        changeAdvice(this.editor.options, true, {
+          imageError: {
             p2p: function(parent) {
-              return function(el, context) {
-                var img, j, len1, name, ref2, ref3, ref4, ret, src;
-                ret = parent(el, context);
-                ref2 = $(el).find('img');
-                for (j = 0, len1 = ref2.length; j < len1; j++) {
-                  img = ref2[j];
-                  src = img.getAttribute('src');
-                  if (!src.match('^.*:.*')) {
-                    name = (ref3 = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref3[1] : void 0;
-                    src = "" + src;
-                  } else {
-                    name = (ref4 = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref4[1] : void 0;
-                  }
-                  if (name) {
-                    if (!img.id) {
-                      img.id = "p2p-image-" + (peer.imgCount++);
-                    }
-                    img.src = '';
-                    peer.fetchImage(img.id, src);
-                  }
+              return function(img, e) {
+                var name, ref2, ref3, src;
+                src = img.getAttribute('src');
+                if (!src.match('^.*:.*')) {
+                  name = (ref2 = src.match(/([^#?]*)([#?].*)?$/)) != null ? ref2[1] : void 0;
+                  src = "" + src;
+                } else {
+                  name = (ref3 = src.match(/^file:([^#?]*)([#?].*)?$/)) != null ? ref3[1] : void 0;
                 }
-                return ret;
+                if (name) {
+                  if (!img.id) {
+                    img.id = "p2p-image-" + (peer.imgCount++);
+                  }
+                  img.src = '';
+                  return peer.fetchImage(img.id, src);
+                }
               };
             }
           }

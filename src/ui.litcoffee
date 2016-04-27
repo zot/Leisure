@@ -91,8 +91,16 @@ choose a handlebars template.
         oldDonts = root.context?.dontRender ? new Set()
         mergeContext {dontRender: oldDonts.add(view)}, func
 
-      Handlebars.registerHelper 'condense', (options)->
-        options.fn(options).replace(/>\s+</g, '><')
+      Handlebars.registerHelper 'condense', (extreme, options)->
+        if options && extreme
+          options.fn(this).replace />\s+</g, '><'
+        else
+          options = options || extreme
+          options.fn(this)
+            .replace(/>[ ]+</g, '><')
+            .replace(/^\s*\n/gm, '')
+            .replace(/>\s+$/gm, '>')
+            .replace(/^\s+</gm, '<')
 
       Handlebars.registerHelper 'debug', (options)->
         debugger

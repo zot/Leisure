@@ -32,7 +32,7 @@ in as long as you mark it as data-noncontent, etc.
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-toolbar
-{{#condense}}
+{{#condense 'true'}}
 <div name='buttons' style="position: relative;">
   <div style='position: relative; display: inline-block; width: calc(100% - 13em)'>
     <button name='leisure_grip' title='x'>

@@ -539,11 +539,11 @@ that must be done regardless of the source of changes
             envConf? env
             if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
               env.silent = true
-              env.write = ->
+              env.write = (str)-> console.log str
         env: (language, envConf)->
           if env = languageEnvMaker(language)?(__proto__: defaultEnv)
             env.data = this
-            env.write = ->
+            env.write = (str)-> console.log str
             envConf?(env)
             env
         executeText: (language, text, cont, envConf)->
@@ -645,9 +645,11 @@ that must be done regardless of the source of changes
         constructor: (@data, block)->
           super @data.getBlock(block) || block
         clone: -> new EditorParsedCodeBlock @data, @block
-        save: ->
+        save: (withUpdates)->
           start = @data.offsetForBlock @block._id
-          @data.runBlock @block, => @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
+          replaceBlock = => @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
+          if withUpdates then replaceBlock()
+          else @data.runBlock @block, replaceBlock
 
       displayError = (e)->
         console.log "Error: #{e}"
@@ -757,6 +759,11 @@ NMap is a very simple trie.
           @toggledSlides = {}
           @dataChanges = null
           @pendingDataChanges = null
+        runBlock: (block, replace)-> @data.runBlock block, replace
+        parsedCodeBlock: (block)->
+          pb = @data.parsedCodeBlock block
+          pb.data = this
+          pb
         dataChanged: (changes)->
           preserveSelection =>
             super changes
@@ -991,6 +998,7 @@ may be called more than once.  changeData() returns a promise.
         canHideSlides: -> @hiding && @mode == Leisure.fancyMode
         shouldHide: (thing)->
           @canHideSlides() && (slide = @slideFor thing) && @isHidden(slide) && !@isToggled(slide)
+        imageError: (img, e)->
         setEditor: (ed)->
           super ed
           $(ed.node).addClass 'leisure-editor'

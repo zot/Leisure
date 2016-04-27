@@ -74,6 +74,10 @@
         return this.spliceItem('results', str);
       };
 
+      ParsedCodeBlock.prototype.setSource = function(str) {
+        return this.spliceItem('source', str);
+      };
+
       ParsedCodeBlock.prototype.setError = function(str) {
         return this.spliceItem('error', str);
       };

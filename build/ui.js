@@ -116,8 +116,13 @@
         dontRender: oldDonts.add(view)
       }, func);
     };
-    Handlebars.registerHelper('condense', function(options) {
-      return options.fn(options).replace(/>\s+</g, '><');
+    Handlebars.registerHelper('condense', function(extreme, options) {
+      if (options && extreme) {
+        return options.fn(this).replace(/>\s+</g, '><');
+      } else {
+        options = options || extreme;
+        return options.fn(this).replace(/>[ ]+</g, '><').replace(/^\s*\n/gm, '').replace(/>\s+$/gm, '>').replace(/^\s+</gm, '<');
+      }
     });
     Handlebars.registerHelper('debug', function(options) {
       debugger;

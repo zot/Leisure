@@ -241,20 +241,18 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             peer.send 'requestFile', {id, filename}
           changeAdvice @editor.options.data, true,
             getFile: p2p: (parent)-> getFile
-          changeAdvice @editor, true,
-            activateScripts: p2p: (parent)->(el, context)->
-              ret = parent el, context
-              for img in $(el).find 'img'
-                src = img.getAttribute 'src'
-                if !src.match '^.*:.*'
-                  name = src.match(/([^#?]*)([#?].*)?$/)?[1]
-                  src = "#{src}"
-                else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
-                if name
-                  if !img.id then img.id = "p2p-image-#{peer.imgCount++}"
-                  img.src = ''
-                  peer.fetchImage img.id, src
-              ret
+          Leisure.localActivateScripts @editor.options
+          changeAdvice @editor.options, true,
+            imageError: p2p: (parent)->(img, e)->
+              src = img.getAttribute 'src'
+              if !src.match '^.*:.*'
+                name = src.match(/([^#?]*)([#?].*)?$/)?[1]
+                src = "#{src}"
+              else name = src.match(/^file:([^#?]*)([#?].*)?$/)?[1]
+              if name
+                if !img.id then img.id = "p2p-image-#{peer.imgCount++}"
+                img.src = ''
+                peer.fetchImage img.id, src
           @fetchImage = (imgId, src)->
             if img = $("##{imgId}")[0]
               if data = @localResources[src]

@@ -5,179 +5,69 @@ x = 3
 
 #+NAME: character-sheet
 #+BEGIN_SRC text :post formatted-character-sheet(*this*) :flowlevel -1 :results dynamic :exports code :index players name
-name: Bill
-ruche: 11
-character: Golden Monkey
-currentRuche: 7
-consequence: tmp derp
-☠ moderate slubba
-aspect: [hc/truth] Agent of the Order
-❂ [trbl] On Loan from the Hand
-❂ Harvester of Knowledge
-❂ X
-❂ X
-focus: Scrahv Ninja (not martial arts) d12
-ability: Scrahv Obscurement [truth]: fiction 2
-trait: Stony resilience d12 composure
-◇ Toughness d10
-◇ Hand to Hand Combat d8
-◇ Scholar d6
-◇ Overly Reasonable d4
-item: Mask of Disguise [truth]
-◇ Seamless Finish d12
-✫ Disguises: Create 8
-item: Ribbon of Access [truth]
-◇ Strong Ribbon d6
-✫ Physical bypass: fiction 2
-item: Audio Telescope
-◇ Perception d10
-✫ Ranged perception: range 3
+name: NAME
+ruche: RUCHE
+character: PC_NAME
+
 #+END_SRC
 #+RESULTS:
 : characters:
-:   - allocatedRuche: 7
-:     aspects:
-:       - attribute: truth
-:         highConcept: true
-:         name: Agent of the Order
-:       - name: On Loan from the Hand
-:         trouble: true
-:       - name: Harvester of Knowledge
-:       - name: X
-:       - name: X
-:     attributes:
-:       - truth
-:     baseRuche: 20
-:     composure: 4
-:     consequences:
-:       - level: tmp
-:         name: derp
-:         number: 0
-:       - level: moderate
-:         name: slubba
-:         number: 2
-:     cost: 27
-:     currentRuche: 7
+:   - allocatedRuche: 0
+:     baseRuche: 0
+:     composure: 2
+:     cost: 0
 :     health: 2
-:     name: Golden Monkey
-:     traits:
-:       - abilities:
-:           - attribute: truth
-:             effects:
-:               - type: fiction
-:                 value: 2
-:             name: Scrahv Obscurement
-:         focus: Scrahv Ninja (not martial arts)
-:         value: 12
-:       - name: Stony resilience
-:         stress: composure
-:         value: 12
-:       - name: Toughness
-:         value: 10
-:       - name: Hand to Hand Combat
-:         value: 8
-:       - name: Scholar
-:         value: 6
-:       - name: Overly Reasonable
-:         value: 4
+:     name: PC_NAME
 :     type: character
-:   - allocatedRuche: 8
-:     attributes:
-:       - truth
-:     baseRuche: 5
-:     cost: 13
-:     name: Mask of Disguise
-:     traits:
-:       - abilities:
-:           - effects:
-:               - type: Create
-:                 value: 8
-:             name: Disguises
-:         name: Seamless Finish
-:         value: 12
-:     type: item
-:   - allocatedRuche: 2
-:     attributes:
-:       - truth
-:     baseRuche: 2
-:     cost: 4
-:     name: Ribbon of Access
-:     traits:
-:       - abilities:
-:           - effects:
-:               - type: fiction
-:                 value: 2
-:             name: Physical bypass
-:         name: Strong Ribbon
-:         value: 6
-:     type: item
-:   - allocatedRuche: 3
-:     baseRuche: 4
-:     cost: 7
-:     name: Audio Telescope
-:     traits:
-:       - abilities:
-:           - effects:
-:               - type: range
-:                 value: 3
-:             name: Ranged perception
-:         name: Perception
-:         value: 10
-:     type: item
-: cost: 51
-: extraRuche: '11'
-: name: "Bill\x13\x13\x13"
+: cost: 0
+: extraRuche: RUCHE
+: name: NAME
+: type: character-sheet
 
 #+BEGIN_HTML :var player=character-sheet
 {{{view player}}}
 #+END_HTML
 
 #+BEGIN_SRC html :defview character-sheet
+{{#condense}}
 <div class='characterSheetHolder'>
   <div class='characterSheet'>
-    {{#each errors}}<div class='error bx'>{{this}}</div>{{/each}}
-    <div class='player bx'>{{name}} {{extraRuche}}</div>
-    <div class='characterName bx'>{{characters.[0].name}} {{cost}}</div>
+    {{#each errors}}
+      <div class='error bx'>{{this}}</div>
+    {{/each}}
+    <div class='player bx'>{{name}} &#9;&#9;{{extraRuche}}</div><div class='characterName bx'>&#9;🌕 {{characters.[0].name}} {{cost}}</div>
     {{#each characters}}
-      {{#unless @first}}<div class='character bx'>{{name}}{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}} ({{allocatedRuche}})</div>{{/unless}}
-      <div class='ruche bx'><div class='current-ruche'></div><div class='max-ruche'>{{allocatedRuche}}</div></div>
+      {{#unless @first}}
+        <div class='character bx'>🌕 {{name}}{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}}</div>
+      {{/unless}}
+      <div class='ruche bx'><div class='current-ruche'></div><div class='max-ruche'>&nbsp;&#9;Max Ruche {{allocatedRuche}}</div></div>
       {{#if @first}}
-        <div class='health'><div class='stressLabel'> </div></div>
-        <div class='composure'><div class='stressLabel'> </div></div>
+        <div class='health bx'><table class='health stress-boxes'><tr><td class='stressLabel'>Health</td>{{#repeat health}}<td>&#9;<span class='hidden'>🞎</span></td>{{/repeat}}</tr></table></div>
+        <div class='composure bx'><table class='composure stress-boxes'><tr><td class='stressLabel'>Comp</td>{{#repeat composure}}<td>&#9;<span class='hidden'>🞎</span></td>{{/repeat}}</tr></table></div>
       {{/if}}
       {{#each consequences}}
         <div class='consequence {{level}} bx'>☠{{#if number}} {{number}}{{/if}} {{level}} {{capitalize name}}</div>
       {{/each}}
-      {{#each aspects}}
-        <div class='aspect bx'>❂
-          {{#if highConcept}}
-            [High Concept{{#if attribute}}/{{capitalize attribute}}{{/if}}]
-          {{else}}
-            {{#if trouble}}
-              [Trouble{{#if attribute}}/{{capitalize attribute}}{{/if}}]
-            {{else}}
-              {{#if attribute}}[{{capitalize attribute}}]{{/if}}
-            {{/if}}
-          {{/if}}
-          {{capitalize name}}
-        </div>
+      {{#each aspects}}<div class='aspect bx'>❂{{#if highConcept
+        }} [High Concept{{#if attribute}}/{{capitalize attribute}}{{/if}}]{{else}}{{#if trouble
+        }} [Trouble{{#if attribute}}/{{capitalize attribute}}{{/if}}]{{else}}{{#if attribute
+        }} [{{capitalize attribute}}]{{/if}}{{/if}}{{/if
+        }} {{capitalize name}}</div>
       {{/each}}
-      {{#each traits}}
-        <div class='trait bx{{#if focus}}
-            focus'>◆ {{capitalize focus}}
-          {{else}}'>◇ {{capitalize name}}
-          {{/if}} d{{value}}{{#if stress}} {{stress}}{{/if}}</div>
+      {{#each traits}}<div class='trait bx{{#if focus
+        }} focus'>◆ {{capitalize focus}}{{
+        else}}'>◇ {{capitalize name}}{{/if
+        }} d{{value}}{{#if stress}} {{stress}}{{/if}}</div>
         {{#each abilities}}
-          <div class='ability bx'>✫ {{capitalize name}}{{#if attribute}} [{{capitalize attribute}}]{{/if}}:
-            {{#each effects}}
-              {{capitalize type}} {{value}}{{#unless @last}},{{/unless}}
-            {{/each}}
-          </div>
+          <div class='ability bx'>✫ {{capitalize name}}{{#if attribute
+            }} [{{capitalize attribute}}]{{/if}}:{{#each effects
+              }}{{capitalize type}} {{value}}{{#unless @last}},{{/unless}}{{/each}}</div>
         {{/each}}
       {{/each}}
     {{/each}}
   </div>
 </div>
+{{/condense}}
 #+END_SRC
 * code
 :properties:
@@ -186,27 +76,55 @@ item: Audio Telescope
 #+NAME: formatted-character-sheet
 #+BEGIN_SRC coffee :var player
 do =>
-  result = @Vele.parse player
-  result.type = 'character-sheet'
-  if m = result.errors?[0]?.match /^(.*) on line ([0-9]+)/
-    lines = player.split(/(\n)/)
-    offset = 0
-    for i in [0...Number(m[2]) + 1]
-      offset = player.indexOf('\n', offset) + 1
-    console.log "Error at #{offset}: #{m[1]}"
-    Lounge?.errorAt offset, m[1]
-  result
+  console.log "Lounge: ", Lounge
+  if player != (cleanedPlayer = player.replace(/\t/g,' '))
+    {opts, data, blockVars} = Lounge
+    id = blockVars['*this*']._id
+    debugger
+    setTimeout (->
+      block = opts.parsedCodeBlock id
+      oldBlock = data.getBlock block.block._id
+      source = block.items.source
+      oldSrc = source.content
+      block.setSource "#{source.text.substring 0, source.contentPos}#{cleanedPlayer}#{source.text.substring source.contentPos + oldSrc.length}"
+      #block.block.yaml = undefined
+      block.setResults ''
+      # #data.getYaml(block.block)
+      # #debugger
+      # changes = opts.changesFor data.getFirst(), [oldBlock], [data.getBlock block.block._id]
+      # block.block.code = changes.newBlocks[0].code
+      # #data.getCode(block.block)()
+      block.save true
+      #old = {}
+      #old[block.block._id] = oldBlock
+      #opts.changed {oldBlocks: [oldBlock], newBlocks: [data.getBlock block.block._id], old}
+    ), 10
+    {}
+  else
+    result = @Vele.parse player
+    result.type = 'character-sheet'
+    if m = result.errors?[0]?.match /^(.*) on line ([0-9]+)/
+      lines = player.split(/(\n)/)
+      offset = 0
+      for i in [0...Number(m[2]) + 1]
+        offset = player.indexOf('\n', offset) + 1
+      console.log "Error at #{offset}: #{m[1]}"
+      Lounge?.errorAt offset, m[1]
+    result
 #+END_SRC
 
 #+BEGIN_SRC coffee :results def
 if !@Vele
+  sloppyNameLine = /^\s*[0-9]*\s([^0-9 ]\S*)\s*([0-9]+)\s+(\S.*)(?:\s+[0-9]+\s*)$/
+  ignorePat = /^[0-9]+\s+max ruche|^health|^comp|^[0-9]+ tmp/i
+  tmpAspectPat = /^(?:\s|[0-9])*\btmp\b\s*(\S.*)?\s*$/
   basicLinePat = /^(\S+):(.*)$/
   aspectPat = /^(?:\[([^\/\]]+)(?:\/(.*))?\]\s+)?(\S.*)$/
-  traitPat = /^(.*\S)\s+d([1468][02]?)(?:\s+(composure|health))?$/i
+  traitPat = /^(.*\S)\s+d([1468][02]?)(?:\s*\(\s*\+[0-9]+)?(?:\s*(composure|health))?(?:\s*\))?$/i
   highConceptPat = /^hc|high\s*concept$/
   troublePat = /^tr|trbl|trouble$/
   attributePat = /^order|purity|mercy|truth|nurture|creation|chaos|corruption|domination|scheming|strife|madness$/
-  consequenceTypePat = /^(mild|moderate|severe|extreme|tmp)\s+(\S.*)$/i
+  consequenceTypePat = /^(?:\s*[0-9]+)?\s*(mild|moderate|severe|extreme|tmp)(?:\s+(\S.*))?$/i
   abilityPat = /^([^\[\]:]*[^\[\]:\s])\s*(?:\[(.*)\])?:\s*(\S.*)$/
   effectPat = /^(.*\S)\s+([0-9]+)$/
   characterPat = /^([^\[\]]+?)\s*(?:\[(.*)\])?$/
@@ -215,14 +133,16 @@ if !@Vele
   specialLineKeys =
     chars: "❂◆◇✫☠"
     keys: ['aspect', 'focus', 'trait', 'ability', 'consequence']
-  getLineKey = (line)->
+  getLineKey = (line, sloppy)->
     line = line.trim()
     if m = line.match basicLinePat
       [..., key, value] = m
       {key, value: value.trim()}
     else if m = line.match specialLinePat
       [..., char, value] = m
-      if char.length == 1 && (i = specialLineKeys.chars.indexOf(char)) != -1 then key: specialLineKeys.keys[i], value: value.trim()
+      if char.length == 1 && (i = specialLineKeys.chars.indexOf(char)) != -1
+        #debugger
+        key: specialLineKeys.keys[i], value: value.trim()
       else key: 'character', value: char.trim()
     else {}
   cleanAspectType = (str)->
@@ -245,13 +165,24 @@ if !@Vele
     parse: (str)->
       error = false
       @lines = []
+      usedSloppy = false
       for line, i in str.split('\n') when line.trim()
         @lines.push line
         @pos = i
         {key, value} = getLineKey line
-        if key
-          if @pos == 0 then @value.name = value
-          else if @pos == 1 then @value.extraRuche = value
+        if @pos == 0 && m = line.match sloppyNameLine
+          usedSloppy = true
+          [ignore, playerName, ruche, pcName] = m
+          @value.name = playerName
+          @value.extraRuche = ruche
+          #debugger
+          @character pcName, line
+        else if m = line.match tmpAspectPat then @consequence value, line, 'tmp', m[1]
+        else if line.match ignorePat then continue
+        else if key
+          if !usedSloppy && @pos <= 1
+            if @pos == 0 then @value.name = value
+            else if @pos == 1 then @value.extraRuche = value
           else if this[key]
             try
               this[key].call this, value, line
@@ -263,9 +194,9 @@ if !@Vele
       mainChar = @value.characters[0]
       for char, i in @value.characters
         @value.cost += char.cost = char.baseRuche + char.allocatedRuche
-      aspectAttrs = (aspect.attribute for aspect in mainChar.aspects when aspect.attribute)
+      aspectAttrs = (aspect.attribute for aspect in mainChar.aspects ? [] when aspect.attribute)
       mainAttrs = mainChar.attributes ? []
-      for trait in mainChar.traits when trait.abilities
+      for trait in mainChar.traits ? [] when trait.abilities
         for ability in trait.abilities when ability.attribute
           if !(ability.attribute in mainAttrs)
             mainAttrs.push ability.attribute
@@ -329,11 +260,13 @@ if !@Vele
           else return @addError "Unknown aspect type or attribute '#{primary}'"
         @curAspects().push aspect
         @curCharacter().allocatedRuche++
-    consequence: (str)->
-      if m = str.match consequenceTypePat then @curConsequences().push
-        level: m[1].toLowerCase()
-        name: m[2]
-        number: consequenceValues.indexOf m[1].toLowerCase()
+    consequence: (str, line, type, name)->
+      if !name && (m = str.match consequenceTypePat) then [ignore, type, name] = m
+      if type
+        @curConsequences().push
+          level: type.toLowerCase()
+          name: name ? ''
+          number: consequenceValues.indexOf type.toLowerCase()
       else @addError "Couldn't parse consequence"
     focus: (str)-> @parseTrait 'focus', str
     trait: (str)-> @parseTrait 'name', str
@@ -375,7 +308,7 @@ if !@Vele
 :hidden: true
 :end:
 #+BEGIN_SRC coffee :results def
-Handlebars.registerHelper 'capitalize', (v)-> v[0].toUpperCase() + v[1..]
+Handlebars.registerHelper 'capitalize', (v)-> if v[0] then v[0].toUpperCase() + v[1..] else v
 $('''
 <a name="tc" target="_blank" href="http://www.teamcthulhu.com" class='tc-banner'>
   <button name="team_cthulhu" title="x">
@@ -383,6 +316,8 @@ $('''
   </button>
 </a>
 ''').appendTo(document.body).find('button').button()
+Handlebars.registerHelper 'repeat', (times, options)->
+  (options.fn(this) for i in [0...Number times] by 1).join ''
 #+END_SRC
 * Styles
 :properties:
@@ -427,7 +362,7 @@ $('''
   background: pink;
 }
 .characterSheetHolder {
-  position: fixed;
+  position: absolute;
   top: 0;
   right: 0;
   z-index: 1;
@@ -483,21 +418,31 @@ $('''
   padding-bottom: 2px;
 }
 .max-ruche::before {
-  content: "\0000a0Max Ruche ";
+  /*content: "\0000a0Max Ruche ";*/
 }
-.stressLabel {
+.stress-boxes {
+  display: inline-table;
+  border-collapse: collapse;
+  margin: 1px;
+}
+.stress-boxes td {
+    width: 2em;
+    border: solid black 2px;
+}
+.stress-boxes td.stressLabel {
   background: #cccccc;
+  border-color: #cccccc;
+  border-right-color: black;
+  width: 6ex;
 }
-.health-box .stressLabel::before {
-  content: "Health";
+.health, .composure {
+  padding: 0;
+  background: white;
 }
-.compousre-box .stressLabel::before {
-  content: "Comp";
-}
-.health {
+.health .stress-boxes {
   background: #f4cccc;
 }
-.composure {
+.composure .stress-boxes {
   background: #c9daf8;
 }
 .ruche {

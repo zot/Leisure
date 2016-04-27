@@ -1504,6 +1504,7 @@ DataStoreEditingOptions
         getFirst: (first)-> @data.getFirst()
         change: (changes)-> if changes then @data.change changes
         changed: (changes)-> @rerenderAll()
+        offsetForBlock: (blockOrId)-> @data.offsetForBlock blockOrId
 
 Utilities
 =========

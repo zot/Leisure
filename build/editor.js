@@ -2280,6 +2280,10 @@
         return this.rerenderAll();
       };
 
+      DataStoreEditingOptions.prototype.offsetForBlock = function(blockOrId) {
+        return this.data.offsetForBlock(blockOrId);
+      };
+
       return DataStoreEditingOptions;
 
     })(BasicEditingOptions);
