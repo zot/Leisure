@@ -92,6 +92,10 @@
             if state then @addResultType 'dynamic'
             else @removeResultType 'dynamic'
         isDynamic: -> 'dynamic' in @getResultTypes()
+        setSourceContent: (newContent)->
+          src = @items.source
+          @setSource "#{src.text.substring 0, src.contentPos}#{newContent}#{src.text.substring src.contentPos + src.content.length}"
+
 
       escapeRegexp = (str)-> str.replace /[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'
 

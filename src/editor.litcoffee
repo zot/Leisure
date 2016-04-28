@@ -182,21 +182,25 @@ Key funcs
 
 Basic functions used by [defaultBindings](#defaultBindings)
 
+      useEvent = (e)->
+        e.preventDefault()
+        e.stopPropagation()
+
       keyFuncs =
         backwardChar: (editor, e, r)->
-          e.preventDefault()
+          useEvent e
           editor.moveSelectionBackward r
           false
         forwardChar: (editor, e, r)->
-          e.preventDefault()
+          useEvent e
           editor.moveSelectionForward r
           false
         previousLine: (editor, e, r)->
-          e.preventDefault()
+          useEvent e
           editor.moveSelectionUp r
           false
         nextLine: (editor, e, r)->
-          e.preventDefault()
+          useEvent e
           editor.moveSelectionDown r
           false
         stabilizeCursor: (editor, e, r)->
@@ -461,7 +465,7 @@ Events:
           if r.collapsed then ''
           else @domCursor(r.startContainer, r.startOffset).getTextTo @domCursor(r.endContainer, r.endOffset)
         cutText: (e)->
-          e.preventDefault()
+          useEvent e
           sel = getSelection()
           if sel.type == 'Range'
             html = (htmlForNode node for node in sel.getRangeAt(0).cloneContents().childNodes).join ''
@@ -469,7 +473,7 @@ Events:
             @options.simulateCut html: html, text: text
             @replace e, @getSelectedBlockRange(), ''
         handleDelete: (e, s, forward)->
-          e.preventDefault()
+          useEvent e
           r = @getSelectedDocRange()
           if r.type == 'None' || (r.type == 'Caret' && ((forward && r.start >= @options.getLength() - 1) || (!forward && r.start == 0)))
             return
@@ -501,7 +505,7 @@ Events:
             @options.dragEnter  e.originalEvent
             true
           @node.on 'drop', (e)=>
-            e.preventDefault()
+            useEvent e
             oe = e.originalEvent
             oe.dataTransfer.dropEffect = 'move'
             r = document.caretRangeFromPoint oe.clientX, oe.clientY
@@ -517,7 +521,7 @@ Events:
               insertOffset = @options.getPositionForBlock(@options.getBlock blockId) + offset
               cutOffset = @options.getPositionForBlock(dragRange.block) + dragRange.offset
               if cutOffset <= insertOffset <= cutOffset + dragRange.length
-                oe.preventDefault()
+                useEvent oe
                 oe.dataTransfer.dropEffect = 'none'
                 return
               dr = dragRange
@@ -544,13 +548,13 @@ Events:
             if dr = dragRange
               dragRange = null
               if e.dataTransfer.dropEffect == 'move'
-                e.preventDefault()
+                useEvent e
                 sel = @getSelectedDocRange()
                 @replace e, dr, ''
                 @selectDocRange sel
         bindClipboard: ->
           @node.on 'cut', (e)=>
-            e.preventDefault()
+            useEvent e
             sel = getSelection()
             if sel.type == 'Range'
               clipboard = e.originalEvent.clipboardData
@@ -558,14 +562,14 @@ Events:
               clipboard.setData 'text/plain', @selectedText sel
               @replace e, @getSelectedBlockRange(), ''
           @node.on 'copy', (e)=>
-            e.preventDefault()
+            useEvent e
             sel = getSelection()
             if sel.type == 'Range'
               clipboard = e.originalEvent.clipboardData
               clipboard.setData 'text/html', (htmlForNode node for node in sel.getRangeAt(0).cloneContents().childNodes).join ''
               clipboard.setData 'text/plain', @selectedText sel
           @node.on 'paste', (e)=>
-            e.preventDefault()
+            useEvent e
             @replace e, @getSelectedBlockRange(), e.originalEvent.clipboardData.getData('text/plain'), false
         bindMouse: ->
           @node.on 'mousedown', (e)=>
@@ -589,20 +593,20 @@ Events:
               @modCancelled = false
               if c == ENTER then @enter e
               else if c == BS
-                e.preventDefault()
+                useEvent e
                 @backspace e, s, r
               else if c == DEL
-                e.preventDefault()
+                useEvent e
                 @del e, s, r
               else if (modifyingKey c, e) && !isAlphabetic e
                 @char = getEventChar e
                 @keyPress e
           @node.on 'keypress', (e)=> if !e.altKey && !e.metaKey && !e.ctrlKey then @keyPress e
         enter: (e)->
-          e.preventDefault()
+          useEvent e
           @replace e, @getSelectedBlockRange(), '\n', false
         keyPress: (e)->
-          e.preventDefault()
+          useEvent e
           @replace e, @getSelectedBlockRange(), null, false
         blockIdsForSelection: (sel, r)->
           if !sel then sel = getSelection()
@@ -827,7 +831,7 @@ instance, call event.preventDefault() and set the dropEffect to 'none'
 
         dragEnter: (event)->
           if !event.dataTransfer.getData
-            event.preventDefault()
+            useEvent event
             event.dropEffect = 'none'
 
 `dragOver(event)`: alter the drag-enter behavior.  If you want to cancel the drag, for
@@ -835,7 +839,7 @@ instance, call event.preventDefault() and set the dropEffect to 'none'
 
         dragOver: (event)->
           if !event.dataTransfer.getData
-            event.preventDefault()
+            useEvent event
             event.dropEffect = 'none'
 
 Main code
@@ -868,7 +872,7 @@ Main code
 
         getFirst: -> @first
         nodeForId: (id)-> $("##{id}")
-        idForNode: (node)-> $(node).prop(id)
+        idForNode: (node)-> $(node).prop 'id'
         setEditor: (@editor)->
         newId: -> @data.newId()
 
@@ -1676,4 +1680,6 @@ Exports
         computeNewStructure
         validateBatch
         getEventChar
+        useEvent
+        getSelection
       }

@@ -1899,7 +1899,7 @@ i.fa + div, i.fa + span, i.fa + div + span {
 .flat #sourceblock,
 .flat .ui-tooltip-content,
 .flat .org-plain, .flat  /deep/ .ui-button-text {
-    font-family: Arial;
+    font-family: Inconsolata;
 }
 .flat [data-edit-mode='fancy'] .import span {
     display: inline-block;

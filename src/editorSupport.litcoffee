@@ -45,6 +45,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         findEditor
         copyBlock
         preserveSelection
+        BasicEditingOptions
       } = Editor
       {
         changeAdvice
@@ -329,10 +330,10 @@ that must be done regardless of the source of changes
         checkIndexChange: (oldBlock, newBlock, isDefault)->
           if newBlock
             if (index = newBlock.codeAttributes?.index) && yaml = @getYaml newBlock
-              newBlock.keys = (for key in ((k.trim().split keySplitPat) for k in index.split ',') when v = yaml[_.last(key).trim()]
-                [key[0].trim(), v, newBlock._id]).sort compareSorted
+              newBlock.keys = (for key in ((k.trim().split keySplitPat) for k in index.split ',') when key.length == 2
+                [key[0].trim(), key[1].trim(), newBlock._id]).sort compareSorted
             else delete newBlock.keys
-          if !(oldBlock?.keys && newBlock.keys && _.isEqual newBlock.keys, oldBlock.keys)
+          if !(_.isEqual newBlock?.keys, oldBlock?.keys)
             if oldBlock?.keys
               k = newBlock?.keys ? []
               for key in oldBlock.keys
@@ -1424,6 +1425,11 @@ Exports
         setLounge
         parseYaml
         blockSource
+        BasicEditingOptions
+        LeisureEditCore
+        DataStore
+        DataStoreEditingOptions
+        Editor
       }
 
       {

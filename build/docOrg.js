@@ -155,6 +155,12 @@
         return indexOf.call(this.getResultTypes(), 'dynamic') >= 0;
       };
 
+      ParsedCodeBlock.prototype.setSourceContent = function(newContent) {
+        var src;
+        src = this.items.source;
+        return this.setSource("" + (src.text.substring(0, src.contentPos)) + newContent + (src.text.substring(src.contentPos + src.content.length)));
+      };
+
       return ParsedCodeBlock;
 
     })();

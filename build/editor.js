@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'lib/bluebird.min'], function(jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, selectRange, shiftKey, shiftUps, specialKeys, treeToArray, validateBatch, wrapDiag;
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, selectRange, shiftKey, shiftUps, specialKeys, treeToArray, useEvent, validateBatch, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
@@ -36,24 +36,28 @@
     specialKeys[PAGEDOWN] = 'PAGEDOWN';
     specialKeys[HOME] = 'HOME';
     specialKeys[END] = 'END';
+    useEvent = function(e) {
+      e.preventDefault();
+      return e.stopPropagation();
+    };
     keyFuncs = {
       backwardChar: function(editor, e, r) {
-        e.preventDefault();
+        useEvent(e);
         editor.moveSelectionBackward(r);
         return false;
       },
       forwardChar: function(editor, e, r) {
-        e.preventDefault();
+        useEvent(e);
         editor.moveSelectionForward(r);
         return false;
       },
       previousLine: function(editor, e, r) {
-        e.preventDefault();
+        useEvent(e);
         editor.moveSelectionUp(r);
         return false;
       },
       nextLine: function(editor, e, r) {
-        e.preventDefault();
+        useEvent(e);
         editor.moveSelectionDown(r);
         return false;
       },
@@ -502,7 +506,7 @@
 
       LeisureEditCore.prototype.cutText = function(e) {
         var html, node, sel, text;
-        e.preventDefault();
+        useEvent(e);
         sel = getSelection();
         if (sel.type === 'Range') {
           html = ((function() {
@@ -526,7 +530,7 @@
 
       LeisureEditCore.prototype.handleDelete = function(e, s, forward) {
         var r, sel;
-        e.preventDefault();
+        useEvent(e);
         r = this.getSelectedDocRange();
         if (r.type === 'None' || (r.type === 'Caret' && ((forward && r.start >= this.options.getLength() - 1) || (!forward && r.start === 0)))) {
           return;
@@ -576,7 +580,7 @@
         this.node.on('drop', (function(_this) {
           return function(e) {
             var blockId, cutOffset, dr, dropContainer, dropPos, insert, insertOffset, insertText, oe, offset, r, r2, start;
-            e.preventDefault();
+            useEvent(e);
             oe = e.originalEvent;
             oe.dataTransfer.dropEffect = 'move';
             r = document.caretRangeFromPoint(oe.clientX, oe.clientY);
@@ -599,7 +603,7 @@
               insertOffset = _this.options.getPositionForBlock(_this.options.getBlock(blockId)) + offset;
               cutOffset = _this.options.getPositionForBlock(dragRange.block) + dragRange.offset;
               if ((cutOffset <= insertOffset && insertOffset <= cutOffset + dragRange.length)) {
-                oe.preventDefault();
+                useEvent(oe);
                 oe.dataTransfer.dropEffect = 'none';
                 return;
               }
@@ -648,7 +652,7 @@
             if (dr = dragRange) {
               dragRange = null;
               if (e.dataTransfer.dropEffect === 'move') {
-                e.preventDefault();
+                useEvent(e);
                 sel = _this.getSelectedDocRange();
                 _this.replace(e, dr, '');
                 return _this.selectDocRange(sel);
@@ -662,7 +666,7 @@
         this.node.on('cut', (function(_this) {
           return function(e) {
             var clipboard, node, sel;
-            e.preventDefault();
+            useEvent(e);
             sel = getSelection();
             if (sel.type === 'Range') {
               clipboard = e.originalEvent.clipboardData;
@@ -684,7 +688,7 @@
         this.node.on('copy', (function(_this) {
           return function(e) {
             var clipboard, node, sel;
-            e.preventDefault();
+            useEvent(e);
             sel = getSelection();
             if (sel.type === 'Range') {
               clipboard = e.originalEvent.clipboardData;
@@ -704,7 +708,7 @@
         })(this));
         return this.node.on('paste', (function(_this) {
           return function(e) {
-            e.preventDefault();
+            useEvent(e);
             return _this.replace(e, _this.getSelectedBlockRange(), e.originalEvent.clipboardData.getData('text/plain'), false);
           };
         })(this));
@@ -752,10 +756,10 @@
               if (c === ENTER) {
                 return _this.enter(e);
               } else if (c === BS) {
-                e.preventDefault();
+                useEvent(e);
                 return _this.backspace(e, s, r);
               } else if (c === DEL) {
-                e.preventDefault();
+                useEvent(e);
                 return _this.del(e, s, r);
               } else if ((modifyingKey(c, e)) && !isAlphabetic(e)) {
                 _this.char = getEventChar(e);
@@ -774,12 +778,12 @@
       };
 
       LeisureEditCore.prototype.enter = function(e) {
-        e.preventDefault();
+        useEvent(e);
         return this.replace(e, this.getSelectedBlockRange(), '\n', false);
       };
 
       LeisureEditCore.prototype.keyPress = function(e) {
-        e.preventDefault();
+        useEvent(e);
         return this.replace(e, this.getSelectedBlockRange(), null, false);
       };
 
@@ -1089,14 +1093,14 @@
 
       BasicEditingOptions.prototype.dragEnter = function(event) {
         if (!event.dataTransfer.getData) {
-          event.preventDefault();
+          useEvent(event);
           return event.dropEffect = 'none';
         }
       };
 
       BasicEditingOptions.prototype.dragOver = function(event) {
         if (!event.dataTransfer.getData) {
-          event.preventDefault();
+          useEvent(event);
           return event.dropEffect = 'none';
         }
       };
@@ -1139,7 +1143,7 @@
       };
 
       BasicEditingOptions.prototype.idForNode = function(node) {
-        return $(node).prop(id);
+        return $(node).prop('id');
       };
 
       BasicEditingOptions.prototype.setEditor = function(editor1) {
@@ -2487,7 +2491,9 @@
       treeToArray: treeToArray,
       computeNewStructure: computeNewStructure,
       validateBatch: validateBatch,
-      getEventChar: getEventChar
+      getEventChar: getEventChar,
+      useEvent: useEvent,
+      getSelection: getSelection
     };
   });
 
