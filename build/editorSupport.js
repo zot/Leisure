@@ -6,13 +6,13 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
-    var DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var BasicEditingOptions, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, presentHtml = Eval.presentHtml, setLounge = Eval.setLounge, blockVars = Eval.blockVars, blocksObserved = Eval.blocksObserved, hasCodeAttribute = Eval.hasCodeAttribute, isYamlResult = Eval.isYamlResult;
-    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection;
+    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, BasicEditingOptions = Editor.BasicEditingOptions;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
     hasDatabase = DB.hasDatabase, transaction = DB.transaction;
@@ -480,7 +480,7 @@
       };
 
       OrgData.prototype.checkIndexChange = function(oldBlock, newBlock, isDefault) {
-        var index, j, k, key, l, len, len1, ref, ref1, ref2, ref3, ref4, results1, v, yaml;
+        var index, j, k, key, l, len, len1, ref, ref1, ref2, ref3, ref4, results1, yaml;
         if (newBlock) {
           if ((index = (ref = newBlock.codeAttributes) != null ? ref.index : void 0) && (yaml = this.getYaml(newBlock))) {
             newBlock.keys = ((function() {
@@ -498,8 +498,8 @@
               results1 = [];
               for (j = 0, len = ref1.length; j < len; j++) {
                 key = ref1[j];
-                if (v = yaml[_.last(key).trim()]) {
-                  results1.push([key[0].trim(), v, newBlock._id]);
+                if (key.length === 2) {
+                  results1.push([key[0].trim(), key[1].trim(), newBlock._id]);
                 }
               }
               return results1;
@@ -508,7 +508,7 @@
             delete newBlock.keys;
           }
         }
-        if (!((oldBlock != null ? oldBlock.keys : void 0) && newBlock.keys && _.isEqual(newBlock.keys, oldBlock.keys))) {
+        if (!(_.isEqual(newBlock != null ? newBlock.keys : void 0, oldBlock != null ? oldBlock.keys : void 0))) {
           if (oldBlock != null ? oldBlock.keys : void 0) {
             k = (ref1 = newBlock != null ? newBlock.keys : void 0) != null ? ref1 : [];
             ref2 = oldBlock.keys;
@@ -2556,7 +2556,12 @@
       ParsedCodeBlock: ParsedCodeBlock,
       setLounge: setLounge,
       parseYaml: parseYaml,
-      blockSource: blockSource
+      blockSource: blockSource,
+      BasicEditingOptions: BasicEditingOptions,
+      LeisureEditCore: LeisureEditCore,
+      DataStore: DataStore,
+      DataStoreEditingOptions: DataStoreEditingOptions,
+      Editor: Editor
     });
     return {
       createLocalData: createLocalData,

@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['handlebars', './export', './editor', './coffee-script', 'immutable'], function(Handlebars, Exports, Editor, CoffeeScript, Immutable) {
-    var Set, activateScripts, activating, addController, addView, bindView, compile, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
+    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
     ref = window.Handlebars = Handlebars, compile = ref.compile, create = ref.create, registerHelper = ref.registerHelper;
     mergeExports = Exports.mergeExports;
     escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor;
@@ -116,13 +116,19 @@
         dontRender: oldDonts.add(view)
       }, func);
     };
-    Handlebars.registerHelper('condense', function(extreme, options) {
-      if (options && extreme) {
-        return options.fn(this).replace(/>\s+</g, '><');
+    condenseHtml = function(html, extreme) {
+      if (extreme) {
+        return html.replace(/>\s+</g, '><');
       } else {
-        options = options || extreme;
-        return options.fn(this).replace(/>[ ]+</g, '><').replace(/^\s*\n/gm, '').replace(/>\s+$/gm, '>').replace(/^\s+</gm, '<');
+        return html.replace(/>[ ]+</g, '><').replace(/^\s*\n/gm, '').replace(/>\s+$/gm, '>').replace(/^\s+</gm, '<');
       }
+    };
+    Handlebars.registerHelper('condense', function(extreme, options) {
+      if (!(options && extreme)) {
+        options = options || extreme;
+        extreme = false;
+      }
+      return condenseHtml(options.fn(this), extreme);
     });
     Handlebars.registerHelper('debug', function(options) {
       debugger;
@@ -471,6 +477,7 @@
         pendingScripts: [],
         localResources: localResources
       },
+      condenseHtml: condenseHtml,
       Handlebars: Handlebars
     }).UI;
   });

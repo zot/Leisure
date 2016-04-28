@@ -91,16 +91,20 @@ choose a handlebars template.
         oldDonts = root.context?.dontRender ? new Set()
         mergeContext {dontRender: oldDonts.add(view)}, func
 
-      Handlebars.registerHelper 'condense', (extreme, options)->
-        if options && extreme
-          options.fn(this).replace />\s+</g, '><'
+      condenseHtml = (html, extreme)->
+        if extreme then html.replace />\s+</g, '><'
         else
-          options = options || extreme
-          options.fn(this)
+          html
             .replace(/>[ ]+</g, '><')
             .replace(/^\s*\n/gm, '')
             .replace(/>\s+$/gm, '>')
             .replace(/^\s+</gm, '<')
+
+      Handlebars.registerHelper 'condense', (extreme, options)->
+        if !(options && extreme)
+          options = options || extreme
+          extreme = false
+        condenseHtml options.fn(this), extreme
 
       Handlebars.registerHelper 'debug', (options)->
         debugger
@@ -324,5 +328,6 @@ choose a handlebars template.
           pendingScripts: []
           localResources
         }
+        condenseHtml
         Handlebars
       }).UI
