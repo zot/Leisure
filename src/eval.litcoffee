@@ -222,26 +222,27 @@ Evaulation support for Leisure
               env.errorAt Math.min(errNode.start, errNode.end), err2.message
             else
               env.errorAt findError(err.message, text), err2.message
-            return []
+            return 'void 0'
         if env.silent then text
         else
-          newText = 'var leisure_results=[];'
+          newText = 'var leisure_results=[];\n'
           for expr in parsed.body
             if expr.type == 'ExpressionStatement'
               exprText = text.substring expr.start, expr.end
               if exprText[exprText.length - 1] == ';'
                 exprText = exprText.substring(0, exprText.length - 1)
-              newText = "#{newText}leisure_results.push(#{exprText});"
+              newText = "#{newText.trim()}\nleisure_results.push(#{exprText.trim()});\n"
             else newText += text.substring expr.start, expr.end
-          "#{newText};#{if returnResults then 'return ' else ''}leisure_results;"
+          "#{newText}#{if returnResults then ';\nreturn leisure_results' else ''}"
 
       jsBaseEval = (env, text)->
         if !env.silent
           env.results = []
         console = log: (str)=> env.write env.presentValue str
-        setLounge env, -> (env.eval ? localEval) text
+        setLounge env, -> if env.eval then env.eval(text) else localEval
 
-      jsEval = (env, text)-> jsBaseEval env, jsGatherResults env, text
+      jsEval = (env, text)-> jsBaseEval env, jsGatherResults(env, text)
+      #jsEval = (env, text)-> (jsBaseEval env, "(function(){" + jsGatherResults(env, text, true) + "})").call(env)
 
       findError = (err, text)->
         [x, line, col] = err.match(/\(([0-9]*):([0-9]*)\)/)
@@ -274,33 +275,49 @@ Evaulation support for Leisure
         env.createObserver = (blockNames, text, cont)-> throw new Error 'LispyScript observers not implemented yet'
         env
 
+      arrayify = (val)-> if _.isArray(val) then val else [val]
+
       csEnv = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
           try
-            writeValues env, values = jsEval env, CS.compile text, bare: true
+            writeValues env, values = arrayify(jsEval(env, CS.compile text, bare: true))
           catch err
-            @errorAt 0, err.message
-          cont? values
-        env.compileBlock = (block)->
-          block = env.data.getBlock block
-          [..., vars, varNames] = blockVars env.data, block.codeAttributes.var
-          src = blockSource(block)
+            env.errorAt 0, err.message
+          cont? values ? []
+        env.executeBlock = (block, props, cont)-> @compileBlock(block)(cont)
+        env.compileBlock = (block)-> (cont, args...)=>
+          [..., vars, varNames, varMappings] = blockVars @data, block.codeAttributes.var
+          ctx = {}
+          for varName, i in varNames
+            if args[i] then ctx[varName] = args[i]
+          ret = @runWith ctx, @blockCode blockSource(block), vars, varNames, varMappings
+          if cont then cont ret else ret
+        env.blockCode = (src, vars, varNames, varMappings, useReturn)->
+          vars = vars ? {}
+          varNames = varNames ? []
+          varMappings = varMappings ? {}
           blocks = {}
           consts = {}
           for name, value of vars
             if Number(value) == value || value[0] in "'\""
               consts[name] = value
             else blocks[name] = value
-          jsBaseEval(env, """
-          (function(__data) {
-            return function (__cont, #{varNames.join ', '}) {
-              #{("if (#{constName} == undefined) #{constName} = #{value};" for constName, value of consts).join('\n  ')}
-              #{("#{blockName} = #{blockName} || __data.getYaml(__data.getBlockNamed('#{value}'));" for blockName, value of blocks).join('\n  ')}
-              var res = (function() {#{jsGatherResults env, CS.compile(src, bare: true), true}})();
-              return __cont ? __cont(res) : res;
-            };
-          })
-          """)(env.data)
+          constStr = ("  if (#{constName} == undefined) #{constName} = #{value};\n" for constName, value of consts).join('')
+          blockVarStr = ("  #{varName} = this.ctx.#{varName} || this.data.getYaml(this.data.getBlockNamed('#{value}'));\n" for varName, value of varMappings).join('')
+          if false && @silent then compiledCode = CS.compile src, bare: true
+          else
+            #sil = @silent
+            #@silent = false
+            compiledCode = jsGatherResults this, CS.compile(src, bare: true)
+            #@silent = sil
+          returns = if env.silent then '' else """
+            #{if useReturn then 'return ' else ''}typeof __cont != 'undefined' ? __cont(leisure_results) : leisure_results;
+          """
+          """
+          #{constStr}#{blockVarStr}
+          #{compiledCode}
+          #{returns}
+          """
         env
 
       indentCode = (str)-> str.replace /\n/g, '\n  '
@@ -345,20 +362,23 @@ Evaulation support for Leisure
         blockIds = {}
         blockNames = {}
         vars = {}
+        varMappings = {}
         varNames = if varDefs
           for v in (if _.isArray varDefs then varDefs else [varDefs])
             [..., name, def, value] = v.match /^([^=]*)(=(.*))?$/
             name = name.trim()
             if !def then value = name
             if value[0] in "'\"0123456789" then value = JSON.parse value
-            else if bl = data.getBlockNamed value
-              blockIds[bl._id] = true
+            else
+              varMappings[name] = value
+              if bl = data.getBlockNamed value
+                blockIds[bl._id] = true
+                value = data.getYaml bl
               blockNames[name] = value
-              value = data.getYaml bl
-            else value = value.trim()
+            #else value = value.trim()
             vars[name] = value
             name
-        [vars, _.keys(blockIds), blockNames, varNames ? []]
+        [vars, _.keys(blockIds), blockNames, varNames ? [], varMappings]
 
       escaped =
         '\b': "\\b"

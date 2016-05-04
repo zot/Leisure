@@ -3,6 +3,10 @@
 x = 3
 #+END_SRC
 
+#+BEGIN_SRC coffee :results dynamic
+this
+#+END_SRC
+
 #+NAME: character-sheet
 #+BEGIN_SRC text :post formatted-character-sheet(*this*) :flowlevel -1 :results dynamic :exports code :index players name
 3 Bill  34 Golden Monkey 51
@@ -112,9 +116,12 @@ Mask of Disguise [Truth]
 : name: Bill
 : type: character-sheet
 
-#+BEGIN_HTML :var player=character-sheet
-{{{view player}}}
-#+END_HTML
+#+BEGIN_SRC coffee :var sheet=character-sheet :observe
+# ctrl-c ctrl-c DOESN'T WORK IN THIS BLOCK
+# also, ctx should be the same as Lounge
+console.log "Sheet", sheet, this.ctx.sheet
+debugger
+#+END_SRC
 
 #+BEGIN_SRC html :defview character-sheet
 {{#condense}}
@@ -154,11 +161,6 @@ Mask of Disguise [Truth]
 {{/condense}}
 #+END_SRC
 
-#+BEGIN_SRC coffee :control character-sheet
-@initializeView = (view)->
-  window.editor.useView view
-#+END_SRC
-
 #+BEGIN_SRC coffee :results def
 {LeisureEditCore, BasicEditingOptions, preserveSelection, condenseHtml} = Leisure
 
@@ -178,20 +180,28 @@ class CharacterEditor extends BasicEditingOptions
   idForNode: -> @blockId
   nodeForId: -> @node
   guiText: -> @editor.blockTextForNode @editor.node
-  useView: (view)->
-    console.log "EDITOR", @editor
-    @originalId = view.closest('[data-observe]').attr('data-observe').trim()
-    @node.html ''
-    @node.append view
-    @blocks[@blockId] =
-      _id: @blockId
-      text: @guiText()
-  replaceText: ({start, end, text})->
+  # useView: (view)->
+  #   console.log "EDITOR", @editor
+  #   @originalId = view.closest('[data-observe]').attr('data-observe').trim()
+  #   @node.html ''
+  #   @node.append view
+  #   @blocks[@blockId] =
+  #     _id: @blockId
+  #     text: @guiText()
+  replaceText: (repl)->
+    {start, end, text} = repl
+    super repl
     block = @options.parsedCodeBlock @originalId
     oldText = @guiText().replace(/\t/g, ' ')
     #debugger
     block.setSourceContent (oldText.substring(0, start) + text + oldText.substring end).trim().replace(/^\s*\n/gm, '') + '\n'
-    preserveSelection -> block.save true
+    try
+      @editing = true
+      block.save true
+    finally
+      @editing = false
+  setText = (text)-> if !@editing then @replaceText start: 0, end: @getLength(), text
+  renderBlock: (block)-> Leisure.UI.renderView 'character-sheet', window.Vele.parse(block.text)
 
 @sheet = $("<div></div>").insertAfter '[maindoc]'
 @sheet.attr 'data-block', 'characterSheet'
@@ -207,23 +217,23 @@ new LeisureEditCore @sheet, @editor
 #+NAME: formatted-character-sheet
 #+BEGIN_SRC coffee :var player
 do =>
-  console.log "Lounge: ", Lounge
-  if player == window.lastPlayer then window.lastResult
-  else if player != (cleanedPlayer = player.replace(/\t/g,' '))
-    #debugger
-    {opts, data, blockVars} = Lounge
-    id = blockVars['*this*']._id
-    setTimeout (->
-      block = opts.parsedCodeBlock id
-      oldBlock = data.getBlock block.block._id
-      block.setSourceContent cleanedPlayer
-      block.setResults ''
-      block.save true
-    ), 0
-    {}
-  else
-    window.lastPlayer = player
-    result = @Vele.parse player
+  # console.log "Lounge: ", Lounge
+  # if player == window.lastPlayer then window.lastResult
+  # else if player != (cleanedPlayer = player.replace(/\t/g,' '))
+  #   #debugger
+  #   {opts, data, blockVars} = Lounge
+  #   id = blockVars['*this*']._id
+  #   setTimeout (->
+  #     block = opts.parsedCodeBlock id
+  #     oldBlock = data.getBlock block.block._id
+  #     block.setSourceContent cleanedPlayer
+  #     block.setResults ''
+  #     block.save true
+  #   ), 0
+  #   {}
+  # else
+    window.lastPlayer = player.replace(/\t/g,' ')
+    result = window.Vele.parse lastPlayer
     result.type = 'character-sheet'
     if m = result.errors?[0]?.match /^(.*) on line ([0-9]+)/
       lines = player.split(/(\n)/)
@@ -236,7 +246,7 @@ do =>
 #+END_SRC
 
 #+BEGIN_SRC coffee :results def
-if !@Vele
+if !window.Vele
   debugger
   sloppyNameLine = /^(?:\s|[0-9])*\b(\S.*)\s+([0-9]+)\s+(?:🌕\s*)?(?:(\S.*)\s+[0-9]+\s*|(\S.*))$/
   ignorePat = /^[0-9]*\s+max ruche|^health|^comp|^[0-9]+ tmp/i
@@ -422,7 +432,7 @@ if !@Vele
             @curCharacter().allocatedRuche += Number m[2]
           else @addError "Couldn't parse effect ##{i}"
       else @addError "Couldn't parse ability"
-  @Vele =
+  window.Vele =
     parse: (str)-> new PlayerParser().parse(str)
 #+END_SRC
 * Helpers
@@ -555,7 +565,7 @@ Handlebars.registerHelper 'repeat', (times, options)->
   background: #cccccc;
   border-color: #cccccc;
   border-right-color: black;
-  width: 6ex;
+  width: 8ex;
 }
 .health, .composure {
   padding: 0;

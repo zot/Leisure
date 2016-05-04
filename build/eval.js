@@ -6,7 +6,7 @@
   define.amd = true;
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg) {
-    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, basicFormat, blockSource, blockVars, blocksObserved, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues, yamlEnv;
+    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = AcornLoose;
@@ -236,10 +236,10 @@
           a = a.split(' ');
         }
         block.attributeWords[attr] = (function() {
-          var i, len, results1;
+          var j, len, results1;
           results1 = [];
-          for (i = 0, len = a.length; i < len; i++) {
-            word = a[i];
+          for (j = 0, len = a.length; j < len; j++) {
+            word = a[j];
             results1.push(word.toLowerCase());
           }
           return results1;
@@ -272,10 +272,10 @@
         })).trim().replace(/\n/g, '\n: ') + '\n';
       } else {
         return prefix + ((function() {
-          var i, len, results1;
+          var j, len, results1;
           results1 = [];
-          for (i = 0, len = items.length; i < len; i++) {
-            item = items[i];
+          for (j = 0, len = items.length; j < len; j++) {
+            item = items[j];
             results1.push(presentHtml(item));
           }
           return results1;
@@ -330,7 +330,7 @@
       return env;
     };
     jsGatherResults = function(env, text, returnResults) {
-      var err, err2, errNode, error, error1, expr, exprText, i, len, newText, parsed, ref;
+      var err, err2, errNode, error, error1, expr, exprText, j, len, newText, parsed, ref;
       try {
         parsed = acorn.parse(text);
       } catch (error) {
@@ -350,27 +350,27 @@
           } else {
             env.errorAt(findError(err.message, text), err2.message);
           }
-          return [];
+          return 'void 0';
         }
       }
       if (env.silent) {
         return text;
       } else {
-        newText = 'var leisure_results=[];';
+        newText = 'var leisure_results=[];\n';
         ref = parsed.body;
-        for (i = 0, len = ref.length; i < len; i++) {
-          expr = ref[i];
+        for (j = 0, len = ref.length; j < len; j++) {
+          expr = ref[j];
           if (expr.type === 'ExpressionStatement') {
             exprText = text.substring(expr.start, expr.end);
             if (exprText[exprText.length - 1] === ';') {
               exprText = exprText.substring(0, exprText.length - 1);
             }
-            newText = newText + "leisure_results.push(" + exprText + ");";
+            newText = (newText.trim()) + "\nleisure_results.push(" + (exprText.trim()) + ");\n";
           } else {
             newText += text.substring(expr.start, expr.end);
           }
         }
-        return newText + ";" + (returnResults ? 'return ' : '') + "leisure_results;";
+        return "" + newText + (returnResults ? ';\nreturn leisure_results' : '');
       }
     };
     jsBaseEval = function(env, text) {
@@ -386,20 +386,23 @@
         })(this)
       };
       return setLounge(env, function() {
-        var ref;
-        return ((ref = env["eval"]) != null ? ref : localEval)(text);
+        if (env["eval"]) {
+          return env["eval"](text);
+        } else {
+          return localEval;
+        }
       });
     };
     jsEval = function(env, text) {
       return jsBaseEval(env, jsGatherResults(env, text));
     };
     findError = function(err, text) {
-      var col, i, len, line, n, ref, ref1, tot, txt, x;
+      var col, j, len, line, n, ref, ref1, tot, txt, x;
       ref = err.match(/\(([0-9]*):([0-9]*)\)/), x = ref[0], line = ref[1], col = ref[2];
       line = Number(line - 1);
       tot = Number(col);
       ref1 = text.split('\n');
-      for (n = i = 0, len = ref1.length; i < len; n = ++i) {
+      for (n = j = 0, len = ref1.length; j < len; n = ++j) {
         txt = ref1[n];
         if (n === line) {
           break;
@@ -457,57 +460,99 @@
       };
       return env;
     };
+    arrayify = function(val) {
+      if (_.isArray(val)) {
+        return val;
+      } else {
+        return [val];
+      }
+    };
     csEnv = function(env) {
       env.executeText = function(text, props, cont) {
         return setLounge(this, (function(_this) {
           return function() {
             var err, error, values;
             try {
-              writeValues(env, values = jsEval(env, CS.compile(text, {
+              writeValues(env, values = arrayify(jsEval(env, CS.compile(text, {
                 bare: true
-              })));
+              }))));
             } catch (error) {
               err = error;
-              _this.errorAt(0, err.message);
+              env.errorAt(0, err.message);
             }
-            return typeof cont === "function" ? cont(values) : void 0;
+            return typeof cont === "function" ? cont(values != null ? values : []) : void 0;
           };
         })(this));
       };
+      env.executeBlock = function(block, props, cont) {
+        return this.compileBlock(block)(cont);
+      };
       env.compileBlock = function(block) {
-        var blockName, blocks, constName, consts, i, name, ref, ref1, src, value, varNames, vars;
-        block = env.data.getBlock(block);
-        ref = blockVars(env.data, block.codeAttributes["var"]), i = ref.length - 2, vars = ref[i++], varNames = ref[i++];
-        src = blockSource(block);
+        return (function(_this) {
+          return function() {
+            var args, cont, ctx, i, j, k, len, ref, ret, varMappings, varName, varNames, vars;
+            cont = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
+            ref = blockVars(_this.data, block.codeAttributes["var"]), j = ref.length - 3, vars = ref[j++], varNames = ref[j++], varMappings = ref[j++];
+            ctx = {};
+            for (i = k = 0, len = varNames.length; k < len; i = ++k) {
+              varName = varNames[i];
+              if (args[i]) {
+                ctx[varName] = args[i];
+              }
+            }
+            ret = _this.runWith(ctx, _this.blockCode(blockSource(block), vars, varNames, varMappings));
+            if (cont) {
+              return cont(ret);
+            } else {
+              return ret;
+            }
+          };
+        })(this);
+      };
+      env.blockCode = function(src, vars, varNames, varMappings, useReturn) {
+        var blockVarStr, blocks, compiledCode, constName, constStr, consts, name, ref, returns, value, varName;
+        vars = vars != null ? vars : {};
+        varNames = varNames != null ? varNames : [];
+        varMappings = varMappings != null ? varMappings : {};
         blocks = {};
         consts = {};
         for (name in vars) {
           value = vars[name];
-          if (Number(value) === value || (ref1 = value[0], indexOf.call("'\"", ref1) >= 0)) {
+          if (Number(value) === value || (ref = value[0], indexOf.call("'\"", ref) >= 0)) {
             consts[name] = value;
           } else {
             blocks[name] = value;
           }
         }
-        return jsBaseEval(env, "(function(__data) {\n  return function (__cont, " + (varNames.join(', ')) + ") {\n    " + (((function() {
+        constStr = ((function() {
           var results1;
           results1 = [];
           for (constName in consts) {
             value = consts[constName];
-            results1.push("if (" + constName + " == undefined) " + constName + " = " + value + ";");
+            results1.push("  if (" + constName + " == undefined) " + constName + " = " + value + ";\n");
           }
           return results1;
-        })()).join('\n  ')) + "\n    " + (((function() {
+        })()).join('');
+        blockVarStr = ((function() {
           var results1;
           results1 = [];
-          for (blockName in blocks) {
-            value = blocks[blockName];
-            results1.push(blockName + " = " + blockName + " || __data.getYaml(__data.getBlockNamed('" + value + "'));");
+          for (varName in varMappings) {
+            value = varMappings[varName];
+            results1.push("  " + varName + " = this.ctx." + varName + " || this.data.getYaml(this.data.getBlockNamed('" + value + "'));\n");
           }
           return results1;
-        })()).join('\n  ')) + "\n    var res = (function() {" + (jsGatherResults(env, CS.compile(src, {
-          bare: true
-        }), true)) + "})();\n    return __cont ? __cont(res) : res;\n  };\n})")(env.data);
+        })()).join('');
+        if (false && this.silent) {
+          compiledCode = CS.compile(src, {
+            bare: true
+          });
+        } else {
+          compiledCode = jsGatherResults(this, CS.compile(src, {
+            bare: true
+          }));
+        }
+        returns = env.silent ? '' : (useReturn ? 'return ' : '') + "typeof __cont != 'undefined' ? __cont(leisure_results) : leisure_results;";
+        return "" + constStr + blockVarStr + "\n" + compiledCode + "\n" + returns;
       };
       return env;
     };
@@ -565,11 +610,11 @@
       return knownLanguages[name != null ? name.toLowerCase() : void 0];
     };
     blocksObserved = function(block) {
-      var i, len, ob, ref, results1;
+      var j, len, ob, ref, results1;
       ref = block.observing;
       results1 = [];
-      for (i = 0, len = ref.length; i < len; i++) {
-        ob = ref[i];
+      for (j = 0, len = ref.length; j < len; j++) {
+        ob = ref[j];
         if (ob.match(/^block\./)) {
           results1.push(ob.replace(/^block\./, ''));
         }
@@ -577,30 +622,32 @@
       return results1;
     };
     blockVars = function(data, varDefs) {
-      var bl, blockIds, blockNames, def, name, v, value, varNames, vars;
+      var bl, blockIds, blockNames, def, name, v, value, varMappings, varNames, vars;
       blockIds = {};
       blockNames = {};
       vars = {};
+      varMappings = {};
       varNames = (function() {
-        var i, j, len, ref, ref1, ref2, results1;
+        var j, k, len, ref, ref1, ref2, results1;
         if (varDefs) {
           ref = (_.isArray(varDefs) ? varDefs : [varDefs]);
           results1 = [];
-          for (i = 0, len = ref.length; i < len; i++) {
-            v = ref[i];
-            ref1 = v.match(/^([^=]*)(=(.*))?$/), j = ref1.length - 3, name = ref1[j++], def = ref1[j++], value = ref1[j++];
+          for (j = 0, len = ref.length; j < len; j++) {
+            v = ref[j];
+            ref1 = v.match(/^([^=]*)(=(.*))?$/), k = ref1.length - 3, name = ref1[k++], def = ref1[k++], value = ref1[k++];
             name = name.trim();
             if (!def) {
               value = name;
             }
             if (ref2 = value[0], indexOf.call("'\"0123456789", ref2) >= 0) {
               value = JSON.parse(value);
-            } else if (bl = data.getBlockNamed(value)) {
-              blockIds[bl._id] = true;
-              blockNames[name] = value;
-              value = data.getYaml(bl);
             } else {
-              value = value.trim();
+              varMappings[name] = value;
+              if (bl = data.getBlockNamed(value)) {
+                blockIds[bl._id] = true;
+                value = data.getYaml(bl);
+              }
+              blockNames[name] = value;
             }
             vars[name] = value;
             results1.push(name);
@@ -608,7 +655,7 @@
           return results1;
         }
       })();
-      return [vars, _.keys(blockIds), blockNames, varNames != null ? varNames : []];
+      return [vars, _.keys(blockIds), blockNames, varNames != null ? varNames : [], varMappings];
     };
     escaped = {
       '\b': "\\b",
