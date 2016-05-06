@@ -1,40 +1,30 @@
 * Data
-#+BEGIN_SRC leisure :results def
-x = 3
-#+END_SRC
-
-#+BEGIN_SRC coffee :results dynamic
-this
-#+END_SRC
-
 #+NAME: character-sheet
 #+BEGIN_SRC text :post formatted-character-sheet(*this*) :flowlevel -1 :results dynamic :exports code :index players name
-3 Bill  34 Golden Monkey 51
-7 Max Ruche 7
-Health
-Comp
-0 tmp
-0 tmp
-☠ 2 mild
-☠ 4 moderate
-☠ 6 severe
-☠ 8 extreme
-❂ [HC/Truth] Agent of the Order
-❂ [Trbl] On Loan from the Hand
-❂ Harvester of Knowledge
-❂ The Way of the Howler Monkey
-❂
+Bill		34 	🌕 Golden Monkey 40
+	Max Ruche 15
+Health	🞎	🞎
+Comp	🞎	🞎	🞎	🞎
+☠ tmp 
+☠ tmp 
+☠ 2 mild 
+☠ 4 moderate 
+☠ 6 severe 
+☠ 8 extreme 
+❂ [High Concept/Truth] Agent of the Order
+❂ [Trouble] On Loan from the Hand
+❂ Harvester of Knowledge
+❂ The Way of the Howler Monkey
 ◆ Scrahv Ninja (not martial arts) d12
-✫ Scrahv Implement [Truth]: Fiction 2
+✫ Scrahv Implement [Truth]:Fiction 2
 ◇ Toughness d10
-◇ Stony resilience d12 (+2 composure)
+◇ Stony resilience d12 composure
 ◇ Hand to Hand Combat d8
 ◇ Scholar d6
 ◇ Overly Reasonable d4
-Mask of Disguise [Truth]
-8 Max Ruche 8
+🌕 Mask of Disguise [Truth]
 ◇ Seamless Finish d12
-✫ Disguises: Create 8
+✫ Disguises:Create 8
 #+END_SRC
 #+RESULTS:
 : characters:
@@ -95,13 +85,9 @@ Mask of Disguise [Truth]
 :         value: 4
 :     type: character
 :   - allocatedRuche: 8
-:     attributes:
-:       - truth
 :     baseRuche: 5
-:     composure: 2
 :     cost: 13
-:     health: 2
-:     name: Mask of Disguise
+:     name: 'Mask of Disguise [Truth]'
 :     traits:
 :       - abilities:
 :           - effects:
@@ -110,29 +96,29 @@ Mask of Disguise [Truth]
 :             name: Disguises
 :         name: Seamless Finish
 :         value: 12
-:     type: character
+:     type: item
 : cost: 39
 : extraRuche: '34'
 : name: Bill
 : type: character-sheet
-
-#+BEGIN_SRC coffee :var sheet=character-sheet :observe
-# ctrl-c ctrl-c DOESN'T WORK IN THIS BLOCK
-# also, ctx should be the same as Lounge
-console.log "Sheet", sheet, this.ctx.sheet
-debugger
+* Views
+:properties:
+:hidden: true
+:end:
+#+BEGIN_SRC coffee :var sheet=character-sheet :observe :results silent
+Vele.editor.fetchText 'character-sheet'
 #+END_SRC
 
 #+BEGIN_SRC html :defview character-sheet
 {{#condense}}
-<div class='characterSheetHolder'>
+<div id='character-sheet' class='characterSheetHolder'>
   <div class='characterSheet'>{{#each errors}}
-      <div class='error bx'>{{this}}</div>
+      <div class='error bx'>{{formatError this}}</div>
     {{/each}}<div class='player bx'>{{name}}<span data-noncontent>&nbsp;</span><span class='hidden'>&#9;&#9;</span>{{extraRuche}} </div><span class='hidden'>&#9;</span><div class='characterName bx'><span contenteditable='false' data-noncontent>🌕 </span><span class='hidden'>🌕 </span>{{characters.[0].name}} <span contenteditable='false' data-noncontent>{{cost}}</span><span class='hidden'>{{cost}}</span></div>{{#each characters}}
       {{#unless @first}}
         <div class='character bx'><span data-noncontent>🌕 </span><span class='hidden'>🌕 </span>{{name}}<span contenteditable='false'>{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}}</span></div>
       {{/unless}}
-      <div class='ruche bx'><div class='current-ruche'></div><div class='max-ruche'><span class='hidden'>&#9;</span><span data-noncontent>&nbsp;Max Ruche </span><span class='hidden'>Max Ruche </span>{{allocatedRuche}}</div></div>
+      <div class='ruche bx' contenteditable='false'><div class='current-ruche'></div><div class='max-ruche'><span class='hidden'>&#9;</span><span data-noncontent>&nbsp;Max Ruche </span><span class='hidden'>Max Ruche </span>{{allocatedRuche}}</div></div>
       {{#if @first}}
         <div class='health bx' contenteditable='false'><table class='health stress-boxes'><tr><td class='stressLabel'>Health</td>{{#repeat health}}<td><span class='hidden'>&#9;🞎</span></td>{{/repeat}}</tr></table></div>
         <div class='composure bx' contenteditable='false'><table class='composure stress-boxes'><tr><td class='stressLabel'>Comp</td>{{#repeat composure}}<td><span class='hidden'>&#9;🞎</span></td>{{/repeat}}</tr></table></div>
@@ -143,7 +129,7 @@ debugger
         }} [High Concept{{#if attribute}}/{{capitalize attribute}}{{/if}}]{{else}}{{#if trouble
         }} [Trouble{{#if attribute}}/{{capitalize attribute}}{{/if}}]{{else}}{{#if attribute
         }} [{{capitalize attribute}}]{{/if}}{{/if}}{{/if
-        }}&nbsp;{{capitalize name}}</div>
+        }}&nbsp;{{capitalize name}}{{nl}}</div>
       {{/each}}
       {{#each traits}}<div class='trait bx{{#if focus
         }} focus'>◆ {{capitalize focus}}{{
@@ -160,55 +146,24 @@ debugger
 </div>
 {{/condense}}
 #+END_SRC
-
+* Helpers
+:properties:
+:hidden: true
+:end:
 #+BEGIN_SRC coffee :results def
-{LeisureEditCore, BasicEditingOptions, preserveSelection, condenseHtml} = Leisure
-
-class CharacterEditor extends BasicEditingOptions
-  constructor: (@node, @options)->
-    super()
-    @blockId = @node.prop 'id'
-    opts = this
-    @data =
-      getText: -> opts.blocks[opts.blockId].text
-      getLength: -> opts.blocks[opts.blockId].text.length
-      docOffsetForBlockOffset: (block, offset)->
-        if typeof block == 'object' then block.offset else offset
-      blockOffsetForDocOffset: (offset)->
-        block: opts.blockId
-        offset: offset
-  idForNode: -> @blockId
-  nodeForId: -> @node
-  guiText: -> @editor.blockTextForNode @editor.node
-  # useView: (view)->
-  #   console.log "EDITOR", @editor
-  #   @originalId = view.closest('[data-observe]').attr('data-observe').trim()
-  #   @node.html ''
-  #   @node.append view
-  #   @blocks[@blockId] =
-  #     _id: @blockId
-  #     text: @guiText()
-  replaceText: (repl)->
-    {start, end, text} = repl
-    super repl
-    block = @options.parsedCodeBlock @originalId
-    oldText = @guiText().replace(/\t/g, ' ')
-    #debugger
-    block.setSourceContent (oldText.substring(0, start) + text + oldText.substring end).trim().replace(/^\s*\n/gm, '') + '\n'
-    try
-      @editing = true
-      block.save true
-    finally
-      @editing = false
-  setText = (text)-> if !@editing then @replaceText start: 0, end: @getLength(), text
-  renderBlock: (block)-> Leisure.UI.renderView 'character-sheet', window.Vele.parse(block.text)
-
-@sheet = $("<div></div>").insertAfter '[maindoc]'
-@sheet.attr 'data-block', 'characterSheet'
-@sheet.attr 'id', 'characterSheet'
-leisureEditor = Leisure.findEditor $('[maindoc]')
-@editor = new CharacterEditor @sheet, leisureEditor.options
-new LeisureEditCore @sheet, @editor
+Handlebars.registerHelper 'capitalize', (v)-> if v[0] then v[0].toUpperCase() + v[1..] else v
+$('''
+<a name="tc" target="_blank" href="http://www.teamcthulhu.com" class='tc-banner'>
+  <button name="team_cthulhu" title="x">
+    <span><img src="css/images/eldersign.png">TEAM CTHULHU</span>
+  </button>
+</a>
+''').appendTo(document.body).find('button').button()
+Handlebars.registerHelper 'space', (n)-> n == ' '
+Handlebars.registerHelper 'repeat', (times, options)->
+  (options.fn(this) for i in [0...Number times] by 1).join ''
+Handlebars.registerHelper 'nl', -> '\n'
+Handlebars.registerHelper 'formatError', (err)-> err.replace /^([^:]*:\s*)/, '$1\n'
 #+END_SRC
 * code
 :properties:
@@ -217,64 +172,111 @@ new LeisureEditCore @sheet, @editor
 #+NAME: formatted-character-sheet
 #+BEGIN_SRC coffee :var player
 do =>
-  # console.log "Lounge: ", Lounge
-  # if player == window.lastPlayer then window.lastResult
-  # else if player != (cleanedPlayer = player.replace(/\t/g,' '))
-  #   #debugger
-  #   {opts, data, blockVars} = Lounge
-  #   id = blockVars['*this*']._id
-  #   setTimeout (->
-  #     block = opts.parsedCodeBlock id
-  #     oldBlock = data.getBlock block.block._id
-  #     block.setSourceContent cleanedPlayer
-  #     block.setResults ''
-  #     block.save true
-  #   ), 0
-  #   {}
-  # else
-    window.lastPlayer = player.replace(/\t/g,' ')
-    result = window.Vele.parse lastPlayer
-    result.type = 'character-sheet'
-    if m = result.errors?[0]?.match /^(.*) on line ([0-9]+)/
-      lines = player.split(/(\n)/)
-      offset = 0
-      for i in [0...Number(m[2]) + 1]
-        offset = player.indexOf('\n', offset) + 1
-      console.log "Error at #{offset}: #{m[1]}"
-      Lounge?.errorAt offset, m[1]
-    window.lastResult = result
+  result = window.Vele.parse player.replace(/\t/g,' ')
+  result.type = 'character-sheet'
+  if m = result.errors?[0]?.match /^(.*) on line ([0-9]+)/
+    lines = player.split(/(\n)/)
+    offset = 0
+    for i in [0...Number(m[2]) + 1]
+      offset = player.indexOf('\n', offset) + 1
+    console.log "Error at #{offset}: #{m[1]}"
+    Lounge?.errorAt offset, m[1]
+  result
 #+END_SRC
 
 #+BEGIN_SRC coffee :results def
 if !window.Vele
-  debugger
-  sloppyNameLine = /^(?:\s|[0-9])*\b(\S.*)\s+([0-9]+)\s+(?:🌕\s*)?(?:(\S.*)\s+[0-9]+\s*|(\S.*))$/
+  {LeisureEditCore, BasicEditingOptions, preserveSelection, condenseHtml, blockSource} = Leisure
+
+  window.Vele =
+    parse: (str)-> new PlayerParser().parse(str)
+
+  class CharacterEditorExtensions extends LeisureEditCore
+    constructor: (node, options)-> super node, options
+    replace: (e, br, text, select)-> if br.type != 'None'
+      if select then super e, br, text, select
+      else
+        pos = @getSelectedDocRange()
+        oldLen = @options.guiText().length
+        super e, br, text, select
+        pos.type = 'Caret'
+        pos.length = 0
+        pos.start += Math.max 0, @options.guiText().length - oldLen
+        @selectDocRange pos
+
+
+  class CharacterEditor extends BasicEditingOptions
+    constructor: (@node, @options)->
+      super()
+      opts = this
+      @data =
+        getFirst: -> 'character-sheet'
+        getBlock: (id)-> if id == 'character-sheet' then opts.block
+        getText: -> opts.block.text
+        getLength: -> opts.block.text.length
+        docOffsetForBlockOffset: (block, offset)->
+          if typeof block == 'object' then block.offset else offset
+        blockOffsetForDocOffset: (offset)->
+          block: 'character-sheet'
+          offset: offset
+    guiText: -> @editor.blockTextForNode(@editor.node.find('#character-sheet')) #.replace(/\t/g, ' ')
+    getFirst: -> @data.getFirst()
+    getBlock: (id)-> @data.getBlock id
+    idForNode: (node)-> $(node).closest('.characterSheetHolder').prop('id')
+    nodeForId: (id)-> if id == 'character-sheet' then @node
+    replaceText: (repl)->
+      {start, end, text} = repl
+      block = @options.parsedCodeBlock @blockId
+      oldText = @guiText()
+      newText = (oldText.substring(0, start) + text + oldText.substring end).trim().replace(/^\s*\n/gm, '')
+      @block.text = newText
+      #debugger
+      block.setSourceContent newText + '\n'
+      try
+        @editing = true
+        block.save true
+      finally
+        @editing = false
+      @rerenderAll()
+    fetchText: (id)->
+      if !@editing
+        @blockId = @options.data.getNamedBlockId id
+        @block =
+          _id: 'character-sheet'
+          text: blockSource @options.getBlock @blockId
+        @rerenderAll()
+    renderBlock: (block)->
+      character = Vele.parse block.text.replace(/\t+/g, ' ')
+      @options.withNewContext =>
+        #[Leisure.UI.renderView('character-sheet', '', character, @editor.node.find('#character-sheet')[0])]
+        [Leisure.UI.renderView('character-sheet', '', character)]
+
+  sloppyNameLine = /^\s*(?:[0-9]*)\b(\S.*)\s+([0-9]+)\s+(?:🌕\s*)?(?:(\S.*)\s+[0-9]+\s*|(\S.*))$/
   ignorePat = /^[0-9]*\s+max ruche|^health|^comp|^[0-9]+ tmp/i
-  tmpAspectPat = /^(?:\s|[0-9])*\btmp\b\s*(\S.*)?\s*$/
+  tmpAspectPat = /^\s*(?:[0-9]*)\btmp\b\s*(.*)$/
   basicLinePat = /^([^:\s]+):(.*)$/
-  aspectPat = /^(?:\[([^\/\]]+)(?:\/(.*))?\]\s+)?(\S.*)$/
-  traitPat = /^(.*\S)\s+d([468]|10|12)(?:\s*\(\s*\+[0-9]+)?(?:\s*(composure|health))?(?:\s*\))?$/i
+  aspectPat = /^\s*(?:\[([^\/\]]+)(?:\/(.*))?\]\s+)?(\S.*)$/
+  traitPat = /^(.*\S)\s+d([468]|10|12)(?:\s*\(?\s*\+?[0-9]+)?\s*(composure|health|intensity|resist(?:[^)]*)?)?\s*\)?\s*$/i
   highConceptPat = /^hc|high\s*concept$/i
   troublePat = /^tr|trbl|trouble$/i
   attributePat = /^order|purity|mercy|truth|nurture|creation|chaos|corruption|domination|scheming|strife|madness$/
-  consequenceTypePat = /^(?:\s*[0-9]+)?\s*(mild|moderate|severe|extreme|tmp)(?:\s+(\S.*))?$/i
+  consequenceTypePat = /^(?:\s*|[0-9]+)*\b(mild|moderate|severe|extreme|tmp)\b\s?(.*)$/i
   abilityPat = /^([^\[\]:]*[^\[\]:\s])\s*(?:\[(.*)\])?:\s*(\S.*)$/
   effectPat = /^(.*\S)\s+([0-9]+)$/
   characterPat = /^([^\[\]]+?)\s*(?:\[(.*)\])?(?:\s*[0-9]+)\s*$/
-  specialLinePat = /^(❂|◆|◇|✫|☠|🌕|)(.*)$/
+  specialLinePat = /^\s*(❂|◆|◇|✫|☠|🌕|)(.*)$/
   consequenceValues = ['tmp', 'mild', 'moderate', 'severe', 'extreme']
   specialLineKeys =
     chars: "❂◆◇✫☠🌕"
     keys: ['aspect', 'focus', 'trait', 'ability', 'consequence', 'item']
   getLineKey = (line, sloppy)->
-    line = line.trim()
     if m = line.match specialLinePat
       [..., char, value] = m
       i = specialLineKeys.chars.indexOf(char)
-      key: specialLineKeys.keys[i], value: value.trim()
+      key: specialLineKeys.keys[i], value: value.replace(/^\s+/, '')
     else if m = line.match basicLinePat
       [..., key, value] = m
-      {key, value: value.trim()}
+      {key, value: value.replace(/^\s+/, '')}
     else {}
   cleanAspectType = (str)->
     str = str.trim().toLowerCase()
@@ -288,6 +290,7 @@ if !window.Vele
     if list.length == 1 then list[0]
     else if list.length == 2 then list[0] + " and " + list[1]
     else _.dropRight(list).join(', ') + ", and " + _.last list
+
   class PlayerParser
     constructor: ->
       @value =
@@ -305,10 +308,10 @@ if !window.Vele
           usedSloppy = true
           [ignore, playerName, ruche, pcName, pcName2] = m
           pcName = pcName ? pcName2
-          @value.name = playerName.trim()
-          @value.extraRuche = ruche.trim()
+          @value.name = playerName
+          @value.extraRuche = ruche
           #debugger
-          @character pcName.trim(), line
+          @character pcName, line
         else if m = line.match tmpAspectPat then @consequence value, line, 'tmp', m[1]
         else if line.match ignorePat then continue
         else if key
@@ -343,6 +346,7 @@ if !window.Vele
       if missing.length then @addError "#{andIt capitalizeList missing} #{if missing.length == 1 then 'is' else 'are'} missing from the PC aspects", true
       @value
     addError: (err, noLocation)->
+      #debugger
       if !noLocation then err = "#{err} on line #{@pos}: #{@lines[@pos]}"
       if !@value.errors then @value.errors = []
       @value.errors.push err
@@ -378,7 +382,7 @@ if !window.Vele
     aspect: (str)->
       if str
         [..., primary, secondary, name] = str.match aspectPat
-        aspect = name: (name ? '').trim()
+        aspect = name: name ? ''
         if primary
           if type = cleanAspectType primary
             aspect[type] = true
@@ -397,7 +401,7 @@ if !window.Vele
       if type
         @curConsequences().push
           level: type.toLowerCase()
-          name: (name ? '').trim()
+          name: name ? ''
           number: consequenceValues.indexOf(type.toLowerCase()) * 2
       else @addError "Couldn't parse consequence"
     focus: (str)-> @parseTrait 'focus', str
@@ -432,25 +436,15 @@ if !window.Vele
             @curCharacter().allocatedRuche += Number m[2]
           else @addError "Couldn't parse effect ##{i}"
       else @addError "Couldn't parse ability"
-  window.Vele =
-    parse: (str)-> new PlayerParser().parse(str)
-#+END_SRC
-* Helpers
-:properties:
-:hidden: true
-:end:
-#+BEGIN_SRC coffee :results def
-Handlebars.registerHelper 'capitalize', (v)-> if v[0] then v[0].toUpperCase() + v[1..] else v
-$('''
-<a name="tc" target="_blank" href="http://www.teamcthulhu.com" class='tc-banner'>
-  <button name="team_cthulhu" title="x">
-    <span><img src="css/images/eldersign.png">TEAM CTHULHU</span>
-  </button>
-</a>
-''').appendTo(document.body).find('button').button()
-Handlebars.registerHelper 'space', (n)-> n == ' '
-Handlebars.registerHelper 'repeat', (times, options)->
-  (options.fn(this) for i in [0...Number times] by 1).join ''
+
+  Vele.sheet = sheet = $("<div></div>").insertAfter '[maindoc]'
+  sheet.attr 'data-block', 'characterSheet'
+  sheet.attr 'id', 'characterSheet'
+  leisureEditor = Leisure.findEditor $('[maindoc]')
+  Vele.editor = editor = new CharacterEditor sheet, leisureEditor.options
+  #new CharacterEditorExtensions sheet, editor
+  new LeisureEditCore sheet, editor
+  Vele.editor.fetchText 'character-sheet'
 #+END_SRC
 * Styles
 :properties:
@@ -489,7 +483,7 @@ Handlebars.registerHelper 'repeat', (times, options)->
   background: white;
 }
 .error {
-  white-space: normal;
+  white-space: pre;
   background: pink;
 }
 #characterSheet {
@@ -517,6 +511,7 @@ Handlebars.registerHelper 'repeat', (times, options)->
   flex-basis: 100%;
   font-weight: bold;
   padding: 2px;
+  white-space: pre;
 }
 .player,
 .characterName {

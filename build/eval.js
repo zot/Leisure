@@ -473,9 +473,7 @@
           return function() {
             var err, error, values;
             try {
-              writeValues(env, values = arrayify(jsEval(env, CS.compile(text, {
-                bare: true
-              }))));
+              writeValues(env, values = arrayify(_this.runWith({}, eval("(function(){" + (_this.blockCode(text, null, null, null, true)) + "})"))));
             } catch (error) {
               err = error;
               env.errorAt(0, err.message);
@@ -485,29 +483,36 @@
         })(this));
       };
       env.executeBlock = function(block, props, cont) {
-        return this.compileBlock(block)(cont);
+        return this.compileBlock(block).call(this, cont);
       };
       env.compileBlock = function(block) {
-        return (function(_this) {
-          return function() {
-            var args, cont, ctx, i, j, k, len, ref, ret, varMappings, varName, varNames, vars;
-            cont = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
-            ref = blockVars(_this.data, block.codeAttributes["var"]), j = ref.length - 3, vars = ref[j++], varNames = ref[j++], varMappings = ref[j++];
-            ctx = {};
+        var code, j, ref, varMappings, varNames, vars;
+        ref = blockVars(this.data, block.codeAttributes["var"]), j = ref.length - 3, vars = ref[j++], varNames = ref[j++], varMappings = ref[j++];
+        code = this.runWith({}, "(function(){" + (this.blockCode(blockSource(block), vars, varNames, varMappings, true)) + "})");
+        return function() {
+          var args, cont, i, k, len, ref1, ret, varName;
+          cont = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
+          if (this !== window) {
+            this.ctx = {
+              _blocks: {}
+            };
             for (i = k = 0, len = varNames.length; k < len; i = ++k) {
               varName = varNames[i];
-              if (args[i]) {
-                ctx[varName] = args[i];
+              this.ctx[varName] = (ref1 = args[i]) != null ? ref1 : this.data.getYaml(this.data.getBlockNamed(varMappings[varName]));
+              if (!args[i]) {
+                this.ctx._blocks[varName] = this.data.getBlockNamed(varMappings[varName]);
               }
             }
-            ret = _this.runWith(ctx, _this.blockCode(blockSource(block), vars, varNames, varMappings));
-            if (cont) {
-              return cont(ret);
-            } else {
-              return ret;
-            }
-          };
-        })(this);
+          } else {
+            debugger;
+          }
+          ret = code.call(this);
+          if (cont) {
+            return cont(ret);
+          } else {
+            return ret;
+          }
+        };
       };
       env.blockCode = function(src, vars, varNames, varMappings, useReturn) {
         var blockVarStr, blocks, compiledCode, constName, constStr, consts, name, ref, returns, value, varName;

@@ -95,10 +95,10 @@ choose a handlebars template.
         if extreme then html.replace />\s+</g, '><'
         else
           html
-            .replace(/>[ ]+</g, '><')
+            .replace(/>[ ]+<(?=[^\/])/g, '><')
             .replace(/^\s*\n/gm, '')
             .replace(/>\s+$/gm, '>')
-            .replace(/^\s+</gm, '<')
+            .replace(/^\s+<(?=[^\/])/gm, '<')
 
       Handlebars.registerHelper 'condense', (extreme, options)->
         if !(options && extreme)

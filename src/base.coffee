@@ -53,6 +53,7 @@ define files, (btoa)->
       finally
         @ctx = old
 
+
   defaultEnv =
     __proto__: CodeContext.prototype
     presentValue: (x)-> String(x) + '\n'

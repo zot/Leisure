@@ -786,6 +786,7 @@
           };
         }
         block.observer = new CodeContext();
+        block.observer.data = this;
         return block.observer.observe = (function(_this) {
           return function() {
             var err, error1;
@@ -940,7 +941,7 @@
       };
 
       OrgData.prototype.changeController = function(oldBlock, newBlock, isDefault) {
-        var controller, ov, vt;
+        var controller, env, ov, vt;
         if (newBlock && this.running[newBlock._id]) {
           return;
         }
@@ -951,11 +952,10 @@
           controller = {};
           if (!isDefault || this.addImported(isDefault, 'controller', vt)) {
             addController(vt, null, controller, isDefault);
-            return this.executeBlock(newBlock, function(env) {
-              return env["eval"] = function(text) {
-                return controllerEval.call(controller, text);
-              };
-            });
+            env = this.env(newBlock.language);
+            controller.__proto__ = env;
+            controller.executeBlock(newBlock);
+            return controller.__proto__ = null;
           }
         }
       };
@@ -1037,22 +1037,23 @@
       };
 
       OrgData.prototype.decodeObservers = function(block) {
-        var finalObs, j, k, len, ob, obs, ref, ref1, ref2, v;
+        var bv, finalObs, j, len, ob, obs, ref, ref1, ref2, ref3, v;
         finalObs = [];
         obs = (ref = (ref1 = block.codeAttributes) != null ? (ref2 = ref1.observe) != null ? ref2.split(' ') : void 0 : void 0) != null ? ref : [];
         for (j = 0, len = obs.length; j < len; j++) {
           ob = obs[j];
           if (ob === 'vars' || ob === '') {
+            bv = blockVars(this, (ref3 = block.codeAttributes) != null ? ref3["var"] : void 0);
             finalObs.push.apply(finalObs, (function() {
-              var ref3, ref4, results1;
-              ref4 = blockVars(this, (ref3 = block.codeAttributes) != null ? ref3["var"] : void 0)[2];
+              var l, len1, ref4, results1;
+              ref4 = bv[3];
               results1 = [];
-              for (k in ref4) {
-                v = ref4[k];
-                results1.push("block." + v);
+              for (l = 0, len1 = ref4.length; l < len1; l++) {
+                v = ref4[l];
+                results1.push("block." + bv[4][v]);
               }
               return results1;
-            }).call(this));
+            })());
           } else {
             finalObs.push(ob);
           }
@@ -1110,8 +1111,11 @@
         var env, ref;
         block = this.getBlock(block);
         return (ref = block.code) != null ? ref : block.code = isText(block) ? this.addPostProcessing(block, function(cont) {
-          var ref1;
-          return (ref1 = typeof cont === "function" ? cont([blockSource(block)]) : void 0) != null ? ref1 : [blockSource(block)];
+          if (cont) {
+            return cont.call(this, [blockSource(block)]);
+          } else {
+            return [blockSource(block)];
+          }
         }) : block.language === 'yaml' ? this.addPostProcessing(block, function(cont) {
           var ref1, yaml;
           yaml = (!block.computedYaml && block.yaml) || parseYaml(blockSource(block));
@@ -2281,7 +2285,9 @@
           env.prompt = function(str, defaultValue, cont) {
             return cont(prompt(str, defaultValue));
           };
-          env.executeBlock(block, Nil, function() {});
+          setLounge(env, function() {
+            return env.executeBlock(block, Nil, function() {});
+          });
           sync = false;
           newBlock = setResult(newBlock, result);
           if (newBlock !== block) {

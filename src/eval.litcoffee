@@ -280,18 +280,23 @@ Evaulation support for Leisure
       csEnv = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
           try
-            writeValues env, values = arrayify(jsEval(env, CS.compile text, bare: true))
+            writeValues env, values = arrayify(@runWith {}, eval "(function(){#{@blockCode text, null, null, null, true}})")
           catch err
             env.errorAt 0, err.message
           cont? values ? []
-        env.executeBlock = (block, props, cont)-> @compileBlock(block)(cont)
-        env.compileBlock = (block)-> (cont, args...)=>
+        env.executeBlock = (block, props, cont)-> @compileBlock(block).call this, cont
+        env.compileBlock = (block)->
           [..., vars, varNames, varMappings] = blockVars @data, block.codeAttributes.var
-          ctx = {}
-          for varName, i in varNames
-            if args[i] then ctx[varName] = args[i]
-          ret = @runWith ctx, @blockCode blockSource(block), vars, varNames, varMappings
-          if cont then cont ret else ret
+          code = @runWith {}, "(function(){#{@blockCode blockSource(block), vars, varNames, varMappings, true}})"
+          (cont, args...)->
+            if this != window
+              @ctx = _blocks: {}
+              for varName, i in varNames
+                @ctx[varName] = args[i] ? @data.getYaml @data.getBlockNamed varMappings[varName]
+                if !args[i] then @ctx._blocks[varName] = @data.getBlockNamed varMappings[varName]
+            else debugger
+            ret = code.call this
+            if cont then cont ret else ret
         env.blockCode = (src, vars, varNames, varMappings, useReturn)->
           vars = vars ? {}
           varNames = varNames ? []

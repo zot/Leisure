@@ -580,8 +580,11 @@ data-org-type='results'
   white-space: pre;
 }
 .view [data-block][data-lang=text] .code-text .unknown-language,
-.view [data-block][data-lang=string] .code-text .unknown-language {
-  font-family: Arial;
+.view [data-block][data-lang=string] .code-text .unknown-language,
+.view [data-org-src] {
+  /*font-family: Arial;*/
+  font-family: Inconsolata;
+  font-weight: bold;
 }
 .fancy .view [data-block] .maintext {
   white-space: normal;

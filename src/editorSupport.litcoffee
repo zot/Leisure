@@ -462,6 +462,7 @@ that must be done regardless of the source of changes
               if result[result.length - 1] != '\n' then result += '\n'
               if !sync then @replaceResult change._id, result
           block.observer = new CodeContext()
+          block.observer.data = this
           block.observer.observe = =>
             sync = true
             try
@@ -537,8 +538,10 @@ that must be done regardless of the source of changes
             controller = {}
             if !isDefault || @addImported isDefault, 'controller', vt
               addController vt, null, controller, isDefault
-              @executeBlock newBlock, (env)->
-                env.eval = (text)-> controllerEval.call controller, text
+              env = @env newBlock.language
+              controller.__proto__ = env
+              controller.executeBlock newBlock
+              controller.__proto__ = null
         executeBlock: (block, envConf)->
           @executeText block.language, blockSource(block), null, (env)->
             envConf? env
@@ -588,7 +591,8 @@ that must be done regardless of the source of changes
           obs = block.codeAttributes?.observe?.split(' ') ? []
           for ob in obs
             if ob in ['vars', '']
-              finalObs.push ("block.#{v}" for k, v of blockVars(this, block.codeAttributes?.var)[2])...
+              bv = blockVars this, block.codeAttributes?.var
+              finalObs.push ("block.#{bv[4][v]}" for v in bv[3])...
             else finalObs.push ob
           finalObs
         runBlock: (block, func)->
@@ -619,7 +623,9 @@ that must be done regardless of the source of changes
           else null)
         getCode: (block)->
           block = @getBlock block
-          block.code ? block.code = if isText(block) then @addPostProcessing block, (cont)-> cont?([blockSource block]) ? [blockSource block]
+          block.code ? block.code = if isText(block) then @addPostProcessing block, (cont)->
+            if cont then cont.call this, [blockSource block]
+            else [blockSource block]
           else if block.language == 'yaml' then @addPostProcessing block, (cont)->
             yaml = (!block.computedYaml && block.yaml) || parseYaml blockSource block
             cont?([yaml]) ? [yaml]
@@ -1206,7 +1212,7 @@ may be called more than once.  changeData() returns a promise.
               result += presentHtml str
               if !sync then opts.update newBlock = setResult block, result
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
-            env.executeBlock block, Nil, ->
+            setLounge env, -> env.executeBlock block, Nil, ->
             #env.executeText source.content, Nil, ->
             sync = false
             newBlock = setResult newBlock, result
