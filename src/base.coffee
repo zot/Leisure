@@ -43,7 +43,19 @@ define files, (btoa)->
 
   if !btoa? then (window ? global).btoa = require 'btoa'
 
+  class CodeContext
+    eval: (text)-> eval text
+    runWith: (ctxSettings, func)->
+      old = @ctx
+      try
+        @ctx = ctxSettings
+        if typeof func == 'string' then @eval func else func.call this
+      finally
+        @ctx = old
+
+
   defaultEnv =
+    __proto__: CodeContext.prototype
     presentValue: (x)-> String(x) + '\n'
     values: {}
     errorHandlers: []
@@ -200,5 +212,6 @@ define files, (btoa)->
   root.maxInt = 9007199254740992
   root.minInt = -root.maxInt
   root.funcInfo = funcInfo
+  root.CodeContext = CodeContext
 
   root

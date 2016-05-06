@@ -35,7 +35,7 @@ misrepresented as being the original software.
   files = !(typeof window !== "undefined" && window !== null ? window : global).btoa ? ['btoa'] : [null];
 
   define(files, function(btoa) {
-    var SimpyCons, baseLeisureCall, concat, defaultEnv, errors, funcInfo, genInfo, leisureCall, primConsFrom, readDir, readFile, root, rz, serverIncrement, simpyCons, slice, statFile, test, testCount, verboseMsg, writeFile;
+    var CodeContext, SimpyCons, baseLeisureCall, concat, defaultEnv, errors, funcInfo, genInfo, leisureCall, primConsFrom, readDir, readFile, root, rz, serverIncrement, simpyCons, slice, statFile, test, testCount, verboseMsg, writeFile;
     if (!btoa) {
       btoa = (typeof window !== "undefined" && window !== null ? window : global).btoa;
     }
@@ -61,7 +61,33 @@ misrepresented as being the original software.
     if (btoa == null) {
       (typeof window !== "undefined" && window !== null ? window : global).btoa = require('btoa');
     }
+    CodeContext = (function() {
+      function CodeContext() {}
+
+      CodeContext.prototype["eval"] = function(text) {
+        return eval(text);
+      };
+
+      CodeContext.prototype.runWith = function(ctxSettings, func) {
+        var old;
+        old = this.ctx;
+        try {
+          this.ctx = ctxSettings;
+          if (typeof func === 'string') {
+            return this["eval"](func);
+          } else {
+            return func.call(this);
+          }
+        } finally {
+          this.ctx = old;
+        }
+      };
+
+      return CodeContext;
+
+    })();
     defaultEnv = {
+      __proto__: CodeContext.prototype,
       presentValue: function(x) {
         return String(x) + '\n';
       },
@@ -342,6 +368,7 @@ misrepresented as being the original software.
     root.maxInt = 9007199254740992;
     root.minInt = -root.maxInt;
     root.funcInfo = funcInfo;
+    root.CodeContext = CodeContext;
     return root;
   });
 

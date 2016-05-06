@@ -6,6 +6,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
     define ['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], (Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree)->
       {
         defaultEnv
+        CodeContext
       } = Base
       {
         parseOrgMode
@@ -93,6 +94,8 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       bubbleLeftOffset = 0
       keySplitPat = new RegExp ' +'
       postCallPat = /^([^(]*)\((.*)\)/
+
+      CodeContext::executeBlock = (data, block, props, cont)-> @executeText blockSource(block), props, cont
 
       blockOrg = (data, blockOrText)-> docBlockOrg (if typeof blockOrText == 'string' then data.getBlock blockOrText) ? blockOrText
 
@@ -458,10 +461,12 @@ that must be done regardless of the source of changes
               result += presentHtml str
               if result[result.length - 1] != '\n' then result += '\n'
               if !sync then @replaceResult change._id, result
-          block.observer = observe: =>
+          block.observer = new CodeContext()
+          block.observer.data = this
+          block.observer.observe = =>
             sync = true
             try
-              @replaceResult blockId, env.formatResult @getBlock(blockId), '', @getCode(blockId)()
+              @replaceResult blockId, env.formatResult @getBlock(blockId), '', @getCode(blockId).call block.observer
             catch err
               @replaceResult blockId, ": #{err.stack.replace /\n/g, '\n: '}"
             sync = false
@@ -533,14 +538,27 @@ that must be done regardless of the source of changes
             controller = {}
             if !isDefault || @addImported isDefault, 'controller', vt
               addController vt, null, controller, isDefault
-              @executeBlock newBlock, (env)->
-                env.eval = (text)-> controllerEval.call controller, text
+              env = @env newBlock.language
+              controller.__proto__ = env
+              controller.executeBlock newBlock
+              controller.__proto__ = null
         executeBlock: (block, envConf)->
           @executeText block.language, blockSource(block), null, (env)->
             envConf? env
             if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
               env.silent = true
               env.write = (str)-> console.log str
+        #executeBlock: (block, envConf)->
+        #  res = (block?.codeAttributes?.results?.toLowerCase().split(/\s+/) || [])
+        #  env = @env block.language, (env)->
+        #    if 'silent' in res
+        #      env.silent = true
+        #      env.write = ->
+        #      else if 'def' in res
+        #      env.silent = true
+        #      env.write = (str)-> console.log str
+        #    envConf env
+        #  env.executeBlock this, block, Nil, ->
         env: (language, envConf)->
           if env = languageEnvMaker(language)?(__proto__: defaultEnv)
             env.data = this
@@ -573,7 +591,8 @@ that must be done regardless of the source of changes
           obs = block.codeAttributes?.observe?.split(' ') ? []
           for ob in obs
             if ob in ['vars', '']
-              finalObs.push ("block.#{v}" for k, v of blockVars(this, block.codeAttributes?.var)[2])...
+              bv = blockVars this, block.codeAttributes?.var
+              finalObs.push ("block.#{bv[4][v]}" for v in bv[3])...
             else finalObs.push ob
           finalObs
         runBlock: (block, func)->
@@ -604,7 +623,9 @@ that must be done regardless of the source of changes
           else null)
         getCode: (block)->
           block = @getBlock block
-          block.code ? block.code = if isText(block) then @addPostProcessing block, (cont)-> cont?([blockSource block]) ? [blockSource block]
+          block.code ? block.code = if isText(block) then @addPostProcessing block, (cont)->
+            if cont then cont.call this, [blockSource block]
+            else [blockSource block]
           else if block.language == 'yaml' then @addPostProcessing block, (cont)->
             yaml = (!block.computedYaml && block.yaml) || parseYaml blockSource block
             cont?([yaml]) ? [yaml]
@@ -615,22 +636,25 @@ that must be done regardless of the source of changes
             [..., blockName, argNames] = m
             argNames = argNames.trim().split '\s*,\s*'
             blockName = blockName.trim()
-            (cont, args...)=>
-              if postProcessor = @getCode @getBlockNamed blockName
-                func ((result)=>
+            data = this
+            (cont, args...)->
+              if postProcessor = data.getCode data.getBlockNamed blockName
+                func.call this, ((result)->
                   if result.length == 1 then result = result[0]
-                  blockVars = {}
-                  Lounge?.blockVars = blockVars
-                  postProcessor cont, (for arg in argNames
-                    if `Number(arg) == arg` || arg[0] in "'\"" then JSON.parse arg
+                  blockArgs = []
+                  Lounge?.blockVars = blockArgs
+                  postProcessor.call this, cont, (for arg in argNames
+                    if `Number(arg) == arg` || arg[0] in "'\""
+                      blockArgs.push null
+                      JSON.parse arg
                     else
                       if arg == '*this*'
                         argBlock = block
                         argData = result
                       else
-                        argBlock = @getBlockNamed arg
-                        argData = @getYaml argData
-                      blockVars[arg] = argBlock
+                        argBlock = data.getBlockNamed arg
+                        argData = data.getYaml argData
+                      blockArgs.push argBlock
                       argData)...), args...
           else func
 
@@ -1098,8 +1122,8 @@ may be called more than once.  changeData() returns a promise.
         replaceBlock: (block, textOrBlock, source)->
           block = @getBlock block
           offset = @data.offsetForBlock block
-          if typeof text == 'object' then text = text.text
-          @replaceText {start: offset, end: offset + block.text.length, text, source}
+          text = if typeof textOrBlock == 'object' then textOrBlock.text else textOrBlock
+          @replaceText {start: offset, end: offset + text.length, text, source}
         update: (block)->
           oldBlock = @getBlock block._id
           if !_.isEqual block, oldBlock
@@ -1138,7 +1162,7 @@ may be called more than once.  changeData() returns a promise.
                   if result[result.length - 1] != '\n' then result += '\n'
                   if !sync then @replaceResult change._id, result
               finished = {}
-              res = (if change.codeAttributes?.post then setLounge env, => @data.getCode(newBlock)((data)->
+              res = (if change.codeAttributes?.post then setLounge env, => @data.getCode(newBlock).call(env, (data)->
                 result = env.formatResult newBlock, '', data
                 finished)
               else env.executeText newSource.content, Nil, (-> finished))
@@ -1176,8 +1200,10 @@ may be called more than once.  changeData() returns a promise.
             {source} = blockCodeItems this, block
             result = ''
             sync = true
-            env = envM __proto__: defaultEnv
-            env.opts = opts = this
+            env = envM
+              __proto__: defaultEnv
+              opts: opts = this
+              data: @data
             newBlock = setError block
             env.errorAt = (offset, msg)->
               newBlock = setError block, offset, msg
@@ -1186,7 +1212,8 @@ may be called more than once.  changeData() returns a promise.
               result += presentHtml str
               if !sync then opts.update newBlock = setResult block, result
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
-            env.executeText source.content, Nil, ->
+            setLounge env, -> env.executeBlock block, Nil, ->
+            #env.executeText source.content, Nil, ->
             sync = false
             newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock
@@ -1430,6 +1457,7 @@ Exports
         DataStore
         DataStoreEditingOptions
         Editor
+        CodeContext
       }
 
       {

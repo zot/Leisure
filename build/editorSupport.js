@@ -6,8 +6,8 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
-    var BasicEditingOptions, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
-    defaultEnv = Base.defaultEnv;
+    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock;
     Nil = Ast.Nil;
@@ -31,6 +31,9 @@
     bubbleLeftOffset = 0;
     keySplitPat = new RegExp(' +');
     postCallPat = /^([^(]*)\((.*)\)/;
+    CodeContext.prototype.executeBlock = function(data, block, props, cont) {
+      return this.executeText(blockSource(block), props, cont);
+    };
     blockOrg = function(data, blockOrText) {
       var ref;
       return docBlockOrg((ref = (typeof blockOrText === 'string' ? data.getBlock(blockOrText) : void 0)) != null ? ref : blockOrText);
@@ -782,21 +785,21 @@
             }
           };
         }
-        return block.observer = {
-          observe: (function(_this) {
-            return function() {
-              var err, error1;
-              sync = true;
-              try {
-                _this.replaceResult(blockId, env.formatResult(_this.getBlock(blockId), '', _this.getCode(blockId)()));
-              } catch (error1) {
-                err = error1;
-                _this.replaceResult(blockId, ": " + (err.stack.replace(/\n/g, '\n: ')));
-              }
-              return sync = false;
-            };
-          })(this)
-        };
+        block.observer = new CodeContext();
+        block.observer.data = this;
+        return block.observer.observe = (function(_this) {
+          return function() {
+            var err, error1;
+            sync = true;
+            try {
+              _this.replaceResult(blockId, env.formatResult(_this.getBlock(blockId), '', _this.getCode(blockId).call(block.observer)));
+            } catch (error1) {
+              err = error1;
+              _this.replaceResult(blockId, ": " + (err.stack.replace(/\n/g, '\n: ')));
+            }
+            return sync = false;
+          };
+        })(this);
       };
 
       OrgData.prototype.checkChannelChange = function(oldBlock, newBlock) {
@@ -938,7 +941,7 @@
       };
 
       OrgData.prototype.changeController = function(oldBlock, newBlock, isDefault) {
-        var controller, ov, vt;
+        var controller, env, ov, vt;
         if (newBlock && this.running[newBlock._id]) {
           return;
         }
@@ -949,11 +952,10 @@
           controller = {};
           if (!isDefault || this.addImported(isDefault, 'controller', vt)) {
             addController(vt, null, controller, isDefault);
-            return this.executeBlock(newBlock, function(env) {
-              return env["eval"] = function(text) {
-                return controllerEval.call(controller, text);
-              };
-            });
+            env = this.env(newBlock.language);
+            controller.__proto__ = env;
+            controller.executeBlock(newBlock);
+            return controller.__proto__ = null;
           }
         }
       };
@@ -1035,22 +1037,23 @@
       };
 
       OrgData.prototype.decodeObservers = function(block) {
-        var finalObs, j, k, len, ob, obs, ref, ref1, ref2, v;
+        var bv, finalObs, j, len, ob, obs, ref, ref1, ref2, ref3, v;
         finalObs = [];
         obs = (ref = (ref1 = block.codeAttributes) != null ? (ref2 = ref1.observe) != null ? ref2.split(' ') : void 0 : void 0) != null ? ref : [];
         for (j = 0, len = obs.length; j < len; j++) {
           ob = obs[j];
           if (ob === 'vars' || ob === '') {
+            bv = blockVars(this, (ref3 = block.codeAttributes) != null ? ref3["var"] : void 0);
             finalObs.push.apply(finalObs, (function() {
-              var ref3, ref4, results1;
-              ref4 = blockVars(this, (ref3 = block.codeAttributes) != null ? ref3["var"] : void 0)[2];
+              var l, len1, ref4, results1;
+              ref4 = bv[3];
               results1 = [];
-              for (k in ref4) {
-                v = ref4[k];
-                results1.push("block." + v);
+              for (l = 0, len1 = ref4.length; l < len1; l++) {
+                v = ref4[l];
+                results1.push("block." + bv[4][v]);
               }
               return results1;
-            }).call(this));
+            })());
           } else {
             finalObs.push(ob);
           }
@@ -1108,8 +1111,11 @@
         var env, ref;
         block = this.getBlock(block);
         return (ref = block.code) != null ? ref : block.code = isText(block) ? this.addPostProcessing(block, function(cont) {
-          var ref1;
-          return (ref1 = typeof cont === "function" ? cont([blockSource(block)]) : void 0) != null ? ref1 : [blockSource(block)];
+          if (cont) {
+            return cont.call(this, [blockSource(block)]);
+          } else {
+            return [blockSource(block)];
+          }
         }) : block.language === 'yaml' ? this.addPostProcessing(block, function(cont) {
           var ref1, yaml;
           yaml = (!block.computedYaml && block.yaml) || parseYaml(blockSource(block));
@@ -1122,50 +1128,50 @@
       };
 
       OrgData.prototype.addPostProcessing = function(block, func) {
-        var argNames, blockName, j, m, ref;
+        var argNames, blockName, data, j, m, ref;
         if (m = (ref = block.codeAttributes.post) != null ? ref.match(postCallPat) : void 0) {
           j = m.length - 2, blockName = m[j++], argNames = m[j++];
           argNames = argNames.trim().split('\s*,\s*');
           blockName = blockName.trim();
-          return (function(_this) {
-            return function() {
-              var args, cont, postProcessor;
-              cont = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
-              if (postProcessor = _this.getCode(_this.getBlockNamed(blockName))) {
-                return func.apply(null, [(function(result) {
-                  var arg, argBlock, argData;
-                  if (result.length === 1) {
-                    result = result[0];
-                  }
-                  blockVars = {};
-                  if (typeof Lounge !== "undefined" && Lounge !== null) {
-                    Lounge.blockVars = blockVars;
-                  }
-                  return postProcessor.apply(null, [cont].concat(slice1.call((function() {
-                    var l, len, ref1, results1;
-                    results1 = [];
-                    for (l = 0, len = argNames.length; l < len; l++) {
-                      arg = argNames[l];
-                      if (Number(arg) == arg || (ref1 = arg[0], indexOf.call("'\"", ref1) >= 0)) {
-                        results1.push(JSON.parse(arg));
+          data = this;
+          return function() {
+            var args, cont, postProcessor;
+            cont = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
+            if (postProcessor = data.getCode(data.getBlockNamed(blockName))) {
+              return func.call.apply(func, [this, (function(result) {
+                var arg, argBlock, argData, blockArgs;
+                if (result.length === 1) {
+                  result = result[0];
+                }
+                blockArgs = [];
+                if (typeof Lounge !== "undefined" && Lounge !== null) {
+                  Lounge.blockVars = blockArgs;
+                }
+                return postProcessor.call.apply(postProcessor, [this, cont].concat(slice1.call((function() {
+                  var l, len, ref1, results1;
+                  results1 = [];
+                  for (l = 0, len = argNames.length; l < len; l++) {
+                    arg = argNames[l];
+                    if (Number(arg) == arg || (ref1 = arg[0], indexOf.call("'\"", ref1) >= 0)) {
+                      blockArgs.push(null);
+                      results1.push(JSON.parse(arg));
+                    } else {
+                      if (arg === '*this*') {
+                        argBlock = block;
+                        argData = result;
                       } else {
-                        if (arg === '*this*') {
-                          argBlock = block;
-                          argData = result;
-                        } else {
-                          argBlock = this.getBlockNamed(arg);
-                          argData = this.getYaml(argData);
-                        }
-                        blockVars[arg] = argBlock;
-                        results1.push(argData);
+                        argBlock = data.getBlockNamed(arg);
+                        argData = data.getYaml(argData);
                       }
+                      blockArgs.push(argBlock);
+                      results1.push(argData);
                     }
-                    return results1;
-                  }).call(_this))));
-                })].concat(slice1.call(args)));
-              }
-            };
-          })(this);
+                  }
+                  return results1;
+                })())));
+              })].concat(slice1.call(args)));
+            }
+          };
         } else {
           return func;
         }
@@ -2107,12 +2113,10 @@
         var offset, text;
         block = this.getBlock(block);
         offset = this.data.offsetForBlock(block);
-        if (typeof text === 'object') {
-          text = text.text;
-        }
+        text = typeof textOrBlock === 'object' ? textOrBlock.text : textOrBlock;
         return this.replaceText({
           start: offset,
-          end: offset + block.text.length,
+          end: offset + text.length,
           text: text,
           source: source
         });
@@ -2186,7 +2190,7 @@
             finished = {};
             res = (((ref1 = change.codeAttributes) != null ? ref1.post : void 0) ? setLounge(env, (function(_this) {
               return function() {
-                return _this.data.getCode(newBlock)(function(data) {
+                return _this.data.getCode(newBlock).call(env, function(data) {
                   result = env.formatResult(newBlock, '', data);
                   return finished;
                 });
@@ -2261,9 +2265,10 @@
           result = '';
           sync = true;
           env = envM({
-            __proto__: defaultEnv
+            __proto__: defaultEnv,
+            opts: opts = this,
+            data: this.data
           });
-          env.opts = opts = this;
           newBlock = setError(block);
           env.errorAt = function(offset, msg) {
             newBlock = setError(block, offset, msg);
@@ -2280,7 +2285,9 @@
           env.prompt = function(str, defaultValue, cont) {
             return cont(prompt(str, defaultValue));
           };
-          env.executeText(source.content, Nil, function() {});
+          setLounge(env, function() {
+            return env.executeBlock(block, Nil, function() {});
+          });
           sync = false;
           newBlock = setResult(newBlock, result);
           if (newBlock !== block) {
@@ -2561,7 +2568,8 @@
       LeisureEditCore: LeisureEditCore,
       DataStore: DataStore,
       DataStoreEditingOptions: DataStoreEditingOptions,
-      Editor: Editor
+      Editor: Editor,
+      CodeContext: CodeContext
     });
     return {
       createLocalData: createLocalData,

@@ -120,7 +120,7 @@
       if (extreme) {
         return html.replace(/>\s+</g, '><');
       } else {
-        return html.replace(/>[ ]+</g, '><').replace(/^\s*\n/gm, '').replace(/>\s+$/gm, '>').replace(/^\s+</gm, '<');
+        return html.replace(/>[ ]+<(?=[^\/])/g, '><').replace(/^\s*\n/gm, '').replace(/>\s+$/gm, '>').replace(/^\s+<(?=[^\/])/gm, '<');
       }
     };
     Handlebars.registerHelper('condense', function(extreme, options) {
