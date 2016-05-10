@@ -683,7 +683,7 @@ misrepresented as being the original software.
           return bind(element, lz(function(x) {
             return rz(result);
           }));
-        }), env, resolve);
+        }), env != null ? env : root.defaultEnv, resolve);
       });
     };
     ensureLeisureClass('unit');
@@ -1536,10 +1536,10 @@ misrepresented as being the original software.
         return left(err.stack);
       }
     });
-    define('withRecur', function(value) {
+    define('_withRecur', function(value) {
       var ret;
       ret = rz(value);
-      while (getType(ret) === 'recur') {
+      while (getType(ret) === '_recur') {
         ret = ret(lz(_identity));
       }
       return ret;
