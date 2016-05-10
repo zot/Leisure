@@ -1,0 +1,84 @@
+* Scratch
+#+BEGIN_SRC leisure :results dynamic
+do
+  x <-| i = 0 | for [1 2 3]
+  i + x
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  x <-| i = 0 | [1 2 3]
+  y <-| j = i | [3 4 5]
+  j + x + y
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  x <- [1 2 3]
+  y <- [4 5 6]
+  [x y]
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  setValue 'l' [1 2 3]
+  x <- getValue 'l'
+  x
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+simplify 'doFold (i = 0) (x <- [1 2 3]) (i + x)'
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+do
+    l <- doFold (i = [])
+        print 0
+        x <- [1 2 3]
+        [x | i]
+    print l
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+length (bind (foreach [1 2 3]) \x . x + 1)
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+\\
+  i = 0
+  .
+  bind2 i [1 2 3] \i x . i + x
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+length (do
+  x <- [1 2 3]
+  x > 2
+  x + 1)
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  list <- do
+    i <- [1 2 3]
+    print i
+    i + 1
+  print list
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  list <- do
+    setValue 'x' [1 2 3]
+    i <- run getValue 'x'
+    print i
+    i + 1
+  print list
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+(doFold (i = dlempty)
+  x <- [1 2 3]
+  y <- [4 5 6]
+  dlPush i [x y]) []
+#+END_SRC
