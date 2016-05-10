@@ -62,7 +62,7 @@ misrepresented as being the original software.
 
   delimiterList = ['\\(', '\\)', ' +', '\\.', '\\\\\\\\', '\\\\@', '\\\\'];
 
-  delimiters = _.object(_.map(delimiterList, function(x) {
+  delimiters = _.zipObject(_.map(delimiterList, function(x) {
     return [x, true];
   }));
 
@@ -74,7 +74,7 @@ misrepresented as being the original software.
 
   setDelimiterInfo = function(info) {
     delimiterList = info;
-    delimiters = _.object(_.map(delimiterList, function(x) {
+    delimiters = _.zipObject(_.map(delimiterList, function(x) {
       return [x, true];
     }));
     return makeDelimterPat();

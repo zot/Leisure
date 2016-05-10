@@ -82,7 +82,7 @@ delimiterList = [
   '\\\\',
 ]
 
-delimiters = _.object(_.map(delimiterList, (x)->[x, true]))
+delimiters = _.zipObject(_.map(delimiterList, (x)->[x, true]))
 
 delimiterPat = null
 
@@ -90,7 +90,7 @@ getDelimiterInfo = -> _.clone delimiterList
 
 setDelimiterInfo = (info)->
   delimiterList = info
-  delimiters = _.object(_.map(delimiterList, (x)->[x, true]))
+  delimiters = _.zipObject(_.map(delimiterList, (x)->[x, true]))
   makeDelimterPat()
 
 defPat = /^([^ =]+).*=/

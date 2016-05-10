@@ -16,6 +16,9 @@ setNameSpace 'core'
 # Utilities
 #################
 
+defMacro 'withRecur' \list . cons '_withRecur' (cons list nil)
+defMacro 'recur' \list . cons '_recur' (cons list nil)
+
 ## return true if any elements of l satisfy f, which takes exactly one arg
 ## eg. any (eq 0) [1 2 0] gives true: true
 any f l = find f l (\el . true) false
@@ -24,6 +27,30 @@ any f l = find f l (\el . true) false
 ## eg. all (eq 0) [0 0 0] gives true: true
 ## caveat!  return true for nil lists
 all f l = not (any (compose not f) l)
+
+takeUpto func list = \\
+  ret = subtakeUpto func list
+  .
+  == ret false
+    nil
+    ret
+
+subtakeUpto func list = \\
+  ret = subtakeUpto func (tail list)
+  .
+  isNil list
+    false
+    func (head list)
+      nil
+      == ret false
+        false
+        cons (head list) ret
+
+dropAfter func list = isNil list
+  nil
+  func (head list)
+    tail list
+    dropAfter func (tail list)
 
 # change this to return a list of results
 doall x = isNil x
@@ -249,58 +276,59 @@ useTokenPack 'infix'
 ## DO
 ################
 
-defMacro 'do' \list . withRecur
-  handleDo list false nil id
-
-defMacro 'doFold' \list . \\
-  first = stripParens (head (stripParens list))
-  foldVar = at first 0
-  eq = at first 1
-  init = drop 2 first
-  rest = tail (stripParens list)
-  code = withRecur
-    handleDo rest true foldVar id
-  .
-  (isCons (stripParens list)) && (length (stripParens list)) > 0 && (isCons first) && (length first) > 2 && (isTokenString eq '=')
-    ifNotErr code \x . log x ['\\\\' (head (stripParens list)) | x]
-    parseErr "Bad initializer in doFold: " list
+defMacro 'do' \list . withRecur handleDo list false nil id
 
 handleDo list inLet foldVar cont = list
   \h t D . isNil t
     cont (inLet ['.' h] [h])
     \\
-      next = doClause (stripParens h) h nil inLet foldVar triple
+      next = doClause (stripParens h) h nil inLet foldVar
       newInLet = triple1 next
       newFoldVar = triple2 next
       chain = triple3 next
       .
-      recur
-        handleDo t newInLet foldVar \rest . cont (chain rest)
+      recur handleDo t newInLet newFoldVar \rest . cont (chain rest)
   cont nil
 
-doClause steppingClause clause prefix inLet foldVar cont = \\
-  makeBind var value = cont false foldVar \rest . inLet (cons '.') id
-    isNil foldVar
-      ['bind' value ['\\' var '.' | rest]]
-      ['bind2' foldVar value ['\\' foldVar var '.' | rest]]
+doClause steppingClause clause prefix inLet foldVar = \\
+  makeBind var value = triple false foldVar \rest . inLet (cons '.') id
+    ['bind' value ['\\' var '.' | rest]]
   h = head steppingClause
   t = tail steppingClause
   .
   isCons steppingClause
     isTokenString h '='
-      inLet
-        cont true foldVar \rest . [clause | rest]
-        cont true foldVar \rest . ['\\\\' clause | rest]
+      triple true foldVar \rest . inLet
+        [clause | rest]
+        ['\\\\' clause | rest]
       isTokenString h '<-'
         isNil t
-          parseErr "No monad in do-clause: " clause
+          parseErr "No value in do-clause: " clause
           prefix
             \ph pt D . isNil pt
               makeBind (isNil prefix '_' (head prefix)) t
               parseErr "More than one variable in do-clause: " clause
             makeBind '_' t
-        doClause t clause [h | prefix] inLet foldVar cont
+        isTokenString h '<-|'
+          parseBind2 clause (isNil prefix '_' (head prefix)) t inLet foldVar
+          doClause t clause [h | prefix] inLet foldVar
     makeBind '_' clause
+
+parseBind2 clause var list inLet foldVar = \\
+  acc = takeUpto (\t . isTokenString t '|') list
+  value = dropAfter (\t . isTokenString t '|') list
+  accVar = isNil acc
+    foldVar
+    head acc
+  accEq = at acc 1
+  accInit = isNil acc
+    foldVar
+    tail (tail acc)
+  .
+  not (isCons value) && ((isNil acc) || ((length acc) > 2 && (isTokenString accEq '=')))
+    err "Fold clause expects VAR <-| ACC_VAR = ACC_VALUE | VALUE or VAR <-| | VALUE"
+    triple false accVar \rest . inLet (cons '.') id
+      ['bind2' accInit value ['\\' accVar var '.' | rest]]
 
 checkFoldFormat l clause = partition [] (flip isTokenString '=') l \var eq rest .
   isNil eq

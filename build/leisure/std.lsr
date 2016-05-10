@@ -53,6 +53,26 @@
 # MORE DOCUMETATION NEEDED :)
 #
 
+########################
+## convenience functions
+########################
+
+defMacro 'write[' \list . ['write' ['strCat' [(listify (head list))]]]
+
+addTokenGroup 'write[' ']'
+
+defMacro 's[' \list . ['strCat' [(listify (head list))]]
+
+addTokenGroup 's[' ']'
+
+defMacro 'err[' \list . ['err' ['strCat' [(listify (head list))]]]
+
+addTokenGroup 'err[' ']'
+
+######
+##
+######
+
 afetch k alist  = alist (\h t D . h \key value . eq key k value (afetch k t)) nil
 
 #TODO a when macro would be nice inside do, instead of using caseResult, below
@@ -268,7 +288,7 @@ defCase equal.cons a b | and (isCons a) (isCons b) -> and
 ######################
 
 # you can add more cases to isListLike if you want
-isListLike l = contains [isCons isNil isRepeat isRange isOption isEither isString] l
+isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString])
 
 toList x = [x]
 
@@ -279,11 +299,20 @@ defCase toList.opt o | isOption o -> o (\x . [x]) []
 defCase toList.either e | isEither e -> e (\_ . []) (\x . [x])
 defCase toList.string s | isString s -> strToList s
 
-defCase map.listLike func l | isListLike l -> map func (toList l)
+defCase map.repeat func r | isRepeat r -> runRepeat 0 (r id) func
+defCase map.range func r | isRange r -> r \a b . runRepeat a b func
+defCase map.opt func o | isOption o -> o (compose some func) none
+defCase map.either func e | isEither e -> e (\_ . e) (compose right func)
+defCase map.string func s | isString s -> strCat (map func (strToList s))
 
 # folding
 
-defCase bind2.listLike init list cont | isListLike list -> foldl (\acc el . maybeBind acc \accVal . cont accVal el) init (toList list)
+defCase bind2.listLike init list cont | isListLike list ->
+  foldl (\acc el . maybeBind acc \accVal . do
+    ret = cont accVal el
+    ret == unit
+      accVal
+      ret) init (toList list)
 
 # show
 ## Generic presentation
@@ -386,17 +415,6 @@ defCase bind.either either cont | isEither either -> either
   \_ . either
   \value . cont value
 
-# when/unless and caseResults
-# binding a caseResult exits with the value
-
-caseResult x = \f . f x
-
-isCaseResult v = hasType v caseResult
-
-case test res = test (caseResult res) unit
-
-defCase bind.caseResult data cont | isCaseResult data -> data id
-
 forWrapper x = \f . f x
 
 defMacro 'for' \list . ['forWrapper' list]
@@ -421,6 +439,10 @@ monadicMap isFlat cont list = foldr (\el acc . maybeBind (cont el) \elVal . mayb
 maybeBind item cont = isMonad item
   primBind item cont
   cont item
+
+check condition elseResult = condition true elseResult
+
+defCase bind.err err cont | isErr err -> err
 
 #######################
 ## running
@@ -451,44 +473,13 @@ defWrapper hamtWith oldHamtWith key value hamt -> oldHamtWith
   value
   hamt
 
-########################
-## convenience functions
-########################
-
-defMacro 'write[' \list . ['write' ['strCat' [(listify (head list))]]]
-
-addTokenGroup 'write[' ']'
-
-defMacro 's[' \list . ['strCat' [(listify (head list))]]
-
-addTokenGroup 's[' ']'
-
 #######################
 ## output tag functions
 #######################
 
 html x = \f . f x
 
-#forward 'getURI'
-#
-#save = do
-#  uri <- getURI
-#  doc <- getDocument
-#  write uri doc
-#
-#saveAs newUri = do
-#  doc <- getDocument
-#  write newUri doc
-#
-#open uri = do
-#  contents? <- read uri
-#  contents?
-#    \data. do
-#      setURI uri
-#      replaceDocument data
-#    \err . print concat['Error: ' err]
-
-defTokenPack 'util' [['->' '--' '++'] ['js[':']' 'write[':']' 's[':']'] []]
+defTokenPack 'util' [['->' '--' '++'] ['js[':']' 'write[':']' 's[':']' 'err[':']'] []]
 addStdTokenPacks ['util']
 
 #####

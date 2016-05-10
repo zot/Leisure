@@ -186,70 +186,8 @@ do =>
 
 #+BEGIN_SRC coffee :results def
 if !window.Vele
-  {LeisureEditCore, BasicEditingOptions, preserveSelection, condenseHtml, blockSource} = Leisure
-
   window.Vele =
     parse: (str)-> new PlayerParser().parse(str)
-
-  class CharacterEditorExtensions extends LeisureEditCore
-    constructor: (node, options)-> super node, options
-    replace: (e, br, text, select)-> if br.type != 'None'
-      if select then super e, br, text, select
-      else
-        pos = @getSelectedDocRange()
-        oldLen = @options.guiText().length
-        super e, br, text, select
-        pos.type = 'Caret'
-        pos.length = 0
-        pos.start += Math.max 0, @options.guiText().length - oldLen
-        @selectDocRange pos
-
-
-  class CharacterEditor extends BasicEditingOptions
-    constructor: (@node, @options)->
-      super()
-      opts = this
-      @data =
-        getFirst: -> 'character-sheet'
-        getBlock: (id)-> if id == 'character-sheet' then opts.block
-        getText: -> opts.block.text
-        getLength: -> opts.block.text.length
-        docOffsetForBlockOffset: (block, offset)->
-          if typeof block == 'object' then block.offset else offset
-        blockOffsetForDocOffset: (offset)->
-          block: 'character-sheet'
-          offset: offset
-    guiText: -> @editor.blockTextForNode(@editor.node.find('#character-sheet')) #.replace(/\t/g, ' ')
-    getFirst: -> @data.getFirst()
-    getBlock: (id)-> @data.getBlock id
-    idForNode: (node)-> $(node).closest('.characterSheetHolder').prop('id')
-    nodeForId: (id)-> if id == 'character-sheet' then @node
-    replaceText: (repl)->
-      {start, end, text} = repl
-      block = @options.parsedCodeBlock @blockId
-      oldText = @guiText()
-      newText = (oldText.substring(0, start) + text + oldText.substring end).trim().replace(/^\s*\n/gm, '')
-      @block.text = newText
-      #debugger
-      block.setSourceContent newText + '\n'
-      try
-        @editing = true
-        block.save true
-      finally
-        @editing = false
-      @rerenderAll()
-    fetchText: (id)->
-      if !@editing
-        @blockId = @options.data.getNamedBlockId id
-        @block =
-          _id: 'character-sheet'
-          text: blockSource @options.getBlock @blockId
-        @rerenderAll()
-    renderBlock: (block)->
-      character = Vele.parse block.text.replace(/\t+/g, ' ')
-      @options.withNewContext =>
-        #[Leisure.UI.renderView('character-sheet', '', character, @editor.node.find('#character-sheet')[0])]
-        [Leisure.UI.renderView('character-sheet', '', character)]
 
   sloppyNameLine = /^\s*(?:[0-9]*)\b(\S.*)\s+([0-9]+)\s+(?:🌕\s*)?(?:(\S.*)\s+[0-9]+\s*|(\S.*))$/
   ignorePat = /^[0-9]*\s+max ruche|^health|^comp|^[0-9]+ tmp/i
@@ -436,6 +374,71 @@ if !window.Vele
             @curCharacter().allocatedRuche += Number m[2]
           else @addError "Couldn't parse effect ##{i}"
       else @addError "Couldn't parse ability"
+#+END_SRC
+
+#+BEGIN_SRC coffee :results def
+if !window.Vele.sheet
+  {LeisureEditCore, BasicEditingOptions, preserveSelection, condenseHtml, blockSource} = Leisure
+
+  class CharacterEditorExtensions extends LeisureEditCore
+    constructor: (node, options)-> super node, options
+    replace: (e, br, text, select)-> if br.type != 'None'
+      if select then super e, br, text, select
+      else
+        pos = @getSelectedDocRange()
+        oldLen = @options.guiText().length
+        super e, br, text, select
+        pos.type = 'Caret'
+        pos.length = 0
+        pos.start += Math.max 0, @options.guiText().length - oldLen
+        @selectDocRange pos
+
+
+  class CharacterEditor extends BasicEditingOptions
+    constructor: (@node, @options)->
+      super()
+      opts = this
+      @data =
+        getFirst: -> 'character-sheet'
+        getBlock: (id)-> if id == 'character-sheet' then opts.block
+        getText: -> opts.block.text
+        getLength: -> opts.block.text.length
+        docOffsetForBlockOffset: (block, offset)->
+          if typeof block == 'object' then block.offset else offset
+        blockOffsetForDocOffset: (offset)->
+          block: 'character-sheet'
+          offset: offset
+    guiText: -> @editor.blockTextForNode(@editor.node.find('#character-sheet')) #.replace(/\t/g, ' ')
+    getFirst: -> @data.getFirst()
+    getBlock: (id)-> @data.getBlock id
+    idForNode: (node)-> $(node).closest('.characterSheetHolder').prop('id')
+    nodeForId: (id)-> if id == 'character-sheet' then @node
+    replaceText: (repl)->
+      {start, end, text} = repl
+      block = @options.parsedCodeBlock @blockId
+      oldText = @guiText()
+      newText = (oldText.substring(0, start) + text + oldText.substring end).trim().replace(/^\s*\n/gm, '')
+      @block.text = newText
+      #debugger
+      block.setSourceContent newText + '\n'
+      try
+        @editing = true
+        block.save true
+      finally
+        @editing = false
+      @rerenderAll()
+    fetchText: (id)->
+      if !@editing
+        @blockId = @options.data.getNamedBlockId id
+        @block =
+          _id: 'character-sheet'
+          text: blockSource @options.getBlock @blockId
+        @rerenderAll()
+    renderBlock: (block)->
+      character = Vele.parse block.text.replace(/\t+/g, ' ')
+      @options.withNewContext =>
+        #[Leisure.UI.renderView('character-sheet', '', character, @editor.node.find('#character-sheet')[0])]
+        [Leisure.UI.renderView('character-sheet', '', character)]
 
   Vele.sheet = sheet = $("<div></div>").insertAfter '[maindoc]'
   sheet.attr 'data-block', 'characterSheet'

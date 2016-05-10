@@ -1117,9 +1117,13 @@
             return [blockSource(block)];
           }
         }) : block.language === 'yaml' ? this.addPostProcessing(block, function(cont) {
-          var ref1, yaml;
+          var yaml;
           yaml = (!block.computedYaml && block.yaml) || parseYaml(blockSource(block));
-          return (ref1 = typeof cont === "function" ? cont([yaml]) : void 0) != null ? ref1 : [yaml];
+          if (cont) {
+            return cont.call(this, [yaml]);
+          } else {
+            return [yaml];
+          }
         }) : (env = this.env(block.language)) ? this.addPostProcessing(block, env.compileBlock(block)) : void 0;
       };
 

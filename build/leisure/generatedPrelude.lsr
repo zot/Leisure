@@ -29,11 +29,11 @@ bind x cont = isMonad x
 # Trampolines
 ############
 
-recur x = \f . f x
+_recur x = \f . f x
 
 # example
-# subRLen list n = isNil list n (recur (subRLen (tail list) (++n)))
-# rlen list = withRecur (subRLen list 0)
+# subRLen list n = isNil list n (_recur (subRLen (tail list) (++n)))
+# rlen list = _withRecur (subRLen list 0)
 
 ############
 # LOGIC
@@ -378,17 +378,19 @@ parensFromToks left right content = \\
   parens start end content
 stripParens p = isParens p (stripParens (parensContent p)) p
 
+withStripped p cont = cont (stripParens p)
+
 parseErr msg1 msg2 = err (strCat (cons msg1 (cons msg2 nil)))
 
 lineStart  = regexp '^\\r?\\n'
 commentPat = regexp '^\\r?\\n[ \\i]*#'
 emptyToken = regexp '^\\r?\\n[ \\i]*(#|$)'
 
-makeTokens lineStarts strings start = withRecur
+makeTokens lineStarts strings start = _withRecur
   makeMoreTokens lineStarts strings start nil
 
 makeMoreTokens lineStarts strings start result = strings
-  \h t D . recur
+  \h t D . _recur
     makeMoreTokens lineStarts t (+ start (strLen h))
       or (or (strStartsWith h ' ') (strStartsWith h '#')) (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))
         result
@@ -411,29 +413,8 @@ matchOffset str match = isNil match
   strLen str
   head (tail (tail match))
 
-#basicSplitTokens str pat prevIsDel = == str ''
-#  nil
-#  \\
-#    num = strMatch str numberPat
-#    del = strMatch str pat
-#    numOffset = matchOffset str num
-#    delOffset = matchOffset str del
-#    select = and (== numOffset 0) prevIsDel
-#      \del num first . num
-#      == delOffset 0
-#        \del num first . del
-#        \del num first . first
-#    first = select (head del) (head num) (strSubstring str 0 delOffset)
-#    .
-#    cons
-#      first
-#      basicSplitTokens
-#        strSubstring str (strLen first) 0
-#        pat
-#        select true false false
-
 basicSplitTokens str pat prevIsDel = reverse
-  withRecur (_basicSplitTokens str pat prevIsDel nil)
+  _withRecur (_basicSplitTokens str pat prevIsDel nil)
 
 _basicSplitTokens str pat prevIsDel toks = == str ''
   toks
@@ -449,7 +430,7 @@ _basicSplitTokens str pat prevIsDel toks = == str ''
         \del num first . first
     first = select (head del) (head num) (strSubstring str 0 delOffset)
     .
-    recur
+    _recur
       _basicSplitTokens
         strSubstring str (strLen first) 0
         pat
@@ -536,8 +517,6 @@ setParens p func = isParens p
   p \start end content . parens start end (func content)
   func p
 
-withStripped list cont = withParens list (cont list) \start end content . withStripped content cont
-
 position thing = isToken thing (tokenFilepos thing)
   isParens thing (parensStart thing)
     isCons thing
@@ -595,22 +574,9 @@ convertStringEscape char codes values =
       strAt values 0
       convertStringEscape char (strSubstring codes 1 0) (strSubstring values 1 0)
 
-#convertStringEscapes orig str cont =
-#  eq str ''
-#    cont str
-#    eq (strAt str 0) '\\'
-#      eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
-#        convertStringEscapes orig (strSubstring str 2 0) \rest . cont
-#          strAdd
-#            convertStringEscape (strAt str 1) backslashCodes backslashValues
-#            rest
-#      convertStringEscapes orig (strSubstring str 1 0) \rest . cont
-#        strAdd
-#          strAt str 0
-#          rest
-
-
-# CONVERT THIS TO USE RECUR
+###
+### TODO CONVERT THIS TO USE RECUR
+###
 convertStringEscapes orig str cont = \\
   res = _convertStringEscapes orig str
   .
@@ -638,25 +604,6 @@ _convertStringEscapes orig str =
           strAdd
             strAt str 0
             rest
-
-#convertStringEscapes orig str cont = \\
-#  res = withRecur (_convertStringEscapes orig str '')
-#  .
-#  hasType res parseErr
-#    res
-#    cont res
-#
-#_convertStringEscapes orig str result =
-#  eq str '' result
-#    eq (strAt str 0) '\\'
-#      eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
-#        recur
-#          _convertStringEscapes orig (strSubstring str 2 0)
-#            strAdd result
-#              convertStringEscape (strAt str 1) backslashCodes backslashValues
-#      recur
-#        _convertStringEscapes orig (strSubstring str 1 0)
-#          strAdd result (strAt str 0)
 
 parseString str cont =
   neq (strAt str 0) (strAt str -1) (parseErr "Badly terminated string: " str)
@@ -893,7 +840,7 @@ countedLinesForFile name text = filter
 #        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
 
 countedLines filename lineOffset str = reverse
-  withRecur
+  _withRecur
     _countedLines filename lineOffset str nil
 
 _countedLines filename lineOffset str lines = \\
@@ -907,7 +854,7 @@ _countedLines filename lineOffset str lines = \\
     lines
     isNil m
       cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) lines
-      recur
+      _recur
         _countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
           cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk) lines
 
@@ -1127,41 +1074,6 @@ runLine offset names line = primBind (newParseLine offset names line)
           left (errMsg result)
           right result
 
-#countedRunLine file names countedLine = \\
-#  parsed = countedParseLine names countedLine
-#  .
-#  primBind parsed
-#  \ast . \\
-#    wrapped = astFileWrap file ast
-#    .
-#    \\
-#      value = runAst (tail countedLine) wrapped
-#      .
-#      not (== (getType value) 'monad')
-#        resultOfRun wrapped value
-#        primBind (runAst (tail countedLine) wrapped)
-#          \result . resultOfRun wrapped result
-
-#countedRunLine file names countedLine = \\
-#  primBind (countedParseLine names countedLine)
-#    \ast . \\
-#      wrapped = astFileWrap file ast
-#      .
-#      primBind (runAst (tail countedLine) wrapped)
-#        \result . resultOfRun wrapped result
-
-#countedRunLine file names countedLine = primBind (countedParseLine names countedLine)
-#  \ast . \\
-#    wrapped = astFileWrap file ast
-#    value = runAst (tail countedLine) wrapped
-#    .
-#    not (== (getType value) 'monad')
-#      resultOfRun wrapped value
-#      primBind (runAst (tail countedLine) wrapped)
-#        #\result . primBind (resultOfRun wrapped result)
-#        #  \r . d "ran line: " (tail countedLine) r
-#        \result . resultOfRun wrapped result
-
 countedRunLine file names countedLine = primBind (countedParseLine names countedLine)
   \ast . \\
     wrapped = astFileWrap file ast
@@ -1188,13 +1100,6 @@ runLines names lines = lines
     \line . primBind (runLines names t)
       \rest . cons line rest
   nil
-
-# use doall for this?
-#countedRunLines file names countedLines = countedLines
-#  \h t D . primBind (countedRunLine file names h)
-#    \line . primBind (countedRunLines file names t)
-#      \rest . cons line rest
-#  nil
 
 countedRunLines file names countedLines result = countedLines
   \h t D . primBind (countedRunLine file names h)
@@ -1349,6 +1254,9 @@ setNameSpace 'core'
 # Utilities
 #################
 
+defMacro 'withRecur' \list . cons '_withRecur' (cons list nil)
+defMacro 'recur' \list . cons '_recur' (cons list nil)
+
 ## return true if any elements of l satisfy f, which takes exactly one arg
 ## eg. any (eq 0) [1 2 0] gives true: true
 any f l = find f l (\el . true) false
@@ -1357,6 +1265,30 @@ any f l = find f l (\el . true) false
 ## eg. all (eq 0) [0 0 0] gives true: true
 ## caveat!  return true for nil lists
 all f l = not (any (compose not f) l)
+
+takeUpto func list = \\
+  ret = subtakeUpto func list
+  .
+  == ret false
+    nil
+    ret
+
+subtakeUpto func list = \\
+  ret = subtakeUpto func (tail list)
+  .
+  isNil list
+    false
+    func (head list)
+      nil
+      == ret false
+        false
+        cons (head list) ret
+
+dropAfter func list = isNil list
+  nil
+  func (head list)
+    tail list
+    dropAfter func (tail list)
 
 # change this to return a list of results
 doall x = isNil x
@@ -1582,58 +1514,59 @@ useTokenPack 'infix'
 ## DO
 ################
 
-defMacro 'do' \list . withRecur
-  handleDo list false nil id
-
-defMacro 'doFold' \list . \\
-  first = stripParens (head (stripParens list))
-  foldVar = at first 0
-  eq = at first 1
-  init = drop 2 first
-  rest = tail (stripParens list)
-  code = withRecur
-    handleDo rest true foldVar id
-  .
-  (isCons (stripParens list)) && (length (stripParens list)) > 0 && (isCons first) && (length first) > 2 && (isTokenString eq '=')
-    ifNotErr code \x . log x ['\\\\' (head (stripParens list)) | x]
-    parseErr "Bad initializer in doFold: " list
+defMacro 'do' \list . withRecur handleDo list false nil id
 
 handleDo list inLet foldVar cont = list
   \h t D . isNil t
     cont (inLet ['.' h] [h])
     \\
-      next = doClause (stripParens h) h nil inLet foldVar triple
+      next = doClause (stripParens h) h nil inLet foldVar
       newInLet = triple1 next
       newFoldVar = triple2 next
       chain = triple3 next
       .
-      recur
-        handleDo t newInLet foldVar \rest . cont (chain rest)
+      recur handleDo t newInLet newFoldVar \rest . cont (chain rest)
   cont nil
 
-doClause steppingClause clause prefix inLet foldVar cont = \\
-  makeBind var value = cont false foldVar \rest . inLet (cons '.') id
-    isNil foldVar
-      ['bind' value ['\\' var '.' | rest]]
-      ['bind2' foldVar value ['\\' foldVar var '.' | rest]]
+doClause steppingClause clause prefix inLet foldVar = \\
+  makeBind var value = triple false foldVar \rest . inLet (cons '.') id
+    ['bind' value ['\\' var '.' | rest]]
   h = head steppingClause
   t = tail steppingClause
   .
   isCons steppingClause
     isTokenString h '='
-      inLet
-        cont true foldVar \rest . [clause | rest]
-        cont true foldVar \rest . ['\\\\' clause | rest]
+      triple true foldVar \rest . inLet
+        [clause | rest]
+        ['\\\\' clause | rest]
       isTokenString h '<-'
         isNil t
-          parseErr "No monad in do-clause: " clause
+          parseErr "No value in do-clause: " clause
           prefix
             \ph pt D . isNil pt
               makeBind (isNil prefix '_' (head prefix)) t
               parseErr "More than one variable in do-clause: " clause
             makeBind '_' t
-        doClause t clause [h | prefix] inLet foldVar cont
+        isTokenString h '<-|'
+          parseBind2 clause (isNil prefix '_' (head prefix)) t inLet foldVar
+          doClause t clause [h | prefix] inLet foldVar
     makeBind '_' clause
+
+parseBind2 clause var list inLet foldVar = \\
+  acc = takeUpto (\t . isTokenString t '|') list
+  value = dropAfter (\t . isTokenString t '|') list
+  accVar = isNil acc
+    foldVar
+    head acc
+  accEq = at acc 1
+  accInit = isNil acc
+    foldVar
+    tail (tail acc)
+  .
+  not (isCons value) && ((isNil acc) || ((length acc) > 2 && (isTokenString accEq '=')))
+    err "Fold clause expects VAR <-| ACC_VAR = ACC_VALUE | VALUE or VAR <-| | VALUE"
+    triple false accVar \rest . inLet (cons '.') id
+      ['bind2' accInit value ['\\' accVar var '.' | rest]]
 
 checkFoldFormat l clause = partition [] (flip isTokenString '=') l \var eq rest .
   isNil eq

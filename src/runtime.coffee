@@ -384,7 +384,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
   (global ? window).L_runMonads = (array, env)->
     new Promise (resolve, reject)->
       runMonad2 array.slice().reverse().reduce((result, element)->
-        bind element, lz (x)-> rz result), env, resolve
+        bind element, lz (x)-> rz result), env ? root.defaultEnv, resolve
 
   ensureLeisureClass 'unit'
 
@@ -933,9 +933,9 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
 # Trampolines
 #######################
 
-  define 'withRecur', (value)->
+  define '_withRecur', (value)->
     ret = rz value
-    while getType(ret) == 'recur'
+    while getType(ret) == '_recur'
       ret = ret lz _identity
     ret
 

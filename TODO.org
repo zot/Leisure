@@ -1,3 +1,5 @@
+* change :control blocks to use :var instead of @initializeView
+* Use Object.create() instead of __proto__
 * P2P should transmit document name to slaves if it's a public URL
 * TODO Undo: for OT, register with UndoManager, for local, use replacements
 * Finish the big arity substitution for primitives and codegen

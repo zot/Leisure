@@ -628,7 +628,7 @@ that must be done regardless of the source of changes
             else [blockSource block]
           else if block.language == 'yaml' then @addPostProcessing block, (cont)->
             yaml = (!block.computedYaml && block.yaml) || parseYaml blockSource block
-            cont?([yaml]) ? [yaml]
+            if cont then cont.call this, [yaml] else [yaml]
           else if env = @env(block.language) then @addPostProcessing block, env.compileBlock block
         parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, block
         addPostProcessing: (block, func)->
