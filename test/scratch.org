@@ -1,23 +1,31 @@
 * Scratch
 #+BEGIN_SRC leisure :results dynamic
 do
-  x <-| i = 0 | for [1 2 3]
+  x <-| i = 0 | [1 2 3]
   i + x
 #+END_SRC
+#+RESULTS:
+: 6
 
 #+BEGIN_SRC leisure :results dynamic
 do
   x <-| i = 0 | [1 2 3]
-  y <-| j = i | [3 4 5]
-  j + x + y
+  y <-|| [3 4 5]
+  #y == 4
+  i + x + y
 #+END_SRC
+#+RESULTS:
+: 54
 
 #+BEGIN_SRC leisure :results dynamic
 do
-  x <- [1 2 3]
-  y <- [4 5 6]
+  x <- forFlat [1 2 3]
+  y <- for [4 5 6]
+  #(x + y) % 2 == 0
   [x y]
 #+END_SRC
+#+RESULTS:
+: [[1 4] [1 5] [1 6] [2 4] [2 5] [2 6] [3 4] [3 5] [3 6]]
 
 #+BEGIN_SRC leisure :results dynamic
 do
