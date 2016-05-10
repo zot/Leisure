@@ -95,7 +95,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       keySplitPat = new RegExp ' +'
       postCallPat = /^([^(]*)\((.*)\)/
 
-      CodeContext::executeBlock = (data, block, props, cont)-> @executeText blockSource(block), props, cont
+      CodeContext::executeBlock = (block, props, cont)-> @executeText blockSource(block), props, cont
 
       blockOrg = (data, blockOrText)-> docBlockOrg (if typeof blockOrText == 'string' then data.getBlock blockOrText) ? blockOrText
 
@@ -306,7 +306,7 @@ that must be done regardless of the source of changes
           for id, block of changes.sets
             @checkImports block
           for id, block of @removesAndSets changes
-            @checkChange @getBlock(id), block ? null
+            if block then @checkChange @getBlock(id), block ? null
           super changes
         removesAndSets: ({sets, removes})->
           blocks = {}
@@ -1123,7 +1123,7 @@ may be called more than once.  changeData() returns a promise.
           block = @getBlock block
           offset = @data.offsetForBlock block
           text = if typeof textOrBlock == 'object' then textOrBlock.text else textOrBlock
-          @replaceText {start: offset, end: offset + text.length, text, source}
+          @replaceText {start: offset, end: offset + block.text.length, text, source}
         update: (block)->
           oldBlock = @getBlock block._id
           if !_.isEqual block, oldBlock
