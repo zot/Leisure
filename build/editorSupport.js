@@ -31,7 +31,7 @@
     bubbleLeftOffset = 0;
     keySplitPat = new RegExp(' +');
     postCallPat = /^([^(]*)\((.*)\)/;
-    CodeContext.prototype.executeBlock = function(data, block, props, cont) {
+    CodeContext.prototype.executeBlock = function(block, props, cont) {
       return this.executeText(blockSource(block), props, cont);
     };
     blockOrg = function(data, blockOrText) {
@@ -441,7 +441,9 @@
         ref1 = this.removesAndSets(changes);
         for (id in ref1) {
           block = ref1[id];
-          this.checkChange(this.getBlock(id), block != null ? block : null);
+          if (block) {
+            this.checkChange(this.getBlock(id), block != null ? block : null);
+          }
         }
         return OrgData.__super__.makeChange.call(this, changes);
       };
@@ -2120,7 +2122,7 @@
         text = typeof textOrBlock === 'object' ? textOrBlock.text : textOrBlock;
         return this.replaceText({
           start: offset,
-          end: offset + text.length,
+          end: offset + block.text.length,
           text: text,
           source: source
         });
