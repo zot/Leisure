@@ -272,7 +272,7 @@ This is Fred's controller
 @initializeView = (view, data)->
   $(view).find('[name=len]').html data.block.name.length
 #+END_SRC
-* You Can Haz Media Because Web
+* You Can Haz Media.  Because Web.
 Here is a nice video by John Kitchin about Orgmode.
 
 #+BEGIN_HTML
