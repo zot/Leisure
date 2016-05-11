@@ -204,7 +204,7 @@
                   env.write = (str)-> console.log str
                   env.errorAt = (offset, msg)-> console.log msg
                   env.executeText blockSource(block), Nil, (->)
-              controller?.initializeView viewNode[0], vars
+              controller?.initializeView? viewNode[0], vars
         Handlebars.compile(html)(vars, data: UI.context)
 
       initializePendingViews = ->

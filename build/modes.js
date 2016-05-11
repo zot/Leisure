@@ -211,7 +211,7 @@
                   env.executeText(blockSource(block), Nil, (function() {}));
                 }
               }
-              return controller != null ? controller.initializeView(viewNode[0], vars) : void 0;
+              return controller != null ? typeof controller.initializeView === "function" ? controller.initializeView(viewNode[0], vars) : void 0 : void 0;
             }
           };
         })(this));
