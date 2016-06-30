@@ -397,7 +397,9 @@ makeMoreTokens lineStarts strings start result = strings
         cons (makeTokenAt lineStarts h start) result
   reverse result
 
-makeTokenAt lineStarts txt offset = token txt (filePosFor lineStarts offset)
+makeTokenAt lineStarts txt offset = isNil (strMatch txt zeroNum)
+  token txt (filePosFor lineStarts offset)
+  token (strReplace txt zeroPrefix '') (filePosFor lineStarts offset)
 
 showToken tok = log (strCat (cons 'token: ' (cons (tokenString tok) (cons ', ' (cons (showPos (tokenPos tok)) nil))))) tok
 
@@ -408,6 +410,9 @@ showPos pos = isFilepos pos
 splitTokens str pat = filter (\s . not (eq s '')) (basicSplitTokens str pat true)
 
 numberPat = regexp '-?([0-9]+(\\.[0-9]+)?|\\.[0-9]+)'
+
+zeroNum = regexp '^0+[0-9]'
+zeroPrefix = regexp '^0+'
 
 matchOffset str match = isNil match
   strLen str

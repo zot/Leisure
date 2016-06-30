@@ -2523,7 +2523,8 @@
       validateBatch: validateBatch,
       getEventChar: getEventChar,
       useEvent: useEvent,
-      getSelection: getSelection
+      getSelection: getSelection,
+      modifyingKey: modifyingKey
     };
   });
 

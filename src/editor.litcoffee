@@ -1700,4 +1700,5 @@ Exports
         getEventChar
         useEvent
         getSelection
+        modifyingKey
       }

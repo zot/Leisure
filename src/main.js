@@ -17,5 +17,9 @@ require(['./config', 'lib/bluebird.min'], function(bluebird) {
             });
         });
     };
-    require(['./local']);
+    return new Promise(function(succ, fail) {
+      require(['./local'], function() {
+        succ();
+      });
+    });
 });
