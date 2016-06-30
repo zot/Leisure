@@ -236,6 +236,16 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
   define '_regexpFlags', (str, flags)-> if isPartial arguments then partialCall arguments else
     new RegExp rz(str), rz(flags)
   define '_jsonParse', (str, failCont, successCont)-> if isPartial arguments then partialCall arguments else
+    #str = rz str
+    #try
+    #  p = JSON.parse str
+    #catch err
+    #  if str.match /^0+[0-9]/
+    #    try
+    #      p = JSON.parse str.replace /^0+/, ''
+    #    catch err
+    #  if p then return rz(failCont) lz err
+    #rz(successCont) lz p
     try
       p = JSON.parse rz str
       rz(successCont) lz p

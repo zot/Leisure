@@ -47,6 +47,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         copyBlock
         preserveSelection
         BasicEditingOptions
+        modifyingKey
       } = Editor
       {
         changeAdvice
@@ -1458,6 +1459,7 @@ Exports
         DataStoreEditingOptions
         Editor
         CodeContext
+        modifyingKey
       }
 
       {

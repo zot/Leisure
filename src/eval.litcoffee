@@ -108,6 +108,11 @@ Evaulation support for Leisure
         env.presentValue = (v)-> v
         env.executeText str, Nil, cont
 
+      runLeisureMonad = (value, cont)->
+        env = leisureEnv(__proto__: defaultEnv, opts: defaultEnv.opts)
+        env.presentValue = (v)-> v
+        runMonad2 value, env, cont
+
       leisureEnv = (env)->
         env.presentValue = (v)-> html rz(L_showHtml) lz v
         env.executeText = (text, props, cont)-> setLounge this, ->
@@ -407,6 +412,7 @@ Evaulation support for Leisure
 
       mergeExports {
         evalLeisure
+        runLeisureMonad
         setLounge
       }
 
@@ -422,6 +428,7 @@ Evaulation support for Leisure
         escapeString
         unescapeString
         evalLeisure
+        runLeisureMonad
         setLounge
         hasCodeAttribute
         isYamlResult

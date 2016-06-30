@@ -6,7 +6,7 @@
   define.amd = true;
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg) {
-    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues, yamlEnv;
+    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = AcornLoose;
@@ -115,6 +115,17 @@
         return v;
       };
       return env.executeText(str, Nil, cont);
+    };
+    runLeisureMonad = function(value, cont) {
+      var env;
+      env = leisureEnv({
+        __proto__: defaultEnv,
+        opts: defaultEnv.opts
+      });
+      env.presentValue = function(v) {
+        return v;
+      };
+      return runMonad2(value, env, cont);
     };
     leisureEnv = function(env) {
       env.presentValue = function(v) {
@@ -696,6 +707,7 @@
     };
     mergeExports({
       evalLeisure: evalLeisure,
+      runLeisureMonad: runLeisureMonad,
       setLounge: setLounge
     });
     return {
@@ -710,6 +722,7 @@
       escapeString: escapeString,
       unescapeString: unescapeString,
       evalLeisure: evalLeisure,
+      runLeisureMonad: runLeisureMonad,
       setLounge: setLounge,
       hasCodeAttribute: hasCodeAttribute,
       isYamlResult: isYamlResult
