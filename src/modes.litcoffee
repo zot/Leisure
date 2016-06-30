@@ -794,6 +794,36 @@
                   for r in cs.editor.options.replaceTextEffects(repl.start, repl.end, repl.text, true).repls
                     batch.push r
                   batch), (-> cs.editor.options.awaitingGuard = false), (-> cs.editor.options.awaitingGuard = false)
+          if pos = getSliderPosition()
+            {block, offset, numberCount, numberOffset} = pos
+            doSlideValue block, offset, numberCount, numberOffset, currentSlider.widget.slider('value') - String m[0]
+
+      doSlideValue = (block, offset, numberCount, numberOffset, delta)->
+        cs = currentSlider
+        cs.editor.options.collaborativeCode.doSlideValue block, offset, numberCount, numberOffset, delta
+
+
+
+      getSliderPosition = ->
+        cs = currentSlider
+        start = cs.data.getMarkLocation '__slider__'
+        opts = cs.editor.options
+        {block, offset} = cs.data.blockOffsetForDocOffset start
+        node = opts.nodeForId block
+        cursor = opts.domCursor(node[0], 0).mutable().forwardChars(offset, true).firstText()
+        sliderNode = $(cursor.node).closest '.token.number'
+        if !sliderNode.length
+          cursor.backwardChar()
+          sliderNode = $(cursor.node).closest '.token.number'
+          if !sliderNode.length
+            console.error "Could not find slider node for block: #{block}, offset: #{offset - 1}, '#{cs.data.blocks[block].text[offset]}', node:", cursor.node
+            return
+        nth = 0
+        numbers = node.find('.token.number')
+        for number in numbers
+          if number == sliderNode[0]
+            return {block, offset, numberCount: numbers.length, numberOffset: nth}
+          nth++
 
       mayHideValueSlider = ->
         if currentSlider && !currentSlider?.sliding
@@ -832,7 +862,10 @@
         new LeisureEditCore $(div), new OrgEditing data
 
       fancyEditDiv = (div, data)->
-        new LeisureEditCore $(div), new OrgEditing(data).setMode fancyMode
+        options = new OrgEditing(data).setMode fancyMode
+        options.registerCollaborativeCode 'doSlideValue', (slaveId, block, offset, numberCount, numberOffset, delta)->
+          console.log "Slider block: #{block}, offset: #{offset}, numberCount: #{numberCount}, numberOffset: #{numberOffset}, change: #{delta}"
+        new LeisureEditCore $(div), options
 
       prismAliases =
         html: 'markup'

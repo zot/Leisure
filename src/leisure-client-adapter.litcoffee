@@ -161,6 +161,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           changeAdvice @editor.options, false,
             changesFor: p2p: true
             batchReplace: p2p: true
+            doCollaboratively: p2p: true
         send: (type, msg)->
           msg.type = type
           #diag "SEND #{JSON.stringify msg}"
@@ -205,6 +206,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             @serverCallbacks.set_name peerId, name
             @newConnectionFunc _.size @editorClient.clients
         createSession: (@host, connectedFunc, @newConnectionFunc)->
+          peer = this
           @type = 'Master'
           @newConnectionFunc = @newConnectionFunc ? ->
           @handler =
@@ -221,6 +223,12 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
               @editor.options.data.getFile filename, ((content)=>
                 @send 'fileContent', {slaveId, id, content: btoa(content)}), ((failure)->
                 @send 'fileError', {slaveId, id, failure})
+            customMessage: ({name, args, slaveId, msgId})->
+              try
+                @send 'customResponse', slaveId, msgId, (peer.editor.options._runCollaborativeCode name, slaveId, args)
+              catch err
+                console.error "Error with custom message name: #{name}, slaveId: #{slaveId}, msgId: #{msgId}\n#{err.stack}"
+                @send 'customError', {slaveId, msgId, err: err.stack}
           @connect "http://#{@host}/Leisure/create", =>
             @send 'initDoc', doc: @data.getText(), name: @name
             @docSnap = @data.getText()
@@ -233,6 +241,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @imageSizes = {}
           @imgCount = 0
           fileRequestCount = 0
+          customMessageCount = 0
           pendingRequests = new Map()
           peer = this
           getFile = (filename, cont, fail)->
@@ -253,6 +262,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 if !img.id then img.id = "p2p-image-#{peer.imgCount++}"
                 img.src = ''
                 peer.fetchImage img.id, src
+            doCollaboratively: p2p: (parent)-> (name, args...)-> peer.sendCustom name, args
           @fetchImage = (imgId, src)->
             if img = $("##{imgId}")[0]
               if data = @localResources[src]
@@ -270,6 +280,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
               img.removeAttribute 'style'
               @imageSizes[src] = " style='height: #{img.height}px; width: #{img.width}px'"
             ), 0
+          @pendingCustomMessges = {}
           @handler =
             __proto__: Peer::handler
             connected: (msg)->
@@ -284,6 +295,19 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
               [cont, fail] = pendingRequests.get(id)
               pendingRequests = pendingRequests.remove(id)
               fail failure
+            customReesponse: ({id, result})->
+              [success] = @pendingCustomMessges[id]
+              delete @pendingCustomMessges[id]
+              success result
+            customError: ({msgId, err})->
+              [..., failure] = @pendingCustomMessges[msgId]
+              delete @pendingCustomMessges[msgId]
+              failure err
+          @sendCustom = (name, args)->
+            new Promise (succeed, fail)->
+              id = "custom-#{customMessageCount++}"
+              @pendingCustomMessages[id] = [succeed, fail]
+              @send 'customMessage', {name, data, id}
           @connect @url, =>
             @send 'intro', name: @name
             connected?()

@@ -1433,6 +1433,8 @@
         this.toggledSlides = {};
         this.dataChanges = null;
         this.pendingDataChanges = null;
+        this.collaborativeCode = {};
+        this.collaborativeBase = {};
       }
 
       OrgEditing.prototype.runBlock = function(block, replace) {
@@ -2322,6 +2324,39 @@
 
       OrgEditing.prototype.replaceResult = function(block, str) {
         return replaceResult(this, this.data, block, str);
+      };
+
+      OrgEditing.prototype.registerCollaborativeCode = function(name, func) {
+        this.collaborativeCode[name] = (function(_this) {
+          return function() {
+            var args;
+            args = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
+            return _this.doCollaboratively(name, args);
+          };
+        })(this);
+        return this.collaborativeBase[name] = func;
+      };
+
+      OrgEditing.prototype._runCollaborativeCode = function(name, slaveId, args) {
+        return new Promise((function(_this) {
+          return function(succeed, fail) {
+            var code, err, error1;
+            try {
+              if (code = _this.collaborativeBase[name]) {
+                return succeed(code.apply(null, [slaveId].concat(slice1.call(args))));
+              } else {
+                throw new Error("No collaborative code named '" + name + "'");
+              }
+            } catch (error1) {
+              err = error1;
+              return fail(err.stack);
+            }
+          };
+        })(this));
+      };
+
+      OrgEditing.prototype.doCollaboratively = function(name, args) {
+        return this._runCollaborativeCode(name, null, args);
       };
 
       return OrgEditing;

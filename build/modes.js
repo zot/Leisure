@@ -3,7 +3,7 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './lib/prism-leisure'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
@@ -1057,7 +1057,7 @@
       }), 1);
     };
     slideValue = function() {
-      var block, blockOff, cs, m, newText, start;
+      var block, blockOff, cs, m, newText, numberCount, numberOffset, offset, pos, start;
       if ((cs = currentSlider) && !cs.editor.options.awaitingGuard) {
         start = cs.data.getMarkLocation('__slider__');
         blockOff = cs.data.blockOffsetForDocOffset(start);
@@ -1066,7 +1066,7 @@
         newText = String(currentSlider.widget.slider('value'));
         if (m[0] !== newText) {
           if (block.local) {
-            return cs.editor.options.replaceText({
+            cs.editor.options.replaceText({
               start: start,
               end: start + m[0].length,
               text: newText,
@@ -1074,7 +1074,7 @@
             });
           } else {
             cs.editor.options.awaitingGuard = true;
-            return cs.editor.options.batchReplace((function() {
+            cs.editor.options.batchReplace((function() {
               var batch, blockStart, j, len, r, ref, repl;
               start = cs.data.getMarkLocation('__slider__');
               blockOff = cs.data.blockOffsetForDocOffset(start);
@@ -1114,6 +1114,47 @@
             }));
           }
         }
+        if (pos = getSliderPosition()) {
+          block = pos.block, offset = pos.offset, numberCount = pos.numberCount, numberOffset = pos.numberOffset;
+          return doSlideValue(block, offset, numberCount, numberOffset, currentSlider.widget.slider('value') - String(m[0]));
+        }
+      }
+    };
+    doSlideValue = function(block, offset, numberCount, numberOffset, delta) {
+      var cs;
+      cs = currentSlider;
+      return cs.editor.options.collaborativeCode.doSlideValue(block, offset, numberCount, numberOffset, delta);
+    };
+    getSliderPosition = function() {
+      var block, cs, cursor, j, len, node, nth, number, numbers, offset, opts, ref, sliderNode, start;
+      cs = currentSlider;
+      start = cs.data.getMarkLocation('__slider__');
+      opts = cs.editor.options;
+      ref = cs.data.blockOffsetForDocOffset(start), block = ref.block, offset = ref.offset;
+      node = opts.nodeForId(block);
+      cursor = opts.domCursor(node[0], 0).mutable().forwardChars(offset, true).firstText();
+      sliderNode = $(cursor.node).closest('.token.number');
+      if (!sliderNode.length) {
+        cursor.backwardChar();
+        sliderNode = $(cursor.node).closest('.token.number');
+        if (!sliderNode.length) {
+          console.error("Could not find slider node for block: " + block + ", offset: " + (offset - 1) + ", '" + cs.data.blocks[block].text[offset] + "', node:", cursor.node);
+          return;
+        }
+      }
+      nth = 0;
+      numbers = node.find('.token.number');
+      for (j = 0, len = numbers.length; j < len; j++) {
+        number = numbers[j];
+        if (number === sliderNode[0]) {
+          return {
+            block: block,
+            offset: offset,
+            numberCount: numbers.length,
+            numberOffset: nth
+          };
+        }
+        nth++;
       }
     };
     mayHideValueSlider = function() {
@@ -1168,7 +1209,12 @@
       return new LeisureEditCore($(div), new OrgEditing(data));
     };
     fancyEditDiv = function(div, data) {
-      return new LeisureEditCore($(div), new OrgEditing(data).setMode(fancyMode));
+      var options;
+      options = new OrgEditing(data).setMode(fancyMode);
+      options.registerCollaborativeCode('doSlideValue', function(slaveId, block, offset, numberCount, numberOffset, delta) {
+        return console.log("Slider block: " + block + ", offset: " + offset + ", numberCount: " + numberCount + ", numberOffset: " + numberOffset + ", change: " + delta);
+      });
+      return new LeisureEditCore($(div), options);
     };
     prismAliases = {
       html: 'markup',

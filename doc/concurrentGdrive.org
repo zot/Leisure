@@ -1,13 +1,15 @@
 #+TITLE: Concurrent Operations With the Google Realtime API
+* NOTE: our OT server potentially provides better security and protection from DoS attacks
 * The first collaborator is the "tie-breaker"
 It processes requests from collaborators
 * Requests (JSON objects)
 ** cmd: '_reserve', resourceName: name, duration: "long" or "short", resources: [block/headline names]
 ** cmd: '_release', resourceName: name
+** cmd: '_addData', id: uniqueId, data: data, reserved: trueOrFalse
 ** cmd: '_increment', block: blockName, counter: counterName -- response contains resulting value
 ** cmd: '_set', block: blockName, counter: counterName, oldValue: v  -- response contains success or failure
 ** cmd: '_slideValue', block: blockName, line: lineNum, index: numberIndex, delta: deltaAmount
-** cmd: OTHER (no underscore), ... (custom command)
+** cmd: OTHER (no underscore), data: jsonData, response: responseDesired
 * Reservation requests (shared blocks and headlines)
 Shared blocks and headlines have the "shared" property set to true. The editor
 will refuse to edit these sections; they can only be changed programmatically
@@ -16,13 +18,20 @@ will refuse to edit these sections; they can only be changed programmatically
 *** short requests are either granted or rejected immediately
 * Releasing
 ** A collaborator releases a resource it owns by setting the "owner" field to null
+* Adding data
+  ***
 * Increment requests (shared counters)
 Collaborators may request incrementing a counter in a shared data block
 * Set requests (setting shared values)
 Collaborators
 * Value sliding
-** Send increment command to change the value
+** Send _slideValue command to change the value
 ** Use the Nth numeric value on a line for increments
+* Custom commands
+declareCollaborativeCommand(name, func(peerEnv)) declares an colaborative command
+that will run on the tie breaker and get peerEnv as its argument.
+
+When a peer invokes a custom command, it specifies whether it wants a response
 * The Requests List
 ** A CollaboartiveList of requests
 ** Collaborators add requests to the list

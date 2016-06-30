@@ -189,6 +189,9 @@
           },
           batchReplace: {
             p2p: true
+          },
+          doCollaboratively: {
+            p2p: true
           }
         });
       };
@@ -273,9 +276,10 @@
       };
 
       Peer.prototype.createSession = function(host, connectedFunc, newConnectionFunc) {
-        var ref1;
+        var peer, ref1;
         this.host = host;
         this.newConnectionFunc = newConnectionFunc;
+        peer = this;
         this.type = 'Master';
         this.newConnectionFunc = (ref1 = this.newConnectionFunc) != null ? ref1 : function() {};
         this.handler = {
@@ -311,6 +315,21 @@
                 failure: failure
               });
             }));
+          },
+          customMessage: function(arg) {
+            var args, err, error1, msgId, name, slaveId;
+            name = arg.name, args = arg.args, slaveId = arg.slaveId, msgId = arg.msgId;
+            try {
+              return this.send('customResponse', slaveId, msgId, peer.editor.options._runCollaborativeCode(name, slaveId, args));
+            } catch (error1) {
+              err = error1;
+              console.error("Error with custom message name: " + name + ", slaveId: " + slaveId + ", msgId: " + msgId + "\n" + err.stack);
+              return this.send('customError', {
+                slaveId: slaveId,
+                msgId: msgId,
+                err: err.stack
+              });
+            }
           }
         };
         this.connect("http://" + this.host + "/Leisure/create", (function(_this) {
@@ -327,7 +346,7 @@
       };
 
       Peer.prototype.connectToSession = function(url, connected, newConnectionFunc) {
-        var fileRequestCount, getFile, peer, pendingRequests, ref1;
+        var customMessageCount, fileRequestCount, getFile, peer, pendingRequests, ref1;
         this.url = url;
         this.newConnectionFunc = newConnectionFunc;
         this.type = 'Slave';
@@ -336,6 +355,7 @@
         this.imageSizes = {};
         this.imgCount = 0;
         fileRequestCount = 0;
+        customMessageCount = 0;
         pendingRequests = new Map();
         peer = this;
         getFile = function(filename, cont, fail) {
@@ -374,6 +394,15 @@
                   img.src = '';
                   return peer.fetchImage(img.id, src);
                 }
+              };
+            }
+          },
+          doCollaboratively: {
+            p2p: function(parent) {
+              return function() {
+                var args, name;
+                name = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
+                return peer.sendCustom(name, args);
               };
             }
           }
@@ -421,6 +450,7 @@
             };
           })(this)), 0);
         };
+        this.pendingCustomMessges = {};
         this.handler = {
           __proto__: Peer.prototype.handler,
           connected: function(msg) {
@@ -441,7 +471,33 @@
             ref2 = pendingRequests.get(id), cont = ref2[0], fail = ref2[1];
             pendingRequests = pendingRequests.remove(id);
             return fail(failure);
+          },
+          customReesponse: function(arg) {
+            var id, result, success;
+            id = arg.id, result = arg.result;
+            success = this.pendingCustomMessges[id][0];
+            delete this.pendingCustomMessges[id];
+            return success(result);
+          },
+          customError: function(arg) {
+            var err, failure, msgId, ref2;
+            msgId = arg.msgId, err = arg.err;
+            ref2 = this.pendingCustomMessges[msgId], failure = ref2[ref2.length - 1];
+            delete this.pendingCustomMessges[msgId];
+            return failure(err);
           }
+        };
+        this.sendCustom = function(name, args) {
+          return new Promise(function(succeed, fail) {
+            var id;
+            id = "custom-" + (customMessageCount++);
+            this.pendingCustomMessages[id] = [succeed, fail];
+            return this.send('customMessage', {
+              name: name,
+              data: data,
+              id: id
+            });
+          });
         };
         return this.connect(this.url, (function(_this) {
           return function() {

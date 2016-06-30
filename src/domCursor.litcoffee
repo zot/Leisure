@@ -227,7 +227,7 @@ indicates to find the first text node behind the cursor).
 
         firstText: (backwards)->
           n = this
-          while !n.isEmpty() && n.type != 'text'
+          while !n.isEmpty() && (n.type != 'text' || (!backwards && n.pos == n.node.data.length))
             n = (if backwards then n.prev() else n.next())
           n
 
