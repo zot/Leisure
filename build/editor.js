@@ -2,10 +2,11 @@
 (function() {
   var slice = [].slice,
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    hasProp = {}.hasOwnProperty;
+    hasProp = {}.hasOwnProperty,
+    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'lib/bluebird.min'], function(jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, selectRange, shiftKey, shiftUps, specialKeys, treeToArray, useEvent, validateBatch, wrapDiag;
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, sameCharacter, selectRange, shiftKey, shiftUps, spaces, specialKeys, treeToArray, useEvent, validateBatch, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
@@ -1224,7 +1225,11 @@
       };
 
       BasicEditingOptions.prototype.rerenderAll = function() {
-        return this.editor.setHtml(this.editor.node[0], this.renderBlocks());
+        var result;
+        this.editor.setHtml(this.editor.node[0], this.renderBlocks());
+        if (result = this.validatePositions()) {
+          return console.error("DISCREPENCY AT POSITION " + result.block._id + ", " + result.offset + ",");
+        }
       };
 
       BasicEditingOptions.prototype.blockCount = function() {
@@ -1302,9 +1307,34 @@
         return (0 <= offset && offset <= this.getLength());
       };
 
+      BasicEditingOptions.prototype.validatePositions = function() {
+        var block, cursor, j, node, offset, ref;
+        block = this.data.blocks[this.data.getFirst()];
+        while (block) {
+          if (node = this.nodeForId(block._id)[0]) {
+            cursor = this.domCursor(node, 0).mutable();
+            for (offset = j = 0, ref = block.text.length; 0 <= ref ? j < ref : j > ref; offset = 0 <= ref ? ++j : --j) {
+              cursor = cursor.firstText();
+              if (cursor.isEmpty() || !sameCharacter(cursor.character(), block.text[offset])) {
+                return {
+                  block: block,
+                  offset: offset
+                };
+              }
+              cursor.forwardChar();
+            }
+          }
+          block = this.data.blocks[block.next];
+        }
+      };
+
       return BasicEditingOptions;
 
     })(Observable);
+    spaces = String.fromCharCode(32, 160);
+    sameCharacter = function(c1, c2) {
+      return c1 === c2 || ((indexOf.call(spaces, c1) >= 0) && (indexOf.call(spaces, c2) >= 0));
+    };
     computeNewStructure = function(access, oldBlocks, newText) {
       var newBlocks, next, offset, oldText, prev, ref, ref1;
       prev = (ref = (ref1 = oldBlocks[0]) != null ? ref1.prev : void 0) != null ? ref : 0;
@@ -2493,7 +2523,8 @@
       validateBatch: validateBatch,
       getEventChar: getEventChar,
       useEvent: useEvent,
-      getSelection: getSelection
+      getSelection: getSelection,
+      modifyingKey: modifyingKey
     };
   });
 

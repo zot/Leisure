@@ -227,7 +227,7 @@
       DOMCursor.prototype.firstText = function(backwards) {
         var n;
         n = this;
-        while (!n.isEmpty() && n.type !== 'text') {
+        while (!n.isEmpty() && (n.type !== 'text' || (!backwards && n.pos === n.node.data.length))) {
           n = (backwards ? n.prev() : n.next());
         }
         return n;

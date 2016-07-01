@@ -415,6 +415,12 @@
         id = msg.slaveId;
         delete msg.slaveId;
         return this.slaves[id].send(msg);
+      },
+      customResponse: function(msg) {
+        var id;
+        id = msg.slaveId;
+        delete msg.slaveId;
+        return this.slaves[id].send(msg);
       }
     };
 
@@ -456,6 +462,10 @@
         });
       },
       requestFile: function(msg) {
+        msg.slaveId = this.connectionId;
+        return this.master.send(msg);
+      },
+      customMessage: function(msg) {
         msg.slaveId = this.connectionId;
         return this.master.send(msg);
       }

@@ -237,6 +237,10 @@ Handle a message from the connected browser
           id = msg.slaveId
           delete msg.slaveId
           @slaves[id].send msg
+        customResponse: (msg)->
+          id = msg.slaveId
+          delete msg.slaveId
+          @slaves[id].send msg
 
     class SlaveHandler extends MessageHandler
       type: 'Slave'
@@ -253,6 +257,9 @@ Handle a message from the connected browser
         intro: ({@name})->
           @broadcast type: 'connection', peerId: @connectionId, peerName: @name
         requestFile: (msg)->
+          msg.slaveId = @connectionId
+          @master.send msg
+        customMessage: (msg)->
           msg.slaveId = @connectionId
           @master.send msg
 

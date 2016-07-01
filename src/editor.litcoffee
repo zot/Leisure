@@ -942,7 +942,10 @@ situations to provide STM-like change management.
               @replaceText {start: 0, end: @getLength(), text, source: 'edit'}
           @rerenderAll()
           @trigger 'load'
-        rerenderAll: -> @editor.setHtml @editor.node[0], @renderBlocks()
+        rerenderAll: ->
+          @editor.setHtml @editor.node[0], @renderBlocks()
+          if result = @validatePositions()
+            console.error "DISCREPENCY AT POSITION #{result.block._id}, #{result.offset},",
         blockCount: ->
           c = 0
           for b of @blocks
@@ -979,6 +982,21 @@ situations to provide STM-like change management.
         getText: -> @data.getText()
         getLength: -> @data.getLength()
         isValidDocOffset: (offset)-> 0 <= offset <= @getLength()
+        validatePositions: ->
+          block = @data.blocks[@data.getFirst()]
+          while block
+            if node = @nodeForId(block._id)[0]
+              cursor = @domCursor(node, 0).mutable()
+              for offset in [0...block.text.length]
+                cursor = cursor.firstText()
+                if cursor.isEmpty() || !sameCharacter cursor.character(), block.text[offset]
+                  return {block, offset}
+                cursor.forwardChar()
+            block = @data.blocks[block.next]
+
+      spaces = String.fromCharCode( 32, 160)
+
+      sameCharacter = (c1, c2)-> c1 == c2 || ((c1 in spaces) && (c2 in spaces))
 
       computeNewStructure = (access, oldBlocks, newText)->
         prev = oldBlocks[0]?.prev ? 0
@@ -1682,4 +1700,5 @@ Exports
         getEventChar
         useEvent
         getSelection
+        modifyingKey
       }

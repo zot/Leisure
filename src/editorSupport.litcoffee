@@ -47,6 +47,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         copyBlock
         preserveSelection
         BasicEditingOptions
+        modifyingKey
       } = Editor
       {
         changeAdvice
@@ -784,6 +785,8 @@ NMap is a very simple trie.
           @toggledSlides = {}
           @dataChanges = null
           @pendingDataChanges = null
+          @collaborativeCode = {}
+          @collaborativeBase = {}
         runBlock: (block, replace)-> @data.runBlock block, replace
         parsedCodeBlock: (block)->
           pb = @data.parsedCodeBlock block
@@ -1228,6 +1231,18 @@ may be called more than once.  changeData() returns a promise.
           else open e.target.href
           false
         replaceResult: (block, str)-> replaceResult this, @data, block, str
+        registerCollaborativeCode: (name, func)->
+          @collaborativeCode[name] = (args...)=> @doCollaboratively name, args
+          @collaborativeBase[name] = func
+        _runCollaborativeCode: (name, slaveId, args)->
+          new Promise (succeed, fail)=>
+            try
+              if code = @collaborativeBase[name]
+                succeed code {options: this, slaveId}, args...
+              else throw new Error "No collaborative code named '#{name}'"
+            catch err
+              fail err.stack
+        doCollaboratively: (name, args)-> @_runCollaborativeCode name, null, args
 
       replaceResult = (source, data, block, str)->
         if typeof block != 'string' then blockId = block._id
@@ -1458,6 +1473,7 @@ Exports
         DataStoreEditingOptions
         Editor
         CodeContext
+        modifyingKey
       }
 
       {

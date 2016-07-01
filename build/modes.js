@@ -2,9 +2,10 @@
 (function() {
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './lib/prism-leisure'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+  define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './advice', './lib/prism-leisure'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird, Advice) {
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
+    changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
@@ -1022,7 +1023,8 @@
         editor: editor,
         data: data,
         widget: widget,
-        sliding: true
+        sliding: true,
+        number: Number(number.textContent)
       };
       widget.removeClass('hidden');
       widget.position({
@@ -1057,14 +1059,16 @@
       }), 1);
     };
     slideValue = function() {
-      var block, blockOff, cs, m, newText, start;
+      var block, blockOff, cs, delta, m, newText, pos, start;
       if ((cs = currentSlider) && !cs.editor.options.awaitingGuard) {
         start = cs.data.getMarkLocation('__slider__');
         blockOff = cs.data.blockOffsetForDocOffset(start);
         block = cs.editor.options.getBlock(blockOff.block);
         m = numPat.exec(block.text.substring(blockOff.offset));
+        delta = currentSlider.widget.slider('value') - cs.number;
+        cs.number = currentSlider.widget.slider('value');
         newText = String(currentSlider.widget.slider('value'));
-        if (m[0] !== newText) {
+        if (delta !== 0) {
           if (block.local) {
             return cs.editor.options.replaceText({
               start: start,
@@ -1073,47 +1077,110 @@
               source: 'edit'
             });
           } else {
-            cs.editor.options.awaitingGuard = true;
-            return cs.editor.options.batchReplace((function() {
-              var batch, blockStart, j, len, r, ref, repl;
-              start = cs.data.getMarkLocation('__slider__');
-              blockOff = cs.data.blockOffsetForDocOffset(start);
-              block = cs.editor.options.getBlock(blockOff.block);
-              m = numPat.exec(block.text.substring(blockOff.offset));
-              newText = String(currentSlider.widget.slider('value'));
-              if (block.local) {
-                return cs.editor.options.replaceText({
-                  start: start,
-                  end: start + m[0].length,
-                  text: newText,
-                  source: 'edit'
-                });
-              } else if (m[0] === newText) {
-                return [];
-              } else {
-                blockStart = cs.editor.options.data.offsetForBlock(block);
-                repl = {
-                  start: start,
-                  end: start + m[0].length,
-                  text: newText,
-                  gStart: blockStart,
-                  gEnd: blockStart + block.text.length
-                };
-                batch = [repl];
-                ref = cs.editor.options.replaceTextEffects(repl.start, repl.end, repl.text, true).repls;
-                for (j = 0, len = ref.length; j < len; j++) {
-                  r = ref[j];
-                  batch.push(r);
-                }
-                return batch;
-              }
-            }), (function() {
-              return cs.editor.options.awaitingGuard = false;
-            }), (function() {
-              return cs.editor.options.awaitingGuard = false;
-            }));
+            if (pos = getSliderPosition()) {
+              pos.delta = delta;
+              return sendSliderChange(pos);
+            }
           }
         }
+      }
+    };
+    sendSliderChange = function(pos) {
+      var cs, delta, numberCount, numberOffset, offset, start;
+      cs = currentSlider;
+      if (cs.awaitingChange) {
+        if (cs.nextChange) {
+          pos.delta += cs.nextChange.delta;
+        }
+        return cs.nextChange = pos;
+      } else {
+        cs.awaitingChange = true;
+        start = pos.start, offset = pos.offset, numberCount = pos.numberCount, numberOffset = pos.numberOffset, delta = pos.delta;
+        return cs.editor.options.collaborativeCode.doSlideValue(start, offset, numberCount, numberOffset, delta).then(function() {
+          cs.awaitingChange = false;
+          if (pos = cs.nextChange) {
+            cs.nextChange = null;
+            return sendSliderChange(pos);
+          }
+        });
+      }
+    };
+    doSlideValue = function(arg, start, offset, numberCount, numberOffset, delta) {
+      var block, cur, dist, j, len, m, newText, node, numCur, number, numbers, opts, slaveId, sliderNode, targetDistance;
+      opts = arg.options, slaveId = arg.slaveId;
+      block = opts.data.blockOffsetForDocOffset(start).block;
+      node = opts.nodeForId(block);
+      block = opts.data.getBlock(block);
+      cur = opts.editor.domCursor(node, 0).firstText();
+      sliderNode = $(cur.mutable().forwardChars(offset, true).firstText().node).closest('.token.number');
+      if (sliderNode.length) {
+        numCur = opts.editor.domCursor(sliderNode[0], 0);
+        offset = cur.getTextTo(numCur).length;
+      } else {
+        numbers = node.find('.token.number');
+        if (!numbers.length) {
+          return null;
+        } else if (numbers.length === numberCount) {
+          numCur = opts.editor.domCursor(numbers[numberOffset], 0);
+          offset = cur.getTextTo(numCur).length;
+        } else {
+          offset = 0;
+          targetDistance = Number.MAX_VALUE;
+          for (j = 0, len = numbers.length; j < len; j++) {
+            number = numbers[j];
+            number = numbers[testPos];
+            numCur = opts.editor.domCursor(number, 0);
+            offset += cur.getTextTo(numCur).length;
+            cur = numCur;
+            dist = offset - offset;
+            if (targetDistance > dist) {
+              targetDistance = dist;
+            } else if (offset > offset) {
+              break;
+            }
+          }
+        }
+      }
+      m = numPat.exec(block.text.substring(offset));
+      newText = String(delta + Number(m[0]));
+      start = offset + opts.data.offsetForBlock(block);
+      return opts.replaceText({
+        start: start,
+        end: start + m[0].length,
+        text: newText,
+        source: 'code'
+      });
+    };
+    getSliderPosition = function() {
+      var block, cs, cursor, j, len, node, nth, number, numbers, offset, opts, ref, sliderNode, start;
+      cs = currentSlider;
+      start = cs.data.getMarkLocation('__slider__');
+      opts = cs.editor.options;
+      ref = cs.data.blockOffsetForDocOffset(start), block = ref.block, offset = ref.offset;
+      node = opts.nodeForId(block);
+      cursor = opts.domCursor(node[0], 0).mutable().forwardChars(offset, true).firstText();
+      sliderNode = $(cursor.node).closest('.token.number');
+      if (!sliderNode.length) {
+        cursor.backwardChar();
+        sliderNode = $(cursor.node).closest('.token.number');
+        if (!sliderNode.length) {
+          console.error("Could not find slider node for block: " + block + ", offset: " + (offset - 1) + ", '" + cs.data.blocks[block].text[offset] + "', node:", cursor.node);
+          return;
+        }
+      }
+      nth = 0;
+      numbers = node.find('.token.number');
+      for (j = 0, len = numbers.length; j < len; j++) {
+        number = numbers[j];
+        if (number === sliderNode[0]) {
+          return {
+            start: start,
+            offset: offset,
+            numberCount: numbers.length,
+            numberOffset: nth
+          };
+        }
+        nth++;
       }
     };
     mayHideValueSlider = function() {
@@ -1168,7 +1235,10 @@
       return new LeisureEditCore($(div), new OrgEditing(data));
     };
     fancyEditDiv = function(div, data) {
-      return new LeisureEditCore($(div), new OrgEditing(data).setMode(fancyMode));
+      var options;
+      options = new OrgEditing(data).setMode(fancyMode);
+      options.registerCollaborativeCode('doSlideValue', doSlideValue);
+      return new LeisureEditCore($(div), options);
     };
     prismAliases = {
       html: 'markup',
