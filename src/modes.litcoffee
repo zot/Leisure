@@ -1,8 +1,13 @@
-    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './lib/prism-leisure'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird)->
+    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './advice', './lib/prism-leisure'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird, Advice)->
 
       {
         defaultEnv
       } = Base
+      {
+        changeAdvice
+        afterMethod
+        beforeMethod
+      } = Advice
       {
         parseOrgMode
         parseMeat
@@ -738,6 +743,7 @@
           data: data
           widget: widget
           sliding: true
+          number: Number number.textContent
         widget.removeClass 'hidden'
         widget.position my: 'center top', at: 'center bottom', of: number
         data.addMark '__slider__', data.docOffsetForBlockOffset blockOff
@@ -766,43 +772,64 @@
           blockOff = cs.data.blockOffsetForDocOffset start
           block = cs.editor.options.getBlock blockOff.block
           m = numPat.exec block.text.substring blockOff.offset
+          delta = currentSlider.widget.slider('value') - cs.number
+          cs.number = currentSlider.widget.slider('value')
           newText = String currentSlider.widget.slider 'value'
-          if m[0] != newText
+          if delta != 0
             if block.local
               cs.editor.options.replaceText {start, end: start + m[0].length, text: newText, source: 'edit'}
             else
-              cs.editor.options.awaitingGuard = true
-              cs.editor.options.batchReplace (->
-                start = cs.data.getMarkLocation '__slider__'
-                blockOff = cs.data.blockOffsetForDocOffset start
-                block = cs.editor.options.getBlock blockOff.block
-                m = numPat.exec block.text.substring blockOff.offset
-                newText = String currentSlider.widget.slider 'value'
-                # just duplicating above code for now -- elegance later :)
-                if block.local
-                  cs.editor.options.replaceText {start, end: start + m[0].length, text: newText, source: 'edit'}
-                else if m[0] == newText then []
-                else
-                  blockStart = cs.editor.options.data.offsetForBlock block
-                  repl =
-                    start: start
-                    end: start + m[0].length
-                    text: newText
-                    gStart: blockStart
-                    gEnd: blockStart + block.text.length
-                  batch = [repl]
-                  for r in cs.editor.options.replaceTextEffects(repl.start, repl.end, repl.text, true).repls
-                    batch.push r
-                  batch), (-> cs.editor.options.awaitingGuard = false), (-> cs.editor.options.awaitingGuard = false)
-          if pos = getSliderPosition()
-            {block, offset, numberCount, numberOffset} = pos
-            doSlideValue block, offset, numberCount, numberOffset, currentSlider.widget.slider('value') - String m[0]
+              if pos = getSliderPosition()
+                pos.delta = delta
+                sendSliderChange pos
 
-      doSlideValue = (block, offset, numberCount, numberOffset, delta)->
+      sendSliderChange = (pos)->
         cs = currentSlider
-        cs.editor.options.collaborativeCode.doSlideValue block, offset, numberCount, numberOffset, delta
+        if cs.awaitingChange
+          if cs.nextChange then pos.delta += cs.nextChange.delta
+          cs.nextChange = pos
+        else
+          cs.awaitingChange = true
+          {start, offset, numberCount, numberOffset, delta} = pos
+          cs.editor.options.collaborativeCode.doSlideValue(start, offset, numberCount, numberOffset, delta)
+            .then ->
+              cs.awaitingChange = false
+              if pos = cs.nextChange
+                cs.nextChange = null
+                sendSliderChange pos
 
-
+      doSlideValue = ({options: opts, slaveId}, start, offset, numberCount, numberOffset, delta)->
+        #console.log "Slider#{if slaveId then ' from slave ' + slaveId else ''} start: #{start}, offset: #{offset}, numberCount: #{numberCount}, numberOffset: #{numberOffset}, change: #{delta}"
+        {block} = opts.data.blockOffsetForDocOffset start
+        node = opts.nodeForId block
+        block = opts.data.getBlock block
+        cur = opts.editor.domCursor(node, 0).firstText()
+        sliderNode = $(cur.mutable().forwardChars(offset, true).firstText().node).closest '.token.number'
+        if sliderNode.length
+          numCur = opts.editor.domCursor sliderNode[0], 0
+          offset = cur.getTextTo(numCur).length
+        else
+          numbers = node.find('.token.number')
+          if !numbers.length then return null
+          else if numbers.length == numberCount
+            numCur = opts.editor.domCursor numbers[numberOffset], 0
+            offset = cur.getTextTo(numCur).length
+          else
+            offset = 0
+            targetDistance = Number.MAX_VALUE
+            for number in numbers
+              number = numbers[testPos]
+              numCur = opts.editor.domCursor number, 0
+              offset += cur.getTextTo(numCur).length
+              cur = numCur
+              dist = offset - offset
+              if targetDistance > dist
+                targetDistance = dist
+              else if offset > offset then break
+        m = numPat.exec block.text.substring offset
+        newText = String delta + Number m[0]
+        start = offset + opts.data.offsetForBlock block
+        opts.replaceText {start, end: start + m[0].length, text: newText, source: 'code'}
 
       getSliderPosition = ->
         cs = currentSlider
@@ -822,7 +849,7 @@
         numbers = node.find('.token.number')
         for number in numbers
           if number == sliderNode[0]
-            return {block, offset, numberCount: numbers.length, numberOffset: nth}
+            return {start, offset, numberCount: numbers.length, numberOffset: nth}
           nth++
 
       mayHideValueSlider = ->
@@ -863,8 +890,7 @@
 
       fancyEditDiv = (div, data)->
         options = new OrgEditing(data).setMode fancyMode
-        options.registerCollaborativeCode 'doSlideValue', (slaveId, block, offset, numberCount, numberOffset, delta)->
-          console.log "Slider block: #{block}, offset: #{offset}, numberCount: #{numberCount}, numberOffset: #{numberOffset}, change: #{delta}"
+        options.registerCollaborativeCode 'doSlideValue', doSlideValue
         new LeisureEditCore $(div), options
 
       prismAliases =

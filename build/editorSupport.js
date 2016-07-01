@@ -2343,7 +2343,10 @@
             var code, err, error1;
             try {
               if (code = _this.collaborativeBase[name]) {
-                return succeed(code.apply(null, [slaveId].concat(slice1.call(args))));
+                return succeed(code.apply(null, [{
+                  options: _this,
+                  slaveId: slaveId
+                }].concat(slice1.call(args))));
               } else {
                 throw new Error("No collaborative code named '" + name + "'");
               }

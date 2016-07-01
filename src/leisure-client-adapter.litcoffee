@@ -224,11 +224,11 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 @send 'fileContent', {slaveId, id, content: btoa(content)}), ((failure)->
                 @send 'fileError', {slaveId, id, failure})
             customMessage: ({name, args, slaveId, msgId})->
-              try
-                @send 'customResponse', slaveId, msgId, (peer.editor.options._runCollaborativeCode name, slaveId, args)
-              catch err
-                console.error "Error with custom message name: #{name}, slaveId: #{slaveId}, msgId: #{msgId}\n#{err.stack}"
-                @send 'customError', {slaveId, msgId, err: err.stack}
+              peer.editor.options._runCollaborativeCode name, slaveId, args
+               .then (result)=> @send 'customResponse', {slaveId, msgId, result}
+               .catch (err)=>
+                 console.error "Error with custom message name: #{name}, slaveId: #{slaveId}, msgId: #{msgId}\n#{err.stack}"
+                 @send 'customError', {slaveId, msgId, err: err.stack}
           @connect "http://#{@host}/Leisure/create", =>
             @send 'initDoc', doc: @data.getText(), name: @name
             @docSnap = @data.getText()
@@ -262,7 +262,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                 if !img.id then img.id = "p2p-image-#{peer.imgCount++}"
                 img.src = ''
                 peer.fetchImage img.id, src
-            doCollaboratively: p2p: (parent)-> (name, args...)-> peer.sendCustom name, args
+            doCollaboratively: p2p: (parent)-> (name, args)-> peer.sendCustom name, args
           @fetchImage = (imgId, src)->
             if img = $("##{imgId}")[0]
               if data = @localResources[src]
@@ -280,7 +280,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
               img.removeAttribute 'style'
               @imageSizes[src] = " style='height: #{img.height}px; width: #{img.width}px'"
             ), 0
-          @pendingCustomMessges = {}
+          @pendingCustomMessages = {}
           @handler =
             __proto__: Peer::handler
             connected: (msg)->
@@ -295,19 +295,19 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
               [cont, fail] = pendingRequests.get(id)
               pendingRequests = pendingRequests.remove(id)
               fail failure
-            customReesponse: ({id, result})->
-              [success] = @pendingCustomMessges[id]
-              delete @pendingCustomMessges[id]
+            customResponse: ({msgId, result})->
+              [success] = @pendingCustomMessages[msgId]
+              delete @pendingCustomMessages[msgId]
               success result
             customError: ({msgId, err})->
-              [..., failure] = @pendingCustomMessges[msgId]
-              delete @pendingCustomMessges[msgId]
+              [..., failure] = @pendingCustomMessages[msgId]
+              delete @pendingCustomMessages[msgId]
               failure err
           @sendCustom = (name, args)->
-            new Promise (succeed, fail)->
-              id = "custom-#{customMessageCount++}"
-              @pendingCustomMessages[id] = [succeed, fail]
-              @send 'customMessage', {name, data, id}
+            new Promise (succeed, fail)=>
+              msgId = "custom-#{customMessageCount++}"
+              @pendingCustomMessages[msgId] = [succeed, fail]
+              @send 'customMessage', {name, args, msgId}
           @connect @url, =>
             @send 'intro', name: @name
             connected?()

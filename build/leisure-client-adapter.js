@@ -317,19 +317,26 @@
             }));
           },
           customMessage: function(arg) {
-            var args, err, error1, msgId, name, slaveId;
+            var args, msgId, name, slaveId;
             name = arg.name, args = arg.args, slaveId = arg.slaveId, msgId = arg.msgId;
-            try {
-              return this.send('customResponse', slaveId, msgId, peer.editor.options._runCollaborativeCode(name, slaveId, args));
-            } catch (error1) {
-              err = error1;
-              console.error("Error with custom message name: " + name + ", slaveId: " + slaveId + ", msgId: " + msgId + "\n" + err.stack);
-              return this.send('customError', {
-                slaveId: slaveId,
-                msgId: msgId,
-                err: err.stack
-              });
-            }
+            return peer.editor.options._runCollaborativeCode(name, slaveId, args).then((function(_this) {
+              return function(result) {
+                return _this.send('customResponse', {
+                  slaveId: slaveId,
+                  msgId: msgId,
+                  result: result
+                });
+              };
+            })(this))["catch"]((function(_this) {
+              return function(err) {
+                console.error("Error with custom message name: " + name + ", slaveId: " + slaveId + ", msgId: " + msgId + "\n" + err.stack);
+                return _this.send('customError', {
+                  slaveId: slaveId,
+                  msgId: msgId,
+                  err: err.stack
+                });
+              };
+            })(this));
           }
         };
         this.connect("http://" + this.host + "/Leisure/create", (function(_this) {
@@ -399,9 +406,7 @@
           },
           doCollaboratively: {
             p2p: function(parent) {
-              return function() {
-                var args, name;
-                name = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
+              return function(name, args) {
                 return peer.sendCustom(name, args);
               };
             }
@@ -450,7 +455,7 @@
             };
           })(this)), 0);
         };
-        this.pendingCustomMessges = {};
+        this.pendingCustomMessages = {};
         this.handler = {
           __proto__: Peer.prototype.handler,
           connected: function(msg) {
@@ -472,32 +477,34 @@
             pendingRequests = pendingRequests.remove(id);
             return fail(failure);
           },
-          customReesponse: function(arg) {
-            var id, result, success;
-            id = arg.id, result = arg.result;
-            success = this.pendingCustomMessges[id][0];
-            delete this.pendingCustomMessges[id];
+          customResponse: function(arg) {
+            var msgId, result, success;
+            msgId = arg.msgId, result = arg.result;
+            success = this.pendingCustomMessages[msgId][0];
+            delete this.pendingCustomMessages[msgId];
             return success(result);
           },
           customError: function(arg) {
             var err, failure, msgId, ref2;
             msgId = arg.msgId, err = arg.err;
-            ref2 = this.pendingCustomMessges[msgId], failure = ref2[ref2.length - 1];
-            delete this.pendingCustomMessges[msgId];
+            ref2 = this.pendingCustomMessages[msgId], failure = ref2[ref2.length - 1];
+            delete this.pendingCustomMessages[msgId];
             return failure(err);
           }
         };
         this.sendCustom = function(name, args) {
-          return new Promise(function(succeed, fail) {
-            var id;
-            id = "custom-" + (customMessageCount++);
-            this.pendingCustomMessages[id] = [succeed, fail];
-            return this.send('customMessage', {
-              name: name,
-              data: data,
-              id: id
-            });
-          });
+          return new Promise((function(_this) {
+            return function(succeed, fail) {
+              var msgId;
+              msgId = "custom-" + (customMessageCount++);
+              _this.pendingCustomMessages[msgId] = [succeed, fail];
+              return _this.send('customMessage', {
+                name: name,
+                args: args,
+                msgId: msgId
+              });
+            };
+          })(this));
         };
         return this.connect(this.url, (function(_this) {
           return function() {

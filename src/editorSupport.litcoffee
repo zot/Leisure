@@ -1238,7 +1238,7 @@ may be called more than once.  changeData() returns a promise.
           new Promise (succeed, fail)=>
             try
               if code = @collaborativeBase[name]
-                succeed code slaveId, args...
+                succeed code {options: this, slaveId}, args...
               else throw new Error "No collaborative code named '#{name}'"
             catch err
               fail err.stack
