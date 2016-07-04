@@ -2474,9 +2474,29 @@
     };
     preservingSelection = null;
     preserveSelection = function(func) {
-      var editor;
+      var editor, end, input, num, parent, parentId, start;
       if (preservingSelection) {
         return func(preservingSelection);
+      } else if ($(document.activeElement).is('input[input-number]')) {
+        num = document.activeElement.getAttribute('input-number');
+        parentId = $(document.activeElement).closest('[data-view-block-name]').prop('id');
+        input = document.activeElement;
+        start = input.selectionStart;
+        end = input.selectionEnd;
+        try {
+          return func({
+            type: 'None',
+            scrollTop: 0,
+            scrollLeft: 0
+          });
+        } finally {
+          parent = $("#" + parentId);
+          if (input = parent.find("[input-number='" + num + "']")) {
+            input.selectionStart = start;
+            input.selectionEnd = end;
+            input.focus();
+          }
+        }
       } else if (editor = findEditor(getSelection().anchorNode)) {
         preservingSelection = editor.getSelectedDocRange();
         try {

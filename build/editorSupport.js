@@ -1619,12 +1619,12 @@
         this.verifyDataObject("set " + name + " to ", value);
         codeOpts = _.merge({}, (ref = block.codeAttributes) != null ? ref : {}, codeOpts != null ? codeOpts : {});
         newBlock = this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0];
-        newBlock._id = block._id;
         if (newBlock.local) {
+          newBlock._id = block._id;
           return this.data.storeLocalBlock(newBlock);
         } else {
           b = this.blockBounds(name);
-          b.text = block.text;
+          b.text = newBlock.text;
           b.source = 'code';
           return this.data.replaceText(b);
         }

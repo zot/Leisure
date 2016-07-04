@@ -3,10 +3,10 @@
   var slice = [].slice;
 
   define(['handlebars', './export', './editor', './coffee-script', 'immutable'], function(Handlebars, Exports, Editor, CoffeeScript, Immutable) {
-    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
+    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, preserveSelection, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
     ref = window.Handlebars = Handlebars, compile = ref.compile, create = ref.create, registerHelper = ref.registerHelper;
     mergeExports = Exports.mergeExports;
-    escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor;
+    escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection;
     Set = Immutable.Set;
     templates = {};
     controllers = {};
@@ -61,12 +61,12 @@
       return (src.substring(0, hashLoc)) + "#" + count;
     };
     refreshImage = function(img) {
-      var att, i, len, newImg, ref1;
+      var att, j, len, newImg, ref1;
       if (img.src.indexOf("file:") === 0) {
         newImg = document.createElement('img');
         ref1 = img.attributes;
-        for (i = 0, len = ref1.length; i < len; i++) {
-          att = ref1[i];
+        for (j = 0, len = ref1.length; j < len; j++) {
+          att = ref1[j];
           newImg.setAttribute(att.name, att.value);
         }
         newImg.onload = function() {
@@ -135,27 +135,31 @@
       return '';
     });
     Handlebars.registerHelper('find', function() {
-      var data, i, item, items, j, len, name, options, ref1, res;
-      name = 2 <= arguments.length ? slice.call(arguments, 0, i = arguments.length - 1) : (i = 0, []), options = arguments[i++];
+      var data, item, items, j, k, len, name, options, ref1, res;
+      name = 2 <= arguments.length ? slice.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), options = arguments[j++];
       data = options.data.opts.data;
       items = name.length === 1 ? data.find(name[0]) : data.find(name[0], name[1]);
       res = "<span data-find-index='" + name[0] + "'>";
       ref1 = items != null ? items : [];
-      for (j = 0, len = ref1.length; j < len; j++) {
-        item = ref1[j];
-        res += options.fn(data.getYaml(item), options);
+      for (k = 0, len = ref1.length; k < len; k++) {
+        item = ref1[k];
+        mergeContext({
+          currentBlock: data.getBlock(item)
+        }, function() {
+          return res += options.fn(data.getYaml(item), options);
+        });
       }
       return res + "</span>";
     });
     Handlebars.registerHelper('findReverse', function() {
-      var data, i, item, items, j, len, name, options, ref1, res;
-      name = 2 <= arguments.length ? slice.call(arguments, 0, i = arguments.length - 1) : (i = 0, []), options = arguments[i++];
+      var data, item, items, j, k, len, name, options, ref1, res;
+      name = 2 <= arguments.length ? slice.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), options = arguments[j++];
       data = options.data.opts.data;
       items = name.length === 1 ? data.find(name[0]) : data.find(name[0], name[1]);
       res = '';
       ref1 = (items != null ? items : []).reverse();
-      for (j = 0, len = ref1.length; j < len; j++) {
-        item = ref1[j];
+      for (k = 0, len = ref1.length; k < len; k++) {
+        item = ref1[k];
         res += options.fn(data.getYaml(item), options);
       }
       return res;
@@ -176,46 +180,55 @@
       return simpleRenderView("data-view='" + name + "' data-requested-view='" + name + "' class='view'", name, opts.fn, this);
     });
     bindView = function(view) {
-      var getter, i, input, len, name, opts, path, ref1, ref2, results, setter;
+      var getter, i, input, j, len, name, oldValue, opts, parent, path, ref1, ref2, results, setter;
       if (!(opts = (ref1 = findEditor(view)) != null ? ref1.options : void 0)) {
         return;
       }
       ref2 = $(view).find('input[data-value]');
       results = [];
-      for (i = 0, len = ref2.length; i < len; i++) {
+      for (i = j = 0, len = ref2.length; j < len; i = ++j) {
         input = ref2[i];
-        if (name = $(input).closest('[data-view-block-name]').attr('data-view-block-name')) {
+        if (name = (parent = $(input).closest('[data-view-block-name]')).attr('data-view-block-name')) {
+          input.setAttribute('input-number', i);
           path = input.getAttribute('data-value');
           getter = eval("(function(data){return data." + path + "})");
           setter = eval("(function(data, value){data." + path + " = value})");
-          input.value = getter(opts.data.getYaml(opts.data.getBlockNamed(name)));
+          oldValue = input.value = getter(opts.data.getYaml(opts.data.getBlockNamed(name)));
           results.push((function(name) {
             input.onkeypress = function(e) {
               return e.stopPropagation();
             };
             input.onkeydown = function(e) {
-              console.log('derp');
               return e.stopPropagation();
             };
             return input.onkeyup = function(e) {
-              var data;
+              var data, end, start;
               e.stopPropagation();
-              data = _.clone(opts.data.getYaml(opts.data.getBlockNamed(name)), true);
-              setter(data, input.value);
-              return dontRerender(view, function() {
-                var block;
-                block = opts.data.getBlockNamed(name);
-                if (block.local) {
-                  return opts.setLocalData(name, data);
-                } else {
-                  if (!opts.hasCollaborativeCode('viewBoundSet')) {
-                    opts.registerCollaborativeCode('viewBoundSet', function(name, data) {
-                      return opts.setData(name, data);
-                    });
-                  }
-                  return opts.collaborativeCode.viewBoundSet(name, data);
-                }
-              });
+              if (input.value !== oldValue) {
+                oldValue = input.value;
+                data = _.clone(opts.data.getYaml(opts.data.getBlockNamed(name)), true);
+                setter(data, input.value);
+                start = input.selectionStart;
+                end = input.selectionEnd;
+                return dontRerender(view, function() {
+                  return dontRerender(parent[0], function() {
+                    var block;
+                    block = opts.data.getBlockNamed(name);
+                    if (block.local) {
+                      return opts.setLocalData(name, data);
+                    } else {
+                      if (!opts.hasCollaborativeCode('viewBoundSet')) {
+                        opts.registerCollaborativeCode('viewBoundSet', function(context, name, data) {
+                          return opts.setData(name, data);
+                        });
+                      }
+                      return preserveSelection(function() {
+                        return opts.collaborativeCode.viewBoundSet(name, data);
+                      });
+                    }
+                  });
+                });
+              }
             };
           })(name));
         } else {
@@ -224,10 +237,13 @@
       }
       return results;
     };
-    renderView = function(type, contextName, data, targets, block, blockName) {
-      var attr, attrs, classAttr, i, isTop, key, len, node, ref1, ref2, ref3, ref4, ref5, requestedKey, results, settings, template, value;
+    renderView = function(type, contextName, data, targets, block, blockName, addIds) {
+      var attr, attrs, classAttr, isTop, j, key, len, node, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, requestedKey, results, settings, template, value;
+      if (!block && ((ref1 = root.context) != null ? (ref2 = ref1.currentBlock) != null ? ref2.yaml : void 0 : void 0) === data) {
+        block = (ref3 = root.context) != null ? ref3.currentBlock : void 0;
+      }
       blockName = blockName != null ? blockName : block != null ? block.codeName : void 0;
-      isTop = !((ref1 = root.context) != null ? ref1.topView : void 0);
+      isTop = !((ref4 = root.context) != null ? ref4.topView : void 0);
       requestedKey = key = viewKey(type, contextName);
       if (!(template = getTemplate(key))) {
         key = type;
@@ -242,15 +258,17 @@
       };
       if (isTop) {
         settings.subviews = {};
-        if (block) {
+      }
+      if (block) {
+        if (settings != null) {
           settings.subviews[block._id] = true;
         }
       }
       attrs = "data-view='" + key + "' data-requested-view='" + requestedKey + "'";
       classAttr = 'view';
-      ref3 = (ref2 = root.context.viewAttrs) != null ? ref2 : {};
-      for (attr in ref3) {
-        value = ref3[attr];
+      ref6 = (ref5 = root.context.viewAttrs) != null ? ref5 : {};
+      for (attr in ref6) {
+        value = ref6[attr];
         if (attr === 'class') {
           classAttr += " " + value;
         } else {
@@ -268,14 +286,14 @@
           root.context.subviews[block._id] = true;
         }
         results = [];
-        for (i = 0, len = targets.length; i < len; i++) {
-          node = targets[i];
-          if ((ref4 = root.context) != null ? (ref5 = ref4.dontRender) != null ? ref5.has(node) : void 0 : void 0) {
+        for (j = 0, len = targets.length; j < len; j++) {
+          node = targets[j];
+          if ((ref7 = root.context) != null ? (ref8 = ref7.dontRender) != null ? ref8.has(node) : void 0 : void 0) {
             continue;
           }
           settings.view = node;
           results.push(mergeContext(settings, function() {
-            var html, n;
+            var html, id, n;
             root.context.data = data;
             if (block) {
               root.context.block = block;
@@ -283,6 +301,7 @@
             if (isTop) {
               root.context.topView = node;
             }
+            id = node.id;
             html = runTemplate(template, data, {
               data: root.context
             });
@@ -290,6 +309,7 @@
               attrs += " data-ids='" + (_.keys(settings.subviews).join(' ')) + "'";
             }
             n = $("<span " + attrs + ">" + html + "</span>");
+            n[0].id = id;
             $(node).replaceWith(n);
             return root.context.opts.editor.activateScripts(n, root.context);
           }));
@@ -297,7 +317,7 @@
         return results;
       } else {
         return mergeContext(settings, function() {
-          return simpleRenderView(attrs, key, template, data, block);
+          return simpleRenderView(attrs, key, template, data, block, addIds);
         });
       }
     };
@@ -330,13 +350,13 @@
       })) + "</span>";
     };
     initializePendingViews = function() {
-      var func, i, len, p, results;
+      var func, j, len, p, results;
       imageRefreshCounter++;
       p = pendingViews;
       pendingViews = [];
       results = [];
-      for (i = 0, len = p.length; i < len; i++) {
-        func = p[i];
+      for (j = 0, len = p.length; j < len; j++) {
+        func = p[j];
         results.push(func());
       }
       return results;
@@ -344,13 +364,13 @@
     activateScripts = function(el, context) {
       if (!activating) {
         return withContext(_.merge({}, context), function() {
-          var i, img, j, k, l, len, len1, len2, len3, newScript, node, ref1, ref2, ref3, ref4, results, script;
+          var img, j, k, l, len, len1, len2, len3, m, newScript, node, ref1, ref2, ref3, ref4, results, script;
           root.context.currentView = el;
           activating = true;
           try {
             ref1 = el.find('script');
-            for (i = 0, len = ref1.length; i < len; i++) {
-              script = ref1[i];
+            for (j = 0, len = ref1.length; j < len; j++) {
+              script = ref1[j];
               if (!script.type || script.type === 'text/javascript') {
                 newScript = document.createElement('script');
                 newScript.type = 'text/javascript';
@@ -362,8 +382,8 @@
               }
             }
             ref2 = el.find('script[type="text/coffeescript"]').add(el.find('script[type="text/literate-coffeescript"]'));
-            for (j = 0, len1 = ref2.length; j < len1; j++) {
-              script = ref2[j];
+            for (k = 0, len1 = ref2.length; k < len1; k++) {
+              script = ref2[k];
               root.currentScript = script;
               CoffeeScript.run(script.innerHTML);
             }
@@ -373,13 +393,13 @@
               }
             }
             ref4 = el.find('img');
-            for (k = 0, len2 = ref4.length; k < len2; k++) {
-              img = ref4[k];
+            for (l = 0, len2 = ref4.length; l < len2; l++) {
+              img = ref4[l];
               refreshImage(img);
             }
             results = [];
-            for (l = 0, len3 = el.length; l < len3; l++) {
-              node = el[l];
+            for (m = 0, len3 = el.length; m < len3; m++) {
+              node = el[m];
               results.push(bindView(node));
             }
             return results;

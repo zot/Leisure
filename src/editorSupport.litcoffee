@@ -865,11 +865,12 @@ NMap is a very simple trie.
           @verifyDataObject "set #{name} to ", value
           codeOpts = _.merge {}, block.codeAttributes ? {}, codeOpts ? {}
           [newBlock] = @data.parseBlocks @data.textForDataNamed name, value, codeOpts
-          newBlock._id = block._id
-          if newBlock.local then @data.storeLocalBlock newBlock
+          if newBlock.local
+            newBlock._id = block._id
+            @data.storeLocalBlock newBlock
           else
             b = @blockBounds name
-            b.text = block.text
+            b.text = newBlock.text
             b.source = 'code'
             @data.replaceText b
         removeData: (name)->
