@@ -135,37 +135,63 @@ Support code for Leisure
           env.opts.setTheme theme
           cont _unit
 
-      define '_changeData', (changes)->
-        new Monad2 'changeData', (env, cont)->
-          if env.opts.dataChanges
-            throw new Error "Attempt to change data while already changing data!"
-          env.opts.changeData(->
-            currentDataChange = {}
-            runMonad2 rz(changes), env, (x)-> x)
-            .then (x)-> cont x
+      dispatchCollaborative = (opts, name, args)->
+        new Monad2 "collaborative-#{name}", (env, cont)->
+          env.opts.doCollaboratively(name, _.map(args, (el)-> L_toJson(el)))
+            .then (result)-> cont right jsonConvert result
+            .catch (err)-> cont left err.stack
+
+      defaultEnvWithOpts = (opts)->
+        env = Object.create defaultEnv
+        env.opts = opts
+        env
+
+      define 'registerCollaborative', (name, func)->
+        new Monad2 'registerCollaborative', (env, cont)->
+          opts = env.opts
+          dispatchSrc = """
+          (function(#{('a' + i for i in [1 .. func.length - 1]).join ', '}){
+            return isPartial(arguments) ? partialCall(arguments) : dispatchCollaborative(opts, name, arguments);
+          })
+          """
+          dispatchFunc = eval dispatchSrc
+          define rz(name), dispatchFunc, dispatchFunc.length, dispatchSrc
+          env.opts.registerCollaborativeCode name, (context, args...)->
+            cvtArgs = _.map(args, (el)-> jsonConvert(el))
+            cvtArgs.unshift acons 'options', context.options, acons('slaveId', context.slaveId, L_nil)
+            runMonad2 func.apply(null, cvtArgs), defaultEnvWithOpts(opts), ->
+          cont _unit
 
       define 'getData', (name)->
         new Monad2 'getData', (env, cont)->
           d = env.opts.getData rz(name), true
-          if d
-            currentDataChange[rz name] = d
-            cont some jsonConvert d
+          if d then cont some jsonConvert d
           else cont none
 
-      define '_setData', (name, value)-> if r = doPartial arguments then r else
-        new Monad2 'setData', (env, cont)->
-          cont jsonConvert env.opts.setData rz(name), rz(value)
+      define 'getLocalData', (name)->
+        new Monad2 'getLocalData', (env, cont)->
+          d = env.opts.getLocalData rz(name), true
+          if d then cont some jsonConvert d
+          else cont none
 
-      define '_appendData', (headline, name, value)-> if r = doPartial arguments then r else
+      define 'setData', (name, value)-> if r = doPartial arguments then r else
+        new Monad2 'setData', (env, cont)->
+          cont jsonConvert env.opts.setData rz(name), L_toJson rz value
+
+      define 'setLocalData', (name, value)-> if r = doPartial arguments then r else
+        new Monad2 'setLocalData', (env, cont)->
+          cont jsonConvert env.opts.setLocalData rz(name), L_toJson rz value
+
+      define 'appendData', (headline, name, value)-> if r = doPartial arguments then r else
         new Monad2 'appendData', (env, cont)->
-          env.opts.appendDataToHeadline rz(headline), rz(name), rz(value)
+          env.opts.appendDataToHeadline rz(headline), rz(name), L_toJson rz value
           cont jsonConvert rz value
 
-      define '_appendDataWithAttrs', (headline, name, attrs, value)->
+      define 'appendDataWithAttrs', (headline, name, attrs, value)->
         if r = doPartial arguments then r else
           new Monad2 'appendDataWithAttrs', (env, cont)->
-            env.opts.appendDataToHeadline rz(headline), (!isNil(rz name) && rz(name)), rz(value), parseCodeAttributes(rz(attrs))
-            cont jsonConvert rz value
+            env.opts.appendDataToHeadline rz(headline), (!isNil(rz name) && rz(name)), L_toJson(rz(value)), parseCodeAttributes(rz(attrs))
+            cont rz value
 
       define 'removeData', (name)->
         new Monad2 'removeData', (env, cont)->
@@ -177,9 +203,5 @@ Support code for Leisure
         new Monad2 (env, cont)->
           data.getImage rz(name), ((url)-> cont right url), (failure)-> cont left failure
 
-      evalLeisure """
-      defMacro 'changeData' \\list . ['_changeData' ['do' | list]]
-      setData name data = _setData name (toJson data)
-      appendData headline name data = _appendData headline name (toJson data)
-      appendDataWithAttrs headline name attrs data = _appendDataWithAttrs headline name attrs (toJson data)
-      """
+      #evalLeisure """
+      #"""

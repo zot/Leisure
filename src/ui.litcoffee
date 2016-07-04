@@ -161,8 +161,13 @@ choose a handlebars template.
                 data = _.clone opts.data.getYaml(opts.data.getBlockNamed name), true
                 setter data, input.value
                 dontRerender view, ->
-                  opts.changeData ->
-                    opts.setData name, data
+                  block = opts.data.getBlockNamed name
+                  if block.local then opts.setLocalData name, data
+                  else
+                    if !opts.hasCollaborativeCode 'viewBoundSet'
+                      opts.registerCollaborativeCode 'viewBoundSet', (name, data)->
+                        opts.setData name, data
+                    opts.collaborativeCode.viewBoundSet name, data
 
       renderView = (type, contextName, data, targets, block, blockName)->
         blockName = blockName ? block?.codeName

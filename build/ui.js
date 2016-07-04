@@ -203,9 +203,18 @@
               data = _.clone(opts.data.getYaml(opts.data.getBlockNamed(name)), true);
               setter(data, input.value);
               return dontRerender(view, function() {
-                return opts.changeData(function() {
-                  return opts.setData(name, data);
-                });
+                var block;
+                block = opts.data.getBlockNamed(name);
+                if (block.local) {
+                  return opts.setLocalData(name, data);
+                } else {
+                  if (!opts.hasCollaborativeCode('viewBoundSet')) {
+                    opts.registerCollaborativeCode('viewBoundSet', function(name, data) {
+                      return opts.setData(name, data);
+                    });
+                  }
+                  return opts.collaborativeCode.viewBoundSet(name, data);
+                }
               });
             };
           })(name));

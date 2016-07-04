@@ -541,7 +541,7 @@ that must be done regardless of the source of changes
               addController vt, null, controller, isDefault
               env = @env newBlock.language
               controller.__proto__ = env
-              controller.executeBlock newBlock
+              setLounge env, -> controller.executeBlock newBlock
               controller.__proto__ = null
         executeBlock: (block, envConf)->
           @executeText block.language, blockSource(block), null, (env)->
@@ -824,73 +824,9 @@ NMap is a very simple trie.
         rerenderAll: ->
           super()
           initializePendingViews()
-
-changeData(func) -- make data changes in func using addData(),
-setData(), and removeData().  Func should not have side effects
-(addData, setData, and removeData are monadic operations) because it
-may be called more than once.  changeData() returns a promise.
-
-        changeData: (replaceFunc)-> new Promise (succeed, fail)=>
-          if @pendingDataChanges then @pendingDataChanges.push =>
-            @executeDataChange replaceFunc, succeed, fail
-          else
-            @pendingDataChanges = []
-            @executeDataChange replaceFunc, succeed, fail
         verifyDataObject: (opType, obj)->
-          if typeof obj != 'object'
+          if !(typeof obj in ['object', 'string', 'number', 'boolean'])
             throw new Error "Attempt to #{opType} value that is not an object."
-        executeDataChange: (replaceFunc, succeed, fail)->
-          dataChanges = null
-          result = null
-          @batchReplace (=>
-            dataChanges = @dataChanges =
-              anonymousInsertCount: 0
-              sharedRemoves: {}
-              sharedInserts: {}
-              sharedSets: {}
-              localRemoves: {}
-              localSets: {}
-            try
-              result = replaceFunc()
-              repls = []
-              for name of @dataChanges.sharedRemoves
-                b = @blockBounds name
-                b.text = ''
-                b.source = 'code'
-                repls.push b
-              for name, {parent, parentType, block} of @dataChanges.sharedInserts
-                if b = @blockBounds (if parentType == 'block' then parent else @data.lastChild @data.getNamedBlockId parent)
-                  repls.push start: b.end, end: b.end, source: 'code', text: block.text
-                else throw new Error "Attempt to append a block after nonexistant block: #{parent}"
-              for name, block of @dataChanges.sharedSets
-                b = @blockBounds name
-                b.text = block.text
-                b.source = 'code'
-                repls.push b
-              repls
-            finally
-              @dataChanges = null),
-            (=>
-              for name of dataChanges.localRemoves
-                @data.deleteLocalBlock name
-              for name, block of dataChanges.localSets
-                @data.storeLocalBlock block
-              if !_.isEmpty dataChanges.localSets
-                blocks = ((block._id = @data.getNamedBlockId name; block) for name, block of dataChanges.localSets)
-                #@mode.handleChanges this, sets: _.keyBy(blocks, '_id'), removes: {}, oldBlocks: [], newBlocks: blocks
-                #@mode.renderChanged this, blocks, @idPrefix, true
-                @changed oldBlocks: [], newBlocks: blocks
-              succeed result
-              @nextDataChange()),
-            (e)=>
-              if e.retryOK then @executeDataChange replaceFunc, succeed, fail
-              else
-                fail e
-                @nextDataChange()
-        nextDataChange: ->
-          if @pendingDataChanges?.length
-            @pendingDataChanges.shift()()
-          else @pendingDataChanges = null
         blockBoundsForHeadline: (name)->
         blockBounds: (name)->
           if name
@@ -898,52 +834,52 @@ may be called more than once.  changeData() returns a promise.
             start = @data.offsetForBlock block
             end = start + block.text.length
             {start, end, gStart: start, gEnd: end}
-        checkChanging: -> if !@dataChanges
-          throw new Error "Attempt to access data outside of a change block"
         appendDataToHeadline: (parent, name, value, codeOpts)->
           @appendData 'headline', parent, name, value, codeOpts
         appendDataAfter: (parent, name, value, codeOpts)->
           @appendData 'block', parent, name, value, codeOpts
         appendData: (parentType, parent, name, value, codeOpts)->
-          @checkChanging()
-          @verifyDataObject "append", value
-          if name && @getData(name)
-            throw new Error "Attempt to add block with duplicate name: #{name}"
-          @dataChanges.sharedInserts[name || "#+#{@dataChanges.anonymousInsertCount++}+#"] = {
-            parentType
-            parent
-            block: @data.parseBlocks(@data.textForDataNamed(name, value, codeOpts))[0]
-          }
+          [block] = @data.parseBlocks @data.textForDataNamed name, value, codeOpts
+          @checkCollaborating block
+          if name && @getData(name) then throw new Error "Attempt to add block with duplicate name: #{name}"
+          if b = @blockBounds (if parentType == 'block' then parent else @data.lastChild @data.getNamedBlockId parent)
+            @data.replaceText start: b.end, end: b.end, source: 'code', text: block.text
+          else throw new Error "Attempt to append a block after nonexistant block: #{parent}"
+        getLocalData: (name)->
+          if block = @data.getBlockNamed name
+            if !block.local then throw new Error "Attempt to use getLocalData with a shared block"
+            @data.getYaml block
         getData: (name, skipCheck)->
-          if !skipCheck then @checkChanging()
-          block = if skipCheck && !@dataChanges then @data.getBlockNamed(name)
-          else if @dataChanges.localRemoves[name] || @dataChanges.sharedRemoves[name]
-            null
-          else if block = (@dataChanges.localSets[name] || @dataChanges.sharedSets[name])
-            block
-          else if info = @dataChanges.sharedInserts[name] then info.block
-          else @data.getBlockNamed name
-          block && (@data.getYaml block)
+          if block = @data.getBlockNamed(name)
+            if !skipCheck then @checkCollaborating block
+            @data.getYaml block
+        setLocalData: (name, value, codeOpts)->
+          if !(block = @data.getBlockNamed name) then throw new Error "No block named #{name}"
+          if !block.local then throw new Error "Attempt to use setLocalData with a shared block"
+          @baseSetData name, block, value, codeOpts
         setData: (name, value, codeOpts)->
-          @checkChanging()
+          if !(block = @data.getBlockNamed name) then throw new Error "No block named #{name}"
+          @checkCollaborating block
+          @baseSetData name, block, value, codeOpts
+        baseSetData: (name, block, value, codeOpts)->
           @verifyDataObject "set #{name} to ", value
-          if @dataChanges.sharedRemoves[name] then delete @dataChanges.sharedRemoves[name]
-          if @dataChanges.localRemoves[name] then delete @dataChanges.localRemoves[name]
-          if !(block = @data.getBlockNamed name)
-            throw new Error "No block named #{name}"
+          codeOpts = _.merge {}, block.codeAttributes ? {}, codeOpts ? {}
+          [newBlock] = @data.parseBlocks @data.textForDataNamed name, value, codeOpts
+          newBlock._id = block._id
+          if newBlock.local then @data.storeLocalBlock newBlock
           else
-            codeOpts = _.merge {}, block.codeAttributes ? {}, codeOpts ? {}
-            [newBlock] = @data.parseBlocks @data.textForDataNamed name, value, codeOpts
-            newBlock._id = block._id
-            if block.local && @getData name then @dataChanges.localSets[name] = newBlock
-            else @dataChanges.sharedSets[name] = newBlock
+            b = @blockBounds name
+            b.text = block.text
+            b.source = 'code'
+            @data.replaceText b
         removeData: (name)->
-          @checkChanging()
-          if !(block = @data.getBlockNamed name)
-            throw new Error "No block named #{name}"
-          else
-            if block.local then @dataChanges.localRemoves[name] = true
-            @dataChanges.sharedRemoves[name] = true
+          if !(block = @data.getBlockNamed name) then throw new Error "No block named #{name}"
+          @checkCollaborating()
+          if block.local then @dataChanges.localRemoves[name] = true
+          b = @blockBounds name
+          b.text = ''
+          b.source = 'code'
+          @data.replaceText b
         changed: (changes)->
           {newBlocks, oldBlocks} = changes
           if newBlocks.length == oldBlocks.length == 1
@@ -1231,18 +1167,25 @@ may be called more than once.  changeData() returns a promise.
           else open e.target.href
           false
         replaceResult: (block, str)-> replaceResult this, @data, block, str
+        hasCollaborativeCode: (name)-> @collaborativeCode[name]
         registerCollaborativeCode: (name, func)->
           @collaborativeCode[name] = (args...)=> @doCollaboratively name, args
           @collaborativeBase[name] = func
         _runCollaborativeCode: (name, slaveId, args)->
           new Promise (succeed, fail)=>
             try
+              @inCollaboration = true
               if code = @collaborativeBase[name]
                 succeed code {options: this, slaveId}, args...
               else throw new Error "No collaborative code named '#{name}'"
             catch err
-              fail err.stack
+              fail err
+            finally
+              @inCollaboration = false
         doCollaboratively: (name, args)-> @_runCollaborativeCode name, null, args
+        checkCollaborating: (optBlock)->
+          if optBlock?.local then throw new Error "Attempt to use local block in collaborative code"
+          else if !@inCollaboration then throw new Error "Not running collboartively"
 
       replaceResult = (source, data, block, str)->
         if typeof block != 'string' then blockId = block._id
