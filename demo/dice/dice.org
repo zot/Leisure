@@ -239,7 +239,6 @@ order: desc
 :properties:
 :hidden: true
 :end:
-
 #+BEGIN_SRC html :defview player
 <b>{{name}}</b>
 #+END_SRC

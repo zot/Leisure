@@ -13,6 +13,7 @@ choose a handlebars template.
       {
         escapeHtml
         findEditor
+        preserveSelection
       } = Editor
       {
         Set
@@ -115,7 +116,8 @@ choose a handlebars template.
         items = if name.length == 1 then data.find(name[0]) else data.find name[0], name[1]
         res = "<span data-find-index='#{name[0]}'>"
         for item in items ? []
-          res += options.fn data.getYaml(item), options
+          mergeContext {currentBlock: data.getBlock(item)}, ->
+            res += options.fn data.getYaml(item), options
         res + "</span>"
 
       Handlebars.registerHelper 'findReverse', (name..., options)->
@@ -145,31 +147,36 @@ choose a handlebars template.
       bindView = (view)->
         #name = view.getAttribute 'data-view-block-name'
         if !(opts = findEditor(view)?.options) then return
-        for input in $(view).find 'input[data-value]'
-          if name = $(input).closest('[data-view-block-name]').attr 'data-view-block-name'
+        for input, i in $(view).find 'input[data-value]'
+          if name = (parent = $(input).closest('[data-view-block-name]')).attr 'data-view-block-name'
+            input.setAttribute 'input-number', i
             path = input.getAttribute 'data-value'
             getter = eval "(function(data){return data.#{path}})"
             setter = eval "(function(data, value){data.#{path} = value})"
-            input.value = getter opts.data.getYaml opts.data.getBlockNamed name
+            oldValue = input.value = getter opts.data.getYaml opts.data.getBlockNamed name
             do (name)->
               input.onkeypress = (e)-> e.stopPropagation()
-              input.onkeydown = (e)->
-                console.log 'derp'
-                e.stopPropagation()
+              input.onkeydown = (e)-> e.stopPropagation()
               input.onkeyup = (e)->
                 e.stopPropagation()
-                data = _.clone opts.data.getYaml(opts.data.getBlockNamed name), true
-                setter data, input.value
-                dontRerender view, ->
-                  block = opts.data.getBlockNamed name
-                  if block.local then opts.setLocalData name, data
-                  else
-                    if !opts.hasCollaborativeCode 'viewBoundSet'
-                      opts.registerCollaborativeCode 'viewBoundSet', (name, data)->
-                        opts.setData name, data
-                    opts.collaborativeCode.viewBoundSet name, data
+                if input.value != oldValue
+                  oldValue = input.value
+                  data = _.clone opts.data.getYaml(opts.data.getBlockNamed name), true
+                  setter data, input.value
+                  start = input.selectionStart
+                  end = input.selectionEnd
+                  dontRerender view, -> dontRerender parent[0], ->
+                    block = opts.data.getBlockNamed name
+                    if block.local then opts.setLocalData name, data
+                    else
+                      if !opts.hasCollaborativeCode 'viewBoundSet'
+                        opts.registerCollaborativeCode 'viewBoundSet', (context, name, data)->
+                          opts.setData name, data
+                      preserveSelection -> opts.collaborativeCode.viewBoundSet name, data
 
-      renderView = (type, contextName, data, targets, block, blockName)->
+      renderView = (type, contextName, data, targets, block, blockName, addIds)->
+        if !block && root.context?.currentBlock?.yaml == data
+          block = root.context?.currentBlock
         blockName = blockName ? block?.codeName
         isTop = !root.context?.topView
         requestedKey = key = viewKey type, contextName
@@ -182,7 +189,7 @@ choose a handlebars template.
           contextName: contextName
         if isTop
           settings.subviews = {}
-          if block then settings.subviews[block._id] = true
+        if block then settings?.subviews[block._id] = true
         attrs = "data-view='#{key}' data-requested-view='#{requestedKey}'"
         classAttr = 'view'
         for attr, value of root.context.viewAttrs ? {}
@@ -200,12 +207,14 @@ choose a handlebars template.
               root.context.data = data
               if block then root.context.block = block
               if isTop then root.context.topView = node
+              id = node.id
               html = runTemplate template, data, data: root.context
               if isTop then attrs += " data-ids='#{_.keys(settings.subviews).join ' '}'"
               n = $("<span #{attrs}>#{html}</span>")
+              n[0].id = id
               $(node).replaceWith n
               root.context.opts.editor.activateScripts n, root.context
-        else mergeContext settings, -> simpleRenderView attrs, key, template, data, block
+        else mergeContext settings, -> simpleRenderView attrs, key, template, data, block, addIds
 
       runTemplate = (template, args...)->
         try

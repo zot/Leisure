@@ -20,7 +20,7 @@ Leisure tools for Atom.  This is to be run in an iframe as a namespace so that A
         acorn: 'lib/acorn-2.0.5'
         acorn_loose: 'lib/acorn_loose-2.0.5'
         acorn_walk: 'lib/acorn_walk-2.0.5'
-        immutable: 'lib/immutable-3.7.4.min'
+        immutable: 'lib/immutable-3.8.1.min'
         handlebars: 'lib/handlebars-v4.0.5'
         sockjs: 'lib/sockjs-1.0.0.min'
 
