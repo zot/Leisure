@@ -58,7 +58,7 @@ Iteration/filtering:
 
 #+BEGIN_SRC leisure
 do
-  p <- run getData 'player-ui'
+  p <- run getLocalData 'player-ui'
   print p
 #+END_SRC
 
@@ -82,8 +82,17 @@ do
 :end:
 * SCRATCH
 :properties:
-:hidden: true
+:hidden: trueX
 :end:
+
+#+BEGIN_SRC leisure
+bubber env a b = print["Bubba:" a ", " b]
+registerCollaborative 'bubba' bubber
+#+END_SRC
+
+#+BEGIN_SRC leisure
+bubba 1 2
+#+END_SRC
 
 #+BEGIN_SRC leisure :results dynamic
 getData 'roll-count'
@@ -99,7 +108,7 @@ selectionList sel = map (\el . [(afetch 'size' el) | (afetch 'selected' el)]) se
 roll = do
   #debug
   print 'ROLL'
-  player <- run getData 'player-ui'
+  player <- run getLocalData 'player-ui'
   print['Player: ' player]
   selections = selectionList (afetch 'selections' player)
   result <- do
@@ -112,35 +121,55 @@ roll = do
     {'size':size 'value':(ceil valueRand * size) 'angle':(floor angleRand * 24)}
   print['roll: ' result]
   #debug
-  changeData
-    count <- run getData 'roll-count'
-    print['Count: ' count]
-    nextCount = (assoc 'count' count id nil) + 1
-    print['Next Count: ' nextCount ' (' (assoc 'count' count) ' + 1)']
-    setData 'roll-count' {'count' : nextCount}
-    newRoll = {'type':'roll' 'number':nextCount 'player':(afetch 'player' player) 'roll':result}
-    appendDataWithAttrs 'rolls' nil ':flowLevel 3 :index rolls number' newRoll
+  addRollRecord player result
+
+addRollRecordImpl env player rollRecord = do
+  #debug
+  print['Adding roll record...']
+  count <- run getData 'roll-count'
+  print['Count: ' count]
+  nextCount = (assoc 'count' count id nil) + 1
+  print['Next Count: ' nextCount ' (' (assoc 'count' count) ' + 1)']
+  setData 'roll-count' {'count' : nextCount}
+  newRoll = {'type':'roll' 'number':nextCount 'player':(afetch 'player' player) 'roll':rollRecord}
+  appendDataWithAttrs 'rolls' nil ':flowLevel 3 :index rolls number' newRoll
+
+registerCollaborative 'addRollRecord' addRollRecordImpl
 
 playerLens = lensBuilder lensKey 'player'
 
 checkPlayer = do
   js['console.log("checking player")']
-  player <- run getData 'player-ui'
+  player <- run getLocalData 'player-ui'
   js["console.log('player: " (show player) "')"]
   playerId = playerLens lensGet player
   isNil playerId
+    askForPlayer player
+    createPlayer (strSubstring playerId (strLen 'player-') (strLen playerId)) playerId
+
+askForPlayer player = do
   name <- run prompt 'Player id?'
   js['$(body).addClass("inactive")']
-  changeData
-    playerName = concat['player-' name]
-    setData 'player-ui' (playerLens lensSet player playerName)
-    current <- getData playerName
-    isNone current
-    appendDataWithAttrs 'PlayerData' playerName ':flowLevel 3 :index players name' {"type":"player" "name":name}
+  playerName = concat['player-' name]
+  setLocalData 'player-ui' (playerLens lensSet player playerName)
+  js["console.log('1')"]
+  createPlayer name playerName
 
-reset = changeData
-  player <- run getData 'player-ui'
-  setData 'player-ui' (lensBuilder lensKey 'selections' lensSet player [{'size':4 'selected':0}{'size':6 'selected':0}{'size':8 'selected':0}{'size':10 'selected':0}{'size':12 'selected':0}])
+createPlayerImpl env name playerName = do
+  current <- getData playerName
+  js["console.log('2')"]
+  print['current player: ' current]
+  js["console.log('3')"]
+  isNone current
+  js["console.log('4')"]
+  appendDataWithAttrs 'PlayerData' playerName ':flowLevel 3 :index players name' {"type":"player" "name":name}
+  js["console.log('5')"]
+
+registerCollaborative 'createPlayer' createPlayerImpl
+
+reset = do
+  player <- run getLocalData 'player-ui'
+  setLocalData 'player-ui' (lensBuilder lensKey 'selections' lensSet player [{'size':4 'selected':0}{'size':6 'selected':0}{'size':8 'selected':0}{'size':10 'selected':0}{'size':12 'selected':0}])
 
 rollAndReset = do
   roll
@@ -152,7 +181,7 @@ rollAndReset = do
 :end:
 
 #+BEGIN_SRC leisure :results def
-changeData (player <- run getData 'player-ui') (print player)
+do (player <- run getLocalData 'player-ui') (print player)
 #+END_SRC
 * Data functions
 :properties:
@@ -164,9 +193,9 @@ lastBlockId = js["$('[data-shared]').last()[0].id"]
 
 sel = lensBuilder lensKey 'selections'
 
-select size count = changeData
+select size count = do
   print ['LEISURE SELECT ' size count]
-  data <- run getData 'player-ui'
+  data <- run getLocalData 'player-ui'
   setSelected sel data (number size) (number count)
 
 notNil = compose not isNil
@@ -175,7 +204,7 @@ setSelected sel data size count = do
   notNil (sel lensGet data)
   h = sel lensHead
   (h lensKey 'size' lensGet data) == size
-    setData 'player-ui' (h lensKey 'selected' lensSet data count)
+    setLocalData 'player-ui' (h lensKey 'selected' lensSet data count)
     setSelected (sel lensTail) data size count
 #+END_SRC
 
@@ -240,7 +269,6 @@ window.selectDie = (e)->
 
 @initializeView = (view)->
   fancyEnv.opts = Leisure.UI.context.opts
-  #debugger
   holder = $(view).closest("[data-org-headline='1']")
   holder.attr 'game', ''
   h = $(holder).find("[data-view='player-ui/name']")?[0].offsetTop ? 0
@@ -427,7 +455,9 @@ label {
 #debug
 checkPlayer
 do
-  player <- run getData 'player-ui'
+  print['getting player']
+  player <- run getLocalData 'player-ui'
+  print['Current player record: ' player]
   js['console.log("Current player: ' (playerLens lensGet player) '")']
   js["Leisure.findEditor($('[maindoc]')[0]).options.hideToolbar()"]
   js["$('[name=p2pHost]').val('textcraft.org:1999')"]

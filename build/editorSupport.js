@@ -956,7 +956,9 @@
             addController(vt, null, controller, isDefault);
             env = this.env(newBlock.language);
             controller.__proto__ = env;
-            controller.executeBlock(newBlock);
+            setLounge(env, function() {
+              return controller.executeBlock(newBlock);
+            });
             return controller.__proto__ = null;
           }
         }
@@ -1521,126 +1523,10 @@
         return initializePendingViews();
       };
 
-      OrgEditing.prototype.changeData = function(replaceFunc) {
-        return new Promise((function(_this) {
-          return function(succeed, fail) {
-            if (_this.pendingDataChanges) {
-              return _this.pendingDataChanges.push(function() {
-                return _this.executeDataChange(replaceFunc, succeed, fail);
-              });
-            } else {
-              _this.pendingDataChanges = [];
-              return _this.executeDataChange(replaceFunc, succeed, fail);
-            }
-          };
-        })(this));
-      };
-
       OrgEditing.prototype.verifyDataObject = function(opType, obj) {
-        if (typeof obj !== 'object') {
-          throw new Error("Attempt to " + opType + " value that is not an object.");
-        }
-      };
-
-      OrgEditing.prototype.executeDataChange = function(replaceFunc, succeed, fail) {
-        var dataChanges, result;
-        dataChanges = null;
-        result = null;
-        return this.batchReplace(((function(_this) {
-          return function() {
-            var b, block, name, parent, parentType, ref, ref1, ref2, repls;
-            dataChanges = _this.dataChanges = {
-              anonymousInsertCount: 0,
-              sharedRemoves: {},
-              sharedInserts: {},
-              sharedSets: {},
-              localRemoves: {},
-              localSets: {}
-            };
-            try {
-              result = replaceFunc();
-              repls = [];
-              for (name in _this.dataChanges.sharedRemoves) {
-                b = _this.blockBounds(name);
-                b.text = '';
-                b.source = 'code';
-                repls.push(b);
-              }
-              ref = _this.dataChanges.sharedInserts;
-              for (name in ref) {
-                ref1 = ref[name], parent = ref1.parent, parentType = ref1.parentType, block = ref1.block;
-                if (b = _this.blockBounds((parentType === 'block' ? parent : _this.data.lastChild(_this.data.getNamedBlockId(parent))))) {
-                  repls.push({
-                    start: b.end,
-                    end: b.end,
-                    source: 'code',
-                    text: block.text
-                  });
-                } else {
-                  throw new Error("Attempt to append a block after nonexistant block: " + parent);
-                }
-              }
-              ref2 = _this.dataChanges.sharedSets;
-              for (name in ref2) {
-                block = ref2[name];
-                b = _this.blockBounds(name);
-                b.text = block.text;
-                b.source = 'code';
-                repls.push(b);
-              }
-              return repls;
-            } finally {
-              _this.dataChanges = null;
-            }
-          };
-        })(this)), ((function(_this) {
-          return function() {
-            var block, blocks, name, ref;
-            for (name in dataChanges.localRemoves) {
-              _this.data.deleteLocalBlock(name);
-            }
-            ref = dataChanges.localSets;
-            for (name in ref) {
-              block = ref[name];
-              _this.data.storeLocalBlock(block);
-            }
-            if (!_.isEmpty(dataChanges.localSets)) {
-              blocks = (function() {
-                var ref1, results1;
-                ref1 = dataChanges.localSets;
-                results1 = [];
-                for (name in ref1) {
-                  block = ref1[name];
-                  results1.push((block._id = this.data.getNamedBlockId(name), block));
-                }
-                return results1;
-              }).call(_this);
-              _this.changed({
-                oldBlocks: [],
-                newBlocks: blocks
-              });
-            }
-            succeed(result);
-            return _this.nextDataChange();
-          };
-        })(this)), (function(_this) {
-          return function(e) {
-            if (e.retryOK) {
-              return _this.executeDataChange(replaceFunc, succeed, fail);
-            } else {
-              fail(e);
-              return _this.nextDataChange();
-            }
-          };
-        })(this));
-      };
-
-      OrgEditing.prototype.nextDataChange = function() {
         var ref;
-        if ((ref = this.pendingDataChanges) != null ? ref.length : void 0) {
-          return this.pendingDataChanges.shift()();
-        } else {
-          return this.pendingDataChanges = null;
+        if (!((ref = typeof obj) === 'object' || ref === 'string' || ref === 'number' || ref === 'boolean')) {
+          throw new Error("Attempt to " + opType + " value that is not an object.");
         }
       };
 
@@ -1661,12 +1547,6 @@
         }
       };
 
-      OrgEditing.prototype.checkChanging = function() {
-        if (!this.dataChanges) {
-          throw new Error("Attempt to access data outside of a change block");
-        }
-      };
-
       OrgEditing.prototype.appendDataToHeadline = function(parent, name, value, codeOpts) {
         return this.appendData('headline', parent, name, value, codeOpts);
       };
@@ -1676,62 +1556,93 @@
       };
 
       OrgEditing.prototype.appendData = function(parentType, parent, name, value, codeOpts) {
-        this.checkChanging();
-        this.verifyDataObject("append", value);
+        var b, block;
+        block = this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0];
+        this.checkCollaborating(block);
         if (name && this.getData(name)) {
           throw new Error("Attempt to add block with duplicate name: " + name);
         }
-        return this.dataChanges.sharedInserts[name || ("#+" + (this.dataChanges.anonymousInsertCount++) + "+#")] = {
-          parentType: parentType,
-          parent: parent,
-          block: this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0]
-        };
+        if (b = this.blockBounds((parentType === 'block' ? parent : this.data.lastChild(this.data.getNamedBlockId(parent))))) {
+          return this.data.replaceText({
+            start: b.end,
+            end: b.end,
+            source: 'code',
+            text: block.text
+          });
+        } else {
+          throw new Error("Attempt to append a block after nonexistant block: " + parent);
+        }
+      };
+
+      OrgEditing.prototype.getLocalData = function(name) {
+        var block;
+        if (block = this.data.getBlockNamed(name)) {
+          if (!block.local) {
+            throw new Error("Attempt to use getLocalData with a shared block");
+          }
+          return this.data.getYaml(block);
+        }
       };
 
       OrgEditing.prototype.getData = function(name, skipCheck) {
-        var block, info;
-        if (!skipCheck) {
-          this.checkChanging();
+        var block;
+        if (block = this.data.getBlockNamed(name)) {
+          if (!skipCheck) {
+            this.checkCollaborating(block);
+          }
+          return this.data.getYaml(block);
         }
-        block = skipCheck && !this.dataChanges ? this.data.getBlockNamed(name) : this.dataChanges.localRemoves[name] || this.dataChanges.sharedRemoves[name] ? null : (block = this.dataChanges.localSets[name] || this.dataChanges.sharedSets[name]) ? block : (info = this.dataChanges.sharedInserts[name]) ? info.block : this.data.getBlockNamed(name);
-        return block && (this.data.getYaml(block));
+      };
+
+      OrgEditing.prototype.setLocalData = function(name, value, codeOpts) {
+        var block;
+        if (!(block = this.data.getBlockNamed(name))) {
+          throw new Error("No block named " + name);
+        }
+        if (!block.local) {
+          throw new Error("Attempt to use setLocalData with a shared block");
+        }
+        return this.baseSetData(name, block, value, codeOpts);
       };
 
       OrgEditing.prototype.setData = function(name, value, codeOpts) {
-        var block, newBlock, ref;
-        this.checkChanging();
-        this.verifyDataObject("set " + name + " to ", value);
-        if (this.dataChanges.sharedRemoves[name]) {
-          delete this.dataChanges.sharedRemoves[name];
-        }
-        if (this.dataChanges.localRemoves[name]) {
-          delete this.dataChanges.localRemoves[name];
-        }
+        var block;
         if (!(block = this.data.getBlockNamed(name))) {
           throw new Error("No block named " + name);
+        }
+        this.checkCollaborating(block);
+        return this.baseSetData(name, block, value, codeOpts);
+      };
+
+      OrgEditing.prototype.baseSetData = function(name, block, value, codeOpts) {
+        var b, newBlock, ref;
+        this.verifyDataObject("set " + name + " to ", value);
+        codeOpts = _.merge({}, (ref = block.codeAttributes) != null ? ref : {}, codeOpts != null ? codeOpts : {});
+        newBlock = this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0];
+        newBlock._id = block._id;
+        if (newBlock.local) {
+          return this.data.storeLocalBlock(newBlock);
         } else {
-          codeOpts = _.merge({}, (ref = block.codeAttributes) != null ? ref : {}, codeOpts != null ? codeOpts : {});
-          newBlock = this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0];
-          newBlock._id = block._id;
-          if (block.local && this.getData(name)) {
-            return this.dataChanges.localSets[name] = newBlock;
-          } else {
-            return this.dataChanges.sharedSets[name] = newBlock;
-          }
+          b = this.blockBounds(name);
+          b.text = block.text;
+          b.source = 'code';
+          return this.data.replaceText(b);
         }
       };
 
       OrgEditing.prototype.removeData = function(name) {
-        var block;
-        this.checkChanging();
+        var b, block;
         if (!(block = this.data.getBlockNamed(name))) {
           throw new Error("No block named " + name);
-        } else {
-          if (block.local) {
-            this.dataChanges.localRemoves[name] = true;
-          }
-          return this.dataChanges.sharedRemoves[name] = true;
         }
+        this.checkCollaborating();
+        if (block.local) {
+          this.dataChanges.localRemoves[name] = true;
+        }
+        b = this.blockBounds(name);
+        b.text = '';
+        b.source = 'code';
+        return this.data.replaceText(b);
       };
 
       OrgEditing.prototype.changed = function(changes) {
@@ -2326,6 +2237,10 @@
         return replaceResult(this, this.data, block, str);
       };
 
+      OrgEditing.prototype.hasCollaborativeCode = function(name) {
+        return this.collaborativeCode[name];
+      };
+
       OrgEditing.prototype.registerCollaborativeCode = function(name, func) {
         this.collaborativeCode[name] = (function(_this) {
           return function() {
@@ -2342,6 +2257,7 @@
           return function(succeed, fail) {
             var code, err, error1;
             try {
+              _this.inCollaboration = true;
               if (code = _this.collaborativeBase[name]) {
                 return succeed(code.apply(null, [{
                   options: _this,
@@ -2352,7 +2268,9 @@
               }
             } catch (error1) {
               err = error1;
-              return fail(err.stack);
+              return fail(err);
+            } finally {
+              _this.inCollaboration = false;
             }
           };
         })(this));
@@ -2360,6 +2278,14 @@
 
       OrgEditing.prototype.doCollaboratively = function(name, args) {
         return this._runCollaborativeCode(name, null, args);
+      };
+
+      OrgEditing.prototype.checkCollaborating = function(optBlock) {
+        if (optBlock != null ? optBlock.local : void 0) {
+          throw new Error("Attempt to use local block in collaborative code");
+        } else if (!this.inCollaboration) {
+          throw new Error("Not running collboartively");
+        }
       };
 
       return OrgEditing;
