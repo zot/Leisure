@@ -291,7 +291,8 @@ This is template that defines how the dice log displays.  See the dice log for m
 <table>
   <tr><td><label class='playerLabel'>{{{view player}}}:</label></td>
   <td><div class='roll'>{{#each roll}}
-    <img src="images/d{{size}}-{{value}}-{{angle}}.png">
+    <!--img src="images/d{{size}}-{{value}}-{{angle}}.png"-->
+    <img src="http://zot.github.io/Leisure/demo/dice/images/d{{size}}-{{value}}-{{angle}}.png">
   {{/each}}</div></td></tr>
 </table>
 #+END_SRC
