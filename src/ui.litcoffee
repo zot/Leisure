@@ -169,9 +169,6 @@ choose a handlebars template.
                     block = opts.data.getBlockNamed name
                     if block.local then opts.setLocalData name, data
                     else
-                      if !opts.hasCollaborativeCode 'viewBoundSet'
-                        opts.registerCollaborativeCode 'viewBoundSet', (context, name, data)->
-                          opts.setData name, data
                       preserveSelection -> opts.collaborativeCode.viewBoundSet name, data
 
       renderView = (type, contextName, data, targets, block, blockName, addIds)->

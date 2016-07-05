@@ -30,7 +30,7 @@
   requirejs = require('requirejs').config({
     baseUrl: baseDir,
     paths: {
-      immutable: 'lib/immutable-3.7.4.min'
+      immutable: 'lib/immutable-3.8.1.min.js'
     }
   });
 

@@ -891,6 +891,7 @@
       fancyEditDiv = (div, data)->
         options = new OrgEditing(data).setMode fancyMode
         options.registerCollaborativeCode 'doSlideValue', doSlideValue
+        options.registerCollaborativeCode 'viewBoundSet', (context, name, data)-> opts.setData name, data
         new LeisureEditCore $(div), options
 
       prismAliases =
