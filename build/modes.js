@@ -1238,6 +1238,9 @@
       var options;
       options = new OrgEditing(data).setMode(fancyMode);
       options.registerCollaborativeCode('doSlideValue', doSlideValue);
+      options.registerCollaborativeCode('viewBoundSet', function(context, name, data) {
+        return opts.setData(name, data);
+      });
       return new LeisureEditCore($(div), options);
     };
     prismAliases = {

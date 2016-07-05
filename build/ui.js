@@ -217,11 +217,6 @@
                     if (block.local) {
                       return opts.setLocalData(name, data);
                     } else {
-                      if (!opts.hasCollaborativeCode('viewBoundSet')) {
-                        opts.registerCollaborativeCode('viewBoundSet', function(context, name, data) {
-                          return opts.setData(name, data);
-                        });
-                      }
                       return preserveSelection(function() {
                         return opts.collaborativeCode.viewBoundSet(name, data);
                       });
