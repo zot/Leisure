@@ -3,7 +3,7 @@
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], (Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree)->
+    define ['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], (Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1)->
       {
         defaultEnv
         CodeContext
@@ -83,6 +83,9 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       {
         Promise
       } = Bluebird
+      {
+        shouldTangle
+      } = Tangle
 
       selectionActive = true
       headlineRE = /^(\*+ *)(.*)(\n)$/
@@ -116,6 +119,7 @@ and previousSibling ids to indicate the tree structure of the org document
           @initializeLocalData()
           @pendingEvals = []
           @importPromise = Promise.resolve()
+          @tangles = {}
         change: (changes)->
           ch = @makeChange changes
           @trigger 'change', ch
@@ -149,11 +153,10 @@ same names for blocks other than printing a warning.
 
           @importedData = {}
           @importRecords =
-          data: {}
-          view: {}
-          controller: {}
-          importedFiles: {}
-          @tangles = {}
+            data: {}
+            view: {}
+            controller: {}
+            importedFiles: {}
           transaction(@localDocumentId()).getAll().then (allData)=>
             @localBlocks = _.keyBy allData, '_id'
             deletes = []
@@ -199,7 +202,6 @@ Let's just call this poetic license for the time being...
               source: 'load'
             @initializeLocalData()
             @loading = true
-            @tangles = {}
             @suppressTriggers => super name, text
             for filter in @filters
               filter.clear this
@@ -214,6 +216,21 @@ Let's just call this poetic license for the time being...
               @checkChange null, block
             @scheduleEvals().then => @trigger 'load'
             @loading = false
+        loadTangles: (tangleText)-> eval tangleText
+        addTangle: (block, code)->
+          console.log "ADDING TANGLE: #{block.hash}"
+          @tangles[block.hash] = code ? block
+        hasTangle: (block)-> @getTangle block
+        getTangle: (block)-> @tangles[block.hash ? block.hash = SHA1.hash block.text]
+        tangleAddData: (block, data)->
+          @addTangle block
+          if block.codeName then @importedData[block.codeName] = block
+        tangleAddView: (block, code)->
+          @addTangle block
+          @checkViewChange null, block, true
+        tangleAddController: (block, code)-> @addTangle block, code
+        tangleAddObserver: (block, code)-> @addTangle block, code
+        tangleAddDef: (block, code)-> @addTangle block, code
         setBlock: (id, block)->
           @makeChanges =>
             @runFilters @getBlock(id), block
@@ -371,15 +388,6 @@ that must be done regardless of the source of changes
             if p instanceof Promise then p else Promise.resolve()
           else @importPromise.then => func()
         scheduleEvals: -> @runOnImport =>
-          promises = for lang, entry of @tangles
-            [opts, code] = entry
-            oldOpts = defaultEnv.opts
-            defaultEnv.opts = opts
-            p = new Promise (resolve, reject)=>
-              @executeText lang, code, (x)-> resolve x
-            defaultEnv.opts = oldOpts
-            p
-          @tangles = {}
           e = @pendingEvals
           @pendingEvals = []
           for func in e
@@ -401,7 +409,6 @@ that must be done regardless of the source of changes
                     if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
               for k of blocked
                 @running[k] = oldRunning[k]
-          Promise.all promises
         triggerUpdate: (channelKeys..., block)->
           if items = @observers.get channelKeys...
             for id, v of items
@@ -432,13 +439,7 @@ that must be done regardless of the source of changes
               @setBlockName newName, newBlock._id, isDefault
           if isDefault && newName then @imported.data[newBlock._id] = newBlock
           if oldBlock?.local && !newBlock?.local then @deleteLocalBlock oldName
-          if @loading && newBlock?.codeAttributes?.tangle?.toLowerCase() == 'yes'
-            {source} = blockCodeItems this, newBlock
-            lang = newBlock.language.toLowerCase()
-            if !@tangles[lang]
-              @tangles[lang] = [defaultEnv.opts, '']
-            @tangles[lang][1] += source.content
-          else if (resultType = newBlock?.codeAttributes?.results?.toLowerCase() == 'def') || (resultType = newBlock?.codeAttributes?.observe? && 'observe')
+          if (resultType = newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'web']) || (resultType = newBlock?.codeAttributes?.observe? && 'observe')
             opts = defaultEnv.opts
             @queueEval =>
               oldOpts = defaultEnv.opts
@@ -541,25 +542,22 @@ that must be done regardless of the source of changes
               addController vt, null, controller, isDefault
               env = @env newBlock.language
               controller.__proto__ = env
-              setLounge env, -> controller.executeBlock newBlock
+              setLounge env, => @getCode(newBlock).call controller
               controller.__proto__ = null
-        executeBlock: (block, envConf)->
+        oldExecuteBlock: (block, envConf)->
           @executeText block.language, blockSource(block), null, (env)->
             envConf? env
             if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
               env.silent = true
               env.write = (str)-> console.log str
-        #executeBlock: (block, envConf)->
-        #  res = (block?.codeAttributes?.results?.toLowerCase().split(/\s+/) || [])
-        #  env = @env block.language, (env)->
-        #    if 'silent' in res
-        #      env.silent = true
-        #      env.write = ->
-        #      else if 'def' in res
-        #      env.silent = true
-        #      env.write = (str)-> console.log str
-        #    envConf env
-        #  env.executeBlock this, block, Nil, ->
+        executeBlock: (block, envConf)->
+          env = @env block.language, (env)->
+            envConf? env
+            if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'web', 'silent']
+              env.silent = true
+              env.write = (str)-> console.log str
+          if code = @getCode block then setLounge env, code
+          else @oldExecuteBlock block, envConf
         env: (language, envConf)->
           if env = languageEnvMaker(language)?(__proto__: defaultEnv)
             env.data = this
@@ -622,18 +620,25 @@ that must be done regardless of the source of changes
               firstResult = results.text.indexOf('\n') + 1
               safeLoad results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
           else null)
-        getCode: (block)->
+        getCode: (block, env)->
           block = @getBlock block
-          block.code ? block.code = if isText(block) then @addPostProcessing block, (cont)->
-            if cont then cont.call this, [blockSource block]
-            else [blockSource block]
-          else if block.language == 'yaml' then @addPostProcessing block, (cont)->
-            yaml = (!block.computedYaml && block.yaml) || parseYaml blockSource block
-            if cont then cont.call this, [yaml] else [yaml]
-          else if env = @env(block.language) then @addPostProcessing block, env.compileBlock block
+          if block.code then block.code
+          else
+            tangle = @getTangle block
+            code = (if typeof tangle == 'function'
+              console.error "GOT TANGLED CODE", block._id
+              tangle
+            else if isText block then (cont)->
+              if cont then cont.call this, [blockSource block]
+              else [blockSource block]
+            else if block.language == 'yaml' then (cont)->
+              yaml = (!block.computedYaml && block.yaml) || parseYaml blockSource block
+              if cont then cont.call this, [yaml] else [yaml]
+            else if env = env ? @env(block.language) then env.compileBlock block)
+            if code then block.code = @addPostProcessing block, code
         parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, block
         addPostProcessing: (block, func)->
-          if m = block.codeAttributes.post?.match postCallPat
+          if m = block.codeAttributes?.post?.match postCallPat
             [..., blockName, argNames] = m
             argNames = argNames.trim().split '\s*,\s*'
             blockName = blockName.trim()
@@ -1133,8 +1138,6 @@ NMap is a very simple trie.
           env.opts = this
           env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
           env
-        executeText: (language, text, cont)->
-          @env(language).executeText text, Nil, (cont ? (x)-> x)
         executeBlock: (block, envM)->
           if envM = blockEnvMaker block
             {source} = blockCodeItems this, block
@@ -1153,7 +1156,6 @@ NMap is a very simple trie.
               if !sync then opts.update newBlock = setResult block, result
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
             setLounge env, -> env.executeBlock block, Nil, ->
-            #env.executeText source.content, Nil, ->
             sync = false
             newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock
@@ -1207,7 +1209,7 @@ NMap is a very simple trie.
           (t[0] == 'headline' && oldBlock.level != newBlock.level)
 
       setResult = (block, result)->
-        if block?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
+        if block?.codeAttributes?.results?.toLowerCase() in ['def', 'web', 'silent']
           result = ''
         {results} = blockCodeItems this, block
         if !results && (!result? || result == '') then block

@@ -134,8 +134,6 @@ addRollRecordImpl env player rollRecord = do
   newRoll = {'type':'roll' 'number':nextCount 'player':(afetch 'player' player) 'roll':rollRecord}
   appendDataWithAttrs 'rolls' nil ':flowLevel 3 :index rolls number' newRoll
 
-registerCollaborative 'addRollRecord' addRollRecordImpl
-
 playerLens = lensBuilder lensKey 'player'
 
 checkPlayer = do
@@ -152,20 +150,14 @@ askForPlayer player = do
   js['$(body).addClass("inactive")']
   playerName = concat['player-' name]
   setLocalData 'player-ui' (playerLens lensSet player playerName)
-  js["console.log('1')"]
   createPlayer name playerName
 
 createPlayerImpl env name playerName = do
   current <- getData playerName
-  js["console.log('2')"]
   print['current player: ' current]
-  js["console.log('3')"]
   isNone current
-  js["console.log('4')"]
+  js['console.log("CREATING PLAYER ' playerName '")']
   appendDataWithAttrs 'PlayerData' playerName ':flowLevel 3 :index players name' {"type":"player" "name":name}
-  js["console.log('5')"]
-
-registerCollaborative 'createPlayer' createPlayerImpl
 
 reset = do
   player <- run getLocalData 'player-ui'
@@ -180,7 +172,11 @@ rollAndReset = do
 :hidden: true
 :end:
 
-#+BEGIN_SRC leisure :results def
+#+BEGIN_SRC leisure :results web
+registerCollaborative 'addRollRecord' addRollRecordImpl
+
+registerCollaborative 'createPlayer' createPlayerImpl
+
 do (player <- run getLocalData 'player-ui') (print player)
 #+END_SRC
 * Data functions
@@ -450,7 +446,7 @@ label {
 
 #+END_SRC
 
-#+BEGIN_SRC leisure :results def
+#+BEGIN_SRC leisure :results web
 #toggleLeisureBar
 #debug
 checkPlayer

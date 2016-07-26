@@ -1,7 +1,7 @@
 Evaulation support for Leisure
 
     define.amd = true
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lib/lodash.min', './lib/fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = AcornLoose
@@ -21,8 +21,8 @@ Evaulation support for Leisure
         lazy
         defaultEnv
       } = Base
-      window.resolve = rz = resolve
-      window.lazy = lz = lazy
+      (window ? global).resolve = rz = resolve
+      (window ? global).lazy = lz = lazy
       lc = Leisure_call
       {
         runMonad
@@ -41,6 +41,12 @@ Evaulation support for Leisure
       } = Bluebird
       {
         genSource
+        SourceNode
+        sourceNode
+        SourceMapConsumer
+        SourceMapGenerator
+        genMap
+        withFile
       } = Gen
       {
         safeLoad
@@ -55,7 +61,14 @@ Evaulation support for Leisure
       # init
       #########
 
+      generatedFileCount = 0
       defaultEnv.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
+
+      currentGeneratedFileName = -> "notebook-#{generatedFileCount}"
+
+      nextGeneratedFileName = ->
+        generatedFileCount++
+        currentGeneratedFileName()
 
       requirePromise = (file...)-> new Promise (resolve, reject)->
         require file, resolve
@@ -102,7 +115,7 @@ Evaulation support for Leisure
       getRight = (x)-> x(id)(id)
       show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
-      window.evalLeisure = evalLeisure = (str, cont)->
+      (window ? global).evalLeisure = evalLeisure = (str, cont)->
         #console.log "EVAL: \n#{str}"
         env = leisureEnv(__proto__: defaultEnv)
         env.presentValue = (v)-> v
@@ -129,14 +142,60 @@ Evaulation support for Leisure
               leisureExec env, text, props, cont, (err)-> env.errorAt 0, err?.message ? err),
             (err)-> env.errorAt 0, err?.message ? err
         env.createObserver = (blockNames, text, cont)-> throw new Error 'Leisure observers not implemented yet'
+        env.genBlock = (block)-> @generateCode blockSource(block), true
+        env.generateCode = (text, noFunc)-> setLounge this, ->
+          exec = =>
+            leisureExec env, text, L_nil, ((result)->
+              errs = []
+              #asts = _.map result.toArray(), (el)-> el.head()
+              asts = _.map result.toArray(), (el)->
+                if (result = el.tail()(id, id)) && result instanceof Error
+                  errs.push err
+                el.head()
+              if errs.length then throw new Error _.map(errs, (el)-> el.message).join('\n')
+              else withFile (fileName = currentGeneratedFileName()), null, ->
+                codeMap new SourceNode(1, 0, fileName, [
+                  (if !noFunc then '(function(){return ' else []),
+                  'L_runMonads([\n    ',
+                  intersperse(_.map(asts, (item)-> sourceNode item, 'function(){return ', (genMap item), '}'), ',\n    '),
+                  #'\n  ])'
+                  '\n  ])',
+                  (if !noFunc then ';})' else [])
+                ]), text, fileName), (err)-> throw err
+          if getLeisurePromise().isResolved() then exec() else getLeisurePromise().then exec
+        env.compileBlock = (block)-> eval @generateCode(blockSource(block)).code
         env
+
+      codeMap = (sourceNode, content, fileName)->
+        fileName = fileName ? currentGeneratedFileName()
+        cm = sourceNode.toStringWithSourceMap(file: fileName)
+        cm.map.setSourceContent fileName, content
+        cm
+
+      sourceNodeFromCodeMap = (codeMap)-> SourceNode.fromStringWithSourceMap codeMap.code, new SourceMapConsumer codeMap.map.toJSON()
+
+      joinSourceMaps = (args...)-> new SourceNode 1, 0, '', Array.prototype.slice.call args
+
+      composeSourceMaps = (args...)->
+        result = SourceMapGenerator.fromSourceMap new SourceMapConsumer _.last(args)
+        for map in args[..args.length - 2] by -1
+          result.applySourceMap new SourceMapConsumer map
+        result.toJSON()
+
+      intersperse = (array, element)->
+        if array.length < 2 then array
+        else
+          result = [array[0]]
+          for i in [1...array.length]
+            result.push element, array[i]
+          result
 
       leisureExec = (env, text, props, cont, errCont)->
         try
           old = getValue 'parser_funcProps'
           setValue 'parser_funcProps', props
           setLounge env, =>
-            result = rz(L_baseLoadString)('notebook', text)
+            result = rz(L_baseLoadString)(nextGeneratedFileName(), text)
             runMonad2 result, env, (results)->
               runNextResult results, env, (->
                 setValue 'parser_funcProps', old
@@ -189,11 +248,11 @@ Evaulation support for Leisure
       defaultEnv.formatResult = (block, prefix, items)-> basicFormat block, prefix, items
 
       setLounge = (env, func)->
-        oldLounge = window.Lounge
-        window.Lounge = env
+        oldLounge = (window ? global).Lounge
+        (window ? global).Lounge = env
         env.opts = env.opts
         result = func()
-        window.Lounge = oldLounge
+        (window ? global).Lounge = oldLounge
         result
 
       textEnv = (env)->
@@ -212,7 +271,81 @@ Evaulation support for Leisure
             @errorAt 0, err.message
           cont? value
         env.createObserver = (blockNames, text, cont)-> throw new Error 'JavaScript observers not implemented yet'
+        env.generateCode = (text)->
+          fileName = nextGeneratedFileName()
+          cm = codeMap new SourceNode(1, 0, fileName, text), text, fileName
+          nodes = SourceNode.fromStringWithSourceMap text, SourceMapConsumer.fromSourceMap cm
+          (new SourceNode 1, 0, fileName, ['function(){', nodes, '}']).toStringWithSourceMap()
         env
+
+      jsGatherSourceResults = (env, text, map, fileName, src)->
+        if env.silent then text
+        else
+          try
+            parsed = acorn.parse text
+          catch err
+            errNode = null
+            handleErrors acornLoose.parse_dammit(text), (node)-> errNode = node
+            try
+              setLounge env, -> eval text
+            catch err2
+              if errNode
+                env.errorAt Math.min(errNode.start, errNode.end), err2.message
+              else
+                env.errorAt findError(err.message, text), err2.message
+              return 'void 0'
+          oldNodes = sourceNodeTree SourceNode.fromStringWithSourceMap text, map
+          newSource = ['var leisure_results=[];\n']
+          for expr in parsed.body
+            {line, column, source, name} = lineLocationForOffset map, text, expr.start
+            if expr.type == 'ExpressionStatement'
+              expr = expr.expression
+              exprText = text.substring expr.start, expr.end
+              if exprText[exprText.length - 1] == ';'
+                exprText = exprText.substring(0, exprText.length - 1)
+              if (s = new SourceNode(line, column, source, nodesForGeneratedText(oldNodes, expr))).toString() != text.substring expr.start, expr.end
+                console.log "BAD NODES\n#{s.toString()}"
+              newSource.push new SourceNode(line, column, source, ['\nleisure_results.push(', nodesForGeneratedText(oldNodes, expr), ');\n'], name)
+            else newSource.push new SourceNode(line, column, source, [text.substring expr.start, expr.end])
+          {code, map} = new SourceNode(1, 0, fileName, newSource).toStringWithSourceMap()
+          map.setSourceContent fileName, src
+          SourceNode.fromStringWithSourceMap(code, SourceMapConsumer.fromSourceMap map)
+          #new SourceNode 1, 0, fileName, newSource
+
+      sourceNodeTree = (nodes)->
+        entryArray = []
+        nodes.walk (code, node)-> entryArray.push [code, node]
+        FingerTree.fromArray entryArray,
+          measure: (n)-> n[0].length
+          identity: -> 0
+          sum: (a, b)-> a + b
+
+      nodesForGeneratedText = (nodeTree, {start, end})->
+        result = []
+        [preceding, target] = nodeTree.split (m)-> m > start
+        startLen = preceding.measure()
+        if !preceding.isEmpty()
+          [code, node] = preceding.peekLast()
+          result.push sn node, code.substring start - startLen
+        [preceding, target] = target.split (m)-> startLen + m > end
+        if !preceding.isEmpty()
+          for [code, node] in preceding.toArray()
+            result.push sn node, code
+          if !target.isEmpty()
+            endPos = startLen + preceding.measure()
+            [code, node] = target.peekFirst()
+            result.push sn node, code.substring 0, end - endPos
+        result
+
+      sn = ({line, column, source}, code)-> new SourceNode line, column, source, code
+
+      lineLocationForOffset = (map, str, offset)->
+        line = 1
+        pos = -1
+        while (next = str.indexOf '\n', pos + 1) < offset && next != -1
+          pos = next
+          line++
+        map.originalPositionFor {line, column: offset - pos + 1}
 
       jsGatherResults = (env, text, returnResults)->
         try
@@ -258,7 +391,7 @@ Evaulation support for Leisure
           else tot += txt.length + 1
         tot
 
-      walk = window.Walk = (node, func)->
+      walk = (window ? global).Walk = (node, func)->
         v = {}
         for type of acornWalk.base
           v[type] = func
@@ -291,10 +424,12 @@ Evaulation support for Leisure
           cont? values ? []
         env.executeBlock = (block, props, cont)-> @compileBlock(block).call this, cont
         env.compileBlock = (block)->
-          [..., vars, varNames, varMappings] = blockVars @data, block.codeAttributes.var
-          code = @runWith {}, "(function(){#{@blockCode blockSource(block), vars, varNames, varMappings, true}})"
+          fileName = currentGeneratedFileName()
+          [..., vars, varNames, varMappings] = blockVars @data, block.codeAttributes?.var
+          nodes = new SourceNode 1, 0, fileName, ['(function(){', @blockCode(blockSource(block), vars, varNames, varMappings, true, null, fileName, true), '})']
+          code = @runWith {}, jsCodeFor nodes.toStringWithSourceMap()
           (cont, args...)->
-            if this != window
+            if this != (window ? global)
               @ctx = _blocks: {}
               for varName, i in varNames
                 @ctx[varName] = args[i] ? @data.getYaml @data.getBlockNamed varMappings[varName]
@@ -302,7 +437,13 @@ Evaulation support for Leisure
             else debugger
             ret = code.call this
             if cont then cont ret else ret
-        env.blockCode = (src, vars, varNames, varMappings, useReturn)->
+        env.genBlock = (block, vars, varNames, varMappings)->
+          [..., vars, varNames, varMappings] = blockVars @data, block.codeAttributes?.var
+          fileName = nextGeneratedFileName()
+          nodes = new SourceNode 1, 0, fileName, ['(function(){', @blockCode(blockSource(block), vars, varNames, varMappings, false, null, fileName, true), '})']
+          nodes.toStringWithSourceMap()
+        env.blockCode = (src, vars, varNames, varMappings, useReturn, noGather, fileName, sourceNodes)->
+          fileName = fileName ? currentGeneratedFileName()
           vars = vars ? {}
           varNames = varNames ? []
           varMappings = varMappings ? {}
@@ -314,21 +455,34 @@ Evaulation support for Leisure
             else blocks[name] = value
           constStr = ("  if (#{constName} == undefined) #{constName} = #{value};\n" for constName, value of consts).join('')
           blockVarStr = ("  #{varName} = this.ctx.#{varName} || this.data.getYaml(this.data.getBlockNamed('#{value}'));\n" for varName, value of varMappings).join('')
-          if false && @silent then compiledCode = CS.compile src, bare: true
+          {js, v3SourceMap} = CS.compile src,
+            bare: true
+            sourceMap: true
+            sourceFiles: [fileName]
+          smGen = SourceMapGenerator.fromSourceMap new SourceMapConsumer JSON.parse(v3SourceMap)
+          smGen.setSourceContent fileName, src
+          con = SourceMapConsumer.fromSourceMap smGen
+          output = if !noGather && !env.silent
+            [jsGatherSourceResults this, js, con, fileName, src]
           else
-            #sil = @silent
-            #@silent = false
-            compiledCode = jsGatherResults this, CS.compile(src, bare: true)
-            #@silent = sil
-          returns = if env.silent then '' else """
-            #{if useReturn then 'return ' else ''}typeof __cont != 'undefined' ? __cont(leisure_results) : leisure_results;
-          """
-          """
-          #{constStr}#{blockVarStr}
-          #{compiledCode}
-          #{returns}
-          """
+            [SourceNode.fromStringWithSourceMap(js, con)]
+          output.unshift "#{constStr}#{blockVarStr}\n"
+          if !env.silent && !noGather
+            if useReturn then output.push 'return '
+            output.push 'typeof __cont != "undefined" ? __cont(leisure_results) : leisure_results;\n'
+          nodes = new SourceNode 1, 0, fileName, output
+          if sourceNodes then nodes else jsCodeFor nodes.toStringWithSourceMap()
+        env.generateCode = (text)->
+          fileName = currentGeneratedFileName()
+          {js, v3SourceMap} = CS.compile(text, bare: true, sourceMap: true, sourceFiles: [fileName])
+          smGen = SourceMapGenerator.fromSourceMap new SourceMapConsumer JSON.parse(v3SourceMap)
+          smGen.setSourceContent fileName, text
+          nodes = SourceNode.fromStringWithSourceMap js, SourceMapConsumer.fromSourceMap smGen
+          (new SourceNode 1, 0, fileName, ['function(){', nodes, '}']).toStringWithSourceMap()
         env
+
+      jsCodeFor = (codeMap)->
+        "#{codeMap.code}\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify codeMap.map.toJSON()}\n"
 
       indentCode = (str)-> str.replace /\n/g, '\n  '
 
@@ -414,6 +568,13 @@ Evaulation support for Leisure
         evalLeisure
         runLeisureMonad
         setLounge
+        joinSourceMaps
+        codeMap
+        sourceNodeFromCodeMap
+        composeSourceMaps
+        SourceNode
+        SourceMapConsumer
+        SourceMapGenerator
       }
 
       {
@@ -432,4 +593,7 @@ Evaulation support for Leisure
         setLounge
         hasCodeAttribute
         isYamlResult
+        jsCodeFor
+        nextGeneratedFileName
+        getLeisurePromise
       }

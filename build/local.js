@@ -134,7 +134,7 @@
       }
     };
     return $(document).ready(function() {
-      var data, join, load, ref, theme;
+      var data, join, load, ref, tanglePresent, theme;
       runTests();
       installSelectionMenu();
       if (useP2P) {
@@ -164,8 +164,14 @@
         load = new URL(load, document.location).toString();
         ED.options.loadName = load;
         configureLocal(ED.options);
-        $.get(load, function(data) {
-          return ED.options.load(load, data);
+        tanglePresent = false;
+        $.get(load + '.tangle').done(function(content) {
+          tanglePresent = ED.options.data.tangled = true;
+          return ED.options.data.loadTangles(content);
+        }).always(function() {
+          return $.get(load, function(data) {
+            return ED.options.load(load, data);
+          });
         });
       } else {
         configureAtom(ED.options, configureLocal);
@@ -198,7 +204,7 @@
   require(['jquery', 'lib/lodash.min'], function() {
     return require(['acorn', 'acorn_walk'], function() {
       return require(['acorn_loose'], function() {
-        return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport'], init);
+        return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle'], init);
       });
     });
   });

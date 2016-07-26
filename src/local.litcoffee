@@ -145,8 +145,15 @@ Code for local-mode.  This will not be loaded under meteor.
           load = new URL(load, document.location).toString()
           ED.options.loadName = load
           configureLocal ED.options
-          $.get load, (data)->
-            ED.options.load load, data
+          tanglePresent = false
+          $.get(load + '.tangle')
+            .done((content)->
+              tanglePresent = ED.options.data.tangled = true
+              #console.log "Handle tangle:", content
+              ED.options.data.loadTangles content)
+            .always -> $.get load, (data)->
+              #console.log "Tangle present: ", tanglePresent
+              ED.options.load load, data
         else configureAtom ED.options, configureLocal
         if theme then ED.options.setTheme theme
         if join
@@ -257,4 +264,4 @@ Code for local-mode.  This will not be loaded under meteor.
 
     require ['jquery', 'lib/lodash.min'], -> require ['acorn', 'acorn_walk'], -> require ['acorn_loose'], ->
       #require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init
-      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport'], init
+      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle'], init

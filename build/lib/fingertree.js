@@ -535,6 +535,10 @@
         return this.force().toJSON();
       };
 
+      DelayedFingerTree.prototype.toArray = function() {
+        return this.force().toArray();
+      };
+
       return DelayedFingerTree;
 
     })();

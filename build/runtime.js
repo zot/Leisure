@@ -678,13 +678,11 @@ misrepresented as being the original software.
 
     })();
     (typeof global !== "undefined" && global !== null ? global : window).L_runMonads = function(array, env) {
-      return new Promise(function(resolve, reject) {
-        return runMonad2(array.slice().reverse().reduce(function(result, element) {
-          return bind(element, lz(function(x) {
-            return rz(result);
-          }));
-        }), env != null ? env : root.defaultEnv, resolve);
-      });
+      return runMonad2(array.slice().reverse().reduce(function(result, element) {
+        return bind(element, lz(function(x) {
+          return rz(result);
+        }));
+      }), env != null ? env : root.defaultEnv, resolve);
     };
     ensureLeisureClass('unit');
     Leisure_unit = (function(superClass) {
@@ -765,10 +763,27 @@ misrepresented as being the original software.
       };
     } else {
       (typeof window !== "undefined" && window !== null ? window : global).runMonad2 = runMonad2 = function(monad, env, cont) {
-        if (monad instanceof Monad2) {
-          return monad.cmd(env, cont);
-        } else if (isMonad(monad)) {
-          return monad.cmd(env, cont);
+        var promiseSucceed, r, result, sync;
+        if ((monad instanceof Monad2) || isMonad(monad)) {
+          sync = false;
+          promiseSucceed = null;
+          r = null;
+          result = monad.cmd(env, function(res) {
+            sync = true;
+            r = cont(res);
+            if (promiseSucceed) {
+              return promiseSucceed(r);
+            } else {
+              return r;
+            }
+          });
+          if (sync) {
+            return r;
+          } else {
+            return new Promise(function(succeed, fail) {
+              return promiseSucceed = succeed;
+            });
+          }
         } else {
           return cont(monad);
         }

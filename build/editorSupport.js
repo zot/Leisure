@@ -5,8 +5,8 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     slice1 = [].slice;
 
-  define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', './lib/fingertree'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree) {
-    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+  define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
+    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock;
@@ -20,6 +20,7 @@
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
     Map = Immutable.Map, Set = Immutable.Set;
     Promise = Bluebird.Promise;
+    shouldTangle = Tangle.shouldTangle;
     selectionActive = true;
     headlineRE = /^(\*+ *)(.*)(\n)$/;
     documentParams = null;
@@ -51,6 +52,7 @@
         this.initializeLocalData();
         this.pendingEvals = [];
         this.importPromise = Promise.resolve();
+        this.tangles = {};
       }
 
       OrgData.prototype.change = function(changes) {
@@ -111,7 +113,6 @@
           controller: {},
           importedFiles: {}
         };
-        this.tangles = {};
         return transaction(this.localDocumentId()).getAll().then((function(_this) {
           return function(allData) {
             var deletes, j, len, name, results1;
@@ -202,7 +203,6 @@
             };
             _this.initializeLocalData();
             _this.loading = true;
-            _this.tangles = {};
             _this.suppressTriggers(function() {
               return OrgData.__super__.load.call(_this, name, text);
             });
@@ -239,6 +239,48 @@
             return _this.loading = false;
           };
         })(this));
+      };
+
+      OrgData.prototype.loadTangles = function(tangleText) {
+        return eval(tangleText);
+      };
+
+      OrgData.prototype.addTangle = function(block, code) {
+        console.log("ADDING TANGLE: " + block.hash);
+        return this.tangles[block.hash] = code != null ? code : block;
+      };
+
+      OrgData.prototype.hasTangle = function(block) {
+        return this.getTangle(block);
+      };
+
+      OrgData.prototype.getTangle = function(block) {
+        var ref;
+        return this.tangles[(ref = block.hash) != null ? ref : block.hash = SHA1.hash(block.text)];
+      };
+
+      OrgData.prototype.tangleAddData = function(block, data) {
+        this.addTangle(block);
+        if (block.codeName) {
+          return this.importedData[block.codeName] = block;
+        }
+      };
+
+      OrgData.prototype.tangleAddView = function(block, code) {
+        this.addTangle(block);
+        return this.checkViewChange(null, block, true);
+      };
+
+      OrgData.prototype.tangleAddController = function(block, code) {
+        return this.addTangle(block, code);
+      };
+
+      OrgData.prototype.tangleAddObserver = function(block, code) {
+        return this.addTangle(block, code);
+      };
+
+      OrgData.prototype.tangleAddDef = function(block, code) {
+        return this.addTangle(block, code);
       };
 
       OrgData.prototype.setBlock = function(id, block) {
@@ -602,29 +644,7 @@
       OrgData.prototype.scheduleEvals = function() {
         return this.runOnImport((function(_this) {
           return function() {
-            var code, e, entry, func, j, lang, len, oldOpts, opts, p, promises;
-            promises = (function() {
-              var ref, results1;
-              ref = this.tangles;
-              results1 = [];
-              for (lang in ref) {
-                entry = ref[lang];
-                opts = entry[0], code = entry[1];
-                oldOpts = defaultEnv.opts;
-                defaultEnv.opts = opts;
-                p = new Promise((function(_this) {
-                  return function(resolve, reject) {
-                    return _this.executeText(lang, code, function(x) {
-                      return resolve(x);
-                    });
-                  };
-                })(this));
-                defaultEnv.opts = oldOpts;
-                results1.push(p);
-              }
-              return results1;
-            }).call(_this);
-            _this.tangles = {};
+            var e, func, j, len;
             e = _this.pendingEvals;
             _this.pendingEvals = [];
             for (j = 0, len = e.length; j < len; j++) {
@@ -632,8 +652,8 @@
               func();
             }
             if (!_.isEmpty(_this.pendingObserves)) {
-              _this.allowObservation(function() {
-                var block, blockId, blocked, k, obs, oldRunning, ref, results1;
+              return _this.allowObservation(function() {
+                var block, blockId, blocked, k, obs, oldRunning, p, ref, results1;
                 blocked = {};
                 oldRunning = {};
                 while (!_.isEmpty(_this.pendingObserves)) {
@@ -663,7 +683,6 @@
                 return results1;
               });
             }
-            return Promise.all(promises);
           };
         })(this));
       };
@@ -715,7 +734,7 @@
       };
 
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
-        var lang, newName, oldName, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, resultType, source;
+        var newName, oldName, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, resultType;
         if (newBlock && this.running[newBlock._id]) {
           return;
         }
@@ -735,14 +754,7 @@
         if ((oldBlock != null ? oldBlock.local : void 0) && !(newBlock != null ? newBlock.local : void 0)) {
           this.deleteLocalBlock(oldName);
         }
-        if (this.loading && (newBlock != null ? (ref4 = newBlock.codeAttributes) != null ? (ref5 = ref4.tangle) != null ? ref5.toLowerCase() : void 0 : void 0 : void 0) === 'yes') {
-          source = blockCodeItems(this, newBlock).source;
-          lang = newBlock.language.toLowerCase();
-          if (!this.tangles[lang]) {
-            this.tangles[lang] = [defaultEnv.opts, ''];
-          }
-          return this.tangles[lang][1] += source.content;
-        } else if ((resultType = (newBlock != null ? (ref6 = newBlock.codeAttributes) != null ? (ref7 = ref6.results) != null ? ref7.toLowerCase() : void 0 : void 0 : void 0) === 'def') || (resultType = ((newBlock != null ? (ref8 = newBlock.codeAttributes) != null ? ref8.observe : void 0 : void 0) != null) && 'observe')) {
+        if ((resultType = (ref4 = newBlock != null ? (ref5 = newBlock.codeAttributes) != null ? (ref6 = ref5.results) != null ? ref6.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref4 === 'web') || (resultType = ((newBlock != null ? (ref7 = newBlock.codeAttributes) != null ? ref7.observe : void 0 : void 0) != null) && 'observe')) {
           opts = defaultEnv.opts;
           return this.queueEval((function(_this) {
             return function() {
@@ -956,15 +968,17 @@
             addController(vt, null, controller, isDefault);
             env = this.env(newBlock.language);
             controller.__proto__ = env;
-            setLounge(env, function() {
-              return controller.executeBlock(newBlock);
-            });
+            setLounge(env, (function(_this) {
+              return function() {
+                return _this.getCode(newBlock).call(controller);
+              };
+            })(this));
             return controller.__proto__ = null;
           }
         }
       };
 
-      OrgData.prototype.executeBlock = function(block, envConf) {
+      OrgData.prototype.oldExecuteBlock = function(block, envConf) {
         return this.executeText(block.language, blockSource(block), null, function(env) {
           var ref, ref1, ref2;
           if (typeof envConf === "function") {
@@ -977,6 +991,27 @@
             };
           }
         });
+      };
+
+      OrgData.prototype.executeBlock = function(block, envConf) {
+        var code, env;
+        env = this.env(block.language, function(env) {
+          var ref, ref1, ref2;
+          if (typeof envConf === "function") {
+            envConf(env);
+          }
+          if ((ref = typeof newBlock !== "undefined" && newBlock !== null ? (ref1 = newBlock.codeAttributes) != null ? (ref2 = ref1.results) != null ? ref2.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref === 'web' || ref === 'silent') {
+            env.silent = true;
+            return env.write = function(str) {
+              return console.log(str);
+            };
+          }
+        });
+        if (code = this.getCode(block)) {
+          return setLounge(env, code);
+        } else {
+          return this.oldExecuteBlock(block, envConf);
+        }
       };
 
       OrgData.prototype.env = function(language, envConf) {
@@ -1111,24 +1146,32 @@
         return (ref = block.yaml) != null ? ref : (block.yaml = isYamlResult(block) ? ((ref1 = blockCodeItems(this, block), results = ref1.results, ref1), results ? (firstResult = results.text.indexOf('\n') + 1, safeLoad(results.text.substring(firstResult).replace(/(^|\n): /gm, '$1'))) : void 0) : null);
       };
 
-      OrgData.prototype.getCode = function(block) {
-        var env, ref;
+      OrgData.prototype.getCode = function(block, env) {
+        var code, tangle;
         block = this.getBlock(block);
-        return (ref = block.code) != null ? ref : block.code = isText(block) ? this.addPostProcessing(block, function(cont) {
-          if (cont) {
-            return cont.call(this, [blockSource(block)]);
-          } else {
-            return [blockSource(block)];
+        if (block.code) {
+          return block.code;
+        } else {
+          tangle = this.getTangle(block);
+          code = (typeof tangle === 'function' ? (console.error("GOT TANGLED CODE", block._id), tangle) : isText(block) ? function(cont) {
+            if (cont) {
+              return cont.call(this, [blockSource(block)]);
+            } else {
+              return [blockSource(block)];
+            }
+          } : block.language === 'yaml' ? function(cont) {
+            var yaml;
+            yaml = (!block.computedYaml && block.yaml) || parseYaml(blockSource(block));
+            if (cont) {
+              return cont.call(this, [yaml]);
+            } else {
+              return [yaml];
+            }
+          } : (env = env != null ? env : this.env(block.language)) ? env.compileBlock(block) : void 0);
+          if (code) {
+            return block.code = this.addPostProcessing(block, code);
           }
-        }) : block.language === 'yaml' ? this.addPostProcessing(block, function(cont) {
-          var yaml;
-          yaml = (!block.computedYaml && block.yaml) || parseYaml(blockSource(block));
-          if (cont) {
-            return cont.call(this, [yaml]);
-          } else {
-            return [yaml];
-          }
-        }) : (env = this.env(block.language)) ? this.addPostProcessing(block, env.compileBlock(block)) : void 0;
+        }
       };
 
       OrgData.prototype.parsedCodeBlock = function(block) {
@@ -1136,8 +1179,8 @@
       };
 
       OrgData.prototype.addPostProcessing = function(block, func) {
-        var argNames, blockName, data, j, m, ref;
-        if (m = (ref = block.codeAttributes.post) != null ? ref.match(postCallPat) : void 0) {
+        var argNames, blockName, data, j, m, ref, ref1;
+        if (m = (ref = block.codeAttributes) != null ? (ref1 = ref.post) != null ? ref1.match(postCallPat) : void 0 : void 0) {
           j = m.length - 2, blockName = m[j++], argNames = m[j++];
           argNames = argNames.trim().split('\s*,\s*');
           blockName = blockName.trim();
@@ -1156,11 +1199,11 @@
                   Lounge.blockVars = blockArgs;
                 }
                 return postProcessor.call.apply(postProcessor, [this, cont].concat(slice1.call((function() {
-                  var l, len, ref1, results1;
+                  var l, len, ref2, results1;
                   results1 = [];
                   for (l = 0, len = argNames.length; l < len; l++) {
                     arg = argNames[l];
-                    if (Number(arg) == arg || (ref1 = arg[0], indexOf.call("'\"", ref1) >= 0)) {
+                    if (Number(arg) == arg || (ref2 = arg[0], indexOf.call("'\"", ref2) >= 0)) {
                       blockArgs.push(null);
                       results1.push(JSON.parse(arg));
                     } else {
@@ -2171,12 +2214,6 @@
         return env;
       };
 
-      OrgEditing.prototype.executeText = function(language, text, cont) {
-        return this.env(language).executeText(text, Nil, cont != null ? cont : function(x) {
-          return x;
-        });
-      };
-
       OrgEditing.prototype.executeBlock = function(block, envM) {
         var env, newBlock, opts, result, source, sync;
         if (envM = blockEnvMaker(block)) {
@@ -2323,7 +2360,7 @@
     };
     setResult = function(block, result) {
       var newBlock, prop, ref, ref1, ref2, results, text, tmp, value;
-      if ((ref = block != null ? (ref1 = block.codeAttributes) != null ? (ref2 = ref1.results) != null ? ref2.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref === 'silent') {
+      if ((ref = block != null ? (ref1 = block.codeAttributes) != null ? (ref2 = ref1.results) != null ? ref2.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref === 'web' || ref === 'silent') {
         result = '';
       }
       results = blockCodeItems(this, block).results;
