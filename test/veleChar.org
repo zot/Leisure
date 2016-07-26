@@ -15,10 +15,10 @@ Comp	🞎	🞎	🞎	🞎
 ❂ [Trouble] On Loan from the Hand
 ❂ Harvester of Knowledge
 ❂ The Way of the Howler Monkey
-◆ Scrahv Ninja (not martial arts) d12
+♦ Scrahv Ninja (not martial arts) d12
 ✫ Scrahv Implement [Truth]:Fiction 2
 ◇ Toughness d10
-◇ Stony resilience d12 composure
+◇ Stony resilience d12
 ◇ Hand to Hand Combat d8
 ◇ Scholar d6
 ◇ Overly Reasonable d4
@@ -40,7 +40,6 @@ Comp	🞎	🞎	🞎	🞎
 :     attributes:
 :       - truth
 :     baseRuche: 20
-:     composure: 4
 :     consequences:
 :       - level: tmp
 :         name: ''
@@ -75,7 +74,6 @@ Comp	🞎	🞎	🞎	🞎
 :       - name: Toughness
 :         value: 10
 :       - name: Stony resilience
-:         stress: composure
 :         value: 12
 :       - name: Hand to Hand Combat
 :         value: 8
@@ -114,17 +112,17 @@ Vele.editor.fetchText 'character-sheet'
 <div id='character-sheet' class='characterSheetHolder'>
   <div class='characterSheet'>{{#each errors}}
       <div class='error bx'>{{formatError this}}</div>
-    {{/each}}<div class='player bx'>{{name}}<span data-noncontent>&nbsp;</span><span class='hidden'>&#9;&#9;</span>{{extraRuche}} </div><span class='hidden'>&#9;</span><div class='characterName bx'><span contenteditable='false' data-noncontent>🌕 </span><span class='hidden'>🌕 </span>{{characters.[0].name}} <span contenteditable='false' data-noncontent>{{cost}}</span><span class='hidden'>{{cost}}</span></div>{{#each characters}}
+    {{/each}}<div class='player bx'>{{name}}<span {{{noncontent}}}>&nbsp;</span><span class='hidden'>&#9;&#9;</span>{{extraRuche}} </div><span class='hidden'>&#9;</span><div class='characterName bx'><span contenteditable='false' {{{noncontent}}}>🌕 </span><span class='hidden'>🌕 </span>{{characters.[0].name}} <span contenteditable='false' {{{noncontent}}}>{{cost}}</span><span class='hidden'>{{cost}}</span></div>{{#each characters}}
       {{#unless @first}}
-        <div class='character bx'><span data-noncontent>🌕 </span><span class='hidden'>🌕 </span>{{name}}<span contenteditable='false'>{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}}</span></div>
+        <div class='character bx'><span {{{noncontent}}}>🌕 </span><span class='hidden'>🌕 </span>{{name}}<span contenteditable='false'>{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}}</span></div>
       {{/unless}}
-      <div class='ruche bx' contenteditable='false'><div class='current-ruche'></div><div class='max-ruche'><span class='hidden'>&#9;</span><span data-noncontent>&nbsp;Max Ruche </span><span class='hidden'>Max Ruche </span>{{allocatedRuche}}</div></div>
+      <div class='ruche bx' contenteditable='false'><div class='current-ruche'></div><div class='max-ruche'><span class='hidden'>&#9;</span><span {{{noncontent}}}>&nbsp;Max Ruche </span><span class='hidden'>Max Ruche </span>{{allocatedRuche}}</div></div>
       {{#if @first}}
         <div class='health bx' contenteditable='false'><table class='health stress-boxes'><tr><td class='stressLabel'>Health</td>{{#repeat health}}<td><span class='hidden'>&#9;🞎</span></td>{{/repeat}}</tr></table></div>
         <div class='composure bx' contenteditable='false'><table class='composure stress-boxes'><tr><td class='stressLabel'>Comp</td>{{#repeat composure}}<td><span class='hidden'>&#9;🞎</span></td>{{/repeat}}</tr></table></div>
       {{/if}}
       {{#each consequences}}
-        <div class='consequence {{level}} bx'><span data-noncontent>☠{{#if number}} {{number}}{{/if}} {{level}}</span><span class='hidden'>☠{{#if number}} {{number}}{{/if}} {{level}}</span>&nbsp;{{capitalize name}}
+        <div class='consequence {{level}} bx'><span {{{noncontent}}}>☠{{#if number}} {{number}}{{/if}} {{level}} </span><span class='hidden'>☠{{#if number}} {{number}}{{/if}} {{level}}&nbsp;</span>{{capitalize name}}
 </div>{{/each}}{{#each aspects}}<div class='aspect bx'>❂{{#if highConcept
         }} [High Concept{{#if attribute}}/{{capitalize attribute}}{{/if}}]{{else}}{{#if trouble
         }} [Trouble{{#if attribute}}/{{capitalize attribute}}{{/if}}]{{else}}{{#if attribute
@@ -132,9 +130,9 @@ Vele.editor.fetchText 'character-sheet'
         }}&nbsp;{{capitalize name}}{{nl}}</div>
       {{/each}}
       {{#each traits}}<div class='trait bx{{#if focus
-        }} focus'>◆ {{capitalize focus}}{{
+        }} focus'>♦ {{capitalize focus}}{{
         else}}'>◇ {{capitalize name}}{{/if
-        }} d{{value}}{{#if stress}} {{stress}}{{/if}}</div>
+        }} d{{value}}</div>
         {{#each abilities}}
           <div class='ability bx'>✫ {{capitalize name}}{{#if attribute
             }} [{{capitalize attribute}}]{{/if}}:{{#each effects
@@ -163,6 +161,7 @@ Handlebars.registerHelper 'space', (n)-> n == ' '
 Handlebars.registerHelper 'repeat', (times, options)->
   (options.fn(this) for i in [0...Number times] by 1).join ''
 Handlebars.registerHelper 'nl', -> '\n'
+Handlebars.registerHelper 'noncontent', -> 'data-noncontent contenteditable="false"'
 Handlebars.registerHelper 'formatError', (err)-> err.replace /^([^:]*:\s*)/, '$1\n'
 #+END_SRC
 * code
@@ -194,19 +193,20 @@ if !window.Vele
   tmpAspectPat = /^\s*(?:[0-9]*)\btmp\b\s*(.*)$/
   basicLinePat = /^([^:\s]+):(.*)$/
   aspectPat = /^\s*(?:\[([^\/\]]+)(?:\/(.*))?\]\s+)?(\S.*)$/
-  traitPat = /^(.*\S)\s+d([468]|10|12)(?:\s*\(?\s*\+?[0-9]+)?\s*(composure|health|intensity|resist(?:[^)]*)?)?\s*\)?\s*$/i
+  traitPat = /^(.*\S)\s+d([468]|10|12)\s*$/i
   highConceptPat = /^hc|high\s*concept$/i
   troublePat = /^tr|trbl|trouble$/i
   attributePat = /^order|purity|mercy|truth|nurture|creation|chaos|corruption|domination|scheming|strife|madness$/
   consequenceTypePat = /^(?:\s*|[0-9]+)*\b(mild|moderate|severe|extreme|tmp)\b\s?(.*)$/i
   abilityPat = /^([^\[\]:]*[^\[\]:\s])\s*(?:\[(.*)\])?:\s*(\S.*)$/
+  stuntPat = /^([^\(\):]*[^\[\]:\s])\s*(?:\((.*[^0-9])([0-9]+)\))\s*:\s*(\S.*)$/
   effectPat = /^(.*\S)\s+([0-9]+)$/
   characterPat = /^([^\[\]]+?)\s*(?:\[(.*)\])?(?:\s*[0-9]+)\s*$/
-  specialLinePat = /^\s*(❂|◆|◇|✫|☠|🌕|)(.*)$/
+  specialLinePat = /^\s*(❂|♦|◇|✫|☠|🌕|✱|)(.*)$/
   consequenceValues = ['tmp', 'mild', 'moderate', 'severe', 'extreme']
   specialLineKeys =
-    chars: "❂◆◇✫☠🌕"
-    keys: ['aspect', 'focus', 'trait', 'ability', 'consequence', 'item']
+    chars: "❂♦◇✫☠🌕✱"
+    keys: ['aspect', 'focus', 'trait', 'ability', 'consequence', 'item', 'stunt']
   getLineKey = (line, sloppy)->
     if m = line.match specialLinePat
       [..., char, value] = m
@@ -228,6 +228,7 @@ if !window.Vele
     if list.length == 1 then list[0]
     else if list.length == 2 then list[0] + " and " + list[1]
     else _.dropRight(list).join(', ') + ", and " + _.last list
+  stressForStuntCost = (cost)-> if cost >= 4 then 4 else 3
 
   class PlayerParser
     constructor: ->
@@ -312,6 +313,8 @@ if !window.Vele
       null
     curTraits: -> @curCharacter().traits ? @curCharacter().traits = []
     curTrait: -> _.last @curCharacter().traits
+    curStunts: -> _.last @curTrait().stunts
+    curStunt: -> _.last @curStunts()
     curAbilities: -> @curTrait().abilities ? @curTrait().abilities = []
     curAspects: -> @curCharacter().aspects ? @curCharacter().aspects = []
     curConsequences: -> @curCharacter().consequences ? @curCharacter().consequences = []
@@ -346,16 +349,39 @@ if !window.Vele
     trait: (str)-> @parseTrait 'name', str
     parseTrait: (tag, str)->
       if m = str.match traitPat
-        [..., name, value, stress] = m
+        [..., name, value] = m
         obj = {value: Number value}
         obj[tag] = name
-        if stress
-          obj.stress = stress
-          if obj.value in [8, 10] && @owner()[stress] < 3 then @owner()[stress] = 3
-          else if obj.value == 12 && @owner()[stress] < 4 then @owner()[stress] = 4
         @curTraits().push obj
         @curCharacter().baseRuche += obj.value / 2 - 1
       else @addError "Couldn't parse trait"
+    stunt: (str)->
+      if !@curTrait() then @addError "Attempt to create stunt without a trait"
+      else if m = str.match stuntPat
+        [..., name, type, cost, description] = m
+        name = name.trim()
+        type = type.trim()
+        cost = cost.trim()
+        description = description.trim()
+        @curStunts().push stunt = {name, type, cost, description}
+        if type.match /health/i
+          h = @curCharacter().health
+          @curCharacter().health = Math.max(h, stressForStuntCost cost)
+          if cost > 4 then @curCharacter().extraHealthConsequence = true
+          @checkMinimumTraitForStunt cost / 2 - 1, [8, 10, 12]
+        else if type.match /composure/i
+          h = @curCharacter().composure
+          @curCharacter().composure = Math.max(h, stressForStuntCost cost)
+          if cost > 4 then @curCharacter().extraComposureConsequence = true
+          @checkMinimumTraitForStunt cost / 2 - 1, [8, 10, 12]
+        else if type.match /bonus/i
+          @checkMinimumTraitForStunt cost / 4 - 1, [6, 10]
+        else if type.match /resistance|intensity/i
+          @checkMinimumTraitForStunt cost / 2 - 1, [4, 6, 8, 10, 12]
+      else @addError "Couldn't parse stunt"
+    checkMinimumTraitForStunt: (costIndex, costs)->
+      if @curTrait().value < costs[costIndex]
+        @addError "Trait #{@curTrait().name} is not large enough to support the #{@curStunt().name} stunt"
     ability: (str)->
       if !@curTrait() then @addError "Attempt to create ability without a trait"
       else if m = str.match abilityPat
@@ -399,6 +425,7 @@ if !window.Vele.sheet
       super()
       opts = this
       @data =
+        blocks: {}
         getFirst: -> 'character-sheet'
         getBlock: (id)-> if id == 'character-sheet' then opts.block
         getText: -> opts.block.text
@@ -408,6 +435,7 @@ if !window.Vele.sheet
         blockOffsetForDocOffset: (offset)->
           block: 'character-sheet'
           offset: offset
+      @data.blocks['character-sheet'] = opts.block
     guiText: -> @editor.blockTextForNode(@editor.node.find('#character-sheet')) #.replace(/\t/g, ' ')
     getFirst: -> @data.getFirst()
     getBlock: (id)-> @data.getBlock id
@@ -430,7 +458,7 @@ if !window.Vele.sheet
     fetchText: (id)->
       if !@editing
         @blockId = @options.data.getNamedBlockId id
-        @block =
+        @data.blocks['character-sheet'] = @block =
           _id: 'character-sheet'
           text: blockSource @options.getBlock @blockId
         @rerenderAll()
@@ -464,6 +492,11 @@ if !window.Vele.sheet
   [data-view=leisure-toolbar].collapse ~ .tc-banner {
     display: none !important;
   }
+}
+[data-noncontent] {
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
 }
 .tc-banner {
   display: none;

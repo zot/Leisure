@@ -5,8 +5,8 @@
 
   define.amd = true;
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', './lib/lispyscript/browser-bundle', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg) {
-    var Html, Nil, Node, Promise, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, cons, csEnv, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genSource, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, isError, isYamlResult, jsBaseEval, jsEnv, jsEval, jsGatherResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, writeValues, yamlEnv;
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lib/lodash.min', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree) {
+    var Html, Nil, Node, Promise, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = AcornLoose;
@@ -14,16 +14,24 @@
     getType = Ast.getType, cons = Ast.cons, unescapePresentationHtml = Ast.unescapePresentationHtml, Nil = Ast.Nil;
     mergeExports = Exports.mergeExports;
     Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
-    window.resolve = rz = resolve;
-    window.lazy = lz = lazy;
+    (typeof window !== "undefined" && window !== null ? window : global).resolve = rz = resolve;
+    (typeof window !== "undefined" && window !== null ? window : global).lazy = lz = lazy;
     lc = Leisure_call;
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert, getLeisurePromise = Runtime.getLeisurePromise;
     Promise = Bluebird.Promise;
-    genSource = Gen.genSource;
+    genSource = Gen.genSource, SourceNode = Gen.SourceNode, sourceNode = Gen.sourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator, genMap = Gen.genMap, withFile = Gen.withFile;
     safeLoad = Yaml.safeLoad, dump = Yaml.dump;
     getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
+    generatedFileCount = 0;
     defaultEnv.prompt = function(str, defaultValue, cont) {
       return cont(prompt(str, defaultValue));
+    };
+    currentGeneratedFileName = function() {
+      return "notebook-" + generatedFileCount;
+    };
+    nextGeneratedFileName = function() {
+      generatedFileCount++;
+      return currentGeneratedFileName();
     };
     requirePromise = function() {
       var file;
@@ -106,7 +114,7 @@
         return console.log(obj);
       }
     };
-    window.evalLeisure = evalLeisure = function(str, cont) {
+    (typeof window !== "undefined" && window !== null ? window : global).evalLeisure = evalLeisure = function(str, cont) {
       var env;
       env = leisureEnv({
         __proto__: defaultEnv
@@ -174,7 +182,92 @@
       env.createObserver = function(blockNames, text, cont) {
         throw new Error('Leisure observers not implemented yet');
       };
+      env.genBlock = function(block) {
+        return this.generateCode(blockSource(block), true);
+      };
+      env.generateCode = function(text, noFunc) {
+        return setLounge(this, function() {
+          var exec;
+          exec = (function(_this) {
+            return function() {
+              return leisureExec(env, text, L_nil, (function(result) {
+                var asts, errs, fileName;
+                errs = [];
+                asts = _.map(result.toArray(), function(el) {
+                  if ((result = el.tail()(id, id)) && result instanceof Error) {
+                    errs.push(err);
+                  }
+                  return el.head();
+                });
+                if (errs.length) {
+                  throw new Error(_.map(errs, function(el) {
+                    return el.message;
+                  }).join('\n'));
+                } else {
+                  return withFile((fileName = currentGeneratedFileName()), null, function() {
+                    return codeMap(new SourceNode(1, 0, fileName, [
+                      (!noFunc ? '(function(){return ' : []), 'L_runMonads([\n    ', intersperse(_.map(asts, function(item) {
+                        return sourceNode(item, 'function(){return ', genMap(item), '}');
+                      }), ',\n    '), '\n  ])', (!noFunc ? ';})' : [])
+                    ]), text, fileName);
+                  });
+                }
+              }), function(err) {
+                throw err;
+              });
+            };
+          })(this);
+          if (getLeisurePromise().isResolved()) {
+            return exec();
+          } else {
+            return getLeisurePromise().then(exec);
+          }
+        });
+      };
+      env.compileBlock = function(block) {
+        return eval(this.generateCode(blockSource(block)).code);
+      };
       return env;
+    };
+    codeMap = function(sourceNode, content, fileName) {
+      var cm;
+      fileName = fileName != null ? fileName : currentGeneratedFileName();
+      cm = sourceNode.toStringWithSourceMap({
+        file: fileName
+      });
+      cm.map.setSourceContent(fileName, content);
+      return cm;
+    };
+    sourceNodeFromCodeMap = function(codeMap) {
+      return SourceNode.fromStringWithSourceMap(codeMap.code, new SourceMapConsumer(codeMap.map.toJSON()));
+    };
+    joinSourceMaps = function() {
+      var args;
+      args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+      return new SourceNode(1, 0, '', Array.prototype.slice.call(args));
+    };
+    composeSourceMaps = function() {
+      var args, j, map, ref, result;
+      args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+      result = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(_.last(args)));
+      ref = args.slice(0, +(args.length - 2) + 1 || 9e9);
+      for (j = ref.length - 1; j >= 0; j += -1) {
+        map = ref[j];
+        result.applySourceMap(new SourceMapConsumer(map));
+      }
+      return result.toJSON();
+    };
+    intersperse = function(array, element) {
+      var i, j, ref, result;
+      if (array.length < 2) {
+        return array;
+      } else {
+        result = [array[0]];
+        for (i = j = 1, ref = array.length; 1 <= ref ? j < ref : j > ref; i = 1 <= ref ? ++j : --j) {
+          result.push(element, array[i]);
+        }
+        return result;
+      }
     };
     leisureExec = function(env, text, props, cont, errCont) {
       var err, error, old;
@@ -184,7 +277,7 @@
         return setLounge(env, (function(_this) {
           return function() {
             var result;
-            result = rz(L_baseLoadString)('notebook', text);
+            result = rz(L_baseLoadString)(nextGeneratedFileName(), text);
             return runMonad2(result, env, function(results) {
               return runNextResult(results, env, (function() {
                 setValue('parser_funcProps', old);
@@ -301,11 +394,11 @@
     };
     setLounge = function(env, func) {
       var oldLounge, result;
-      oldLounge = window.Lounge;
-      window.Lounge = env;
+      oldLounge = (typeof window !== "undefined" && window !== null ? window : global).Lounge;
+      (typeof window !== "undefined" && window !== null ? window : global).Lounge = env;
       env.opts = env.opts;
       result = func();
-      window.Lounge = oldLounge;
+      (typeof window !== "undefined" && window !== null ? window : global).Lounge = oldLounge;
       return result;
     };
     textEnv = function(env) {
@@ -338,7 +431,131 @@
       env.createObserver = function(blockNames, text, cont) {
         throw new Error('JavaScript observers not implemented yet');
       };
+      env.generateCode = function(text) {
+        var cm, fileName, nodes;
+        fileName = nextGeneratedFileName();
+        cm = codeMap(new SourceNode(1, 0, fileName, text), text, fileName);
+        nodes = SourceNode.fromStringWithSourceMap(text, SourceMapConsumer.fromSourceMap(cm));
+        return (new SourceNode(1, 0, fileName, ['function(){', nodes, '}'])).toStringWithSourceMap();
+      };
       return env;
+    };
+    jsGatherSourceResults = function(env, text, map, fileName, src) {
+      var code, column, err, err2, errNode, error, error1, expr, exprText, j, len, line, name, newSource, oldNodes, parsed, ref, ref1, ref2, s, source;
+      if (env.silent) {
+        return text;
+      } else {
+        try {
+          parsed = acorn.parse(text);
+        } catch (error) {
+          err = error;
+          errNode = null;
+          handleErrors(acornLoose.parse_dammit(text), function(node) {
+            return errNode = node;
+          });
+          try {
+            setLounge(env, function() {
+              return eval(text);
+            });
+          } catch (error1) {
+            err2 = error1;
+            if (errNode) {
+              env.errorAt(Math.min(errNode.start, errNode.end), err2.message);
+            } else {
+              env.errorAt(findError(err.message, text), err2.message);
+            }
+            return 'void 0';
+          }
+        }
+        oldNodes = sourceNodeTree(SourceNode.fromStringWithSourceMap(text, map));
+        newSource = ['var leisure_results=[];\n'];
+        ref = parsed.body;
+        for (j = 0, len = ref.length; j < len; j++) {
+          expr = ref[j];
+          ref1 = lineLocationForOffset(map, text, expr.start), line = ref1.line, column = ref1.column, source = ref1.source, name = ref1.name;
+          if (expr.type === 'ExpressionStatement') {
+            expr = expr.expression;
+            exprText = text.substring(expr.start, expr.end);
+            if (exprText[exprText.length - 1] === ';') {
+              exprText = exprText.substring(0, exprText.length - 1);
+            }
+            if ((s = new SourceNode(line, column, source, nodesForGeneratedText(oldNodes, expr))).toString() !== text.substring(expr.start, expr.end)) {
+              console.log("BAD NODES\n" + (s.toString()));
+            }
+            newSource.push(new SourceNode(line, column, source, ['\nleisure_results.push(', nodesForGeneratedText(oldNodes, expr), ');\n'], name));
+          } else {
+            newSource.push(new SourceNode(line, column, source, [text.substring(expr.start, expr.end)]));
+          }
+        }
+        ref2 = new SourceNode(1, 0, fileName, newSource).toStringWithSourceMap(), code = ref2.code, map = ref2.map;
+        map.setSourceContent(fileName, src);
+        return SourceNode.fromStringWithSourceMap(code, SourceMapConsumer.fromSourceMap(map));
+      }
+    };
+    sourceNodeTree = function(nodes) {
+      var entryArray;
+      entryArray = [];
+      nodes.walk(function(code, node) {
+        return entryArray.push([code, node]);
+      });
+      return FingerTree.fromArray(entryArray, {
+        measure: function(n) {
+          return n[0].length;
+        },
+        identity: function() {
+          return 0;
+        },
+        sum: function(a, b) {
+          return a + b;
+        }
+      });
+    };
+    nodesForGeneratedText = function(nodeTree, arg) {
+      var code, end, endPos, j, len, node, preceding, ref, ref1, ref2, ref3, ref4, ref5, result, start, startLen, target;
+      start = arg.start, end = arg.end;
+      result = [];
+      ref = nodeTree.split(function(m) {
+        return m > start;
+      }), preceding = ref[0], target = ref[1];
+      startLen = preceding.measure();
+      if (!preceding.isEmpty()) {
+        ref1 = preceding.peekLast(), code = ref1[0], node = ref1[1];
+        result.push(sn(node, code.substring(start - startLen)));
+      }
+      ref2 = target.split(function(m) {
+        return startLen + m > end;
+      }), preceding = ref2[0], target = ref2[1];
+      if (!preceding.isEmpty()) {
+        ref3 = preceding.toArray();
+        for (j = 0, len = ref3.length; j < len; j++) {
+          ref4 = ref3[j], code = ref4[0], node = ref4[1];
+          result.push(sn(node, code));
+        }
+        if (!target.isEmpty()) {
+          endPos = startLen + preceding.measure();
+          ref5 = target.peekFirst(), code = ref5[0], node = ref5[1];
+          result.push(sn(node, code.substring(0, end - endPos)));
+        }
+      }
+      return result;
+    };
+    sn = function(arg, code) {
+      var column, line, source;
+      line = arg.line, column = arg.column, source = arg.source;
+      return new SourceNode(line, column, source, code);
+    };
+    lineLocationForOffset = function(map, str, offset) {
+      var line, next, pos;
+      line = 1;
+      pos = -1;
+      while ((next = str.indexOf('\n', pos + 1)) < offset && next !== -1) {
+        pos = next;
+        line++;
+      }
+      return map.originalPositionFor({
+        line: line,
+        column: offset - pos + 1
+      });
     };
     jsGatherResults = function(env, text, returnResults) {
       var err, err2, errNode, error, error1, expr, exprText, j, len, newText, parsed, ref;
@@ -423,7 +640,7 @@
       }
       return tot;
     };
-    walk = window.Walk = function(node, func) {
+    walk = (typeof window !== "undefined" && window !== null ? window : global).Walk = function(node, func) {
       var type, v;
       v = {};
       for (type in acornWalk.base) {
@@ -497,19 +714,21 @@
         return this.compileBlock(block).call(this, cont);
       };
       env.compileBlock = function(block) {
-        var code, j, ref, varMappings, varNames, vars;
-        ref = blockVars(this.data, block.codeAttributes["var"]), j = ref.length - 3, vars = ref[j++], varNames = ref[j++], varMappings = ref[j++];
-        code = this.runWith({}, "(function(){" + (this.blockCode(blockSource(block), vars, varNames, varMappings, true)) + "})");
+        var code, fileName, j, nodes, ref, ref1, varMappings, varNames, vars;
+        fileName = currentGeneratedFileName();
+        ref1 = blockVars(this.data, (ref = block.codeAttributes) != null ? ref["var"] : void 0), j = ref1.length - 3, vars = ref1[j++], varNames = ref1[j++], varMappings = ref1[j++];
+        nodes = new SourceNode(1, 0, fileName, ['(function(){', this.blockCode(blockSource(block), vars, varNames, varMappings, true, null, fileName, true), '})']);
+        code = this.runWith({}, jsCodeFor(nodes.toStringWithSourceMap()));
         return function() {
-          var args, cont, i, k, len, ref1, ret, varName;
+          var args, cont, i, k, len, ref2, ret, varName;
           cont = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
-          if (this !== window) {
+          if (this !== (typeof window !== "undefined" && window !== null ? window : global)) {
             this.ctx = {
               _blocks: {}
             };
             for (i = k = 0, len = varNames.length; k < len; i = ++k) {
               varName = varNames[i];
-              this.ctx[varName] = (ref1 = args[i]) != null ? ref1 : this.data.getYaml(this.data.getBlockNamed(varMappings[varName]));
+              this.ctx[varName] = (ref2 = args[i]) != null ? ref2 : this.data.getYaml(this.data.getBlockNamed(varMappings[varName]));
               if (!args[i]) {
                 this.ctx._blocks[varName] = this.data.getBlockNamed(varMappings[varName]);
               }
@@ -525,8 +744,16 @@
           }
         };
       };
-      env.blockCode = function(src, vars, varNames, varMappings, useReturn) {
-        var blockVarStr, blocks, compiledCode, constName, constStr, consts, name, ref, returns, value, varName;
+      env.genBlock = function(block, vars, varNames, varMappings) {
+        var fileName, j, nodes, ref, ref1;
+        ref1 = blockVars(this.data, (ref = block.codeAttributes) != null ? ref["var"] : void 0), j = ref1.length - 3, vars = ref1[j++], varNames = ref1[j++], varMappings = ref1[j++];
+        fileName = nextGeneratedFileName();
+        nodes = new SourceNode(1, 0, fileName, ['(function(){', this.blockCode(blockSource(block), vars, varNames, varMappings, false, null, fileName, true), '})']);
+        return nodes.toStringWithSourceMap();
+      };
+      env.blockCode = function(src, vars, varNames, varMappings, useReturn, noGather, fileName, sourceNodes) {
+        var blockVarStr, blocks, con, constName, constStr, consts, js, name, nodes, output, ref, ref1, smGen, v3SourceMap, value, varName;
+        fileName = fileName != null ? fileName : currentGeneratedFileName();
         vars = vars != null ? vars : {};
         varNames = varNames != null ? varNames : [];
         varMappings = varMappings != null ? varMappings : {};
@@ -558,19 +785,46 @@
           }
           return results1;
         })()).join('');
-        if (false && this.silent) {
-          compiledCode = CS.compile(src, {
-            bare: true
-          });
-        } else {
-          compiledCode = jsGatherResults(this, CS.compile(src, {
-            bare: true
-          }));
+        ref1 = CS.compile(src, {
+          bare: true,
+          sourceMap: true,
+          sourceFiles: [fileName]
+        }), js = ref1.js, v3SourceMap = ref1.v3SourceMap;
+        smGen = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(JSON.parse(v3SourceMap)));
+        smGen.setSourceContent(fileName, src);
+        con = SourceMapConsumer.fromSourceMap(smGen);
+        output = !noGather && !env.silent ? [jsGatherSourceResults(this, js, con, fileName, src)] : [SourceNode.fromStringWithSourceMap(js, con)];
+        output.unshift("" + constStr + blockVarStr + "\n");
+        if (!env.silent && !noGather) {
+          if (useReturn) {
+            output.push('return ');
+          }
+          output.push('typeof __cont != "undefined" ? __cont(leisure_results) : leisure_results;\n');
         }
-        returns = env.silent ? '' : (useReturn ? 'return ' : '') + "typeof __cont != 'undefined' ? __cont(leisure_results) : leisure_results;";
-        return "" + constStr + blockVarStr + "\n" + compiledCode + "\n" + returns;
+        nodes = new SourceNode(1, 0, fileName, output);
+        if (sourceNodes) {
+          return nodes;
+        } else {
+          return jsCodeFor(nodes.toStringWithSourceMap());
+        }
+      };
+      env.generateCode = function(text) {
+        var fileName, js, nodes, ref, smGen, v3SourceMap;
+        fileName = currentGeneratedFileName();
+        ref = CS.compile(text, {
+          bare: true,
+          sourceMap: true,
+          sourceFiles: [fileName]
+        }), js = ref.js, v3SourceMap = ref.v3SourceMap;
+        smGen = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(JSON.parse(v3SourceMap)));
+        smGen.setSourceContent(fileName, text);
+        nodes = SourceNode.fromStringWithSourceMap(js, SourceMapConsumer.fromSourceMap(smGen));
+        return (new SourceNode(1, 0, fileName, ['function(){', nodes, '}'])).toStringWithSourceMap();
       };
       return env;
+    };
+    jsCodeFor = function(codeMap) {
+      return codeMap.code + "\n//# sourceMappingURL=data:application/json;base64," + (btoa(JSON.stringify(codeMap.map.toJSON()))) + "\n";
     };
     indentCode = function(str) {
       return str.replace(/\n/g, '\n  ');
@@ -708,7 +962,14 @@
     mergeExports({
       evalLeisure: evalLeisure,
       runLeisureMonad: runLeisureMonad,
-      setLounge: setLounge
+      setLounge: setLounge,
+      joinSourceMaps: joinSourceMaps,
+      codeMap: codeMap,
+      sourceNodeFromCodeMap: sourceNodeFromCodeMap,
+      composeSourceMaps: composeSourceMaps,
+      SourceNode: SourceNode,
+      SourceMapConsumer: SourceMapConsumer,
+      SourceMapGenerator: SourceMapGenerator
     });
     return {
       languageEnvMaker: languageEnvMaker,
@@ -725,7 +986,10 @@
       runLeisureMonad: runLeisureMonad,
       setLounge: setLounge,
       hasCodeAttribute: hasCodeAttribute,
-      isYamlResult: isYamlResult
+      isYamlResult: isYamlResult,
+      jsCodeFor: jsCodeFor,
+      nextGeneratedFileName: nextGeneratedFileName,
+      getLeisurePromise: getLeisurePromise
     };
   });
 

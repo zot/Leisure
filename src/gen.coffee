@@ -78,8 +78,9 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
   consFrom = newConsFrom
 
   {
-    SourceNode,
-    SourceMapConsumer,
+    SourceNode
+    SourceMapConsumer
+    SourceMapGenerator
   } = SourceMap
 
   varNameSub = (n)-> "L_#{nameSub n}"
@@ -256,7 +257,7 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     #  if (dmp = dumpAnno(func)) instanceof Leisure_ref && (info = functionInfo[getRefName dmp]) && info?.newArity && (arity = info?.arity) && arity <= args.length
     #  else arity = args.length
     defaultArity = false
-    if ((dmp = dumpAnno(func)) instanceof Leisure_ref && (info = functionInfo[getRefName dmp]) && info?.newArity && (arity = info?.arity) && 1 < arity <= args.length) || (!arity && megaArity && args.length > 1)
+    if args.length > 1 && ((dmp = dumpAnno(func)) instanceof Leisure_ref) && (((info = functionInfo[funcName = getRefName dmp]) && ((info.newArity && (arity = info.arity) && arity <= args.length) || (!arity && megaArity))) || (!info && isNil names.find (el)-> el == funcName))
       if defaultArity = !arity then arity = args.length
       argCode = []
       argCode.push ast
@@ -560,5 +561,6 @@ define ['./base', './ast', './runtime', 'lib/lodash.min', 'lib/source-map'], (Ba
     #restoreNameSpace: restoreNameSpace
     SourceNode
     SourceMapConsumer
+    SourceMapGenerator
     setMegaArity
   }

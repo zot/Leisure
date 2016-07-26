@@ -392,9 +392,8 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     toString: -> "Monad: #{@cmd.toString()}"
 
   (global ? window).L_runMonads = (array, env)->
-    new Promise (resolve, reject)->
-      runMonad2 array.slice().reverse().reduce((result, element)->
-        bind element, lz (x)-> rz result), env ? root.defaultEnv, resolve
+    runMonad2 array.slice().reverse().reduce((result, element)->
+      bind element, lz (x)-> rz result), env ? root.defaultEnv, resolve
 
   ensureLeisureClass 'unit'
 
@@ -450,10 +449,16 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
       else cont monad
   else
     (window ? global).runMonad2 = runMonad2 = (monad, env, cont)->
-      if monad instanceof Monad2 then monad.cmd(env, cont)
-      else if isMonad monad
-        #console.log "OLD MONAD: #{monad}"
-        monad.cmd(env, cont)
+      if (monad instanceof Monad2) || isMonad monad
+        sync = false
+        promiseSucceed = null
+        r = null
+        result = monad.cmd env, (res)->
+          sync = true
+          r = cont res
+          if promiseSucceed then promiseSucceed r else r
+        if sync then r
+        else new Promise (succeed, fail)-> promiseSucceed = succeed
       else cont monad
 
   if global.L_DEBUG

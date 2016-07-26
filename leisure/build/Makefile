@@ -57,7 +57,8 @@ $(OUTPUT_DIR)/simpleParse.js: src/simpleParse.lsr lib/simpleParseJS.js
 	mv /tmp/tmp $(OUTPUT_DIR)/simpleParse.js
 	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
-$(OUTPUT_DIR)/generatedPrelude.js: lib/leisureRepl.js $(OUTPUT_DIR)/simpleParse.js $(OUTPUT_DIR)/generatedPrelude.lsr
+#$(OUTPUT_DIR)/generatedPrelude.js: lib/leisureRepl.js $(OUTPUT_DIR)/simpleParse.js $(OUTPUT_DIR)/generatedPrelude.lsr
+$(OUTPUT_DIR)/generatedPrelude.js: $(OUTPUT_DIR)/simpleParse.js $(OUTPUT_DIR)/generatedPrelude.lsr
 	$(REPL) -1 -d $(OUTPUT_DIR) -c $(OUTPUT_DIR)/generatedPrelude.lsr
 
 $(OUTPUT_DIR)/std.js: src/std.lsr $(OUTPUT_DIR)/generatedPrelude.js

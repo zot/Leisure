@@ -15,6 +15,7 @@
         Headline
         SimpleMarkup
         Link
+        Keyword
         ListItem
         Drawer
         Meat
@@ -606,7 +607,15 @@
               end: end
               org: org)[0]
           else "<span class='hidden'>#{escapeHtml start}</span><span class='example'>#{fancyHtml text}</span><span class='hidden'>#{escapeHtml end}</span>"
-        renderOrg: (opts, org, start)->
+        renderOrg: (opts, org, start, noName)->
+          if !noName && ([name, named] = namedNode org) && named
+            if named != org then return ''
+            org = named
+            boiler = name.text.substring 0, name.text.length - name.info.length
+            nameText = "<div><span class='hidden'>#{escapeHtml boiler}</span><span class='org-name'>#{escapeHtml name.info}</span></div>"
+            while (name = name.next) != org
+              nameText += @renderOrg opts, name, start, true
+          else nameText = ''
           text = if org instanceof SimpleMarkup then @renderSimple opts, org
           else if org instanceof Link then @renderLink opts, org
           else if org instanceof Fragment
@@ -616,6 +625,7 @@
           else if org instanceof Drawer then @renderDrawer opts, org
           else if org instanceof Example then @renderExample opts, org
           else insertBreaks fancyHtml org.allText()
+          text = nameText + text
           if start then prefixBreak text else text
         renderHtml: (opts, org)->
           "<span class='hidden'>#{escapeHtml org.leading}</span>#{$(org.content)[0].outerHTML}<span class='hidden'>#{escapeHtml org.trailing}</span>"
@@ -709,6 +719,24 @@
               @showSlide opt, prev
               return true
           false
+
+namedNode(org) returns [name, node] if org is a name followed by optional meat
+and a nameable node.
+
+Returns [] if org does not fit the pattern.
+
+      isMeat = (org)-> org && (org instanceof SimpleMarkup || org.constructor == Meat)
+
+      namedNode = (org)->
+        end = org
+        if isMeat(org) || org instanceof Example || org instanceof Drawer
+          while isMeat org = org.prev then
+        if org instanceof Keyword && (org.name.match /^name$/i) && name = org
+          if name == end then end = end.next
+          while isMeat(end) && end = end.next then
+          if end instanceof Example || end instanceof Drawer
+            return [name, end]
+        []
 
       isSidebar = (block)-> block?.properties?.note == 'sidebar'
 

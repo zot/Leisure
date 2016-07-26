@@ -30,7 +30,7 @@ requirejs = require('requirejs').config
   baseUrl: baseDir
   paths:
     lib: baseDir + '/lib'
-    immutable: baseDir + '/lib/immutable-3.7.4.min'
+    immutable: baseDir + '/lib/immutable-3.8.1.min'
 
 ((typeof window != 'undefined' && window) || global).Lazy = requirejs('lib/lazy')
 

@@ -3,10 +3,10 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './advice', './lib/prism-leisure'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird, Advice) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isSidebar, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, Keyword, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isMeat, isSidebar, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, namedNode, nextImageSrc, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
-    parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
+    parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Keyword = Org.Keyword, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html, blockVars = Eval.blockVars, isYamlResult = Eval.isYamlResult;
@@ -793,18 +793,32 @@
           return "<span class='hidden'>" + (escapeHtml(start)) + "</span><span class='example'>" + (fancyHtml(text)) + "</span><span class='hidden'>" + (escapeHtml(end)) + "</span>";
         }
       },
-      renderOrg: function(opts, org, start) {
-        var child, i, text;
+      renderOrg: function(opts, org, start, noName) {
+        var boiler, child, i, name, nameText, named, ref, text;
+        if (!noName && (ref = namedNode(org), name = ref[0], named = ref[1], ref) && named) {
+          if (named !== org) {
+            return '';
+          }
+          org = named;
+          boiler = name.text.substring(0, name.text.length - name.info.length);
+          nameText = "<div><span class='hidden'>" + (escapeHtml(boiler)) + "</span><span class='org-name'>" + (escapeHtml(name.info)) + "</span></div>";
+          while ((name = name.next) !== org) {
+            nameText += this.renderOrg(opts, name, start, true);
+          }
+        } else {
+          nameText = '';
+        }
         text = org instanceof SimpleMarkup ? this.renderSimple(opts, org) : org instanceof Link ? this.renderLink(opts, org) : org instanceof Fragment ? ((function() {
-          var j, len, ref, results1;
-          ref = mergeMeat(org).children;
+          var j, len, ref1, results1;
+          ref1 = mergeMeat(org).children;
           results1 = [];
-          for (i = j = 0, len = ref.length; j < len; i = ++j) {
-            child = ref[i];
+          for (i = j = 0, len = ref1.length; j < len; i = ++j) {
+            child = ref1[i];
             results1.push(this.renderOrg(opts, child));
           }
           return results1;
         }).call(this)).join('') : org instanceof ListItem ? this.renderList(opts, org) : org instanceof Drawer ? this.renderDrawer(opts, org) : org instanceof Example ? this.renderExample(opts, org) : insertBreaks(fancyHtml(org.allText()));
+        text = nameText + text;
         if (start) {
           return prefixBreak(text);
         } else {
@@ -964,6 +978,26 @@
         }
         return false;
       }
+    };
+    isMeat = function(org) {
+      return org && (org instanceof SimpleMarkup || org.constructor === Meat);
+    };
+    namedNode = function(org) {
+      var end, name;
+      end = org;
+      if (isMeat(org) || org instanceof Example || org instanceof Drawer) {
+        while (isMeat(org = org.prev)) {}
+      }
+      if (org instanceof Keyword && (org.name.match(/^name$/i)) && (name = org)) {
+        if (name === end) {
+          end = end.next;
+        }
+        while (isMeat(end) && (end = end.next)) {}
+        if (end instanceof Example || end instanceof Drawer) {
+          return [name, end];
+        }
+      }
+      return [];
     };
     isSidebar = function(block) {
       var ref;

@@ -444,6 +444,7 @@
       takeUntil: (predicate)-> @force().takeUntil other
       dropUntil: (predicate)-> @force().dropUntil other
       toJSON: -> @force().toJSON()
+      toArray: -> @force().toArray()
 
     # @param {Array} left
     # @param {FingerTree} mid

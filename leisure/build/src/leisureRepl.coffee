@@ -34,7 +34,12 @@ requirejs = require('requirejs').config
   baseUrl: baseDir
   paths:
     lib: baseDir + '/lib'
-    immutable: baseDir + '/lib/immutable-3.7.4.min'
+    immutable: baseDir + '/lib/immutable-3.8.1.min'
+    acorn: 'lib/acorn-3.2.0'
+    acorn_loose: 'lib/acorn_loose-3.2.0'
+    acorn_walk: 'lib/acorn_walk-3.2.0'
+    handlebars: 'lib/handlebars-v4.0.5'
+    lispyscript: 'lib/lispyscript/leisureReplPatch'
 
 ((typeof window != 'undefined' && window) || global).Lazy = requirejs('lib/lazy')
 
@@ -94,6 +99,10 @@ global.btoa = require 'btoa'
 {
   Promise
 } = requirejs 'lib/bluebird.min'
+{
+  tangle
+  jsCodeFor
+} = requirejs './tangle'
 
 global.setType = setType
 global.setDataType = setDataType
@@ -338,6 +347,23 @@ runFile = (file, cont)->
     console.log "ERROR LOADING FILE: #{file}...\n#{err.stack}"
     cont []
 
+tangleOrgFile = (file, cont)->
+  fs.readFile file, 'utf8', (err, data)->
+    if err then console.log err.stack
+    else
+      tangle(data)
+        .then (result)->
+          fs.writeFile file + ".tangle", result, (err)->
+            if err then throw err
+            #console.log "TANGLE #{file}..."
+            #console.log jsCodeFor result
+            #console.log "SOURCE MAP\n#{JSON.stringify result.map.toJSON()}"
+            #OUTPUT TANGLED JS jsCodeFor result
+            cont []
+        .catch (err)->
+          console.error err.stack
+          throw err
+
 compile = (file, cont)->
   defaultEnv.errorHandlers?.push (e)-> process.exit 1
   ext = path.extname file
@@ -436,9 +462,10 @@ genJsFromAst = (file, cont)->
 
 usage = ->
   console.log """
-  Usage repl [-v | -a | -0 | -1 | -c | -coffee | -j | -d DIR] [FILE ...]
+  Usage repl [-v | -t | -a | -0 | -1 | -c | -coffee | -j | -d DIR] [FILE ...]
 
   -v            verbose
+  -t            tangle, FILE is interpreted as an org file
   -a            only parse to AST
   -0            use CoffeeScript parser
   -1            use simple Leisure parser
@@ -511,6 +538,8 @@ processArg = (config, pos)->
       verbose = true
       global.verbose.gen = true
       setWarnAsync true
+    when '-t'
+      action = tangleOrgFile
     when '-a'
       action = compile
       createAstFile = true
