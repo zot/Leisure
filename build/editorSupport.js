@@ -1741,8 +1741,13 @@
               for (s = 0, len4 = ref5.length; s < len4; s++) {
                 node = ref5[s];
                 node = $(node);
-                if (data = _this.data.getYaml(blk = _this.data.getBlockNamed(blkName = node.attr('data-view-block-name')))) {
-                  ref7 = ((ref6 = $(node).attr('data-requested-view')) != null ? ref6 : '').split('/'), view = ref7[0], name = ref7[1];
+                if ((data = _this.data.getYaml(blk = _this.data.getBlockNamed(blkName = node.attr('data-view-block-name')))) && data.type) {
+                  if ($(node).hasClass('error')) {
+                    view = data.type;
+                    name = $(node).attr('data-view-name');
+                  } else {
+                    ref7 = ((ref6 = $(node).attr('data-requested-view')) != null ? ref6 : '').split('/'), view = ref7[0], name = ref7[1];
+                  }
                   results1.push(renderView(view, name, data, node, blk, blkName));
                 } else {
                   results1.push(void 0);
@@ -2157,9 +2162,10 @@
                   return finished;
                 });
               };
-            })(this)) : env.executeText(newSource.content, Nil, (function() {
+            })(this)) : this.data.getCode(newBlock).call(env, function(data) {
+              result = env.formatResult(newBlock, '', data);
               return finished;
-            })));
+            }));
             if (finished === res) {
               oldCode = newBlock.code;
               newBlock = setResult(newBlock, result);

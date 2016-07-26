@@ -917,8 +917,11 @@ NMap is a very simple trie.
                   renderView view, name, data, node, block
               for node in nameNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
-                if data = @data.getYaml blk = @data.getBlockNamed(blkName = node.attr 'data-view-block-name')
-                  [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
+                if (data = @data.getYaml blk = @data.getBlockNamed(blkName = node.attr 'data-view-block-name')) && data.type
+                  if $(node).hasClass 'error'
+                    view = data.type
+                    name = $(node).attr 'data-view-name'
+                  else [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
                   renderView view, name, data, node, blk, blkName
           else super changes
         blockForNode: (node)->
@@ -1110,7 +1113,10 @@ NMap is a very simple trie.
               res = (if change.codeAttributes?.post then setLounge env, => @data.getCode(newBlock).call(env, (data)->
                 result = env.formatResult newBlock, '', data
                 finished)
-              else env.executeText newSource.content, Nil, (-> finished))
+              #else env.executeText newSource.content, Nil, (-> finished))
+              else @data.getCode(newBlock).call env, (data)->
+                result = env.formatResult newBlock, '', data
+                finished)
               if finished == res
                 oldCode = newBlock.code
                 newBlock = setResult newBlock, result

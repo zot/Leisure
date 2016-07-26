@@ -649,7 +649,10 @@
             else if !hasView type, viewName
               "No view '#{viewKey type, viewName}'"
             if error
-              "<span class='error' data-noncontent title='#{escapeAttr error}'><b>✖</b></span>#{fancyHtml org.allText()}"
+              if objectName
+                attrs = " data-view-block-name='#{objectName}'#{if viewName then ' data-view-name=\'' + viewName + '\'' else ''}"
+              else attrs = ''
+              "<span class='error' data-noncontent title='#{escapeAttr error}'#{attrs}><b>✖</b>#{fancyHtml org.allText()}<span>"
             else
               "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block, objectName}</span>"
           else if org.isImage()

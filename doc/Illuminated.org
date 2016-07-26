@@ -1,0 +1,50 @@
+#+TITLE:Lounge, an Illuminated Programming Environment
+* Announcing Lounge, a document-centered, illuminated programming environment
+** In Lounge, the concept of "illuminate programming" covers several concepts:
+- Media-rich, interactive, collaborative documents, each one like its own (virtual) machine
+- Documents are editable either in-place or using markup directly
+- Documents contain code, data, presentation, and they also RUN
+- No (required) distinction between runtime and development
+- Lounge documents can optionally disable most of these properties
+* Lounge is multilingual and uses the org-mode format for its documents
+** Lounge currently supports these languages and markups
+- JavaScript
+- CoffeeScript
+- Leisure
+- Handlebars / HTML
+- CSS
+- YAML / JSON
+* Lounge defines reactive interfaces by connecting Handlebars to a Lounge's collaborative data model.
+* Here are two rectangles connected to the same model and a third connected to another model
+[[leisure:rotator]] [[leisure:rotator/two]]
+** Click the degrees value and move the slider that pops up
+#+NAME: rotator
+This block of data represents a rotation.
+#+BEGIN_SRC yaml
+type: rotator
+degrees: 98
+#+END_SRC
+* Here's a view conntected to a CoffeeScript model: [[leisure:rotator2]]
+** Click on the degrees below and slide the value to recompute the model and see the view change.
+#+NAME: rotator2
+#+BEGIN_SRC coffee :results dynamic yaml
+do ->
+  o = type: 'rotator'
+  o.degrees = 98
+  o
+#+END_SRC
+#+RESULTS:
+: degrees: 28
+: type: rotator
+* Fiddle with these view definitions and you'll see the views change.
+#+BEGIN_SRC html :defview rotator
+<div style='padding: 25px; display: inline-block; vertical-align: middle'>
+  <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview rotator/two
+<div style='padding: 25px; padding-left: 100px; display: inline-block; vertical-align: middle'>
+  <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
+</div>
+#+END_SRC
