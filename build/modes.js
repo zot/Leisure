@@ -848,13 +848,18 @@
         return text;
       },
       renderLink: function(opts, org) {
-        var block, c, data, desc, error, guts, ignore, j, leisureMatch, len, obj, objectName, ref, src, title, type, typeName, viewName;
+        var attrs, block, c, data, desc, error, guts, ignore, j, leisureMatch, len, obj, objectName, ref, src, title, type, typeName, viewName;
         if (leisureMatch = org.isLeisure()) {
           ignore = leisureMatch[0], objectName = leisureMatch[1], viewName = leisureMatch[2], typeName = leisureMatch[3];
           data = UI.context.opts.data;
           error = !(obj = data.getBlockNamed(objectName)) ? "No object named " + objectName : !(obj = data.getYaml(block = data.getBlockNamed(objectName))) ? "Object " + objectName + " isn't yaml" : !(type = typeName || (obj != null ? obj.type : void 0)) ? "No type field in object " + objectName : !hasView(type, viewName) ? "No view '" + (viewKey(type, viewName)) + "'" : void 0;
           if (error) {
-            return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'><b>✖</b></span>" + (fancyHtml(org.allText()));
+            if (objectName) {
+              attrs = " data-view-block-name='" + objectName + "'" + (viewName ? ' data-view-name=\'' + viewName + '\'' : '');
+            } else {
+              attrs = '';
+            }
+            return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'" + attrs + "><b>✖</b>" + (fancyHtml(org.allText())) + "<span>";
           } else {
             return "<span class='hidden link'>" + (escapeHtml(org.allText())) + "</span><span data-noncontent contenteditable='false'>" + (renderView(type, viewName, obj, null, block, objectName)) + "</span>";
           }
