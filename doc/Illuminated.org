@@ -77,28 +77,23 @@ window.App = window.App ?
 #+BEGIN_SRC coffee
 @initializeView = (view)->
   view = $(view)
-  #floater = view.closest('.slideholder').closest '.view'
   floater = view.find '[name=floater]'
-  configureButton view
+  configureButton view, App.shadowbox
   view.find('[name=dismisser]').button().on 'click', (e)->
     e.stopPropagation()
-    App.shadowbox = !App.shadowbox
-    configureButton view
-  floater.on 'click', ->
-    if App.shadowbox
-      App.shadowbox = false
-      configureButton view
+    configureButton view, !App.shadowbox
+  floater.on 'click', -> if App.shadowbox then configureButton view, false
 
-configureButton = (view)->
-  #floater = view.closest('.slideholder').closest '.view'
+configureButton = (view, newState)->
+  App.shadowbox = newState
   floater = view.find '[name=floater]'
   button = view.find('[name=dismisser]').button()
-  if !App.shadowbox
-    floater.removeClass 'float'
-    button.button 'option', 'label', 'Click to show the annoying shadow box'
-  else
+  if App.shadowbox = newState
     floater.addClass 'float'
     button.button 'option', 'label', 'Click anywhere to dismiss this annoying shadow box'
+  else
+    floater.removeClass 'float'
+    button.button 'option', 'label', 'Click to show the annoying shadow box'
 #+END_SRC
 
 #+BEGIN_SRC css
@@ -122,9 +117,5 @@ configureButton = (view)->
   background: black;
   opacity: 0.5;
   z-index: -1;
-}
-.float button {
-
-  margin: auto;
 }
 #+END_SRC
