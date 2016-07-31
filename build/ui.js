@@ -424,7 +424,7 @@
       return $(view).closest('.expandable-panel');
     };
     configurePanels = function(view) {
-      var ep;
+      var ep, hp;
       $(view).find('.hidden-panel').children().filter('.label').append(" <i class='fa fa-arrow-right'></i>").button();
       $(view).find('.expandable-panel').children().filter('.label').append(" <i class='fa fa-arrow-left'></i><i class='fa fa-arrow-right'></i>").button().on('click', function() {
         getPanel(this).addClass('expand');
@@ -432,22 +432,66 @@
       });
       ep = $(view).find('.expandable-panel');
       $("<input name='hiddenFocus' class='hiddenTextField'>").appendTo(ep);
-      ep.mouseenter(function() {
-        return getPanel(this).removeClass('contract');
-      });
       ep.click((function(e) {
         if (!$(e.target).closest('input,button').length) {
-          return getPanel(this).find("[name='hiddenFocus']")[0].focus();
+          return $(this).closest('.expandable-panel').find("[name='hiddenFocus']")[0].focus();
         }
       }));
+      ep.children().filter('.contents').on('click', function() {
+        var panel;
+        panel = $(this).closest('.expandable-panel')[0];
+        if (panel.hasMousedown) {
+          panel.hasMousedown = false;
+          if (!(document.activeElement instanceof HTMLInputElement)) {
+            return $(panel).find("[name='hiddenFocus']")[0].focus();
+          }
+        }
+      });
+      ep.children().filter('.contents').on('mousedown', function() {
+        return $(this).closest('.expandable-panel')[0].hasMousedown = true;
+      });
       ep.find('input').focus(function() {
-        return getPanel(this).addClass('expand');
+        return $(this).closest('.expandable-panel').addClass('expand');
       });
       ep.find('input').blur(function() {
-        return getPanel(this).removeClass('expand');
+        var panel;
+        panel = $(this).closest('.expandable-panel')[0];
+        if (!panel.hasMousedown && $(document.activeElement).closest('.expandable-panel')[0] !== panel) {
+          return $(panel).removeClass('expand');
+        }
       });
-      return ep.find('button').click(function() {
-        return getPanel(this).addClass('contract');
+      ep.find('button').click(function() {
+        return $(this).closest('.expandable-panel').addClass('contract');
+      });
+      hp = $(view).find('.hidden-panel');
+      $("<input name='hiddenFocus' class='hiddenTextField'>").appendTo(hp);
+      hp.on('click', function(e) {
+        var button, panel;
+        panel = $(this).closest('.hidden-panel')[0];
+        if (panel.hasMousedown) {
+          panel.hasMousedown = false;
+          if ($(panel).hasClass('expand')) {
+            button = $($(panel).children()[1]).children().first()[0];
+            if (button === e.target || button.contains(e.target)) {
+              return $(panel).removeClass('expand');
+            }
+          } else if (!(document.activeElement instanceof HTMLInputElement)) {
+            return $(panel).find("[name='hiddenFocus']")[0].focus();
+          }
+        }
+      });
+      hp.on('mousedown', function() {
+        return $(this).closest('.hidden-panel')[0].hasMousedown = true;
+      });
+      hp.find('input').focus(function() {
+        return $(this).closest('.hidden-panel').addClass('expand');
+      });
+      return hp.find('input').blur(function() {
+        var panel;
+        panel = $(this).closest('.hidden-panel')[0];
+        if (!panel.hasMousedown && $(document.activeElement).closest('.hidden-panel')[0] !== panel) {
+          return $(panel).removeClass('expand');
+        }
       });
     };
     setPanelExpanded = function(view, expand) {

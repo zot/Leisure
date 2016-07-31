@@ -227,11 +227,13 @@ updateButton = (view, hiding)->
 .hidden-panel {
   display: inline-block;
 }
-.hidden-panel:hover .contents {
+/*.hidden-panel:hover .contents,*/
+.hidden-panel.expand .contents {
   display: inherit;
   width: inherit;
 }
-.hidden-panel:hover .label,
+/*.hidden-panel:hover .label,*/
+.hidden-panel.expand .label,
 .hidden-panel .contents {
   display: none;
 }

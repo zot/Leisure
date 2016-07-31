@@ -15,6 +15,7 @@ Project-wide requirejs configuration for Leisure
         # is using jQuery 1.9.0 located at
         # js/lib/jquery-1.9.0.js, relative to
         # the HTML page.
+        #jquery: 'lib/jquery-3.1.0'
         jquery: 'lib/jquery-2.1.4.min'
         #jqueryui: 'lib/jquery-ui-1.9.1.custom.min'
         jqueryui: 'lib/jquery-ui.min-1.11.4'

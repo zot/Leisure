@@ -13,7 +13,7 @@
 - Org-mode format (documents are just plain text)
 - Reactive connection between views and a collaborative data model
 - Support for collaborative and local data access
-* Here are two rectangles connected to the same data
+* Here are two rectangles connected to the same data (that you can change)
 ** Click the degrees value and move the slider that pops up
 #+NAME: rotator
 This block of data represents a rotation.
@@ -98,7 +98,7 @@ configureButton = (view)->
     button.button 'option', 'label', 'Click to show the annoying shadow box'
   else
     floater.addClass 'float'
-    button.button 'option', 'label', 'Click to dismiss this annoying shadow box<br>(Isn\'t this an irritating interface technique?)'
+    button.button 'option', 'label', 'Click anywhere to dismiss this annoying shadow box'
 #+END_SRC
 
 #+BEGIN_SRC css

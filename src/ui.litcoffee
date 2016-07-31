@@ -289,12 +289,43 @@ choose a handlebars template.
             getPanel(this).find("[name='hiddenFocus']")[0].focus()
         ep = $(view).find '.expandable-panel'
         $("<input name='hiddenFocus' class='hiddenTextField'>").appendTo ep
-        ep.mouseenter -> getPanel(this).removeClass 'contract'
-        ep.click ((e)-> if !$(e.target).closest('input,button').length
-          getPanel(this).find("[name='hiddenFocus']")[0].focus())
-        ep.find('input').focus -> getPanel(this).addClass 'expand'
-        ep.find('input').blur -> getPanel(this).removeClass 'expand'
-        ep.find('button').click -> getPanel(this).addClass 'contract'
+        #ep.mouseenter -> getPanel(this).removeClass 'contract'
+        ep.click ((e)->
+          if !$(e.target).closest('input,button').length
+            $(this).closest('.expandable-panel').find("[name='hiddenFocus']")[0].focus())
+        ep.children().filter('.contents').on 'click', ->
+          panel = $(this).closest('.expandable-panel')[0]
+          if panel.hasMousedown
+            panel.hasMousedown = false
+            if !(document.activeElement instanceof HTMLInputElement)
+              $(panel).find("[name='hiddenFocus']")[0].focus()
+        ep.children().filter('.contents').on 'mousedown', ->
+          $(this).closest('.expandable-panel')[0].hasMousedown = true
+        ep.find('input').focus ->
+          $(this).closest('.expandable-panel').addClass 'expand'
+        ep.find('input').blur ->
+          panel = $(this).closest('.expandable-panel')[0]
+          if !panel.hasMousedown && $(document.activeElement).closest('.expandable-panel')[0] != panel
+            $(panel).removeClass 'expand'
+        ep.find('button').click ->
+          $(this).closest('.expandable-panel').addClass 'contract'
+        hp = $(view).find '.hidden-panel'
+        $("<input name='hiddenFocus' class='hiddenTextField'>").appendTo hp
+        hp.on 'click', (e)->
+          panel = $(this).closest('.hidden-panel')[0]
+          if panel.hasMousedown
+            panel.hasMousedown = false
+            if $(panel).hasClass 'expand'
+              button = $($(panel).children()[1]).children().first()[0]
+              if button == e.target || button.contains e.target then $(panel).removeClass 'expand'
+            else if !(document.activeElement instanceof HTMLInputElement)
+              $(panel).find("[name='hiddenFocus']")[0].focus()
+        hp.on 'mousedown', -> $(this).closest('.hidden-panel')[0].hasMousedown = true
+        hp.find('input').focus -> $(this).closest('.hidden-panel').addClass 'expand'
+        hp.find('input').blur ->
+          panel = $(this).closest('.hidden-panel')[0]
+          if !panel.hasMousedown && $(document.activeElement).closest('.hidden-panel')[0] != panel
+            $(panel).removeClass 'expand'
 
       setPanelExpanded = (view, expand)->
         panel = getPanel(view)

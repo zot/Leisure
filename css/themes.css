@@ -979,7 +979,7 @@ body.bar_collapse .steampunk .currentSlide .page > .border {
 .ui-front {
     z-index: 1000;
 }
-.expandable-panel:hover:not(.contract),
+/*.expandable-panel:hover:not(.contract),*/
 .expandable-panel.expand,
 .leisure-searchOutputHolder,
 /*body*/
