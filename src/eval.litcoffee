@@ -299,10 +299,12 @@ Evaulation support for Leisure
           for expr in parsed.body
             {line, column, source, name} = lineLocationForOffset map, text, expr.start
             if expr.type == 'ExpressionStatement'
-              expr = expr.expression
+              if expr.expression.type != 'ObjectExpression' then expr = expr.expression
               exprText = text.substring expr.start, expr.end
               if exprText[exprText.length - 1] == ';'
-                exprText = exprText.substring(0, exprText.length - 1)
+                expr =
+                 start: expr.start
+                 end: expr.end - 1
               if (s = new SourceNode(line, column, source, nodesForGeneratedText(oldNodes, expr))).toString() != text.substring expr.start, expr.end
                 console.log "Source nodes don't line up:\n#{s.toString()}"
               newSource.push new SourceNode(line, column, source, ['\nleisure_results.push(', nodesForGeneratedText(oldNodes, expr), ');\n'], name)

@@ -127,3 +127,25 @@ configureButton = (view, newState)->
   z-index: -1;
 }
 #+END_SRC
+* Dynamic execution
+#+BEGIN_SRC coffee :results dynamic
+3 + 4
+8 * 2
+#+END_SRC
+#+RESULTS:
+: 7
+: 16
+* Inline Views
+#+BEGIN_SRC coffee :results yaml dynamic view(fullName) :exports results
+firstName: 'Bob'
+lastName: 'Jones'
+#+END_SRC
+#+RESULTS:
+: firstName: Bob
+: lastName: Jones
+
+
+#+BEGIN_SRC html :defview fullName
+<div style='border: solid black 2px; font-weight: bold; Xdisplay: inline-block; padding: 2px'>First name: {{firstName}}, Last name: {{lastName}}</div>
+#+END_SRC
+* Test Cases

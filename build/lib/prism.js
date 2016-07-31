@@ -9,6 +9,80 @@ Prism.languages.clike={comment:[{pattern:/(^|[^\\])\/\*[\w\W]*?\*\//,lookbehind:
 !function(e){var n=/#(?!\{).+/,t={pattern:/#\{[^}]+\}/,alias:"variable"};e.languages.coffeescript=e.languages.extend("javascript",{comment:n,string:[/'(?:\\?[^\\])*?'/,{pattern:/"(?:\\?[^\\])*?"/,inside:{interpolation:t}}],keyword:/\b(and|break|by|catch|class|continue|debugger|delete|do|each|else|extend|extends|false|finally|for|if|in|instanceof|is|isnt|let|loop|namespace|new|no|not|null|of|off|on|or|own|return|super|switch|then|this|throw|true|try|typeof|undefined|unless|until|when|while|window|with|yes|yield)\b/,"class-member":{pattern:/@(?!\d)\w+/,alias:"variable"}}),e.languages.insertBefore("coffeescript","comment",{"multiline-comment":{pattern:/###[\s\S]+?###/,alias:"comment"},"block-regex":{pattern:/\/{3}[\s\S]*?\/{3}/,alias:"regex",inside:{comment:n,interpolation:t}}}),e.languages.insertBefore("coffeescript","string",{"inline-javascript":{pattern:/`(?:\\?[\s\S])*?`/,inside:{delimiter:{pattern:/^`|`$/,alias:"punctuation"},rest:e.languages.javascript}},"multiline-string":[{pattern:/'''[\s\S]*?'''/,alias:"string"},{pattern:/"""[\s\S]*?"""/,alias:"string",inside:{interpolation:t}}]}),e.languages.insertBefore("coffeescript","keyword",{property:/(?!\d)\w+(?=\s*:(?!:))/})}(Prism);;
 Prism.languages.css.selector={pattern:/[^\{\}\s][^\{\}]*(?=\s*\{)/,inside:{"pseudo-element":/:(?:after|before|first-letter|first-line|selection)|::[-\w]+/,"pseudo-class":/:[-\w]+(?:\(.*\))?/,"class":/\.[-:\.\w]+/,id:/#[-:\.\w]+/}},Prism.languages.insertBefore("css","function",{hexcode:/#[\da-f]{3,6}/i,entity:/\\[\da-f]{1,8}/i,number:/-?[\d%\.]+/});;
     Prism.languages.scheme={"boolean":/#(t|f){1}/,comment:/;.*/,keyword:{pattern:/([(])(define(-syntax|-library|-values)?|(case-)?lambda|let(-values|(rec)?(\*)?)?|else|if|cond|begin|delay|delay-force|parameterize|guard|set!|(quasi-)?quote|syntax-rules)/,lookbehind:!0},builtin:{pattern:/([(])(cons|car|cdr|null\?|pair\?|boolean\?|eof-object\?|char\?|procedure\?|number\?|port\?|string\?|vector\?|symbol\?|bytevector\?|list|call-with-current-continuation|call\/cc|append|abs|apply|eval)\b/,lookbehind:!0},string:/(["])(?:(?=(\\?))\2.)*?\1|'[^('|\s)]+/,number:{pattern:/(\s|\))[-+]?[0-9]*\.?[0-9]+((\s*)[-+]{1}(\s*)[0-9]*\.?[0-9]+i)?/,lookbehind:!0},operator:/(\*|\+|\-|%|\/|<=|=>|>=|<|=|>)/,"function":{pattern:/([(])[^(\s|\))]*\s/,lookbehind:!0},punctuation:/[()]/};;
+    (function(Prism) {
+
+  var handlebars_pattern = /\{\{\{[\w\W]+?\}\}\}|\{\{[\w\W]+?\}\}/g;
+
+  Prism.languages.handlebars = Prism.languages.extend('markup', {
+    'handlebars': {
+      pattern: handlebars_pattern,
+      inside: {
+        'delimiter': {
+          pattern: /^\{\{\{?|\}\}\}?$/i,
+          alias: 'punctuation'
+        },
+        'string': /(["'])(\\?.)*?\1/,
+        'number': /\b-?(0x[\dA-Fa-f]+|\d*\.?\d+([Ee][+-]?\d+)?)\b/,
+        'boolean': /\b(true|false)\b/,
+        'block': {
+          pattern: /^(\s*~?\s*)[#\/]\S+?(?=\s*~?\s*$|\s)/i,
+          lookbehind: true,
+          alias: 'keyword'
+        },
+        'brackets': {
+          pattern: /\[[^\]]+\]/,
+          inside: {
+            punctuation: /\[|\]/,
+            variable: /[\w\W]+/
+          }
+        },
+        'punctuation': /[!"#%&'()*+,.\/;<=>@\[\\\]^`{|}~]/,
+        'variable': /[^!"#%&'()*+,.\/;<=>@\[\\\]^`{|}~\s]+/
+      }
+    }
+  });
+
+  // Comments are inserted at top so that they can
+  // surround markup
+  Prism.languages.insertBefore('handlebars', 'tag', {
+    'handlebars-comment': {
+      pattern: /\{\{![\w\W]*?\}\}/,
+      alias: ['handlebars','comment']
+    }
+  });
+
+  // Tokenize all inline Handlebars expressions that are wrapped in {{ }} or {{{ }}}
+  // This allows for easy Handlebars + markup highlighting
+  Prism.hooks.add('before-highlight', function(env) {
+    if (env.language !== 'handlebars') {
+      return;
+    }
+
+    env.tokenStack = [];
+
+    env.code = env.code.replace(handlebars_pattern, function(match) {
+      env.tokenStack.push(match);
+
+      return '___HANDLEBARS' + env.tokenStack.length + '___';
+    });
+  });
+
+  // Re-insert the tokens after highlighting
+  // and highlight them with defined grammar
+  Prism.hooks.add('after-highlight', function(env) {
+    if (env.language !== 'handlebars') {
+      return;
+    }
+
+    for (var i = 0, t; t = env.tokenStack[i]; i++) {
+      // The replace prevents $$, $&, $`, $', $n, $nn from being interpreted as special patterns
+      env.highlightedCode = env.highlightedCode.replace('___HANDLEBARS' + (i + 1) + '___', Prism.highlight(t, env.grammar, 'handlebars').replace(/\$/g, '$$$$'));
+    }
+
+    env.element.innerHTML = env.highlightedCode;
+  });
+
+}(Prism));
 Prism.languages.yaml={scalar:{pattern:/([\-:]\s*(![^\s]+)?[ \t]*[|>])[ \t]*(?:(\n[ \t]+)[^\r\n]+(?:\3[^\r\n]+)*)/,lookbehind:!0,alias:"string"},comment:/#[^\n]+/,key:{pattern:/(\s*[:\-,[{\n?][ \t]*(![^\s]+)?[ \t]*)[^\n{[\]},#]+?(?=\s*:\s)/,lookbehind:!0,alias:"atrule"},directive:{pattern:/((^|\n)[ \t]*)%[^\n]+/,lookbehind:!0,alias:"important"},datetime:{pattern:/([:\-,[{]\s*(![^\s]+)?[ \t]*)(\d{4}-\d\d?-\d\d?([tT]|[ \t]+)\d\d?:\d{2}:\d{2}(\.\d*)?[ \t]*(Z|[-+]\d\d?(:\d{2})?)?|\d{4}-\d{2}-\d{2}|\d\d?:\d{2}(:\d{2}(\.\d*)?)?)(?=[ \t]*(\n|$|,|]|}))/,lookbehind:!0,alias:"number"},"boolean":{pattern:/([:\-,[{]\s*(![^\s]+)?[ \t]*)(true|false)[ \t]*(?=\n|$|,|]|})/i,lookbehind:!0,alias:"important"},"null":{pattern:/([:\-,[{]\s*(![^\s]+)?[ \t]*)(null|~)[ \t]*(?=\n|$|,|]|})/i,lookbehind:!0,alias:"important"},string:{pattern:/([:\-,[{]\s*(![^\s]+)?[ \t]*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')(?=[ \t]*(\n|$|,|]|}))/,lookbehind:!0},number:{pattern:/([:\-,[{]\s*(![^\s]+)?[ \t]*)[+\-]?(0x[\dA-Fa-f]+|0o[0-7]+|(\d+\.?\d*|\.?\d+)(e[\+\-]?\d+)?|\.inf|\.nan)[ \t]*(?=\n|$|,|]|})/i,lookbehind:!0},tag:/![^\s]+/,important:/[&*][\w]+/,punctuation:/([:[\]{}\-,|>?]|---|\.\.\.)/};;
     return Prism;
 });
