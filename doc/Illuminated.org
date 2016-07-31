@@ -54,7 +54,7 @@ do ->
 : type: rotator
  [[leisure:rotator2]]
 
-* Here's that annoying shadow box button
+* Here's that annoying shadow box button, defined as an app
 #+BEGIN_HTML :controller appController
 <div name='floater'>
   <div name='background'></div>
