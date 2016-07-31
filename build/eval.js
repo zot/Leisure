@@ -474,10 +474,15 @@
           expr = ref[j];
           ref1 = lineLocationForOffset(map, text, expr.start), line = ref1.line, column = ref1.column, source = ref1.source, name = ref1.name;
           if (expr.type === 'ExpressionStatement') {
-            expr = expr.expression;
+            if (expr.expression.type !== 'ObjectExpression') {
+              expr = expr.expression;
+            }
             exprText = text.substring(expr.start, expr.end);
             if (exprText[exprText.length - 1] === ';') {
-              exprText = exprText.substring(0, exprText.length - 1);
+              expr = {
+                start: expr.start,
+                end: expr.end - 1
+              };
             }
             if ((s = new SourceNode(line, column, source, nodesForGeneratedText(oldNodes, expr))).toString() !== text.substring(expr.start, expr.end)) {
               console.log("Source nodes don't line up:\n" + (s.toString()));

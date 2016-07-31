@@ -8,7 +8,7 @@
 - No (/required/) distinction between runtime and development
 - Editing means changing content, code, data, etc.; anything in the document
 * Some features
-- Polyglot: JavaScript,  CoffeeScript, Leisure, HTML (Handlebars), CSS, YAML
+- Polyglot: JavaScript, CoffeeScript, Leisure, HTML (Handlebars), CSS, YAML
 - Dynamically updates as you edit code, data, views, content
 - Org-mode format (documents are just plain text)
 - Reactive connection between views and a collaborative data model
@@ -55,6 +55,9 @@ do ->
  [[leisure:rotator2]]
 
 * Here's that annoying shadow box button, defined as an app
+This is a tiny Lounge app. Of course you can have large ones, like games or
+what-have-you.  This one only displays a shadowbox and a button.
+
 #+BEGIN_HTML :controller appController
 <div name='floater'>
   <div name='background'></div>
@@ -71,6 +74,7 @@ do ->
 #+BEGIN_SRC coffee :results def
 window.App = window.App ?
   shadowbox: true
+  first: true
 #+END_SRC
 ** Intro controller
 #+NAME: appController
@@ -90,7 +94,11 @@ configureButton = (view, newState)->
   button = view.find('[name=dismisser]').button()
   if App.shadowbox = newState
     floater.addClass 'float'
-    button.button 'option', 'label', 'Click anywhere to dismiss this annoying shadow box'
+    if App.first
+      App.first = false
+      button.button 'option', 'label', 'Click anywhere to dismiss this annoying shadow box<br>More about this button, later in the document :)'
+    else
+      button.button 'option', 'label', 'Click anywhere to dismiss this annoying shadow box'
   else
     floater.removeClass 'float'
     button.button 'option', 'label', 'Click to show the annoying shadow box'
@@ -119,3 +127,25 @@ configureButton = (view, newState)->
   z-index: -1;
 }
 #+END_SRC
+* Dynamic execution
+#+BEGIN_SRC coffee :results dynamic
+3 + 4
+8 * 2
+#+END_SRC
+#+RESULTS:
+: 7
+: 16
+* Inline Views
+#+BEGIN_SRC coffee :results yaml dynamic view(fullName) :exports results
+firstName: 'Bob'
+lastName: 'Jones'
+#+END_SRC
+#+RESULTS:
+: firstName: Bob
+: lastName: Jones
+
+
+#+BEGIN_SRC html :defview fullName
+<div style='border: solid black 2px; font-weight: bold; Xdisplay: inline-block; padding: 2px'>First name: {{firstName}}, Last name: {{lastName}}</div>
+#+END_SRC
+* Test Cases

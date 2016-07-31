@@ -1,0 +1,89 @@
+#+TITLE:Leisure Features
+* An experimental, dynamically typed, lazy language with strong metaprogramming
+Leisure is an attempt to make a dynamically typed, lazy language that is
+convenient, powerful, useable, and, most of all, *fun* to use.
+* "Lazy" (call-by-need)
+#+BEGIN_SRC leisure
+ones = [1 | ones]
+take 4 ones
+#+END_SRC
+#+RESULTS:
+: [1 1 1 1]
+* Dynamically typed
+#+BEGIN_SRC leisure
+[1 'hello' [2]]
+#+END_SRC
+** Defining new types simply by returning a lambda
+#+BEGIN_SRC leisure
+newType x = \f . f x
+getType (newType 3)
+#+END_SRC
+#+RESULTS:
+: "newType"
+* Metaprogramming
+** macros (like LISP macros)
+"do" is a macro
+** parse filters (a bit like #lang in Racket)
+infix notation is implemented as a parse filter
+* Partial application, meaningfully displayed
+#+BEGIN_SRC leisure
+[(cons 'a') 'b' (cons 'c') (cons 'd' nil)]
+#+END_SRC
+#+RESULTS:
+: [<span class="partial-application">(cons "a")</span> "b" <span class="partial-application">(cons "c")</span> ["d"]]
+* monad makes asynchronous I/O straightforward
+#+BEGIN_SRC leisure
+do
+  name <- prompt 'What is your name?'
+#+END_SRC
+* Powerful "do" blocks
+** Dynamically typed
+#+BEGIN_SRC leisure
+a = do
+  x <- 1
+  x + 1
+b = do
+  x <- run prompt 'What is the number?'
+  1 + (number x)
+getType a
+getType b
+a
+b
+#+END_SRC
+#+RESULTS:
+: "*number"
+: "*Monad2"
+: 2
+: 2
+** lifter macros run, for, forFlat
+*** for
+#+BEGIN_SRC leisure
+do
+  x <- for [4 5 6]
+  x + 1
+#+END_SRC
+#+RESULTS:
+: [5 6 7]
+*** forFlat
+#+BEGIN_SRC leisure
+do
+  x <- forFlat [1 2 3]
+  y <- for [4 5 6]
+  [x y]
+#+END_SRC
+#+RESULTS:
+: [[1 4] [1 5] [1 6] [2 4] [2 5] [2 6] [3 4] [3 5] [3 6]]
+** folding
+#+BEGIN_SRC leisure
+do
+  x <-|i = 0| [1 2 3 4]
+  i + x
+#+END_SRC
+#+RESULTS:
+: 10
+* JavaScript integration
+** The "js" Leisure function returns an IO value
+*** It will auto-convert returned JS functions into Leisure functions that properly handle call-by-need
+** JS code can call Leisure functions
+** The JS runMonad() function will run monadic Leisure values
+*** runMonad returns a promise if the code was determined to be asynchronous

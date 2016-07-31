@@ -718,6 +718,13 @@ Leisure.initCodeMenu = (view)->
 #+END_SRC
 
 #+BEGIN_SRC css
+[data-view="leisure-code/results-only"]:hover [name=codeMenuButton][data-widget-holder],
+[data-view=leisure-code]:hover [name=codeMenuButton][data-widget-holder] {
+  display: initial;
+}
+[name=codeMenuButton][data-widget-holder] {
+  display: none;
+}
 #codeMenu {
   display: inline-block;
   position: absolute;

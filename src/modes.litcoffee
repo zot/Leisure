@@ -1,4 +1,4 @@
-    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './advice', './lib/prism-leisure'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird, Advice)->
+    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lib/lodash.min', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './advice', './lib/prism-leisure', 'lib/js-yaml'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml)->
 
       {
         defaultEnv
@@ -94,6 +94,9 @@
       {
         Promise
       } = Bluebird
+      {
+        safeLoad
+      } = Yaml
 
       singleControllers = {}
       numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/
@@ -915,9 +918,18 @@ Returns [] if org does not fit the pattern.
 
       goodText = (text)-> workSpan().text(text).html() ? ''
 
+      isViewResult = (block)-> block.codeAttributes.results.match /\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i
+
       resultsArea = (opts, results, block)->
         firstResult = results.indexOf('\n') + 1
-        if false && isYamlResult block
+        if m = isViewResult(block)
+          obj = safeLoad results.substring(firstResult).replace /(^|\n): /gm, '$1'
+          [ignore, type, viewName] = m
+          type = type ? obj.type
+          {name: objectName} = blockCodeItems opts, block
+          #"<span class='hidden'>#{escapeHtml results}</span>#{renderView type, viewName, obj, null, block, objectName}"
+          "<span class='hidden'>#{escapeHtml results}</span>#{renderView type, viewName, obj}"
+        else if false && isYamlResult block
           "<span class='hidden'>#{results.substring 0, firstResult}</span><span class='yaml results-verbatim' data-noncontent>#{results.substring(firstResult).replace /^(: )(.*\n)/gm, (m, g1, g2)-> goodHtml(g2)}</span>"
         else if !firstResult || results[firstResult] == ':'
           "<span class='hidden'>#{goodText results}</span><span class='results-verbatim' data-noncontent>#{results.substring(firstResult).replace /^(: )(.*\n)/gm, (m, g1, g2)-> goodHtml(g2)}</span>"
@@ -934,7 +946,7 @@ Returns [] if org does not fit the pattern.
         new LeisureEditCore $(div), options
 
       prismAliases =
-        html: 'markup'
+        html: 'handlebars'
         coffee: 'coffeescript'
         cs: 'coffeescript'
         js: 'javascript'
