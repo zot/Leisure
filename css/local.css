@@ -19,8 +19,10 @@ a:hover {
     display: inline-block;
     position: relative;
 }
-.expandable-panel.expand,
+.expandable-panel.expand
+/*,
 .expandable-panel:hover:not(.contract)
+*/
 {
     position: absolute;
     z-index: 1;
@@ -30,20 +32,28 @@ a:hover {
     height: 100%;
     overflow: hidden;
 }
-.expandable-panel.expand > .contents,
+.expandable-panel.expand > .contents
+/*,
 .expandable-panel:hover:not(.contract) > .contents
+*/
 {
     padding-left: 1ex;
     width: 100%;
     transition: width 1s;
     -webkit-transition: width 1s;
 }
-.expandable-panel.expand > .contents,
-.expandable-panel:hover:not(.contract) > .contents {
+.expandable-panel.expand > .contents
+/*,
+.expandable-panel:hover:not(.contract) > .contents
+*/
+{
     display: inherit;
 }
-.expandable-panel.expand > .label,
-.expandable-panel:hover:not(.contract) > .label {
+.expandable-panel.expand > .label
+/*,
+.expandable-panel:hover:not(.contract) > .label
+*/
+{
     display: none;
 }
 .expandable-panel > .contents {
