@@ -151,6 +151,9 @@ updateButton = (view, hiding)->
 
 #+NAME: toolbar-css
 #+BEGIN_SRC css
+[data-view=leisure-toolbar] {
+  z-index: 1000;
+}
 [data-view=leisure-toolbar] [name=leisure_grip] .fa-angle-right {
   display: none;
 }

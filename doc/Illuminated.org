@@ -1,42 +1,33 @@
-#+TITLE:Lounge, an Illuminated Programming Environment
-* Announcing Lounge, a document-centered, illuminated programming environment
-** In Lounge, the concept of "illuminate programming" covers several concepts:
-- Media-rich, interactive, collaborative documents, each one like its own (virtual) machine
-- Documents are editable either in-place or using markup directly
-- Documents contain code, data, presentation, and they also RUN
-- No (required) distinction between runtime and development
-- Lounge documents can optionally disable most of these properties
-* Lounge is multilingual and uses the org-mode format for its documents
-** Lounge currently supports these languages and markups
-- JavaScript
-- CoffeeScript
-- Leisure
-- Handlebars / HTML
-- CSS
-- YAML / JSON
-* Lounge defines reactive interfaces by connecting Handlebars to a Lounge's collaborative data model.
-* Here are two rectangles connected to the same model and a third connected to another model
-[[leisure:rotator]] [[leisure:rotator/two]]
+* Title heading
+** This should put a title in the HTML and show a title screen in slide mode
+#+TITLE:Lounge, a Document-Centered, Illuminated Programming Environment
+* In Lounge, the concept of "illuminated programming" means...
+- Media-rich, interactive, collaborative documents
+- Each document is like a tiny (virtual) machine, with code, data, presentation, and it also *runs*
+- You can edit using WYSIWYG (click here and type stuff) or you can use markup (click a martini glass)
+- No (/required/) distinction between runtime and development
+- Editing means changing content, code, data, etc.; anything in the document
+* Some features
+- Polyglot: JavaScript,  CoffeeScript, Leisure, HTML (Handlebars), CSS, YAML
+- Dynamically updates as you edit code, data, views, content
+- Org-mode format (documents are just plain text)
+- Reactive connection between views and a collaborative data model
+- Support for collaborative and local data access
+* Here are two rectangles connected to the same data
 ** Click the degrees value and move the slider that pops up
 #+NAME: rotator
 This block of data represents a rotation.
 #+BEGIN_SRC yaml
 type: rotator
-degrees: 98
+degrees: 70
 #+END_SRC
-* Here's a view conntected to a CoffeeScript model: [[leisure:rotator2]]
-** Click on the degrees below and slide the value to recompute the model and see the view change.
-#+NAME: rotator2
-#+BEGIN_SRC coffee :results dynamic yaml
-do ->
-  o = type: 'rotator'
-  o.degrees = 98
-  o
-#+END_SRC
-#+RESULTS:
-: degrees: 28
-: type: rotator
+ [[leisure:rotator]] [[leisure:rotator/two]]
+** Want to edit these views?  Click Show/hide or search for rot.
+** Don't worry about messing things up, you can just reload the page.
 * Fiddle with these view definitions and you'll see the views change.
+:properties:
+:hidden: true
+:end:
 #+BEGIN_SRC html :defview rotator
 <div style='padding: 25px; display: inline-block; vertical-align: middle'>
   <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>
@@ -47,4 +38,91 @@ do ->
 <div style='padding: 25px; padding-left: 100px; display: inline-block; vertical-align: middle'>
   <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
 </div>
+#+END_SRC
+
+* Here's a rectangle connected to some CoffeeScript code (that you can change)
+** Click on the degrees value below and slide the value to recompute the model and see the view change.
+#+NAME: rotator2
+#+BEGIN_SRC coffee :results dynamic yaml
+do ->
+  o = type: 'rotator'
+  o.degrees = 115
+  o
+#+END_SRC
+#+RESULTS:
+: degrees: 115
+: type: rotator
+ [[leisure:rotator2]]
+
+* Here's that annoying shadow box button
+#+BEGIN_HTML :controller appController
+<div name='floater'>
+  <div name='background'></div>
+  <button name='dismisser'></button>
+</div>
+#+END_HTML
+
+** You can click Show/hide to show the button code and other goodies
+* A small app
+:properties:
+:hidden: true
+:end:
+** App initialization
+#+BEGIN_SRC coffee :results def
+window.App = window.App ?
+  shadowbox: true
+#+END_SRC
+** Intro controller
+#+NAME: appController
+#+BEGIN_SRC coffee
+@initializeView = (view)->
+  view = $(view)
+  #floater = view.closest('.slideholder').closest '.view'
+  floater = view.find '[name=floater]'
+  configureButton view
+  view.find('[name=dismisser]').button().on 'click', (e)->
+    e.stopPropagation()
+    App.shadowbox = !App.shadowbox
+    configureButton view
+  floater.on 'click', ->
+    if App.shadowbox then alert 'You can\'t click here!\n(This is even MORE irritating!)'
+
+configureButton = (view)->
+  #floater = view.closest('.slideholder').closest '.view'
+  floater = view.find '[name=floater]'
+  button = view.find('[name=dismisser]').button()
+  if !App.shadowbox
+    floater.removeClass 'float'
+    button.button 'option', 'label', 'Click to show the annoying shadow box'
+  else
+    floater.addClass 'float'
+    button.button 'option', 'label', 'Click to dismiss this annoying shadow box<br>(Isn\'t this an irritating interface technique?)'
+#+END_SRC
+
+#+BEGIN_SRC css
+.float {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+.float [name=background] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: black;
+  opacity: 0.5;
+  z-index: -1;
+}
+.float button {
+
+  margin: auto;
+}
 #+END_SRC

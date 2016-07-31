@@ -139,28 +139,6 @@
         return this.scheduleEvals();
       };
 
-      OrgData.prototype.makeChanges = function(func) {
-        var filter, j, l, len, len1, newChange, ref, ref1;
-        if (newChange = !this.changeCount) {
-          ref = this.filters;
-          for (j = 0, len = ref.length; j < len; j++) {
-            filter = ref[j];
-            filter.startChange(this);
-          }
-        }
-        try {
-          return OrgData.__super__.makeChanges.call(this, func);
-        } finally {
-          if (newChange) {
-            ref1 = this.filters;
-            for (l = 0, len1 = ref1.length; l < len1; l++) {
-              filter = ref1[l];
-              filter.endChange(this);
-            }
-          }
-        }
-      };
-
       OrgData.prototype.getImage = function(name, cont, fail) {
         return this.getFile(name, (function(contents) {
           var url;
@@ -1321,8 +1299,6 @@
       return true;
     };
     basicDataFilter = {
-      startChange: function(data) {},
-      endChange: function(data) {},
       clear: function(data) {},
       replaceBlock: function(data, oldBlock, newBlock) {},
       replaceText: function(data, arg1) {
@@ -2583,7 +2559,8 @@
       DataStoreEditingOptions: DataStoreEditingOptions,
       Editor: Editor,
       CodeContext: CodeContext,
-      modifyingKey: modifyingKey
+      modifyingKey: modifyingKey,
+      getId: getId
     });
     return {
       createLocalData: createLocalData,
@@ -2606,7 +2583,8 @@
       replacementFor: replacementFor,
       ajaxGet: ajaxGet,
       parseYaml: parseYaml,
-      makeImageBlob: makeImageBlob
+      makeImageBlob: makeImageBlob,
+      getId: getId
     };
   });
 

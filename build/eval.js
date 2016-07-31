@@ -480,7 +480,7 @@
               exprText = exprText.substring(0, exprText.length - 1);
             }
             if ((s = new SourceNode(line, column, source, nodesForGeneratedText(oldNodes, expr))).toString() !== text.substring(expr.start, expr.end)) {
-              console.log("BAD NODES\n" + (s.toString()));
+              console.log("Source nodes don't line up:\n" + (s.toString()));
             }
             newSource.push(new SourceNode(line, column, source, ['\nleisure_results.push(', nodesForGeneratedText(oldNodes, expr), ');\n'], name));
           } else {
@@ -733,8 +733,6 @@
                 this.ctx._blocks[varName] = this.data.getBlockNamed(varMappings[varName]);
               }
             }
-          } else {
-            debugger;
           }
           ret = code.call(this);
           if (cont) {

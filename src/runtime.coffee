@@ -1105,6 +1105,7 @@ define ['./base', './ast', 'lib/lodash.min', 'immutable', 'lib/js-yaml', 'lib/bl
     define
     isPartial
     partialCall
+    bind
   }
 
   mergeExports {
