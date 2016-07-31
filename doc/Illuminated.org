@@ -85,7 +85,9 @@ window.App = window.App ?
     App.shadowbox = !App.shadowbox
     configureButton view
   floater.on 'click', ->
-    if App.shadowbox then alert 'You can\'t click here!\n(This is even MORE irritating!)'
+    if App.shadowbox
+      App.shadowbox = false
+      configureButton view
 
 configureButton = (view)->
   #floater = view.closest('.slideholder').closest '.view'
