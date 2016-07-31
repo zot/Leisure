@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['handlebars', './export', './editor', './coffee-script', 'immutable'], function(Handlebars, Exports, Editor, CoffeeScript, Immutable) {
-    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, pendingViews, preserveSelection, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
+    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, nextViewId, pendingViews, preserveSelection, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
     ref = window.Handlebars = Handlebars, compile = ref.compile, create = ref.create, registerHelper = ref.registerHelper;
     mergeExports = Exports.mergeExports;
     escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection;
@@ -327,9 +327,12 @@
         return " <span class='error'>[Error in template]</span> ";
       }
     };
+    nextViewId = function() {
+      return "view-" + (viewIdCounter++);
+    };
     simpleRenderView = function(attrs, key, template, data, block) {
       var id;
-      id = "view-" + (viewIdCounter++);
+      id = nextViewId();
       (function(context) {
         return pendingViews.push(function() {
           return activateScripts($("#" + id), context);
@@ -499,7 +502,8 @@
         setPanelExpanded: setPanelExpanded,
         activateScripts: activateScripts,
         pendingScripts: [],
-        localResources: localResources
+        localResources: localResources,
+        nextViewId: nextViewId
       },
       condenseHtml: condenseHtml,
       Handlebars: Handlebars

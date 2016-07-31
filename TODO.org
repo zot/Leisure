@@ -1,16 +1,13 @@
-* change :control blocks to use :var instead of @initializeView
-* Use Object.create() instead of __proto__
-* P2P should transmit document name to slaves if it's a public URL
-* TODO Undo: for OT, register with UndoManager, for local, use replacements
-* Finish the big arity substitution for primitives and codegen
-* Write program to test new vele mechanics
-* implement dofold
-dofold i <- 0
-  x <- range 0 100
-  i + x
-* TODO Martini button in Leisure bar that toggles the entire page
-* TODO structural keybord commands
-* TODO Make a drawer for "uncommitted" content
+* TODO finish transaction support for collaborative try/punt technique
+* TODO change :control blocks to use :var instead of @initializeView
+* TODO Use Object.create() instead of __proto__
+* TODO P2P should transmit document name to slaves if it's a public URL
+* TODO [#A] Undo: for OT, register with UndoManager, for local, use replacements
+* TODO [#A] Finish the big arity substitution for primitives and codegen
+* TODO Write program to test new vele mechanics
+* TODO [#A] Martini button in Leisure bar that toggles the entire page
+* TODO [#A] structural keybord commands
+* TODO Make a drawer for WIP content
 * TODO load *and save* gists or fiddles
 * TODO View on a block's content
 ** Edit a src block's content
@@ -35,7 +32,7 @@ dofold i <- 0
 ** Backup
 * TODO Validate yaml blocks and show errors
 * TODO handle :exports none, just show the control widget
-* TODO code blocks for handlebar partials
+* TODO code block header args for handlebar partials
 * TODO finish observers for JS, LispyScript, Leisure
 * TODO New output type, "view" that shows results as a view
 ** optional type or type/name param overrides type of result
@@ -1100,6 +1097,11 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE implement dofold
+CLOSED: [2016-07-29 Fri 15:59]
+dofold i <- 0
+  x <- range 0 100
+  i + x
 ** DONE Need fancy gizmos to control header args
 CLOSED: [2016-04-10 Sun 03:01]
 ** DONE Filter control characters out from inserts

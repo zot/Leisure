@@ -1,6 +1,6 @@
 Support code for Leisure
 
-    define ['./base', './ast', './runtime', './gen', './eval', './org'], (Base, Ast, Runtime, Gen, Eval, Org)->
+    define ['./base', './ast', './runtime', './gen', './eval', './org', './transaction'], (Base, Ast, Runtime, Gen, Eval, Org, Transaction)->
       {
         define
         getType
@@ -39,6 +39,7 @@ Support code for Leisure
         lacons: acons
         right
         left
+        bind
       } = Runtime
       {
         evalLeisure
@@ -203,5 +204,16 @@ Support code for Leisure
         new Monad2 (env, cont)->
           data.getImage rz(name), ((url)-> cont right url), (failure)-> cont left failure
 
-      #evalLeisure """
-      #"""
+      startMonitor = -> new Monad2 (env, cont)-> cont monitorChanges env.opt.data
+
+      endMonitor = (mon)-> new Monad2 (env, cont)-> cont mon.stop()
+
+      define '_monitorChanges', (val)->
+        bind startMonitor(), lz (mon)->
+          bind val, lz (result)->
+            bind endMonitor(mon), (ignore)->
+              cons mon, result
+
+      evalLeisure """
+      defMacro 'monitorChanges' \\list . ['_monitorChanges' ['do' | list]]
+      """

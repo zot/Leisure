@@ -3,14 +3,14 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     slice = [].slice;
 
-  define(['./base', './ast', './runtime', './gen', './eval', './org'], function(Base, Ast, Runtime, Gen, Eval, Org) {
-    var Monad2, Nil, Node, _false, _identity, _true, _unit, acons, baseElements, baseStrokeWidth, cons, createNode, currentDataChange, defaultEnv, defaultEnvWithOpts, define, dispatchCollaborative, doPartial, evalLeisure, foldLeft, getMaxStrokeWidth, getSvgElement, getType, getValue, isNil, isPartial, jsonConvert, lazy, lc, left, lz, makeHamt, makeSyncMonad, newConsFrom, none, parseCodeAttributes, partialCall, primFoldLeft, primSvgMeasure, ref, resolve, right, root, runMonad2, rz, setValue, some, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml;
+  define(['./base', './ast', './runtime', './gen', './eval', './org', './transaction'], function(Base, Ast, Runtime, Gen, Eval, Org, Transaction) {
+    var Monad2, Nil, Node, _false, _identity, _true, _unit, acons, baseElements, baseStrokeWidth, bind, cons, createNode, currentDataChange, defaultEnv, defaultEnvWithOpts, define, dispatchCollaborative, doPartial, endMonitor, evalLeisure, foldLeft, getMaxStrokeWidth, getSvgElement, getType, getValue, isNil, isPartial, jsonConvert, lazy, lc, left, lz, makeHamt, makeSyncMonad, newConsFrom, none, parseCodeAttributes, partialCall, primFoldLeft, primSvgMeasure, ref, resolve, right, root, runMonad2, rz, setValue, some, startMonitor, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml;
     ref = root = Ast, define = ref.define, getType = ref.getType, cons = ref.cons, unescapePresentationHtml = ref.unescapePresentationHtml, isNil = ref.isNil, isPartial = ref.isPartial, partialCall = ref.partialCall, doPartial = ref.doPartial, Nil = ref.Nil;
     Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
-    runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, _false = Runtime._false, _identity = Runtime._identity, _unit = Runtime._unit, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2, some = Runtime.some, none = Runtime.none, acons = Runtime.lacons, right = Runtime.right, left = Runtime.left;
+    runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, _false = Runtime._false, _identity = Runtime._identity, _unit = Runtime._unit, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2, some = Runtime.some, none = Runtime.none, acons = Runtime.lacons, right = Runtime.right, left = Runtime.left, bind = Runtime.bind;
     evalLeisure = Eval.evalLeisure;
     parseCodeAttributes = Org.parseCodeAttributes;
     currentDataChange = null;
@@ -247,7 +247,7 @@
         return cont(_unit);
       });
     });
-    return define('getImage', function(name) {
+    define('getImage', function(name) {
       var data;
       if (isPartial(arguments)) {
         return partialCall(arguments);
@@ -262,6 +262,26 @@
         });
       }
     });
+    startMonitor = function() {
+      return new Monad2(function(env, cont) {
+        return cont(monitorChanges(env.opt.data));
+      });
+    };
+    endMonitor = function(mon) {
+      return new Monad2(function(env, cont) {
+        return cont(mon.stop());
+      });
+    };
+    define('_monitorChanges', function(val) {
+      return bind(startMonitor(), lz(function(mon) {
+        return bind(val, lz(function(result) {
+          return bind(endMonitor(mon), function(ignore) {
+            return cons(mon, result);
+          });
+        }));
+      }));
+    });
+    return evalLeisure("defMacro 'monitorChanges' \\list . ['_monitorChanges' ['do' | list]]");
   });
 
 }).call(this);

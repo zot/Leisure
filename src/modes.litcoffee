@@ -78,6 +78,7 @@
         nextImageSrc
         prevImageSrc
         pushPendingInitialzation
+        nextViewId
       } = UI
       {
         mergeExports
@@ -191,17 +192,20 @@
         fancyMode.render(UI.context.opts, block, UI.context.prefix)[0]
 
       Handlebars.registerHelper 'renderHtml', (html)->
-        [vars, ids] = blockVars UI.context?.opts?.data, this.block?.codeAttributes?.var
+        opts = UI.context?.opts
+        [vars, ids] = blockVars opts?.data, this.block?.codeAttributes?.var
         data = UI.context?.opts?.data
-        if ids.length > 0 && (id = UI.context?.simpleViewId ? this.id) && (opts = UI.context?.opts)
+        controllerName = @block.codeAttributes.controller
+        id = UI.context?.simpleViewId ? this.id
+        if controllerName || (ids.length > 0 && (id = UI.context?.simpleViewId ? this.id))
           pushPendingInitialzation =>
             viewNode = $("##{id}")
-            if (node = opts.nodeForId(@block._id)) && (node[0] == viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)
+            if ids.length && (node = opts.nodeForId(@block._id)) && (node[0] == viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)
               blocks = node.attr('data-observe') ? ''
               for id in ids
                 blocks += " #{id}"
               node.attr 'data-observe', blocks
-            if controllerName = @block.codeAttributes.controller
+            if controllerName
               if !(controller = singleControllers[controllerName])
                 if block = opts.data.getBlockNamed controllerName
                   controller = singleControllers[controllerName] = {}
@@ -209,9 +213,13 @@
                   env.eval = (text)-> controllerEval.call controller, text
                   env.write = (str)-> console.log str
                   env.errorAt = (offset, msg)-> console.log msg
-                  env.executeText blockSource(block), Nil, (->)
+                  opts.data.getCode(block).call controller, null, viewNode
               controller?.initializeView? viewNode[0], vars
-        Handlebars.compile(html)(vars, data: UI.context)
+        text = Handlebars.compile(html)(vars, data: UI.context)
+        if !id && controllerName
+          id = nextViewId()
+          "<span id='#{id}'>#{text}</span>"
+        else text
 
       initializePendingViews = ->
         UI.initializePendingViews()
@@ -986,4 +994,5 @@ Exports
         fancyMode
         plainEditDiv
         fancyEditDiv
+        doSlideValue
       }

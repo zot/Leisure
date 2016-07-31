@@ -304,7 +304,7 @@ Evaulation support for Leisure
               if exprText[exprText.length - 1] == ';'
                 exprText = exprText.substring(0, exprText.length - 1)
               if (s = new SourceNode(line, column, source, nodesForGeneratedText(oldNodes, expr))).toString() != text.substring expr.start, expr.end
-                console.log "BAD NODES\n#{s.toString()}"
+                console.log "Source nodes don't line up:\n#{s.toString()}"
               newSource.push new SourceNode(line, column, source, ['\nleisure_results.push(', nodesForGeneratedText(oldNodes, expr), ');\n'], name)
             else newSource.push new SourceNode(line, column, source, [text.substring expr.start, expr.end])
           {code, map} = new SourceNode(1, 0, fileName, newSource).toStringWithSourceMap()
@@ -434,7 +434,6 @@ Evaulation support for Leisure
               for varName, i in varNames
                 @ctx[varName] = args[i] ? @data.getYaml @data.getBlockNamed varMappings[varName]
                 if !args[i] then @ctx._blocks[varName] = @data.getBlockNamed varMappings[varName]
-            else debugger
             ret = code.call this
             if cont then cont ret else ret
         env.genBlock = (block, vars, varNames, varMappings)->

@@ -220,8 +220,10 @@ choose a handlebars template.
           console.log err.stack ? err.msg
           " <span class='error'>[Error in template]</span> "
 
+      nextViewId = -> "view-#{viewIdCounter++}"
+
       simpleRenderView = (attrs, key, template, data, block)->
-        id = "view-#{viewIdCounter++}"
+        id = nextViewId()
         do (context = root.context)->
           pendingViews.push -> activateScripts $("##{id}"), context
         attrs += " id='#{id}'"
@@ -338,6 +340,7 @@ choose a handlebars template.
           activateScripts
           pendingScripts: []
           localResources
+          nextViewId
         }
         condenseHtml
         Handlebars

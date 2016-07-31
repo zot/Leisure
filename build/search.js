@@ -4,10 +4,10 @@
     hasProp = {}.hasOwnProperty;
 
   define(['./editor', './editorSupport', './ui', './export', './modes'], function(Editor, EditorSupport, UI, BrowserExports, Modes) {
-    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, editorCount, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, preserveSelection, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
+    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, doSlideValue, editorCount, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, preserveSelection, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
     findEditor = Editor.findEditor, LeisureEditCore = Editor.LeisureEditCore, preserveSelection = Editor.preserveSelection;
     OrgEditing = EditorSupport.OrgEditing, editorForToolbar = EditorSupport.editorForToolbar, basicDataFilter = EditorSupport.basicDataFilter;
-    fancyMode = Modes.fancyMode;
+    fancyMode = Modes.fancyMode, doSlideValue = Modes.doSlideValue;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
     mergeExports = BrowserExports.mergeExports;
     searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g;
@@ -268,6 +268,10 @@
       opts = searchEditor.options;
       Leisure.configureEmacsOpts(opts);
       Leisure.configurePeerOpts(opts);
+      opts.registerCollaborativeCode('doSlideValue', doSlideValue);
+      opts.registerCollaborativeCode('viewBoundSet', function(context, name, data) {
+        return options.setData(name, data);
+      });
       opts.hiding = false;
       output.prev().filter('[data-view=leisure-toolbar]').remove();
       input.on('input', function(e) {

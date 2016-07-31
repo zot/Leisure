@@ -868,10 +868,10 @@
         if (s.type === 'Range') {
           r = s.getRangeAt(0);
           pos = this.domCursor(r.endContainer, r.endOffset).mutable().filterVisibleTextNodes().firstText();
-          while (pos.node !== r.startContainer && pos.node.data.trim() === '') {
+          while (!pos.isEmpty() && pos.node !== r.startContainer && pos.node.data.trim() === '') {
             pos = pos.prev();
           }
-          while (pos.pos > 0 && pos.node.data[pos.pos - 1] === ' ') {
+          while (!pos.isEmpty() && pos.pos > 0 && pos.node.data[pos.pos - 1] === ' ') {
             pos.pos--;
           }
           if ((pos.node !== r.startContainer || pos.pos > r.startOffset) && (pos.node !== r.endContainer || pos.pos < r.endOffset)) {

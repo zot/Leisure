@@ -976,6 +976,9 @@ body.bar_collapse .steampunk .currentSlide .page > .border {
     background: #a2572e; /* Firefox */
 }
 /*.org-fancy body,*/
+.ui-front {
+    z-index: 1000;
+}
 .expandable-panel:hover:not(.contract),
 .expandable-panel.expand,
 .leisure-searchOutputHolder,

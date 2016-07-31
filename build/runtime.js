@@ -1769,7 +1769,8 @@ misrepresented as being the original software.
       dumpMonadStack: dumpMonadStack,
       define: define,
       isPartial: isPartial,
-      partialCall: partialCall
+      partialCall: partialCall,
+      bind: bind
     };
     mergeExports({
       stateValues: values,

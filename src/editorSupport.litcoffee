@@ -168,15 +168,15 @@ same names for blocks other than printing a warning.
           super repl
           @runTextFilters repl
           @scheduleEvals()
-        makeChanges: (func)->
-          if newChange = !@changeCount
-            for filter in @filters
-              filter.startChange this
-          try
-            super func
-          finally
-            if newChange then for filter in @filters
-              filter.endChange this
+        #makeChanges: (func)->
+        #  if newChange = !@changeCount
+        #    for filter in @filters
+        #      filter.startChange this
+        #  try
+        #    super func
+        #  finally
+        #    if newChange then for filter in @filters
+        #      filter.endChange this
         getImage: (name, cont, fail)->
           @getFile name, ((contents)->
             if url = makeImageBlob name, contents then cont url else fail "Couldn't create image for #{{name}}"
@@ -699,8 +699,8 @@ that must be done regardless of the source of changes
         true
 
       basicDataFilter =
-        startChange: (data)->
-        endChange: (data)->
+        #startChange: (data)->
+        #endChange: (data)->
         clear: (data)->
         replaceBlock: (data, oldBlock, newBlock)->
         replaceText: (data, {start, end, text, source})->
@@ -1426,6 +1426,7 @@ Exports
         Editor
         CodeContext
         modifyingKey
+        getId
       }
 
       {
@@ -1450,4 +1451,5 @@ Exports
         ajaxGet
         parseYaml
         makeImageBlob
+        getId
       }
