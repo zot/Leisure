@@ -165,13 +165,17 @@
         ED.options.loadName = load;
         configureLocal(ED.options);
         tanglePresent = false;
-        $.get(load + '.tangle').done(function(content) {
+        $.get(load + '.tangle', {
+          cache: false
+        }).done(function(content) {
           tanglePresent = ED.options.data.tangled = true;
           return ED.options.data.loadTangles(content);
         }).always(function() {
-          return $.get(load, function(data) {
-            return ED.options.load(load, data);
+          return $.get(load, {
+            cache: false
           });
+        }).then(function(data) {
+          return ED.options.load(load, data);
         });
       } else {
         configureAtom(ED.options, configureLocal);
