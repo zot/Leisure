@@ -313,6 +313,9 @@
         return resultsArea(UI.context.options, res.text.substring(res.contentPos));
       }
     });
+    Handlebars.registerHelper('isExpected', function(options) {
+      return !!options.data.opts.data.parsedCodeBlock(options.data.block).resultsAreExpected();
+    });
     slideNode = function(node) {
       return $(node).closest('slideHolder').closest('[data-view]');
     };

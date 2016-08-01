@@ -686,6 +686,8 @@ codeMenuString = """
     <li class='hide results' value='toggleShowResults'>Hide results
     <li class='set dynamic' value='toggleDynamic'>Make dynamic
     <li class='clear dynamic' value='toggleDynamic'>Make static
+    <li class='set testCase' value='toggleTestCase'>Make testCase
+    <li class='clear testCase' value='toggleTestCase'>Clear testCase
   </ul>
 """
 menu = $('#codeMenu')
@@ -699,6 +701,11 @@ menu = $('#codeMenu').hide().menu
     if ui.item.is '.code' then block.setExports ui.item.is('.show'), block.exportsResults()
     else if ui.item.is '.results' then block.setExports block.exportsCode(), ui.item.is('.show')
     else if ui.item.is '.dynamic' then block.setDynamic ui.item.is '.set'
+    else if ui.item.is '.testCase'
+      if ui.item.is '.set'
+        block.makeResultsExpected()
+        block.setResultView 'view(testCase)'
+      else block.clearExpected()
     block.save()
 menu.on 'mouseleave', -> menu.hide()
 Leisure.initCodeMenu = (view)->
@@ -712,6 +719,7 @@ Leisure.initCodeMenu = (view)->
     menu.find(if block.exportsCode() then '.show.code' else '.hide.code').hide()
     menu.find(if block.exportsResults() then '.show.results' else '.hide.results').hide()
     menu.find(if block.isDynamic() then '.set.dynamic' else '.clear.dynamic').hide()
+    menu.find(if block.resultsAreExpected() then '.set.testCase' else '.clear.testCase').hide()
     menu.data block: block
     menu.show()
     menu.position my: 'left top', of: $(view).find('[name=codeMenuButton]'), at: 'left top'

@@ -128,6 +128,8 @@ configureButton = (view, newState)->
 }
 #+END_SRC
 * Dynamic execution
+Change this code and the results will change as you type
+
 #+BEGIN_SRC coffee :results dynamic
 3 + 4
 8 * 2
@@ -135,17 +137,32 @@ configureButton = (view, newState)->
 #+RESULTS:
 : 7
 : 16
-* Inline Views
-#+BEGIN_SRC coffee :results yaml dynamic view(fullName) :exports results
+* Views for code results
+#+BEGIN_SRC coffee :results yaml dynamic view(pieChart)
+values: [25,46].join ','
+#+END_SRC
+#+RESULTS:
+: values: '25,46'
+
+#+BEGIN_SRC html :defview pieChart
+<img style='width: 500px; height: 200px' src="http://chart.apis.google.com/chart?cht=p3&chd=t:{{values}}&chs=500x200&chl=VisualStudio|Lounge&chco=">
+#+END_SRC
+
+
+#+NAME: chet
+#+BEGIN_SRC coffee :results yaml dynamic view(estCase) view(testCase)
 firstName: 'Bob'
 lastName: 'Jones'
 #+END_SRC
+:expected:
+: firstName: Bob
+: lastName: Jones
+:end:
 #+RESULTS:
 : firstName: Bob
 : lastName: Jones
 
-
-#+BEGIN_SRC html :defview fullName
-<div style='border: solid black 2px; font-weight: bold; Xdisplay: inline-block; padding: 2px'>First name: {{firstName}}, Last name: {{lastName}}</div>
+#+BEGIN_SRC html :defview testCase
+{{#if (isExpected)}}EXPECTED{{else}}NOT EXPECTED{{/if}}
 #+END_SRC
 * Test Cases

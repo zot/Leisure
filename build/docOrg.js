@@ -92,29 +92,42 @@
       };
 
       ParsedCodeBlock.prototype.removeResultType = function(str) {
-        var end, i, j, k, len, prefix, ref, ref1, ref2, ref3, ref4, res, start, types, values;
-        types = this.getResultTypes();
-        if (ref = str.toLowerCase(), indexOf.call(types, ref) >= 0) {
-          res = (ref1 = this.block.codeAttributes) != null ? ref1.results : void 0;
-          values = res.toLowerCase().split(/(\s+)/);
-          start = values.indexOf(str.toLowerCase());
-          end = start + 1;
-          if (start > 0) {
-            start--;
-          } else if (end < values.length) {
-            end++;
+        var end, i, j, k, len, m, prefix, ref, ref1, ref2, ref3, ref4, res, start, types, values;
+        res = (ref = this.block.codeAttributes) != null ? ref.results : void 0;
+        if (str.trim().toLowerCase() === 'view') {
+          if (m = res.match(/\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i)) {
+            return this.setCodeAttribute('results', res.substring(0, m.index) + res.substring(m.index + m[0].length));
           }
-          prefix = 0;
-          for (i = j = 0, ref2 = start; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
-            prefix += values[i].length;
+        } else {
+          types = this.getResultTypes();
+          if (ref1 = str.toLowerCase(), indexOf.call(types, ref1) >= 0) {
+            values = res.toLowerCase().split(/(\s+)/);
+            start = values.indexOf(str.toLowerCase());
+            end = start + 1;
+            if (start > 0) {
+              start--;
+            } else if (end < values.length) {
+              end++;
+            }
+            prefix = 0;
+            for (i = j = 0, ref2 = start; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
+              prefix += values[i].length;
+            }
+            len = 0;
+            for (i = k = ref3 = start, ref4 = end; ref3 <= ref4 ? k < ref4 : k > ref4; i = ref3 <= ref4 ? ++k : --k) {
+              len += values[i].length;
+              values[i] = false;
+            }
+            return this.setCodeAttribute('results', _.some(values) ? res.substring(0, prefix) + res.substring(prefix + len) : void 0);
           }
-          len = 0;
-          for (i = k = ref3 = start, ref4 = end; ref3 <= ref4 ? k < ref4 : k > ref4; i = ref3 <= ref4 ? ++k : --k) {
-            len += values[i].length;
-            values[i] = false;
-          }
-          return this.setCodeAttribute('results', _.some(values) ? res.substring(0, prefix) + res.substring(prefix + len) : void 0);
         }
+      };
+
+      ParsedCodeBlock.prototype.setResultView = function(viewStr) {
+        var ref, res;
+        res = (ref = this.block.codeAttributes) != null ? ref.results : void 0;
+        this.removeResultType('view');
+        return this.setCodeAttribute('results', res + (res ? ' ' : '') + viewStr);
       };
 
       ParsedCodeBlock.prototype.setExports = function(code, results) {
@@ -159,6 +172,30 @@
         var src;
         src = this.items.source;
         return this.setSource("" + (src.text.substring(0, src.contentPos)) + newContent + (src.text.substring(src.contentPos + src.content.length)));
+      };
+
+      ParsedCodeBlock.prototype.hasExpected = function() {
+        return this.items.expected;
+      };
+
+      ParsedCodeBlock.prototype.resultsAreExpected = function() {
+        return this.items.expected && this.items.results && this.items.expected.content() === this.items.results.content();
+      };
+
+      ParsedCodeBlock.prototype.makeResultsExpected = function() {
+        var item, newExpected, source;
+        if (this.items.results) {
+          newExpected = ":expected:\n" + (this.items.results.content()) + ":end:\n";
+          item = this.items.expected;
+          return this.setBlockText(item ? this.block.text.substring(0, item.offset) + newExpected + this.block.text.substring(item.offset + item.text.length) : (source = this.items.source, this.block.text.substring(0, source.offset + source.text.length) + newExpected + this.block.text.substring(source.offset + source.text.length)));
+        }
+      };
+
+      ParsedCodeBlock.prototype.clearExpected = function() {
+        var item;
+        if (item = this.items.expected) {
+          return this.setBlockText(this.block.text.substring(0, item.offset) + this.block.text.substring(item.offset + item.text.length));
+        }
       };
 
       return ParsedCodeBlock;

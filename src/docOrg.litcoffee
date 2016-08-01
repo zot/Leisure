@@ -64,23 +64,31 @@
             results = @block.codeAttributes?.results
             @setCodeAttribute 'results', if results then "#{results} #{str}" else str
         removeResultType: (str)->
-          types = @getResultTypes()
-          if str.toLowerCase() in types
-            res = @block.codeAttributes?.results
-            values = res.toLowerCase().split /(\s+)/
-            start = values.indexOf str.toLowerCase()
-            end = start + 1
-            if start > 0 then start--
-            else if end < values.length then end++
-            prefix = 0
-            for i in [0...start]
-              prefix += values[i].length
-            len = 0
-            for i in [start...end]
-              len += values[i].length
-              values[i] = false
-            @setCodeAttribute 'results', if _.some values
-              res.substring(0, prefix) + res.substring(prefix + len)
+          res = @block.codeAttributes?.results
+          if str.trim().toLowerCase() == 'view'
+            if m = res.match /\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i
+              @setCodeAttribute 'results', res.substring(0, m.index) + res.substring(m.index + m[0].length)
+          else
+            types = @getResultTypes()
+            if str.toLowerCase() in types
+              values = res.toLowerCase().split /(\s+)/
+              start = values.indexOf str.toLowerCase()
+              end = start + 1
+              if start > 0 then start--
+              else if end < values.length then end++
+              prefix = 0
+              for i in [0...start]
+                prefix += values[i].length
+              len = 0
+              for i in [start...end]
+                len += values[i].length
+                values[i] = false
+              @setCodeAttribute 'results', if _.some values
+                res.substring(0, prefix) + res.substring(prefix + len)
+        setResultView: (viewStr)->
+          res = @block.codeAttributes?.results
+          @removeResultType 'view'
+          @setCodeAttribute 'results', res + (if res then ' ' else '') + viewStr
         setExports: (code, results)->
           @setCodeAttribute 'exports', if !code || !results then (code && 'code') || (results && 'results') || 'none'
         exportsCode: -> @getExports() in ['code', 'both']
@@ -95,7 +103,20 @@
         setSourceContent: (newContent)->
           src = @items.source
           @setSource "#{src.text.substring 0, src.contentPos}#{newContent}#{src.text.substring src.contentPos + src.content.length}"
-
+        hasExpected: -> @items.expected
+        resultsAreExpected: ->
+          @items.expected && @items.results && @items.expected.content() == @items.results.content()
+        makeResultsExpected: ->
+          if @items.results
+            newExpected = ":expected:\n#{@items.results.content()}:end:\n"
+            item = @items.expected
+            @setBlockText if item then @block.text.substring(0, item.offset) + newExpected + @block.text.substring(item.offset + item.text.length)
+            else
+              source = @items.source
+              @block.text.substring(0, source.offset + source.text.length) + newExpected + @block.text.substring(source.offset + source.text.length)
+        clearExpected: ->
+          if item = @items.expected
+            @setBlockText @block.text.substring(0, item.offset) + @block.text.substring(item.offset + item.text.length)
 
       escapeRegexp = (str)-> str.replace /[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'
 

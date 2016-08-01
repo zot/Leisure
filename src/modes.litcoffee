@@ -286,6 +286,9 @@
         if @hideResults then "<span class='hidden'>#{escapeHtml res.text}</span>"
         else resultsArea UI.context.options, res.text.substring res.contentPos
 
+      Handlebars.registerHelper 'isExpected', (options)->
+        !!options.data.opts.data.parsedCodeBlock(options.data.block).resultsAreExpected()
+
       #Handlebars.registerHelper 'find', ->
       #  ***
 
