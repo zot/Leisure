@@ -2093,75 +2093,80 @@
       };
 
       OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock, oldBlocks, newBlocks) {
-        var block, env, envM, finished, hasChange, i, j, len, newBlock, newResults, newSource, oldCode, oldSource, opts, ref, ref1, ref2, repl, res, result, start, sync;
-        if (!this.data.running[change._id] && change.type === 'code' && isDynamic(change) && !isObserver(change) && (envM = blockEnvMaker(change))) {
-          ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
-          hasChange = !oldBlock || oldBlock.type !== 'code' || !(isDynamic(oldBlock) && !isObserver(oldBlock)) || (oldBlock ? (oldSource = blockSource(oldBlock), newSource.content !== oldSource.content) : void 0);
-          if (hasChange) {
-            result = '';
-            newBlock = setError(change);
-            sync = true;
-            env = envM({
-              __proto__: defaultEnv,
-              write: function() {},
-              opts: this,
-              data: this.data,
-              prompt: function(str, defaultValue, cont) {
-                return cont(prompt(str, defaultValue));
-              }
-            });
-            opts = this;
-            (function(_this) {
-              return (function(change) {
-                env.errorAt = function(offset, msg) {
-                  newBlock = setError(change, offset, msg);
-                  if (newBlock !== change && !sync) {
-                    return opts.replaceBlock(change, newBlock.text, 'code');
-                  }
-                };
-                return env.write = function(str) {
-                  result += presentHtml(str);
-                  if (result[result.length - 1] !== '\n') {
-                    result += '\n';
-                  }
-                  if (!sync) {
-                    return _this.replaceResult(change._id, result);
-                  }
-                };
-              });
-            })(this)(change);
-            finished = {};
-            res = (((ref1 = change.codeAttributes) != null ? ref1.post : void 0) ? setLounge(env, (function(_this) {
-              return function() {
-                return _this.data.getCode(newBlock).call(env, function(data) {
-                  result = env.formatResult(newBlock, '', data);
-                  return finished;
-                });
-              };
-            })(this)) : this.data.getCode(newBlock).call(env, function(data) {
-              result = env.formatResult(newBlock, '', data);
-              return finished;
-            }));
-            if (finished === res) {
-              oldCode = newBlock.code;
-              newBlock = setResult(newBlock, result);
-              newBlock.code = oldCode;
-              if (newBlock.text !== change.text) {
-                changes.sets[newBlock._id] = newBlock;
-                ref2 = changes.newBlocks;
-                for (i = j = 0, len = ref2.length; j < len; i = ++j) {
-                  block = ref2[i];
-                  if (block._id === newBlock._id) {
-                    changes.newBlocks[i] = newBlock;
-                  }
+        var block, env, envM, err, error1, finished, hasChange, i, j, len, newBlock, newResults, newSource, oldCode, oldSource, opts, ref, ref1, ref2, repl, res, result, start, sync;
+        try {
+          if (!this.data.running[change._id] && change.type === 'code' && isDynamic(change) && !isObserver(change) && (envM = blockEnvMaker(change))) {
+            ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
+            hasChange = !oldBlock || oldBlock.type !== 'code' || !(isDynamic(oldBlock) && !isObserver(oldBlock)) || (oldBlock ? (oldSource = blockSource(oldBlock), newSource.content !== oldSource.content) : void 0);
+            if (hasChange) {
+              result = '';
+              newBlock = setError(change);
+              sync = true;
+              env = envM({
+                __proto__: defaultEnv,
+                write: function() {},
+                opts: this,
+                data: this.data,
+                prompt: function(str, defaultValue, cont) {
+                  return cont(prompt(str, defaultValue));
                 }
-                start = this.offsetForNewBlock(newBlock, oldBlocks, newBlocks);
-                changes.repls.push(repl = replacementFor(start, change.text, newBlock.text));
-                repl.source = 'code';
+              });
+              opts = this;
+              (function(_this) {
+                return (function(change) {
+                  env.errorAt = function(offset, msg) {
+                    newBlock = setError(change, offset, msg);
+                    if (newBlock !== change && !sync) {
+                      return opts.replaceBlock(change, newBlock.text, 'code');
+                    }
+                  };
+                  return env.write = function(str) {
+                    result += presentHtml(str);
+                    if (result[result.length - 1] !== '\n') {
+                      result += '\n';
+                    }
+                    if (!sync) {
+                      return _this.replaceResult(change._id, result);
+                    }
+                  };
+                });
+              })(this)(change);
+              finished = {};
+              res = (((ref1 = change.codeAttributes) != null ? ref1.post : void 0) ? setLounge(env, (function(_this) {
+                return function() {
+                  return _this.data.getCode(newBlock).call(env, function(data) {
+                    result = env.formatResult(newBlock, '', data);
+                    return finished;
+                  });
+                };
+              })(this)) : this.data.getCode(newBlock).call(env, function(data) {
+                result = env.formatResult(newBlock, '', data);
+                return finished;
+              }));
+              if (finished === res) {
+                oldCode = newBlock.code;
+                newBlock = setResult(newBlock, result);
+                newBlock.code = oldCode;
+                if (newBlock.text !== change.text) {
+                  changes.sets[newBlock._id] = newBlock;
+                  ref2 = changes.newBlocks;
+                  for (i = j = 0, len = ref2.length; j < len; i = ++j) {
+                    block = ref2[i];
+                    if (block._id === newBlock._id) {
+                      changes.newBlocks[i] = newBlock;
+                    }
+                  }
+                  start = this.offsetForNewBlock(newBlock, oldBlocks, newBlocks);
+                  changes.repls.push(repl = replacementFor(start, change.text, newBlock.text));
+                  repl.source = 'code';
+                }
               }
+              return sync = false;
             }
-            return sync = false;
           }
+        } catch (error1) {
+          err = error1;
+          return null;
         }
       };
 
