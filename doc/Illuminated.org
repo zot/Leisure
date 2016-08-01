@@ -138,17 +138,18 @@ Change this code and the results will change as you type
 : 7
 : 16
 * Views for code results
+** Slide the values, below, to see the pie chart change.
 #+BEGIN_SRC coffee :results yaml dynamic view(pieChart)
-values: [25,46].join ','
+values: [25,42].join ','
 #+END_SRC
 #+RESULTS:
-: values: '25,46'
-
+: values: '25,42'
+** Here's the definition of the pie chart view
 #+BEGIN_SRC html :defview pieChart
-<img style='width: 500px; height: 200px' src="http://chart.apis.google.com/chart?cht=p3&chd=t:{{values}}&chs=500x200&chl=VisualStudio|Lounge&chco=">
+<img style='width: 500px; height: 200px'
+src="http://chart.apis.google.com/chart?cht=p3&chd=t:{{values}}&chs=500x200&chl=VisualStudio|Lounge&chco=">
 #+END_SRC
-
-
+* Test Cases
 #+NAME: chet
 #+BEGIN_SRC coffee :results yaml dynamic view(estCase) view(testCase)
 firstName: 'Bob'
@@ -165,4 +166,3 @@ lastName: 'Jones'
 #+BEGIN_SRC html :defview testCase
 {{#if (isExpected)}}EXPECTED{{else}}NOT EXPECTED{{/if}}
 #+END_SRC
-* Test Cases
