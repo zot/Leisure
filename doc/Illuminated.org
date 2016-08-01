@@ -26,7 +26,7 @@
 : 16
 * Code result views: Change the data values, below, to see the bar chart change
 ** (using [[chartgo.com]] for the neato graphics)
-#+BEGIN_SRC coffee :results yaml dynamic view(pieChart)
+#+BEGIN_SRC coffee :results yaml dynamic view(barChart)
 title: 'Adrenaline Levels'
 data: encodeURIComponent [29,89].join '\n'
 labels: encodeURIComponent ['Freddy Joe', 'Mary Sue'].join '\n'
@@ -37,7 +37,7 @@ labels: encodeURIComponent ['Freddy Joe', 'Mary Sue'].join '\n'
 : title: Adrenaline Levels
 ** This view is the easiest type to make -- it's just a URL that makes a server to all the hard work :)
 *** You can make your own views using HTML, SVG, etc. if you want, and they can be interactive, of course (see below)
-#+BEGIN_SRC html :defview pieChart
+#+BEGIN_SRC html :defview barChart
 <img style='width: 500px; height: 400px'
 src="http://www.chartgo.com/preview.do?title={{title}}&xaxis1={{labels}}&yaxis1={{data}}&charttype=bar&width=500&height=400&chrtbkgndcolor=gradientblack&fonttypetitle=bold&fonttypelabel=bold&show3d=1&gradient=1&border=1&roundedge=1">
 #+END_SRC
@@ -70,7 +70,7 @@ degrees: 71
 
 * Test Cases
 #+NAME: chet
-#+BEGIN_SRC coffee :results yaml dynamic view(estCase) view(testCase)
+#+BEGIN_SRC coffee :results yaml dynamic   view(testCase)
 firstName: 'Bob'
 lastName: 'Jones'
 #+END_SRC
@@ -83,7 +83,22 @@ lastName: 'Jones'
 : lastName: Jones
 
 #+BEGIN_SRC html :defview testCase
-{{#if (isExpected)}}EXPECTED{{else}}NOT EXPECTED{{/if}}
+{{#if (isExpected)}}<span class='test pass'>PASS</span>{{else}}<span class='test fail'>FAIL</span>{{/if}}
+#+END_SRC
+
+#+BEGIN_SRC css
+.test {
+  font-weight: bold;
+  border: solid black 3px;
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+.pass {
+  color: green;
+}
+.fail {
+  color: red;
+}
 #+END_SRC
 * Here's that annoying shadow box button, defined as an app
 This is a tiny Lounge app. Of course you can have large ones, like games or
