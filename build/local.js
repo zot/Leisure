@@ -173,9 +173,9 @@
         }).always(function() {
           return $.get(load, {
             cache: false
+          }).then(function(data) {
+            return ED.options.load(load, data);
           });
-        }).then(function(data) {
-          return ED.options.load(load, data);
         });
       } else {
         configureAtom(ED.options, configureLocal);
