@@ -140,10 +140,11 @@ Change this code and the results will change as you type
 * Views for code results
 ** Slide the values, below, to see the pie chart change.
 #+BEGIN_SRC coffee :results yaml dynamic view(pieChart)
-[25,12].join ','
+[25,12]
 #+END_SRC
 #+RESULTS:
-: '25,12'
+: - 25
+: - 12
 ** Here's the definition of the pie chart view
 #+BEGIN_SRC html :defview pieChart
 <img style='width: 500px; height: 200px'
