@@ -1705,7 +1705,7 @@
               for (q = 0, len3 = ref2.length; q < len3; q++) {
                 node = ref2[q];
                 node = $(node);
-                if (data = _this.data.getYaml(block = _this.blockForNode(node))) {
+                if ((block = _this.blockForNode(node)) && (data = _this.data.getYaml(block))) {
                   ref4 = ((ref3 = $(node).attr('data-requested-view')) != null ? ref3 : '').split('/'), view = ref4[0], name = ref4[1];
                   renderView(view, name, data, node, block);
                 }

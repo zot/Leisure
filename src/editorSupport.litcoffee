@@ -912,7 +912,7 @@ NMap is a very simple trie.
             @withNewContext =>
               for node in viewNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
-                if data = @data.getYaml block = @blockForNode node
+                if (block = @blockForNode node) && data = @data.getYaml block
                   [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
                   renderView view, name, data, node, block
               for node in nameNodes.filter((n)=> !nb[@idForNode n])
