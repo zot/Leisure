@@ -1084,51 +1084,54 @@ NMap is a very simple trie.
         checkPropertyChange: (changes, change, oldBlock)->
           change.type == 'chunk' && !_.isEqual change.properties, @getBlock(change._id)?.properties
         checkCodeChange: (changes, change, oldBlock, oldBlocks, newBlocks)->
-          if !@data.running[change._id] && change.type == 'code' && isDynamic(change) && !isObserver(change) && envM = blockEnvMaker(change)
-            {source: newSource, results: newResults} = blockCodeItems this, change
-            hasChange = !oldBlock || oldBlock.type != 'code' || !(isDynamic(oldBlock) && !isObserver(oldBlock)) || if oldBlock
-              oldSource = blockSource oldBlock
-              newSource.content != oldSource.content
-            if hasChange
-              result = ''
-              newBlock = setError change
-              sync = true
-              env = envM
-                __proto__: defaultEnv
-                write: ->
-                opts: this
-                data: @data
-                prompt: (str, defaultValue, cont)-> cont prompt(str, defaultValue)
-              opts = this
-              do (change)=>
-                env.errorAt = (offset, msg)->
-                  newBlock = setError change, offset, msg
-                  if newBlock != change && !sync
-                    opts.replaceBlock change, newBlock.text, 'code'
-                env.write = (str)=>
-                  result += presentHtml str
-                  if result[result.length - 1] != '\n' then result += '\n'
-                  if !sync then @replaceResult change._id, result
-              finished = {}
-              res = (if change.codeAttributes?.post then setLounge env, => @data.getCode(newBlock).call(env, (data)->
-                result = env.formatResult newBlock, '', data
-                finished)
-              #else env.executeText newSource.content, Nil, (-> finished))
-              else @data.getCode(newBlock).call env, (data)->
-                result = env.formatResult newBlock, '', data
-                finished)
-              if finished == res
-                oldCode = newBlock.code
-                newBlock = setResult newBlock, result
-                newBlock.code = oldCode
-                if newBlock.text != change.text
-                  changes.sets[newBlock._id] = newBlock
-                  for block, i in changes.newBlocks
-                    if block._id == newBlock._id then changes.newBlocks[i] = newBlock
-                  start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
-                  changes.repls.push repl = replacementFor start, change.text, newBlock.text
-                  repl.source = 'code'
-              sync = false
+          try
+            if !@data.running[change._id] && change.type == 'code' && isDynamic(change) && !isObserver(change) && envM = blockEnvMaker(change)
+              {source: newSource, results: newResults} = blockCodeItems this, change
+              hasChange = !oldBlock || oldBlock.type != 'code' || !(isDynamic(oldBlock) && !isObserver(oldBlock)) || if oldBlock
+                oldSource = blockSource oldBlock
+                newSource.content != oldSource.content
+              if hasChange
+                result = ''
+                newBlock = setError change
+                sync = true
+                env = envM
+                  __proto__: defaultEnv
+                  write: ->
+                  opts: this
+                  data: @data
+                  prompt: (str, defaultValue, cont)-> cont prompt(str, defaultValue)
+                opts = this
+                do (change)=>
+                  env.errorAt = (offset, msg)->
+                    newBlock = setError change, offset, msg
+                    if newBlock != change && !sync
+                      opts.replaceBlock change, newBlock.text, 'code'
+                  env.write = (str)=>
+                    result += presentHtml str
+                    if result[result.length - 1] != '\n' then result += '\n'
+                    if !sync then @replaceResult change._id, result
+                finished = {}
+                res = (if change.codeAttributes?.post then setLounge env, => @data.getCode(newBlock).call(env, (data)->
+                  result = env.formatResult newBlock, '', data
+                  finished)
+                #else env.executeText newSource.content, Nil, (-> finished))
+                else @data.getCode(newBlock).call env, (data)->
+                  result = env.formatResult newBlock, '', data
+                  finished)
+                if finished == res
+                  oldCode = newBlock.code
+                  newBlock = setResult newBlock, result
+                  newBlock.code = oldCode
+                  if newBlock.text != change.text
+                    changes.sets[newBlock._id] = newBlock
+                    for block, i in changes.newBlocks
+                      if block._id == newBlock._id then changes.newBlocks[i] = newBlock
+                    start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
+                    changes.repls.push repl = replacementFor start, change.text, newBlock.text
+                    repl.source = 'code'
+                sync = false
+          catch err
+            null
         offsetForNewBlock: (newBlock, oldBlocks, newBlocks)->
           start = if oldBlocks.length == 0 then 0 else @data.offsetForBlock oldBlocks[0]
           for block in newBlocks

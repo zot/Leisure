@@ -3,23 +3,51 @@
 #+TITLE:Lounge, a Document-Centered, Illuminated Programming Environment
 * In Lounge, the concept of "illuminated programming" means...
 - Media-rich, interactive, collaborative documents
-- Each document is like a tiny (virtual) machine, with code, data, presentation, and it also *runs*
+- Each document is like a tiny, shared virtual machine, with code, data, presentation, and it also *runs*
 - You can edit using WYSIWYG (click here and type stuff) or you can use markup (click a martini glass)
 - No (/required/) distinction between runtime and development
 - Editing means changing content, code, data, etc.; anything in the document
 * Some features
+- No install needed, can run from a static website or from zot.github.io
+- Collaborative and allows local data
 - Polyglot: JavaScript, CoffeeScript, Leisure, HTML (Handlebars), CSS, YAML
 - Dynamically updates as you edit code, data, views, content
 - Org-mode format (documents are just plain text)
 - Reactive connection between views and a collaborative data model
-- Support for collaborative and local data access
+- Appearance is completely customizable
+* Dynamic execution
+** Change this code and the results will change as you type
+#+BEGIN_SRC coffee :results dynamic
+3 + 34
+8 * 2
+#+END_SRC
+#+RESULTS:
+: 37
+: 16
+* Code result views: Change the data values, below, to see the bar chart change
+** (using [[chartgo.com]] for the neato graphics)
+#+BEGIN_SRC coffee :results yaml dynamic view(pieChart)
+title: 'Adrenaline Levels'
+data: encodeURIComponent [29,89].join '\n'
+labels: encodeURIComponent ['Freddy Joe', 'Mary Sue'].join '\n'
+#+END_SRC
+#+RESULTS:
+: data: '29%0A89'
+: labels: 'Freddy%20Joe%0AMary%20Sue'
+: title: Adrenaline Levels
+** This view is the easiest type to make -- it's just a URL that makes a server to all the hard work :)
+*** You can make your own views using HTML, SVG, etc. if you want, and they can be interactive, of course (see below)
+#+BEGIN_SRC html :defview pieChart
+<img style='width: 500px; height: 400px'
+src="http://www.chartgo.com/preview.do?title={{title}}&xaxis1={{labels}}&yaxis1={{data}}&charttype=bar&width=500&height=400&chrtbkgndcolor=gradientblack&fonttypetitle=bold&fonttypelabel=bold&show3d=1&gradient=1&border=1&roundedge=1">
+#+END_SRC
 * Here are two rectangles connected to the same data (that you can change)
 ** Click the degrees value and move the slider that pops up
 #+NAME: rotator
 This block of data represents a rotation.
 #+BEGIN_SRC yaml
 type: rotator
-degrees: 70
+degrees: 71
 #+END_SRC
  [[leisure:rotator]] [[leisure:rotator/two]]
 ** Want to edit these views?  Click Show/hide or search for rot.
@@ -40,20 +68,23 @@ degrees: 70
 </div>
 #+END_SRC
 
-* Here's a rectangle connected to some CoffeeScript code (that you can change)
-** Click on the degrees value below and slide the value to recompute the model and see the view change.
-#+NAME: rotator2
-#+BEGIN_SRC coffee :results dynamic yaml
-do ->
-  o = type: 'rotator'
-  o.degrees = 115
-  o
+* Test Cases
+#+NAME: chet
+#+BEGIN_SRC coffee :results yaml dynamic view(estCase) view(testCase)
+firstName: 'Bob'
+lastName: 'Jones'
 #+END_SRC
+:expected:
+: firstName: Bob
+: lastName: Jones
+:end:
 #+RESULTS:
-: degrees: 115
-: type: rotator
- [[leisure:rotator2]]
+: firstName: Bob
+: lastName: Jones
 
+#+BEGIN_SRC html :defview testCase
+{{#if (isExpected)}}EXPECTED{{else}}NOT EXPECTED{{/if}}
+#+END_SRC
 * Here's that annoying shadow box button, defined as an app
 This is a tiny Lounge app. Of course you can have large ones, like games or
 what-have-you.  This one only displays a shadowbox and a button.
@@ -95,13 +126,16 @@ configureButton = (view, newState)->
   if App.shadowbox = newState
     floater.addClass 'float'
     if App.first
-      App.first = false
-      button.button 'option', 'label', 'Click anywhere to dismiss this annoying shadow box<br>More about this button, later in the document :)'
+      button.button 'option', 'label', 'Click anywhere to dismiss this annoying shadow box<br>This is just to show some app-behavior<br>More about this button, later in the document :)'
     else
       button.button 'option', 'label', 'Click anywhere to dismiss this annoying shadow box'
   else
     floater.removeClass 'float'
-    button.button 'option', 'label', 'Click to show the annoying shadow box'
+    if App.first
+      App.first = false
+      button.button 'option', 'label', 'Click to show that annoying shadow box from earlier'
+    else
+      button.button 'option', 'label', 'Click to show the annoying shadow box'
 #+END_SRC
 
 #+BEGIN_SRC css
@@ -126,44 +160,4 @@ configureButton = (view, newState)->
   opacity: 0.5;
   z-index: -1;
 }
-#+END_SRC
-* Dynamic execution
-Change this code and the results will change as you type
-
-#+BEGIN_SRC coffee :results dynamic
-3 + 4
-8 * 2
-#+END_SRC
-#+RESULTS:
-: 7
-: 16
-* Views for code results
-** Slide the values, below, to see the pie chart change.
-#+BEGIN_SRC coffee :results yaml dynamic view(pieChart)
-[25,12]
-#+END_SRC
-#+RESULTS:
-: - 25
-: - 12
-** Here's the definition of the pie chart view
-#+BEGIN_SRC html :defview pieChart
-<img style='width: 500px; height: 200px'
-src="http://chart.apis.google.com/chart?cht=p3&chd=t:{{this}}&chs=500x200&chl=VisualStudio|Lounge&chco=">
-#+END_SRC
-* Test Cases
-#+NAME: chet
-#+BEGIN_SRC coffee :results yaml dynamic view(estCase) view(testCase)
-firstName: 'Bob'
-lastName: 'Jones'
-#+END_SRC
-:expected:
-: firstName: Bob
-: lastName: Jones
-:end:
-#+RESULTS:
-: firstName: Bob
-: lastName: Jones
-
-#+BEGIN_SRC html :defview testCase
-{{#if (isExpected)}}EXPECTED{{else}}NOT EXPECTED{{/if}}
 #+END_SRC
