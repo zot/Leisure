@@ -151,10 +151,11 @@ Code for local-mode.  This will not be loaded under meteor.
               tanglePresent = ED.options.data.tangled = true
               #console.log "Handle tangle:", content
               ED.options.data.loadTangles content)
-            .always -> $.get(load, cache: false)
-            .then (data)->
-              #console.log "Tangle present: ", tanglePresent
-              ED.options.load load, data
+            .always ->
+              $.get(load, cache: false)
+                .then (data)->
+                  #console.log "Tangle present: ", tanglePresent
+                  ED.options.load load, data
         else configureAtom ED.options, configureLocal
         if theme then ED.options.setTheme theme
         if join

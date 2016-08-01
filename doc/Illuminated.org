@@ -18,21 +18,21 @@
 * Dynamic execution
 ** Change this code and the results will change as you type
 #+BEGIN_SRC coffee :results dynamic
-3 + 34
+3 + 7
 8 * 2
 #+END_SRC
 #+RESULTS:
-: 37
+: 10
 : 16
 * Code result views: Change the data values, below, to see the bar chart change
 ** (using [[chartgo.com]] for the neato graphics)
 #+BEGIN_SRC coffee :results yaml dynamic view(barChart)
 title: 'Adrenaline Levels'
-data: encodeURIComponent [29,89].join '\n'
+data: encodeURIComponent [30,89].join '\n'
 labels: encodeURIComponent ['Freddy Joe', 'Mary Sue'].join '\n'
 #+END_SRC
 #+RESULTS:
-: data: '29%0A89'
+: data: '30%0A89'
 : labels: 'Freddy%20Joe%0AMary%20Sue'
 : title: Adrenaline Levels
 ** This view is the easiest type to make -- it's just a URL that makes a server to all the hard work :)
@@ -47,7 +47,7 @@ src="http://www.chartgo.com/preview.do?title={{title}}&xaxis1={{labels}}&yaxis1=
 This block of data represents a rotation.
 #+BEGIN_SRC yaml
 type: rotator
-degrees: 71
+degrees: 73
 #+END_SRC
  [[leisure:rotator]] [[leisure:rotator/two]]
 ** Want to edit these views?  Click Show/hide or search for rot.
