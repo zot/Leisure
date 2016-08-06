@@ -8,7 +8,7 @@
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
     showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr, localResources = UI.localResources;
-    getDocumentParams = EditorSupport.getDocumentParams, basicDataFilter = EditorSupport.basicDataFilter;
+    getDocumentParams = EditorSupport.getDocumentParams, basicDataFilter = EditorSupport.basicDataFilter, fileTypes = EditorSupport.fileTypes;
     clearDiag = Diag.clearDiag, diagMessage = Diag.diagMessage;
     knownLanguages = Eval.knownLanguages, escapeString = Eval.escapeString, unescapeString = Eval.unescapeString;
     msgPat = /^([^ ]+)( (.*))?$/;
@@ -17,13 +17,6 @@
     showDiag = false;
     imgCount = 0;
     fileCount = 0;
-    fileTypes = {
-      png: 'image/png',
-      gif: 'image/gif',
-      bmp: 'image/bmp',
-      xpm: 'image/xpm',
-      svg: 'image/svg+xml'
-    };
     diag = function() {
       var msg;
       msg = 1 <= arguments.length ? slice.call(arguments, 0) : [];

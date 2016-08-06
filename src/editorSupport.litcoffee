@@ -660,12 +660,21 @@ that must be done regardless of the source of changes
                       argData)...), args...
           else func
 
+      fileTypes =
+        jpg: 'image/jpeg'
+        jpeg: 'image/jpeg'
+        png: 'image/png'
+        gif: 'image/gif'
+        bmp: 'image/bmp'
+        xpm: 'image/xpm'
+        svg: 'image/svg+xml'
+
       makeImageBlob = (name, contents)->
-        if m = name.match /jpg|png|gif|bmp|xpm|svg+xml/
+        if m = name.match /jpg|jpeg|png|gif|bmp|xpm|svg/
           byteArrays = for offset in [0...contents.length] by 512
             slice = contents.slice offset, offset + 512
             new Uint8Array (slice.charCodeAt(i) for i in [0...512])
-          blob = new Blob byteArrays, type: "image/#{m[0]}"
+          blob = new Blob byteArrays, type: "image/#{fileTypes[m[0]]}"
           URL.createObjectURL blob
 
       class EditorParsedCodeBlock extends ParsedCodeBlock
@@ -1454,4 +1463,5 @@ Exports
         parseYaml
         makeImageBlob
         getId
+        fileTypes
       }

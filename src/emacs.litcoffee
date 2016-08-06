@@ -22,6 +22,7 @@ Emacs connection
       {
         getDocumentParams
         basicDataFilter
+        fileTypes
       } = EditorSupport
       {
         clearDiag
@@ -40,12 +41,6 @@ Emacs connection
       #showDiag = true
       imgCount = 0
       fileCount = 0
-      fileTypes =
-        png: 'image/png'
-        gif: 'image/gif'
-        bmp: 'image/bmp'
-        xpm: 'image/xpm'
-        svg: 'image/svg+xml'
 
       diag = (msg...)-> if showDiag then console.log msg...
 

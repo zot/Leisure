@@ -8,7 +8,7 @@ title heading should put a title in the HTML and show a title screen in slide mo
 ** What if programs were delivered as virtual machines that were easy to checkpoint and duplicate, they included development environments, and all their source code, data, and graphic interface definitions were viewable and changeable?
 ** This vision was achieved and released to the world with Smalltalk-80
 #+BEGIN_HTML
-<a href='https://en.wikipedia.org/wiki/Smalltalk'><img src='illuminated/Smalltalk80Book.jpg' title='Smalltalk pioneered a lot,<br>including object oriented programming, windows, and GUI widgets,<br>among other goodies'></a>
+<a href='https://en.wikipedia.org/wiki/Smalltalk'><img src='illuminated/Smalltalk80book.jpg' title='Smalltalk pioneered a lot,<br>including object oriented programming, windows, and GUI widgets,<br>among other goodies'></a>
 #+END_HTML
 
 ** Lounge builds on this vision and also mixes in elements from other sources, such as Oberon, Hypercard, Mathematica, Self, and TiddlyWiki
