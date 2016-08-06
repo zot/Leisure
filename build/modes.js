@@ -314,7 +314,15 @@
       }
     });
     Handlebars.registerHelper('isExpected', function(options) {
-      return !!options.data.opts.data.parsedCodeBlock(options.data.block).resultsAreExpected();
+      return !!options.data.opts.parsedCodeBlock(options.data.block).resultsAreExpected();
+    });
+    Handlebars.registerHelper('expectedResult', function(options) {
+      var ref, ref1;
+      return (ref = (ref1 = options.data.block.codeTestExpected) != null ? ref1.trim().replace(/^: /mg, '') : void 0) != null ? ref : '';
+    });
+    Handlebars.registerHelper('actualResult', function(options) {
+      var ref, ref1;
+      return (ref = (ref1 = options.data.block.codeTestActual) != null ? ref1.trim().replace(/^: /mg, '') : void 0) != null ? ref : '';
     });
     slideNode = function(node) {
       return $(node).closest('slideHolder').closest('[data-view]');

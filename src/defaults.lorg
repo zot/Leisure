@@ -705,15 +705,17 @@ menu = $('#codeMenu').hide().menu
       if ui.item.is '.set'
         block.makeResultsExpected()
         block.setResultView 'view(testCase)'
-      else block.clearExpected()
-    block.save()
+      else
+        block.clearExpected()
+        block.setResultView ''
+    block.save true
 menu.on 'mouseleave', -> menu.hide()
 Leisure.initCodeMenu = (view)->
   opts = Leisure.findEditor(view).options
   blockId = opts.idForNode(view.find '[data-block]')
   $(view).find('[name=codeMenuButton] [data-widget-button]').on 'click', (e)->
     console.log "CLICK!"
-    block = opts.data.parsedCodeBlock blockId
+    block = opts.parsedCodeBlock blockId
     menu = $('#codeMenu')
     menu.find('li').show()
     menu.find(if block.exportsCode() then '.show.code' else '.hide.code').hide()

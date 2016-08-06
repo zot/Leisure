@@ -134,7 +134,7 @@
       }
     };
     return $(document).ready(function() {
-      var data, join, load, ref, tanglePresent, theme;
+      var data;
       runTests();
       installSelectionMenu();
       if (useP2P) {
@@ -147,61 +147,65 @@
         window.DATA = data = new OrgData();
       }
       addSearchDataFilter(data);
-      data.processDefaults(Defaults);
-      createStructureDisplay(data);
-      window.ED = fancyEditDiv($("[maindoc]"), data);
-      if (useP2P) {
-        window.PEER.setEditor(ED);
-      }
-      createEditorDisplay(ED);
-      todoForEditor(ED);
-      if (document.location.search) {
-        ref = getDocumentParams(), load = ref.load, theme = ref.theme, join = ref.join;
-      } else {
-        load = DEFAULT_PAGE;
-      }
-      if (load) {
-        load = new URL(load, document.location).toString();
-        ED.options.loadName = load;
-        configureLocal(ED.options);
-        tanglePresent = false;
-        $.get(load + '.tangle', {
-          cache: false
-        }).done(function(content) {
-          tanglePresent = ED.options.data.tangled = true;
-          return ED.options.data.loadTangles(content);
-        }).always(function() {
-          return $.get(load, {
-            cache: false
-          }).then(function(data) {
-            return ED.options.load(load, data);
-          });
-        });
-      } else {
-        configureAtom(ED.options, configureLocal);
-      }
-      if (theme) {
-        ED.options.setTheme(theme);
-      }
-      if (join) {
-        setTimeout((function() {
-          var createSessionButton, u;
-          createSessionButton = $(editorToolbar(window.PEER.editor.node)).find('[name=p2pConnector] [name=createSession]');
-          createSessionButton.data({
-            hasSession: true
-          });
-          createSessionButton.closest('.contents').removeClass('not-connected');
-          createSessionButton.closest('.contents').addClass('connected');
-          createSessionButton.button('option', 'label', 'Disconnect');
-          console.log("CREATE SESSION:", createSessionButton[0]);
-          u = new URL(join);
-          console.log("JOIN SESSION: " + u);
-          return window.PEER.connectToSession(u.toString(), null, function(n) {
-            return p2pConnections.html(n);
-          });
-        }), 1);
-      }
-      return $('#globalLoad').remove();
+      return data.processDefaults(Defaults).then((function(_this) {
+        return function() {
+          var join, load, ref, tanglePresent, theme;
+          createStructureDisplay(data);
+          window.ED = fancyEditDiv($("[maindoc]"), data);
+          if (useP2P) {
+            window.PEER.setEditor(ED);
+          }
+          createEditorDisplay(ED);
+          todoForEditor(ED);
+          if (document.location.search) {
+            ref = getDocumentParams(), load = ref.load, theme = ref.theme, join = ref.join;
+          } else {
+            load = DEFAULT_PAGE;
+          }
+          if (load) {
+            load = new URL(load, document.location).toString();
+            ED.options.loadName = load;
+            configureLocal(ED.options);
+            tanglePresent = false;
+            $.get(load + '.tangle', {
+              cache: false
+            }).done(function(content) {
+              tanglePresent = ED.options.data.tangled = true;
+              return ED.options.data.loadTangles(content);
+            }).always(function() {
+              return $.get(load, {
+                cache: false
+              }).then(function(data) {
+                return ED.options.load(load, data);
+              });
+            });
+          } else {
+            configureAtom(ED.options, configureLocal);
+          }
+          if (theme) {
+            ED.options.setTheme(theme);
+          }
+          if (join) {
+            setTimeout((function() {
+              var createSessionButton, u;
+              createSessionButton = $(editorToolbar(window.PEER.editor.node)).find('[name=p2pConnector] [name=createSession]');
+              createSessionButton.data({
+                hasSession: true
+              });
+              createSessionButton.closest('.contents').removeClass('not-connected');
+              createSessionButton.closest('.contents').addClass('connected');
+              createSessionButton.button('option', 'label', 'Disconnect');
+              console.log("CREATE SESSION:", createSessionButton[0]);
+              u = new URL(join);
+              console.log("JOIN SESSION: " + u);
+              return window.PEER.connectToSession(u.toString(), null, function(n) {
+                return p2pConnections.html(n);
+              });
+            }), 1);
+          }
+          return $('#globalLoad').remove();
+        };
+      })(this));
     });
   };
 

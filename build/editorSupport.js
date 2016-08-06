@@ -611,8 +611,7 @@
       };
 
       OrgData.prototype.runOnImport = function(func) {
-        var p;
-        return this.importPromise = this.importPromise.isResolved() ? (p = func(), p instanceof Promise ? p : Promise.resolve()) : this.importPromise.then((function(_this) {
+        return this.importPromise.then((function(_this) {
           return function() {
             return func();
           };
@@ -671,7 +670,7 @@
         if (items = (ref = this.observers).get.apply(ref, channelKeys)) {
           for (id in items) {
             v = items[id];
-            if (v === true && !this.running[id]) {
+            if (v === true && block._id !== id && !this.running[id]) {
               this.pendingObserves[id] = true;
             }
           }
@@ -797,6 +796,9 @@
       OrgData.prototype.checkChannelChange = function(oldBlock, newBlock) {
         var channel, channels, j, len, name, ref, ref1, ref2, type;
         if (!this.disableObservation) {
+          if (newBlock.type === 'code') {
+            this.triggerUpdate('system', 'code', newBlock);
+          }
           if (type = (ref = this.getYaml(newBlock)) != null ? ref.type : void 0) {
             this.triggerUpdate('type', type, newBlock);
           }
@@ -1152,10 +1154,6 @@
         }
       };
 
-      OrgData.prototype.parsedCodeBlock = function(block) {
-        return new EditorParsedCodeBlock(this, block);
-      };
-
       OrgData.prototype.addPostProcessing = function(block, func) {
         var argNames, blockName, data, j, m, ref, ref1;
         if (m = (ref = block.codeAttributes) != null ? (ref1 = ref.post) != null ? ref1.match(postCallPat) : void 0 : void 0) {
@@ -1463,10 +1461,7 @@
       };
 
       OrgEditing.prototype.parsedCodeBlock = function(block) {
-        var pb;
-        pb = this.data.parsedCodeBlock(block);
-        pb.data = this;
-        return pb;
+        return new EditorParsedCodeBlock(this, this.data.getBlock(block));
       };
 
       OrgEditing.prototype.dataChanged = function(changes) {
@@ -1705,9 +1700,11 @@
               for (q = 0, len3 = ref2.length; q < len3; q++) {
                 node = ref2[q];
                 node = $(node);
+                ref4 = ((ref3 = $(node).attr('data-requested-view')) != null ? ref3 : '').split('/'), view = ref4[0], name = ref4[1];
                 if ((block = _this.blockForNode(node)) && (data = _this.data.getYaml(block))) {
-                  ref4 = ((ref3 = $(node).attr('data-requested-view')) != null ? ref3 : '').split('/'), view = ref4[0], name = ref4[1];
                   renderView(view, name, data, node, block);
+                } else if (block = _this.findBlockForResultView(node)) {
+                  renderView(view, name, false, node, block);
                 }
               }
               ref5 = nameNodes.filter(function(n) {
@@ -1740,6 +1737,13 @@
       OrgEditing.prototype.blockForNode = function(node) {
         var ref;
         return (ref = this.getBlock(node.attr('data-view-block'))) != null ? ref : this.data.getBlockNamed(node.attr('data-view-block-name'));
+      };
+
+      OrgEditing.prototype.findBlockForResultView = function(node) {
+        var results;
+        if ((results = node.closest('.code-results')).length) {
+          return this.getBlock(this.idForNode(results[0]));
+        }
       };
 
       OrgEditing.prototype.find = function(sel) {
@@ -2095,7 +2099,7 @@
       OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock, oldBlocks, newBlocks) {
         var block, env, envM, err, error1, finished, hasChange, i, j, len, newBlock, newResults, newSource, oldCode, oldSource, opts, ref, ref1, ref2, repl, res, result, start, sync;
         try {
-          if (!this.data.running[change._id] && change.type === 'code' && isDynamic(change) && !isObserver(change) && (envM = blockEnvMaker(change))) {
+          if (!this.data.running[change._id] && change.type === 'code' && isDynamic(change) && (envM = blockEnvMaker(change))) {
             ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
             hasChange = !oldBlock || oldBlock.type !== 'code' || !(isDynamic(oldBlock) && !isObserver(oldBlock)) || (oldBlock ? (oldSource = blockSource(oldBlock), newSource.content !== oldSource.content) : void 0);
             if (hasChange) {
@@ -2187,7 +2191,9 @@
         var block, envM;
         block = this.editor.blockForCaret();
         if (block.type === 'code' && (envM = blockEnvMaker(block))) {
-          return this.executeBlock(block, envM);
+          this.executeBlock(block, envM);
+          this.data.triggerUpdate('system', 'code', block);
+          return this.data.scheduleEvals();
         }
       };
 
