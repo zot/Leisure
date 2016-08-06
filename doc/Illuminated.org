@@ -11,23 +11,24 @@ title heading should put a title in the HTML and show a title screen in slide mo
 <a href='https://en.wikipedia.org/wiki/Smalltalk'><img src='illuminated/Smalltalk80book.jpg' title='Smalltalk pioneered a lot,<br>including object oriented programming, windows, and GUI widgets,<br>among other goodies'></a>
 #+END_HTML
 
-** Lounge builds on this vision and also mixes in elements from other sources, such as Oberon, Hypercard, Mathematica, Self, and TiddlyWiki
+** Lounge builds on this vision and also mixes in elements from other sources, such as Oberon, Hypercard, Mathematica, Self, TiddlyWiki, and Org Mode
 #+BEGIN_HTML
-<a href='https://en.wikipedia.org/wiki/Oberon_(programming_language)'><img src='illuminated/OberonScreen.png' title='Oberon has a fantastic, text-based GUI'></a>
+<a href='https://en.wikipedia.org/wiki/Oberon_(programming_language)'><img src='illuminated/OberonScreen.png' title='Oberon demonstrates the power of text by using text for a lot of things that other environments rely on graphics for'></a>
 <a href='https://en.wikipedia.org/wiki/HyperCard'><img src='illuminated/HyperCardbird.jpg' title='Hypercard influenced the WWW'></a>
 <a href='https://en.wikipedia.org/wiki/Wolfram_Mathematica'><img src='illuminated/mathematica.png' title='Mathematica notebooks are interactive, editable documents'></a>
 <a href='https://en.wikipedia.org/wiki/Self_(programming_language)'><img src='illuminated/self.png' title='Self has a collaborative interface, called Kansas'></a>
 <a href='https://en.wikipedia.org/wiki/TiddlyWiki'><img src='illuminated/tiddlywiki.jpg' title='TiddlyWiki runs in a browser and supports live editing'></a>
+<a href='https://en.wikipedia.org/wiki/Org-mode'><img src='illuminated/orgmode.png' title='Org mode is a text-based, dynamic document environment that runs in Emacs'></a>
 #+END_HTML
 
 ** Lounge provides a collaborative environment with many of Smalltalk's benefits, where each virtual machine is actually a human-readable text document that you can easily put into version control or mail to a friend /(click the martini glass icon above to see)/
 ** Collaborators can interact with shared Lounge documents and even work together on code while a document is in use.
 * Illuminated programs live in documents that are...
 ** Self-hosted: the source document is also the medium for user interaction
-** Introspective: a program can interact with and observe its document and its facilities
+** Introspective: a program can interact with and observe changes to its document (like data) and facilities (like code recompilation)
 ** Self-contained: document contains its own code, data, presentation, content
 ** Media-rich: programs should be interesting and fun to read!
-** Interactive: Lounge documents are active programs that can interact with users
+** Interactive: In addition to normal app features, Lounge source code can contain interactive examples
 ** Collaborative: users and developers can connect to a document and interact with it together
 ** Editable: everything is editable, including code, data, presentation, and content
 * Details and Implications
