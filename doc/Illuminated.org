@@ -1,11 +1,23 @@
 * (Title heading should put a title in the HTML and show a title screen in slide mode)
 #+TITLE:Lounge, an Illuminated Programming Environment
+* Building on the Smalltalk Vision
+What if programs were delivered as virtual machines that were easy to checkpoint
+and duplicate, they came with their development environments, and they included
+all their source code, data, and graphic interface definitions? This vision
+was actually released to the world as Smalltalk-80.
+
+Lounge builds on this vision and mixes in elements from other sources, such as
+Oberon, Hypercard, Mathematica, Self, and TiddlyWiki, to offer a collaborative
+environment with many of Smalltalk's benefits, where each virtual machine is
+actually a human-readable text document that you can easily put into version
+control and mail to a friend. Collaborators can interact with shared documents
+and even work together on code while a document is in use.
 * Illuminated programs live in documents that are...
 ** Self-hosted: the source document is the medium for user interaction
-** Introspective: a program can interact with its own document
+** Introspective: a program can interact with and observe its document and its facilities
 ** Self-contained: document contains its own code, data, presentation, content
-** Media-rich, interactive, and collaborative
-** Editable: everything is editable code, data, presentation, content
+** Media-rich, interactive, and collaborative: programs should be interesting and fun to read!
+** Editable: everything is editable, including code, data, presentation, and content
 * Details and Implications
 ** There is no /required/ distinction between runtime and development
 ** These are Like tiny, shared virtual machines, with code, data, presentation, that also *run*
@@ -14,14 +26,14 @@
 *** Self-contained: everything can be contained in the document but doesn't /have/ to be
 *** Editable: you can disable editing in some or all of the document when it loads
 * Some features
-** Leisure docs are Editable as WYSIWYG (click here and type stuff) or markup (click a martini glass)
-** No install needed, can run from a static website or from zot.github.io
-** Collaboration can also use local data, per-user
+** Leisure docs are WYSIWYG-editable (click here and type stuff) or markup-editable (click a martini glass)
+** No install needed, your document can run from a static website or from zot.github.io
+** Collaboration can use local data, per-user
 ** Polyglot: JavaScript, CoffeeScript, Leisure, HTML (Handlebars), CSS, YAML
-** Dynamically updates as you edit code, data, views, content
-** Org-mode format (documents are just plain text)
-** Reactive connection between views and a collaborative data model
-** Appearance is completely customizable
+** Dynamically updates as you edit code, data, views, and content
+** Org-mode format, documents are just plain text
+** Reactive connection between views and a collaborative data model, views update as the document changes
+** Appearance is completely customizable, each document can customize its own appearance
 * Test Cases
 ** This test case is true when App.x is the number 3
 #+NAME: chet
