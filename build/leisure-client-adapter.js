@@ -15,6 +15,7 @@
     isRetain = TextOperation.isRetain, isInsert = TextOperation.isInsert, isDelete = TextOperation.isDelete;
     Replacements = Rep.Replacements, replacements = Rep.replacements;
     fileTypes = {
+      jpg: 'image/jpeg',
       png: 'image/png',
       gif: 'image/gif',
       bmp: 'image/bmp',

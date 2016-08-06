@@ -79,6 +79,7 @@ misrepresented as being the original software.
       } = Rep
 
       fileTypes =
+        jpg: 'image/jpeg'
         png: 'image/png'
         gif: 'image/gif'
         bmp: 'image/bmp'
