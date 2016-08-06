@@ -1209,7 +1209,7 @@
     })(DataStore);
     makeImageBlob = function(name, contents) {
       var blob, byteArrays, i, m, offset, slice;
-      if (m = name.match(/png|gif|bmp|xpm|svg+xml/)) {
+      if (m = name.match(/jpg|png|gif|bmp|xpm|svg+xml/)) {
         byteArrays = (function() {
           var j, ref, results1;
           results1 = [];
