@@ -92,42 +92,39 @@
       };
 
       ParsedCodeBlock.prototype.removeResultType = function(str) {
-        var end, i, j, k, len, m, prefix, ref, ref1, ref2, ref3, ref4, res, start, types, values;
+        var end, i, j, k, len, prefix, ref, ref1, ref2, ref3, ref4, res, start, types, values;
         res = (ref = this.block.codeAttributes) != null ? ref.results : void 0;
-        if (str.trim().toLowerCase() === 'view') {
-          if (m = res.match(/\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i)) {
-            return this.setCodeAttribute('results', res.substring(0, m.index) + res.substring(m.index + m[0].length));
+        types = this.getResultTypes();
+        if (ref1 = str.toLowerCase(), indexOf.call(types, ref1) >= 0) {
+          values = res.toLowerCase().split(/(\s+)/);
+          start = values.indexOf(str.toLowerCase());
+          end = start + 1;
+          if (start > 0) {
+            start--;
+          } else if (end < values.length) {
+            end++;
           }
-        } else {
-          types = this.getResultTypes();
-          if (ref1 = str.toLowerCase(), indexOf.call(types, ref1) >= 0) {
-            values = res.toLowerCase().split(/(\s+)/);
-            start = values.indexOf(str.toLowerCase());
-            end = start + 1;
-            if (start > 0) {
-              start--;
-            } else if (end < values.length) {
-              end++;
-            }
-            prefix = 0;
-            for (i = j = 0, ref2 = start; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
-              prefix += values[i].length;
-            }
-            len = 0;
-            for (i = k = ref3 = start, ref4 = end; ref3 <= ref4 ? k < ref4 : k > ref4; i = ref3 <= ref4 ? ++k : --k) {
-              len += values[i].length;
-              values[i] = false;
-            }
-            return this.setCodeAttribute('results', _.some(values) ? res.substring(0, prefix) + res.substring(prefix + len) : void 0);
+          prefix = 0;
+          for (i = j = 0, ref2 = start; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
+            prefix += values[i].length;
           }
+          len = 0;
+          for (i = k = ref3 = start, ref4 = end; ref3 <= ref4 ? k < ref4 : k > ref4; i = ref3 <= ref4 ? ++k : --k) {
+            len += values[i].length;
+            values[i] = false;
+          }
+          return this.setCodeAttribute('results', _.some(values) ? res.substring(0, prefix) + res.substring(prefix + len) : void 0);
         }
       };
 
       ParsedCodeBlock.prototype.setResultView = function(viewStr) {
-        var ref, res;
+        var m, newRes, ref, res;
+        if (viewStr) {
+          viewStr = ' ' + viewStr;
+        }
         res = (ref = this.block.codeAttributes) != null ? ref.results : void 0;
-        this.removeResultType('view');
-        return this.setCodeAttribute('results', res + (res ? ' ' : '') + viewStr);
+        newRes = (m = res.match(/\s*\bview(\(.*\)|\b)/)) ? res.substring(0, m.index) + viewStr + res.substring(m.index + m[0].length) : viewStr ? res + viewStr : res;
+        return this.setCodeAttribute('results', newRes);
       };
 
       ParsedCodeBlock.prototype.setExports = function(code, results) {
@@ -507,7 +504,7 @@
         if (expected) {
           obj.codeContent = source.content;
           obj.codeTestActual = results.content();
-          obj.codeTextExpected = expected.content();
+          obj.codeTestExpected = expected.content();
           obj.codeTestResult = !results ? 'unknown' : expected.content() === results.content() ? 'pass' : 'fail';
         }
         if (name) {

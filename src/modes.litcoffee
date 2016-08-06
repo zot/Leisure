@@ -287,7 +287,13 @@
         else resultsArea UI.context.options, res.text.substring res.contentPos
 
       Handlebars.registerHelper 'isExpected', (options)->
-        !!options.data.opts.data.parsedCodeBlock(options.data.block).resultsAreExpected()
+        !!options.data.opts.parsedCodeBlock(options.data.block).resultsAreExpected()
+
+      Handlebars.registerHelper 'expectedResult', (options)->
+        (options.data.block.codeTestExpected?.trim().replace /^: /mg, '') ? ''
+
+      Handlebars.registerHelper 'actualResult', (options)->
+        (options.data.block.codeTestActual?.trim().replace /^: /mg, '') ? ''
 
       #Handlebars.registerHelper 'find', ->
       #  ***

@@ -382,11 +382,7 @@ that must be done regardless of the source of changes
             rest = rest.removeFirst()
           result
         queueEval: (func)-> @pendingEvals.push func
-        runOnImport: (func)->
-          @importPromise = if @importPromise.isResolved()
-            p = func()
-            if p instanceof Promise then p else Promise.resolve()
-          else @importPromise.then => func()
+        runOnImport: (func)-> @importPromise.then => func()
         scheduleEvals: -> @runOnImport =>
           e = @pendingEvals
           @pendingEvals = []
@@ -414,7 +410,7 @@ that must be done regardless of the source of changes
             for id, v of items
               # verify that it's exactly equal to true
               # if not, then it's not really an observer
-              if v == true && !@running[id] then @pendingObserves[id] = true
+              if v == true && block._id != id && !@running[id] then @pendingObserves[id] = true
           null
         checkPropChange: (oldBlock, newBlock, isDefault)->
           if !isDefault && !newBlock?.level && !_.isEqual(oldBlock?.properties, newBlock?.properties) && parent = @parent newBlock ? oldBlock
@@ -473,6 +469,7 @@ that must be done regardless of the source of changes
               @replaceResult blockId, ": #{err.stack.replace /\n/g, '\n: '}"
             sync = false
         checkChannelChange: (oldBlock, newBlock)-> if !@disableObservation
+          if newBlock.type == 'code' then @triggerUpdate 'system', 'code', newBlock
           if type = @getYaml(newBlock)?.type then @triggerUpdate 'type', type, newBlock
           if name = newBlock?.codeName then @triggerUpdate 'block', name, newBlock
           if channels = newBlock?.codeAttributes?.channels
@@ -636,7 +633,6 @@ that must be done regardless of the source of changes
               if cont then cont.call this, [yaml] else [yaml]
             else if env = env ? @env(block.language) then env.compileBlock block)
             if code then block.code = @addPostProcessing block, code
-        parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, block
         addPostProcessing: (block, func)->
           if m = block.codeAttributes?.post?.match postCallPat
             [..., blockName, argNames] = m
@@ -793,10 +789,7 @@ NMap is a very simple trie.
           @collaborativeCode = {}
           @collaborativeBase = {}
         runBlock: (block, replace)-> @data.runBlock block, replace
-        parsedCodeBlock: (block)->
-          pb = @data.parsedCodeBlock block
-          pb.data = this
-          pb
+        parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, @data.getBlock block
         dataChanged: (changes)->
           preserveSelection =>
             super changes
@@ -912,9 +905,11 @@ NMap is a very simple trie.
             @withNewContext =>
               for node in viewNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
+                [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
                 if (block = @blockForNode node) && data = @data.getYaml block
-                  [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
                   renderView view, name, data, node, block
+                else if block = @findBlockForResultView node
+                  renderView view, name, false, node, block
               for node in nameNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
                 if (data = @data.getYaml blk = @data.getBlockNamed(blkName = node.attr 'data-view-block-name')) && data.type
@@ -927,6 +922,8 @@ NMap is a very simple trie.
         blockForNode: (node)->
           @getBlock(node.attr 'data-view-block') ?
             @data.getBlockNamed(node.attr 'data-view-block-name')
+        findBlockForResultView: (node)->
+          if (results = node.closest '.code-results').length then @getBlock @idForNode results[0]
         find: (sel)-> $(@editor.node).find sel
         findViewsForDefiner: (block, nodes)->
           if block
@@ -1085,7 +1082,7 @@ NMap is a very simple trie.
           change.type == 'chunk' && !_.isEqual change.properties, @getBlock(change._id)?.properties
         checkCodeChange: (changes, change, oldBlock, oldBlocks, newBlocks)->
           try
-            if !@data.running[change._id] && change.type == 'code' && isDynamic(change) && !isObserver(change) && envM = blockEnvMaker(change)
+            if !@data.running[change._id] && change.type == 'code' && isDynamic(change) && envM = blockEnvMaker(change)
               {source: newSource, results: newResults} = blockCodeItems this, change
               hasChange = !oldBlock || oldBlock.type != 'code' || !(isDynamic(oldBlock) && !isObserver(oldBlock)) || if oldBlock
                 oldSource = blockSource oldBlock
@@ -1142,6 +1139,8 @@ NMap is a very simple trie.
           block = @editor.blockForCaret()
           if block.type == 'code' && envM = blockEnvMaker block
             @executeBlock block, envM
+            @data.triggerUpdate 'system', 'code', block
+            @data.scheduleEvals()
         env: (language)->
           env = @data.env language
           env.opts = this
