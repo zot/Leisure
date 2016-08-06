@@ -1,30 +1,47 @@
-* (Title heading should put a title in the HTML and show a title screen in slide mode)
+* Notes
+:properties:
+:hidden: true
+:end:
+title heading should put a title in the HTML and show a title screen in slide mode
 #+TITLE:Lounge, an Illuminated Programming Environment
 * Building on the Smalltalk Vision
-** What if programs were delivered as virtual machines that were easy to checkpoint and duplicate, they came with their development environments, and they included all their source code, data, and graphic interface definitions?
-** This vision was achieved and released to the world as Smalltalk-80
-** Lounge builds on this vision and mixes in elements from other sources, such as Oberon, Hypercard, Mathematica, Self, and TiddlyWiki
-** Lounge provides a collaborative environment with many of Smalltalk's benefits, where each virtual machine is actually a human-readable text document that you can easily put into version control or mail to a friend
+** What if programs were delivered as virtual machines that were easy to checkpoint and duplicate, they included development environments, and all their source code, data, and graphic interface definitions were viewable and changeable?
+** This vision was achieved and released to the world with Smalltalk-80
+#+BEGIN_HTML
+<a href='https://en.wikipedia.org/wiki/Smalltalk'><img src='illuminated/Smalltalk80Book.jpg' title='Smalltalk pioneered a lot,<br>including object oriented programming, windows, and GUI widgets,<br>among other goodies'></a>
+#+END_HTML
+
+** Lounge builds on this vision and also mixes in elements from other sources, such as Oberon, Hypercard, Mathematica, Self, and TiddlyWiki
+#+BEGIN_HTML
+<a href='https://en.wikipedia.org/wiki/Oberon_(programming_language)'><img src='illuminated/OberonScreen.png' title='Oberon has a fantastic, text-based GUI'></a>
+<a href='https://en.wikipedia.org/wiki/HyperCard'><img src='illuminated/HyperCardbird.jpg' title='Hypercard influenced the WWW'></a>
+<a href='https://en.wikipedia.org/wiki/Wolfram_Mathematica'><img src='illuminated/mathematica.png' title='Mathematica notebooks are interactive, editable documents'></a>
+<a href='https://en.wikipedia.org/wiki/Self_(programming_language)'><img src='illuminated/self.png' title='Self has a collaborative interface, called Kansas'></a>
+<a href='https://en.wikipedia.org/wiki/TiddlyWiki'><img src='illuminated/tiddlywiki.jpg' title='TiddlyWiki runs in a browser and supports live editing'></a>
+#+END_HTML
+
+** Lounge provides a collaborative environment with many of Smalltalk's benefits, where each virtual machine is actually a human-readable text document that you can easily put into version control or mail to a friend /(click the martini glass icon above to see)/
 ** Collaborators can interact with shared Lounge documents and even work together on code while a document is in use.
 * Illuminated programs live in documents that are...
-** Self-hosted: the source document is the medium for user interaction
+** Self-hosted: the source document is also the medium for user interaction
 ** Introspective: a program can interact with and observe its document and its facilities
 ** Self-contained: document contains its own code, data, presentation, content
 ** Media-rich: programs should be interesting and fun to read!
 ** Interactive: Lounge documents are active programs that can interact with users
-** Collaborative: users and developers can conntec to a document and interact with it together
+** Collaborative: users and developers can connect to a document and interact with it together
 ** Editable: everything is editable, including code, data, presentation, and content
 * Details and Implications
 ** There is no /required/ distinction between runtime and development
 ** Lounge documents are like tiny, shared virtual machines: they have code, data, and presentation, and they also /run/
-** The properties above are not absolute
-*** Self-hosted: you /can/ obfuscate code
-*** Self-contained: you /can/ include other documents
-*** Editable: you /can/ disable editing in some or all of the document when it loads
+** Self-hosted: source documents don't /have/ to expose readable source, you /can/ hide and/or obfuscate code
+** Self-contained: you /can/ include other documents
+** Media-rich, interactive, collaborative: your documents don't /have/ to be all of these things
+** Editable: you /can/ disable editing in some or all of the document when it loads
 * Some features
 ** Leisure docs are WYSIWYG-editable (click here and type stuff) or markup-editable (click a martini glass)
 ** No install needed, your document can run from a static website or from zot.github.io
 ** Collaboration can use local data, per-user
+[[../elisp/local-data.png]]
 ** Polyglot: JavaScript, CoffeeScript, Leisure, HTML (Handlebars), CSS, YAML
 ** Dynamically updates as you edit code, data, views, and content
 ** Org-mode format, documents are just plain text

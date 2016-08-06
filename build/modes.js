@@ -178,19 +178,19 @@
       return fancyMode.render(UI.context.opts, block, UI.context.prefix)[0];
     });
     Handlebars.registerHelper('renderHtml', function(html) {
-      var controllerName, data, id, ids, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, text, vars;
+      var controllerName, data, id, ids, opts, ref, ref1, ref10, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, text, vars;
       opts = (ref = UI.context) != null ? ref.opts : void 0;
       ref3 = blockVars(opts != null ? opts.data : void 0, (ref1 = this.block) != null ? (ref2 = ref1.codeAttributes) != null ? ref2["var"] : void 0 : void 0), vars = ref3[0], ids = ref3[1];
       data = (ref4 = UI.context) != null ? (ref5 = ref4.opts) != null ? ref5.data : void 0 : void 0;
-      controllerName = this.block.codeAttributes.controller;
-      id = (ref6 = (ref7 = UI.context) != null ? ref7.simpleViewId : void 0) != null ? ref6 : this.id;
-      if (controllerName || (ids.length > 0 && (id = (ref8 = (ref9 = UI.context) != null ? ref9.simpleViewId : void 0) != null ? ref8 : this.id))) {
+      controllerName = (ref6 = this.block.codeAttributes) != null ? ref6.controller : void 0;
+      id = (ref7 = (ref8 = UI.context) != null ? ref8.simpleViewId : void 0) != null ? ref7 : this.id;
+      if (controllerName || (ids.length > 0 && (id = (ref9 = (ref10 = UI.context) != null ? ref10.simpleViewId : void 0) != null ? ref9 : this.id))) {
         pushPendingInitialzation((function(_this) {
           return function() {
-            var block, blocks, controller, env, j, len, node, ref10, viewNode;
+            var block, blocks, controller, env, j, len, node, ref11, viewNode;
             viewNode = $("#" + id);
             if (ids.length && (node = opts.nodeForId(_this.block._id)) && (node[0] === viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)) {
-              blocks = (ref10 = node.attr('data-observe')) != null ? ref10 : '';
+              blocks = (ref11 = node.attr('data-observe')) != null ? ref11 : '';
               for (j = 0, len = ids.length; j < len; j++) {
                 id = ids[j];
                 blocks += " " + id;

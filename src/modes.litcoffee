@@ -198,7 +198,7 @@
         opts = UI.context?.opts
         [vars, ids] = blockVars opts?.data, this.block?.codeAttributes?.var
         data = UI.context?.opts?.data
-        controllerName = @block.codeAttributes.controller
+        controllerName = @block.codeAttributes?.controller
         id = UI.context?.simpleViewId ? this.id
         if controllerName || (ids.length > 0 && (id = UI.context?.simpleViewId ? this.id))
           pushPendingInitialzation =>
