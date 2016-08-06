@@ -661,7 +661,7 @@ that must be done regardless of the source of changes
           else func
 
       makeImageBlob = (name, contents)->
-        if m = name.match /png|gif|bmp|xpm|svg+xml/
+        if m = name.match /jpg|png|gif|bmp|xpm|svg+xml/
           byteArrays = for offset in [0...contents.length] by 512
             slice = contents.slice offset, offset + 512
             new Uint8Array (slice.charCodeAt(i) for i in [0...512])
