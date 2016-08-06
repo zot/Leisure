@@ -2176,6 +2176,13 @@ table[data-org-headline='1'] {
     color: blue;
     font-size: 175%;
 }
+[data-headline] > .maintext {
+    padding-bottom: 1em;
+}
+.showBullets [data-headline='2'] > .maintext::before {content: '\25C9 ';}
+.showBullets [data-headline='3'] > .maintext::before {content: '\2B58 ';}
+.showBullets [data-headline='4'] > .maintext::before {content: '\2731 ';}
+.showBullets [data-headline='5'] > .maintext::before {content: '\273F ';}
 [data-headline='2'] > .maintext {
     color: darkgoldenrod;
     font-size: 150%;

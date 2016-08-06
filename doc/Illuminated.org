@@ -1,7 +1,7 @@
 * (Title heading should put a title in the HTML and show a title screen in slide mode)
-#+TITLE:Lounge, a Document-Centered, Illuminated Programming Environment
+#+TITLE:Lounge, an Illuminated Programming Environment
 * Illuminated programs live in documents that are...
-** Self-hosted: the source document is also the medium for user interaction
+** Self-hosted: the source document is the medium for user interaction
 ** Introspective: a program can interact with its own document
 ** Self-contained: document contains its own code, data, presentation, content
 ** Media-rich, interactive, and collaborative
@@ -11,8 +11,8 @@
 ** These are Like tiny, shared virtual machines, with code, data, presentation, that also *run*
 ** You can modify the properties
 *** Self-hosted: you can obfuscate
-*** Self-contained: everything can be contained in the document but doesn't have to be
-*** Editable: you can diable editing in some or all of the document
+*** Self-contained: everything can be contained in the document but doesn't /have/ to be
+*** Editable: you can disable editing in some or all of the document when it loads
 * Some features
 ** Leisure docs are Editable as WYSIWYG (click here and type stuff) or markup (click a martini glass)
 ** No install needed, can run from a static website or from zot.github.io
