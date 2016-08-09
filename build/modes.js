@@ -177,7 +177,7 @@
     Handlebars.registerHelper('render', function(block) {
       return fancyMode.render(UI.context.opts, block, UI.context.prefix)[0];
     });
-    Handlebars.registerHelper('renderHtml', function(html) {
+    Handlebars.registerHelper('renderHtml', function(html, options) {
       var controllerName, data, id, ids, opts, ref, ref1, ref10, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, text, vars;
       opts = (ref = UI.context) != null ? ref.opts : void 0;
       ref3 = blockVars(opts != null ? opts.data : void 0, (ref1 = this.block) != null ? (ref2 = ref1.codeAttributes) != null ? ref2["var"] : void 0 : void 0), vars = ref3[0], ids = ref3[1];
@@ -880,7 +880,7 @@
             } else {
               attrs = '';
             }
-            return "<span class='error' data-noncontent title='" + (escapeAttr(error)) + "'" + attrs + "><b>✖</b>" + (fancyHtml(org.allText())) + "<span>";
+            return "<span class='error' title='" + (escapeAttr(error)) + "'" + attrs + "><b data-noncontent >✖</b>" + (fancyHtml(org.allText())) + "<span>";
           } else {
             return "<span class='hidden link'>" + (escapeHtml(org.allText())) + "</span><span data-noncontent contenteditable='false'>" + (renderView(type, viewName, obj, null, block, objectName)) + "</span>";
           }

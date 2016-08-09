@@ -395,13 +395,13 @@ that must be done regardless of the source of changes
               while !_.isEmpty @pendingObserves
                 p = @pendingObserves
                 @pendingObserves = {}
-                for blockId of p
+                for blockId, subject of p
                   if !@running[blockId] && (block = @getBlock(blockId))
                     blocked[blockId] = true
                     oldRunning[blockId] = @running[blockId]
                     @running[blockId] = true
                     obs = block.observer
-                    block.observer?.observe?()
+                    block.observer?.observe? subject
                     if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
               for k of blocked
                 @running[k] = oldRunning[k]
@@ -410,7 +410,7 @@ that must be done regardless of the source of changes
             for id, v of items
               # verify that it's exactly equal to true
               # if not, then it's not really an observer
-              if v == true && block._id != id && !@running[id] then @pendingObserves[id] = true
+              if v == true && block._id != id && !@running[id] then @pendingObserves[id] = block
           null
         checkPropChange: (oldBlock, newBlock, isDefault)->
           if !isDefault && !newBlock?.level && !_.isEqual(oldBlock?.properties, newBlock?.properties) && parent = @parent newBlock ? oldBlock
@@ -461,14 +461,15 @@ that must be done regardless of the source of changes
               if !sync then @replaceResult change._id, result
           block.observer = new CodeContext()
           block.observer.data = this
-          block.observer.observe = =>
+          block.observer.observe = (channelData...)=>
             sync = true
             try
-              @replaceResult blockId, env.formatResult @getBlock(blockId), '', @getCode(blockId).call block.observer
+              @replaceResult blockId, env.formatResult @getBlock(blockId), '', @getCode(blockId).apply block.observer, channelData
             catch err
               @replaceResult blockId, ": #{err.stack.replace /\n/g, '\n: '}"
             sync = false
         checkChannelChange: (oldBlock, newBlock)-> if !@disableObservation
+          @triggerUpdate 'system', 'document', newBlock
           if newBlock.type == 'code' then @triggerUpdate 'system', 'code', newBlock
           if type = @getYaml(newBlock)?.type then @triggerUpdate 'type', type, newBlock
           if name = newBlock?.codeName then @triggerUpdate 'block', name, newBlock
@@ -1005,9 +1006,9 @@ NMap is a very simple trie.
               opts.mode.handleDelete opts, parent, e, sel, forward
             setCurrentScript: options: (parent)-> (script)->
               Leisure.UI.currentScript = script
-            activateScripts: options: (parent)-> (jq)->
-              if UI.context then UI.activateScripts jq, UI.context
-              else parent jq
+            activateScripts: options: (parent)-> (jq, context, data, block)->
+              if UI.context then UI.activateScripts jq, UI.context, data, block
+              else parent jq, data, block
           $(@editor.node).on 'scroll', updateSelection
         setMode: (@mode)->
           if @mode && @editor then @editor.node.attr 'data-edit-mode', @mode.name

@@ -186,9 +186,9 @@
       return changeAdvice(editor, true, {
         activateScripts: {
           emacs: function(parent) {
-            return function(el, context) {
+            return function(el, context, data, block) {
               var i, img, len, name, ref, ref1, ref2, ret, src;
-              ret = parent(el, context);
+              ret = parent(el, context, data, block);
               ref = $(el).find('img');
               for (i = 0, len = ref.length; i < len; i++) {
                 img = ref[i];

@@ -1,3 +1,8 @@
+* TODO [#A] visualization package
+** Make simple framework for drawing SVG trees
+** Use for Fingertrees
+** Visualize document structure
+*** document minimap showing hot spots for changing data
 * TODO finish transaction support for collaborative try/punt technique
 * TODO change :control blocks to use :var instead of @initializeView
 * TODO Use Object.create() instead of __proto__

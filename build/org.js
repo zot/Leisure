@@ -84,7 +84,7 @@ misrepresented as being the original software.
     attrHtmlRE = /^#\+(ATTR_HTML): *$/im;
     attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i;
     imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i;
-    leisurePathRE = /^leisure:([^\/]*)(?:\/([^\/]*)(?:\/([^\/]*))?)?$/;
+    leisurePathRE = /^(?:lounge|leisure):([^\/]*)(?:\/([^\/]*)(?:\/([^\/]*))?)?$/;
     keywordPropertyRE = /:([^ ]+)/;
     last = function(a) {
       return a[a.length - 1];

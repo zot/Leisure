@@ -630,13 +630,14 @@
             }
             if (!_.isEmpty(_this.pendingObserves)) {
               return _this.allowObservation(function() {
-                var block, blockId, blocked, k, obs, oldRunning, p, ref, results1;
+                var block, blockId, blocked, k, obs, oldRunning, p, ref, results1, subject;
                 blocked = {};
                 oldRunning = {};
                 while (!_.isEmpty(_this.pendingObserves)) {
                   p = _this.pendingObserves;
                   _this.pendingObserves = {};
                   for (blockId in p) {
+                    subject = p[blockId];
                     if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
                       blocked[blockId] = true;
                       oldRunning[blockId] = _this.running[blockId];
@@ -644,7 +645,7 @@
                       obs = block.observer;
                       if ((ref = block.observer) != null) {
                         if (typeof ref.observe === "function") {
-                          ref.observe();
+                          ref.observe(subject);
                         }
                       }
                       if (!_this.getBlock(block._id).observer) {
@@ -671,7 +672,7 @@
           for (id in items) {
             v = items[id];
             if (v === true && block._id !== id && !this.running[id]) {
-              this.pendingObserves[id] = true;
+              this.pendingObserves[id] = block;
             }
           }
         }
@@ -780,10 +781,11 @@
         block.observer.data = this;
         return block.observer.observe = (function(_this) {
           return function() {
-            var err, error1;
+            var channelData, err, error1;
+            channelData = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
             sync = true;
             try {
-              _this.replaceResult(blockId, env.formatResult(_this.getBlock(blockId), '', _this.getCode(blockId).call(block.observer)));
+              _this.replaceResult(blockId, env.formatResult(_this.getBlock(blockId), '', _this.getCode(blockId).apply(block.observer, channelData)));
             } catch (error1) {
               err = error1;
               _this.replaceResult(blockId, ": " + (err.stack.replace(/\n/g, '\n: ')));
@@ -796,6 +798,7 @@
       OrgData.prototype.checkChannelChange = function(oldBlock, newBlock) {
         var channel, channels, j, len, name, ref, ref1, ref2, type;
         if (!this.disableObservation) {
+          this.triggerUpdate('system', 'document', newBlock);
           if (newBlock.type === 'code') {
             this.triggerUpdate('system', 'code', newBlock);
           }
@@ -1933,11 +1936,11 @@
           },
           activateScripts: {
             options: function(parent) {
-              return function(jq) {
+              return function(jq, context, data, block) {
                 if (UI.context) {
-                  return UI.activateScripts(jq, UI.context);
+                  return UI.activateScripts(jq, UI.context, data, block);
                 } else {
-                  return parent(jq);
+                  return parent(jq, data, block);
                 }
               };
             }
