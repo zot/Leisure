@@ -194,7 +194,7 @@
       Handlebars.registerHelper 'render', (block)->
         fancyMode.render(UI.context.opts, block, UI.context.prefix)[0]
 
-      Handlebars.registerHelper 'renderHtml', (html)->
+      Handlebars.registerHelper 'renderHtml', (html, options)->
         opts = UI.context?.opts
         [vars, ids] = blockVars opts?.data, this.block?.codeAttributes?.var
         data = UI.context?.opts?.data
@@ -672,7 +672,7 @@
               if objectName
                 attrs = " data-view-block-name='#{objectName}'#{if viewName then ' data-view-name=\'' + viewName + '\'' else ''}"
               else attrs = ''
-              "<span class='error' data-noncontent title='#{escapeAttr error}'#{attrs}><b>✖</b>#{fancyHtml org.allText()}<span>"
+              "<span class='error' title='#{escapeAttr error}'#{attrs}><b data-noncontent >✖</b>#{fancyHtml org.allText()}<span>"
             else
               "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block, objectName}</span>"
           else if org.isImage()
@@ -927,7 +927,7 @@ Returns [] if org does not fit the pattern.
 
       goodText = (text)-> workSpan().text(text).html() ? ''
 
-      isViewResult = (block)-> block.codeAttributes.results.match /\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i
+      isViewResult = (block)-> block.codeAttributes?.results?.match /\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i
 
       resultsArea = (opts, results, block)->
         firstResult = results.indexOf('\n') + 1

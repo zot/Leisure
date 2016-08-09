@@ -395,22 +395,27 @@ that must be done regardless of the source of changes
               while !_.isEmpty @pendingObserves
                 p = @pendingObserves
                 @pendingObserves = {}
-                for blockId of p
-                  if !@running[blockId] && (block = @getBlock(blockId))
-                    blocked[blockId] = true
-                    oldRunning[blockId] = @running[blockId]
-                    @running[blockId] = true
-                    obs = block.observer
-                    block.observer?.observe?()
-                    if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
+                @withLounge =>
+                  for blockId, subject of p
+                    if !@running[blockId] && (block = @getBlock(blockId))
+                      blocked[blockId] = true
+                      oldRunning[blockId] = @running[blockId]
+                      @running[blockId] = true
+                      obs = block.observer
+                      block.observer?.observe? subject
+                      if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
               for k of blocked
                 @running[k] = oldRunning[k]
+        withLounge: (func)->
+          env = Object.create defaultEnv
+          env.data = this
+          setLounge env, func
         triggerUpdate: (channelKeys..., block)->
           if items = @observers.get channelKeys...
             for id, v of items
               # verify that it's exactly equal to true
               # if not, then it's not really an observer
-              if v == true && block._id != id && !@running[id] then @pendingObserves[id] = true
+              if v == true && block._id != id && !@running[id] then @pendingObserves[id] = block
           null
         checkPropChange: (oldBlock, newBlock, isDefault)->
           if !isDefault && !newBlock?.level && !_.isEqual(oldBlock?.properties, newBlock?.properties) && parent = @parent newBlock ? oldBlock
@@ -449,26 +454,29 @@ that must be done regardless of the source of changes
           env = @env block.language
           blockId = block._id
           sync = false
-          if isYamlResult block
-            env.write = (str)->
+          silent = isSilent block
+          if !silent
+            if isYamlResult block then env.write = (str)->
               result += str
               if result[result.length - 1] != '\n' then result += '\n'
               if !sync then @replaceResult change._id, result
-          else
-            env.write = (str)->
+            else env.write = (str)->
               result += presentHtml str
               if result[result.length - 1] != '\n' then result += '\n'
               if !sync then @replaceResult change._id, result
           block.observer = new CodeContext()
           block.observer.data = this
-          block.observer.observe = =>
+          block.observer.observe = (channelArgs...)=>
             sync = true
             try
-              @replaceResult blockId, env.formatResult @getBlock(blockId), '', @getCode(blockId).call block.observer
+              res = @getCode(blockId).call block.observer, null, channelArgs...
+              if !silent then @replaceResult blockId, env.formatResult @getBlock(blockId), '', res
             catch err
-              @replaceResult blockId, ": #{err.stack.replace /\n/g, '\n: '}"
+              if !silent then @replaceResult blockId, ": #{err.stack.replace /\n/g, '\n: '}"
+              else console.error err
             sync = false
         checkChannelChange: (oldBlock, newBlock)-> if !@disableObservation
+          @triggerUpdate 'system', 'document', newBlock
           if newBlock.type == 'code' then @triggerUpdate 'system', 'code', newBlock
           if type = @getYaml(newBlock)?.type then @triggerUpdate 'type', type, newBlock
           if name = newBlock?.codeName then @triggerUpdate 'block', name, newBlock
@@ -504,14 +512,40 @@ that must be done regardless of the source of changes
           else blk
         storeLocalBlock: (block)->
           if block.local && (name = block.codeName) && block._id == @getNamedBlockId name
+            old = @getBlockNamed name
             @localBlocks[name] = block
             block = copyBlock block
             block._id = name
             transaction(@localDocumentId()).put block
+            changes =
+              first: @getFirst()
+              oldBlocks: (if old then [old] else [])
+              newBlocks: [block]
+              sets: {}
+              adds: {}
+              updates: {}
+              removes: {}
+              old: []
+            changes.sets[block._id] = block
+            for oldBlock in changes.oldBlocks
+              changes.old[oldBlock._id] = oldBlock
+            @trigger 'change', changes
         deleteLocalBlock: (name)->
-          if @localBlocks[name]
+          if old = @localBlocks[name]
             delete @localBlocks[name]
             transaction(@localDocumentId()).delete name
+            newBlock = @getBlockNamed name
+            changes =
+              first: @getFirst()
+              oldBlocks: [old]
+              newBlocks: (if newBlock then [newBlock] else [])
+              sets: {}
+              adds: {}
+              removes: {}
+              updates: {}
+              old: []
+            changes.removes[old._id] = true
+            @trigger 'change', changes
         textForDataNamed: (name, data, attrs)->
           """
           #{if name then "#+NAME: #{name}\n" else ''}#+BEGIN_SRC yaml #{(":#{k} #{v}" for k, v of attrs).join ' '}
@@ -552,7 +586,8 @@ that must be done regardless of the source of changes
             envConf? env
             if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'web', 'silent']
               env.silent = true
-              env.write = (str)-> console.log str
+              if isSilent newBlock then write = ->
+              else env.write = (str)-> console.log str
           if code = @getCode block then setLounge env, code
           else @oldExecuteBlock block, envConf
         env: (language, envConf)->
@@ -806,11 +841,14 @@ NMap is a very simple trie.
         dataLoaded: ->
           super()
           @rerenderAll()
-        load: (name, text)->
+        load: (name, text)-> @withDefaultOpts => super name, text
+        withDefaultOpts: (func)->
           oldOpts = defaultEnv.opts
           defaultEnv.opts = this
-          super name, text
-          defaultEnv.opts = oldOpts
+          try
+            func()
+          finally
+            defaultEnv.opts = oldOpts
         renderBlocks: -> @mode.renderBlocks this, super()
         setTheme: (theme)->
           if @theme then @editor.node.removeClass @theme
@@ -1005,9 +1043,9 @@ NMap is a very simple trie.
               opts.mode.handleDelete opts, parent, e, sel, forward
             setCurrentScript: options: (parent)-> (script)->
               Leisure.UI.currentScript = script
-            activateScripts: options: (parent)-> (jq)->
-              if UI.context then UI.activateScripts jq, UI.context
-              else parent jq
+            activateScripts: options: (parent)-> (jq, context, data, block)->
+              if UI.context then UI.activateScripts jq, UI.context, data, block
+              else parent jq, data, block
           $(@editor.node).on 'scroll', updateSelection
         setMode: (@mode)->
           if @mode && @editor then @editor.node.attr 'data-edit-mode', @mode.name
@@ -1039,7 +1077,7 @@ NMap is a very simple trie.
           changes
         replaceText: (repl, skipEffects)->
           if !skipEffects && {repls} = @replaceTextEffects repl.start, repl.end, repl.text
-            @data.allowObservation => super repl
+            @withDefaultOpts => @data.allowObservation => super repl
             if repls
               for repl in repls
                 @replaceText repl, true
@@ -1168,13 +1206,14 @@ NMap is a very simple trie.
             env.errorAt = (offset, msg)->
               newBlock = setError block, offset, msg
               if newBlock != block && !sync then opts.update newBlock
-            env.write = (str)->
+            if silent = isSilent block then env.write = ->
+            else env.write = (str)->
               result += presentHtml str
               if !sync then opts.update newBlock = setResult block, result
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
             setLounge env, -> env.executeBlock block, Nil, ->
             sync = false
-            newBlock = setResult newBlock, result
+            if !silent then newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock
         renderImage: (src, title)->
           if @loadName && ((m = src.match /^file:(\/\/)?(.*)$/) || !(src.match /^.*:/))
@@ -1225,8 +1264,10 @@ NMap is a very simple trie.
           ('headline' in (t = [oldBlock.type, newBlock.type]) && t[0] != t[1]) ||
           (t[0] == 'headline' && oldBlock.level != newBlock.level)
 
+      isSilent = (block)-> block?.codeAttributes?.results?.toLowerCase().match /\bsilent\b/
+
       setResult = (block, result)->
-        if block?.codeAttributes?.results?.toLowerCase() in ['def', 'web', 'silent']
+        if block?.codeAttributes?.results?.toLowerCase().match /\b(def|web|silent)\b/
           result = ''
         {results} = blockCodeItems this, block
         if !results && (!result? || result == '') then block

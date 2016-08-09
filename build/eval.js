@@ -739,7 +739,7 @@
               }
             }
           }
-          ret = code.call(this);
+          ret = code.apply(this, args);
           if (cont) {
             return cont(ret);
           } else {

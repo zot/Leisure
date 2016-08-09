@@ -134,8 +134,8 @@ Emacs connection
               parent()
             else sendCcCc data.emacsConnection.websocket, editor.docOffset(editor.domCursorForCaret())
         changeAdvice editor, true,
-          activateScripts: emacs: (parent)->(el, context)->
-            ret = parent el, context
+          activateScripts: emacs: (parent)->(el, context, data, block)->
+            ret = parent el, context, data, block
             for img in $(el).find 'img'
               src = img.getAttribute 'src'
               if !src.match '^.*:.*'

@@ -210,7 +210,7 @@ choose a handlebars template.
               n = $("<span #{attrs}>#{html}</span>")
               n[0].id = id
               $(node).replaceWith n
-              root.context.opts.editor.activateScripts n, root.context
+              root.context.opts.editor.activateScripts n, root.context, data, block
         else mergeContext settings, -> simpleRenderView attrs, key, template, data, block, addIds
 
       runTemplate = (template, args...)->
@@ -225,7 +225,7 @@ choose a handlebars template.
       simpleRenderView = (attrs, key, template, data, block)->
         id = nextViewId()
         do (context = root.context)->
-          pendingViews.push -> activateScripts $("##{id}"), context
+          pendingViews.push -> activateScripts $("##{id}"), context, data, block
         attrs += " id='#{id}'"
         if block then root.context.subviews[block._id] = true
         root.context.simpleViewId = id
@@ -238,9 +238,9 @@ choose a handlebars template.
         for func in p
           func()
 
-      activateScripts = (el, context)->
+      activateScripts = (el, context, data, block)->
         if !activating
-          withContext _.merge({}, context), ->
+          withContext _.merge({data: block: block}, context), ->
             root.context.currentView = el
             activating = true
             try
@@ -256,11 +256,13 @@ choose a handlebars template.
               for script in el.find('script[type="text/coffeescript"]').add(el.find 'script[type="text/literate-coffeescript"]')
                 root.currentScript = script
                 CoffeeScript.run script.innerHTML
-              getController(el.attr 'data-view')?.initializeView?(el, context.data)
+              getController(el.attr 'data-view')?.initializeView?(el, data, data: root.context)
               for img in el.find 'img'
                 refreshImage img
               for node in el
                 bindView node
+            catch err
+              console.error err
             finally
               root.currentScript = null
               activating = false

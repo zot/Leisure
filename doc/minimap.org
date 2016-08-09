@@ -1,0 +1,150 @@
+* Defs
+#+BEGIN_SRC coffee :results def
+App = window.App = window.App ? {}
+if !App.blockMinimap then App.blockMinimap =
+  activeBlocks: {}
+  timeStamp: 0
+  heatMapColors: [
+    'black'
+    'blue'
+    'cyan'
+    'green'
+    'yellow'
+    'red'
+    'white'
+  ]
+#+END_SRC
+* Lounge block activity minimap
+Show Lounge block editing/data activity
+* Data
+#+NAME: testMapData
+This is just test data
+#+BEGIN_SRC yaml
+- x0000000000000
+- x0000001000000
+- x0000012100000
+- x0000123210000
+- x0001234321000
+- x0012345432100
+- x0123456543210
+- x0012345432100
+- x0001234321000
+- x0000123210000
+- x0000012100000
+- x0000001000000
+- x0000000000000
+#+END_SRC
+[[lounge:testMapData//loungeMinimapData]]
+
+[[lounge:blockMap//loungeMinimapData]]
+* View
+#+BEGIN_SRC html :defview loungeMinimapData
+<div style='height: 15em'>
+  <canvas style='border: solid black; width: 100%; height: 100%'></canvas>
+</div>
+#+END_SRC
+* Controller
+#+BEGIN_SRC coffee :control loungeMinimapData
+@initializeView = (view, data)->
+  App.blockMinimap.minimaps[view[0].id] = data
+  render view, data
+
+if !App.blockMinimap.minimaps
+  App.blockMinimap.minimaps = {}
+  window.onresize = _.throttle (->
+    cleanMaps()
+    for view, data of minimaps
+      render $("##{view}"), data), 10
+
+minimaps = App.blockMinimap.minimaps
+
+dataDo = (data, func)->
+  for row in data
+    for col in row.substring 1
+      func Number col
+  null
+
+cleanMaps = ->
+  newMaps = {}
+  for view, data of minimaps
+    if (v = $("##{view}")).length && v.is '[data-view=loungeMinimapData]' then newMaps[view] = data
+  App.blockMinimap.minimaps = minimaps = newMaps
+
+render = (view, data)->
+  cnv = view.find('canvas')[0]
+  w = cnv.offsetWidth
+  h = cnv.offsetHeight
+  r = w / h
+  totBlocks = 0
+  for cur in data
+    totBlocks += cur.length - 1
+  rows = Math.ceil Math.sqrt totBlocks / r
+  cols = Math.floor totBlocks / rows
+  ctx = cnv.getContext "2d"
+  cnv.setAttribute 'width', cols * 10
+  cnv.setAttribute 'height', rows * 10
+  ctx.fillStyle = 'black'
+  ctx.fillRect 0, 0, cols * 10, rows * 10
+  row = col = 0
+  dataDo data, (item)->
+    col++
+    if col >= cols
+      col = 0
+      row++
+    ctx.fillStyle = App.blockMinimap.heatMapColors[item]
+    ctx.fillRect col * 10, row * 10, 10, 10
+#+END_SRC
+* Block map
+** Data to hold the heat map for this document
+#+NAME:blockMap
+This is a Data block for observer to use
+#+BEGIN_SRC yaml :local
+[]
+#+END_SRC
+** The heatmap has 7 colors, 0 = cold, 6 = hot.
+#+BEGIN_SRC yaml :results view(loungeMinimapData)
+- x0123456
+#+END_SRC
+** This is an observer that populates the blockMap (support is below)
+#+BEGIN_SRC coffee :observe system.document :var block :results silent
+App.blockMinimap.activeBlocks[block._id] = Date.now()
+App.blockMinimap.updateFunc()
+#+END_SRC
+** Support for the observer
+#+BEGIN_SRC coffee :results def
+opts = Lounge.opts
+data = Lounge.data
+steps = 7
+persistence = 1000
+colMax = 80
+maxPersistence = steps * persistence
+oldActive = {}
+
+populateMap = ->
+  nextActive = {}
+  stillActive = false
+  now = Date.now()
+  curRow = 'x'
+  rows = []
+  col = 0
+  for block in data.blockArray()
+    time = App.blockMinimap.activeBlocks[block._id] ? 0
+    heat = Math.max 0, 6 - Math.ceil (now - time) / persistence
+    #debugger
+    if heat > 0
+      nextActive[block._id] = time
+      stillActive = true
+    if col >= colMax
+      rows.push curRow
+      col = 0
+      curRow = 'x'
+    curRow += heat
+  if curRow != 'x' then rows.push curRow
+  App.blockMinimap.activeBlocks = nextActive
+  if !_.isEqual rows, data.getBlockNamed 'blockMap'
+    opts.setLocalData 'blockMap', rows
+  if stillActive then setTimeout App.blockMinimap.updateFunc, persistence * 0.8
+
+# Always set this in case anyone edits this block
+App.blockMinimap.updateFunc = _.throttle populateMap, persistence / 3, leading: false
+#+END_SRC

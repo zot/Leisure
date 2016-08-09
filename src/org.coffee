@@ -91,7 +91,7 @@ define ['lib/lazy'], (Lazy)->
   attrHtmlRE = /^#\+(ATTR_HTML): *$/im
   attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i
   imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i
-  leisurePathRE = /^leisure:([^\/]*)(?:\/([^\/]*)(?:\/([^\/]*))?)?$/
+  leisurePathRE = /^(?:lounge|leisure):([^\/]*)(?:\/([^\/]*)(?:\/([^\/]*))?)?$/
   keywordPropertyRE = /:([^ ]+)/
 
   last = (a)-> a[a.length - 1]

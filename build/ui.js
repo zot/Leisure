@@ -306,7 +306,7 @@
             n = $("<span " + attrs + ">" + html + "</span>");
             n[0].id = id;
             $(node).replaceWith(n);
-            return root.context.opts.editor.activateScripts(n, root.context);
+            return root.context.opts.editor.activateScripts(n, root.context, data, block);
           }));
         }
         return results;
@@ -335,7 +335,7 @@
       id = nextViewId();
       (function(context) {
         return pendingViews.push(function() {
-          return activateScripts($("#" + id), context);
+          return activateScripts($("#" + id), context, data, block);
         });
       })(root.context);
       attrs += " id='" + id + "'";
@@ -359,10 +359,14 @@
       }
       return results;
     };
-    activateScripts = function(el, context) {
+    activateScripts = function(el, context, data, block) {
       if (!activating) {
-        return withContext(_.merge({}, context), function() {
-          var img, j, k, l, len, len1, len2, len3, m, newScript, node, ref1, ref2, ref3, ref4, results, script;
+        return withContext(_.merge({
+          data: {
+            block: block
+          }
+        }, context), function() {
+          var err, error, img, j, k, l, len, len1, len2, len3, m, newScript, node, ref1, ref2, ref3, ref4, results, script;
           root.context.currentView = el;
           activating = true;
           try {
@@ -387,7 +391,9 @@
             }
             if ((ref3 = getController(el.attr('data-view'))) != null) {
               if (typeof ref3.initializeView === "function") {
-                ref3.initializeView(el, context.data);
+                ref3.initializeView(el, data, {
+                  data: root.context
+                });
               }
             }
             ref4 = el.find('img');
@@ -401,6 +407,9 @@
               results.push(bindView(node));
             }
             return results;
+          } catch (error) {
+            err = error;
+            return console.error(err);
           } finally {
             root.currentScript = null;
             activating = false;
