@@ -31,5 +31,7 @@ Project-wide requirejs configuration for Leisure
         handlebars: 'lib/handlebars-v4.0.5'
         sockjs: 'lib/sockjs-1.0.0.min'
         lispyscript: './lib/lispyscript/browser-bundle'
+        lodash: './lib/lodash.full-4.14.1'
+        #lodash: './lib/lodash.min'
 
     console.log "Configured."

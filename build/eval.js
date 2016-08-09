@@ -5,7 +5,7 @@
 
   define.amd = true;
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lib/lodash.min', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree) {
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree) {
     var Html, Nil, Node, Promise, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
@@ -827,7 +827,7 @@
       return env;
     };
     jsCodeFor = function(codeMap) {
-      return codeMap.code + "\n//# sourceMappingURL=data:application/json;base64," + (btoa(JSON.stringify(codeMap.map.toJSON()))) + "\n";
+      return codeMap.code + "\n";
     };
     indentCode = function(str) {
       return str.replace(/\n/g, '\n  ');

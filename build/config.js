@@ -12,7 +12,8 @@
       immutable: 'lib/immutable-3.8.1.min',
       handlebars: 'lib/handlebars-v4.0.5',
       sockjs: 'lib/sockjs-1.0.0.min',
-      lispyscript: './lib/lispyscript/browser-bundle'
+      lispyscript: './lib/lispyscript/browser-bundle',
+      lodash: './lib/lodash.full-4.14.1'
     }
   });
 

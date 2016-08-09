@@ -1,6 +1,6 @@
 Emacs connection
 
-    define ['./lib/lodash.min', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], (_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice)->
+    define ['lodash', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], (_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice)->
 
       {
         mergeExports
