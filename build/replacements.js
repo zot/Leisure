@@ -2,7 +2,7 @@
 (function() {
   var slice = [].slice;
 
-  define(['./lib/fingertree', './lib/lodash.min', './testing', 'immutable', './export'], function(Fingertree, _, Testing, Immutable, Exports) {
+  define(['./lib/fingertree', 'lodash', './testing', 'immutable', './export'], function(Fingertree, _, Testing, Immutable, Exports) {
     var Replacements, Set, assert, assertEq, diag, eachReplacement, mergeExports, mergeRepl, replacements;
     assert = Testing.assert, assertEq = Testing.assertEq;
     Set = Immutable.Set;

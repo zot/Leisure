@@ -1,4 +1,4 @@
-    define ['./org', './docOrg', 'lib/lodash.min', './editorSupport', './diag', './testing'], (Org, DocOrg, _, EditorSupport, Diag, Testing)->
+    define ['./org', './docOrg', 'lodash', './editorSupport', './diag', './testing'], (Org, DocOrg, _, EditorSupport, Diag, Testing)->
       {
         parseOrgMode
       } = Org

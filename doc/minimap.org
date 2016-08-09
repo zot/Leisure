@@ -1,3 +1,5 @@
+* Lounge Heatmap
+[[lounge:blockMap//loungeMinimapData]]
 * Defs
 #+BEGIN_SRC coffee :results def
 App = window.App = window.App ? {}
@@ -35,8 +37,6 @@ This is just test data
 - x0000000000000
 #+END_SRC
 [[lounge:testMapData//loungeMinimapData]]
-
-[[lounge:blockMap//loungeMinimapData]]
 * View
 #+BEGIN_SRC html :defview loungeMinimapData
 <div style='height: 15em'>
@@ -113,38 +113,39 @@ App.blockMinimap.updateFunc()
 ** Support for the observer
 #+BEGIN_SRC coffee :results def
 opts = Lounge.opts
-data = Lounge.data
-steps = 7
-persistence = 1000
+data = opts.data
+persistence = 500
 colMax = 80
-maxPersistence = steps * persistence
-oldActive = {}
+oldHeats = {}
 
 populateMap = ->
+  newHeats = {}
   nextActive = {}
   stillActive = false
   now = Date.now()
-  curRow = 'x'
-  rows = []
-  col = 0
-  for block in data.blockArray()
-    time = App.blockMinimap.activeBlocks[block._id] ? 0
-    heat = Math.max 0, 6 - Math.ceil (now - time) / persistence
-    #debugger
+  for id, time of App.blockMinimap.activeBlocks
+    heat = Math.max 0, 6 - Math.floor Math.log((now - time) / persistence) / Math.log(1.65)
     if heat > 0
-      nextActive[block._id] = time
+      nextActive[id] = time
+      newHeats[id] = heat
       stillActive = true
-    if col >= colMax
-      rows.push curRow
-      col = 0
-      curRow = 'x'
-    curRow += heat
-  if curRow != 'x' then rows.push curRow
   App.blockMinimap.activeBlocks = nextActive
-  if !_.isEqual rows, data.getBlockNamed 'blockMap'
+  if !_.isEqual oldHeats, newHeats
+    oldHeats = newHeats
+    curRow = 'x'
+    rows = []
+    col = 0
+    for block in data.blockArray()
+      heat = newHeats[block._id] ? 0
+      if col >= colMax
+        rows.push curRow
+        col = 0
+        curRow = 'x'
+      curRow += heat
+    if curRow != 'x' then rows.push curRow
     opts.setLocalData 'blockMap', rows
   if stillActive then setTimeout App.blockMinimap.updateFunc, persistence * 0.8
 
 # Always set this in case anyone edits this block
-App.blockMinimap.updateFunc = _.throttle populateMap, persistence / 3, leading: false
+App.blockMinimap.updateFunc = _.throttle populateMap, 100, leading: false
 #+END_SRC

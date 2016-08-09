@@ -1,6 +1,6 @@
 * TODO and agenda code for Leisure
 
-    define ['./org', './docOrg', './editor', './editorSupport', 'lib/lodash.min', 'jquery'], (Org, DocOrg, Editor, EditorSupport, _, $)->
+    define ['./org', './docOrg', './editor', './editorSupport', 'lodash', 'jquery'], (Org, DocOrg, Editor, EditorSupport, _, $)->
       {
         parseOrgMode
       } = Org
