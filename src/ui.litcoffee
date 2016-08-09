@@ -261,6 +261,8 @@ choose a handlebars template.
                 refreshImage img
               for node in el
                 bindView node
+            catch err
+              console.error err
             finally
               root.currentScript = null
               activating = false

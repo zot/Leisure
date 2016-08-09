@@ -1276,7 +1276,8 @@
       return (ref = workSpan().text(text).html()) != null ? ref : '';
     };
     isViewResult = function(block) {
-      return block.codeAttributes.results.match(/\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i);
+      var ref, ref1;
+      return (ref = block.codeAttributes) != null ? (ref1 = ref.results) != null ? ref1.match(/\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i) : void 0 : void 0;
     };
     resultsArea = function(opts, results, block) {
       var firstResult, ignore, m, obj, objectName, type, viewName;

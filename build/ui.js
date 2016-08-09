@@ -366,7 +366,7 @@
             block: block
           }
         }, context), function() {
-          var img, j, k, l, len, len1, len2, len3, m, newScript, node, ref1, ref2, ref3, ref4, results, script;
+          var err, error, img, j, k, l, len, len1, len2, len3, m, newScript, node, ref1, ref2, ref3, ref4, results, script;
           root.context.currentView = el;
           activating = true;
           try {
@@ -407,6 +407,9 @@
               results.push(bindView(node));
             }
             return results;
+          } catch (error) {
+            err = error;
+            return console.error(err);
           } finally {
             root.currentScript = null;
             activating = false;

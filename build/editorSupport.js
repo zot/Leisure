@@ -6,7 +6,7 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lib/lodash.min', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
-    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock;
@@ -630,29 +630,38 @@
             }
             if (!_.isEmpty(_this.pendingObserves)) {
               return _this.allowObservation(function() {
-                var block, blockId, blocked, k, obs, oldRunning, p, ref, results1, subject;
+                var blocked, k, oldRunning, p, results1;
                 blocked = {};
                 oldRunning = {};
                 while (!_.isEmpty(_this.pendingObserves)) {
                   p = _this.pendingObserves;
                   _this.pendingObserves = {};
-                  for (blockId in p) {
-                    subject = p[blockId];
-                    if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
-                      blocked[blockId] = true;
-                      oldRunning[blockId] = _this.running[blockId];
-                      _this.running[blockId] = true;
-                      obs = block.observer;
-                      if ((ref = block.observer) != null) {
-                        if (typeof ref.observe === "function") {
-                          ref.observe(subject);
+                  _this.withLounge(function() {
+                    var block, blockId, obs, ref, results1, subject;
+                    results1 = [];
+                    for (blockId in p) {
+                      subject = p[blockId];
+                      if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
+                        blocked[blockId] = true;
+                        oldRunning[blockId] = _this.running[blockId];
+                        _this.running[blockId] = true;
+                        obs = block.observer;
+                        if ((ref = block.observer) != null) {
+                          if (typeof ref.observe === "function") {
+                            ref.observe(subject);
+                          }
                         }
-                      }
-                      if (!_this.getBlock(block._id).observer) {
-                        _this.getBlock(block._id).observer = obs;
+                        if (!_this.getBlock(block._id).observer) {
+                          results1.push(_this.getBlock(block._id).observer = obs);
+                        } else {
+                          results1.push(void 0);
+                        }
+                      } else {
+                        results1.push(void 0);
                       }
                     }
-                  }
+                    return results1;
+                  });
                 }
                 results1 = [];
                 for (k in blocked) {
@@ -663,6 +672,13 @@
             }
           };
         })(this));
+      };
+
+      OrgData.prototype.withLounge = function(func) {
+        var env;
+        env = Object.create(defaultEnv);
+        env.data = this;
+        return setLounge(env, func);
       };
 
       OrgData.prototype.triggerUpdate = function() {
@@ -752,43 +768,53 @@
       };
 
       OrgData.prototype.createObserver = function(block) {
-        var blockId, env, sync;
+        var blockId, env, silent, sync;
         env = this.env(block.language);
         blockId = block._id;
         sync = false;
-        if (isYamlResult(block)) {
-          env.write = function(str) {
-            result += str;
-            if (result[result.length - 1] !== '\n') {
-              result += '\n';
-            }
-            if (!sync) {
-              return this.replaceResult(change._id, result);
-            }
-          };
-        } else {
-          env.write = function(str) {
-            result += presentHtml(str);
-            if (result[result.length - 1] !== '\n') {
-              result += '\n';
-            }
-            if (!sync) {
-              return this.replaceResult(change._id, result);
-            }
-          };
+        silent = isSilent(block);
+        if (!silent) {
+          if (isYamlResult(block)) {
+            env.write = function(str) {
+              result += str;
+              if (result[result.length - 1] !== '\n') {
+                result += '\n';
+              }
+              if (!sync) {
+                return this.replaceResult(change._id, result);
+              }
+            };
+          } else {
+            env.write = function(str) {
+              result += presentHtml(str);
+              if (result[result.length - 1] !== '\n') {
+                result += '\n';
+              }
+              if (!sync) {
+                return this.replaceResult(change._id, result);
+              }
+            };
+          }
         }
         block.observer = new CodeContext();
         block.observer.data = this;
         return block.observer.observe = (function(_this) {
           return function() {
-            var channelData, err, error1;
-            channelData = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
+            var channelArgs, err, error1, ref, res;
+            channelArgs = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
             sync = true;
             try {
-              _this.replaceResult(blockId, env.formatResult(_this.getBlock(blockId), '', _this.getCode(blockId).apply(block.observer, channelData)));
+              res = (ref = _this.getCode(blockId)).call.apply(ref, [block.observer, null].concat(slice1.call(channelArgs)));
+              if (!silent) {
+                _this.replaceResult(blockId, env.formatResult(_this.getBlock(blockId), '', res));
+              }
             } catch (error1) {
               err = error1;
-              _this.replaceResult(blockId, ": " + (err.stack.replace(/\n/g, '\n: ')));
+              if (!silent) {
+                _this.replaceResult(blockId, ": " + (err.stack.replace(/\n/g, '\n: ')));
+              } else {
+                console.error(err);
+              }
             }
             return sync = false;
           };
@@ -882,19 +908,51 @@
       };
 
       OrgData.prototype.storeLocalBlock = function(block) {
-        var name;
+        var changes, j, len, name, old, oldBlock, ref;
         if (block.local && (name = block.codeName) && block._id === this.getNamedBlockId(name)) {
+          old = this.getBlockNamed(name);
           this.localBlocks[name] = block;
           block = copyBlock(block);
           block._id = name;
-          return transaction(this.localDocumentId()).put(block);
+          transaction(this.localDocumentId()).put(block);
+          changes = {
+            first: this.getFirst(),
+            oldBlocks: (old ? [old] : []),
+            newBlocks: [block],
+            sets: {},
+            adds: {},
+            updates: {},
+            removes: {},
+            old: []
+          };
+          changes.sets[block._id] = block;
+          ref = changes.oldBlocks;
+          for (j = 0, len = ref.length; j < len; j++) {
+            oldBlock = ref[j];
+            changes.old[oldBlock._id] = oldBlock;
+          }
+          return this.trigger('change', changes);
         }
       };
 
       OrgData.prototype.deleteLocalBlock = function(name) {
-        if (this.localBlocks[name]) {
+        var changes, newBlock, old;
+        if (old = this.localBlocks[name]) {
           delete this.localBlocks[name];
-          return transaction(this.localDocumentId())["delete"](name);
+          transaction(this.localDocumentId())["delete"](name);
+          newBlock = this.getBlockNamed(name);
+          changes = {
+            first: this.getFirst(),
+            oldBlocks: [old],
+            newBlocks: (newBlock ? [newBlock] : []),
+            sets: {},
+            adds: {},
+            removes: {},
+            updates: {},
+            old: []
+          };
+          changes.removes[old._id] = true;
+          return this.trigger('change', changes);
         }
       };
 
@@ -979,15 +1037,19 @@
       OrgData.prototype.executeBlock = function(block, envConf) {
         var code, env;
         env = this.env(block.language, function(env) {
-          var ref, ref1, ref2;
+          var ref, ref1, ref2, write;
           if (typeof envConf === "function") {
             envConf(env);
           }
           if ((ref = typeof newBlock !== "undefined" && newBlock !== null ? (ref1 = newBlock.codeAttributes) != null ? (ref2 = ref1.results) != null ? ref2.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref === 'web' || ref === 'silent') {
             env.silent = true;
-            return env.write = function(str) {
-              return console.log(str);
-            };
+            if (isSilent(newBlock)) {
+              return write = function() {};
+            } else {
+              return env.write = function(str) {
+                return console.log(str);
+              };
+            }
           }
         });
         if (code = this.getCode(block)) {
@@ -1491,11 +1553,22 @@
       };
 
       OrgEditing.prototype.load = function(name, text) {
+        return this.withDefaultOpts((function(_this) {
+          return function() {
+            return OrgEditing.__super__.load.call(_this, name, text);
+          };
+        })(this));
+      };
+
+      OrgEditing.prototype.withDefaultOpts = function(func) {
         var oldOpts;
         oldOpts = defaultEnv.opts;
         defaultEnv.opts = this;
-        OrgEditing.__super__.load.call(this, name, text);
-        return defaultEnv.opts = oldOpts;
+        try {
+          return func();
+        } finally {
+          defaultEnv.opts = oldOpts;
+        }
       };
 
       OrgEditing.prototype.renderBlocks = function() {
@@ -2006,9 +2079,11 @@
       OrgEditing.prototype.replaceText = function(repl, skipEffects) {
         var j, len, ref, repls, results1;
         if (!skipEffects && (ref = this.replaceTextEffects(repl.start, repl.end, repl.text), repls = ref.repls, ref)) {
-          this.data.allowObservation((function(_this) {
+          this.withDefaultOpts((function(_this) {
             return function() {
-              return OrgEditing.__super__.replaceText.call(_this, repl);
+              return _this.data.allowObservation(function() {
+                return OrgEditing.__super__.replaceText.call(_this, repl);
+              });
             };
           })(this));
           if (repls) {
@@ -2220,7 +2295,7 @@
       };
 
       OrgEditing.prototype.executeBlock = function(block, envM) {
-        var env, newBlock, opts, result, source, sync;
+        var env, newBlock, opts, result, silent, source, sync;
         if (envM = blockEnvMaker(block)) {
           source = blockCodeItems(this, block).source;
           result = '';
@@ -2237,12 +2312,16 @@
               return opts.update(newBlock);
             }
           };
-          env.write = function(str) {
-            result += presentHtml(str);
-            if (!sync) {
-              return opts.update(newBlock = setResult(block, result));
-            }
-          };
+          if (silent = isSilent(block)) {
+            env.write = function() {};
+          } else {
+            env.write = function(str) {
+              result += presentHtml(str);
+              if (!sync) {
+                return opts.update(newBlock = setResult(block, result));
+              }
+            };
+          }
           env.prompt = function(str, defaultValue, cont) {
             return cont(prompt(str, defaultValue));
           };
@@ -2250,7 +2329,9 @@
             return env.executeBlock(block, Nil, function() {});
           });
           sync = false;
-          newBlock = setResult(newBlock, result);
+          if (!silent) {
+            newBlock = setResult(newBlock, result);
+          }
           if (newBlock !== block) {
             return opts.update(newBlock);
           }
@@ -2363,9 +2444,13 @@
       var t;
       return oldBlock._id !== newBlock._id || (indexOf.call((t = [oldBlock.type, newBlock.type]), 'headline') >= 0 && t[0] !== t[1]) || (t[0] === 'headline' && oldBlock.level !== newBlock.level);
     };
+    isSilent = function(block) {
+      var ref, ref1;
+      return block != null ? (ref = block.codeAttributes) != null ? (ref1 = ref.results) != null ? ref1.toLowerCase().match(/\bsilent\b/) : void 0 : void 0 : void 0;
+    };
     setResult = function(block, result) {
-      var newBlock, prop, ref, ref1, ref2, results, text, tmp, value;
-      if ((ref = block != null ? (ref1 = block.codeAttributes) != null ? (ref2 = ref1.results) != null ? ref2.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref === 'web' || ref === 'silent') {
+      var newBlock, prop, ref, ref1, results, text, tmp, value;
+      if (block != null ? (ref = block.codeAttributes) != null ? (ref1 = ref.results) != null ? ref1.toLowerCase().match(/\b(def|web|silent)\b/) : void 0 : void 0 : void 0) {
         result = '';
       }
       results = blockCodeItems(this, block).results;

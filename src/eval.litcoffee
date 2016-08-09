@@ -436,7 +436,7 @@ Evaulation support for Leisure
               for varName, i in varNames
                 @ctx[varName] = args[i] ? @data.getYaml @data.getBlockNamed varMappings[varName]
                 if !args[i] then @ctx._blocks[varName] = @data.getBlockNamed varMappings[varName]
-            ret = code.call this
+            ret = code.apply this, args
             if cont then cont ret else ret
         env.genBlock = (block, vars, varNames, varMappings)->
           [..., vars, varNames, varMappings] = blockVars @data, block.codeAttributes?.var

@@ -1,7 +1,9 @@
 * Defs
 #+BEGIN_SRC coffee :results def
 App = window.App = window.App ? {}
-if !window.App.blockMinimap then window.App.blockMinimap =
+if !App.blockMinimap then App.blockMinimap =
+  activeBlocks: {}
+  timeStamp: 0
   heatMapColors: [
     'black'
     'blue'
@@ -12,7 +14,6 @@ if !window.App.blockMinimap then window.App.blockMinimap =
     'white'
   ]
 #+END_SRC
-
 * Lounge block activity minimap
 Show Lounge block editing/data activity
 * Data
@@ -75,8 +76,8 @@ render = (view, data)->
   h = cnv.offsetHeight
   r = w / h
   totBlocks = 0
-  for row in data
-    totBlocks += row.length - 1
+  for cur in data
+    totBlocks += cur.length - 1
   rows = Math.ceil Math.sqrt totBlocks / r
   cols = Math.floor totBlocks / rows
   ctx = cnv.getContext "2d"
@@ -84,8 +85,7 @@ render = (view, data)->
   cnv.setAttribute 'height', rows * 10
   ctx.fillStyle = 'black'
   ctx.fillRect 0, 0, cols * 10, rows * 10
-  row = 0
-  col = 0
+  row = col = 0
   dataDo data, (item)->
     col++
     if col >= cols
@@ -95,27 +95,56 @@ render = (view, data)->
     ctx.fillRect col * 10, row * 10, 10, 10
 #+END_SRC
 * Block map
-
+** Data to hold the heat map for this document
 #+NAME:blockMap
 This is a Data block for observer to use
-#+BEGIN_SRC yaml
+#+BEGIN_SRC yaml :local
 []
 #+END_SRC
-
-This is an observer that populates the blockMap
-#+BEGIN_SRC coffee :observe system.document
-@observer = (block)->
-  console.log "CHANGED: #{block._id}"
-  #observerFunc()
-
-if !App.blockMinimap.blockHistory
-  App.blockMinimap.blockHistory =
-    timeStamp: 0
-    lastActivity: []
-  populateMap()
-
-observerFunc = _.throttle populateMap, 100, leading: false
+** The heatmap has 7 colors, 0 = cold, 6 = hot.
+#+BEGIN_SRC yaml :results view(loungeMinimapData)
+- x0123456
+#+END_SRC
+** This is an observer that populates the blockMap (support is below)
+#+BEGIN_SRC coffee :observe system.document :var block :results silent
+App.blockMinimap.activeBlocks[block._id] = Date.now()
+App.blockMinimap.updateFunc()
+#+END_SRC
+** Support for the observer
+#+BEGIN_SRC coffee :results def
+opts = Lounge.opts
+data = Lounge.data
+steps = 7
+persistence = 1000
+colMax = 80
+maxPersistence = steps * persistence
+oldActive = {}
 
 populateMap = ->
+  nextActive = {}
+  stillActive = false
+  now = Date.now()
+  curRow = 'x'
+  rows = []
+  col = 0
+  for block in data.blockArray()
+    time = App.blockMinimap.activeBlocks[block._id] ? 0
+    heat = Math.max 0, 6 - Math.ceil (now - time) / persistence
+    #debugger
+    if heat > 0
+      nextActive[block._id] = time
+      stillActive = true
+    if col >= colMax
+      rows.push curRow
+      col = 0
+      curRow = 'x'
+    curRow += heat
+  if curRow != 'x' then rows.push curRow
+  App.blockMinimap.activeBlocks = nextActive
+  if !_.isEqual rows, data.getBlockNamed 'blockMap'
+    opts.setLocalData 'blockMap', rows
+  if stillActive then setTimeout App.blockMinimap.updateFunc, persistence * 0.8
 
+# Always set this in case anyone edits this block
+App.blockMinimap.updateFunc = _.throttle populateMap, persistence / 3, leading: false
 #+END_SRC

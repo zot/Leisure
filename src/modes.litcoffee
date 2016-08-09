@@ -927,7 +927,7 @@ Returns [] if org does not fit the pattern.
 
       goodText = (text)-> workSpan().text(text).html() ? ''
 
-      isViewResult = (block)-> block.codeAttributes.results.match /\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i
+      isViewResult = (block)-> block.codeAttributes?.results?.match /\bview\b(?:\(([^\/]*(?:\/(.*))?)\))?/i
 
       resultsArea = (opts, results, block)->
         firstResult = results.indexOf('\n') + 1
