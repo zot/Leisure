@@ -6,7 +6,7 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
-    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock;
@@ -607,7 +607,11 @@
       };
 
       OrgData.prototype.queueEval = function(func) {
-        return this.pendingEvals.push(func);
+        var opts;
+        opts = defaultEnv.opts;
+        return this.pendingEvals.push(function() {
+          return withDefaultOptsSet(opts, func);
+        });
       };
 
       OrgData.prototype.runOnImport = function(func) {
@@ -728,7 +732,7 @@
       };
 
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
-        var newName, oldName, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, resultType;
+        var newName, oldName, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, resultType;
         if (newBlock && this.running[newBlock._id]) {
           return;
         }
@@ -742,26 +746,24 @@
             this.setBlockName(newName, newBlock._id, isDefault);
           }
         }
-        if (isDefault && newName) {
+        if (isDefault && (newName || ((ref4 = newBlock.codeAttributes) != null ? ref4.observe : void 0))) {
           this.imported.data[newBlock._id] = newBlock;
         }
         if ((oldBlock != null ? oldBlock.local : void 0) && !(newBlock != null ? newBlock.local : void 0)) {
           this.deleteLocalBlock(oldName);
         }
-        if ((resultType = (ref4 = newBlock != null ? (ref5 = newBlock.codeAttributes) != null ? (ref6 = ref5.results) != null ? ref6.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref4 === 'web') || (resultType = ((newBlock != null ? (ref7 = newBlock.codeAttributes) != null ? ref7.observe : void 0 : void 0) != null) && 'observe')) {
-          opts = defaultEnv.opts;
+        if ((resultType = (ref5 = newBlock != null ? (ref6 = newBlock.codeAttributes) != null ? (ref7 = ref6.results) != null ? ref7.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref5 === 'web') || (resultType = ((newBlock != null ? (ref8 = newBlock.codeAttributes) != null ? ref8.observe : void 0 : void 0) != null) && 'observe')) {
           return this.queueEval((function(_this) {
             return function() {
-              var oldOpts;
-              oldOpts = defaultEnv.opts;
-              defaultEnv.opts = opts;
               if (resultType === 'observe') {
                 _this.updateObserver(newBlock, oldBlock);
                 _this.createObserver(newBlock);
+                if (newBlock.codeAttributes.observe = 'system.document') {
+                  return _this.pendingObserves[newBlock._id] = newBlock;
+                }
               } else {
-                _this.executeBlock(newBlock);
+                return _this.executeBlock(newBlock);
               }
-              return defaultEnv.opts = oldOpts;
             };
           })(this));
         }
@@ -1082,30 +1084,33 @@
       };
 
       OrgData.prototype.checkImports = function(block) {
-        var filename, i, ref, ref1;
+        var filename, i, opts, ref, ref1;
         if ((i = block != null ? (ref = block.properties) != null ? ref["import"] : void 0 : void 0) && !this.importRecords.importedFiles[filename = block.properties["import"]]) {
           console.log("Import: " + (block != null ? (ref1 = block.properties) != null ? ref1["import"] : void 0 : void 0));
           this.importRecords.importedFiles[filename] = true;
+          opts = defaultEnv.opts;
           return this.runOnImport((function(_this) {
             return function() {
               return new Promise(function(resolve, reject) {
                 return _this.getFile(filename, (function(contents) {
-                  var id, j, len, oldEvals, oldPromise, ref2;
-                  oldPromise = _this.importPromise;
-                  oldEvals = _this.pendingEvals;
-                  _this.pendingEvals = [];
-                  _this.importPromise = Promise.resolve();
-                  id = 0;
-                  ref2 = _this.parseBlocks(contents);
-                  for (j = 0, len = ref2.length; j < len; j++) {
-                    block = ref2[j];
-                    block._id = "imported-" + filename + "-" + (id++);
-                    _this.checkChange(null, block, filename);
-                  }
-                  return _this.scheduleEvals().then(function() {
-                    _this.pendingEvals = oldEvals;
-                    _this.importPromise = oldPromise;
-                    return resolve();
+                  return withDefaultOptsSet(opts, function() {
+                    var id, j, len, oldEvals, oldPromise, ref2;
+                    oldPromise = _this.importPromise;
+                    oldEvals = _this.pendingEvals;
+                    _this.pendingEvals = [];
+                    _this.importPromise = Promise.resolve();
+                    id = 0;
+                    ref2 = _this.parseBlocks(contents);
+                    for (j = 0, len = ref2.length; j < len; j++) {
+                      block = ref2[j];
+                      block._id = "imported-" + filename + "-" + (id++);
+                      _this.checkChange(null, block, filename);
+                    }
+                    return _this.scheduleEvals().then(function() {
+                      _this.pendingEvals = oldEvals;
+                      _this.importPromise = oldPromise;
+                      return resolve();
+                    });
                   });
                 }), function(e) {
                   return reject(displayError(e));
@@ -1515,6 +1520,16 @@
 
     })();
     window.NMap = NMap;
+    withDefaultOptsSet = function(opts, func) {
+      var oldOpts;
+      oldOpts = defaultEnv.opts;
+      defaultEnv.opts = opts;
+      try {
+        return func();
+      } finally {
+        defaultEnv.opts = oldOpts;
+      }
+    };
     OrgEditing = (function(superClass) {
       extend(OrgEditing, superClass);
 
@@ -1561,14 +1576,7 @@
       };
 
       OrgEditing.prototype.withDefaultOpts = function(func) {
-        var oldOpts;
-        oldOpts = defaultEnv.opts;
-        defaultEnv.opts = this;
-        try {
-          return func();
-        } finally {
-          defaultEnv.opts = oldOpts;
-        }
+        return withDefaultOptsSet(this, func);
       };
 
       OrgEditing.prototype.renderBlocks = function() {

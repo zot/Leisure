@@ -381,7 +381,9 @@ that must be done regardless of the source of changes
             result.push rest.peekFirst().id
             rest = rest.removeFirst()
           result
-        queueEval: (func)-> @pendingEvals.push func
+        queueEval: (func)->
+          opts = defaultEnv.opts
+          @pendingEvals.push -> withDefaultOptsSet opts, func
         runOnImport: (func)-> @importPromise.then => func()
         scheduleEvals: -> @runOnImport =>
           e = @pendingEvals
@@ -438,18 +440,16 @@ that must be done regardless of the source of changes
             if oldName then @deleteBlockName oldName
             if newName && (!isDefault || @addImported isDefault, 'data', newName)
               @setBlockName newName, newBlock._id, isDefault
-          if isDefault && newName then @imported.data[newBlock._id] = newBlock
+          if isDefault && (newName || newBlock.codeAttributes?.observe) then @imported.data[newBlock._id] = newBlock
           if oldBlock?.local && !newBlock?.local then @deleteLocalBlock oldName
           if (resultType = newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'web']) || (resultType = newBlock?.codeAttributes?.observe? && 'observe')
-            opts = defaultEnv.opts
             @queueEval =>
-              oldOpts = defaultEnv.opts
-              defaultEnv.opts = opts
               if resultType == 'observe'
                 @updateObserver newBlock, oldBlock
                 @createObserver newBlock
+                if newBlock.codeAttributes.observe = 'system.document'
+                  @pendingObserves[newBlock._id] = newBlock
               else @executeBlock newBlock
-              defaultEnv.opts = oldOpts
         createObserver: (block)->
           env = @env block.language
           blockId = block._id
@@ -602,8 +602,9 @@ that must be done regardless of the source of changes
           if (i = block?.properties?.import) && !@importRecords.importedFiles[filename = block.properties.import]
             console.log "Import: #{block?.properties?.import}"
             @importRecords.importedFiles[filename] = true
+            opts = defaultEnv.opts
             @runOnImport => new Promise (resolve, reject)=>
-              @getFile filename, ((contents)=>
+              @getFile filename, ((contents)=> withDefaultOptsSet opts, =>
                 oldPromise = @importPromise
                 oldEvals = @pendingEvals
                 @pendingEvals = []
@@ -819,6 +820,14 @@ NMap is a very simple trie.
 
       window.NMap = NMap
 
+      withDefaultOptsSet = (opts, func)->
+        oldOpts = defaultEnv.opts
+        defaultEnv.opts = opts
+        try
+          func()
+        finally
+          defaultEnv.opts = oldOpts
+
 `OrgEditing` -- editing options for the org editor.
 
       class OrgEditing extends DataStoreEditingOptions
@@ -842,13 +851,7 @@ NMap is a very simple trie.
           super()
           @rerenderAll()
         load: (name, text)-> @withDefaultOpts => super name, text
-        withDefaultOpts: (func)->
-          oldOpts = defaultEnv.opts
-          defaultEnv.opts = this
-          try
-            func()
-          finally
-            defaultEnv.opts = oldOpts
+        withDefaultOpts: (func)-> withDefaultOptsSet this, func
         renderBlocks: -> @mode.renderBlocks this, super()
         setTheme: (theme)->
           if @theme then @editor.node.removeClass @theme

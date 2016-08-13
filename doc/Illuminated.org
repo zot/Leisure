@@ -1,3 +1,9 @@
+* Lounge Heatmap
+:properties:
+:import: minimap.org
+:hidden: true
+:end:
+[[lounge:blockMap//loungeMinimapData]]
 * Notes
 :properties:
 :hidden: true

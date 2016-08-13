@@ -254,10 +254,8 @@
       if (isTop) {
         settings.subviews = {};
       }
-      if (block) {
-        if (settings != null) {
-          settings.subviews[block._id] = true;
-        }
+      if (!isTop && block) {
+        root.context.subviews[block._id] = true;
       }
       attrs = "data-view='" + key + "' data-requested-view='" + requestedKey + "'";
       classAttr = 'view';
@@ -277,9 +275,6 @@
         attrs += " data-view-block='" + block._id + "'";
       }
       if (targets) {
-        if (!isTop && block) {
-          root.context.subviews[block._id] = true;
-        }
         results = [];
         for (j = 0, len = targets.length; j < len; j++) {
           node = targets[j];

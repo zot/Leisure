@@ -186,7 +186,8 @@ choose a handlebars template.
           contextName: contextName
         if isTop
           settings.subviews = {}
-        if block then settings?.subviews[block._id] = true
+        #if block then settings?.subviews[block._id] = true
+        if !isTop && block then root.context.subviews[block._id] = true
         attrs = "data-view='#{key}' data-requested-view='#{requestedKey}'"
         classAttr = 'view'
         for attr, value of root.context.viewAttrs ? {}
@@ -196,7 +197,6 @@ choose a handlebars template.
         if block && blockName then attrs += " data-view-block-name='#{blockName}'"
         else if block then attrs += " data-view-block='#{block._id}'"
         if targets
-          if !isTop && block then root.context.subviews[block._id] = true
           for node in targets
             if root.context?.dontRender?.has(node) then continue
             settings.view = node
