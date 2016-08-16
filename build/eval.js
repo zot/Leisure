@@ -6,7 +6,7 @@
   define.amd = true;
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree) {
-    var Html, Nil, Node, Promise, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, safeLoad, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
+    var Html, Nil, Node, Promise, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = AcornLoose;
@@ -20,8 +20,8 @@
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert, getLeisurePromise = Runtime.getLeisurePromise;
     Promise = Bluebird.Promise;
     genSource = Gen.genSource, SourceNode = Gen.SourceNode, sourceNode = Gen.sourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator, genMap = Gen.genMap, withFile = Gen.withFile;
-    safeLoad = Yaml.safeLoad, dump = Yaml.dump;
-    getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource;
+    dump = Yaml.dump;
+    getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, parseYaml = DocOrg.parseYaml;
     generatedFileCount = 0;
     defaultEnv.prompt = function(str, defaultValue, cont) {
       return cont(prompt(str, defaultValue));
@@ -33,11 +33,9 @@
       generatedFileCount++;
       return currentGeneratedFileName();
     };
-    requirePromise = function() {
-      var file;
-      file = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+    requirePromise = function(file) {
       return new Promise(function(resolve, reject) {
-        return require(file, resolve);
+        return require([file], resolve);
       });
     };
     leisurePromise = null;
@@ -409,7 +407,7 @@
     };
     yamlEnv = function(env) {
       env.executeText = function(text) {
-        return safeLoad(text);
+        return parseYaml(text);
       };
       return env;
     };

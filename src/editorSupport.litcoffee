@@ -20,6 +20,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         blockSource
         blockOrg: docBlockOrg
         ParsedCodeBlock
+        parseYaml
       } = DocOrg
       {
         Nil
@@ -73,7 +74,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         mergeExports
       } = BrowserExports
       {
-        safeLoad
         dump
       } = Yaml
       {
@@ -394,20 +394,21 @@ that must be done regardless of the source of changes
             @allowObservation =>
               blocked = {}
               oldRunning = {}
-              while !_.isEmpty @pendingObserves
-                p = @pendingObserves
-                @pendingObserves = {}
-                @withLounge =>
-                  for blockId, subject of p
-                    if !@running[blockId] && (block = @getBlock(blockId))
-                      blocked[blockId] = true
-                      oldRunning[blockId] = @running[blockId]
-                      @running[blockId] = true
-                      obs = block.observer
-                      block.observer?.observe? subject
-                      if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
-              for k of blocked
-                @running[k] = oldRunning[k]
+              try
+                while !_.isEmpty @pendingObserves
+                  p = @pendingObserves
+                  @pendingObserves = {}
+                  @withLounge =>
+                    for blockId, subject of p
+                      if !@running[blockId] && (block = @getBlock(blockId))
+                        blocked[blockId] = true
+                        oldRunning[blockId] = @running[blockId]
+                        @running[blockId] = true
+                        (obs = block.observer)?.observe? subject
+                        if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
+              finally
+                for k of blocked
+                  @running[k] = oldRunning[k]
         withLounge: (func)->
           env = Object.create defaultEnv
           env.data = this
@@ -472,7 +473,7 @@ that must be done regardless of the source of changes
               res = @getCode(blockId).call block.observer, null, channelArgs...
               if !silent then @replaceResult blockId, env.formatResult @getBlock(blockId), '', res
             catch err
-              if !silent then @replaceResult blockId, ": #{err.stack.replace /\n/g, '\n: '}"
+              if !silent then @replaceResult blockId, ": #{(err.stack ? err.message).replace /\n/g, '\n: '}"
               else console.error err
             sync = false
         checkChannelChange: (oldBlock, newBlock)-> if !@disableObservation
@@ -515,7 +516,6 @@ that must be done regardless of the source of changes
             old = @getBlockNamed name
             @localBlocks[name] = block
             block = copyBlock block
-            block._id = name
             transaction(@localDocumentId()).put block
             changes =
               first: @getFirst()
@@ -612,6 +612,7 @@ that must be done regardless of the source of changes
                 id = 0
                 for block in @parseBlocks contents
                   block._id = "imported-#{filename}-#{id++}"
+                  block.imported = true
                   @checkChange null, block, filename
                 @scheduleEvals().then =>
                   @pendingEvals = oldEvals
@@ -651,7 +652,7 @@ that must be done regardless of the source of changes
             {results} = blockCodeItems this, block
             if results
               firstResult = results.text.indexOf('\n') + 1
-              safeLoad results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
+              parseYaml results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
           else null)
         getCode: (block, env)->
           block = @getBlock block
@@ -947,7 +948,7 @@ NMap is a very simple trie.
                 nameNodes = viewNodes.add @find "[data-view-block-name='#{block.codeName}']"
               viewNodes = @findViewsForDefiner block, viewNodes
               viewNodes = @findViewsForDefiner changes.old[block._id], viewNodes
-              for node in @find "[data-observe~=#{block._id}]"
+              for node in @find "[data-observe~='#{block._id}']"
                 if id = @idForNode node
                   nb.push @getBlock id, changes
             nb = _.values(_.keyBy(nb, '_id'))
@@ -962,11 +963,11 @@ NMap is a very simple trie.
                   renderView view, name, false, node, block
               for node in nameNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
-                if (data = @data.getYaml blk = @data.getBlockNamed(blkName = node.attr 'data-view-block-name')) && data.type
-                  if $(node).hasClass 'error'
+                if (data = @data.getYaml blk = @data.getBlockNamed(blkName = node.attr 'data-view-block-name'))
+                  if node.hasClass 'error'
                     view = data.type
-                    name = $(node).attr 'data-view-name'
-                  else [view, name] = ($(node).attr('data-requested-view') ? '').split '/'
+                    name = node.attr 'data-view-name'
+                  else [view, name] = (node.attr('data-requested-view') ? '').split '/'
                   renderView view, name, data, node, blk, blkName
           else super changes
         blockForNode: (node)->
@@ -1260,7 +1261,11 @@ NMap is a very simple trie.
             start += results.offset
             end = start + results.text.length
           else end = (start += last.end())
+          {observing, observer} = current
           source.replaceText {start, end, text: str, source: 'code'}, true
+          if observer
+            data.getBlock(block._id).observer = observer
+            data.getBlock(block._id).observing = observing
 
       trickyChange = (oldBlock, newBlock)->
         oldBlock._id != newBlock._id ||
@@ -1417,12 +1422,6 @@ NMap is a very simple trie.
         documentParams
 
       followLink = (e)-> Leisure.findEditor(e.target)?.options.followLink(e) || false
-
-      parseYaml = (yaml)->
-        try
-          safeLoad yaml
-        catch err
-          null
 
       replacementFor = (start, oldText, newText)->
         lim = Math.min oldText.length, newText.length

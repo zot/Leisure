@@ -204,7 +204,7 @@
                     img.id = "emacs-image-" + (imgCount++);
                   }
                   img.src = '';
-                  fetchImage(data.emacsConnection, img.id, src);
+                  fetchImage(opts.data.emacsConnection, img.id, src);
                 }
               }
               return ret;

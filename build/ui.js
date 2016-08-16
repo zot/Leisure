@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['handlebars', './export', './editor', './coffee-script', 'immutable'], function(Handlebars, Exports, Editor, CoffeeScript, Immutable) {
-    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, nextViewId, pendingViews, preserveSelection, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
+    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, nextViewId, pendingViews, preserveSelection, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, replaceImage, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
     ref = window.Handlebars = Handlebars, compile = ref.compile, create = ref.create, registerHelper = ref.registerHelper;
     mergeExports = Exports.mergeExports;
     escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection;
@@ -43,8 +43,8 @@
       return (ref1 = controllers[type]) != null ? ref1 : defaults.controllers[type];
     };
     nextImageSrc = function(src) {
-      var hashLoc, ref1, ref2, slide;
-      if ((ref1 = (slide = (ref2 = root.context.currentView) != null ? ref2.closest('.slideholder') : void 0)) != null ? ref1.length : void 0) {
+      var hashLoc, ref1, ref2, ref3, slide;
+      if ((ref1 = (slide = (ref2 = root.context) != null ? (ref3 = ref2.currentView) != null ? ref3.closest('.slideholder') : void 0 : void 0)) != null ? ref1.length : void 0) {
         slide.attr('imgCount', imageRefreshCounter);
       }
       if ((hashLoc = src.indexOf('#')) === -1) {
@@ -60,7 +60,7 @@
       }
       return (src.substring(0, hashLoc)) + "#" + count;
     };
-    refreshImage = function(img) {
+    replaceImage = function(img) {
       var att, j, len, newImg, ref1;
       if (img.src.indexOf("file:") === 0) {
         newImg = document.createElement('img');
@@ -73,6 +73,15 @@
           return $(img).replaceWith(newImg);
         };
         return newImg.src = nextImageSrc(img.src);
+      }
+    };
+    refreshImage = function(img) {
+      if (!img.complete) {
+        return img.onerror = function() {
+          return replaceImage(img);
+        };
+      } else if (img.complete && !img.naturalWidth) {
+        return replaceImage(img);
       }
     };
     viewKey = function(type, context) {
@@ -356,6 +365,8 @@
     };
     activateScripts = function(el, context, data, block) {
       if (!activating) {
+        block = block != null ? block : context.block;
+        data = data != null ? data : context.data;
         return withContext(_.merge({
           data: {
             block: block

@@ -145,7 +145,7 @@ Emacs connection
               if name
                 if !img.id then img.id = "emacs-image-#{imgCount++}"
                 img.src = ''
-                fetchImage data.emacsConnection, img.id, src
+                fetchImage opts.data.emacsConnection, img.id, src
             ret
 
       fetchImage = (con, imgId, src)->

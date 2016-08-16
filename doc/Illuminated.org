@@ -48,7 +48,7 @@ title heading should put a title in the HTML and show a title screen in slide mo
 ** Leisure docs are WYSIWYG-editable (click here and type stuff) or markup-editable (click a martini glass)
 ** No install needed, your document can run from a static website or from zot.github.io
 ** Collaboration can use local data, per-user
-[[../elisp/local-data.png]]
+[[../elisp/local-data.png][Each peer gets a local copy of the marked blocks]]
 ** Polyglot: JavaScript, CoffeeScript, Leisure, HTML (Handlebars), CSS, YAML
 ** Dynamically updates as you edit code, data, views, and content
 ** Org-mode format, documents are just plain text
@@ -64,7 +64,7 @@ App.x
 : 3
 :end:
 #+RESULTS:
-: 3
+: !<tag:yaml.org,2002:js/undefined> ''
 ** Change the value of App.x to see the test case status change
 #+BEGIN_SRC coffee :results dynamic
 App.x = 3

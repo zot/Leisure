@@ -33,5 +33,3 @@ Project-wide requirejs configuration for Leisure
         lispyscript: './lib/lispyscript/browser-bundle'
         lodash: './lib/lodash.full-4.14.1'
         #lodash: './lib/lodash.min'
-
-    console.log "Configured."

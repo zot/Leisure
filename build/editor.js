@@ -112,11 +112,11 @@
       };
 
       Observable.prototype.off = function(type, callback) {
-        var l;
+        var callbackType, l;
         if (typeof type === 'object') {
-          for (type in type) {
-            callback = type[type];
-            this.off(type, callback);
+          for (callbackType in type) {
+            callback = type[callbackType];
+            this.off(callbackType, callback);
           }
         } else {
           if (this.listeners[type]) {

@@ -258,8 +258,8 @@ Observable class
           this
         off: (type, callback)->
           if typeof type == 'object'
-            for type, callback of type
-              @off type, callback
+            for callbackType, callback of type
+              @off callbackType, callback
           else
             if @listeners[type]
               @listeners[type] = (l for l in @listeners[type] when l != callback)

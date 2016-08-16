@@ -96,9 +96,7 @@
                 img = ref[i];
                 if (!img.complete && !localResources[img.src]) {
                   img.addEventListener('error', errorEvt);
-                  results.push(img.addEventListener('load', function(e) {
-                    return removeEvents;
-                  }));
+                  results.push(img.addEventListener('load', removeEvents));
                 } else {
                   results.push(checkImage(opts, img));
                 }

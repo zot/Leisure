@@ -37,6 +37,7 @@
         orgDoc
         getCodeItems
         blockSource
+        parseYaml
       } = DocOrg
       {
         Nil
@@ -94,9 +95,6 @@
       {
         Promise
       } = Bluebird
-      {
-        safeLoad
-      } = Yaml
 
       singleControllers = {}
       numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/
@@ -290,10 +288,10 @@
         !!options.data.opts.parsedCodeBlock(options.data.block).resultsAreExpected()
 
       Handlebars.registerHelper 'expectedResult', (options)->
-        (options.data.block.codeTestExpected?.trim().replace /^: /mg, '') ? ''
+        escapeHtml (options.data.block.codeTestExpected?.trim().replace /^: /mg, '') ? ''
 
       Handlebars.registerHelper 'actualResult', (options)->
-        (options.data.block.codeTestActual?.trim().replace /^: /mg, '') ? ''
+        escapeHtml (options.data.block.codeTestActual?.trim().replace /^: /mg, '') ? ''
 
       #Handlebars.registerHelper 'find', ->
       #  ***
@@ -454,15 +452,13 @@
               rendered[slide._id] = true
               @render opts, slide, prefix, replace
         render: (opts, block, prefix, replace)->
-          opts.trigger 'render', block
-          if opts.shouldHide block then ['', opts.data.nextRight(block)?._id]
+          if opts.shouldHide(block) || block.local then ['', opts.data.nextRight(block)?._id]
           else
+            opts.trigger 'render', block
             opts.withNewContext =>
               UI.context.currentView = opts.nodeForId block._id
               UI.context.block = block
-              pushPendingInitialzation ->
-                for node in opts.nodeForId(block._id).find('[title]')
-                  $(node).tooltip().tooltip('option', 'content', $(node).attr 'title')
+              addPendingTooltip opts, block._id
               if block.type == 'headline' then @renderHeadline opts, block, prefix, replace
               else if !block.prev then @renderFirstBlocks opts, block, prefix, replace
               else @renderNontop opts, block, prefix, replace
@@ -743,6 +739,24 @@
               return true
           false
 
+      pendingTooltips = null
+
+      addPendingTooltip = (opts, blockId)->
+        if !pendingTooltips
+          pendingTooltips = new Map()
+          pushPendingInitialzation ->
+            nodes = new Set()
+            pendingTooltips.forEach (ids, opts)->
+              for id in ids
+                for node in opts.nodeForId(id).find('[title]')
+                  nodes.add node
+            nodes.forEach (node)->
+              node.INIT_TOOLTIP = true
+              $(node).tooltip content: $(node).attr 'title'
+            pendingTooltips = null
+        if !pendingTooltips.get opts then pendingTooltips.set opts, []
+        pendingTooltips.get(opts).push blockId
+
 namedNode(org) returns [name, node] if org is a name followed by optional meat
 and a nameable node.
 
@@ -932,7 +946,7 @@ Returns [] if org does not fit the pattern.
       resultsArea = (opts, results, block)->
         firstResult = results.indexOf('\n') + 1
         if m = isViewResult(block)
-          obj = safeLoad results.substring(firstResult).replace /(^|\n): /gm, '$1'
+          obj = parseYaml results.substring(firstResult).replace /(^|\n): /gm, '$1'
           [ignore, type, viewName] = m
           type = type ? obj.type
           {name: objectName} = blockCodeItems opts, block
