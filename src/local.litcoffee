@@ -104,7 +104,7 @@ Code for local-mode.  This will not be loaded under meteor.
             for img in $(el).find 'img'
               if !img.complete && !localResources[img.src]
                 img.addEventListener 'error', errorEvt
-                img.addEventListener 'load', (e)-> removeEvents
+                img.addEventListener 'load', removeEvents
               else checkImage opts, img
 
       checkImage = (opts, img)->

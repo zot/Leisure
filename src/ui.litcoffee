@@ -42,7 +42,7 @@ choose a handlebars template.
       getController = (type)-> controllers[type] ? defaults.controllers[type]
 
       nextImageSrc = (src)->
-        if (slide = root.context.currentView?.closest '.slideholder')?.length
+        if (slide = root.context?.currentView?.closest '.slideholder')?.length
           slide.attr 'imgCount', imageRefreshCounter
         if (hashLoc = src.indexOf '#') == -1 then hashLoc = src.length
         "#{src.substring(0, hashLoc)}##{imageRefreshCounter}"
@@ -54,13 +54,17 @@ choose a handlebars template.
         if (hashLoc = src.indexOf '#') == -1 then hashLoc = src.length
         "#{src.substring(0, hashLoc)}##{count}"
 
-      refreshImage = (img)->
+      replaceImage = (img)->
         if img.src.indexOf("file:") == 0
           newImg = document.createElement('img')
           for att in img.attributes
             newImg.setAttribute att.name, att.value
           newImg.onload = -> $(img).replaceWith newImg
           newImg.src = nextImageSrc img.src
+
+      refreshImage = (img)->
+        if !img.complete then img.onerror = -> replaceImage img
+        else if img.complete && !img.naturalWidth then replaceImage img
 
       viewKey = (type, context)->
         if context then "#{type.trim()}/#{context.trim()}" else type?.trim()
@@ -186,7 +190,7 @@ choose a handlebars template.
           contextName: contextName
         if isTop
           settings.subviews = {}
-        if block then settings?.subviews[block._id] = true
+        if !isTop && block then root.context.subviews[block._id] = true
         attrs = "data-view='#{key}' data-requested-view='#{requestedKey}'"
         classAttr = 'view'
         for attr, value of root.context.viewAttrs ? {}
@@ -196,7 +200,6 @@ choose a handlebars template.
         if block && blockName then attrs += " data-view-block-name='#{blockName}'"
         else if block then attrs += " data-view-block='#{block._id}'"
         if targets
-          if !isTop && block then root.context.subviews[block._id] = true
           for node in targets
             if root.context?.dontRender?.has(node) then continue
             settings.view = node
@@ -240,6 +243,8 @@ choose a handlebars template.
 
       activateScripts = (el, context, data, block)->
         if !activating
+          block = block ? context.block
+          data = data ? context.data
           withContext _.merge({data: block: block}, context), ->
             root.context.currentView = el
             activating = true

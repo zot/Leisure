@@ -49,12 +49,12 @@ Evaulation support for Leisure
         withFile
       } = Gen
       {
-        safeLoad
         dump
       } = Yaml
       {
         getCodeItems
         blockSource
+        parseYaml
       } = DocOrg
 
       #########
@@ -70,8 +70,8 @@ Evaulation support for Leisure
         generatedFileCount++
         currentGeneratedFileName()
 
-      requirePromise = (file...)-> new Promise (resolve, reject)->
-        require file, resolve
+      requirePromise = (file)-> new Promise (resolve, reject)->
+        require [file], resolve
 
       leisurePromise = null
 
@@ -260,7 +260,7 @@ Evaulation support for Leisure
         env
 
       yamlEnv = (env)->
-        env.executeText = (text)-> safeLoad text
+        env.executeText = (text)-> parseYaml text
         env
 
       jsEnv = (env)->

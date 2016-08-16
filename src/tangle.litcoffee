@@ -11,6 +11,7 @@ Leisure.tangle('#+BEGIN_SRC leisure :tangle yes\n3 + 4\n#+END_SRC')
       {
         orgDoc
         blockSource
+        parseYaml
       } = DocOrg
       {
         languageEnvMaker
@@ -32,9 +33,6 @@ Leisure.tangle('#+BEGIN_SRC leisure :tangle yes\n3 + 4\n#+END_SRC')
       {
         defaultEnv
       } = Base
-      {
-        safeLoad
-      } = Yaml
 
       parseBlocks = (text)->
         if text == '' then []
@@ -91,7 +89,7 @@ by name, etc.)
               block.hash = SHA1.hash block.text
               blockStr = JSON.stringify block
               nodes = switch type
-                when 'yaml' then ['this.tangleAddData(', blockStr, ', ', JSON.stringify(safeLoad code.replace /(^|\n): /gm, '$1'), ');\n']
+                when 'yaml' then ['this.tangleAddData(', blockStr, ', ', JSON.stringify(parseYaml code.replace /(^|\n): /gm, '$1'), ');\n']
                 when 'view' then ['this.tangleAddView(', blockStr, ', ', code, ');\n']
                 when 'observer' then ['this.tangleAddObserver(', blockStr, ', ', code, ');\n']
                 when 'controller' then ['this.tangleAddController(', blockStr, ', ', code, ');\n']

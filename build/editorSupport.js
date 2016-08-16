@@ -6,10 +6,10 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
-    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, safeLoad, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext;
+    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, deleteStore, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
-    orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock;
+    orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock, parseYaml = DocOrg.parseYaml;
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, presentHtml = Eval.presentHtml, setLounge = Eval.setLounge, blockVars = Eval.blockVars, blocksObserved = Eval.blocksObserved, hasCodeAttribute = Eval.hasCodeAttribute, isYamlResult = Eval.isYamlResult;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, BasicEditingOptions = Editor.BasicEditingOptions, modifyingKey = Editor.modifyingKey;
@@ -17,7 +17,7 @@
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
     hasDatabase = DB.hasDatabase, transaction = DB.transaction;
     mergeExports = BrowserExports.mergeExports;
-    safeLoad = Yaml.safeLoad, dump = Yaml.dump;
+    dump = Yaml.dump;
     Map = Immutable.Map, Set = Immutable.Set;
     Promise = Bluebird.Promise;
     shouldTangle = Tangle.shouldTangle;
@@ -607,7 +607,11 @@
       };
 
       OrgData.prototype.queueEval = function(func) {
-        return this.pendingEvals.push(func);
+        var opts;
+        opts = defaultEnv.opts;
+        return this.pendingEvals.push(function() {
+          return withDefaultOptsSet(opts, func);
+        });
       };
 
       OrgData.prototype.runOnImport = function(func) {
@@ -633,41 +637,43 @@
                 var blocked, k, oldRunning, p, results1;
                 blocked = {};
                 oldRunning = {};
-                while (!_.isEmpty(_this.pendingObserves)) {
-                  p = _this.pendingObserves;
-                  _this.pendingObserves = {};
-                  _this.withLounge(function() {
-                    var block, blockId, obs, ref, results1, subject;
-                    results1 = [];
-                    for (blockId in p) {
-                      subject = p[blockId];
-                      if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
-                        blocked[blockId] = true;
-                        oldRunning[blockId] = _this.running[blockId];
-                        _this.running[blockId] = true;
-                        obs = block.observer;
-                        if ((ref = block.observer) != null) {
-                          if (typeof ref.observe === "function") {
-                            ref.observe(subject);
+                try {
+                  results1 = [];
+                  while (!_.isEmpty(_this.pendingObserves)) {
+                    p = _this.pendingObserves;
+                    _this.pendingObserves = {};
+                    results1.push(_this.withLounge(function() {
+                      var block, blockId, obs, ref, results2, subject;
+                      results2 = [];
+                      for (blockId in p) {
+                        subject = p[blockId];
+                        if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
+                          blocked[blockId] = true;
+                          oldRunning[blockId] = _this.running[blockId];
+                          _this.running[blockId] = true;
+                          if ((ref = (obs = block.observer)) != null) {
+                            if (typeof ref.observe === "function") {
+                              ref.observe(subject);
+                            }
                           }
-                        }
-                        if (!_this.getBlock(block._id).observer) {
-                          results1.push(_this.getBlock(block._id).observer = obs);
+                          if (!_this.getBlock(block._id).observer) {
+                            results2.push(_this.getBlock(block._id).observer = obs);
+                          } else {
+                            results2.push(void 0);
+                          }
                         } else {
-                          results1.push(void 0);
+                          results2.push(void 0);
                         }
-                      } else {
-                        results1.push(void 0);
                       }
-                    }
-                    return results1;
-                  });
+                      return results2;
+                    }));
+                  }
+                  return results1;
+                } finally {
+                  for (k in blocked) {
+                    _this.running[k] = oldRunning[k];
+                  }
                 }
-                results1 = [];
-                for (k in blocked) {
-                  results1.push(_this.running[k] = oldRunning[k]);
-                }
-                return results1;
               });
             }
           };
@@ -728,7 +734,7 @@
       };
 
       OrgData.prototype.checkCodeChange = function(oldBlock, newBlock, isDefault) {
-        var newName, oldName, opts, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, resultType;
+        var newName, oldName, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, resultType;
         if (newBlock && this.running[newBlock._id]) {
           return;
         }
@@ -742,26 +748,24 @@
             this.setBlockName(newName, newBlock._id, isDefault);
           }
         }
-        if (isDefault && newName) {
+        if (isDefault && (newName || ((ref4 = newBlock.codeAttributes) != null ? ref4.observe : void 0))) {
           this.imported.data[newBlock._id] = newBlock;
         }
         if ((oldBlock != null ? oldBlock.local : void 0) && !(newBlock != null ? newBlock.local : void 0)) {
           this.deleteLocalBlock(oldName);
         }
-        if ((resultType = (ref4 = newBlock != null ? (ref5 = newBlock.codeAttributes) != null ? (ref6 = ref5.results) != null ? ref6.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref4 === 'web') || (resultType = ((newBlock != null ? (ref7 = newBlock.codeAttributes) != null ? ref7.observe : void 0 : void 0) != null) && 'observe')) {
-          opts = defaultEnv.opts;
+        if ((resultType = (ref5 = newBlock != null ? (ref6 = newBlock.codeAttributes) != null ? (ref7 = ref6.results) != null ? ref7.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref5 === 'web') || (resultType = ((newBlock != null ? (ref8 = newBlock.codeAttributes) != null ? ref8.observe : void 0 : void 0) != null) && 'observe')) {
           return this.queueEval((function(_this) {
             return function() {
-              var oldOpts;
-              oldOpts = defaultEnv.opts;
-              defaultEnv.opts = opts;
               if (resultType === 'observe') {
                 _this.updateObserver(newBlock, oldBlock);
                 _this.createObserver(newBlock);
+                if (newBlock.codeAttributes.observe = 'system.document') {
+                  return _this.pendingObserves[newBlock._id] = newBlock;
+                }
               } else {
-                _this.executeBlock(newBlock);
+                return _this.executeBlock(newBlock);
               }
-              return defaultEnv.opts = oldOpts;
             };
           })(this));
         }
@@ -800,7 +804,7 @@
         block.observer.data = this;
         return block.observer.observe = (function(_this) {
           return function() {
-            var channelArgs, err, error1, ref, res;
+            var channelArgs, err, error1, ref, ref1, res;
             channelArgs = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
             sync = true;
             try {
@@ -811,7 +815,7 @@
             } catch (error1) {
               err = error1;
               if (!silent) {
-                _this.replaceResult(blockId, ": " + (err.stack.replace(/\n/g, '\n: ')));
+                _this.replaceResult(blockId, ": " + (((ref1 = err.stack) != null ? ref1 : err.message).replace(/\n/g, '\n: ')));
               } else {
                 console.error(err);
               }
@@ -913,7 +917,6 @@
           old = this.getBlockNamed(name);
           this.localBlocks[name] = block;
           block = copyBlock(block);
-          block._id = name;
           transaction(this.localDocumentId()).put(block);
           changes = {
             first: this.getFirst(),
@@ -1082,30 +1085,34 @@
       };
 
       OrgData.prototype.checkImports = function(block) {
-        var filename, i, ref, ref1;
+        var filename, i, opts, ref, ref1;
         if ((i = block != null ? (ref = block.properties) != null ? ref["import"] : void 0 : void 0) && !this.importRecords.importedFiles[filename = block.properties["import"]]) {
           console.log("Import: " + (block != null ? (ref1 = block.properties) != null ? ref1["import"] : void 0 : void 0));
           this.importRecords.importedFiles[filename] = true;
+          opts = defaultEnv.opts;
           return this.runOnImport((function(_this) {
             return function() {
               return new Promise(function(resolve, reject) {
                 return _this.getFile(filename, (function(contents) {
-                  var id, j, len, oldEvals, oldPromise, ref2;
-                  oldPromise = _this.importPromise;
-                  oldEvals = _this.pendingEvals;
-                  _this.pendingEvals = [];
-                  _this.importPromise = Promise.resolve();
-                  id = 0;
-                  ref2 = _this.parseBlocks(contents);
-                  for (j = 0, len = ref2.length; j < len; j++) {
-                    block = ref2[j];
-                    block._id = "imported-" + filename + "-" + (id++);
-                    _this.checkChange(null, block, filename);
-                  }
-                  return _this.scheduleEvals().then(function() {
-                    _this.pendingEvals = oldEvals;
-                    _this.importPromise = oldPromise;
-                    return resolve();
+                  return withDefaultOptsSet(opts, function() {
+                    var id, j, len, oldEvals, oldPromise, ref2;
+                    oldPromise = _this.importPromise;
+                    oldEvals = _this.pendingEvals;
+                    _this.pendingEvals = [];
+                    _this.importPromise = Promise.resolve();
+                    id = 0;
+                    ref2 = _this.parseBlocks(contents);
+                    for (j = 0, len = ref2.length; j < len; j++) {
+                      block = ref2[j];
+                      block._id = "imported-" + filename + "-" + (id++);
+                      block.imported = true;
+                      _this.checkChange(null, block, filename);
+                    }
+                    return _this.scheduleEvals().then(function() {
+                      _this.pendingEvals = oldEvals;
+                      _this.importPromise = oldPromise;
+                      return resolve();
+                    });
                   });
                 }), function(e) {
                   return reject(displayError(e));
@@ -1188,7 +1195,7 @@
       OrgData.prototype.getYaml = function(block) {
         var firstResult, ref, ref1, results;
         block = this.getBlock(block);
-        return (ref = block.yaml) != null ? ref : (block.yaml = isYamlResult(block) ? ((ref1 = blockCodeItems(this, block), results = ref1.results, ref1), results ? (firstResult = results.text.indexOf('\n') + 1, safeLoad(results.text.substring(firstResult).replace(/(^|\n): /gm, '$1'))) : void 0) : null);
+        return (ref = block.yaml) != null ? ref : (block.yaml = isYamlResult(block) ? ((ref1 = blockCodeItems(this, block), results = ref1.results, ref1), results ? (firstResult = results.text.indexOf('\n') + 1, parseYaml(results.text.substring(firstResult).replace(/(^|\n): /gm, '$1'))) : void 0) : null);
       };
 
       OrgData.prototype.getCode = function(block, env) {
@@ -1515,6 +1522,16 @@
 
     })();
     window.NMap = NMap;
+    withDefaultOptsSet = function(opts, func) {
+      var oldOpts;
+      oldOpts = defaultEnv.opts;
+      defaultEnv.opts = opts;
+      try {
+        return func();
+      } finally {
+        defaultEnv.opts = oldOpts;
+      }
+    };
     OrgEditing = (function(superClass) {
       extend(OrgEditing, superClass);
 
@@ -1561,14 +1578,7 @@
       };
 
       OrgEditing.prototype.withDefaultOpts = function(func) {
-        var oldOpts;
-        oldOpts = defaultEnv.opts;
-        defaultEnv.opts = this;
-        try {
-          return func();
-        } finally {
-          defaultEnv.opts = oldOpts;
-        }
+        return withDefaultOptsSet(this, func);
       };
 
       OrgEditing.prototype.renderBlocks = function() {
@@ -1766,7 +1776,7 @@
             }
             viewNodes = this.findViewsForDefiner(block, viewNodes);
             viewNodes = this.findViewsForDefiner(changes.old[block._id], viewNodes);
-            ref1 = this.find("[data-observe~=" + block._id + "]");
+            ref1 = this.find("[data-observe~='" + block._id + "']");
             for (o = 0, len2 = ref1.length; o < len2; o++) {
               node = ref1[o];
               if (id = this.idForNode(node)) {
@@ -1799,12 +1809,12 @@
               for (s = 0, len4 = ref5.length; s < len4; s++) {
                 node = ref5[s];
                 node = $(node);
-                if ((data = _this.data.getYaml(blk = _this.data.getBlockNamed(blkName = node.attr('data-view-block-name')))) && data.type) {
-                  if ($(node).hasClass('error')) {
+                if ((data = _this.data.getYaml(blk = _this.data.getBlockNamed(blkName = node.attr('data-view-block-name'))))) {
+                  if (node.hasClass('error')) {
                     view = data.type;
-                    name = $(node).attr('data-view-name');
+                    name = node.attr('data-view-name');
                   } else {
-                    ref7 = ((ref6 = $(node).attr('data-requested-view')) != null ? ref6 : '').split('/'), view = ref7[0], name = ref7[1];
+                    ref7 = ((ref6 = node.attr('data-requested-view')) != null ? ref6 : '').split('/'), view = ref7[0], name = ref7[1];
                   }
                   results1.push(renderView(view, name, data, node, blk, blkName));
                 } else {
@@ -2415,7 +2425,7 @@
 
     })(DataStoreEditingOptions);
     replaceResult = function(source, data, block, str) {
-      var blockId, current, end, ref, results, start;
+      var blockId, current, end, observer, observing, ref, results, start;
       if (typeof block !== 'string') {
         blockId = block._id;
       }
@@ -2432,12 +2442,17 @@
         } else {
           end = (start += last.end());
         }
-        return source.replaceText({
+        observing = current.observing, observer = current.observer;
+        source.replaceText({
           start: start,
           end: end,
           text: str,
           source: 'code'
         }, true);
+        if (observer) {
+          data.getBlock(block._id).observer = observer;
+          return data.getBlock(block._id).observing = observing;
+        }
       }
     };
     trickyChange = function(oldBlock, newBlock) {
@@ -2592,15 +2607,6 @@
     followLink = function(e) {
       var ref;
       return ((ref = Leisure.findEditor(e.target)) != null ? ref.options.followLink(e) : void 0) || false;
-    };
-    parseYaml = function(yaml) {
-      var err, error1;
-      try {
-        return safeLoad(yaml);
-      } catch (error1) {
-        err = error1;
-        return null;
-      }
     };
     replacementFor = function(start, oldText, newText) {
       var endOff, lim, startOff;

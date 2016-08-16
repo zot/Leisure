@@ -17,8 +17,6 @@
     }
   });
 
-  console.log("Configured.");
-
 }).call(this);
 
 //# sourceMappingURL=config.js.map

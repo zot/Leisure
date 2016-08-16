@@ -46,8 +46,9 @@ This is just test data
 * Controller
 #+BEGIN_SRC coffee :control loungeMinimapData
 @initializeView = (view, data)->
-  App.blockMinimap.minimaps[view[0].id] = data
-  render view, data
+  if data
+    App.blockMinimap.minimaps[view[0].id] = data
+    render view, data
 
 if !App.blockMinimap.minimaps
   App.blockMinimap.minimaps = {}

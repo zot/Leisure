@@ -15,6 +15,7 @@
 
       {
         safeLoad
+        load
         dump
       } = Yaml
 
@@ -294,12 +295,16 @@
             else
               obj.computedYaml = true
               results?.content().replace /^: /gm, '')
-            if yamlSrc
-              try
-                obj.yaml = safeLoad yamlSrc
-              catch err
+            if yamlSrc then obj.yaml = parseYaml yamlSrc
           else if isText source then obj.yaml = source.content
           [_L([obj]), last.next]
+
+      parseYaml = (str)->
+        try
+          #safeLoad str
+          load str
+        catch err
+          undefined
 
       createHtmlBlockDoc = (org)->
           text = org.allText()
@@ -349,4 +354,5 @@
         blockSource
         ParsedCodeBlock
         blockOrg
+        parseYaml
       }

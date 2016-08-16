@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['./base', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.min', './export'], (Base, Ast, _, Immutable, Yaml, Bluebird, Exports)->
+define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.min', './export'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird, Exports)->
 
   {
     mergeExports
@@ -40,6 +40,9 @@ define ['./base', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.m
     nsLog,
     funcInfo,
   } = root = Base
+  {
+    parseYaml
+  } = DocOrg
   {
     define
     nakedDefine
@@ -62,11 +65,10 @@ define ['./base', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.m
     leisureFunctionNamed
   } = Ast
   {
-    Map,
+    Map
   } = Immutable
   {
-    safeLoad,
-    dump,
+    dump
   } = Yaml
   {
     Promise
@@ -918,7 +920,7 @@ define ['./base', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.m
 
   define 'fromJson', (obj)-> jsonConvert rz obj
 
-  define 'parseYaml', (obj)-> safeLoad rz obj
+  define 'parseYaml', (obj)-> parseYaml rz obj
 
   define 'toJsonArray', (list)->
     list = rz list
