@@ -49,6 +49,7 @@
         html
         blockVars
         isYamlResult
+        unescapeString
       } = Eval
       {
         LeisureEditCore
@@ -267,8 +268,9 @@
       Handlebars.registerHelper 'renderSource', ->
         {error, source} = @codeItems
         if error
-          pos = Number(error.info.match(/([^,]*),/)[1]) - 1
-          fancyHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + fancyHtml(source.content.substring(pos))
+          [ignore, pos, msg] = error.info.match(/([^,]*), *(.*)/)
+          pos = Number(pos) - 1
+          prismHighlight(this.language, source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span><span class='errorMessage' contenteditable='false' data-noncontent title='#{escapeHtml unescapeString(msg).replace(/\n/g, '<br>')}'>✖</span><span class='errorSource'>" + prismHighlight(this.language, source.content.substring(pos)) + "</span>"
         else prismHighlight this.language, this.source
 
       Handlebars.registerHelper 'sourceFooter', ->
@@ -551,7 +553,7 @@
           key = "leisure-code"
           org = blockOrg opts.data, block
           hideResults = !showsResults block
-          {name, source, results} = items = getCodeItems org.children?[0] ? org
+          {name, source, error, results} = items = getCodeItems org.children?[0] ? org
           lang = if results && results.text.length > results.contentPos && !showsCode block then 'results-only'
           else if items.source instanceof HTML then 'inline-html' else block.language
           if hasView key, lang
@@ -572,7 +574,7 @@
               nameText: if name then name.text.substring nameBoiler.length, name.text.length - 1 else ''
               name: if name then name.text.substring name.info else ''
               afterName: if name then @renderOrg opts, cleanOrg(block.text.substring name.end(), source.offset), true else ''
-              inter: if results then block.text.substring source.end(), results?.offset else block.text.substring source.end()
+              inter: @interstitialCode block, source, error, results
               results: if !results then ''
               else if hideResults then "<span class='hidden'>#{escapeHtml results.text}</span>"
               else resultsArea opts, results.text, block
@@ -581,6 +583,11 @@
             sourceData.text = @renderCodeOrg opts, sourceData
             @renderView key, lang, block.next, sourceData, targets
           else plainMode.render opts, block, prefix, replace
+        interstitialCode: (block, source, error, results)->
+          if error then (escapeHtml(block.text.substring source.end(), error.offset) +
+            "<span class='hidden'>#{escapeHtml error.text}</span>" +
+            escapeHtml block.text.substring error.end(), results?.offset ? block.text.length)
+          else escapeHtml block.text.substring source.end(), results?.offset ? block.text.length
         renderOrgBlock: (opts, block, prefix, replace)->
           text = "<span id='#{block._id}'>#{@renderOrg opts, blockOrg(opts.data, block), true}</span>"
           maybeReplaceHtml block, prefix, replace
@@ -964,8 +971,10 @@ Returns [] if org does not fit the pattern.
 
       fancyEditDiv = (div, data)->
         options = new OrgEditing(data).setMode fancyMode
+        options.openRegistration()
         options.registerCollaborativeCode 'doSlideValue', doSlideValue
         options.registerCollaborativeCode 'viewBoundSet', (context, name, data)-> options.setData name, data
+        options.closeRegistration()
         new LeisureEditCore $(div), options
 
       prismAliases =

@@ -390,7 +390,7 @@ render this
     data-contain
     contenteditable='true'>{{{renderSource}}}</div><span
 class='hidden'>{{footer}}</span>{{#if
-inter}}<div>{{inter}}</div>{{/if}}{{#if
+inter}}<div>{{{inter}}}</div>{{/if}}{{#if
 results}}{{#if hideResults}}{{{results}}}{{else}}<div
 class='code-results' data-org-src>{{{results}}}</div>{{/if}}{{/if}}{{> codeMenuButton}}</span>
 #+END_SRC

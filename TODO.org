@@ -1,8 +1,18 @@
-* TODO [#A] visualization package
-** Make simple framework for drawing SVG trees
-** Use for Fingertrees
-** Visualize document structure
-*** document minimap showing hot spots for changing data
+* BUG [#A] leisure unterminated string doesn't throw a proper error
+* TODO [#A] disable local data access during collborative code
+* TODO [#A] Working source in a :working: drawer, c-s transfers it to src block
+* TODO [#A] Storage
+- save/clear to local storage (offer to use, ignore, or clear on startup)
+- save/load file
+- checkpointing and loading
+  - Github: allow a branch for a session
+* TODO [#A] More reactive visual gizmos
+** TODO better use of heatmap
+** TODO tree visualization package
+*** Make simple framework for drawing SVG trees
+*** Use for Fingertrees
+*** Visualize document structure
+**** document minimap showing hot spots for changing data
 * TODO finish transaction support for collaborative try/punt technique
 * TODO change :control blocks to use :var instead of @initializeView
 * TODO Use Object.create() instead of __proto__
@@ -186,10 +196,6 @@ hides cruft so you can just look at the code
   - users can have local approal block sources
 - keybindings for things
   - switch to/from plain mode
-* Critical project list
-- code scopes
-- p2p
-- storage
 * Search stuff
 - switch to suffix list
 - search history
@@ -240,11 +246,6 @@ use an editor that
 *** TODO select text and create a floating code scope using cursor menu
 ** TODO Collapsible document outline
 Open in a code scope to get a floating outline
-* TODO Storage
-- checkpointing and loading
-  - Github: make a branch for each session?
-  - webtorrent: [[https://github.com/feross/webtorrent]]
-- local file load/store
 * TODO generate monolithic, minified JS file
 * Short list -- announcement
 ** BUG inserting char at start of doc in plain mode makes cursor disappear
@@ -306,13 +307,6 @@ Need this for the game so you can see things as you play
 - patterns
   - monadic
     - chain can handle runtime changes
-    - need a way to commit blocks
-      - a way to switch from the old definition to the new
-      - still saves changes
-      - has notion of "currently edited version"
-      - maybe allow a #+COMMITED keyword between #+BEGIN_SRC and #+END_SRC
-        - code between #+COMMITED and #+END_SRC is the committed code
-        - code between #+BEGIN_SRC and #+COMMITTED is the editing version
   - data
     - sorted by position value
     - each pattern defines its own index
@@ -1102,6 +1096,8 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE delete selection doesn't to switch to caret
+CLOSED: [2016-08-21 Sun 22:10]
 ** DONE implement dofold
 CLOSED: [2016-07-29 Fri 15:59]
 dofold i <- 0

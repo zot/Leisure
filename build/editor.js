@@ -506,7 +506,7 @@
       };
 
       LeisureEditCore.prototype.cutText = function(e) {
-        var html, node, sel, text;
+        var html, node, r, sel, text;
         useEvent(e);
         sel = getSelection();
         if (sel.type === 'Range') {
@@ -525,12 +525,20 @@
             html: html,
             text: text
           });
-          return this.replace(e, this.getSelectedBlockRange(), '');
+          r = this.getSelectedDocRange();
+          this.replace(e, this.getSelectedBlockRange(), '');
+          return this.selectDocRange({
+            type: 'Caret',
+            start: r.start,
+            length: 0,
+            scrollTop: r.scrollTop,
+            scrollLeft: r.scrollLeft
+          });
         }
       };
 
       LeisureEditCore.prototype.handleDelete = function(e, s, forward) {
-        var r, sel;
+        var r;
         useEvent(e);
         r = this.getSelectedDocRange();
         if (r.type === 'None' || (r.type === 'Caret' && ((forward && r.start >= this.options.getLength() - 1) || (!forward && r.start === 0)))) {
@@ -542,7 +550,6 @@
             r.start -= 1;
           }
         }
-        sel = this.getSelectedDocRange();
         this.options.replaceText({
           start: r.start,
           end: r.start + r.length,
@@ -553,8 +560,8 @@
           type: 'Caret',
           start: r.start,
           length: 0,
-          scrollTop: sel.scrollTop,
-          scrollLeft: sel.scrollLeft
+          scrollTop: r.scrollTop,
+          scrollLeft: r.scrollLeft
         });
       };
 

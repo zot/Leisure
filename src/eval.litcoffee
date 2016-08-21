@@ -129,6 +129,21 @@ Evaulation support for Leisure
       leisureEnv = (env)->
         env.presentValue = (v)-> html rz(L_showHtml) lz v
         env.executeText = (text, props, cont)-> setLounge this, ->
+          if opts = env.opts then console.log "OPTS:", opts
+          getLeisurePromise().then (-> new Promise (succeed, fail)->
+            if !env.opts then env.opts = opts
+            leisureExec env, text, props, ((result)->
+              r = result.head().tail()
+              if getType(r) == 'left' then throw new Error getLeft r
+              else
+                r = getRight r
+                succeed r
+                cont? r), (e)-> fail e)
+            .catch (err)->
+              env.errorAt 0, err?.message ? err
+              console.error e
+              fail e
+        env.XexecuteText = (text, props, cont)-> setLounge this, ->
           if !cont then cont = (x)->
             r = x.head().tail()
             if getType(r) == 'left' then new Error getLeft r
@@ -251,8 +266,10 @@ Evaulation support for Leisure
         oldLounge = (window ? global).Lounge
         (window ? global).Lounge = env
         env.opts = env.opts
-        result = func()
-        (window ? global).Lounge = oldLounge
+        try
+          result = func()
+        finally
+          (window ? global).Lounge = oldLounge
         result
 
       textEnv = (env)->
@@ -265,11 +282,11 @@ Evaulation support for Leisure
 
       jsEnv = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
-          try
+          new Promise((succeed)->
             writeValues env, value = jsEval(env, text)
-          catch err
-            @errorAt 0, err.message
-          cont? value
+            succeed value
+            cont? value).catch (err)=>
+              @errorAt 0, err.message
         env.createObserver = (blockNames, text, cont)-> throw new Error 'JavaScript observers not implemented yet'
         env.generateCode = (text)->
           fileName = nextGeneratedFileName()
@@ -419,12 +436,19 @@ Evaulation support for Leisure
 
       csEnv = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
-          try
+          new Promise((succeed)=>
             writeValues env, values = arrayify(@runWith {}, eval "(function(){#{@blockCode text, null, null, null, true}})")
-          catch err
-            env.errorAt 0, err.message
-          cont? values ? []
-        env.executeBlock = (block, props, cont)-> @compileBlock(block).call this, cont
+            succeed values ? []
+            cont? values ? []).catch (err)->
+              console.error err.stack ? err
+              env.errorAt 0, err.message
+        env.executeBlock = (block, props, cont)->
+          new Promise((succeed)=>
+            @compileBlock(block).call this, (result)->
+              succeed result
+              cont).catch (err)->
+                console.error err.stack ? err
+                env.errorAt 0, err.message
         env.compileBlock = (block)->
           fileName = currentGeneratedFileName()
           [..., vars, varNames, varMappings] = blockVars @data, block.codeAttributes?.var
@@ -556,7 +580,7 @@ Evaulation support for Leisure
         '\"': "\\\""
         '\\': "\\\\"
 
-      unescaped = _.zipObject ([e, c] for c, e of escaped)
+      unescaped = _.fromPairs ([e, c] for c, e of escaped)
 
       specials = /[\b\f\n\r\t\v\"\\]/g
 

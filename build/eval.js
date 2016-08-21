@@ -140,6 +140,39 @@
       env.executeText = function(text, props, cont) {
         return setLounge(this, function() {
           var opts;
+          if (opts = env.opts) {
+            console.log("OPTS:", opts);
+          }
+          return getLeisurePromise().then((function() {
+            return new Promise(function(succeed, fail) {
+              if (!env.opts) {
+                env.opts = opts;
+              }
+              return leisureExec(env, text, props, (function(result) {
+                var r;
+                r = result.head().tail();
+                if (getType(r) === 'left') {
+                  throw new Error(getLeft(r));
+                } else {
+                  r = getRight(r);
+                  succeed(r);
+                  return typeof cont === "function" ? cont(r) : void 0;
+                }
+              }), function(e) {
+                return fail(e);
+              });
+            });
+          }))["catch"](function(err) {
+            var ref;
+            env.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
+            console.error(e);
+            return fail(e);
+          });
+        });
+      };
+      env.XexecuteText = function(text, props, cont) {
+        return setLounge(this, function() {
+          var opts;
           if (!cont) {
             cont = function(x) {
               var r;
@@ -395,8 +428,11 @@
       oldLounge = (typeof window !== "undefined" && window !== null ? window : global).Lounge;
       (typeof window !== "undefined" && window !== null ? window : global).Lounge = env;
       env.opts = env.opts;
-      result = func();
-      (typeof window !== "undefined" && window !== null ? window : global).Lounge = oldLounge;
+      try {
+        result = func();
+      } finally {
+        (typeof window !== "undefined" && window !== null ? window : global).Lounge = oldLounge;
+      }
       return result;
     };
     textEnv = function(env) {
@@ -415,14 +451,14 @@
       env.executeText = function(text, props, cont) {
         return setLounge(this, (function(_this) {
           return function() {
-            var err, error, value;
-            try {
+            return new Promise(function(succeed) {
+              var value;
               writeValues(env, value = jsEval(env, text));
-            } catch (error) {
-              err = error;
-              _this.errorAt(0, err.message);
-            }
-            return typeof cont === "function" ? cont(value) : void 0;
+              succeed(value);
+              return typeof cont === "function" ? cont(value) : void 0;
+            })["catch"](function(err) {
+              return _this.errorAt(0, err.message);
+            });
           };
         })(this));
       };
@@ -702,19 +738,32 @@
       env.executeText = function(text, props, cont) {
         return setLounge(this, (function(_this) {
           return function() {
-            var err, error, values;
-            try {
+            return new Promise(function(succeed) {
+              var values;
               writeValues(env, values = arrayify(_this.runWith({}, eval("(function(){" + (_this.blockCode(text, null, null, null, true)) + "})"))));
-            } catch (error) {
-              err = error;
-              env.errorAt(0, err.message);
-            }
-            return typeof cont === "function" ? cont(values != null ? values : []) : void 0;
+              succeed(values != null ? values : []);
+              return typeof cont === "function" ? cont(values != null ? values : []) : void 0;
+            })["catch"](function(err) {
+              var ref;
+              console.error((ref = err.stack) != null ? ref : err);
+              return env.errorAt(0, err.message);
+            });
           };
         })(this));
       };
       env.executeBlock = function(block, props, cont) {
-        return this.compileBlock(block).call(this, cont);
+        return new Promise((function(_this) {
+          return function(succeed) {
+            return _this.compileBlock(block).call(_this, function(result) {
+              succeed(result);
+              return cont;
+            });
+          };
+        })(this))["catch"](function(err) {
+          var ref;
+          console.error((ref = err.stack) != null ? ref : err);
+          return env.errorAt(0, err.message);
+        });
       };
       env.compileBlock = function(block) {
         var code, fileName, j, nodes, ref, ref1, varMappings, varNames, vars;
@@ -938,7 +987,7 @@
       '\"': "\\\"",
       '\\': "\\\\"
     };
-    unescaped = _.zipObject((function() {
+    unescaped = _.fromPairs((function() {
       var results1;
       results1 = [];
       for (c in escaped) {

@@ -3,13 +3,13 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lodash', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './advice', './lib/prism-leisure', 'lib/js-yaml'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, Keyword, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addPendingTooltip, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isMeat, isSidebar, isViewResult, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, namedNode, nextImageSrc, nextViewId, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, parseYaml, pendingTooltips, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, Keyword, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addPendingTooltip, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isMeat, isSidebar, isViewResult, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, namedNode, nextImageSrc, nextViewId, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, parseYaml, pendingTooltips, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, unescapeString, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Keyword = Org.Keyword, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, parseYaml = DocOrg.parseYaml;
     Nil = Ast.Nil;
-    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html, blockVars = Eval.blockVars, isYamlResult = Eval.isYamlResult;
+    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html, blockVars = Eval.blockVars, isYamlResult = Eval.isYamlResult, unescapeString = Eval.unescapeString;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, getEventChar = Editor.getEventChar;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr, nextImageSrc = UI.nextImageSrc, prevImageSrc = UI.prevImageSrc, pushPendingInitialzation = UI.pushPendingInitialzation, nextViewId = UI.nextViewId;
     mergeExports = BrowserExports.mergeExports;
@@ -284,11 +284,12 @@
       return src.text.substring(src.infoPos, src.contentPos);
     });
     Handlebars.registerHelper('renderSource', function() {
-      var error, pos, ref, source;
+      var error, ignore, msg, pos, ref, ref1, source;
       ref = this.codeItems, error = ref.error, source = ref.source;
       if (error) {
-        pos = Number(error.info.match(/([^,]*),/)[1]) - 1;
-        return fancyHtml(source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span>" + fancyHtml(source.content.substring(pos));
+        ref1 = error.info.match(/([^,]*), *(.*)/), ignore = ref1[0], pos = ref1[1], msg = ref1[2];
+        pos = Number(pos) - 1;
+        return prismHighlight(this.language, source.content.substring(0, pos)) + ("<span class='errorMark' contenteditable='false' data-noncontent>✖</span><span class='errorMessage' contenteditable='false' data-noncontent title='" + (escapeHtml(unescapeString(msg).replace(/\n/g, '<br>'))) + "'>✖</span><span class='errorSource'>") + prismHighlight(this.language, source.content.substring(pos)) + "</span>";
       } else {
         return prismHighlight(this.language, this.source);
       }
@@ -707,11 +708,11 @@
         }
       },
       renderCode: function(opts, block, prefix, replace) {
-        var hideResults, items, key, lang, m, name, nameBoiler, org, ref, ref1, ref2, ref3, results, source, sourceData, targets;
+        var error, hideResults, items, key, lang, m, name, nameBoiler, org, ref, ref1, ref2, ref3, results, source, sourceData, targets;
         key = "leisure-code";
         org = blockOrg(opts.data, block);
         hideResults = !showsResults(block);
-        ref2 = items = getCodeItems((ref = (ref1 = org.children) != null ? ref1[0] : void 0) != null ? ref : org), name = ref2.name, source = ref2.source, results = ref2.results;
+        ref2 = items = getCodeItems((ref = (ref1 = org.children) != null ? ref1[0] : void 0) != null ? ref : org), name = ref2.name, source = ref2.source, error = ref2.error, results = ref2.results;
         lang = results && results.text.length > results.contentPos && !showsCode(block) ? 'results-only' : items.source instanceof HTML ? 'inline-html' : block.language;
         if (hasView(key, lang)) {
           nameBoiler = name && (m = name.text.match(keywordRE)) ? m[KW_BOILERPLATE] : void 0;
@@ -729,7 +730,7 @@
             nameText: name ? name.text.substring(nameBoiler.length, name.text.length - 1) : '',
             name: name ? name.text.substring(name.info) : '',
             afterName: name ? this.renderOrg(opts, cleanOrg(block.text.substring(name.end(), source.offset)), true) : '',
-            inter: results ? block.text.substring(source.end(), results != null ? results.offset : void 0) : block.text.substring(source.end()),
+            inter: this.interstitialCode(block, source, error, results),
             results: !results ? '' : hideResults ? "<span class='hidden'>" + (escapeHtml(results.text)) + "</span>" : resultsArea(opts, results.text, block),
             beforeResults: block.text.substring(0, (ref3 = results != null ? results.offset : void 0) != null ? ref3 : source.end())
           };
@@ -737,6 +738,14 @@
           return this.renderView(key, lang, block.next, sourceData, targets);
         } else {
           return plainMode.render(opts, block, prefix, replace);
+        }
+      },
+      interstitialCode: function(block, source, error, results) {
+        var ref, ref1;
+        if (error) {
+          return escapeHtml(block.text.substring(source.end(), error.offset)) + ("<span class='hidden'>" + (escapeHtml(error.text)) + "</span>") + escapeHtml(block.text.substring(error.end(), (ref = results != null ? results.offset : void 0) != null ? ref : block.text.length));
+        } else {
+          return escapeHtml(block.text.substring(source.end(), (ref1 = results != null ? results.offset : void 0) != null ? ref1 : block.text.length));
         }
       },
       renderOrgBlock: function(opts, block, prefix, replace) {
@@ -1336,10 +1345,12 @@
     fancyEditDiv = function(div, data) {
       var options;
       options = new OrgEditing(data).setMode(fancyMode);
+      options.openRegistration();
       options.registerCollaborativeCode('doSlideValue', doSlideValue);
       options.registerCollaborativeCode('viewBoundSet', function(context, name, data) {
         return options.setData(name, data);
       });
+      options.closeRegistration();
       return new LeisureEditCore($(div), options);
     };
     prismAliases = {

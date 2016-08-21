@@ -671,7 +671,7 @@ Thanks to (rangy)[this: https://github.com/timdown/rangy] for the isCollapsed lo
 
       sameRanges = (r1, r2)->
         r1.compareBoundaryPoints(Range.START_TO_START, r2) == 0 &&
-          r1.compareBoundaryPoints(Range.endOfLine, r2) == 0
+          r1.compareBoundaryPoints(Range.END_TO_END, r2) == 0
 
       debug = (args...)-> if DOMCursor.debug then console.log args...
 

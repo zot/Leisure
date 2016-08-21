@@ -897,7 +897,7 @@
       }
     };
     sameRanges = function(r1, r2) {
-      return r1.compareBoundaryPoints(Range.START_TO_START, r2) === 0 && r1.compareBoundaryPoints(Range.endOfLine, r2) === 0;
+      return r1.compareBoundaryPoints(Range.START_TO_START, r2) === 0 && r1.compareBoundaryPoints(Range.END_TO_END, r2) === 0;
     };
     debug = function() {
       var args;
