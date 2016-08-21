@@ -34,6 +34,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         blocksObserved
         hasCodeAttribute
         isYamlResult
+        escapeString
       } = Eval
       {
         LeisureEditCore
@@ -450,7 +451,12 @@ that must be done regardless of the source of changes
                 @createObserver newBlock
                 if newBlock.codeAttributes.observe = 'system.document'
                   @pendingObserves[newBlock._id] = newBlock
-              else @executeBlock newBlock
+              else
+                defaultEnv.opts?.openRegistration()
+                r = @executeBlock newBlock
+                if defaultEnv.opts
+                  if r instanceof Promise then r.always -> defaultEnv.opts?.closeRegistration()
+                  else defaultEnv.opts?.closeRegistration()
         createObserver: (block)->
           env = @env block.language
           blockId = block._id
@@ -576,11 +582,27 @@ that must be done regardless of the source of changes
               setLounge env, => @getCode(newBlock).call controller
               controller.__proto__ = null
         oldExecuteBlock: (block, envConf)->
-          @executeText block.language, blockSource(block), null, (env)->
+          completedFlag = false
+          cont = null
+          r = @executeText block.language, blockSource(block), ((result)->
+              if !completedFlag
+                completedFlag = true
+                result
+              else promise.resolve result), ((env)->
+                envConf? env
+                if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
+                  env.silent = true
+                  env.write = (str)-> console.log str)
+          if !completedFlag
+            completedFlag = true
+            new Promise (success)-> cont = success
+          else r
+        XoldExecuteBlock: (block, envConf)->
+          @executeText block.language, blockSource(block), null, ((env)->
             envConf? env
             if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
               env.silent = true
-              env.write = (str)-> console.log str
+              env.write = (str)-> console.log str)
         executeBlock: (block, envConf)->
           env = @env block.language, (env)->
             envConf? env
@@ -842,6 +864,7 @@ NMap is a very simple trie.
           @pendingDataChanges = null
           @collaborativeCode = {}
           @collaborativeBase = {}
+          @closeRegistration()
         runBlock: (block, replace)-> @data.runBlock block, replace
         parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, @data.getBlock block
         dataChanged: (changes)->
@@ -1231,7 +1254,12 @@ NMap is a very simple trie.
           false
         replaceResult: (block, str)-> replaceResult this, @data, block, str
         hasCollaborativeCode: (name)-> @collaborativeCode[name]
-        registerCollaborativeCode: (name, func)->
+        openRegistration: ->
+          @registerCollaborativeCode = @registrationCode
+        closeRegistration: ->
+          @registerCollaborativeCode = ->
+            throw new Error "Attempt to register collaborative code after registration is closed"
+        registrationCode: (name, func)->
           @collaborativeCode[name] = (args...)=> @doCollaboratively name, args
           @collaborativeBase[name] = func
         _runCollaborativeCode: (name, slaveId, args)->
@@ -1297,7 +1325,7 @@ NMap is a very simple trie.
         else
           newBlock = copyBlock block
           msg = if msg then msg.trim() + "\n"
-          err = "#+ERROR: #{offset}, #{msg}"
+          err = "#+ERROR: #{offset}, #{escapeString msg}\n"
           text = if error
             if !offset?
               block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length)

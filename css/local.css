@@ -62,9 +62,19 @@ a:hover {
     overflow: hidden;
 }
 .errorMark {
-    color: red;
+    color: #F88;
     position: absolute;
-    opacity: 0.3;
+}
+.errorMessage {
+    color: #F88;
+    position: absolute;
+    opacity: 0;
+    z-index: 2;
+}
+.errorSource {
+    position: relative;
+    margin-left: 1em;
+    z-index: 1;
 }
 .plain .errorMark {
     z-index: -1;

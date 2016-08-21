@@ -471,7 +471,14 @@ Events:
             html = (htmlForNode node for node in sel.getRangeAt(0).cloneContents().childNodes).join ''
             text = @selectedText sel
             @options.simulateCut html: html, text: text
+            r = @getSelectedDocRange()
             @replace e, @getSelectedBlockRange(), ''
+            @selectDocRange
+              type: 'Caret'
+              start: r.start
+              length: 0
+              scrollTop: r.scrollTop
+              scrollLeft: r.scrollLeft
         handleDelete: (e, s, forward)->
           useEvent e
           r = @getSelectedDocRange()
@@ -480,7 +487,6 @@ Events:
           if r.type == 'Caret'
             r.length = 1
             if !forward then r.start -= 1
-          sel = @getSelectedDocRange()
           @options.replaceText
             start: r.start
             end: r.start + r.length
@@ -490,8 +496,8 @@ Events:
             type: 'Caret'
             start: r.start
             length: 0
-            scrollTop: sel.scrollTop
-            scrollLeft: sel.scrollLeft
+            scrollTop: r.scrollTop
+            scrollLeft: r.scrollLeft
         bind: ->
           @bindDragAndDrop()
           @bindClipboard()
