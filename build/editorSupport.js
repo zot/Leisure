@@ -626,55 +626,57 @@
         return this.runOnImport((function(_this) {
           return function() {
             var e, func, j, len;
-            e = _this.pendingEvals;
-            _this.pendingEvals = [];
-            for (j = 0, len = e.length; j < len; j++) {
-              func = e[j];
-              func();
-            }
-            if (!_.isEmpty(_this.pendingObserves)) {
-              return _this.allowObservation(function() {
-                var blocked, k, oldRunning, p, results1;
-                blocked = {};
-                oldRunning = {};
-                try {
-                  results1 = [];
-                  while (!_.isEmpty(_this.pendingObserves)) {
-                    p = _this.pendingObserves;
-                    _this.pendingObserves = {};
-                    results1.push(_this.withLounge(function() {
-                      var block, blockId, obs, ref, results2, subject;
-                      results2 = [];
-                      for (blockId in p) {
-                        subject = p[blockId];
-                        if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
-                          blocked[blockId] = true;
-                          oldRunning[blockId] = _this.running[blockId];
-                          _this.running[blockId] = true;
-                          if ((ref = (obs = block.observer)) != null) {
-                            if (typeof ref.observe === "function") {
-                              ref.observe(subject);
+            if (_this.pendingEvals.length) {
+              e = _this.pendingEvals;
+              _this.pendingEvals = [];
+              for (j = 0, len = e.length; j < len; j++) {
+                func = e[j];
+                func();
+              }
+              if (!_.isEmpty(_this.pendingObserves)) {
+                return _this.allowObservation(function() {
+                  var blocked, k, oldRunning, p, results1;
+                  blocked = {};
+                  oldRunning = {};
+                  try {
+                    results1 = [];
+                    while (!_.isEmpty(_this.pendingObserves)) {
+                      p = _this.pendingObserves;
+                      _this.pendingObserves = {};
+                      results1.push(_this.withLounge(function() {
+                        var block, blockId, obs, ref, results2, subject;
+                        results2 = [];
+                        for (blockId in p) {
+                          subject = p[blockId];
+                          if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
+                            blocked[blockId] = true;
+                            oldRunning[blockId] = _this.running[blockId];
+                            _this.running[blockId] = true;
+                            if ((ref = (obs = block.observer)) != null) {
+                              if (typeof ref.observe === "function") {
+                                ref.observe(subject);
+                              }
                             }
-                          }
-                          if (!_this.getBlock(block._id).observer) {
-                            results2.push(_this.getBlock(block._id).observer = obs);
+                            if (!_this.getBlock(block._id).observer) {
+                              results2.push(_this.getBlock(block._id).observer = obs);
+                            } else {
+                              results2.push(void 0);
+                            }
                           } else {
                             results2.push(void 0);
                           }
-                        } else {
-                          results2.push(void 0);
                         }
-                      }
-                      return results2;
-                    }));
+                        return results2;
+                      }));
+                    }
+                    return results1;
+                  } finally {
+                    for (k in blocked) {
+                      _this.running[k] = oldRunning[k];
+                    }
                   }
-                  return results1;
-                } finally {
-                  for (k in blocked) {
-                    _this.running[k] = oldRunning[k];
-                  }
-                }
-              });
+                });
+              }
             }
           };
         })(this));
@@ -766,23 +768,21 @@
                 }
               } else {
                 opts = defaultEnv.opts;
-                return _this.runOnImport(function() {
-                  return withDefaultOptsSet(opts, function() {
-                    var r;
-                    if (opts != null) {
-                      opts.openRegistration();
-                    }
-                    r = _this.executeBlock(newBlock);
-                    if (opts) {
-                      if (r instanceof Promise) {
-                        return r["finally"](function() {
-                          return opts.closeRegistration();
-                        });
-                      } else {
+                return withDefaultOptsSet(opts, function() {
+                  var r;
+                  if (opts != null) {
+                    opts.openRegistration();
+                  }
+                  r = _this.executeBlock(newBlock);
+                  if (opts) {
+                    if (r instanceof Promise) {
+                      return r["finally"](function() {
                         return opts.closeRegistration();
-                      }
+                      });
+                    } else {
+                      return opts.closeRegistration();
                     }
-                  });
+                  }
                 });
               }
             };
@@ -2349,13 +2349,13 @@
         var block, envM;
         block = this.editor.blockForCaret();
         if (block.type === 'code' && (envM = blockEnvMaker(block))) {
-          return this.runOnImport((function(_this) {
+          this.queueEval((function(_this) {
             return function() {
               _this.executeBlock(block, envM);
-              _this.data.triggerUpdate('system', 'code', block);
-              return _this.data.scheduleEvals();
+              return _this.data.triggerUpdate('system', 'code', block);
             };
           })(this));
+          return this.data.scheduleEvals();
         }
       };
 

@@ -387,29 +387,30 @@ that must be done regardless of the source of changes
           @pendingEvals.push -> withDefaultOptsSet opts, func
         runOnImport: (func)-> @importPromise.then => func()
         scheduleEvals: -> @runOnImport =>
-          e = @pendingEvals
-          @pendingEvals = []
-          for func in e
-            func()
-          if !_.isEmpty @pendingObserves
-            @allowObservation =>
-              blocked = {}
-              oldRunning = {}
-              try
-                while !_.isEmpty @pendingObserves
-                  p = @pendingObserves
-                  @pendingObserves = {}
-                  @withLounge =>
-                    for blockId, subject of p
-                      if !@running[blockId] && (block = @getBlock(blockId))
-                        blocked[blockId] = true
-                        oldRunning[blockId] = @running[blockId]
-                        @running[blockId] = true
-                        (obs = block.observer)?.observe? subject
-                        if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
-              finally
-                for k of blocked
-                  @running[k] = oldRunning[k]
+          if @pendingEvals.length
+            e = @pendingEvals
+            @pendingEvals = []
+            for func in e
+              func()
+            if !_.isEmpty @pendingObserves
+              @allowObservation =>
+                blocked = {}
+                oldRunning = {}
+                try
+                  while !_.isEmpty @pendingObserves
+                    p = @pendingObserves
+                    @pendingObserves = {}
+                    @withLounge =>
+                      for blockId, subject of p
+                        if !@running[blockId] && (block = @getBlock(blockId))
+                          blocked[blockId] = true
+                          oldRunning[blockId] = @running[blockId]
+                          @running[blockId] = true
+                          (obs = block.observer)?.observe? subject
+                          if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
+                finally
+                  for k of blocked
+                    @running[k] = oldRunning[k]
         withLounge: (func)->
           env = Object.create defaultEnv
           env.data = this
@@ -453,7 +454,7 @@ that must be done regardless of the source of changes
                   @pendingObserves[newBlock._id] = newBlock
               else
                 opts = defaultEnv.opts
-                @runOnImport => withDefaultOptsSet opts, =>
+                withDefaultOptsSet opts, =>
                   opts?.openRegistration()
                   r = @executeBlock newBlock
                   if opts
@@ -1215,9 +1216,10 @@ NMap is a very simple trie.
           -1
         execute: ->
           block = @editor.blockForCaret()
-          if block.type == 'code' && envM = blockEnvMaker block then @runOnImport =>
-            @executeBlock block, envM
-            @data.triggerUpdate 'system', 'code', block
+          if block.type == 'code' && envM = blockEnvMaker block
+            @queueEval =>
+              @executeBlock block, envM
+              @data.triggerUpdate 'system', 'code', block
             @data.scheduleEvals()
         env: (language)->
           env = @data.env language
