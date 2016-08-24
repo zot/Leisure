@@ -1,4 +1,4 @@
-* Introducing Lounge
+* Introducing Lounge, an open source, illuminated programming environment
 * Building on the Smalltalk Vision
 ** What if programs were delivered as virtual machines that were easy to checkpoint and duplicate, they included development environments, and all their source code, data, and graphic interface definitions were viewable and changeable?
 ** This vision was achieved and released to the world with Smalltalk-80
@@ -16,7 +16,6 @@
 #+END_HTML
 ** Lounge provides a collaborative environment with many of Smalltalk's benefits, where each virtual machine is actually a human-readable text document that you can easily put into version control, mail to a friend, and read for yourself /(click the martini glass icon above to see)/
 ** Collaborators can interact with shared Lounge documents and even work together on code while a document is in use.
-* Lounge is an open source, illuminated programming environment
 * Illuminated programs are documents that are
 ** Enlightening, the user can see and change the code and the data
 ** Enlightened, like the ancient concept of illumination
@@ -42,4 +41,4 @@
 :end:
 [[lounge:blockMap//loungeMinimapData]]
 * Edit anything and you'll see a spot in the heatmap
-** Feel freeo to edit anything, you can just reload the document at any point to revert your changes to the document
+** Feel free to edit anything, you can just reload the document at any point to revert your changes to the document
