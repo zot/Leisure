@@ -633,50 +633,50 @@
                 func = e[j];
                 func();
               }
-              if (!_.isEmpty(_this.pendingObserves)) {
-                return _this.allowObservation(function() {
-                  var blocked, k, oldRunning, p, results1;
-                  blocked = {};
-                  oldRunning = {};
-                  try {
-                    results1 = [];
-                    while (!_.isEmpty(_this.pendingObserves)) {
-                      p = _this.pendingObserves;
-                      _this.pendingObserves = {};
-                      results1.push(_this.withLounge(function() {
-                        var block, blockId, obs, ref, results2, subject;
-                        results2 = [];
-                        for (blockId in p) {
-                          subject = p[blockId];
-                          if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
-                            blocked[blockId] = true;
-                            oldRunning[blockId] = _this.running[blockId];
-                            _this.running[blockId] = true;
-                            if ((ref = (obs = block.observer)) != null) {
-                              if (typeof ref.observe === "function") {
-                                ref.observe(subject);
-                              }
+            }
+            if (!_.isEmpty(_this.pendingObserves)) {
+              return _this.allowObservation(function() {
+                var blocked, k, oldRunning, p, results1;
+                blocked = {};
+                oldRunning = {};
+                try {
+                  results1 = [];
+                  while (!_.isEmpty(_this.pendingObserves)) {
+                    p = _this.pendingObserves;
+                    _this.pendingObserves = {};
+                    results1.push(_this.withLounge(function() {
+                      var block, blockId, obs, ref, results2, subject;
+                      results2 = [];
+                      for (blockId in p) {
+                        subject = p[blockId];
+                        if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
+                          blocked[blockId] = true;
+                          oldRunning[blockId] = _this.running[blockId];
+                          _this.running[blockId] = true;
+                          if ((ref = (obs = block.observer)) != null) {
+                            if (typeof ref.observe === "function") {
+                              ref.observe(subject);
                             }
-                            if (!_this.getBlock(block._id).observer) {
-                              results2.push(_this.getBlock(block._id).observer = obs);
-                            } else {
-                              results2.push(void 0);
-                            }
+                          }
+                          if (!_this.getBlock(block._id).observer) {
+                            results2.push(_this.getBlock(block._id).observer = obs);
                           } else {
                             results2.push(void 0);
                           }
+                        } else {
+                          results2.push(void 0);
                         }
-                        return results2;
-                      }));
-                    }
-                    return results1;
-                  } finally {
-                    for (k in blocked) {
-                      _this.running[k] = oldRunning[k];
-                    }
+                      }
+                      return results2;
+                    }));
                   }
-                });
-              }
+                  return results1;
+                } finally {
+                  for (k in blocked) {
+                    _this.running[k] = oldRunning[k];
+                  }
+                }
+              });
             }
           };
         })(this));
