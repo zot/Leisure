@@ -165,7 +165,7 @@
         })()).join(', ')) + "){\n  return isPartial(arguments) ? partialCall(arguments) : dispatchCollaborative(opts, name, arguments);\n})";
         dispatchFunc = eval(dispatchSrc);
         define(rz(name), dispatchFunc, dispatchFunc.length, dispatchSrc);
-        env.opts.registerCollaborativeCode(name, function() {
+        opts.registerCollaborativeCode(name, function() {
           var args, context, cvtArgs;
           context = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
           cvtArgs = _.map(args, function(el) {

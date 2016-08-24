@@ -29,9 +29,28 @@ title heading should put a title in the HTML and show a title screen in slide mo
 
 ** Lounge provides a collaborative environment with many of Smalltalk's benefits, where each virtual machine is actually a human-readable text document that you can easily put into version control, mail to a friend, and read for yourself /(click the martini glass icon above to see)/
 ** Collaborators can interact with shared Lounge documents and even work together on code while a document is in use.
+* Illuminated programs are documents that are
+** Enlightening, the user can see and change the code and the data
+** Enlightened, like the ancient concept of illumination
+*** They are aware of changes to document content
+*** They are aware of changes to document data
+*** They are aware of changes to document code
+** Enlightened, like being modern and well-informed
+*** They support modern techniques
+** Media-rich, like ancient illuminated manuscripts
+** Collaborative for both users and developers
+** Modeless, there is no disctinction between run-time and development-time
+** Unified, the document is the program and the program is the document
+*** WHen the program changes data, the document changes
+*** When a user edits data in the documetn, the data changes
+*** The program can protect document regions from editing
 * Illuminated programs live in documents that are...
-** Self-hosted: the source document is also the medium for user interaction
-** Introspective: a program can interact with and observe changes to its document (like data) and facilities (like code recompilation)
+** reified: "the document is the program"
+*** the program source document is also the presentation medium
+*** changing the document changes the program and vice-versa (this goes for data, content, and also code)
+** Introspective
+*** documents can interact with and observe their own changes (like data) and facilities (like code recompilation)
+*** documents can alter themselves as they run
 ** Self-contained: document contains its own code, data, presentation, content
 ** Media-rich: programs should be interesting and fun to read!
 ** Interactive: In addition to normal app features, Lounge source code can contain interactive examples

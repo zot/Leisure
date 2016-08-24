@@ -1142,10 +1142,10 @@ misrepresented as being the original software.
         });
       }
     });
-    define('debug', new Monad2('debug', function(env, cont) {
+    define('debug', function(x) {
       debugger;
-      return cont(_unit);
-    }));
+      return x;
+    });
     define('gensym', makeSyncMonad(function(env, cont) {
       return cont("G" + (gensymCounter++));
     }));

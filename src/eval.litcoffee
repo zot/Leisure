@@ -86,6 +86,8 @@ Evaulation support for Leisure
             .catch (err)-> console.error "ERROR LOADING LEISURE SYSTEM!\n#{err.stack}"
         leisurePromise
 
+      callFail = (fail, err)-> if fail then fail err else throw err
+
       simpleEval = (txt, success, fail)->
         rejected = false
         env =
@@ -100,7 +102,7 @@ Evaulation support for Leisure
               runMonad2 (eval genSource txt, ast), env, (x)->
                 if !rejected then success x
             catch err
-              if !rejected then fail err
+              if !rejected then callFail fail, err
           else if !rejected then fail new Error "Parse error: #{ast id}"
 
       #########
@@ -130,19 +132,18 @@ Evaulation support for Leisure
         env.presentValue = (v)-> html rz(L_showHtml) lz v
         env.executeText = (text, props, cont)-> setLounge this, ->
           if opts = env.opts then console.log "OPTS:", opts
-          getLeisurePromise().then (-> new Promise (succeed, fail)->
+          getLeisurePromise().then (->
             if !env.opts then env.opts = opts
             leisureExec env, text, props, ((result)->
               r = result.head().tail()
               if getType(r) == 'left' then throw new Error getLeft r
               else
                 r = getRight r
-                succeed r
-                cont? r), (e)-> fail e)
+                cont? r))
             .catch (err)->
               env.errorAt 0, err?.message ? err
               console.error e
-              fail e
+              console.error "Leisure text: #{text}"
         env.XexecuteText = (text, props, cont)-> setLounge this, ->
           if !cont then cont = (x)->
             r = x.head().tail()
@@ -216,7 +217,7 @@ Evaulation support for Leisure
                 setValue 'parser_funcProps', old
                 (cont ? (x)->x)(results)), errCont
         catch err
-          errCont err
+          callFail errCont, err
 
       runNextResult = (results, env, cont, errCont)->
         while results != rz(L_nil)
@@ -231,7 +232,7 @@ Evaulation support for Leisure
                 if sync then async = false
                 else runNextResult results.tail(), env, cont, errCont
             catch err
-              errCont err
+              callFail errCont, err
             sync = false
             if async then return
           results = results.tail()

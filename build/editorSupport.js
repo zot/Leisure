@@ -757,7 +757,7 @@
         if ((resultType = (ref5 = newBlock != null ? (ref6 = newBlock.codeAttributes) != null ? (ref7 = ref6.results) != null ? ref7.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref5 === 'web') || (resultType = ((newBlock != null ? (ref8 = newBlock.codeAttributes) != null ? ref8.observe : void 0 : void 0) != null) && 'observe')) {
           return this.queueEval((function(_this) {
             return function() {
-              var r, ref10, ref9;
+              var opts;
               if (resultType === 'observe') {
                 _this.updateObserver(newBlock, oldBlock);
                 _this.createObserver(newBlock);
@@ -765,20 +765,25 @@
                   return _this.pendingObserves[newBlock._id] = newBlock;
                 }
               } else {
-                if ((ref9 = defaultEnv.opts) != null) {
-                  ref9.openRegistration();
-                }
-                r = _this.executeBlock(newBlock);
-                if (defaultEnv.opts) {
-                  if (r instanceof Promise) {
-                    return r.always(function() {
-                      var ref10;
-                      return (ref10 = defaultEnv.opts) != null ? ref10.closeRegistration() : void 0;
-                    });
-                  } else {
-                    return (ref10 = defaultEnv.opts) != null ? ref10.closeRegistration() : void 0;
-                  }
-                }
+                opts = defaultEnv.opts;
+                return _this.runOnImport(function() {
+                  return withDefaultOptsSet(opts, function() {
+                    var r;
+                    if (opts != null) {
+                      opts.openRegistration();
+                    }
+                    r = _this.executeBlock(newBlock);
+                    if (opts) {
+                      if (r instanceof Promise) {
+                        return r["finally"](function() {
+                          return opts.closeRegistration();
+                        });
+                      } else {
+                        return opts.closeRegistration();
+                      }
+                    }
+                  });
+                });
               }
             };
           })(this));
@@ -1045,7 +1050,7 @@
             completedFlag = true;
             return result;
           } else {
-            return promise.resolve(result);
+            return Promise.resolve(result);
           }
         }), (function(env) {
           var ref, ref1, ref2;
@@ -1132,12 +1137,12 @@
       };
 
       OrgData.prototype.checkImports = function(block) {
-        var filename, i, opts, ref, ref1;
+        var filename, i, newPromise, opts, ref, ref1;
         if ((i = block != null ? (ref = block.properties) != null ? ref["import"] : void 0 : void 0) && !this.importRecords.importedFiles[filename = block.properties["import"]]) {
           console.log("Import: " + (block != null ? (ref1 = block.properties) != null ? ref1["import"] : void 0 : void 0));
           this.importRecords.importedFiles[filename] = true;
           opts = defaultEnv.opts;
-          return this.runOnImport((function(_this) {
+          return this.importPromise = newPromise = this.importPromise.then(((function(_this) {
             return function() {
               return new Promise(function(resolve, reject) {
                 return _this.getFile(filename, (function(contents) {
@@ -1157,7 +1162,15 @@
                     }
                     return _this.scheduleEvals().then(function() {
                       _this.pendingEvals = oldEvals;
-                      _this.importPromise = oldPromise;
+                      if (!oldPromise.isResolved()) {
+                        if (!_this.importPromise.isResolved) {
+                          _this.importPromise = _this.importPromise.then(function() {
+                            return oldPromise;
+                          });
+                        } else {
+                          _this.importPromise = oldPromise;
+                        }
+                      }
                       return resolve();
                     });
                   });
@@ -1166,7 +1179,7 @@
                 });
               });
             };
-          })(this));
+          })(this)));
         }
       };
 
@@ -2336,9 +2349,13 @@
         var block, envM;
         block = this.editor.blockForCaret();
         if (block.type === 'code' && (envM = blockEnvMaker(block))) {
-          this.executeBlock(block, envM);
-          this.data.triggerUpdate('system', 'code', block);
-          return this.data.scheduleEvals();
+          return this.runOnImport((function(_this) {
+            return function() {
+              _this.executeBlock(block, envM);
+              _this.data.triggerUpdate('system', 'code', block);
+              return _this.data.scheduleEvals();
+            };
+          })(this));
         }
       };
 

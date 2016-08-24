@@ -6,12 +6,16 @@
 Leisure is an open-source web-based platform for interactive editable documents
 in orgmode format that provides what we call *[[https://en.wikipedia.org/wiki/Illuminated_manuscript][Illuminated Programming]]*. Leisure
 documents are:
-- modelssly editable (like Emacs!)
+- modelessly editable (like Emacs!)
 - interactive
-- graphical
+- media-rich
 - web-based (zero install)
 - collaborative (both for editing and for applications)
 - codetime/runtime modeless (the same environment for developing and running)
+- reified: "the document is the program"
+  - the program source document is also the presentation medium
+  - changing the document changes the program and vice-versa (this goes for data, content, and also code)
+- introspective (documents can react to their own changes and alter themselves as they run)
 *[[https://en.wikipedia.org/wiki/Illuminati][Illuminated Programming]]* is our term for application, source code, and data,
 all rolled up into one interactive, collboratively editable document. A Leisure
 document might hide its code and data and appear to be just an app or it might

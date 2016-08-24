@@ -6,7 +6,7 @@
   define.amd = true;
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree) {
-    var Html, Nil, Node, Promise, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
+    var Html, Nil, Node, Promise, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, callFail, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = AcornLoose;
@@ -57,6 +57,13 @@
       }
       return leisurePromise;
     };
+    callFail = function(fail, err) {
+      if (fail) {
+        return fail(err);
+      } else {
+        throw err;
+      }
+    };
     simpleEval = function(txt, success, fail) {
       var env, rejected;
       rejected = false;
@@ -81,7 +88,7 @@
           } catch (error) {
             err = error;
             if (!rejected) {
-              return fail(err);
+              return callFail(fail, err);
             }
           }
         } else if (!rejected) {
@@ -144,29 +151,24 @@
             console.log("OPTS:", opts);
           }
           return getLeisurePromise().then((function() {
-            return new Promise(function(succeed, fail) {
-              if (!env.opts) {
-                env.opts = opts;
+            if (!env.opts) {
+              env.opts = opts;
+            }
+            return leisureExec(env, text, props, (function(result) {
+              var r;
+              r = result.head().tail();
+              if (getType(r) === 'left') {
+                throw new Error(getLeft(r));
+              } else {
+                r = getRight(r);
+                return typeof cont === "function" ? cont(r) : void 0;
               }
-              return leisureExec(env, text, props, (function(result) {
-                var r;
-                r = result.head().tail();
-                if (getType(r) === 'left') {
-                  throw new Error(getLeft(r));
-                } else {
-                  r = getRight(r);
-                  succeed(r);
-                  return typeof cont === "function" ? cont(r) : void 0;
-                }
-              }), function(e) {
-                return fail(e);
-              });
-            });
+            }));
           }))["catch"](function(err) {
             var ref;
             env.errorAt(0, (ref = err != null ? err.message : void 0) != null ? ref : err);
             console.error(e);
-            return fail(e);
+            return console.error("Leisure text: " + text);
           });
         });
       };
@@ -321,7 +323,7 @@
         })(this));
       } catch (error) {
         err = error;
-        return errCont(err);
+        return callFail(errCont, err);
       }
     };
     runNextResult = function(results, env, cont, errCont) {
@@ -349,7 +351,7 @@
             })(this));
           } catch (error) {
             err = error;
-            errCont(err);
+            callFail(errCont, err);
           }
           sync = false;
           if (async) {

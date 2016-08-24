@@ -157,7 +157,7 @@ Support code for Leisure
           """
           dispatchFunc = eval dispatchSrc
           define rz(name), dispatchFunc, dispatchFunc.length, dispatchSrc
-          env.opts.registerCollaborativeCode name, (context, args...)->
+          opts.registerCollaborativeCode name, (context, args...)->
             cvtArgs = _.map(args, (el)-> jsonConvert(el))
             cvtArgs.unshift acons 'options', context.options, acons('slaveId', context.slaveId, L_nil)
             runMonad2 func.apply(null, cvtArgs), defaultEnvWithOpts(opts), ->
