@@ -682,9 +682,13 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'li
 #    makeSyncMonad (env, cont)->
 #      cont (root.E = new Error(msg)).stack
 
-  define 'debug', new Monad2 'debug', (env, cont)->
-      debugger
-      cont _unit
+  define 'debug', (x)->
+    debugger
+    x
+
+  #define 'debug', new Monad2 'debug', (env, cont)->
+  #    debugger
+  #    cont _unit
 
   define 'gensym', makeSyncMonad (env, cont)-> cont "G#{gensymCounter++}"
 

@@ -452,11 +452,13 @@ that must be done regardless of the source of changes
                 if newBlock.codeAttributes.observe = 'system.document'
                   @pendingObserves[newBlock._id] = newBlock
               else
-                defaultEnv.opts?.openRegistration()
-                r = @executeBlock newBlock
-                if defaultEnv.opts
-                  if r instanceof Promise then r.always -> defaultEnv.opts?.closeRegistration()
-                  else defaultEnv.opts?.closeRegistration()
+                opts = defaultEnv.opts
+                @runOnImport => withDefaultOptsSet opts, =>
+                  opts?.openRegistration()
+                  r = @executeBlock newBlock
+                  if opts
+                    if r instanceof Promise then r.finally -> opts.closeRegistration()
+                    else opts.closeRegistration()
         createObserver: (block)->
           env = @env block.language
           blockId = block._id
@@ -588,7 +590,7 @@ that must be done regardless of the source of changes
               if !completedFlag
                 completedFlag = true
                 result
-              else promise.resolve result), ((env)->
+              else Promise.resolve result), ((env)->
                 envConf? env
                 if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
                   env.silent = true
@@ -625,7 +627,7 @@ that must be done regardless of the source of changes
             console.log "Import: #{block?.properties?.import}"
             @importRecords.importedFiles[filename] = true
             opts = defaultEnv.opts
-            @runOnImport => new Promise (resolve, reject)=>
+            @importPromise = newPromise = @importPromise.then (=> new Promise (resolve, reject)=>
               @getFile filename, ((contents)=> withDefaultOptsSet opts, =>
                 oldPromise = @importPromise
                 oldEvals = @pendingEvals
@@ -638,8 +640,10 @@ that must be done regardless of the source of changes
                   @checkChange null, block, filename
                 @scheduleEvals().then =>
                   @pendingEvals = oldEvals
-                  @importPromise = oldPromise
-                  resolve()), (e)=> reject displayError e
+                  if !oldPromise.isResolved()
+                    if !@importPromise.isResolved then @importPromise = @importPromise.then -> oldPromise
+                    else @importPromise = oldPromise
+                  resolve()), (e)=> reject displayError e)
         getFile: (filename, cont, fail)-> ajaxGet(new URL(filename, @loadName).toString()).then(cont).error(fail)
         decodeObservers: (block)->
           finalObs = []
@@ -1211,7 +1215,7 @@ NMap is a very simple trie.
           -1
         execute: ->
           block = @editor.blockForCaret()
-          if block.type == 'code' && envM = blockEnvMaker block
+          if block.type == 'code' && envM = blockEnvMaker block then @runOnImport =>
             @executeBlock block, envM
             @data.triggerUpdate 'system', 'code', block
             @data.scheduleEvals()
@@ -1254,11 +1258,9 @@ NMap is a very simple trie.
           false
         replaceResult: (block, str)-> replaceResult this, @data, block, str
         hasCollaborativeCode: (name)-> @collaborativeCode[name]
-        openRegistration: ->
-          @registerCollaborativeCode = @registrationCode
-        closeRegistration: ->
-          @registerCollaborativeCode = ->
-            throw new Error "Attempt to register collaborative code after registration is closed"
+        openRegistration: -> @registerCollaborativeCode = @registrationCode
+        closeRegistration: -> @registerCollaborativeCode = ->
+          throw new Error "Attempt to register collaborative code after registration is closed"
         registrationCode: (name, func)->
           @collaborativeCode[name] = (args...)=> @doCollaboratively name, args
           @collaborativeBase[name] = func

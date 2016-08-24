@@ -173,6 +173,8 @@ rollAndReset = do
 :end:
 
 #+BEGIN_SRC leisure :results web
+debug 3
+
 registerCollaborative 'addRollRecord' addRollRecordImpl
 
 registerCollaborative 'createPlayer' createPlayerImpl
