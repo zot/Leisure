@@ -84,7 +84,7 @@
         txt = block.text;
         if (block.type === 'headline') {
           text = parseOrgMode(block.text).children[0].partOffsets().text;
-          return "<span class='plain-headline maintext'>" + (escapeHtml(txt.substring(0, text.start))) + (this.renderMainText(txt.substring(text.start, text.end))) + (escapeHtml(txt.substring(text.end))) + "</span>";
+          return "<div class='plain-headline maintext'>" + (escapeHtml(txt.substring(0, text.start))) + (this.renderMainText(txt.substring(text.start, text.end))) + (escapeHtml(txt.substring(text.end))) + "</div>";
         } else {
           return this.renderMeat(parseOrgMode(block.text).children[0]);
         }

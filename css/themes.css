@@ -23,6 +23,10 @@ body.leisureError > #error {
     font-family: FranklinM54;
     src: url('../font/franklinm54-webfont.woff') format('woff');
 }
+[data-view="leisure-source-toggle"] {
+    float: left;
+    padding-right: 0.5ex;
+}
 .cthulhu [data-edit-mode='plain'],
 /*.cthulhu,*/
 body.cthulhu {
