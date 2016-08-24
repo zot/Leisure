@@ -392,25 +392,25 @@ that must be done regardless of the source of changes
             @pendingEvals = []
             for func in e
               func()
-            if !_.isEmpty @pendingObserves
-              @allowObservation =>
-                blocked = {}
-                oldRunning = {}
-                try
-                  while !_.isEmpty @pendingObserves
-                    p = @pendingObserves
-                    @pendingObserves = {}
-                    @withLounge =>
-                      for blockId, subject of p
-                        if !@running[blockId] && (block = @getBlock(blockId))
-                          blocked[blockId] = true
-                          oldRunning[blockId] = @running[blockId]
-                          @running[blockId] = true
-                          (obs = block.observer)?.observe? subject
-                          if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
-                finally
-                  for k of blocked
-                    @running[k] = oldRunning[k]
+          if !_.isEmpty @pendingObserves
+            @allowObservation =>
+              blocked = {}
+              oldRunning = {}
+              try
+                while !_.isEmpty @pendingObserves
+                  p = @pendingObserves
+                  @pendingObserves = {}
+                  @withLounge =>
+                    for blockId, subject of p
+                      if !@running[blockId] && (block = @getBlock(blockId))
+                        blocked[blockId] = true
+                        oldRunning[blockId] = @running[blockId]
+                        @running[blockId] = true
+                        (obs = block.observer)?.observe? subject
+                        if !@getBlock(block._id).observer then @getBlock(block._id).observer = obs
+              finally
+                for k of blocked
+                  @running[k] = oldRunning[k]
         withLounge: (func)->
           env = Object.create defaultEnv
           env.data = this
