@@ -94,7 +94,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       localStoreName = 'leisureStorage'
       localDb = null
       localStore = null
-      deleteStore = false
       bubbleTopOffset = -5
       bubbleLeftOffset = 0
       keySplitPat = new RegExp ' +'
