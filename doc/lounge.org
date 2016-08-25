@@ -14,7 +14,7 @@
 <a target='info' href='https://en.wikipedia.org/wiki/TiddlyWiki'><img src='illuminated/tiddlywiki.jpg' title='TiddlyWiki runs in a browser and supports live editing'></a>
 <a target='info' href='https://en.wikipedia.org/wiki/Org-mode'><img src='illuminated/orgmode.png' title='Org mode is a text-based, dynamic document environment that runs in Emacs'></a>
 #+END_HTML
-** Lounge provides a collaborative environment with many of Smalltalk's benefits, where each virtual machine is actually a human-readable text document that you can easily put into version control, mail to a friend, and read for yourself /(click the martini glass icon above to see)/
+** Lounge provides a collaborative environment with many of Smalltalk's benefits, where each virtual machine is actually a human-readable text document that you can easily put into version control, mail to a friend, and read for yourself
 ** Collaborators can interact with shared Lounge documents and even work together on code while a document is in use.
 * Illuminated programs are documents that are
 ** Enlightened: like the ancient concept of illumination, special knowledge
@@ -28,11 +28,12 @@
 ** These views reflect the data and definitions below
 [[leisure:rotator]] [[leisure:rotator/two]]
 * Enlightening: users can see the code and data... and change it!
+** Click a martini glass to see the code for its document block
 ** Here is  data for the views, change the degrees and see the views reflect your changes
 #+NAME: rotator
 #+BEGIN_SRC yaml
 type: rotator
-degrees: 98
+degrees: 132
 #+END_SRC
 ** Here are definitions for the views, change them and see the views change as well
 #+BEGIN_SRC html :defview rotator
@@ -54,18 +55,18 @@ degrees: 98
 :properties:
 :import: minimap.org
 :end:
-*** Here is a heatmap of the document.  Change the document and watch it update...
+*** This block imports a heatmap into the document.  Change the document and you'll spots change in the heatmap
 [[lounge:blockMap//loungeMinimapData]]
+
+**** Feel free to edit anything, you can just reload the document at any point to revert your changes to the document
 * Enlightening: code can be media-rich, like ancient illuminated manuscripts
 [[illuminated/Haggadah_15th_cent.jpg]]
 * Collaborative for both users and developers
 * Unified and modeless, the document is the program and the program is the document
+** The document is a kind of virtual machine
 ** The source code is actually the program; users interact with the source document itself
 ** There is no disctinction between run-time and development-time
 ** When the program changes data, the document changes
 ** When a user edits data in the document, the program data changes
-** Essentially, the document is a virtual machine
 ** Program functionality happens in the document, not on a server
 *** The collaboration server only manages changes
-* Edit anything and you'll see a spot in the heatmap
-** Feel free to edit anything, you can just reload the document at any point to revert your changes to the document
