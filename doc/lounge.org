@@ -59,8 +59,8 @@ degrees: 132
 [[lounge:blockMap//loungeMinimapData]]
 
 **** Feel free to edit anything, you can just reload the document at any point to revert your changes to the document
-** Test Cases
-*** This test case is true when App.x is the number 3
+*** Test Cases
+**** This test case is true when App.x is the number 3
 #+NAME: chet
 #+BEGIN_SRC coffee :results yaml dynamic view(testCase) :observe system.code :exports results
 App.x
@@ -70,7 +70,7 @@ App.x
 :end:
 #+RESULTS:
 : 2
-*** Change the value of App.x to see the test case status change
+**** Change the value of App.x to see the test case status change
 #+BEGIN_SRC coffee :results dynamic
 App.x = 2
 #+END_SRC
