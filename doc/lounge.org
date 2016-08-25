@@ -59,6 +59,53 @@ degrees: 132
 [[lounge:blockMap//loungeMinimapData]]
 
 **** Feel free to edit anything, you can just reload the document at any point to revert your changes to the document
+** Test Cases
+*** This test case is true when App.x is the number 3
+#+NAME: chet
+#+BEGIN_SRC coffee :results yaml dynamic view(testCase) :observe system.code :exports results
+App.x
+#+END_SRC
+:expected:
+: 3
+:end:
+#+RESULTS:
+: 2
+*** Change the value of App.x to see the test case status change
+#+BEGIN_SRC coffee :results dynamic
+App.x = 2
+#+END_SRC
+#+RESULTS:
+: 2
+* More info on test cases
+:properties:
+:hidden: true
+:end:
+*** A test case observes code and redisplays its pass/fail status when the code changes
+*** It uses a view to indicate pass/fail status
+*** It reruns and redisplays when its observation channel triggers
+*** Here's the view for the test case
+#+BEGIN_SRC html :defview testCase
+{{#if (isExpected)}}
+  <span class='test pass'>PASS</span>
+{{else}}
+  <span class='test fail' title='expected &amp;lt;{{expectedResult}}&amp;gt; but got &amp;lt;{{actualResult}}&amp;gt;'>FAIL<span>
+{{/if}}
+#+END_SRC
+
+#+BEGIN_SRC css
+.test {
+  font-weight: bold;
+  border: solid black 3px;
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+.pass {
+  color: green;
+}
+.fail {
+  color: red;
+}
+#+END_SRC
 * Enlightening: code can be media-rich, like ancient illuminated manuscripts
 [[illuminated/Haggadah_15th_cent.jpg]]
 * Collaborative for both users and developers
