@@ -19,22 +19,48 @@
 * Illuminated programs are documents that are
 ** Enlightening, the user can see and change the code and the data
 ** Enlightened, like the ancient concept of illumination
-*** They can react to changes in document content, data, and code
 ** Enlightened, like having special knowledge
-*** They can contain custom behavior
-*** They can interact with the reader
-*** They support modern techniques
-*** They contain their own development and diagnostic tools
 ** Media-rich, like ancient illuminated manuscripts
 ** Collaborative for both users and developers
 ** Unified and modeless, the document is the program and the program is the document
-*** The source code is actually the program; users interact with the source document itself
-*** There is no disctinction between run-time and development-time
-*** When the program changes data, the document changes
-*** When a user edits data in the document, the program data changes
-*** Essentially, the document is a virtual machine
-*** Program functionality happens in the document, not on a server
-**** The collaboration server only manages changes
+* Enlightening, the user can see and change the code and the data
+** Here is some data
+#+NAME: rotator
+#+BEGIN_SRC yaml
+type: rotator
+degrees: 98
+#+END_SRC
+** Here are some definitions of some views
+#+BEGIN_SRC html :defview rotator
+<div style='padding: 25px; display: inline-block; vertical-align: middle'>
+  <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview rotator/two
+<div style='padding: 25px; padding-left: 100px; display: inline-block; vertical-align: middle'>
+  <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
+</div>
+#+END_SRC
+* Enlightened, like the ancient concept of illumination
+** Illuminated programs can react to changes in their content, data, and code
+** These views reflect the data and definitions above
+[[leisure:rotator]] [[leisure:rotator/two]]
+* Enlightened, like having special knowledge
+** They can contain custom behavior
+** They can interact with the reader
+** They support modern techniques
+** They contain their own development and diagnostic tools
+* Media-rich, like ancient illuminated manuscripts
+* Collaborative for both users and developers
+* Unified and modeless, the document is the program and the program is the document
+** The source code is actually the program; users interact with the source document itself
+** There is no disctinction between run-time and development-time
+** When the program changes data, the document changes
+** When a user edits data in the document, the program data changes
+** Essentially, the document is a virtual machine
+** Program functionality happens in the document, not on a server
+*** The collaboration server only manages changes
 * Here is a heatmap of the current document
 :properties:
 :import: minimap.org

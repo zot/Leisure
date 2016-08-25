@@ -182,7 +182,7 @@
       context = options != null ? options.data : void 0;
       data = ((block = context.opts.data.getBlockNamed(item)) && (yaml = context.opts.data.getYaml(block)) ? yaml : (block = null, item));
       if (data != null ? data.type : void 0) {
-        return renderView(data.type, contextName, data, null, block);
+        return renderView(data.type, contextName, data, null, block != null ? block : root.context.currentBlock);
       }
     });
     Handlebars.registerHelper('viewWrapper', function(name, data, opts) {

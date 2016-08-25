@@ -1656,6 +1656,7 @@ button:hover {
 [data-edit-mode='fancy'][data-org-headline='1'] > .maincontent > [data-org-type='text'] {
     font-size: 2em;
     position: relative;
+    height: 2em;
 }
 [data-edit-mode='fancy'][data-org-headline='1'] > .maincontent > [data-org-type='text'] {
     display: block;

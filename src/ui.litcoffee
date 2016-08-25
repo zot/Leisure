@@ -143,7 +143,7 @@ choose a handlebars template.
           block = null
           item)
         if data?.type
-          renderView data.type, contextName, data, null, block
+          renderView data.type, contextName, data, null, block ? root.context.currentBlock
 
       Handlebars.registerHelper 'viewWrapper', (name, data, opts)->
         simpleRenderView "data-view='#{name}' data-requested-view='#{name}' class='view'", name, opts.fn, this
