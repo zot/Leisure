@@ -2015,9 +2015,19 @@
       OrgEditing.prototype.imageError = function(img, e) {};
 
       OrgEditing.prototype.setEditor = function(ed) {
-        var opts;
+        var bubble, opts;
         OrgEditing.__super__.setEditor.call(this, ed);
         $(ed.node).addClass('leisure-editor');
+        bubble = $("<div name='selectionBubble' contenteditable='false'></div>");
+        bubble.appendTo(ed.node).html(selectionMenu).on('mouseclick', function() {
+          return configureMenu(bubble.find('ul'));
+        });
+        bubble.find('ul').menu({
+          select: function(event, ui) {
+            console.log("MENU SELECT");
+            return false;
+          }
+        });
         this.setMode(this.mode);
         this.initToolbar();
         this.bindings = {
@@ -2048,7 +2058,18 @@
           };
         })(this);
         opts = this;
-        changeAdvice(ed, true, {
+        return changeAdvice(ed, true, {
+          setHtml: {
+            options: function(parent) {
+              return function(el, html, outer) {
+                var sel;
+                sel = ed.node.find("[name='selectionBubble']");
+                sel.remove();
+                parent(el, html, outer);
+                return ed.node.append(sel);
+              };
+            }
+          },
           keyPress: {
             options: function(parent) {
               return function(e) {
@@ -2089,7 +2110,6 @@
             }
           }
         });
-        return $(this.editor.node).on('scroll', updateSelection);
       };
 
       OrgEditing.prototype.setMode = function(mode) {
@@ -2601,7 +2621,7 @@
       return new OrgData();
     };
     installSelectionMenu = function() {
-      $(document.body).append("<div id='selectionBubble' contenteditable='false'></div>").append("<div id='topCaretBox' contenteditable='false'></div>").append("<div id='bottomCaretBox' contenteditable='false'></div>");
+      $(document.body).append("<div id='topCaretBox' contenteditable='false'></div>").append("<div id='bottomCaretBox' contenteditable='false'></div>");
       return monitorSelectionChange();
     };
     selectionMenu = "<div>\n<ul>\n  <li name='insert'><a href='javascript:void(0)'><span>Insert</span></a>\n    <ul>\n      <li><a href='javascript:void(0)'><span>Leisure</span></a></li>\n      <li><a href='javascript:void(0)'><span>YAML</span></a></li>\n      <li><a href='javascript:void(0)'><span>HTML</span></a></li>\n      <li><a href='javascript:void(0)'><span>CoffeeScript</span></a></li>\n      <li><a href='javascript:void(0)'><span>JavaScript</span></a></li>\n    </ul>\n  </li>\n</ul>\n</div>";
@@ -2609,16 +2629,15 @@
       return console.log("configure menu");
     };
     actualSelectionUpdate = function() {
-      var bubble, c, editor, left, p, top;
+      var bubble, c, editor, node, p;
       if (selectionActive) {
         if (editor = findEditor(getSelection().focusNode)) {
           c = editor.domCursorForCaret();
           if (!c.isEmpty() && (p = c.textPosition()) && isContentEditable(c.node)) {
-            left = p.left;
-            top = p.top;
-            bubble = $("#selectionBubble")[0];
-            bubble.style.left = (left + bubbleLeftOffset) + "px";
-            bubble.style.top = (top - bubble.offsetHeight + bubbleTopOffset) + "px";
+            bubble = editor.node.find("[name='selectionBubble']")[0];
+            node = editor.node[0];
+            bubble.style.left = (p.left + bubbleLeftOffset) + "px";
+            bubble.style.top = (p.top + node.scrollTop - bubble.offsetHeight - node.offsetTop) + "px";
             $(document.body).addClass('selection');
             editor.trigger('selection');
             return;
@@ -2637,7 +2656,6 @@
     });
     monitorSelectionChange = function() {
       $(document).on('selectionchange', updateSelection);
-      $(window).on('scroll', updateSelection);
       return $(window).on('blur focus', function(e) {
         selectionActive = e.type === 'focus';
         return updateSelection();
