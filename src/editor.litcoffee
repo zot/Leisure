@@ -691,9 +691,12 @@ Events:
               @docOffset r.endContainer, Math.max r.startOffset, r.endOffset
             else @docOffset r.endContainer, r.endOffset
           start = pos = @domCursorForCaret().firstText().save()
-          while !pos.isEmpty() && @options.isValidDocOffset(offset) && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
-            pos = @domCursorForDocOffset ++offset
-            pos.moveCaret()
+          if !pos.isEmpty() && @options.isValidDocOffset(offset) && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
+            pos = @domCursorForDocOffset offset
+            while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
+              if DOMCursor.isCollapsed pos.node
+                pos.next().moveCaret()
+              else pos.forwardChars(1).moveCaret()
           if pos.isEmpty()
             offset = @options.getLength() - 1
             pos = @domCursorForDocOffset(offset).firstText()
@@ -711,9 +714,12 @@ Events:
               @docOffset r.endContainer, Math.min r.startOffset, r.endOffset
             else @docOffset r.startContainer, r.startOffset
           start = pos = @domCursorForCaret().firstText().save()
-          while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
-            pos = @domCursorForDocOffset --offset
-            pos.moveCaret()
+          if !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
+            pos = @domCursorForDocOffset offset
+            while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
+              if DOMCursor.isCollapsed pos.node
+                pos.prev()
+              else pos.backwardChar().moveCaret()
           if pos.isEmpty()
             offset = 0
             pos = @domCursorForDocOffset(offset).firstText()
