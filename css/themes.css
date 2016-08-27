@@ -15,6 +15,9 @@ body.leisureError > #error {
     margin: auto;
     height: 100%;
 }
+#codeMenu {
+    z-index: 1999;
+}
 .debug [data-shared] {
     outline: solid green 2px;
 }

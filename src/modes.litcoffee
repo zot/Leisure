@@ -92,6 +92,7 @@
         blockIsHidden
         blockEnvMaker
         controllerEval
+        updateSelection
       } = EditorSupport
       {
         Promise
@@ -189,6 +190,7 @@
                 $(prev).after opts.renderBlock(next)[0]
                 prev = prev.nextSibling
           initializePendingViews()
+          updateSelection()
 
       Handlebars.registerHelper 'render', (block)->
         fancyMode.render(UI.context.opts, block, UI.context.prefix)[0]

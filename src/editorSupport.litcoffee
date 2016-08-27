@@ -1538,4 +1538,5 @@ Exports
         makeImageBlob
         getId
         fileTypes
+        updateSelection
       }
