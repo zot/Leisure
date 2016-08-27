@@ -22,12 +22,12 @@
 * Illuminated programs are documents that are
 ** Enlightened: like the ancient concept of illumination, they have "special knowledge"
 ** Enlightened: well-informed and intelligent
-** Enlightening: users can access the code and data... and change it!
+** Enlightening: users can access the code and data and change it
 ** Enlightening: the code itself is media-rich, like ancient illuminated manuscripts
 ** Collaborative for both users and developers
-** Unified and modeless, the document is the program and the program is the document
+** Unified and modeless, the document is the program
 * Enlightened: like being well-informed and intelligent
-** They can contain custom behavior and alter or disable standard Lounge behavior
+** They can have custom behavior and alter or disable standard Lounge behavior
 ** They can interact with the reader
 ** They support modern techniques
 *** Like showing results as you change code, change some of this:
@@ -56,7 +56,6 @@ App.x
 :end:
 #+RESULTS:
 : 2
-**** Change the value of App.x to see the test case status change
 #+BEGIN_SRC coffee :results dynamic
 App.x = 2
 #+END_SRC

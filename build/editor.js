@@ -919,9 +919,15 @@
         sel = getSelection();
         offset = sel.type === 'None' ? 0 : (r = sel.getRangeAt(0), offset = r.endContainer === r.startContainer ? this.docOffset(r.endContainer, Math.max(r.startOffset, r.endOffset)) : this.docOffset(r.endContainer, r.endOffset));
         start = pos = this.domCursorForCaret().firstText().save();
-        while (!pos.isEmpty() && this.options.isValidDocOffset(offset) && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
-          pos = this.domCursorForDocOffset(++offset);
-          pos.moveCaret();
+        if (!pos.isEmpty() && this.options.isValidDocOffset(offset) && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
+          pos = this.domCursorForDocOffset(offset);
+          while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
+            if (DOMCursor.isCollapsed(pos.node)) {
+              pos.next().moveCaret();
+            } else {
+              pos.forwardChars(1).moveCaret();
+            }
+          }
         }
         if (pos.isEmpty()) {
           offset = this.options.getLength() - 1;
@@ -940,9 +946,15 @@
         sel = getSelection();
         offset = sel.type === 'None' ? 0 : (r = sel.getRangeAt(0), offset = r.endContainer === r.startContainer ? this.docOffset(r.endContainer, Math.min(r.startOffset, r.endOffset)) : this.docOffset(r.startContainer, r.startOffset));
         start = pos = this.domCursorForCaret().firstText().save();
-        while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
-          pos = this.domCursorForDocOffset(--offset);
-          pos.moveCaret();
+        if (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
+          pos = this.domCursorForDocOffset(offset);
+          while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
+            if (DOMCursor.isCollapsed(pos.node)) {
+              pos.prev();
+            } else {
+              pos.backwardChar().moveCaret();
+            }
+          }
         }
         if (pos.isEmpty()) {
           offset = 0;
