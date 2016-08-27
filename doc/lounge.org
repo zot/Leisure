@@ -1,56 +1,42 @@
 * Introducing Lounge, an open source, illuminated programming environment
 * Building on the Smalltalk Vision
-** What if programs were delivered as virtual machines that were easy to checkpoint and duplicate, they included development environments, and all their source code, data, and graphic interface definitions were viewable and changeable?
+** What if programs were delivered as virtual machines that were easy to checkpoint and duplicate, each program included a development environment, and all of its source code, data, and graphic interface definitions were viewable and changeable?
 ** This vision was achieved and released to the world with Smalltalk-80
 #+BEGIN_HTML
 <a target='info' href='https://en.wikipedia.org/wiki/Smalltalk'><img src='illuminated/Smalltalk80book.jpg' title='Smalltalk pioneered a lot,<br>including object oriented programming, windows, and GUI widgets,<br>among other goodies'></a>
 #+END_HTML
+
 ** Lounge builds on this vision and also mixes in elements from other sources, such as Oberon, Hypercard, Mathematica, Self, TiddlyWiki, and Org Mode
 #+BEGIN_HTML
-<a target='info' href='https://en.wikipedia.org/wiki/Oberon_(programming_language)'><img src='illuminated/OberonScreen.png' title='Oberon demonstrates the power of text by using text for a lot of things that other environments rely on graphics for'></a>
-<a target='info' href='https://en.wikipedia.org/wiki/HyperCard'><img src='illuminated/HyperCardbird.jpg' title='Hypercard influenced the WWW'></a>
-<a target='info' href='https://en.wikipedia.org/wiki/Wolfram_Mathematica'><img src='illuminated/mathematica.png' title='Mathematica notebooks are interactive, editable documents'></a>
-<a target='info' href='https://en.wikipedia.org/wiki/Self_(programming_language)'><img src='illuminated/self.png' title='Self has a collaborative interface, called Kansas'></a>
-<a target='info' href='https://en.wikipedia.org/wiki/TiddlyWiki'><img src='illuminated/tiddlywiki.jpg' title='TiddlyWiki runs in a browser and supports live editing'></a>
-<a target='info' href='https://en.wikipedia.org/wiki/Org-mode'><img src='illuminated/orgmode.png' title='Org mode is a text-based, dynamic document environment that runs in Emacs'></a>
+<a target='info' href='https://en.wikipedia.org/wiki/Oberon_(programming_language)'><img height='250px' src='illuminated/OberonScreen.png' title='Oberon demonstrates the power of text by using text for a lot of things that other environments rely on graphics for'></a>
+<a target='info' href='https://en.wikipedia.org/wiki/HyperCard'><img height='250px' src='illuminated/HyperCardbird.jpg' title='Hypercard influenced the WWW'></a>
+<a target='info' href='https://en.wikipedia.org/wiki/Wolfram_Mathematica'><img height='250px' src='illuminated/mathematica.png' title='Mathematica notebooks are interactive, editable documents'></a>
+<a target='info' href='https://en.wikipedia.org/wiki/Self_(programming_language)'><img height='250px' src='illuminated/self.png' title='Self has a collaborative interface, called Kansas'></a>
+<a target='info' href='https://en.wikipedia.org/wiki/TiddlyWiki'><img height='250px' src='illuminated/tiddlywiki.jpg' title='TiddlyWiki runs in a browser and supports live editing'></a>
+<a target='info' href='https://en.wikipedia.org/wiki/Org-mode'><img height='250px' src='illuminated/orgmode.png' title='Org mode is a text-based, dynamic document environment that runs in Emacs'></a>
 #+END_HTML
-** Lounge provides a collaborative environment with many of Smalltalk's benefits, where each virtual machine is actually a human-readable text document that you can easily put into version control, mail to a friend, and read for yourself
-** Collaborators can interact with shared Lounge documents and even work together on code while a document is in use.
+
+** Lounge provides a collaborative, illuminated programming environment with many of Smalltalk's benefits, where the virtual machine memory is actually a human-readable text document that you can easily put into version control, mail to a friend, and read for yourself
+** Collaborators can interact with shared Lounge documents and even work together on code while a document is in use
+** Some other recent environments share some of Lounge's ideals, such as [[https://jupyter.org/][Jupyter]] and [[http://www.apple.com/swift/playgrounds/][Apple's Swift Playgrounds]]
 * Illuminated programs are documents that are
-** Enlightened: like the ancient concept of illumination, special knowledge
-** Enlightening: users can see the code and data... and change it!
-** Enlightened: like being well-informed and up-to-date
-** Enlightening: code can be media-rich, like ancient illuminated manuscripts
+** Enlightened: like the ancient concept of illumination, they have "special knowledge"
+** Enlightened: well-informed and intelligent
+** Enlightening: users can access the code and data... and change it!
+** Enlightening: the code itself is media-rich, like ancient illuminated manuscripts
 ** Collaborative for both users and developers
 ** Unified and modeless, the document is the program and the program is the document
-* Enlightened: like the ancient concept of illumination, special knowledge
-** Illuminated programs can react to changes in their content, data, and code
-** These views reflect the data and definitions below
-[[leisure:rotator]] [[leisure:rotator/two]]
-* Enlightening: users can see the code and data... and change it!
-** Click a martini glass to see the code for its document block
-** Here is  data for the views, change the degrees and see the views reflect your changes
-#+NAME: rotator
-#+BEGIN_SRC yaml
-type: rotator
-degrees: 132
-#+END_SRC
-** Here are definitions for the views, change them and see the views change as well
-#+BEGIN_SRC html :defview rotator
-<div style='padding: 25px; display: inline-block; vertical-align: middle'>
-  <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>
-</div>
-#+END_SRC
-
-#+BEGIN_SRC html :defview rotator/two
-<div style='padding: 25px; padding-left: 100px; display: inline-block; vertical-align: middle'>
-  <div style='transform-origin: 5px 100px; transform: rotate(calc(90deg - {{degrees}}deg));height: 100px;width: 10px;background: red'></div>
-</div>
-#+END_SRC
-* Enlightened: like being well-informed and up-to-date
-** They can contain custom behavior
+* Enlightened: like being well-informed and intelligent
+** They can contain custom behavior and alter or disable standard Lounge behavior
 ** They can interact with the reader
 ** They support modern techniques
+*** Like showing results as you change code, change some of this:
+#+BEGIN_SRC coffee :results dynamic
+3 + 4
+#+END_SRC
+#+RESULTS:
+: 7
+** They can connect to Emacs and Atom, allowing you to edit live documents in all three environments
 ** They contain their own development and diagnostic tools
 :properties:
 :import: minimap.org
@@ -62,7 +48,7 @@ degrees: 132
 *** Test Cases
 **** This test case is true when App.x is the number 3
 #+NAME: chet
-#+BEGIN_SRC coffee :results yaml dynamic view(testCase) :observe system.code :exports results
+#+BEGIN_SRC coffee :results view(testCase) :observe system.code :exports results
 App.x
 #+END_SRC
 :expected:
@@ -106,9 +92,40 @@ App.x = 2
   color: red;
 }
 #+END_SRC
+* Enlightened: like the ancient concept of illumination, special knowledge
+** Illuminated programs can react to changes in their content, data, and code
+** These views reflect the data and definitions below
+[[leisure:rotator]] [[leisure:rotator/two]]
+* Enlightening: users can access the code and data... and change it!
+** Click a martini glass to see the code in a document block
+** Here is data for the views above, change the degrees and see the views reflect your changes
+#+NAME: rotator
+#+BEGIN_SRC yaml
+type: rotator
+degrees: 0
+#+END_SRC
+** Here are definitions for the views above, change them and see the views change as well
+#+BEGIN_SRC html :defview rotator
+<div style='padding: 25px; display: inline-block; vertical-align: middle'>
+  <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview rotator/two
+<div style='padding: 25px; padding-left: 100px; display: inline-block; vertical-align: middle'>
+  <div style='transform-origin: 0px 5px; transform: rotate(calc(0deg - {{degrees}}deg));height: 10px;width: 100px;background: red'></div>
+</div>
+#+END_SRC
 * Enlightening: code can be media-rich, like ancient illuminated manuscripts
 [[illuminated/Haggadah_15th_cent.jpg]]
+
+** This document is an illuminated program, of course
 * Collaborative for both users and developers
+** Click "Collaboration" above, create a session, and send the URL to a friend so you can collaborate on this document
+** Collaboration is not always the same as storage, it depends on the approach
+*** Google's uses on stored documents, keeping them up-to-date as you make changes
+*** Lounge's built-in one uses a private copy, letting you save the document only when you desire
+*** Both approachs are useful, depending on your requirements
 * Unified and modeless, the document is the program and the program is the document
 ** The document is a kind of virtual machine
 ** The source code is actually the program; users interact with the source document itself

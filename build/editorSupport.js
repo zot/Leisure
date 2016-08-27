@@ -2773,7 +2773,8 @@
       parseYaml: parseYaml,
       makeImageBlob: makeImageBlob,
       getId: getId,
-      fileTypes: fileTypes
+      fileTypes: fileTypes,
+      updateSelection: updateSelection
     };
   });
 

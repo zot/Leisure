@@ -153,8 +153,10 @@
         opts = searchEditor.options
         Leisure.configureEmacsOpts opts
         Leisure.configurePeerOpts opts
+        opts.openRegistration()
         opts.registerCollaborativeCode 'doSlideValue', doSlideValue
         opts.registerCollaborativeCode 'viewBoundSet', (context, name, data)-> options.setData name, data
+        opts.closeRegistration()
         opts.hiding = false
         output.prev().filter('[data-view=leisure-toolbar]').remove()
         input.on 'input', (e)-> opts.search()
