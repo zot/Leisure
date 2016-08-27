@@ -1050,6 +1050,12 @@ NMap is a very simple trie.
         setEditor: (ed)->
           super ed
           $(ed.node).addClass 'leisure-editor'
+          bubble = $("<div name='selectionBubble' contenteditable='false'></div>")
+          bubble
+            .appendTo ed.node
+            .html selectionMenu
+            .on 'mouseclick', -> configureMenu bubble.find 'ul'
+          bubble.find('ul').menu select: (event, ui)-> console.log "MENU SELECT"; false
           @setMode @mode
           @initToolbar()
           @bindings =
@@ -1066,6 +1072,11 @@ NMap is a very simple trie.
             false
           opts = this
           changeAdvice ed, true,
+            setHtml: options: (parent)-> (el, html, outer)->
+              sel = ed.node.find("[name='selectionBubble']")
+              sel.remove()
+              parent el, html, outer
+              ed.node.append sel
             keyPress: options: (parent)-> (e)->
               opts.mode.keyPress opts, parent, e
             enter: options: (parent)-> (e)->
@@ -1077,7 +1088,6 @@ NMap is a very simple trie.
             activateScripts: options: (parent)-> (jq, context, data, block)->
               if UI.context then UI.activateScripts jq, UI.context, data, block
               else parent jq, data, block
-          $(@editor.node).on 'scroll', updateSelection
         setMode: (@mode)->
           if @mode && @editor then @editor.node.attr 'data-edit-mode', @mode.name
           this
@@ -1361,13 +1371,8 @@ NMap is a very simple trie.
 
       installSelectionMenu = ->
         $(document.body)
-          .append "<div id='selectionBubble' contenteditable='false'></div>"
           .append "<div id='topCaretBox' contenteditable='false'></div>"
           .append "<div id='bottomCaretBox' contenteditable='false'></div>"
-        #$("#selectionBubble")
-        #  .html selectionMenu
-        #  .on 'mouseenter', -> configureMenu $("#selectionBubble ul")
-        #$("#selectionBubble ul").menu select: (event, ui)-> console.log "MENU SELECT"; false
         monitorSelectionChange()
 
       selectionMenu = """
@@ -1400,11 +1405,10 @@ NMap is a very simple trie.
           if editor = findEditor getSelection().focusNode
             c = editor.domCursorForCaret()
             if !c.isEmpty() && (p = c.textPosition()) && isContentEditable c.node
-              left = p.left
-              top = p.top
-              bubble = $("#selectionBubble")[0]
-              bubble.style.left = "#{left + bubbleLeftOffset}px"
-              bubble.style.top = "#{top - bubble.offsetHeight + bubbleTopOffset}px"
+              bubble = editor.node.find("[name='selectionBubble']")[0]
+              node = editor.node[0]
+              bubble.style.left = "#{p.left + bubbleLeftOffset}px"
+              bubble.style.top = "#{p.top + node.scrollTop - bubble.offsetHeight - node.offsetTop}px"
               $(document.body).addClass 'selection'
               editor.trigger 'selection'
               return
@@ -1419,7 +1423,6 @@ NMap is a very simple trie.
 
       monitorSelectionChange = ->
         $(document).on 'selectionchange', updateSelection
-        $(window).on 'scroll', updateSelection
         $(window).on 'blur focus', (e)->
           selectionActive = (e.type == 'focus')
           updateSelection()

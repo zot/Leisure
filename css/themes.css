@@ -1017,11 +1017,13 @@ body {
     top: inherit !important;
     bottom: inherit !important;
 }
+[name=selectionBubble],
 #selectionBubble {
     display: none;
     -webkit-user-select: none;
     user-select: none;
-    position: fixed;
+    /*position: fixed;*/
+    position: absolute;
     border: solid blue 2px;
 /*
     width: 5px;
@@ -1038,19 +1040,26 @@ body {
     background-color: yellow;
     z-index: 1000;
 }
+[name=selectionBubble] > div,
 #selectionBubble > div {
     display: none;
     white-space: nowrap;
 }
+.selection [name=selectionBubble],
 .selection #selectionBubble {
     display: inherit;
 }
+/*
+.selection [name=selectionBubble]:hover > div,
 .selection #selectionBubble:hover > div {
     display: inline-block;
 }
+*/
+[name=selectionBubble] a span,
 #selectionBubble a span {
     white-space: pre;
 }
+[name=selectionBubble] a[aria-haspopup='true'] span::after,
 #selectionBubble a[aria-haspopup='true'] span::after {
     content: '    ';
 }
@@ -1358,6 +1367,7 @@ body.slides.firstSlide #prevSlide {
 [maindoc] {
     white-space: pre-wrap;
     outline: none;
+    position: relative;
 }
 .ui-tooltip {
     white-space: pre-wrap;
