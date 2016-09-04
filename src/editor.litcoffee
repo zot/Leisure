@@ -150,6 +150,7 @@ Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEd
       {
         Promise
       } = Bluebird
+      imbeddedBoundary = /.\b./
       maxLastKeys = 4
       BS = 8
       ENTER = 13
@@ -579,12 +580,38 @@ Events:
             @replace e, @getSelectedBlockRange(), e.originalEvent.clipboardData.getData('text/plain'), false
         bindMouse: ->
           @node.on 'mousedown', (e)=>
-            if @dragRange = @getAdjustedCaretRange e
+            if @lastDragRange && e.originalEvent.detail == 2
+              @dragRange = @lastDragRange
+              console.log "double click"
+              start = @domCursor(@dragRange).mutable()
+              end = start.copy()
+              txt = start.char()
+              while true
+                start.backwardChar()
+                if !start.isEmpty() && start.type == 'text' then txt = start.char() + txt
+                if start.isEmpty() || start.type != 'text' || txt.match imbeddedBoundary
+                  #start.forwardChar()
+                  break
+              txt = end.char()
+              while true
+                end.forwardChar()
+                if !end.isEmpty() && end.type == 'text' then txt += end.char()
+                if end.isEmpty() || end.type != 'text' || txt.match imbeddedBoundary
+                  end.backwardChar()
+                  break
+              s = getSelection()
+              s.removeAllRanges()
+              @dragRange.setStart start.node, start.pos
+              @dragRange.setEnd end.node, end.pos
+              s.addRange @dragRange
+              e.preventDefault()
+            else if @dragRange = @getAdjustedCaretRange e
               @domCursor(@dragRange).moveCaret()
               e.preventDefault()
             setTimeout (=>@trigger 'moved', this), 1
             @setCurKeyBinding null
           @node.on 'mouseup', (e)=>
+            @lastDragRange = @dragRange
             @dragRange = null
             @adjustSelection e
             @trigger 'moved', this
@@ -596,8 +623,6 @@ Events:
               r2 = @getAdjustedCaretRange e, true
               s.extend r2.startContainer, r2.startOffset
               e.preventDefault()
-          @node.on 'click', (e)=>
-            console.log 'click'
         getAdjustedCaretRange: (e, returnUnchanged) ->
           r = document.caretRangeFromPoint e.clientX, e.clientY
           r2 = @domCursor(r).backwardChar().range()

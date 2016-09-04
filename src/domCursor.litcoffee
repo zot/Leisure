@@ -353,9 +353,11 @@ the previous text node (node, node.length)
               t.substring 0, t.length - n.node.length + n.pos
             else ''
 
+        char: -> @type == 'text' && @node.data[@pos]
+
 **isNL** returns whether the current character is a newline
 
-        isNL: -> @type == 'text' && @node.data[@pos] == '\n'
+        isNL: -> @char() == '\n'
 
 **endsInNL** returns whether the current node ends with a newline
 
