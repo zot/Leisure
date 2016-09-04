@@ -118,16 +118,19 @@ degrees: 0
 #+END_SRC
 * Enlightening: code can be media-rich, like ancient illuminated manuscripts
 #+BEGIN_HTML
-<div style='float: left; margin-right: 2ex'>
-  <img src='illuminated/Haggadah_15th_cent.jpg' style='height: 15em'>
-  <br>
-  <img src='https://upload.wikimedia.org/wikipedia/commons/8/8e/KellsFol292rIncipJohn.jpg' style='height: 15em'>
-</div>
+<img src='illuminated/Haggadah_15th_cent.jpg' style='height: 15em; float: left; margin-right: 2ex'>
 #+END_HTML
 ** This document is an illuminated program (of course)
 In ancient times, documents were hand-written and took a lot of labor to
 produce. "[[https://en.wikipedia.org/wiki/Illuminated_manuscript][Illuminated manuscripts]]" date back to as early as the [[https://en.wikipedia.org/wiki/Miniature_(illuminated_manuscript)#Italy_and_Byzantium.2C_3rd.E2.80.936th_centuries][3rd century]] and
 contained lavish illustrations
+
+#+BEGIN_HTML
+<div style='display: block; clear: both'>
+  <img src='https://upload.wikimedia.org/wikipedia/commons/8/8e/KellsFol292rIncipJohn.jpg' style='height: 15em'>
+  <img src='illuminated/illuminated-alphabet.jpg' style='height: 15em'>
+</div>
+#+END_HTML
 * Collaborative for both users and developers
 ** Click "Collaboration" above, create a session, and send the URL to a friend so you can collaborate on this document
 ** Collaboration is not always the same as storage, it depends on the approach
@@ -164,6 +167,18 @@ if !App.gothicFont
         }
       </style>
     """
+  for l in "W"
+    name = "illuminated/dropCaps/#{l}.png"
+    Lounge.opts.data.getFile(name).then (contents)->
+      img = Leisure.makeImageBlob name, contents
+      $(document.head).append """
+        <style id='letter-#{l}'>
+          .letter-#{l}.first-text:first-letter {
+            color: rgba(0,0,0,0);
+            background: url("#{img}") 0 0 / 100% 100%;
+          }
+        </style>
+      """
 #+END_SRC
 
 #+BEGIN_SRC css
@@ -174,10 +189,10 @@ if !App.gothicFont
 .first-text:first-letter {
   float: left;
   color: #660;
-  font-size: 75px;
-  line-height: 60px;
-  padding-top: 0px;
-  padding-right: 4px;
+  font-size: 250%;
+  margin-top: 0.1em;
+  margin-right: 0.1em;
+  vertical-align: top;
   font-family: "Grusskarten Gotisch";
 }
 #+END_SRC

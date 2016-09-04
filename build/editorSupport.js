@@ -1355,7 +1355,7 @@
     };
     makeImageBlob = function(name, contents) {
       var m;
-      if (m = name.match(/jpg|jpeg|png|gif|bmp|xpm|svg/)) {
+      if (m = name.match(/\.(jpg|jpeg|png|gif|bmp|xpm|svg)$/)) {
         return makeBlobUrl(contents, "image/" + fileTypes[m[0]]);
       }
     };
@@ -2777,7 +2777,8 @@
       CodeContext: CodeContext,
       modifyingKey: modifyingKey,
       getId: getId,
-      makeBlobUrl: makeBlobUrl
+      makeBlobUrl: makeBlobUrl,
+      makeImageBlob: makeImageBlob
     });
     return {
       createLocalData: createLocalData,

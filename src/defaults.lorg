@@ -359,7 +359,7 @@ render this
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-headline
-<div id='{{id}}' class='fancy{{#if firstText}} first-text{{/if}}'
+<div id='{{id}}' class='fancy{{#if firstText}} first-text letter-{{firstText}}{{/if}}'
 {{{style}}}
 data-edit-mode='fancy'
 data-block='headline'
@@ -369,7 +369,7 @@ render this
 #+END_SRC
 ** Chunk
 #+BEGIN_SRC html :defview leisure-chunk
-<span id='{{id}}' class='fancy{{#if firstText}} first-text{{/if}}' data-block='chunk'>{{{text}}}</span>
+<span id='{{id}}' class='fancy{{#if firstText}} first-text letter-{{firstText}}{{/if}}' data-block='chunk'>{{{text}}}</span>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-example
