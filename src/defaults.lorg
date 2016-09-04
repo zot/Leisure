@@ -363,7 +363,7 @@ render this
 {{{style}}}
 data-edit-mode='fancy'
 data-block='headline'
-data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div>{{#each children}}{{{
+data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{{maintext}}}</div>{{#each children}}{{{
 render this
 }}}{{/each}}</div>
 #+END_SRC

@@ -56,6 +56,7 @@ App.x
 :end:
 #+RESULTS:
 : 2
+
 #+BEGIN_SRC coffee :results dynamic
 App.x = 2
 #+END_SRC
@@ -146,7 +147,8 @@ contained lavish illustrations
 :hidden: true
 :end:
 #+BEGIN_SRC coffee :results def
-window.App = window.App || {}
+window.App = window.App
+App.x = 2
 if !App.gothicFont
   App.gothicFont = true
   Lounge.opts.data.getFile('illuminated/GrusskartenGotisch.woff').then (contents)->
@@ -165,7 +167,12 @@ if !App.gothicFont
 #+END_SRC
 
 #+BEGIN_SRC css
-[data-headline='2'] > .maintext:first-letter {
+[data-headline='1'] > .maincontent > :last-child > :first-child {
+  display: block;
+  min-height: 4em;
+}
+
+[data-headline='1'] > .maincontent > :last-child > :first-child:first-letter {
   float: left;
   color: #660;
   font-size: 75px;
@@ -173,9 +180,6 @@ if !App.gothicFont
   padding-top: 0px;
   padding-right: 4px;
   font-family: "Grusskarten Gotisch";
-}
-[data-headline='2'] {
-  min-height: 4em;
 }
 [data-headline='3'] {
   padding-top: 1em;
