@@ -3,12 +3,12 @@
   var slice = [].slice;
 
   define(['lodash', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
-    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, configureOpts, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, localResources, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceImage, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
+    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, configureOpts, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, localResources, makeBlobUrl, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceImage, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
     mergeExports = Exports.mergeExports;
     findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
     showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr, localResources = UI.localResources;
-    getDocumentParams = EditorSupport.getDocumentParams, basicDataFilter = EditorSupport.basicDataFilter, fileTypes = EditorSupport.fileTypes;
+    getDocumentParams = EditorSupport.getDocumentParams, basicDataFilter = EditorSupport.basicDataFilter, fileTypes = EditorSupport.fileTypes, makeBlobUrl = EditorSupport.makeBlobUrl;
     clearDiag = Diag.clearDiag, diagMessage = Diag.diagMessage;
     knownLanguages = Eval.knownLanguages, escapeString = Eval.escapeString, unescapeString = Eval.unescapeString;
     msgPat = /^([^ ]+)( (.*))?$/;
@@ -230,7 +230,7 @@
           return localResources[src] = new Promise(function(resolve, reject) {
             return sendGetFile(con, src, function(file) {
               if (file) {
-                data = localResources[src] = "data:" + (typeForFile(src)) + ";base64," + file;
+                data = localResources[src] = makeBlobUrl(atob(file), typeForFile(src));
                 preserveSelection(function(range) {
                   return replaceImage(con, img, src, data);
                 });
@@ -245,11 +245,7 @@
     };
     replaceImage = function(con, img, src, data) {
       return setTimeout((function() {
-        img.src = data;
-        return img.onload = function() {
-          img.removeAttribute('style');
-          return con.imageSizes[src] = " style='height: " + img.height + "px; width: " + img.width + "px'";
-        };
+        return img.src = data;
       }), 0);
     };
     typeForFile = function(name) {
@@ -314,13 +310,23 @@
         getFile: {
           emacs: function(parent) {
             return function(file, cont, fail) {
-              return sendGetFile(this.emacsConnection, "file:" + file, function(contents) {
-                if (contents) {
-                  return cont(atob(contents));
-                } else {
-                  return fail("No such file: " + file);
-                }
-              });
+              var p;
+              p = new Promise((function(_this) {
+                return function(success, failure) {
+                  return sendGetFile(_this.emacsConnection, "file:" + file, function(contents) {
+                    if (contents) {
+                      return success(atob(contents));
+                    } else {
+                      return failure("No such file: " + file);
+                    }
+                  });
+                };
+              })(this));
+              if (cont || fail) {
+                return p.then(cont, fail);
+              } else {
+                return p;
+              }
             };
           }
         }
@@ -367,7 +373,6 @@
       opts = UI.context.opts;
       data = opts.data;
       data.emacsConnection = {
-        imageSizes: {},
         panel: panel,
         opts: UI.context.opts,
         fileCallbacks: {},

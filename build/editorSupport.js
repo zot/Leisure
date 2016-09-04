@@ -6,7 +6,7 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
-    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet;
+    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock, parseYaml = DocOrg.parseYaml;
@@ -1183,7 +1183,13 @@
       };
 
       OrgData.prototype.getFile = function(filename, cont, fail) {
-        return ajaxGet(new URL(filename, this.loadName).toString()).then(cont).error(fail);
+        var p;
+        p = ajaxGet(new URL(filename, this.loadName).toString());
+        if (cont || fail) {
+          return p.then(cont, fail);
+        } else {
+          return p;
+        }
       };
 
       OrgData.prototype.decodeObservers = function(block) {
@@ -1348,29 +1354,33 @@
       svg: 'image/svg+xml'
     };
     makeImageBlob = function(name, contents) {
-      var blob, byteArrays, i, m, offset, slice;
+      var m;
       if (m = name.match(/jpg|jpeg|png|gif|bmp|xpm|svg/)) {
-        byteArrays = (function() {
-          var j, ref, results1;
-          results1 = [];
-          for (offset = j = 0, ref = contents.length; j < ref; offset = j += 512) {
-            slice = contents.slice(offset, offset + 512);
-            results1.push(new Uint8Array((function() {
-              var l, results2;
-              results2 = [];
-              for (i = l = 0; l < 512; i = ++l) {
-                results2.push(slice.charCodeAt(i));
-              }
-              return results2;
-            })()));
-          }
-          return results1;
-        })();
-        blob = new Blob(byteArrays, {
-          type: "image/" + fileTypes[m[0]]
-        });
-        return URL.createObjectURL(blob);
+        return makeBlobUrl(contents, "image/" + fileTypes[m[0]]);
       }
+    };
+    makeBlobUrl = function(contents, type) {
+      var blob, byteArrays, i, offset, slice;
+      byteArrays = (function() {
+        var j, ref, results1;
+        results1 = [];
+        for (offset = j = 0, ref = contents.length; j < ref; offset = j += 512) {
+          slice = contents.slice(offset, offset + 512);
+          results1.push(new Uint8Array((function() {
+            var l, results2;
+            results2 = [];
+            for (i = l = 0; l < 512; i = ++l) {
+              results2.push(slice.charCodeAt(i));
+            }
+            return results2;
+          })()));
+        }
+        return results1;
+      })();
+      blob = new Blob(byteArrays, {
+        type: type
+      });
+      return URL.createObjectURL(blob);
     };
     EditorParsedCodeBlock = (function(superClass) {
       extend(EditorParsedCodeBlock, superClass);
@@ -2766,7 +2776,8 @@
       Editor: Editor,
       CodeContext: CodeContext,
       modifyingKey: modifyingKey,
-      getId: getId
+      getId: getId,
+      makeBlobUrl: makeBlobUrl
     });
     return {
       createLocalData: createLocalData,
@@ -2790,6 +2801,7 @@
       ajaxGet: ajaxGet,
       parseYaml: parseYaml,
       makeImageBlob: makeImageBlob,
+      makeBlobUrl: makeBlobUrl,
       getId: getId,
       fileTypes: fileTypes,
       updateSelection: updateSelection

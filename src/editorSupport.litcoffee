@@ -644,7 +644,10 @@ that must be done regardless of the source of changes
                     if !@importPromise.isResolved then @importPromise = @importPromise.then -> oldPromise
                     else @importPromise = oldPromise
                   resolve()), (e)=> reject displayError e)
-        getFile: (filename, cont, fail)-> ajaxGet(new URL(filename, @loadName).toString()).then(cont).error(fail)
+        getFile: (filename, cont, fail)->
+          p = ajaxGet(new URL(filename, @loadName).toString())
+          if cont || fail then p.then cont, fail
+          else p
         decodeObservers: (block)->
           finalObs = []
           obs = block.codeAttributes?.observe?.split(' ') ? []
@@ -734,11 +737,14 @@ that must be done regardless of the source of changes
 
       makeImageBlob = (name, contents)->
         if m = name.match /jpg|jpeg|png|gif|bmp|xpm|svg/
-          byteArrays = for offset in [0...contents.length] by 512
-            slice = contents.slice offset, offset + 512
-            new Uint8Array (slice.charCodeAt(i) for i in [0...512])
-          blob = new Blob byteArrays, type: "image/#{fileTypes[m[0]]}"
-          URL.createObjectURL blob
+          makeBlobUrl contents, "image/#{fileTypes[m[0]]}"
+
+      makeBlobUrl = (contents, type)->
+        byteArrays = for offset in [0...contents.length] by 512
+          slice = contents.slice offset, offset + 512
+          new Uint8Array (slice.charCodeAt(i) for i in [0...512])
+        blob = new Blob byteArrays, type: type
+        URL.createObjectURL blob
 
       class EditorParsedCodeBlock extends ParsedCodeBlock
         constructor: (@data, block)->
@@ -1515,6 +1521,7 @@ Exports
         CodeContext
         modifyingKey
         getId
+        makeBlobUrl
       }
 
       {
@@ -1539,6 +1546,7 @@ Exports
         ajaxGet
         parseYaml
         makeImageBlob
+        makeBlobUrl
         getId
         fileTypes
         updateSelection

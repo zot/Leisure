@@ -595,7 +595,7 @@
         return [renderView(type, ctx, data, targets), next];
       },
       renderHeadline: function(opts, block, prefix, replace) {
-        var id, m, next, nextText, parent, ref, ref1, ref2, ref3, sblock, sidebars, targets, text, viewName;
+        var id, m, next, nextText, parent, ref, ref1, ref2, ref3, ref4, sblock, sidebars, targets, text, viewName;
         next = (ref = opts.data.nextRight(block)) != null ? ref._id : void 0;
         viewName = block.type === 'headline' && block.level === 1 ? opts.isToggled(block) ? (UI.context.viewAttrs = _.merge({
           "class": 'plain'
@@ -630,6 +630,7 @@
             id: prefix + block._id,
             blockId: block._id,
             EOL: '\n',
+            style: (((ref3 = block.properties) != null ? ref3.style : void 0) ? "style='" + block.properties.style + "'" : ''),
             topLevel: block.level === 1,
             level: block.level,
             stars: m[HL_LEVEL],
@@ -642,7 +643,7 @@
           text += fancyHtml(block.text);
           id = block.next;
           while (id && id !== next) {
-            ref3 = this.render(opts, opts.data.getBlock(id), prefix), nextText = ref3[0], id = ref3[1];
+            ref4 = this.render(opts, opts.data.getBlock(id), prefix), nextText = ref4[0], id = ref4[1];
             text += nextText;
           }
           text += "</span>";

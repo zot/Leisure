@@ -360,20 +360,27 @@
         this.type = 'Slave';
         this.newConnectionFunc = (ref1 = this.newConnectionFunc) != null ? ref1 : function() {};
         this.localResources = {};
-        this.imageSizes = {};
         this.imgCount = 0;
         fileRequestCount = 0;
         customMessageCount = 0;
         pendingRequests = new Map();
         peer = this;
         getFile = function(filename, cont, fail) {
-          var id;
-          id = "request-" + (fileRequestCount++);
-          pendingRequests = pendingRequests.set(id, [cont, fail]);
-          return peer.send('requestFile', {
-            id: id,
-            filename: filename
+          var p;
+          p = new Promise(function(success, failure) {
+            var id;
+            id = "request-" + (fileRequestCount++);
+            pendingRequests = pendingRequests.set(id, [success, failure]);
+            return peer.send('requestFile', {
+              id: id,
+              filename: filename
+            });
           });
+          if (cont || fail) {
+            return p.then(cont, fail);
+          } else {
+            return p;
+          }
         };
         changeAdvice(this.editor.options.data, true, {
           getFile: {
@@ -448,11 +455,7 @@
         this.replaceImage = function(img, src, data) {
           return setTimeout(((function(_this) {
             return function() {
-              img.src = data;
-              return img.onload = function() {
-                img.removeAttribute('style');
-                return _this.imageSizes[src] = " style='height: " + img.height + "px; width: " + img.width + "px'";
-              };
+              return img.src = data;
             };
           })(this)), 0);
         };

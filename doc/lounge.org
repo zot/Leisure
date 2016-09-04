@@ -16,21 +16,21 @@
 <a target='info' href='https://en.wikipedia.org/wiki/Org-mode'><img height='250px' src='illuminated/orgmode.png' title='Org mode is a text-based, dynamic document environment that runs in Emacs'></a>
 #+END_HTML
 
-** Lounge provides a collaborative, illuminated programming environment with many of Smalltalk's benefits, where the virtual machine memory is actually a human-readable text document that you can easily put into version control, mail to a friend, and read for yourself
+** Lounge provides a collaborative, illuminated programming environment with many of Smalltalk's benefits, where the virtual machine's memory is actually a human-readable text document that you can easily put into version control, mail to a friend, and read for yourself
 ** Collaborators can interact with shared Lounge documents and even work together on code while a document is in use
 ** Some other recent environments share some of Lounge's ideals, such as [[https://jupyter.org/][Jupyter]] and [[http://www.apple.com/swift/playgrounds/][Apple's Swift Playgrounds]]
 * Illuminated programs are documents that are
-** Enlightened: like the ancient concept of illumination, they have "special knowledge"
 ** Enlightened: well-informed and intelligent
+** Enlightened: like the ancient concept of illumination, they have "special knowledge"
 ** Enlightening: users can access the code and data and change it
 ** Enlightening: the code itself is media-rich, like ancient illuminated manuscripts
 ** Collaborative for both users and developers
 ** Unified and modeless, the document is the program
-* Enlightened: like being well-informed and intelligent
+* Enlightened: well-informed and intelligent
 ** They can have custom behavior and alter or disable standard Lounge behavior
 ** They can interact with the reader
-** They support modern techniques
-*** Like showing results as you change code, change some of this:
+** They support modern techniques, like showing results as you change code
+*** Change some of this code to see the results update:
 #+BEGIN_SRC coffee :results dynamic
 3 + 4
 #+END_SRC
@@ -73,7 +73,7 @@ App.x = 2
 {{#if (isExpected)}}
   <span class='test pass'>PASS</span>
 {{else}}
-  <span class='test fail' title='expected &amp;lt;{{expectedResult}}&amp;gt; but got &amp;lt;{{actualResult}}&amp;gt;'>FAIL<span>
+  <span class='test fail' title='expected &amp;lt;{{expectedResult}}&amp;gt; but got &amp;lt;{{actualResult}}&amp;gt;'>FAIL</span>
 {{/if}}
 #+END_SRC
 
@@ -95,7 +95,7 @@ App.x = 2
 ** Illuminated programs can react to changes in their content, data, and code
 ** These views reflect the data and definitions below
 [[leisure:rotator]] [[leisure:rotator/two]]
-* Enlightening: users can access the code and data... and change it!
+* Enlightening: users can access the code and data and change it
 ** Click a martini glass to see the code in a document block
 ** Here is data for the views above, change the degrees and see the views reflect your changes
 #+NAME: rotator
@@ -116,9 +116,17 @@ degrees: 0
 </div>
 #+END_SRC
 * Enlightening: code can be media-rich, like ancient illuminated manuscripts
-[[illuminated/Haggadah_15th_cent.jpg]]
-
-** This document is an illuminated program, of course
+#+BEGIN_HTML
+<div style='float: left; margin-right: 2ex'>
+  <img src='illuminated/Haggadah_15th_cent.jpg' style='height: 15em'>
+  <br>
+  <img src='https://upload.wikimedia.org/wikipedia/commons/8/8e/KellsFol292rIncipJohn.jpg' style='height: 15em'>
+</div>
+#+END_HTML
+** This document is an illuminated program (of course)
+In ancient times, documents were hand-written and took a lot of labor to
+produce. "[[https://en.wikipedia.org/wiki/Illuminated_manuscript][Illuminated manuscripts]]" date back to as early as the [[https://en.wikipedia.org/wiki/Miniature_(illuminated_manuscript)#Italy_and_Byzantium.2C_3rd.E2.80.936th_centuries][3rd century]] and
+contained lavish illustrations
 * Collaborative for both users and developers
 ** Click "Collaboration" above, create a session, and send the URL to a friend so you can collaborate on this document
 ** Collaboration is not always the same as storage, it depends on the approach
@@ -133,3 +141,43 @@ degrees: 0
 ** When a user edits data in the document, the program data changes
 ** Program functionality happens in the document, not on a server
 *** The collaboration server only manages changes
+* CSS Stuff
+:properties:
+:hidden: true
+:end:
+#+BEGIN_SRC coffee :results def
+window.App = window.App || {}
+if !App.gothicFont
+  App.gothicFont = true
+  Lounge.opts.data.getFile('illuminated/GrusskartenGotisch.woff').then (contents)->
+    debugger
+    #font = Leisure.makeBlobUrl contents, 'application/font-woff'
+    font = "data:application/font-woff;base64,#{btoa contents}"
+    $('#gothicFont').remove()
+    $(document.head).append """
+      <style id='gothicFont'>
+        @font-face {
+          font-family: "Grusskarten Gotisch";
+          src: url("#{font}");
+        }
+      </style>
+    """
+#+END_SRC
+
+#+BEGIN_SRC css
+[data-headline='2'] > .maintext:first-letter {
+  float: left;
+  color: #660;
+  font-size: 75px;
+  line-height: 60px;
+  padding-top: 0px;
+  padding-right: 4px;
+  font-family: "Grusskarten Gotisch";
+}
+[data-headline='2'] {
+  min-height: 4em;
+}
+[data-headline='3'] {
+  padding-top: 1em;
+}
+#+END_SRC
