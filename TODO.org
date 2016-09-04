@@ -1,3 +1,4 @@
+* TODO [#A] integrate stylus into Lounge (do less later)
 * BUG [#A] make word-selections drag properly in adjusted selections
 * BUG [#A] leisure unterminated string doesn't throw a proper error
 * TODO [#A] disable local data access during collborative code
