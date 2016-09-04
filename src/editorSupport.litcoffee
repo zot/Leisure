@@ -736,7 +736,7 @@ that must be done regardless of the source of changes
         svg: 'image/svg+xml'
 
       makeImageBlob = (name, contents)->
-        if m = name.match /jpg|jpeg|png|gif|bmp|xpm|svg/
+        if m = name.match /\.(jpg|jpeg|png|gif|bmp|xpm|svg)$/
           makeBlobUrl contents, "image/#{fileTypes[m[0]]}"
 
       makeBlobUrl = (contents, type)->
@@ -1522,6 +1522,7 @@ Exports
         modifyingKey
         getId
         makeBlobUrl
+        makeImageBlob
       }
 
       {

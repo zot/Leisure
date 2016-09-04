@@ -753,9 +753,14 @@
 
       isFirstText = (source, block)->
         if (block.type == 'chunk' || (block.type == 'headline' && block.level > 1)) && (parent = source.parent(block)) && parent.level == 1
-          while (block = source.previousSibling block) && ((block.type == 'code' && block.language == 'html') || (block.type == 'chunk' && block.text.trim() == ''))
-            if block.type == 'headline' then return false
-          !block
+          original = block
+          while (block = source.previousSibling block) && !maybeFirst block then
+          !block && findFirstLetter original.text
+
+      maybeFirst = (block)->
+        (block.type in ['chunk', 'headline'] && findFirstLetter block.text) || (block.type == 'code' && block.language != 'html')
+
+      findFirstLetter = (text)-> text.match(/[a-zA-Z0-9]/)?[0][0].toUpperCase()
 
       pendingTooltips = null
 
