@@ -403,8 +403,12 @@
         }
       };
 
+      DOMCursor.prototype.char = function() {
+        return this.type === 'text' && this.node.data[this.pos];
+      };
+
       DOMCursor.prototype.isNL = function() {
-        return this.type === 'text' && this.node.data[this.pos] === '\n';
+        return this.char() === '\n';
       };
 
       DOMCursor.prototype.endsInNL = function() {

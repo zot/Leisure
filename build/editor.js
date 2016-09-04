@@ -6,11 +6,12 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'lib/bluebird.min'], function(jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, sameCharacter, selectRange, shiftKey, shiftUps, spaces, specialKeys, treeToArray, useEvent, validateBatch, wrapDiag;
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, imbeddedBoundary, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, sameCharacter, selectRange, shiftKey, shiftUps, spaces, specialKeys, treeToArray, useEvent, validateBatch, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
     Promise = Bluebird.Promise;
+    imbeddedBoundary = /.\b./;
     maxLastKeys = 4;
     BS = 8;
     ENTER = 13;
@@ -725,7 +726,40 @@
       LeisureEditCore.prototype.bindMouse = function() {
         this.node.on('mousedown', (function(_this) {
           return function(e) {
-            if (_this.dragRange = _this.getAdjustedCaretRange(e)) {
+            var end, s, start, txt;
+            if (_this.lastDragRange && e.originalEvent.detail === 2) {
+              _this.dragRange = _this.lastDragRange;
+              console.log("double click");
+              start = _this.domCursor(_this.dragRange).mutable();
+              end = start.copy();
+              txt = start.char();
+              while (true) {
+                start.backwardChar();
+                if (!start.isEmpty() && start.type === 'text') {
+                  txt = start.char() + txt;
+                }
+                if (start.isEmpty() || start.type !== 'text' || txt.match(imbeddedBoundary)) {
+                  break;
+                }
+              }
+              txt = end.char();
+              while (true) {
+                end.forwardChar();
+                if (!end.isEmpty() && end.type === 'text') {
+                  txt += end.char();
+                }
+                if (end.isEmpty() || end.type !== 'text' || txt.match(imbeddedBoundary)) {
+                  end.backwardChar();
+                  break;
+                }
+              }
+              s = getSelection();
+              s.removeAllRanges();
+              _this.dragRange.setStart(start.node, start.pos);
+              _this.dragRange.setEnd(end.node, end.pos);
+              s.addRange(_this.dragRange);
+              e.preventDefault();
+            } else if (_this.dragRange = _this.getAdjustedCaretRange(e)) {
               _this.domCursor(_this.dragRange).moveCaret();
               e.preventDefault();
             }
@@ -737,12 +771,13 @@
         })(this));
         this.node.on('mouseup', (function(_this) {
           return function(e) {
+            _this.lastDragRange = _this.dragRange;
             _this.dragRange = null;
             _this.adjustSelection(e);
             return _this.trigger('moved', _this);
           };
         })(this));
-        this.node.on('mousemove', (function(_this) {
+        return this.node.on('mousemove', (function(_this) {
           return function(e) {
             var r2, s;
             if (_this.dragRange) {
@@ -753,11 +788,6 @@
               s.extend(r2.startContainer, r2.startOffset);
               return e.preventDefault();
             }
-          };
-        })(this));
-        return this.node.on('click', (function(_this) {
-          return function(e) {
-            return console.log('click');
           };
         })(this));
       };
