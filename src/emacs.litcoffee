@@ -23,6 +23,7 @@ Emacs connection
         getDocumentParams
         basicDataFilter
         fileTypes
+        makeBlobUrl
       } = EditorSupport
       {
         clearDiag
@@ -157,16 +158,14 @@ Emacs connection
           else localResources[src] = new Promise (resolve, reject)->
             sendGetFile con, src, (file)->
               if file
-                data = localResources[src] = "data:#{typeForFile src};base64,#{file}"
+                data = localResources[src] = makeBlobUrl atob(file), typeForFile src
                 preserveSelection (range)-> replaceImage con, img, src, data
                 resolve data
               else reject null
 
       replaceImage = (con, img, src, data)-> setTimeout (->
           img.src = data
-          img.onload = ->
-            img.removeAttribute 'style'
-            con.imageSizes[src] = " style='height: #{img.height}px; width: #{img.width}px'"
+          #img.onload = ->
         ), 0
 
       typeForFile = (name)->
@@ -209,9 +208,12 @@ Emacs connection
         if !cookie then sendReplace ws, 0, -1, data.getText()
         changeAdvice opts.data, true,
           getFile: emacs: (parent)->(file, cont, fail)->
-            sendGetFile @emacsConnection, "file:#{file}", (contents)->
-              if contents then cont atob(contents)
-              else fail "No such file: #{file}"
+            p = new Promise (success, failure)=>
+              sendGetFile @emacsConnection, "file:#{file}", (contents)->
+                if contents then success atob(contents)
+                else failure "No such file: #{file}"
+            if cont || fail then p.then cont, fail
+            else p
         configureOpts opts
         cont?()
 
@@ -249,7 +251,6 @@ Emacs connection
         opts = UI.context.opts
         data = opts.data
         data.emacsConnection =
-          imageSizes: {}
           panel: panel
           opts: UI.context.opts
           fileCallbacks: {}

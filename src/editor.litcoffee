@@ -579,11 +579,33 @@ Events:
             @replace e, @getSelectedBlockRange(), e.originalEvent.clipboardData.getData('text/plain'), false
         bindMouse: ->
           @node.on 'mousedown', (e)=>
+            if @dragRange = @getAdjustedCaretRange e
+              @domCursor(@dragRange).moveCaret()
+              e.preventDefault()
             setTimeout (=>@trigger 'moved', this), 1
             @setCurKeyBinding null
           @node.on 'mouseup', (e)=>
+            @dragRange = null
             @adjustSelection e
             @trigger 'moved', this
+          @node.on 'mousemove', (e)=>
+            if @dragRange
+              s = getSelection()
+              s.removeAllRanges()
+              s.addRange @dragRange
+              r2 = @getAdjustedCaretRange e, true
+              s.extend r2.startContainer, r2.startOffset
+              e.preventDefault()
+          @node.on 'click', (e)=>
+            console.log 'click'
+        getAdjustedCaretRange: (e, returnUnchanged) ->
+          r = document.caretRangeFromPoint e.clientX, e.clientY
+          r2 = @domCursor(r).backwardChar().range()
+          rect1 = r.getBoundingClientRect()
+          rect2 = r2.getBoundingClientRect()
+          if rect1.top == rect2.top && rect1.bottom == rect2.bottom && rect2.left < rect1.left && e.clientX <= (rect1.left + rect2.left) / 2
+            r2
+          else if returnUnchanged then r
         bindKeyboard: ->
           @node.on 'keyup', (e)=> @handleKeyup e
           @node.on 'keydown', (e)=>

@@ -360,6 +360,7 @@ render this
 
 #+BEGIN_SRC html :defview leisure-headline
 <div id='{{id}}' class='fancy'
+{{{style}}}
 data-edit-mode='fancy'
 data-block='headline'
 data-headline='{{level}}'><span class='hidden'>{{stars}}</span><div class='maintext'>{{> leisure-source-toggle}}{{{maintext}}}</div>{{#each children}}{{{

@@ -239,16 +239,18 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           @type = 'Slave'
           @newConnectionFunc = @newConnectionFunc ? ->
           @localResources = {}
-          @imageSizes = {}
           @imgCount = 0
           fileRequestCount = 0
           customMessageCount = 0
           pendingRequests = new Map()
           peer = this
           getFile = (filename, cont, fail)->
-            id = "request-#{fileRequestCount++}"
-            pendingRequests = pendingRequests.set(id, [cont, fail])
-            peer.send 'requestFile', {id, filename}
+            p = new Promise (success, failure)->
+              id = "request-#{fileRequestCount++}"
+              pendingRequests = pendingRequests.set(id, [success, failure])
+              peer.send 'requestFile', {id, filename}
+            if cont || fail then p.then cont, fail
+            else p
           changeAdvice @editor.options.data, true,
             getFile: p2p: (parent)-> getFile
           Leisure.localActivateScripts @editor.options
@@ -277,9 +279,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
                   resolve data), reject
           @replaceImage = (img, src, data)-> setTimeout (=>
             img.src = data
-            img.onload = =>
-              img.removeAttribute 'style'
-              @imageSizes[src] = " style='height: #{img.height}px; width: #{img.width}px'"
+            #img.onload = =>
             ), 0
           @pendingCustomMessages = {}
           @handler =

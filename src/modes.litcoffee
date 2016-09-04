@@ -497,6 +497,7 @@
               id: prefix + block._id
               blockId: block._id
               EOL: '\n'
+              style: (if block.properties?.style then "style='#{block.properties.style}'" else '')
               topLevel: block.level == 1
               level: block.level
               stars: m[HL_LEVEL]

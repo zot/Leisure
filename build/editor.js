@@ -725,18 +725,54 @@
       LeisureEditCore.prototype.bindMouse = function() {
         this.node.on('mousedown', (function(_this) {
           return function(e) {
+            if (_this.dragRange = _this.getAdjustedCaretRange(e)) {
+              _this.domCursor(_this.dragRange).moveCaret();
+              e.preventDefault();
+            }
             setTimeout((function() {
               return _this.trigger('moved', _this);
             }), 1);
             return _this.setCurKeyBinding(null);
           };
         })(this));
-        return this.node.on('mouseup', (function(_this) {
+        this.node.on('mouseup', (function(_this) {
           return function(e) {
+            _this.dragRange = null;
             _this.adjustSelection(e);
             return _this.trigger('moved', _this);
           };
         })(this));
+        this.node.on('mousemove', (function(_this) {
+          return function(e) {
+            var r2, s;
+            if (_this.dragRange) {
+              s = getSelection();
+              s.removeAllRanges();
+              s.addRange(_this.dragRange);
+              r2 = _this.getAdjustedCaretRange(e, true);
+              s.extend(r2.startContainer, r2.startOffset);
+              return e.preventDefault();
+            }
+          };
+        })(this));
+        return this.node.on('click', (function(_this) {
+          return function(e) {
+            return console.log('click');
+          };
+        })(this));
+      };
+
+      LeisureEditCore.prototype.getAdjustedCaretRange = function(e, returnUnchanged) {
+        var r, r2, rect1, rect2;
+        r = document.caretRangeFromPoint(e.clientX, e.clientY);
+        r2 = this.domCursor(r).backwardChar().range();
+        rect1 = r.getBoundingClientRect();
+        rect2 = r2.getBoundingClientRect();
+        if (rect1.top === rect2.top && rect1.bottom === rect2.bottom && rect2.left < rect1.left && e.clientX <= (rect1.left + rect2.left) / 2) {
+          return r2;
+        } else if (returnUnchanged) {
+          return r;
+        }
       };
 
       LeisureEditCore.prototype.bindKeyboard = function() {
