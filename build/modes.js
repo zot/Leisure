@@ -3,7 +3,7 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lodash', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './advice', './lib/prism-leisure', 'lib/js-yaml'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, Keyword, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addPendingTooltip, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isHiddenSlide, isMeat, isSidebar, isViewResult, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, namedNode, nextImageSrc, nextViewId, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, parseYaml, pendingTooltips, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, unescapeString, updateSelection, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, Keyword, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addPendingTooltip, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isFirstText, isHiddenSlide, isMeat, isSidebar, isViewResult, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeReplaceHtml, mergeContext, mergeExports, mergeMeat, namedNode, nextImageSrc, nextViewId, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, parseYaml, pendingTooltips, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, unescapeString, updateSelection, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Keyword = Org.Keyword, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
@@ -627,6 +627,7 @@
             }
           }
           return this.renderView(viewName, null, next, {
+            firstText: isFirstText(opts.data, block),
             id: prefix + block._id,
             blockId: block._id,
             EOL: '\n',
@@ -701,6 +702,7 @@
         if (hasView(viewType)) {
           return this.renderView(viewType, null, block.next, {
             id: prefix + block._id,
+            firstText: isFirstText(opts.data, block),
             text: this.renderOrgChunk(opts, blockOrg(opts.data, block)),
             topLevel: !block.prev,
             EOL: '\n'
@@ -1004,6 +1006,17 @@
           }
         }
         return false;
+      }
+    };
+    isFirstText = function(source, block) {
+      var parent;
+      if ((block.type === 'chunk' || (block.type === 'headline' && block.level > 1)) && (parent = source.parent(block)) && parent.level === 1) {
+        while ((block = source.previousSibling(block)) && ((block.type === 'code' && block.language === 'html') || (block.type === 'chunk' && block.text.trim() === ''))) {
+          if (block.type === 'headline') {
+            return false;
+          }
+        }
+        return !block;
       }
     };
     pendingTooltips = null;

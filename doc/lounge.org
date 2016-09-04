@@ -167,12 +167,11 @@ if !App.gothicFont
 #+END_SRC
 
 #+BEGIN_SRC css
-[data-headline='1'] > .maincontent > :last-child > :first-child {
+.first-text {
   display: block;
   min-height: 4em;
 }
-
-[data-headline='1'] > .maincontent > :last-child > :first-child:first-letter {
+.first-text:first-letter {
   float: left;
   color: #660;
   font-size: 75px;
@@ -180,8 +179,5 @@ if !App.gothicFont
   padding-top: 0px;
   padding-right: 4px;
   font-family: "Grusskarten Gotisch";
-}
-[data-headline='3'] {
-  padding-top: 1em;
 }
 #+END_SRC

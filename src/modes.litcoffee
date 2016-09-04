@@ -494,6 +494,7 @@
                   @render(opts, sblock, prefix)[0]
                 viewName += '-with-sidebar'
             @renderView viewName, null, next,
+              firstText: isFirstText opts.data, block
               id: prefix + block._id
               blockId: block._id
               EOL: '\n'
@@ -547,6 +548,7 @@
           if hasView viewType
             @renderView viewType, null, block.next,
               id: prefix + block._id
+              firstText: isFirstText opts.data, block
               text: @renderOrgChunk opts, blockOrg opts.data, block
               topLevel: !block.prev
               EOL: '\n',
@@ -748,6 +750,12 @@
               @showSlide opt, prev
               return true
           false
+
+      isFirstText = (source, block)->
+        if (block.type == 'chunk' || (block.type == 'headline' && block.level > 1)) && (parent = source.parent(block)) && parent.level == 1
+          while (block = source.previousSibling block) && ((block.type == 'code' && block.language == 'html') || (block.type == 'chunk' && block.text.trim() == ''))
+            if block.type == 'headline' then return false
+          !block
 
       pendingTooltips = null
 
