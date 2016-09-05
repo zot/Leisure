@@ -644,29 +644,31 @@
                     p = _this.pendingObserves;
                     _this.pendingObserves = {};
                     results1.push(_this.withLounge(function() {
-                      var block, blockId, obs, ref, results2, subject;
-                      results2 = [];
-                      for (blockId in p) {
-                        subject = p[blockId];
-                        if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
-                          blocked[blockId] = true;
-                          oldRunning[blockId] = _this.running[blockId];
-                          _this.running[blockId] = true;
-                          if ((ref = (obs = block.observer)) != null) {
-                            if (typeof ref.observe === "function") {
-                              ref.observe(subject);
+                      return preserveSelection(function() {
+                        var block, blockId, obs, ref, results2, subject;
+                        results2 = [];
+                        for (blockId in p) {
+                          subject = p[blockId];
+                          if (!_this.running[blockId] && (block = _this.getBlock(blockId))) {
+                            blocked[blockId] = true;
+                            oldRunning[blockId] = _this.running[blockId];
+                            _this.running[blockId] = true;
+                            if ((ref = (obs = block.observer)) != null) {
+                              if (typeof ref.observe === "function") {
+                                ref.observe(subject);
+                              }
                             }
-                          }
-                          if (!_this.getBlock(block._id).observer) {
-                            results2.push(_this.getBlock(block._id).observer = obs);
+                            if (!_this.getBlock(block._id).observer) {
+                              results2.push(_this.getBlock(block._id).observer = obs);
+                            } else {
+                              results2.push(void 0);
+                            }
                           } else {
                             results2.push(void 0);
                           }
-                        } else {
-                          results2.push(void 0);
                         }
-                      }
-                      return results2;
+                        return results2;
+                      });
                     }));
                   }
                   return results1;
@@ -762,7 +764,7 @@
               if (resultType === 'observe') {
                 _this.updateObserver(newBlock, oldBlock);
                 _this.createObserver(newBlock);
-                if (newBlock.codeAttributes.observe = 'system.document') {
+                if (newBlock.codeAttributes.observe === 'system.document') {
                   return _this.pendingObserves[newBlock._id] = newBlock;
                 }
               } else {
@@ -1210,6 +1212,8 @@
               }
               return results1;
             })());
+          } else if (ob.indexOf('.') === -1) {
+            finalObs.push("block." + ob);
           } else {
             finalObs.push(ob);
           }

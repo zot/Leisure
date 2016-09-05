@@ -198,7 +198,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             delete @guardPromises[ack.guardId]
           operation: ({peerId, operation, meta})->
             @fromServer = true
-            @serverCallbacks.operation operation
+            @editor.options.data.allowObservation => @serverCallbacks.operation operation
             @fromServer = false
             @serverCallbacks.selection peerId, meta
           selection: ({peerId, selection})->

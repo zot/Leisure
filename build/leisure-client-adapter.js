@@ -259,7 +259,11 @@
           var meta, operation, peerId;
           peerId = arg.peerId, operation = arg.operation, meta = arg.meta;
           this.fromServer = true;
-          this.serverCallbacks.operation(operation);
+          this.editor.options.data.allowObservation((function(_this) {
+            return function() {
+              return _this.serverCallbacks.operation(operation);
+            };
+          })(this));
           this.fromServer = false;
           return this.serverCallbacks.selection(peerId, meta);
         },

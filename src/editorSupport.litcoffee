@@ -399,7 +399,7 @@ that must be done regardless of the source of changes
                 while !_.isEmpty @pendingObserves
                   p = @pendingObserves
                   @pendingObserves = {}
-                  @withLounge =>
+                  @withLounge => preserveSelection =>
                     for blockId, subject of p
                       if !@running[blockId] && (block = @getBlock(blockId))
                         blocked[blockId] = true
@@ -449,7 +449,7 @@ that must be done regardless of the source of changes
               if resultType == 'observe'
                 @updateObserver newBlock, oldBlock
                 @createObserver newBlock
-                if newBlock.codeAttributes.observe = 'system.document'
+                if newBlock.codeAttributes.observe == 'system.document'
                   @pendingObserves[newBlock._id] = newBlock
               else
                 opts = defaultEnv.opts
@@ -655,6 +655,7 @@ that must be done regardless of the source of changes
             if ob in ['vars', '']
               bv = blockVars this, block.codeAttributes?.var
               finalObs.push ("block.#{bv[4][v]}" for v in bv[3])...
+            else if ob.indexOf('.') == -1 then finalObs.push "block.#{ob}"
             else finalObs.push ob
           finalObs
         runBlock: (block, func)->
