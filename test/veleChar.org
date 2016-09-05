@@ -2,7 +2,7 @@
 #+NAME: character-sheet
 #+BEGIN_SRC text :post formatted-character-sheet(*this*) :flowlevel -1 :results dynamic :exports code :index players name
 Bill		34 	🌕 Golden Monkey 40
-	Max Ruche 15
+  Max Ruche 15
 Health	🞎	🞎
 Comp	🞎	🞎	🞎	🞎
 ☠ tmp 
@@ -103,45 +103,32 @@ Comp	🞎	🞎	🞎	🞎
 :properties:
 :hidden: true
 :end:
-#+BEGIN_SRC coffee :var sheet=character-sheet :observe :results silent
+#+BEGIN_SRC coffee :observe character-sheet :results silent
+#do -> debugger; Vele.editor.fetchText 'character-sheet'
 Vele.editor.fetchText 'character-sheet'
 #+END_SRC
 
 #+BEGIN_SRC html :defview character-sheet
 {{#condense}}
-<div id='character-sheet' class='characterSheetHolder'>
-  <div class='characterSheet'>{{#each errors}}
-      <div class='error bx'>{{formatError this}}</div>
-    {{/each}}<div class='player bx'>{{name}}<span {{{noncontent}}}>&nbsp;</span><span class='hidden'>&#9;&#9;</span>{{extraRuche}} </div><span class='hidden'>&#9;</span><div class='characterName bx'><span contenteditable='false' {{{noncontent}}}>🌕 </span><span class='hidden'>🌕 </span>{{characters.[0].name}} <span contenteditable='false' {{{noncontent}}}>{{cost}}</span><span class='hidden'>{{cost}}</span></div>{{#each characters}}
-      {{#unless @first}}
-        <div class='character bx'><span {{{noncontent}}}>🌕 </span><span class='hidden'>🌕 </span>{{name}}<span contenteditable='false'>{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}}</span></div>
-      {{/unless}}
-      <div class='ruche bx' contenteditable='false'><div class='current-ruche'></div><div class='max-ruche'><span class='hidden'>&#9;</span><span {{{noncontent}}}>&nbsp;Max Ruche </span><span class='hidden'>Max Ruche </span>{{allocatedRuche}}</div></div>
-      {{#if @first}}
-        <div class='health bx' contenteditable='false'><table class='health stress-boxes'><tr><td class='stressLabel'>Health</td>{{#repeat health}}<td><span class='hidden'>&#9;🞎</span></td>{{/repeat}}</tr></table></div>
+<div id='character-sheet' class='characterSheetHolder'><div class='characterSheet'>{{#each errors}}
+      <div class='error bx'>{{formatError this}}</div>{{/each}}<div class='player bx'>{{name}}<span {{{noncontent}}}>&nbsp;</span><span class='hidden'>&#9;&#9;</span>{{extraRuche}}</div><span class='hidden'>&#9;</span><div class='characterName bx'><span contenteditable='false' {{{noncontent}}}>🌕 </span><span class='hidden'>🌕 </span>{{characters.[0].name}} <span contenteditable='false' {{{noncontent}}}>{{cost}}</span><span class='hidden'>{{cost}}</span></div>{{#each characters}}{{#unless @first}}<div class='character bx'><span {{{noncontent}}}>🌕 </span><span class='hidden'>🌕 </span>{{name}}<span contenteditable='false'>{{#if attributes}} [{{#each attributes}}{{#unless @first}}, {{/unless}}{{capitalize this}}{{/each}}]{{/if}} {{cost}}</span></div>{{/unless}}
+<div class='ruche bx' contenteditable='false'><div class='current-ruche'></div><div class='max-ruche'><span class='hidden'>&#9;</span><span {{{noncontent}}}>&nbsp;Max Ruche </span><span class='hidden'>Max Ruche </span>{{allocatedRuche}}</div></div>
+      {{#if @first}}<div class='health bx' contenteditable='false'><table class='health stress-boxes'><tr><td class='stressLabel'>Health</td>{{#repeat health}}<td><span class='hidden'>&#9;🞎</span></td>{{/repeat}}</tr></table></div>
         <div class='composure bx' contenteditable='false'><table class='composure stress-boxes'><tr><td class='stressLabel'>Comp</td>{{#repeat composure}}<td><span class='hidden'>&#9;🞎</span></td>{{/repeat}}</tr></table></div>
-      {{/if}}
-      {{#each consequences}}
-        <div class='consequence {{level}} bx'><span {{{noncontent}}}>☠{{#if number}} {{number}}{{/if}} {{level}} </span><span class='hidden'>☠{{#if number}} {{number}}{{/if}} {{level}}&nbsp;</span>{{capitalize name}}
+      {{/if}}{{#each consequences}}<div class='consequence {{level}} bx'><span {{{noncontent}}}>☠{{#if number}} {{number}}{{/if}} {{level}} </span><span class='hidden'>☠{{#if number}} {{number}}{{/if}} {{level}}&nbsp;</span>{{capitalize name}}
 </div>{{/each}}{{#each aspects}}<div class='aspect bx'>❂{{#if highConcept
         }} [High Concept{{#if attribute}}/{{capitalize attribute}}{{/if}}]{{else}}{{#if trouble
         }} [Trouble{{#if attribute}}/{{capitalize attribute}}{{/if}}]{{else}}{{#if attribute
         }} [{{capitalize attribute}}]{{/if}}{{/if}}{{/if
-        }}&nbsp;{{capitalize name}}{{nl}}</div>
-      {{/each}}
-      {{#each traits}}<div class='trait bx{{#if focus
+        }}&nbsp;{{capitalize name}}
+</div>{{/each}}{{#each traits}}<div class='trait bx{{#if focus
         }} focus'>♦ {{capitalize focus}}{{
         else}}'>◇ {{capitalize name}}{{/if
-        }} d{{value}}</div>
-        {{#each abilities}}
-          <div class='ability bx'>✫ {{capitalize name}}{{#if attribute
-            }} [{{capitalize attribute}}]{{/if}}:{{#each effects
-              }}{{capitalize type}} {{value}}{{#unless @last}},{{/unless}}{{/each}}</div>
-        {{/each}}
-      {{/each}}
-    {{/each}}
-  </div>
-</div>
+        }} d{{value}}
+</div>{{#each abilities}}<div class='ability bx'>✫ {{capitalize name}}{{#if attribute
+            }} [{{capitalize attribute}}]{{/if}}: {{#each effects
+              }}{{capitalize type}} {{value}}{{#unless @last}},{{/unless}}{{/each}}
+</div>{{/each}}{{/each}}{{/each}}</div></div>
 {{/condense}}
 #+END_SRC
 * Helpers
@@ -404,7 +391,8 @@ if !window.Vele
 
 #+BEGIN_SRC coffee :results def
 if !window.Vele.sheet
-  {LeisureEditCore, BasicEditingOptions, preserveSelection, condenseHtml, blockSource} = Leisure
+  {LeisureEditCore, BasicEditingOptions, preserveSelection, condenseHtml, blockSource, addSelectionBubble} = Leisure
+  {changeAdvice} = Leisure.Advice
 
   class CharacterEditorExtensions extends LeisureEditCore
     constructor: (node, options)-> super node, options
@@ -436,34 +424,60 @@ if !window.Vele.sheet
           block: 'character-sheet'
           offset: offset
       @data.blocks['character-sheet'] = opts.block
+    setEditor: (ed)->
+      super ed
+      addSelectionBubble ed.node
+      changeAdvice ed, true,
+        setHtml: options: (parent)-> (el, html, outer)->
+          sel = ed.node.find("[name='selectionBubble']")
+          sel.remove()
+          parent el, html, outer
+          ed.node.append sel
+        replace: options: (parent)=> (e, br, text, select)=>
+          @compensateEditing (text ? ' ').length - br.length, (text ? ' ').length, select, -> parent e, br, text, select
+        handleDelete: options: (parent)=> (e, s, forward)=>
+          @compensateEditing -1, (if forward then 0 else -1), false, -> parent e, s, forward
+    compensateEditing: (expectedDelta, offset, select, func)->
+      sel = @editor.getSelectedDocRange()
+      oldLen = @guiText().length
+      func()
+      debugger
+      sel.start += @guiText().length - oldLen - expectedDelta
+      if !select then sel.start += offset
+      else sel.length = offset
+      sel.type = if sel.length then 'Range' else 'Caret'
+      @editor.selectDocRange sel
     guiText: -> @editor.blockTextForNode(@editor.node.find('#character-sheet')) #.replace(/\t/g, ' ')
     getFirst: -> @data.getFirst()
     getBlock: (id)-> @data.getBlock id
     idForNode: (node)-> $(node).closest('.characterSheetHolder').prop('id')
-    nodeForId: (id)-> if id == 'character-sheet' then @node
+    nodeForId: (id)-> if id == 'character-sheet' then @node.find '.characterSheet'
     replaceText: (repl)->
-      {start, end, text} = repl
-      block = @options.parsedCodeBlock @blockId
-      oldText = @guiText()
-      newText = (oldText.substring(0, start) + text + oldText.substring end).trim().replace(/^\s*\n/gm, '')
-      @block.text = newText
-      #debugger
-      block.setSourceContent newText + '\n'
-      try
-        @editing = true
-        block.save true
-      finally
-        @editing = false
-      @rerenderAll()
+      preserveSelection =>
+        {start, end, text} = repl
+        block = @options.parsedCodeBlock @blockId
+        oldText = @guiText()
+        newText = (oldText.substring(0, start) + text + oldText.substring end).trim().replace(/^\s*\n/gm, '')
+        @block.text = newText
+        block.setSourceContent newText + '\n'
+        try
+          @editing = true
+          block.save true
+        finally
+          @editing = false
+        @rerenderAll()
     fetchText: (id)->
       if !@editing
+        len = @guiText().length
         @blockId = @options.data.getNamedBlockId id
         @data.blocks['character-sheet'] = @block =
           _id: 'character-sheet'
           text: blockSource @options.getBlock @blockId
+        console.log "rerendering, editor:", Leisure.findEditor(document.activeElement), "this: ", this
         @rerenderAll()
     renderBlock: (block)->
       character = Vele.parse block.text.replace(/\t+/g, ' ')
+      #debugger
       @options.withNewContext =>
         #[Leisure.UI.renderView('character-sheet', '', character, @editor.node.find('#character-sheet')[0])]
         [Leisure.UI.renderView('character-sheet', '', character)]
