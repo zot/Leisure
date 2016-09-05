@@ -6,7 +6,7 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
-    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet;
+    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addSelectionBubble, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock, parseYaml = DocOrg.parseYaml;
@@ -2025,19 +2025,10 @@
       OrgEditing.prototype.imageError = function(img, e) {};
 
       OrgEditing.prototype.setEditor = function(ed) {
-        var bubble, opts;
+        var opts;
         OrgEditing.__super__.setEditor.call(this, ed);
         $(ed.node).addClass('leisure-editor');
-        bubble = $("<div name='selectionBubble' contenteditable='false'></div>");
-        bubble.appendTo(ed.node).html(selectionMenu).on('mouseclick', function() {
-          return configureMenu(bubble.find('ul'));
-        });
-        bubble.find('ul').menu({
-          select: function(event, ui) {
-            console.log("MENU SELECT");
-            return false;
-          }
-        });
+        addSelectionBubble(ed.node);
         this.setMode(this.mode);
         this.initToolbar();
         this.bindings = {
@@ -2635,6 +2626,19 @@
       return monitorSelectionChange();
     };
     selectionMenu = "<div>\n<ul>\n  <li name='insert'><a href='javascript:void(0)'><span>Insert</span></a>\n    <ul>\n      <li><a href='javascript:void(0)'><span>Leisure</span></a></li>\n      <li><a href='javascript:void(0)'><span>YAML</span></a></li>\n      <li><a href='javascript:void(0)'><span>HTML</span></a></li>\n      <li><a href='javascript:void(0)'><span>CoffeeScript</span></a></li>\n      <li><a href='javascript:void(0)'><span>JavaScript</span></a></li>\n    </ul>\n  </li>\n</ul>\n</div>";
+    addSelectionBubble = function(node) {
+      var bubble;
+      bubble = $("<div name='selectionBubble' contenteditable='false'></div>");
+      bubble.appendTo(node).html(selectionMenu).on('mouseclick', function() {
+        return configureMenu(bubble.find('ul'));
+      });
+      return bubble.find('ul').menu({
+        select: function(event, ui) {
+          console.log("MENU SELECT");
+          return false;
+        }
+      });
+    };
     configureMenu = function(menu) {
       return console.log("configure menu");
     };
@@ -2778,7 +2782,9 @@
       modifyingKey: modifyingKey,
       getId: getId,
       makeBlobUrl: makeBlobUrl,
-      makeImageBlob: makeImageBlob
+      makeImageBlob: makeImageBlob,
+      addSelectionBubble: addSelectionBubble,
+      Advice: Advice
     });
     return {
       createLocalData: createLocalData,
@@ -2805,7 +2811,8 @@
       makeBlobUrl: makeBlobUrl,
       getId: getId,
       fileTypes: fileTypes,
-      updateSelection: updateSelection
+      updateSelection: updateSelection,
+      addSelectionBubble: addSelectionBubble
     };
   });
 

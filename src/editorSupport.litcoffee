@@ -1056,12 +1056,7 @@ NMap is a very simple trie.
         setEditor: (ed)->
           super ed
           $(ed.node).addClass 'leisure-editor'
-          bubble = $("<div name='selectionBubble' contenteditable='false'></div>")
-          bubble
-            .appendTo ed.node
-            .html selectionMenu
-            .on 'mouseclick', -> configureMenu bubble.find 'ul'
-          bubble.find('ul').menu select: (event, ui)-> console.log "MENU SELECT"; false
+          addSelectionBubble ed.node
           @setMode @mode
           @initToolbar()
           @bindings =
@@ -1397,6 +1392,14 @@ NMap is a very simple trie.
       </div>
       """
 
+      addSelectionBubble = (node)->
+        bubble = $("<div name='selectionBubble' contenteditable='false'></div>")
+        bubble
+          .appendTo node
+          .html selectionMenu
+          .on 'mouseclick', -> configureMenu bubble.find 'ul'
+        bubble.find('ul').menu select: (event, ui)-> console.log "MENU SELECT"; false
+
       configureMenu = (menu)->
         console.log "configure menu"
         #if getSelection().type == 'Caret'
@@ -1523,6 +1526,8 @@ Exports
         getId
         makeBlobUrl
         makeImageBlob
+        addSelectionBubble
+        Advice
       }
 
       {
@@ -1551,4 +1556,5 @@ Exports
         getId
         fileTypes
         updateSelection
+        addSelectionBubble
       }

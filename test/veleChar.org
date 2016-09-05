@@ -2,7 +2,7 @@
 #+NAME: character-sheet
 #+BEGIN_SRC text :post formatted-character-sheet(*this*) :flowlevel -1 :results dynamic :exports code :index players name
 Bill		34 	🌕 Golden Monkey 40
-	Max Ruche 15
+  Max Ruche 15
 Health	🞎	🞎
 Comp	🞎	🞎	🞎	🞎
 ☠ tmp 
@@ -404,7 +404,8 @@ if !window.Vele
 
 #+BEGIN_SRC coffee :results def
 if !window.Vele.sheet
-  {LeisureEditCore, BasicEditingOptions, preserveSelection, condenseHtml, blockSource} = Leisure
+  {LeisureEditCore, BasicEditingOptions, preserveSelection, condenseHtml, blockSource, addSelectionBubble} = Leisure
+  {changeAdvice} = Leisure.Advice
 
   class CharacterEditorExtensions extends LeisureEditCore
     constructor: (node, options)-> super node, options
@@ -436,18 +437,27 @@ if !window.Vele.sheet
           block: 'character-sheet'
           offset: offset
       @data.blocks['character-sheet'] = opts.block
+    setEditor: (ed)->
+      super ed
+      addSelectionBubble ed.node
+      changeAdvice ed, true,
+        setHtml: options: (parent)-> (el, html, outer)->
+          sel = ed.node.find("[name='selectionBubble']")
+          sel.remove()
+          parent el, html, outer
+          ed.node.append sel
     guiText: -> @editor.blockTextForNode(@editor.node.find('#character-sheet')) #.replace(/\t/g, ' ')
     getFirst: -> @data.getFirst()
     getBlock: (id)-> @data.getBlock id
     idForNode: (node)-> $(node).closest('.characterSheetHolder').prop('id')
-    nodeForId: (id)-> if id == 'character-sheet' then @node
+    nodeForId: (id)-> if id == 'character-sheet' then @node.find '.characterSheet'
     replaceText: (repl)->
       {start, end, text} = repl
       block = @options.parsedCodeBlock @blockId
       oldText = @guiText()
       newText = (oldText.substring(0, start) + text + oldText.substring end).trim().replace(/^\s*\n/gm, '')
-      @block.text = newText
       #debugger
+      @block.text = newText
       block.setSourceContent newText + '\n'
       try
         @editing = true
