@@ -211,7 +211,7 @@ Compile Wisp code, optionally in a namespace.
             func = wispEval res, ns, true, true
             (cont, args...)->
               env = this
-              envConsole = log: (s)-> env.write s
+              envConsole = log: (args...)-> env.write args.join ' '
               (cont ? identity) _.filter func(null, envConsole, args...), (n)-> typeof n != 'undefined'
           catch err
             e = new Error "Error compiling #{res}\n  #{err.message}"

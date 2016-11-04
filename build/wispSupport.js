@@ -337,8 +337,10 @@
             cont = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
             env = this;
             envConsole = {
-              log: function(s) {
-                return env.write(s);
+              log: function() {
+                var args;
+                args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+                return env.write(args.join(' '));
               }
             };
             return (cont != null ? cont : identity)(_.filter(func.apply(null, [null, envConsole].concat(slice.call(args))), function(n) {
