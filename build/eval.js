@@ -6,7 +6,7 @@
   define.amd = true;
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree) {
-    var Html, Nil, Node, Promise, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, basicFormat, blockSource, blockVars, blocksObserved, c, callFail, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, e, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
+    var Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, c, callFail, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, e, envTemplate, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = AcornLoose;
@@ -212,8 +212,8 @@
           }
         });
       };
-      env.createObserver = function(blockNames, text, cont) {
-        throw new Error('Leisure observers not implemented yet');
+      env.formatResult = function(block, prefix, items) {
+        return basicFormat(block, prefix, [this.presentValue(items)]);
       };
       env.genBlock = function(block) {
         return this.generateCode(blockSource(block), true);
@@ -239,9 +239,9 @@
                 } else {
                   return withFile((fileName = currentGeneratedFileName()), null, function() {
                     return codeMap(new SourceNode(1, 0, fileName, [
-                      (!noFunc ? '(function(){return ' : []), 'L_runMonads([\n    ', intersperse(_.map(asts, function(item) {
+                      (!noFunc ? '(function(cont){return ' : []), 'L_runMonads([\n    ', intersperse(_.map(asts, function(item) {
                         return sourceNode(item, 'function(){return ', genMap(item), '}');
-                      }), ',\n    '), '\n  ])', (!noFunc ? ';})' : [])
+                      }), ',\n    '), (!noFunc ? '\n  ], null, cont)' : '\n  ])'), (!noFunc ? ';})' : [])
                     ]), text, fileName);
                   });
                 }
@@ -258,7 +258,15 @@
         });
       };
       env.compileBlock = function(block) {
-        return eval(this.generateCode(blockSource(block)).code);
+        var p;
+        p = this.generateCode(blockSource(block));
+        if (p instanceof Promise) {
+          return p.then(function(result) {
+            return eval(result.code);
+          });
+        } else {
+          return eval(p.code);
+        }
       };
       return env;
     };
@@ -463,9 +471,6 @@
             });
           };
         })(this));
-      };
-      env.createObserver = function(blockNames, text, cont) {
-        throw new Error('JavaScript observers not implemented yet');
       };
       env.generateCode = function(text) {
         var cm, fileName, nodes;
@@ -724,9 +729,6 @@
           };
         })(this));
       };
-      env.createObserver = function(blockNames, text, cont) {
-        throw new Error('LispyScript observers not implemented yet');
-      };
       return env;
     };
     arrayify = function(val) {
@@ -904,7 +906,7 @@
     };
     escapeHtml = function(str) {
       if (typeof str === 'string') {
-        return str.replace(/[<>&'"]/g, function(c) {
+        return str.replace(/[<>&\'\"]/g, function(c) {
           return replacements[c];
         });
       } else {
@@ -922,6 +924,123 @@
       text: textEnv,
       string: textEnv,
       yaml: yamlEnv
+    };
+    envTemplate = {
+      executeText: null,
+      generateCode: null,
+      compileBlock: null
+    };
+    Scope = (function() {
+      function Scope() {
+        this.names = [];
+        this.nameSet = {};
+        this.setters = {};
+        this.getters = {};
+        this["eval"] = (function() {
+          return function(s) {
+            return eval(s);
+          };
+        })();
+      }
+
+      Scope.prototype.newNames = function(names) {
+        var code, j, len, n, name, newNames, totalNames;
+        newNames = _.without.apply(_, [names].concat(slice.call(this.names)));
+        totalNames = newNames.concat(_.without.apply(_, [this.names].concat(slice.call(names))));
+        if (!_.isEmpty(newNames)) {
+          for (j = 0, len = newNames.length; j < len; j++) {
+            name = newNames[j];
+            this.nameSet[name] = true;
+          }
+          code = (((function() {
+            var k, len1, results1;
+            results1 = [];
+            for (k = 0, len1 = newNames.length; k < len1; k++) {
+              n = newNames[k];
+              results1.push('var ' + n + ' = null;');
+            }
+            return results1;
+          })()).join('\n  ')) + "\n\n(function(str) {return eval(str)})";
+          this.names = totalNames;
+          return this["eval"] = this["eval"](code);
+        }
+      };
+
+      Scope.prototype.get = function(name) {
+        var g;
+        if (!this.nameSet[name]) {
+          throw new Error("No member of namespace named '" + name + "'");
+        }
+        if (!(g = this.getters[name])) {
+          g = this.getters[name] = this["eval"]("(function() {return " + name + ";})");
+        }
+        return g();
+      };
+
+      Scope.prototype.set = function(name, value) {
+        var s;
+        if (!this.nameSet[name]) {
+          throw new Error("No member of namespace named '" + name + "'");
+        }
+        if (!(s = this.setters[name])) {
+          s = this.setters[name] = this["eval"]("(function($v$) {" + name + " = $v$})");
+        }
+        return s(value);
+      };
+
+      return Scope;
+
+    })();
+    installEnv = function(names, func) {
+      var j, langName, len, results1;
+      results1 = [];
+      for (j = 0, len = names.length; j < len; j++) {
+        langName = names[j];
+        results1.push(knownLanguages[langName] = func);
+      }
+      return results1;
+    };
+    autoLoadProperty = function(env, names, property, libraryName, cont) {
+      return env[property] = function() {
+        var args;
+        args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        if (!knownLanguages[names[0]].autoLoad) {
+          return env[property].apply(env, args);
+        } else {
+          return requirePromise(libraryName).then(function(installFunc) {
+            var res;
+            res = installFunc(env);
+            if (knownLanguages[names[0]].autoLoad) {
+              if (res instanceof Promise) {
+                return res.then(function(envFunc) {
+                  return installEnv(names, envFunc);
+                });
+              } else {
+                return installEnv(names, res);
+              }
+            }
+          }).then(function() {
+            return env[property].apply(env, args);
+          })["catch"](function(err) {
+            return env.errorAt(0, err.message);
+          });
+        }
+      };
+    };
+    autoLoadEnv = function(names, libraryName) {
+      var func;
+      names = _.map((_.isArray(names) ? names : [names]), function(n) {
+        return n.toLowerCase();
+      });
+      func = function(env) {
+        var prop;
+        for (prop in envTemplate) {
+          autoLoadProperty(env, names, prop, libraryName);
+        }
+        return env;
+      };
+      func.autoLoad = true;
+      return installEnv(names, func);
     };
     localEval = (function(html) {
       return function(x) {
@@ -1021,7 +1140,10 @@
       composeSourceMaps: composeSourceMaps,
       SourceNode: SourceNode,
       SourceMapConsumer: SourceMapConsumer,
-      SourceMapGenerator: SourceMapGenerator
+      SourceMapGenerator: SourceMapGenerator,
+      autoLoadEnv: autoLoadEnv,
+      languageEnvMaker: languageEnvMaker,
+      Scope: Scope
     });
     return {
       languageEnvMaker: languageEnvMaker,
@@ -1041,7 +1163,9 @@
       isYamlResult: isYamlResult,
       jsCodeFor: jsCodeFor,
       nextGeneratedFileName: nextGeneratedFileName,
-      getLeisurePromise: getLeisurePromise
+      getLeisurePromise: getLeisurePromise,
+      autoLoadEnv: autoLoadEnv,
+      Scope: Scope
     };
   });
 

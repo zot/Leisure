@@ -59,7 +59,10 @@ define files, (btoa)->
     presentValue: (x)-> String(x) + '\n'
     values: {}
     errorHandlers: []
-    prompt: ->
+    prompt: -> null
+    executeText: -> null
+    executeBlock: -> null
+    compileBlock: -> null
 
   rz = (window ? global).resolve = (value)->
     if typeof value == 'function' && value.length == 0

@@ -652,6 +652,8 @@
           else if org instanceof ListItem then @renderList opts, org
           else if org instanceof Drawer then @renderDrawer opts, org
           else if org instanceof Example then @renderExample opts, org
+          else if org instanceof Keyword && org.name.toLowerCase() == 'title'
+            @renderTitle opts, org
           else insertBreaks fancyHtml org.allText()
           text = nameText + text
           if start then prefixBreak text else text
@@ -664,6 +666,7 @@
           for i in [0...org.closeCount]
             text += '</ul>'
           text
+        renderTitle: (opts, org)-> "<span class='hidden'>#{escapeHtml org.text}</span>"
         renderLink: (opts, org)->
           if leisureMatch = org.isLeisure()
             [ignore, objectName, viewName, typeName] = leisureMatch

@@ -1,0 +1,26 @@
+#+TITLE: Testing Wisp
+* Ns bubbaM
+:properties:
+:namespace: test.bubbaM
+:end:
+#+BEGIN_SRC wisp :results def :macro true
+(defmacro derp [x] (list '+ x 1))
+#+END_SRC
+* Ns bubba
+:properties:
+:namespace: test.bubba (:require [test.bubbaM :refer [derp]])
+:end:
+** Test1
+#+BEGIN_SRC wisp :results def
+;comment
+(defmacro bubba [x] x)
+(def x 5)
+(defn fludj [x] (derp x))
+(+ x 1)
+#+END_SRC
+
+#+BEGIN_SRC wisp :results dynamic
+(.log console "hello" (fludj 3))
+4
+5
+#+END_SRC

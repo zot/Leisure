@@ -120,6 +120,7 @@ and previousSibling ids to indicate the tree structure of the org document
           @pendingEvals = []
           @importPromise = Promise.resolve()
           @tangles = {}
+          @titleBlocks = new Set()
         change: (changes)->
           ch = @makeChange changes
           @trigger 'change', ch
@@ -265,6 +266,13 @@ Let's just call this poetic license for the time being...
         lastSibling: (thing, changes)-> @reduceNextSiblings thing, changes, ((x, y)-> y), null
         firstSibling: (thing, changes)-> @reducePreviousSiblings thing, changes, ((x, y)-> y), null
         parent: (thing, changes)-> @getBlock @firstSibling(thing, changes)?.prev, changes
+        properties: (thing)->
+          props = {}
+          while bl = @getBlock thing
+            if bl.codeAttributes then _.defaults props, bl.codeAttributes
+            if bl.properties then _.defaults props, bl.properties
+            thing = @parent bl
+          props
         firstChild: (thing, changes)->
           if (block = @getBlock thing, changes) && (n = @getBlock block.next, changes) && !n.previousSibling
             n
@@ -422,6 +430,15 @@ that must be done regardless of the source of changes
               if v == true && block._id != id && !@running[id] then @pendingObserves[id] = block
           null
         checkPropChange: (oldBlock, newBlock, isDefault)->
+          if oldBlock?.title && !newBlock.title
+            @titleBlocks.delete oldBlock._id
+            t = null
+            @titleBlocks.forEach (v)-> t = v
+            if t then document.title = t
+            else document.title = document.location
+          else if newBlock.title
+            @titleBlocks.add newBlock._id
+            @title = document.title = newBlock.title
           if !isDefault && !newBlock?.level && !_.isEqual(oldBlock?.properties, newBlock?.properties) && parent = @parent newBlock ? oldBlock
             newProperties = _.defaults @parseBlocks(parent.text).properties ? {}, newBlock.properties ? {}
             if !_.isEqual parent.properties, newProperties
@@ -555,8 +572,10 @@ that must be done regardless of the source of changes
             changes.removes[old._id] = true
             @trigger 'change', changes
         textForDataNamed: (name, data, attrs)->
+          opts = (":#{k} #{v}" for k, v of attrs).join ' '
+          if opts then opts = ' ' + opts
           """
-          #{if name then "#+NAME: #{name}\n" else ''}#+BEGIN_SRC yaml #{(":#{k} #{v}" for k, v of attrs).join ' '}
+          #{if name then '#+NAME: ' + name + '\n' else ''}#+BEGIN_SRC yaml#{opts}
           #{dump(data, _.defaults attrs ? {}, {sortKeys: true, flowLevel: 2}).trim()}
           #+END_SRC
 
@@ -612,7 +631,9 @@ that must be done regardless of the source of changes
               env.silent = true
               if isSilent newBlock then write = ->
               else env.write = (str)-> console.log str
-          if code = @getCode block then setLounge env, code
+          if code = @getCode block
+            if code instanceof Promise then code.then (func)-> setLounge env, func
+            else setLounge env, code
           else @oldExecuteBlock block, envConf
         env: (language, envConf)->
           if env = languageEnvMaker(language)?(__proto__: defaultEnv)
@@ -621,7 +642,7 @@ that must be done regardless of the source of changes
             envConf?(env)
             env
         executeText: (language, text, cont, envConf)->
-          @env(language, envConf).executeText text, Nil, (cont ? (x)-> x)
+          @env(language, envConf)?.executeText text, Nil, (cont ? (x)-> x)
         checkImports: (block)->
           if (i = block?.properties?.import) && !@importRecords.importedFiles[filename = block.properties.import]
             console.log "Import: #{block?.properties?.import}"
@@ -699,7 +720,9 @@ that must be done regardless of the source of changes
               yaml = (!block.computedYaml && block.yaml) || parseYaml blockSource block
               if cont then cont.call this, [yaml] else [yaml]
             else if env = env ? @env(block.language) then env.compileBlock block)
-            if code then block.code = @addPostProcessing block, code
+            if code instanceof Promise
+              code.then (code)=> block.code = @addPostProcessing block, code
+            else if code then block.code = @addPostProcessing block, code
         addPostProcessing: (block, func)->
           if m = block.codeAttributes?.post?.match postCallPat
             [..., blockName, argNames] = m
@@ -1180,7 +1203,7 @@ NMap is a very simple trie.
               if hasChange
                 result = ''
                 newBlock = setError change
-                sync = true
+                state = 'idle'
                 env = envM
                   __proto__: defaultEnv
                   write: ->
@@ -1191,32 +1214,31 @@ NMap is a very simple trie.
                 do (change)=>
                   env.errorAt = (offset, msg)->
                     newBlock = setError change, offset, msg
-                    if newBlock != change && !sync
+                    if newBlock != change && state == 'pending'
                       opts.replaceBlock change, newBlock.text, 'code'
                   env.write = (str)=>
                     result += presentHtml str
                     if result[result.length - 1] != '\n' then result += '\n'
-                    if !sync then @replaceResult change._id, result
-                finished = {}
-                res = (if change.codeAttributes?.post then setLounge env, => @data.getCode(newBlock).call(env, (data)->
-                  result = env.formatResult newBlock, '', data
-                  finished)
-                #else env.executeText newSource.content, Nil, (-> finished))
-                else @data.getCode(newBlock).call env, (data)->
-                  result = env.formatResult newBlock, '', data
-                  finished)
-                if finished == res
-                  oldCode = newBlock.code
-                  newBlock = setResult newBlock, result
-                  newBlock.code = oldCode
-                  if newBlock.text != change.text
-                    changes.sets[newBlock._id] = newBlock
-                    for block, i in changes.newBlocks
-                      if block._id == newBlock._id then changes.newBlocks[i] = newBlock
-                    start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
-                    changes.repls.push repl = replacementFor start, change.text, newBlock.text
-                    repl.source = 'code'
-                sync = false
+                    if state == 'pending' then @replaceResult change._id, result
+                try
+                  setLounge env, => @data.getCode(newBlock).call env, (data)->
+                    if state == 'pending' then env.write data
+                    else result += env.formatResult newBlock, '', data
+                    state = 'finished'
+                  if state == 'idle' then state = 'pending'
+                  else if state == 'finished'
+                    oldCode = newBlock.code
+                    newBlock = setResult newBlock, result
+                    newBlock.code = oldCode
+                    if newBlock.text != change.text
+                      changes.sets[newBlock._id] = newBlock
+                      for block, i in changes.newBlocks
+                        if block._id == newBlock._id then changes.newBlocks[i] = newBlock
+                      start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
+                      changes.repls.push repl = replacementFor start, change.text, newBlock.text
+                      repl.source = 'code'
+                catch err
+                  env.errorAt 0, err?.message ? err
           catch err
             null
         offsetForNewBlock: (newBlock, oldBlocks, newBlocks)->
@@ -1228,7 +1250,7 @@ NMap is a very simple trie.
         execute: ->
           block = @editor.blockForCaret()
           if block.type == 'code' && envM = blockEnvMaker block
-            @queueEval =>
+            @data.queueEval =>
               @executeBlock block, envM
               @data.triggerUpdate 'system', 'code', block
             @data.scheduleEvals()

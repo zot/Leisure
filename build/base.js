@@ -93,7 +93,18 @@ misrepresented as being the original software.
       },
       values: {},
       errorHandlers: [],
-      prompt: function() {}
+      prompt: function() {
+        return null;
+      },
+      executeText: function() {
+        return null;
+      },
+      executeBlock: function() {
+        return null;
+      },
+      compileBlock: function() {
+        return null;
+      }
     };
     rz = (typeof window !== "undefined" && window !== null ? window : global).resolve = function(value) {
       if (typeof value === 'function' && value.length === 0) {

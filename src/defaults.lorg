@@ -677,8 +677,9 @@ span[data-block='code'].fancy {
 * Code buttons
 #+BEGIN_SRC coffee :results def
 Handlebars.registerPartial 'codeMenuButton', """
-<div name='codeMenuButton' data-widget-holder data-noncontent><button data-widget-button><div data-widget-border></div></button></div>
+<div name='codeMenuButton' data-widget-holder data-noncontent><button data-code-toggle><i class="fa fa-glass"></i></button><button data-code-button><div data-widget-border></div></button></div>
 """
+
 codeMenuString = """
   <ul id='codeMenu'>
     <li class='show code' value='toggleShowCode'>Show code
@@ -714,7 +715,7 @@ menu.on 'mouseleave', -> menu.hide()
 Leisure.initCodeMenu = (view)->
   opts = Leisure.findEditor(view).options
   blockId = opts.idForNode(view.find '[data-block]')
-  $(view).find('[name=codeMenuButton] [data-widget-button]').on 'click', (e)->
+  $(view).find('[name=codeMenuButton] [data-code-button]').on 'click', (e)->
     console.log "CLICK!"
     block = opts.parsedCodeBlock blockId
     menu = $('#codeMenu')
@@ -726,6 +727,8 @@ Leisure.initCodeMenu = (view)->
     menu.data block: block
     menu.show()
     menu.position my: 'left top', of: $(view).find('[name=codeMenuButton]'), at: 'left top'
+  $(view).find('[name=codeMenuButton] [data-code-toggle]').on 'click', (e)->
+    console.log "TOGGLE!"
 #+END_SRC
 
 #+BEGIN_SRC css
@@ -751,7 +754,8 @@ Leisure.initCodeMenu = (view)->
     border-color: #888;
   }
 }
-[data-widget-holder], [data-widget-button], [data-widget-border] {
+[data-widget-holder], [data-code-button], [data-code-toggle-button], [data-widget-border] {
+/*[data-widget-holder], [data-widget-border] {*/
   display: inline-block;
   position: absolute;
 }
@@ -762,26 +766,22 @@ Leisure.initCodeMenu = (view)->
   left: 0;
   overflow: hidden;
 }
-[data-widget-button] {
+[data-code-button] {
   -webkit-appearance: none;
   bottom: 0;
   left: 0;
-  width: 200%;
-  height: 200%;
-  background: rgba(255, 0, 0, 0.3);
-  transform-origin: bottom left;
-  transform: rotate(-45deg) translate(0, 2px);
-  border-bottom: solid rgb(60, 60, 60) 2px;
-  border-right: none;
-  border-left: none;
-  border-top: none;
+  width: 0;
+  height: 0;
+  background: transparent;
   overflow: hidden;
   padding: inherit;
   font-size: inherit;
   box-sizing: initial;
+  /* these two border settings make an upper-left triangle */
+  border-top: 100px solid rgba(255, 0, 0, 0.3);
+  border-right: 100px solid transparent;
 }
-[data-widget-button]:hover {
-  transform: none;
+[data-code-button]:hover {
   width: calc(100% - 4px);
   height: calc(100% - 4px);
   border: solid rgb(60, 60, 60) 2px;
@@ -799,7 +799,8 @@ Leisure.initCodeMenu = (view)->
   transform: rotate(45deg);
   transform-origin: bottom left;
 }
-[data-widget-button]:hover [data-widget-border] {
+[data-code-toggle-button]:hover [data-widget-border],
+[data-code-button]:hover [data-widget-border] {
   display: none;
 }
 #+END_SRC

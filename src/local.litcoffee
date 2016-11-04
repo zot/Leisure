@@ -2,7 +2,7 @@ Code for local-mode.  This will not be loaded under meteor.
 
     require ['./domCursor'], (DC)-> window.DOMCursor = DC
 
-    init = (jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle)->
+    init = (base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle)->
 
       {
         OrgData
@@ -131,6 +131,7 @@ Code for local-mode.  This will not be loaded under meteor.
           p2pPanel?.css 'display', ''
         else window.DATA = data = new OrgData()
         addSearchDataFilter data
+        Leisure.autoLoadEnv ['wisp'], './wispSupport'
         data.processDefaults(Defaults).then =>
           createStructureDisplay data
           #window.ED = plainEditDiv $("[maindoc]"), data
@@ -267,4 +268,4 @@ Code for local-mode.  This will not be loaded under meteor.
     require ['jquery', 'lodash'], -> require ['acorn', 'acorn_walk'], -> require ['acorn_loose'], ->
     #require ['jquery', './lib/lodash.full-4.14.1'], -> require ['acorn', 'acorn_walk'], -> require ['acorn_loose'], ->
       #require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', './lib/webrtc', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './gdrive'], init
-      require ['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle'], init
+      require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle'], init

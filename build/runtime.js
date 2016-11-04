@@ -678,12 +678,12 @@ misrepresented as being the original software.
       return Monad;
 
     })();
-    (typeof global !== "undefined" && global !== null ? global : window).L_runMonads = function(array, env) {
+    (typeof global !== "undefined" && global !== null ? global : window).L_runMonads = function(array, env, cont) {
       return runMonad2(array.slice().reverse().reduce(function(result, element) {
         return bind(element, lz(function(x) {
           return rz(result);
         }));
-      }), env != null ? env : root.defaultEnv, resolve);
+      }), env != null ? env : root.defaultEnv, cont != null ? cont : resolve);
     };
     ensureLeisureClass('unit');
     Leisure_unit = (function(superClass) {
