@@ -52,6 +52,7 @@
         this.pendingEvals = [];
         this.importPromise = Promise.resolve();
         this.tangles = {};
+        this.titleBlocks = new Set();
       }
 
       OrgData.prototype.change = function(changes) {
@@ -369,6 +370,21 @@
       OrgData.prototype.parent = function(thing, changes) {
         var ref;
         return this.getBlock((ref = this.firstSibling(thing, changes)) != null ? ref.prev : void 0, changes);
+      };
+
+      OrgData.prototype.properties = function(thing) {
+        var bl, props;
+        props = {};
+        while (bl = this.getBlock(thing)) {
+          if (bl.codeAttributes) {
+            _.defaults(props, bl.codeAttributes);
+          }
+          if (bl.properties) {
+            _.defaults(props, bl.properties);
+          }
+          thing = this.parent(bl);
+        }
+        return props;
       };
 
       OrgData.prototype.firstChild = function(thing, changes) {
@@ -705,7 +721,22 @@
       };
 
       OrgData.prototype.checkPropChange = function(oldBlock, newBlock, isDefault) {
-        var newProperties, parent, ref, ref1, sets;
+        var newProperties, parent, ref, ref1, sets, t;
+        if ((oldBlock != null ? oldBlock.title : void 0) && !newBlock.title) {
+          this.titleBlocks["delete"](oldBlock._id);
+          t = null;
+          this.titleBlocks.forEach(function(v) {
+            return t = v;
+          });
+          if (t) {
+            document.title = t;
+          } else {
+            document.title = document.location;
+          }
+        } else if (newBlock.title) {
+          this.titleBlocks.add(newBlock._id);
+          this.title = document.title = newBlock.title;
+        }
         if (!isDefault && !(newBlock != null ? newBlock.level : void 0) && !_.isEqual(oldBlock != null ? oldBlock.properties : void 0, newBlock != null ? newBlock.properties : void 0) && (parent = this.parent(newBlock != null ? newBlock : oldBlock))) {
           newProperties = _.defaults((ref = this.parseBlocks(parent.text).properties) != null ? ref : {}, (ref1 = newBlock.properties) != null ? ref1 : {});
           if (!_.isEqual(parent.properties, newProperties)) {
@@ -980,8 +1011,8 @@
       };
 
       OrgData.prototype.textForDataNamed = function(name, data, attrs) {
-        var k, v;
-        return (name ? "#+NAME: " + name + "\n" : '') + "#+BEGIN_SRC yaml " + (((function() {
+        var k, opts, v;
+        opts = ((function() {
           var results1;
           results1 = [];
           for (k in attrs) {
@@ -989,7 +1020,11 @@
             results1.push(":" + k + " " + v);
           }
           return results1;
-        })()).join(' ')) + "\n" + (dump(data, _.defaults(attrs != null ? attrs : {}, {
+        })()).join(' ');
+        if (opts) {
+          opts = ' ' + opts;
+        }
+        return (name ? '#+NAME: ' + name + '\n' : '') + "#+BEGIN_SRC yaml" + opts + "\n" + (dump(data, _.defaults(attrs != null ? attrs : {}, {
           sortKeys: true,
           flowLevel: 2
         })).trim()) + "\n#+END_SRC\n";
@@ -1109,7 +1144,13 @@
           }
         });
         if (code = this.getCode(block)) {
-          return setLounge(env, code);
+          if (code instanceof Promise) {
+            return code.then(function(func) {
+              return setLounge(env, func);
+            });
+          } else {
+            return setLounge(env, code);
+          }
         } else {
           return this.oldExecuteBlock(block, envConf);
         }
@@ -1132,9 +1173,10 @@
       };
 
       OrgData.prototype.executeText = function(language, text, cont, envConf) {
-        return this.env(language, envConf).executeText(text, Nil, cont != null ? cont : function(x) {
+        var ref;
+        return (ref = this.env(language, envConf)) != null ? ref.executeText(text, Nil, cont != null ? cont : function(x) {
           return x;
-        });
+        }) : void 0;
       };
 
       OrgData.prototype.checkImports = function(block) {
@@ -1289,7 +1331,13 @@
               return [yaml];
             }
           } : (env = env != null ? env : this.env(block.language)) ? env.compileBlock(block) : void 0);
-          if (code) {
+          if (code instanceof Promise) {
+            return code.then((function(_this) {
+              return function(code) {
+                return block.code = _this.addPostProcessing(block, code);
+              };
+            })(this));
+          } else if (code) {
             return block.code = this.addPostProcessing(block, code);
           }
         }
@@ -2279,7 +2327,7 @@
       };
 
       OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock, oldBlocks, newBlocks) {
-        var block, env, envM, err, error1, finished, hasChange, i, j, len, newBlock, newResults, newSource, oldCode, oldSource, opts, ref, ref1, ref2, repl, res, result, start, sync;
+        var block, env, envM, err, error1, error2, hasChange, i, j, len, newBlock, newResults, newSource, oldCode, oldSource, opts, ref, ref1, ref2, repl, result, start, state;
         try {
           if (!this.data.running[change._id] && change.type === 'code' && isDynamic(change) && (envM = blockEnvMaker(change))) {
             ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
@@ -2287,7 +2335,7 @@
             if (hasChange) {
               result = '';
               newBlock = setError(change);
-              sync = true;
+              state = 'idle';
               env = envM({
                 __proto__: defaultEnv,
                 write: function() {},
@@ -2302,7 +2350,7 @@
                 return (function(change) {
                   env.errorAt = function(offset, msg) {
                     newBlock = setError(change, offset, msg);
-                    if (newBlock !== change && !sync) {
+                    if (newBlock !== change && state === 'pending') {
                       return opts.replaceBlock(change, newBlock.text, 'code');
                     }
                   };
@@ -2311,47 +2359,53 @@
                     if (result[result.length - 1] !== '\n') {
                       result += '\n';
                     }
-                    if (!sync) {
+                    if (state === 'pending') {
                       return _this.replaceResult(change._id, result);
                     }
                   };
                 });
               })(this)(change);
-              finished = {};
-              res = (((ref1 = change.codeAttributes) != null ? ref1.post : void 0) ? setLounge(env, (function(_this) {
-                return function() {
-                  return _this.data.getCode(newBlock).call(env, function(data) {
-                    result = env.formatResult(newBlock, '', data);
-                    return finished;
-                  });
-                };
-              })(this)) : this.data.getCode(newBlock).call(env, function(data) {
-                result = env.formatResult(newBlock, '', data);
-                return finished;
-              }));
-              if (finished === res) {
-                oldCode = newBlock.code;
-                newBlock = setResult(newBlock, result);
-                newBlock.code = oldCode;
-                if (newBlock.text !== change.text) {
-                  changes.sets[newBlock._id] = newBlock;
-                  ref2 = changes.newBlocks;
-                  for (i = j = 0, len = ref2.length; j < len; i = ++j) {
-                    block = ref2[i];
-                    if (block._id === newBlock._id) {
-                      changes.newBlocks[i] = newBlock;
+              try {
+                setLounge(env, (function(_this) {
+                  return function() {
+                    return _this.data.getCode(newBlock).call(env, function(data) {
+                      if (state === 'pending') {
+                        env.write(data);
+                      } else {
+                        result += env.formatResult(newBlock, '', data);
+                      }
+                      return state = 'finished';
+                    });
+                  };
+                })(this));
+                if (state === 'idle') {
+                  return state = 'pending';
+                } else if (state === 'finished') {
+                  oldCode = newBlock.code;
+                  newBlock = setResult(newBlock, result);
+                  newBlock.code = oldCode;
+                  if (newBlock.text !== change.text) {
+                    changes.sets[newBlock._id] = newBlock;
+                    ref1 = changes.newBlocks;
+                    for (i = j = 0, len = ref1.length; j < len; i = ++j) {
+                      block = ref1[i];
+                      if (block._id === newBlock._id) {
+                        changes.newBlocks[i] = newBlock;
+                      }
                     }
+                    start = this.offsetForNewBlock(newBlock, oldBlocks, newBlocks);
+                    changes.repls.push(repl = replacementFor(start, change.text, newBlock.text));
+                    return repl.source = 'code';
                   }
-                  start = this.offsetForNewBlock(newBlock, oldBlocks, newBlocks);
-                  changes.repls.push(repl = replacementFor(start, change.text, newBlock.text));
-                  repl.source = 'code';
                 }
+              } catch (error1) {
+                err = error1;
+                return env.errorAt(0, (ref2 = err != null ? err.message : void 0) != null ? ref2 : err);
               }
-              return sync = false;
             }
           }
-        } catch (error1) {
-          err = error1;
+        } catch (error2) {
+          err = error2;
           return null;
         }
       };
@@ -2373,7 +2427,7 @@
         var block, envM;
         block = this.editor.blockForCaret();
         if (block.type === 'code' && (envM = blockEnvMaker(block))) {
-          this.queueEval((function(_this) {
+          this.data.queueEval((function(_this) {
             return function() {
               _this.executeBlock(block, envM);
               return _this.data.triggerUpdate('system', 'code', block);

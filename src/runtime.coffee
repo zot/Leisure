@@ -393,9 +393,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'li
   class Monad
     toString: -> "Monad: #{@cmd.toString()}"
 
-  (global ? window).L_runMonads = (array, env)->
+  (global ? window).L_runMonads = (array, env, cont)->
     runMonad2 array.slice().reverse().reduce((result, element)->
-      bind element, lz (x)-> rz result), env ? root.defaultEnv, resolve
+      bind element, lz (x)-> rz result), env ? root.defaultEnv, cont ? resolve
 
   ensureLeisureClass 'unit'
 

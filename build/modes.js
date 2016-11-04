@@ -841,7 +841,7 @@
             results1.push(this.renderOrg(opts, child));
           }
           return results1;
-        }).call(this)).join('') : org instanceof ListItem ? this.renderList(opts, org) : org instanceof Drawer ? this.renderDrawer(opts, org) : org instanceof Example ? this.renderExample(opts, org) : insertBreaks(fancyHtml(org.allText()));
+        }).call(this)).join('') : org instanceof ListItem ? this.renderList(opts, org) : org instanceof Drawer ? this.renderDrawer(opts, org) : org instanceof Example ? this.renderExample(opts, org) : org instanceof Keyword && org.name.toLowerCase() === 'title' ? this.renderTitle(opts, org) : insertBreaks(fancyHtml(org.allText()));
         text = nameText + text;
         if (start) {
           return prefixBreak(text);
@@ -870,6 +870,9 @@
           text += '</ul>';
         }
         return text;
+      },
+      renderTitle: function(opts, org) {
+        return "<span class='hidden'>" + (escapeHtml(org.text)) + "</span>";
       },
       renderLink: function(opts, org) {
         var attrs, block, c, data, desc, error, guts, ignore, j, leisureMatch, len, obj, objectName, ref, src, title, type, typeName, viewName;

@@ -6,7 +6,7 @@
     return window.DOMCursor = DC;
   });
 
-  init = function(jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle) {
+  init = function(base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, BrowserExports, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle) {
     var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureAtom, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, getDocumentParams, initializePendingViews, installSelectionMenu, localActivateScripts, localResources, mergeExports, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams, editorToolbar = EditorSupport.editorToolbar;
     plainEditDiv = Modes.plainEditDiv, fancyEditDiv = Modes.fancyEditDiv;
@@ -145,6 +145,7 @@
         window.DATA = data = new OrgData();
       }
       addSearchDataFilter(data);
+      Leisure.autoLoadEnv(['wisp'], './wispSupport');
       return data.processDefaults(Defaults).then((function(_this) {
         return function() {
           var join, load, ref, tanglePresent, theme;
@@ -210,7 +211,7 @@
   require(['jquery', 'lodash'], function() {
     return require(['acorn', 'acorn_walk'], function() {
       return require(['acorn_loose'], function() {
-        return require(['jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle'], init);
+        return require(['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './export', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle'], init);
       });
     });
   });

@@ -157,7 +157,7 @@ Evaulation support for Leisure
               if !env.opts then env.opts = opts
               leisureExec env, text, props, cont, (err)-> env.errorAt 0, err?.message ? err),
             (err)-> env.errorAt 0, err?.message ? err
-        env.createObserver = (blockNames, text, cont)-> throw new Error 'Leisure observers not implemented yet'
+        env.formatResult = (block, prefix, items)-> basicFormat block, prefix, [@presentValue items]
         env.genBlock = (block)-> @generateCode blockSource(block), true
         env.generateCode = (text, noFunc)-> setLounge this, ->
           exec = =>
@@ -171,15 +171,17 @@ Evaulation support for Leisure
               if errs.length then throw new Error _.map(errs, (el)-> el.message).join('\n')
               else withFile (fileName = currentGeneratedFileName()), null, ->
                 codeMap new SourceNode(1, 0, fileName, [
-                  (if !noFunc then '(function(){return ' else []),
+                  (if !noFunc then '(function(cont){return ' else []),
                   'L_runMonads([\n    ',
                   intersperse(_.map(asts, (item)-> sourceNode item, 'function(){return ', (genMap item), '}'), ',\n    '),
                   #'\n  ])'
-                  '\n  ])',
+                  (if !noFunc then '\n  ], null, cont)' else '\n  ])'),
                   (if !noFunc then ';})' else [])
                 ]), text, fileName), (err)-> throw err
           if getLeisurePromise().isResolved() then exec() else getLeisurePromise().then exec
-        env.compileBlock = (block)-> eval @generateCode(blockSource(block)).code
+        env.compileBlock = (block)->
+          p = @generateCode blockSource(block)
+          if p instanceof Promise then p.then (result)-> eval result.code else eval p.code
         env
 
       codeMap = (sourceNode, content, fileName)->
@@ -288,7 +290,6 @@ Evaulation support for Leisure
             succeed value
             cont? value).catch (err)=>
               @errorAt 0, err.message
-        env.createObserver = (blockNames, text, cont)-> throw new Error 'JavaScript observers not implemented yet'
         env.generateCode = (text)->
           fileName = nextGeneratedFileName()
           cm = codeMap new SourceNode(1, 0, fileName, text), text, fileName
@@ -430,7 +431,6 @@ Evaulation support for Leisure
           catch err
             @errorAt 0, err.message
           cont? value
-        env.createObserver = (blockNames, text, cont)-> throw new Error 'LispyScript observers not implemented yet'
         env
 
       arrayify = (val)-> if _.isArray(val) then val else [val]
@@ -528,7 +528,7 @@ Evaulation support for Leisure
         "'": '&#39;'
 
       escapeHtml = (str)->
-        if typeof str == 'string' then str.replace /[<>&'"]/g, (c)-> replacements[c]
+        if typeof str == 'string' then str.replace /[<>&\'\"]/g, (c)-> replacements[c]
         else str
 
       knownLanguages =
@@ -542,6 +542,72 @@ Evaulation support for Leisure
         text: textEnv
         string: textEnv
         yaml: yamlEnv
+
+      envTemplate =
+        executeText: null
+        generateCode: null
+        compileBlock: null
+
+      class Scope
+        constructor: ->
+          @names = []
+          @nameSet = {}
+          @setters = {}
+          @getters = {}
+          @eval = (-> (s)-> eval(s))()
+        newNames: (names)->
+          newNames = _.without names, @names...
+          totalNames = newNames.concat _.without @names, names...
+          if !_.isEmpty newNames
+            for name in newNames
+              @nameSet[name] = true
+            code = """
+              #{('var ' + n + ' = null;' for n in newNames).join '\n  '}
+
+              (function(str) {return eval(str)})
+            """
+            @names = totalNames
+            @eval = @eval(code)
+        get: (name)->
+          if !@nameSet[name]
+            throw new Error "No member of namespace named '#{name}'"
+          if !(g = @getters[name])
+            g = @getters[name] = @eval "(function() {return #{name};})"
+          g()
+        set: (name, value)->
+          if !@nameSet[name]
+            throw new Error "No member of namespace named '#{name}'"
+          if !(s = @setters[name])
+            s = @setters[name] = @eval "(function($v$) {#{name} = $v$})"
+          s value
+
+      installEnv = (names, func)->
+        for langName in names
+          knownLanguages[langName] = func
+
+      autoLoadProperty = (env, names, property, libraryName, cont)->
+        env[property] = (args...)->
+          if !knownLanguages[names[0]].autoLoad then env[property] args...
+          else
+            requirePromise(libraryName)
+              .then (installFunc)->
+                res = installFunc(env)
+                if knownLanguages[names[0]].autoLoad
+                  if res instanceof Promise then res.then (envFunc)-> installEnv names, envFunc
+                  else installEnv names, res
+              .then ->
+                #debugger
+                env[property] args...
+              .catch (err)-> env.errorAt 0, err.message
+
+      autoLoadEnv = (names, libraryName)->
+        names = _.map (if _.isArray names then names else [names]), (n)-> n.toLowerCase()
+        func = (env)->
+          for prop of envTemplate
+            autoLoadProperty env, names, prop, libraryName
+          env
+        func.autoLoad = true
+        installEnv names, func
 
       localEval = do (html)-> (x)-> eval x
 
@@ -602,6 +668,9 @@ Evaulation support for Leisure
         SourceNode
         SourceMapConsumer
         SourceMapGenerator
+        autoLoadEnv
+        languageEnvMaker
+        Scope
       }
 
       {
@@ -623,4 +692,6 @@ Evaulation support for Leisure
         jsCodeFor
         nextGeneratedFileName
         getLeisurePromise
+        autoLoadEnv
+        Scope
       }

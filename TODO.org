@@ -1,3 +1,15 @@
+* CHECKIT [#A] Yarn package manager: https://code.facebook.com/posts/1840075619545360/yarn-a-new-package-manager-for-javascript/
+* CHECKIT [#A] CLJS DevTools: https://github.com/binaryage/cljs-devtools
+* CHECKIT [#A] Nightlight CLJ browser-dev env: https://sekao.net/nightlight/
+* CHECKIT [#A] Conflict-free replicated JSON data type: https://arxiv.org/abs/1608.03960
+* CHECKIT [#A] Tracking caret position: http://jsfiddle.net/Xefdb/9/
+** from this page: http://zurb.com/forrst/posts/Tracking_the_caret_position_in_a_contenteditable-P4l
+* TODO [#A] env.errorAt no longer works
+* TODO [#A] Number expers in coffeescript don't work
+* TODO [#A] store selected documents in an IndexedDB and refresh storage when loaded
+- Allow loading from DB or from file, etc.
+- Make save button that saves the document under its name, confirming if it will overwrite
+- Export/load zip file
 * TODO [#A] integrate stylus into Lounge (do less later)
 * BUG [#A] make word-selections drag properly in adjusted selections
 * BUG [#A] leisure unterminated string doesn't throw a proper error
@@ -1541,4 +1553,4 @@ if node.previousSibling/node.nextSibling exists and is visible, then backspace/d
    CLOSED: [2013-12-15 Sun 23:03]
 output should be HTML-escaped
 * Defs
-#+TODO: TODO BUG | DONE
+#+TODO: TODO BUG CHECKIT | DONE

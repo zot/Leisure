@@ -3,7 +3,7 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./org', 'lib/js-yaml', 'lib/lazy'], function(Org, Yaml, Lazy) {
-    var Drawer, Fragment, HTML, Headline, Keyword, Meat, ParsedCodeBlock, Results, Source, UnknownDeclaration, _L, blockOrg, blockSource, checkMerged, checkProps, checkSingleNode, createChildrenDocs, createCodeBlockDoc, createDocFromOrg, createHtmlBlockDoc, createOrgDoc, crnl, docRoot, dump, escapeRegexp, getCodeItems, getSourceNodeType, isCodeBlock, isMergeable, isSourceEnd, isText, isYaml, isYamlResult, lineCodeBlockType, linkDocs, load, orgDoc, parseOrgMode, parseYaml, replaceOrgDoc, safeLoad;
+    var Drawer, Fragment, HTML, Headline, Keyword, Meat, ParsedCodeBlock, Results, Source, UnknownDeclaration, _L, blockOrg, blockSource, checkMerged, checkProps, checkSingleNode, createChildrenDocs, createCodeBlockDoc, createDocFromOrg, createHtmlBlockDoc, createOrgDoc, crnl, docRoot, dump, escapeRegexp, findTitle, getCodeItems, getSourceNodeType, isCodeBlock, isMergeable, isSourceEnd, isText, isYaml, isYamlResult, lineCodeBlockType, linkDocs, load, orgDoc, parseOrgMode, parseYaml, replaceOrgDoc, safeLoad;
     Headline = Org.Headline, Source = Org.Source, HTML = Org.HTML, Keyword = Org.Keyword, Drawer = Org.Drawer, Meat = Org.Meat, UnknownDeclaration = Org.UnknownDeclaration, Results = Org.Results, parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment;
     safeLoad = Yaml.safeLoad, load = Yaml.load, dump = Yaml.dump;
     _L = Lazy._;
@@ -374,7 +374,7 @@
       }
     };
     createOrgDoc = function(org, local) {
-      var children, next, ref, ref1, result;
+      var block, children, next, ref, ref1, result, title;
       next = org.next;
       if (org instanceof Headline) {
         local = local || (org.level === 1 && org.properties.local);
@@ -399,13 +399,15 @@
       } else if (isCodeBlock(org)) {
         ref1 = createCodeBlockDoc(org), result = ref1[0], next = ref1[1];
       } else {
-        result = _L(checkProps(org, [
-          {
-            text: org.allText(),
-            type: 'chunk',
-            offset: org.offset
-          }
-        ]));
+        block = {
+          text: org.allText(),
+          type: 'chunk',
+          offset: org.offset
+        };
+        if (title = findTitle(org)) {
+          block.title = title;
+        }
+        result = _L(checkProps(org, [block]));
       }
       if (local) {
         result.each(function(item) {
@@ -414,20 +416,38 @@
       }
       return [result, next];
     };
+    findTitle = function(org) {
+      var child, j, len1, ref, title;
+      if (org instanceof Keyword && org.name.toLowerCase() === 'title') {
+        return org.info.trim();
+      } else if (org.children) {
+        ref = org.children;
+        for (j = 0, len1 = ref.length; j < len1; j++) {
+          child = ref[j];
+          if (title = findTitle(child)) {
+            return title;
+          }
+        }
+      }
+    };
     checkProps = function(org, block) {
       if (typeof org.isProperties === "function" ? org.isProperties() : void 0) {
         return block.properties = org.properties();
       }
     };
     createChildrenDocs = function(org, local) {
-      var child, childDoc, children, mergedText, offset, properties, ref, ref1, ref2;
+      var child, childDoc, children, mergedText, newTitle, offset, properties, ref, ref1, ref2, title;
       children = _L();
       child = org.children[0];
+      title = null;
       if (child) {
         mergedText = '';
         properties = _L();
         offset = org.children[0].offset;
         while (child) {
+          if (newTitle = findTitle(child)) {
+            title = newTitle;
+          }
           if (isMergeable(child)) {
             mergedText += child.allText();
             if (typeof child.properties === "function" ? child.properties() : void 0) {
@@ -437,18 +457,22 @@
           } else {
             ref = checkMerged(mergedText, properties, children, offset), mergedText = ref[0], properties = ref[1], children = ref[2];
             ref1 = createOrgDoc(child, local), childDoc = ref1[0], child = ref1[1];
+            if (title) {
+              (children.isEmpty() ? childDoc : children).first().title = title;
+              title = null;
+            }
             children = children.concat([childDoc]);
             offset = child != null ? child.offset : void 0;
           }
         }
-        ref2 = checkMerged(mergedText, properties, children, offset), mergedText = ref2[0], properties = ref2[1], children = ref2[2];
+        ref2 = checkMerged(mergedText, properties, children, offset, title), mergedText = ref2[0], properties = ref2[1], children = ref2[2];
       }
       return children;
     };
     isMergeable = function(org) {
       return !(org instanceof Headline || org instanceof HTML || isCodeBlock(org));
     };
-    checkMerged = function(mergedText, properties, children, offset) {
+    checkMerged = function(mergedText, properties, children, offset, title) {
       var child;
       if (mergedText !== '') {
         child = {
@@ -456,6 +480,9 @@
           type: 'chunk',
           offset: offset
         };
+        if (title) {
+          child.title = title;
+        }
         if (!properties.isEmpty()) {
           child.properties = properties.toObject();
         }

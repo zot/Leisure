@@ -225,9 +225,19 @@
             _L([text: org.text, type: 'headline', level: org.level, offset: org.offset, properties: org.properties]).concat children
         else if org instanceof HTML then [result, next] = createHtmlBlockDoc org
         else if isCodeBlock org then [result, next] = createCodeBlockDoc org
-        else result = _L(checkProps org, [text: org.allText(), type: 'chunk', offset: org.offset])
+        else
+          block = text: org.allText(), type: 'chunk', offset: org.offset
+          if title = findTitle org then block.title = title
+          result = _L(checkProps org, [block])
         if local then result.each (item)-> item.local = true
         [result, next]
+
+      findTitle = (org)->
+        if org instanceof Keyword && org.name.toLowerCase() == 'title'
+          return org.info.trim()
+        else if org.children
+          for child in org.children when title = findTitle child
+            return title
 
       checkProps = (org, block)->
         if org.isProperties?()
@@ -236,11 +246,13 @@
       createChildrenDocs = (org, local)->
         children = _L()
         child = org.children[0]
+        title = null
         if child
           mergedText = ''
           properties = _L()
           offset = org.children[0].offset
           while child
+            if newTitle = findTitle child then title = newTitle
             if isMergeable child
               mergedText += child.allText()
               if child.properties?() then properties = properties.merge child.properties?()
@@ -248,16 +260,20 @@
             else
               [mergedText, properties, children] = checkMerged mergedText, properties, children, offset
               [childDoc, child] = createOrgDoc child, local
+              if title
+                (if children.isEmpty() then childDoc else children).first().title = title
+                title = null
               children = children.concat [childDoc]
               offset = child?.offset
-          [mergedText, properties, children] = checkMerged mergedText, properties, children, offset
+          [mergedText, properties, children] = checkMerged mergedText, properties, children, offset, title
         children
 
       isMergeable = (org)-> !(org instanceof Headline || org instanceof HTML || isCodeBlock org)
 
-      checkMerged = (mergedText, properties, children, offset)->
+      checkMerged = (mergedText, properties, children, offset, title)->
         if mergedText != ''
           child = text: mergedText, type: 'chunk', offset: offset
+          if title then child.title = title
           if !properties.isEmpty() then child.properties = properties.toObject()
           children = children.concat [child]
         ['', _L(), children]
