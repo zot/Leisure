@@ -657,6 +657,15 @@ Evaulation support for Leisure
 
       unescapeString = (str)-> String(str).replace slashed, (c)-> unescaped[c] ? c[1]
 
+      lineColumnStrOffset = (str, line, column)->
+        pos = -1
+        while line-- > 0
+          newPos = str.indexOf '\n', pos
+          if newPos < pos
+            return str.length
+          pos = newPos + 1
+        Math.min str.length, pos + 1 + column
+
       mergeExports {
         evalLeisure
         runLeisureMonad
@@ -694,4 +703,5 @@ Evaulation support for Leisure
         getLeisurePromise
         autoLoadEnv
         Scope
+        lineColumnStrOffset
       }

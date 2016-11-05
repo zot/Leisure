@@ -3,8 +3,8 @@
   var slice = [].slice;
 
   define(['./eval', './docOrg', 'lib/bluebird.min', './gen'], function(Eval, DocOrg, Bluebird, Gen) {
-    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, blockSource, compile, envFunc, findNs, jsCodeFor, parseIt, setLounge, wispCompile, wispEval, wispFileCounter, wispGenNSContext, wispPromise, wispRequire, wp;
-    setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope;
+    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, blockSource, codeOffset, compile, envFunc, findNs, jsCodeFor, lineColumnStrOffset, parseIt, setLounge, sourceMapFromCode, wispCompile, wispEval, wispFileCounter, wispGenNSContext, wispPromise, wispRequire, wp;
+    setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset;
     blockSource = DocOrg.blockSource;
     Promise = Bluebird.Promise;
     SourceNode = Gen.SourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator;
@@ -66,9 +66,7 @@
               args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
               node = baseWispCompile.apply(null, args);
               if (node.error) {
-                console.log("Error in code\n" + s);
-                console.log("NODE: ", node);
-                throw new Error(node.error + ("\nCompiling:\n" + s));
+                throw node.error;
               }
               return node;
             };
@@ -190,7 +188,7 @@
         exprPos = 0;
         returnNode = null;
         destroyingExport = false;
-        prevCode = null;
+        prevCode = {};
         con = SourceMapConsumer.fromSourceMap(this.result['source-map']);
         nodes = SourceNode.fromStringWithSourceMap(this.result.code, con);
         if (addReturn) {
@@ -205,14 +203,14 @@
         }
         nodes.walk((function(_this) {
           return function(code, loc) {
-            var node, ref;
+            var c, c2, node, ref;
             if (code.match(/\/\/# sourceMappingURL=/)) {
               foundEnd = true;
             }
             if (foundEnd) {
               return;
             }
-            if (_this.destroyExports && !destroyingExport && code === "exports" && prevCode.match(/ *= */)) {
+            if (_this.destroyExports && !destroyingExport && code === "exports" && prevCode.code.match(/ *= */)) {
               destroyingExport = true;
               return;
             } else if (destroyingExport) {
@@ -226,7 +224,13 @@
             }
             if (_this.returnList && !startedPush && loc.line === exprs[exprPos].start.line && loc.column >= exprs[exprPos].start.column - 1) {
               startedPush = true;
-              code = "$ret$.push(" + code;
+              c = prevCode.node.children[0];
+              c2 = c.replace(/((^|\n) *)([^ \n]+)$/, '$1$$ret$$.push($3');
+              if (c !== c2) {
+                prevCode.node.children[0] = c2;
+              } else {
+                code = "$ret$.push(" + code;
+              }
             }
             if (startedPush && (code.match(/;[ \n]*$/) || ((loc.line > (ref = exprs[exprPos].end.line) && ref === exprs[exprPos].end.line) && loc.column >= exprs[exprPos].end.column - 1))) {
               startedPush = false;
@@ -246,7 +250,11 @@
               _this.gennedNs = true;
               tail.push(node);
             }
-            return prevCode = code;
+            return prevCode = {
+              code: code,
+              loc: loc,
+              node: node
+            };
           };
         })(this));
         file = (ref = _.find(nodes.children, function(n) {
@@ -303,6 +311,20 @@
     Leisure.wispRequire = wispRequire;
     Leisure.wispFindNs = findNs;
     Leisure.wispGenNSContext = wispGenNSContext;
+    sourceMapFromCode = function(code) {
+      return new SourceMapConsumer(JSON.parse(atob(code.substring(code.lastIndexOf('\n', code.length - 2)).match(/sourceMappingURL=.*base64,([^\n]*)\n/)[1])));
+    };
+    codeOffset = function(err, code, src, originalSrc) {
+      var column, ign, line, ref, ref1;
+      ref = err.stack.match(/\n +at .*:([0-9]*):([0-9]*)/), ign = ref[0], line = ref[1], column = ref[2];
+      line = Number(line);
+      column = Number(column);
+      ref1 = sourceMapFromCode(code).originalPositionFor({
+        line: line - 1,
+        column: column
+      }), line = ref1.line, column = ref1.column;
+      return lineColumnStrOffset(src, line, column) + originalSrc.length - src.length;
+    };
     envFunc = function(env) {
       env.executeText = function(text, props, cont) {
         return setLounge(this, (function(_this) {
@@ -318,8 +340,8 @@
         })(this));
       };
       env.compileBlock = function(block) {
-        var e, err, error, func, macros, ns, nsObj, props, ref, ref1, res;
-        res = "" + (blockSource(block).trim());
+        var code, column, err, error, func, ignore, line, m, macros, msg, nameSpace, ns, nsObj, original, pos, props, ref, ref1, ref2, ref3, res;
+        original = res = "" + (blockSource(block).trim());
         try {
           props = this.data.properties(block);
           ns = (ref = (ref1 = props.namespace) != null ? ref1.trim() : void 0) != null ? ref : void 0;
@@ -327,13 +349,14 @@
             if (props.macro) {
               macros = true;
             }
-            res = "(ns " + ns + ")" + res;
+            res = "(ns " + ns + ")\n" + res;
             ns = ns.match(/^[^ ]+/)[0];
             nsObj = findNs(ns, Leisure.WispNS, true);
           }
-          func = wispEval(res, ns, true, true);
+          ref2 = compile(res, ns, true, true), nameSpace = ref2.nameSpace, code = ref2.code;
+          func = nameSpace ? nameSpace["eval"](code) : eval(code);
           return function() {
-            var args, cont, envConsole;
+            var args, cont, envConsole, err, error, ref3;
             cont = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
             env = this;
             envConsole = {
@@ -343,15 +366,33 @@
                 return env.write(args.join(' '));
               }
             };
-            return (cont != null ? cont : identity)(_.filter(func.apply(null, [null, envConsole].concat(slice.call(args))), function(n) {
-              return typeof n !== 'undefined';
-            }));
+            try {
+              return (cont != null ? cont : identity)(_.filter(func.apply(null, [null, envConsole].concat(slice.call(args))), function(n) {
+                return typeof n !== 'undefined';
+              }));
+            } catch (error) {
+              err = error;
+              console.error((ref3 = err.stack) != null ? ref3 : err);
+              if (original !== blockSource(env.data.getBlock(block._id)).trim()) {
+                console.error("Warning, code is from a different version of block " + block._id);
+              }
+              env.errorAt(codeOffset(err, code, res, original), err.message);
+              return (cont != null ? cont : identity)([]);
+            }
           };
         } catch (error) {
           err = error;
-          e = new Error("Error compiling " + res + "\n  " + err.message);
-          e.stack = err.stack;
-          throw e;
+          console.error((ref3 = err.stack) != null ? ref3 : err);
+          if (m = err.message.match(/^([^\n]+)\nline:([^\n]+)\ncolumn:([^\n]+)(\n|$)/)) {
+            ignore = m[0], msg = m[1], line = m[2], column = m[3];
+            pos = lineColumnStrOffset(res, Number(line.trim()), Number(column.trim()));
+            pos += original.length - res.length;
+            return env.errorAt(pos, msg);
+          } else if (code) {
+            return env.errorAt(codeOffset(err, code, res, original), err.message);
+          } else {
+            return env.errorAt(0, err.message);
+          }
         }
       };
       env.generateCode = function(text, noFunc) {

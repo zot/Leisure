@@ -1203,6 +1203,9 @@ NMap is a very simple trie.
               if hasChange
                 result = ''
                 newBlock = setError change
+                replaceBlock = (bl)->
+                  bl.code = newBlock.code
+                  newBlock = bl
                 state = 'idle'
                 env = envM
                   __proto__: defaultEnv
@@ -1213,23 +1216,26 @@ NMap is a very simple trie.
                 opts = this
                 do (change)=>
                   env.errorAt = (offset, msg)->
-                    newBlock = setError change, offset, msg
+                    cur = newBlock
+                    replaceBlock setError cur, offset, msg
                     if newBlock != change && state == 'pending'
-                      opts.replaceBlock change, newBlock.text, 'code'
+                      opts.replaceBlock cur, newBlock.text, 'code'
                   env.write = (str)=>
                     result += presentHtml str
                     if result[result.length - 1] != '\n' then result += '\n'
                     if state == 'pending' then @replaceResult change._id, result
                 try
-                  setLounge env, => @data.getCode(newBlock).call env, (data)->
-                    if state == 'pending' then env.write data
-                    else result += env.formatResult newBlock, '', data
-                    state = 'finished'
+                  setLounge env, =>
+                    func = @data.getCode(newBlock, env)
+                    if typeof func == 'function'
+                      func.call env, (data)->
+                        if state == 'pending' then env.write data
+                        else result += env.formatResult newBlock, '', data
+                        state = 'finished'
+                    else state = 'finished'
                   if state == 'idle' then state = 'pending'
                   else if state == 'finished'
-                    oldCode = newBlock.code
-                    newBlock = setResult newBlock, result
-                    newBlock.code = oldCode
+                    replaceBlock setResult newBlock, result
                     if newBlock.text != change.text
                       changes.sets[newBlock._id] = newBlock
                       for block, i in changes.newBlocks
@@ -1361,8 +1367,8 @@ NMap is a very simple trie.
         if !offset? && !error then block
         else
           newBlock = copyBlock block
-          msg = if msg then msg.trim() + "\n"
-          err = "#+ERROR: #{offset}, #{escapeString msg}\n"
+          msg = if msg then escapeString(msg.trim()) + "\n"
+          err = "#+ERROR: #{offset}, #{msg}\n"
           text = if error
             if !offset?
               block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length)
