@@ -2327,7 +2327,7 @@
       };
 
       OrgEditing.prototype.checkCodeChange = function(changes, change, oldBlock, oldBlocks, newBlocks) {
-        var block, env, envM, err, error1, error2, hasChange, i, j, len, newBlock, newResults, newSource, oldCode, oldSource, opts, ref, ref1, ref2, repl, result, start, state;
+        var block, env, envM, err, error1, error2, hasChange, i, j, len, newBlock, newResults, newSource, oldSource, opts, ref, ref1, ref2, repl, replaceBlock, result, start, state;
         try {
           if (!this.data.running[change._id] && change.type === 'code' && isDynamic(change) && (envM = blockEnvMaker(change))) {
             ref = blockCodeItems(this, change), newSource = ref.source, newResults = ref.results;
@@ -2335,6 +2335,10 @@
             if (hasChange) {
               result = '';
               newBlock = setError(change);
+              replaceBlock = function(bl) {
+                bl.code = newBlock.code;
+                return newBlock = bl;
+              };
               state = 'idle';
               env = envM({
                 __proto__: defaultEnv,
@@ -2349,9 +2353,11 @@
               (function(_this) {
                 return (function(change) {
                   env.errorAt = function(offset, msg) {
-                    newBlock = setError(change, offset, msg);
+                    var cur;
+                    cur = newBlock;
+                    replaceBlock(setError(cur, offset, msg));
                     if (newBlock !== change && state === 'pending') {
-                      return opts.replaceBlock(change, newBlock.text, 'code');
+                      return opts.replaceBlock(cur, newBlock.text, 'code');
                     }
                   };
                   return env.write = function(str) {
@@ -2368,22 +2374,26 @@
               try {
                 setLounge(env, (function(_this) {
                   return function() {
-                    return _this.data.getCode(newBlock).call(env, function(data) {
-                      if (state === 'pending') {
-                        env.write(data);
-                      } else {
-                        result += env.formatResult(newBlock, '', data);
-                      }
+                    var func;
+                    func = _this.data.getCode(newBlock, env);
+                    if (typeof func === 'function') {
+                      return func.call(env, function(data) {
+                        if (state === 'pending') {
+                          env.write(data);
+                        } else {
+                          result += env.formatResult(newBlock, '', data);
+                        }
+                        return state = 'finished';
+                      });
+                    } else {
                       return state = 'finished';
-                    });
+                    }
                   };
                 })(this));
                 if (state === 'idle') {
                   return state = 'pending';
                 } else if (state === 'finished') {
-                  oldCode = newBlock.code;
-                  newBlock = setResult(newBlock, result);
-                  newBlock.code = oldCode;
+                  replaceBlock(setResult(newBlock, result));
                   if (newBlock.text !== change.text) {
                     changes.sets[newBlock._id] = newBlock;
                     ref1 = changes.newBlocks;
@@ -2642,8 +2652,8 @@
         return block;
       } else {
         newBlock = copyBlock(block);
-        msg = msg ? msg.trim() + "\n" : void 0;
-        err = "#+ERROR: " + offset + ", " + (escapeString(msg)) + "\n";
+        msg = msg ? escapeString(msg.trim()) + "\n" : void 0;
+        err = "#+ERROR: " + offset + ", " + msg + "\n";
         text = error ? offset == null ? block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length) : block.text.substring(0, error.offset) + err + block.text.substring(error.offset + error.text.length) : results ? block.text.substring(0, results.offset) + err + block.text.substring(results.offset) : block.text + err;
         tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
         for (prop in tmp) {

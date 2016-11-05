@@ -6,6 +6,7 @@ Clojure support for Lounge
         parseIt
         jsCodeFor
         Scope
+        lineColumnStrOffset
       } = Eval
       {
         blockSource
@@ -56,10 +57,7 @@ Clojure support for Lounge
               window.require = req
               wispCompile = (args...)->
                 node = baseWispCompile args...
-                if node.error
-                  console.log "Error in code\n#{s}"
-                  console.log "NODE: ", node
-                  throw new Error node.error + "\nCompiling:\n#{s}"
+                if node.error then throw node.error
                 node
               Leisure.wispCompilePrim = wispCompile
               Leisure.wispCompileBase = baseWispCompile
@@ -131,7 +129,7 @@ Compile Wisp code, optionally in a namespace.
           exprPos = 0
           returnNode = null
           destroyingExport = false
-          prevCode = null
+          prevCode = {}
           con = SourceMapConsumer.fromSourceMap @result['source-map']
           nodes = SourceNode.fromStringWithSourceMap @result.code, con
           if addReturn
@@ -139,7 +137,7 @@ Compile Wisp code, optionally in a namespace.
           nodes.walk (code, loc)=>
             if code.match /\/\/# sourceMappingURL=/ then foundEnd = true
             if foundEnd then return
-            if @destroyExports && !destroyingExport && code == "exports" && prevCode.match(/ *= */)
+            if @destroyExports && !destroyingExport && code == "exports" && prevCode.code.match(/ *= */)
               destroyingExport = true
               return
             else if destroyingExport
@@ -148,7 +146,10 @@ Compile Wisp code, optionally in a namespace.
             if @nsName then code = code.replace /^ *var /, ' '
             if @returnList && !startedPush && loc.line == exprs[exprPos].start.line && loc.column >= exprs[exprPos].start.column - 1
               startedPush = true
-              code = "$ret$.push(#{code}"
+              c = prevCode.node.children[0]
+              c2 = c.replace /((^|\n) *)([^ \n]+)$/, '$1$$ret$$.push($3'
+              if c != c2 then prevCode.node.children[0] = c2
+              else code = "$ret$.push(#{code}"
             if startedPush && (code.match(/;[ \n]*$/) || (loc.line > exprs[exprPos].end.line == exprs[exprPos].end.line && loc.column >= exprs[exprPos].end.column - 1))
               startedPush = false
               code = code.replace(/;([ \n]*)$/, ');$1')
@@ -162,7 +163,7 @@ Compile Wisp code, optionally in a namespace.
             else
               @gennedNs = true
               tail.push node
-            prevCode = code
+            prevCode = {code, loc, node}
           file = (_.find nodes.children, (n)-> n instanceof SourceNode)?.source
           children = [head, new SourceNode(1, 0, file, @splice), tail]
           if returnNode
@@ -194,29 +195,53 @@ Compile Wisp code, optionally in a namespace.
       Leisure.wispFindNs = findNs
       Leisure.wispGenNSContext = wispGenNSContext
 
+      sourceMapFromCode = (code)->
+        new SourceMapConsumer JSON.parse atob code.substring(code.lastIndexOf '\n', code.length - 2).match(/sourceMappingURL=.*base64,([^\n]*)\n/)[1]
+
+      codeOffset = (err, code, src, originalSrc)->
+        [ign, line, column] = err.stack.match /\n +at .*:([0-9]*):([0-9]*)/
+        line = Number line
+        column = Number column
+        {line, column} = sourceMapFromCode(code).originalPositionFor {line: line - 1, column}
+        lineColumnStrOffset(src, line, column) + originalSrc.length - src.length
+
       envFunc = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
           result = [Leisure.wispEval(text)]
           if cont then cont result else result
         env.compileBlock = (block)->
-          res = "#{blockSource(block).trim()}"
+          original = res = "#{blockSource(block).trim()}"
           try
             props = @data.properties(block)
             ns = props.namespace?.trim() ? undefined
             if ns
               if props.macro then macros = true
-              res = "(ns #{ns})#{res}"
+              res = "(ns #{ns})\n#{res}"
               ns = ns.match(/^[^ ]+/)[0]
               nsObj = findNs ns, Leisure.WispNS, true
-            func = wispEval res, ns, true, true
+            {nameSpace, code} = compile res, ns, true, true
+            func = if nameSpace then nameSpace.eval code else eval code
             (cont, args...)->
               env = this
               envConsole = log: (args...)-> env.write args.join ' '
-              (cont ? identity) _.filter func(null, envConsole, args...), (n)-> typeof n != 'undefined'
+              try
+                (cont ? identity) _.filter func(null, envConsole, args...), (n)-> typeof n != 'undefined'
+              catch err
+                console.error err.stack ? err
+                if original != blockSource(env.data.getBlock block._id).trim()
+                  console.error "Warning, code is from a different version of block #{block._id}"
+                env.errorAt codeOffset(err, code, res, original), err.message
+                (cont ? identity) []
           catch err
-            e = new Error "Error compiling #{res}\n  #{err.message}"
-            e.stack = err.stack
-            throw e
+            console.error err.stack ? err
+            if m = err.message.match /^([^\n]+)\nline:([^\n]+)\ncolumn:([^\n]+)(\n|$)/
+              [ignore, msg, line, column] = m
+              pos = lineColumnStrOffset(res, Number(line.trim()), Number(column.trim()))
+              pos += original.length - res.length
+              env.errorAt pos, msg
+            else if code
+              env.errorAt codeOffset(err, code, res, original), err.message
+            else env.errorAt 0, err.message
         env.generateCode = (text, noFunc)-> debugger
         env
 
