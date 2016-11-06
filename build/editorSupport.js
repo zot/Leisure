@@ -1139,10 +1139,14 @@
             }
           }
         });
-        if (code = this.getCode(block)) {
+        if (env.executeBlock) {
+          return env.executeBlock(block);
+        } else if (code = this.getCode(block)) {
           if (code instanceof Promise) {
             return code.then(function(func) {
-              return setLounge(env, func);
+              return setLounge(env, function() {
+                return func.call(env);
+              });
             });
           } else {
             return setLounge(env, code);

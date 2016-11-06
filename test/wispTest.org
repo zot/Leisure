@@ -5,10 +5,11 @@
 :end:
 #+BEGIN_SRC wisp :results def :macro true
 (defmacro derp [x] (list '+ x 1))
+(defn floop [])
 #+END_SRC
 * Ns bubba
 :properties:
-:namespace: test.bubba (:require [test.bubbaM :refer [derp]])
+:namespace: test.bubba (:require [test.bubbaM :refer [floop] :rename {floop floop2}])
 :end:
 ** Test1
 #+BEGIN_SRC wisp :results def

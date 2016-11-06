@@ -545,6 +545,7 @@ Evaulation support for Leisure
 
       envTemplate =
         executeText: null
+        executeBlock: null
         generateCode: null
         compileBlock: null
 
