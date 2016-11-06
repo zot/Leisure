@@ -1,0 +1,95 @@
+#+TITLE:Wisp Chat Test
+* Namespace
+#+BEGIN_SRC wisp :results def
+  (ns chat
+    (:require
+     [wisp.runtime :refer [print]]
+     [wisp.ast :refer [symbol symbol? keyword? keyword name namespace
+                       gensym unquote? unquote-splicing? quote?
+                       syntax-quote? quote-string pr-str]]
+     [wisp.sequence :refer [list? list conj partition seq
+                            empty? map vec every? concat
+                            first second third rest last
+                            butlast interleave cons count
+                            some assoc reduce filter seq?]]
+     ))
+#+END_SRC
+* Testing
+:properties:
+:namespace: chat
+:end:
+#+BEGIN_SRC wisp :results dynamic
+(+ "3" " " nil " " null " " ())
+null
+(rest '(a))
+(rest [1 2])
+#+END_SRC
+
+Hit C-c C-c to execute this -- it should make new peeps data
+
+#+BEGIN_SRC wisp
+(test)
+#+END_SRC
+* Shared data
+:properties:
+:name: shared
+:end:
+#+NAME: gameState
+#+BEGIN_SRC yaml
+currentId: 0
+peeps: []
+#+END_SRC
+* Notes on collaboration
+Collaborative code must be registered by name so the "session master" can run it
+on a peer's behalf.
+* GUI
+#+BEGIN_HTML :var block=playerState :controller player-controller
+
+#+END_HTML
+* Code
+:properties:
+:namespace: chat
+:end:
+properties has (ns chat (:require [wisp.sequence :refer [map]] [wisp.runtime :refer [print]]))
+** Initial defs
+#+BEGIN_SRC wisp :results def
+  (def data Lounge.data)
+  (defmacro collaboratively [name & args] `(.doCollaboratively data (.-name ~name) ~args))
+  (defn registerCollaborativeFuncs [funcs] (map #(.registerCollaborativeCode data %1) funcs))
+  (defn findPeeps [] (.find data "peeps"))
+  (defn nextId []
+    (let [game (.getData data "gameState")
+          id (+ 1 (:currentId game))]
+      (.log window.console "currentId: " id)
+      (set! (:currentId game) id)
+      (.setData data "gameState" game)
+      id))
+  (defn addPeep []
+    (let [peep {:id (nextId)}]
+      (.appendDataToHeadline
+       data "shared" nil
+       peep
+       {:flowLevel 3 :index "peeps id"})
+      peep))
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defn rtest [] (print (addPeep)))
+  (defn addChatLine [] (.log console "hello"))
+
+  (registerCollaborativeFuncs
+   [
+    addChatLine
+    rtest
+    ])
+  (defn test []
+    (collaboratively rtest)
+    nil)
+  (.log window.console "hello")
+#+END_SRC
+
+* Local data
+#+NAME: playerState
+#+BEGIN_SRC yaml :local
+maluba: 3
+#+END_SRC
