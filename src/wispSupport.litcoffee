@@ -41,6 +41,8 @@ Clojure support for Lounge
 
       wp = null
 
+      translateIdentifierWord = null
+
       wispPromise = ->
         wp || (wp = new Promise (resolve, reject)->
           setTimeout (->
@@ -48,6 +50,7 @@ Clojure support for Lounge
             window.require = null
             req ['lib/wisp'], (W)->
               Leisure.Wisp = Wisp = W
+              {translateIdentifierWord} = W.backend.escodegen.writer
               baseWispCompile = Wisp.compiler.compile
               window.require = req
               wispCompile = (args...)->
@@ -77,7 +80,14 @@ Compile Wisp code, optionally in a namespace.
           needsExports = _.find @result.ast, (n)-> n.op == 'def'
           if @nsName
             nsObj = findNs @nsName, Leisure.WispNS, true
-            nsObj.newNames (node.id.id.name for node in @result.ast when node.op == 'def')
+            names = {_ns_: true}
+            for node in @result.ast when node.op == 'def'
+              names[node.id.id.name] = true
+            if @result.ast[0].op == 'ns' && @result.ast[0].require
+              for req in @result.ast[0].require
+                for ref in req.refer
+                  names[translateIdentifierWord (ref.rename ? ref.name).name] = true
+            nsObj.newNames _.keys names
             if needsExports
               if @wrapFunction then @reqs += "exports = exports || window.Leisure.WispNS.#{@nsName};\n"
               else @reqs += "var exports = window.Leisure.WispNS.#{@nsName};\n"
@@ -125,28 +135,32 @@ Compile Wisp code, optionally in a namespace.
           returnNode = null
           destroyingExport = false
           # prevCode lookback hack for inserting 'push(' before operation
-          prevCode = {}
+          prevCode = code: ''
           con = SourceMapConsumer.fromSourceMap @result['source-map']
           nodes = SourceNode.fromStringWithSourceMap @result.code, con
           if addReturn
             addReturn = lastLoc = _.last _.filter(_.map(@result.ast, (n, i)=> if !(n.op in ['def', 'ns']) && n.form then @result['js-ast'].body[i].loc?.start), identity)
           nodes.walk (code, loc)=>
-            if code.match /\/\/# sourceMappingURL=/ then foundEnd = true
-            if foundEnd then return
+            if code.match /\/\/# sourceMappingURL=/
+              foundEnd = true
+              code = code.replace /\/\/# sourceMappingURL=.*/, ''
+              if !code.trim() then return
+            else if foundEnd then return
             if @destroyExports && !destroyingExport && code == "exports" && prevCode.code.match(/ *= */)
               destroyingExport = true
               return
             else if destroyingExport
               if code.match(/ *= */) then destroyingExport = false
               return
-            if @nsName then code = code.replace /^ *var /, ' '
+            if @nsName then code = code.replace /^ *var /g, ' '
             if @returnList && !startedPush && loc.line >= exprs[exprPos]?.start.line && loc.column >= exprs[exprPos].start.column - 1
               startedPush = true
-              c = prevCode.node.children[0]
-              c2 = c.replace /((^|\n) *)([^ \n]+)$/, '$1$$ret$$.push($3'
-              if c != c2 then prevCode.node.children[0] = c2
+              if prevCode.node
+                c = prevCode.node.children[0]
+                c2 = c.replace /((^|\n) *)([^ \n]+)$/, '$1$$ret$$.push($3'
+              if prevCode.node && c != c2 then prevCode.node.children[0] = c2
               else code = "$ret$.push(#{code}"
-            if startedPush && loc.line? && (code.match(/;[ \n]*$/) || (loc.line >= exprs[exprPos].end.line && loc.column >= exprs[exprPos].end.column - 1))
+            if startedPush && loc.line? && (code.match(/;[ \n]*$/) || (loc.line >= exprs[exprPos].end.line && loc.column >= exprs[exprPos].end.column))
               startedPush = false
               code = code.replace(/;([ \n]*)$/, ');$1')
               exprPos++
@@ -220,7 +234,7 @@ Compile Wisp code, optionally in a namespace.
               env = this
               envConsole = log: (args...)-> env.write args.join ' '
               try
-                (cont ? identity) _.filter func(null, envConsole, args...), (n)-> typeof n != 'undefined'
+                setLounge env, -> (cont ? identity) _.filter func(null, envConsole, args...), (n)-> typeof n != 'undefined'
               catch err
                 console.error err.stack ? err
                 if original != blockSource(env.data.getBlock block._id).trim()
