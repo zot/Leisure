@@ -53,6 +53,10 @@
         this.importPromise = Promise.resolve();
         this.tangles = {};
         this.titleBlocks = new Set();
+        this.dataChanges = null;
+        this.collaborativeCode = {};
+        this.collaborativeBase = {};
+        this.closeRegistration();
       }
 
       OrgData.prototype.change = function(changes) {
@@ -791,7 +795,7 @@
         if ((resultType = (ref5 = newBlock != null ? (ref6 = newBlock.codeAttributes) != null ? (ref7 = ref6.results) != null ? ref7.toLowerCase() : void 0 : void 0 : void 0) === 'def' || ref5 === 'web') || (resultType = ((newBlock != null ? (ref8 = newBlock.codeAttributes) != null ? ref8.observe : void 0 : void 0) != null) && 'observe')) {
           return this.queueEval((function(_this) {
             return function() {
-              var opts;
+              var r;
               if (resultType === 'observe') {
                 _this.updateObserver(newBlock, oldBlock);
                 _this.createObserver(newBlock);
@@ -799,23 +803,15 @@
                   return _this.pendingObserves[newBlock._id] = newBlock;
                 }
               } else {
-                opts = defaultEnv.opts;
-                return withDefaultOptsSet(opts, function() {
-                  var r;
-                  if (opts != null) {
-                    opts.openRegistration();
-                  }
-                  r = _this.executeBlock(newBlock);
-                  if (opts) {
-                    if (r instanceof Promise) {
-                      return r["finally"](function() {
-                        return opts.closeRegistration();
-                      });
-                    } else {
-                      return opts.closeRegistration();
-                    }
-                  }
-                });
+                _this.openRegistration();
+                r = _this.executeBlock(newBlock);
+                if (r instanceof Promise) {
+                  return r["finally"](function() {
+                    return _this.closeRegistration();
+                  });
+                } else {
+                  return _this.closeRegistration();
+                }
               }
             };
           })(this));
@@ -1393,6 +1389,188 @@
         }
       };
 
+      OrgData.prototype.blockBounds = function(name) {
+        var block, end, start;
+        if (name) {
+          block = typeof name === 'string' ? this.getBlockNamed(name) : name;
+          start = this.offsetForBlock(block);
+          end = start + block.text.length;
+          return {
+            start: start,
+            end: end,
+            gStart: start,
+            gEnd: end
+          };
+        }
+      };
+
+      OrgData.prototype.verifyDataObject = function(opType, obj) {
+        var ref;
+        if (!((ref = typeof obj) === 'object' || ref === 'string' || ref === 'number' || ref === 'boolean')) {
+          throw new Error("Attempt to " + opType + " value that is not an object.");
+        }
+      };
+
+      OrgData.prototype.appendDataToHeadline = function(parent, name, value, codeOpts) {
+        return this.appendData('headline', parent, name, value, codeOpts);
+      };
+
+      OrgData.prototype.appendDataAfter = function(parent, name, value, codeOpts) {
+        return this.appendData('block', parent, name, value, codeOpts);
+      };
+
+      OrgData.prototype.appendData = function(parentType, parent, name, value, codeOpts) {
+        var b, block;
+        block = this.parseBlocks(this.textForDataNamed(name, value, codeOpts))[0];
+        this.checkCollaborating(block);
+        if (name && this.getData(name)) {
+          throw new Error("Attempt to add block with duplicate name: " + name);
+        }
+        if (b = this.blockBounds((parentType === 'block' ? parent : this.lastChild(this.getNamedBlockId(parent))))) {
+          return this.replaceText({
+            start: b.end,
+            end: b.end,
+            source: 'code',
+            text: block.text
+          });
+        } else {
+          throw new Error("Attempt to append a block after nonexistant block: " + parent);
+        }
+      };
+
+      OrgData.prototype.getLocalData = function(name) {
+        var block;
+        if (block = this.getBlockNamed(name)) {
+          if (!block.local) {
+            throw new Error("Attempt to use getLocalData with a shared block");
+          }
+          return this.getYaml(block);
+        }
+      };
+
+      OrgData.prototype.getData = function(name, skipCheck) {
+        var block;
+        if (block = this.getBlockNamed(name)) {
+          if (!skipCheck) {
+            this.checkCollaborating(block);
+          }
+          return this.getYaml(block);
+        }
+      };
+
+      OrgData.prototype.setLocalData = function(name, value, codeOpts) {
+        var block;
+        if (!(block = this.getBlockNamed(name))) {
+          throw new Error("No block named " + name);
+        }
+        if (!block.local) {
+          throw new Error("Attempt to use setLocalData with a shared block");
+        }
+        return this.baseSetData(name, block, value, codeOpts);
+      };
+
+      OrgData.prototype.setData = function(name, value, codeOpts) {
+        var block;
+        if (!(block = this.getBlockNamed(name))) {
+          throw new Error("No block named " + name);
+        }
+        this.checkCollaborating(block);
+        return this.baseSetData(name, block, value, codeOpts);
+      };
+
+      OrgData.prototype.baseSetData = function(name, block, value, codeOpts) {
+        var b, newBlock, ref;
+        this.verifyDataObject("set " + name + " to ", value);
+        codeOpts = _.merge({}, (ref = block.codeAttributes) != null ? ref : {}, codeOpts != null ? codeOpts : {});
+        newBlock = this.parseBlocks(this.textForDataNamed(name, value, codeOpts))[0];
+        if (newBlock.local) {
+          newBlock._id = block._id;
+          return this.storeLocalBlock(newBlock);
+        } else {
+          b = this.blockBounds(name);
+          b.text = newBlock.text;
+          b.source = 'code';
+          return this.replaceText(b);
+        }
+      };
+
+      OrgData.prototype.removeData = function(name) {
+        var b, block;
+        if (!(block = this.getBlockNamed(name))) {
+          throw new Error("No block named " + name);
+        }
+        this.checkCollaborating();
+        b = this.blockBounds(name);
+        b.text = '';
+        b.source = 'code';
+        return this.replaceText(b);
+      };
+
+      OrgData.prototype.hasCollaborativeCode = function(name) {
+        return this.collaborativeCode[name];
+      };
+
+      OrgData.prototype.openRegistration = function() {
+        return this.registerCollaborativeCode = this.registrationCode;
+      };
+
+      OrgData.prototype.closeRegistration = function() {
+        return this.registerCollaborativeCode = function() {
+          throw new Error("Attempt to register collaborative code after registration is closed");
+        };
+      };
+
+      OrgData.prototype.registrationCode = function(name, func) {
+        if (typeof name === 'function') {
+          func = name;
+          name = func.name;
+        }
+        this.collaborativeCode[name] = (function(_this) {
+          return function() {
+            var args;
+            args = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
+            return _this.doCollaboratively(name, args);
+          };
+        })(this);
+        return this.collaborativeBase[name] = func;
+      };
+
+      OrgData.prototype._runCollaborativeCode = function(name, slaveId, args) {
+        return new Promise((function(_this) {
+          return function(succeed, fail) {
+            var code, err, error1;
+            try {
+              _this.inCollaboration = true;
+              if (code = _this.collaborativeBase[name]) {
+                return succeed(code.apply(null, [{
+                  options: _this,
+                  slaveId: slaveId
+                }].concat(slice1.call(args))));
+              } else {
+                throw new Error("No collaborative code named '" + name + "'");
+              }
+            } catch (error1) {
+              err = error1;
+              return fail(err);
+            } finally {
+              _this.inCollaboration = false;
+            }
+          };
+        })(this));
+      };
+
+      OrgData.prototype.doCollaboratively = function(name, args) {
+        return this._runCollaborativeCode(name, null, args);
+      };
+
+      OrgData.prototype.checkCollaborating = function(optBlock) {
+        if (optBlock != null ? optBlock.local : void 0) {
+          throw new Error("Attempt to use local block in collaborative code");
+        } else if (!this.inCollaboration) {
+          throw new Error("Not running collboartively");
+        }
+      };
+
       return OrgData;
 
     })(DataStore);
@@ -1662,11 +1840,6 @@
         this.hiding = true;
         this.setMode(Leisure.plainMode);
         this.toggledSlides = {};
-        this.dataChanges = null;
-        this.pendingDataChanges = null;
-        this.collaborativeCode = {};
-        this.collaborativeBase = {};
-        this.closeRegistration();
       }
 
       OrgEditing.prototype.runBlock = function(block, replace) {
@@ -1752,128 +1925,6 @@
       OrgEditing.prototype.rerenderAll = function() {
         OrgEditing.__super__.rerenderAll.call(this);
         return initializePendingViews();
-      };
-
-      OrgEditing.prototype.verifyDataObject = function(opType, obj) {
-        var ref;
-        if (!((ref = typeof obj) === 'object' || ref === 'string' || ref === 'number' || ref === 'boolean')) {
-          throw new Error("Attempt to " + opType + " value that is not an object.");
-        }
-      };
-
-      OrgEditing.prototype.blockBoundsForHeadline = function(name) {};
-
-      OrgEditing.prototype.blockBounds = function(name) {
-        var block, end, start;
-        if (name) {
-          block = typeof name === 'string' ? this.data.getBlockNamed(name) : name;
-          start = this.data.offsetForBlock(block);
-          end = start + block.text.length;
-          return {
-            start: start,
-            end: end,
-            gStart: start,
-            gEnd: end
-          };
-        }
-      };
-
-      OrgEditing.prototype.appendDataToHeadline = function(parent, name, value, codeOpts) {
-        return this.appendData('headline', parent, name, value, codeOpts);
-      };
-
-      OrgEditing.prototype.appendDataAfter = function(parent, name, value, codeOpts) {
-        return this.appendData('block', parent, name, value, codeOpts);
-      };
-
-      OrgEditing.prototype.appendData = function(parentType, parent, name, value, codeOpts) {
-        var b, block;
-        block = this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0];
-        this.checkCollaborating(block);
-        if (name && this.getData(name)) {
-          throw new Error("Attempt to add block with duplicate name: " + name);
-        }
-        if (b = this.blockBounds((parentType === 'block' ? parent : this.data.lastChild(this.data.getNamedBlockId(parent))))) {
-          return this.data.replaceText({
-            start: b.end,
-            end: b.end,
-            source: 'code',
-            text: block.text
-          });
-        } else {
-          throw new Error("Attempt to append a block after nonexistant block: " + parent);
-        }
-      };
-
-      OrgEditing.prototype.getLocalData = function(name) {
-        var block;
-        if (block = this.data.getBlockNamed(name)) {
-          if (!block.local) {
-            throw new Error("Attempt to use getLocalData with a shared block");
-          }
-          return this.data.getYaml(block);
-        }
-      };
-
-      OrgEditing.prototype.getData = function(name, skipCheck) {
-        var block;
-        if (block = this.data.getBlockNamed(name)) {
-          if (!skipCheck) {
-            this.checkCollaborating(block);
-          }
-          return this.data.getYaml(block);
-        }
-      };
-
-      OrgEditing.prototype.setLocalData = function(name, value, codeOpts) {
-        var block;
-        if (!(block = this.data.getBlockNamed(name))) {
-          throw new Error("No block named " + name);
-        }
-        if (!block.local) {
-          throw new Error("Attempt to use setLocalData with a shared block");
-        }
-        return this.baseSetData(name, block, value, codeOpts);
-      };
-
-      OrgEditing.prototype.setData = function(name, value, codeOpts) {
-        var block;
-        if (!(block = this.data.getBlockNamed(name))) {
-          throw new Error("No block named " + name);
-        }
-        this.checkCollaborating(block);
-        return this.baseSetData(name, block, value, codeOpts);
-      };
-
-      OrgEditing.prototype.baseSetData = function(name, block, value, codeOpts) {
-        var b, newBlock, ref;
-        this.verifyDataObject("set " + name + " to ", value);
-        codeOpts = _.merge({}, (ref = block.codeAttributes) != null ? ref : {}, codeOpts != null ? codeOpts : {});
-        newBlock = this.data.parseBlocks(this.data.textForDataNamed(name, value, codeOpts))[0];
-        if (newBlock.local) {
-          newBlock._id = block._id;
-          return this.data.storeLocalBlock(newBlock);
-        } else {
-          b = this.blockBounds(name);
-          b.text = newBlock.text;
-          b.source = 'code';
-          return this.data.replaceText(b);
-        }
-      };
-
-      OrgEditing.prototype.removeData = function(name) {
-        var b, block;
-        if (!(block = this.data.getBlockNamed(name))) {
-          throw new Error("No block named " + name);
-        }
-        this.checkCollaborating();
-        if (block.local) {
-          this.dataChanges.localRemoves[name] = true;
-        }
-        b = this.blockBounds(name);
-        b.text = '';
-        b.source = 'code';
-        return this.data.replaceText(b);
       };
 
       OrgEditing.prototype.changed = function(changes) {
@@ -2521,67 +2572,6 @@
 
       OrgEditing.prototype.replaceResult = function(block, str) {
         return replaceResult(this, this.data, block, str);
-      };
-
-      OrgEditing.prototype.hasCollaborativeCode = function(name) {
-        return this.collaborativeCode[name];
-      };
-
-      OrgEditing.prototype.openRegistration = function() {
-        return this.registerCollaborativeCode = this.registrationCode;
-      };
-
-      OrgEditing.prototype.closeRegistration = function() {
-        return this.registerCollaborativeCode = function() {
-          throw new Error("Attempt to register collaborative code after registration is closed");
-        };
-      };
-
-      OrgEditing.prototype.registrationCode = function(name, func) {
-        this.collaborativeCode[name] = (function(_this) {
-          return function() {
-            var args;
-            args = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
-            return _this.doCollaboratively(name, args);
-          };
-        })(this);
-        return this.collaborativeBase[name] = func;
-      };
-
-      OrgEditing.prototype._runCollaborativeCode = function(name, slaveId, args) {
-        return new Promise((function(_this) {
-          return function(succeed, fail) {
-            var code, err, error1;
-            try {
-              _this.inCollaboration = true;
-              if (code = _this.collaborativeBase[name]) {
-                return succeed(code.apply(null, [{
-                  options: _this,
-                  slaveId: slaveId
-                }].concat(slice1.call(args))));
-              } else {
-                throw new Error("No collaborative code named '" + name + "'");
-              }
-            } catch (error1) {
-              err = error1;
-              return fail(err);
-            } finally {
-              _this.inCollaboration = false;
-            }
-          };
-        })(this));
-      };
-
-      OrgEditing.prototype.doCollaboratively = function(name, args) {
-        return this._runCollaborativeCode(name, null, args);
-      };
-
-      OrgEditing.prototype.checkCollaborating = function(optBlock) {
-        if (optBlock != null ? optBlock.local : void 0) {
-          throw new Error("Attempt to use local block in collaborative code");
-        } else if (!this.inCollaboration) {
-          throw new Error("Not running collboartively");
-        }
       };
 
       return OrgEditing;
