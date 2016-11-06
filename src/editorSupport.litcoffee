@@ -121,6 +121,10 @@ and previousSibling ids to indicate the tree structure of the org document
           @importPromise = Promise.resolve()
           @tangles = {}
           @titleBlocks = new Set()
+          @dataChanges = null
+          @collaborativeCode = {}
+          @collaborativeBase = {}
+          @closeRegistration()
         change: (changes)->
           ch = @makeChange changes
           @trigger 'change', ch
@@ -169,15 +173,6 @@ same names for blocks other than printing a warning.
           super repl
           @runTextFilters repl
           @scheduleEvals()
-        #makeChanges: (func)->
-        #  if newChange = !@changeCount
-        #    for filter in @filters
-        #      filter.startChange this
-        #  try
-        #    super func
-        #  finally
-        #    if newChange then for filter in @filters
-        #      filter.endChange this
         getImage: (name, cont, fail)->
           @getFile name, ((contents)->
             if url = makeImageBlob name, contents then cont url else fail "Couldn't create image for #{{name}}"
@@ -189,10 +184,8 @@ same names for blocks other than printing a warning.
           changes = super first, oldBlocks, newBlocks
           @linkAllSiblings changes
           changes
-
-`load` -- not the best use of inheritance here, changes is specifically for P2POrgData :).
-Let's just call this poetic license for the time being...
-
+        # `load` -- not the best use of inheritance here, changes is specifically for P2POrgData :).
+        # Let's just call this poetic license for the time being...
         load: (name, text, context)->
           @loadName = name
           @makeChanges =>
@@ -469,13 +462,10 @@ that must be done regardless of the source of changes
                 if newBlock.codeAttributes.observe == 'system.document'
                   @pendingObserves[newBlock._id] = newBlock
               else
-                opts = defaultEnv.opts
-                withDefaultOptsSet opts, =>
-                  opts?.openRegistration()
-                  r = @executeBlock newBlock
-                  if opts
-                    if r instanceof Promise then r.finally -> opts.closeRegistration()
-                    else opts.closeRegistration()
+                @openRegistration()
+                r = @executeBlock newBlock
+                if r instanceof Promise then r.finally => @closeRegistration()
+                else @closeRegistration()
         createObserver: (block)->
           env = @env block.language
           blockId = block._id
@@ -749,6 +739,86 @@ that must be done regardless of the source of changes
                       blockArgs.push argBlock
                       argData)...), args...
           else func
+        blockBounds: (name)->
+          if name
+            block = if typeof name == 'string' then @getBlockNamed name else name
+            start = @offsetForBlock block
+            end = start + block.text.length
+            {start, end, gStart: start, gEnd: end}
+        verifyDataObject: (opType, obj)->
+          if !(typeof obj in ['object', 'string', 'number', 'boolean'])
+            throw new Error "Attempt to #{opType} value that is not an object."
+        appendDataToHeadline: (parent, name, value, codeOpts)->
+          @appendData 'headline', parent, name, value, codeOpts
+        appendDataAfter: (parent, name, value, codeOpts)->
+          @appendData 'block', parent, name, value, codeOpts
+        appendData: (parentType, parent, name, value, codeOpts)->
+          [block] = @parseBlocks @textForDataNamed name, value, codeOpts
+          @checkCollaborating block
+          if name && @getData(name) then throw new Error "Attempt to add block with duplicate name: #{name}"
+          if b = @blockBounds (if parentType == 'block' then parent else @lastChild @getNamedBlockId parent)
+            @replaceText start: b.end, end: b.end, source: 'code', text: block.text
+          else throw new Error "Attempt to append a block after nonexistant block: #{parent}"
+        getLocalData: (name)->
+          if block = @getBlockNamed name
+            if !block.local then throw new Error "Attempt to use getLocalData with a shared block"
+            @getYaml block
+        getData: (name, skipCheck)->
+          if block = @getBlockNamed(name)
+            if !skipCheck then @checkCollaborating block
+            @getYaml block
+        setLocalData: (name, value, codeOpts)->
+          if !(block = @getBlockNamed name) then throw new Error "No block named #{name}"
+          if !block.local then throw new Error "Attempt to use setLocalData with a shared block"
+          @baseSetData name, block, value, codeOpts
+        setData: (name, value, codeOpts)->
+          if !(block = @getBlockNamed name) then throw new Error "No block named #{name}"
+          @checkCollaborating block
+          @baseSetData name, block, value, codeOpts
+        baseSetData: (name, block, value, codeOpts)->
+          @verifyDataObject "set #{name} to ", value
+          codeOpts = _.merge {}, block.codeAttributes ? {}, codeOpts ? {}
+          [newBlock] = @parseBlocks @textForDataNamed name, value, codeOpts
+          if newBlock.local
+            newBlock._id = block._id
+            @storeLocalBlock newBlock
+          else
+            b = @blockBounds name
+            b.text = newBlock.text
+            b.source = 'code'
+            @replaceText b
+        removeData: (name)->
+          if !(block = @getBlockNamed name) then throw new Error "No block named #{name}"
+          @checkCollaborating()
+          b = @blockBounds name
+          b.text = ''
+          b.source = 'code'
+          @replaceText b
+        hasCollaborativeCode: (name)-> @collaborativeCode[name]
+        openRegistration: -> @registerCollaborativeCode = @registrationCode
+        closeRegistration: -> @registerCollaborativeCode = ->
+          throw new Error "Attempt to register collaborative code after registration is closed"
+        registrationCode: (name, func)->
+          if typeof name == 'function'
+            func = name
+            name = func.name
+          @collaborativeCode[name] = (args...)=> @doCollaboratively name, args
+          @collaborativeBase[name] = func
+        _runCollaborativeCode: (name, slaveId, args)->
+          new Promise (succeed, fail)=>
+            try
+              @inCollaboration = true
+              if code = @collaborativeBase[name]
+                succeed code {options: this, slaveId}, args...
+              else throw new Error "No collaborative code named '#{name}'"
+            catch err
+              fail err
+            finally
+              @inCollaboration = false
+        doCollaboratively: (name, args)-> @_runCollaborativeCode name, null, args
+        checkCollaborating: (optBlock)->
+          if optBlock?.local then throw new Error "Attempt to use local block in collaborative code"
+          else if !@inCollaboration then throw new Error "Not running collboartively"
 
       fileTypes =
         jpg: 'image/jpeg'
@@ -894,11 +964,6 @@ NMap is a very simple trie.
           @hiding = true
           @setMode Leisure.plainMode
           @toggledSlides = {}
-          @dataChanges = null
-          @pendingDataChanges = null
-          @collaborativeCode = {}
-          @collaborativeBase = {}
-          @closeRegistration()
         runBlock: (block, replace)-> @data.runBlock block, replace
         parsedCodeBlock: (block)-> new EditorParsedCodeBlock this, @data.getBlock block
         dataChanged: (changes)->
@@ -930,63 +995,6 @@ NMap is a very simple trie.
         rerenderAll: ->
           super()
           initializePendingViews()
-        verifyDataObject: (opType, obj)->
-          if !(typeof obj in ['object', 'string', 'number', 'boolean'])
-            throw new Error "Attempt to #{opType} value that is not an object."
-        blockBoundsForHeadline: (name)->
-        blockBounds: (name)->
-          if name
-            block = if typeof name == 'string' then @data.getBlockNamed name else name
-            start = @data.offsetForBlock block
-            end = start + block.text.length
-            {start, end, gStart: start, gEnd: end}
-        appendDataToHeadline: (parent, name, value, codeOpts)->
-          @appendData 'headline', parent, name, value, codeOpts
-        appendDataAfter: (parent, name, value, codeOpts)->
-          @appendData 'block', parent, name, value, codeOpts
-        appendData: (parentType, parent, name, value, codeOpts)->
-          [block] = @data.parseBlocks @data.textForDataNamed name, value, codeOpts
-          @checkCollaborating block
-          if name && @getData(name) then throw new Error "Attempt to add block with duplicate name: #{name}"
-          if b = @blockBounds (if parentType == 'block' then parent else @data.lastChild @data.getNamedBlockId parent)
-            @data.replaceText start: b.end, end: b.end, source: 'code', text: block.text
-          else throw new Error "Attempt to append a block after nonexistant block: #{parent}"
-        getLocalData: (name)->
-          if block = @data.getBlockNamed name
-            if !block.local then throw new Error "Attempt to use getLocalData with a shared block"
-            @data.getYaml block
-        getData: (name, skipCheck)->
-          if block = @data.getBlockNamed(name)
-            if !skipCheck then @checkCollaborating block
-            @data.getYaml block
-        setLocalData: (name, value, codeOpts)->
-          if !(block = @data.getBlockNamed name) then throw new Error "No block named #{name}"
-          if !block.local then throw new Error "Attempt to use setLocalData with a shared block"
-          @baseSetData name, block, value, codeOpts
-        setData: (name, value, codeOpts)->
-          if !(block = @data.getBlockNamed name) then throw new Error "No block named #{name}"
-          @checkCollaborating block
-          @baseSetData name, block, value, codeOpts
-        baseSetData: (name, block, value, codeOpts)->
-          @verifyDataObject "set #{name} to ", value
-          codeOpts = _.merge {}, block.codeAttributes ? {}, codeOpts ? {}
-          [newBlock] = @data.parseBlocks @data.textForDataNamed name, value, codeOpts
-          if newBlock.local
-            newBlock._id = block._id
-            @data.storeLocalBlock newBlock
-          else
-            b = @blockBounds name
-            b.text = newBlock.text
-            b.source = 'code'
-            @data.replaceText b
-        removeData: (name)->
-          if !(block = @data.getBlockNamed name) then throw new Error "No block named #{name}"
-          @checkCollaborating()
-          if block.local then @dataChanges.localRemoves[name] = true
-          b = @blockBounds name
-          b.text = ''
-          b.source = 'code'
-          @data.replaceText b
         changed: (changes)->
           {newBlocks, oldBlocks} = changes
           if newBlocks.length == oldBlocks.length == 1
@@ -1298,28 +1306,6 @@ NMap is a very simple trie.
           else open e.target.href
           false
         replaceResult: (block, str)-> replaceResult this, @data, block, str
-        hasCollaborativeCode: (name)-> @collaborativeCode[name]
-        openRegistration: -> @registerCollaborativeCode = @registrationCode
-        closeRegistration: -> @registerCollaborativeCode = ->
-          throw new Error "Attempt to register collaborative code after registration is closed"
-        registrationCode: (name, func)->
-          @collaborativeCode[name] = (args...)=> @doCollaboratively name, args
-          @collaborativeBase[name] = func
-        _runCollaborativeCode: (name, slaveId, args)->
-          new Promise (succeed, fail)=>
-            try
-              @inCollaboration = true
-              if code = @collaborativeBase[name]
-                succeed code {options: this, slaveId}, args...
-              else throw new Error "No collaborative code named '#{name}'"
-            catch err
-              fail err
-            finally
-              @inCollaboration = false
-        doCollaboratively: (name, args)-> @_runCollaborativeCode name, null, args
-        checkCollaborating: (optBlock)->
-          if optBlock?.local then throw new Error "Attempt to use local block in collaborative code"
-          else if !@inCollaboration then throw new Error "Not running collboartively"
 
       replaceResult = (source, data, block, str)->
         if typeof block != 'string' then blockId = block._id

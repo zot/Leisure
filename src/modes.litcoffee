@@ -990,10 +990,10 @@ Returns [] if org does not fit the pattern.
 
       fancyEditDiv = (div, data)->
         options = new OrgEditing(data).setMode fancyMode
-        options.openRegistration()
-        options.registerCollaborativeCode 'doSlideValue', doSlideValue
-        options.registerCollaborativeCode 'viewBoundSet', (context, name, data)-> options.setData name, data
-        options.closeRegistration()
+        data.openRegistration()
+        data.registerCollaborativeCode 'doSlideValue', doSlideValue
+        data.registerCollaborativeCode 'viewBoundSet', (context, name, data)-> options.setData name, data
+        data.closeRegistration()
         new LeisureEditCore $(div), options
 
       prismAliases =

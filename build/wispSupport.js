@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['./eval', './docOrg', 'lib/bluebird.min', './gen'], function(Eval, DocOrg, Bluebird, Gen) {
-    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, blockSource, codeOffset, compile, envFunc, findNs, jsCodeFor, lineColumnStrOffset, parseIt, setLounge, sourceMapFromCode, wispCompile, wispEval, wispFileCounter, wispGenNSContext, wispPromise, wispRequire, wp;
+    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, blockSource, codeOffset, compile, envFunc, findNs, jsCodeFor, lineColumnStrOffset, parseIt, setLounge, sourceMapFromCode, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
     setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset;
     blockSource = DocOrg.blockSource;
     Promise = Bluebird.Promise;
@@ -40,14 +40,6 @@
         };
       }
       return obj;
-    };
-    wispGenNSContext = function(ns) {
-      var names;
-      ns = findNs(ns, Leisure.WispNS);
-      names = _.without(_.keys(ns), '_ns_');
-      if (names.length) {
-        return ns.newNames(names);
-      }
     };
     wp = null;
     wispPromise = function() {
@@ -163,7 +155,7 @@
       };
 
       Compiler.prototype.scanNodes = function() {
-        var addReturn, children, code, con, destroyingExport, exprPos, exprs, file, foundEnd, head, lastLoc, nodes, prevCode, ref, returnNode, spliced, splicedResult, startedPush, tail;
+        var addReturn, children, code, con, destroyingExport, exprPos, exprs, file, foundEnd, head, lastLoc, nodes, prevCode, ref, returnNode, splicedResult, startedPush, tail;
         if (this.returnList) {
           exprs = _.filter(_.map(this.result.ast, (function(_this) {
             return function(n, i) {
@@ -222,7 +214,7 @@
             if (_this.nsName) {
               code = code.replace(/^ *var /, ' ');
             }
-            if (_this.returnList && !startedPush && loc.line === exprs[exprPos].start.line && loc.column >= exprs[exprPos].start.column - 1) {
+            if (_this.returnList && !startedPush && loc.line >= ((ref = exprs[exprPos]) != null ? ref.start.line : void 0) && loc.column >= exprs[exprPos].start.column - 1) {
               startedPush = true;
               c = prevCode.node.children[0];
               c2 = c.replace(/((^|\n) *)([^ \n]+)$/, '$1$$ret$$.push($3');
@@ -232,7 +224,7 @@
                 code = "$ret$.push(" + code;
               }
             }
-            if (startedPush && (code.match(/;[ \n]*$/) || ((loc.line > (ref = exprs[exprPos].end.line) && ref === exprs[exprPos].end.line) && loc.column >= exprs[exprPos].end.column - 1))) {
+            if (startedPush && (loc.line != null) && (code.match(/;[ \n]*$/) || (loc.line >= exprs[exprPos].end.line && loc.column >= exprs[exprPos].end.column - 1))) {
               startedPush = false;
               code = code.replace(/;([ \n]*)$/, ');$1');
               exprPos++;
@@ -282,8 +274,7 @@
           children.unshift("(function(exports, console){\n" + this.pad + "console = console ? console : window.console;\n" + this.pad);
           children.push('})');
         }
-        spliced = new SourceNode(1, 0, file, children);
-        splicedResult = spliced.toStringWithSourceMap();
+        splicedResult = new SourceNode(1, 0, file, children).toStringWithSourceMap();
         if (file) {
           splicedResult.map.setSourceContent(file, con.sourceContentFor(file));
         }
@@ -310,7 +301,6 @@
     };
     Leisure.wispRequire = wispRequire;
     Leisure.wispFindNs = findNs;
-    Leisure.wispGenNSContext = wispGenNSContext;
     sourceMapFromCode = function(code) {
       return new SourceMapConsumer(JSON.parse(atob(code.substring(code.lastIndexOf('\n', code.length - 2)).match(/sourceMappingURL=.*base64,([^\n]*)\n/)[1])));
     };
@@ -323,7 +313,7 @@
         line: line - 1,
         column: column
       }), line = ref1.line, column = ref1.column;
-      return lineColumnStrOffset(src, line, column) + originalSrc.length - src.length;
+      return lineColumnStrOffset(src, line, column) + (originalSrc != null ? originalSrc : src).length - src.length;
     };
     envFunc = function(env) {
       env.executeText = function(text, props, cont) {
@@ -338,6 +328,9 @@
             }
           };
         })(this));
+      };
+      env.executeBlock = function(block, props, cont) {
+        return this.compileBlock(block).call(this, cont);
       };
       env.compileBlock = function(block) {
         var code, column, err, error, func, ignore, line, m, macros, msg, nameSpace, ns, nsObj, original, pos, props, ref, ref1, ref2, ref3, res;

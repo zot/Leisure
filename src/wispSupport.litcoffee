@@ -39,11 +39,6 @@ Clojure support for Lounge
           id: nsName
         obj
 
-      wispGenNSContext = (ns)->
-        ns = findNs ns, Leisure.WispNS
-        names = _.without _.keys(ns), '_ns_'
-        if names.length then ns.newNames names
-
       wp = null
 
       wispPromise = ->
@@ -129,6 +124,7 @@ Compile Wisp code, optionally in a namespace.
           exprPos = 0
           returnNode = null
           destroyingExport = false
+          # prevCode lookback hack for inserting 'push(' before operation
           prevCode = {}
           con = SourceMapConsumer.fromSourceMap @result['source-map']
           nodes = SourceNode.fromStringWithSourceMap @result.code, con
@@ -144,13 +140,13 @@ Compile Wisp code, optionally in a namespace.
               if code.match(/ *= */) then destroyingExport = false
               return
             if @nsName then code = code.replace /^ *var /, ' '
-            if @returnList && !startedPush && loc.line == exprs[exprPos].start.line && loc.column >= exprs[exprPos].start.column - 1
+            if @returnList && !startedPush && loc.line >= exprs[exprPos]?.start.line && loc.column >= exprs[exprPos].start.column - 1
               startedPush = true
               c = prevCode.node.children[0]
               c2 = c.replace /((^|\n) *)([^ \n]+)$/, '$1$$ret$$.push($3'
               if c != c2 then prevCode.node.children[0] = c2
               else code = "$ret$.push(#{code}"
-            if startedPush && (code.match(/;[ \n]*$/) || (loc.line > exprs[exprPos].end.line == exprs[exprPos].end.line && loc.column >= exprs[exprPos].end.column - 1))
+            if startedPush && loc.line? && (code.match(/;[ \n]*$/) || (loc.line >= exprs[exprPos].end.line && loc.column >= exprs[exprPos].end.column - 1))
               startedPush = false
               code = code.replace(/;([ \n]*)$/, ');$1')
               exprPos++
@@ -178,8 +174,7 @@ Compile Wisp code, optionally in a namespace.
           if @wrapFunction
             children.unshift "(function(exports, console){\n#{@pad}console = console ? console : window.console;\n#{@pad}"
             children.push '})'
-          spliced = new SourceNode 1, 0, file, children
-          splicedResult = spliced.toStringWithSourceMap()
+          splicedResult = new SourceNode(1, 0, file, children).toStringWithSourceMap()
           if file then splicedResult.map.setSourceContent file, con.sourceContentFor file
           splicedResult.code + "\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify splicedResult.map.toJSON()}\n"
 
@@ -193,7 +188,6 @@ Compile Wisp code, optionally in a namespace.
         else eval code
       Leisure.wispRequire = wispRequire
       Leisure.wispFindNs = findNs
-      Leisure.wispGenNSContext = wispGenNSContext
 
       sourceMapFromCode = (code)->
         new SourceMapConsumer JSON.parse atob code.substring(code.lastIndexOf '\n', code.length - 2).match(/sourceMappingURL=.*base64,([^\n]*)\n/)[1]
@@ -203,12 +197,13 @@ Compile Wisp code, optionally in a namespace.
         line = Number line
         column = Number column
         {line, column} = sourceMapFromCode(code).originalPositionFor {line: line - 1, column}
-        lineColumnStrOffset(src, line, column) + originalSrc.length - src.length
+        lineColumnStrOffset(src, line, column) + (originalSrc ? src).length - src.length
 
       envFunc = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
           result = [Leisure.wispEval(text)]
           if cont then cont result else result
+        env.executeBlock = (block, props, cont)-> @compileBlock(block).call this, cont
         env.compileBlock = (block)->
           original = res = "#{blockSource(block).trim()}"
           try

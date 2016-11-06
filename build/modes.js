@@ -1368,12 +1368,12 @@
     fancyEditDiv = function(div, data) {
       var options;
       options = new OrgEditing(data).setMode(fancyMode);
-      options.openRegistration();
-      options.registerCollaborativeCode('doSlideValue', doSlideValue);
-      options.registerCollaborativeCode('viewBoundSet', function(context, name, data) {
+      data.openRegistration();
+      data.registerCollaborativeCode('doSlideValue', doSlideValue);
+      data.registerCollaborativeCode('viewBoundSet', function(context, name, data) {
         return options.setData(name, data);
       });
-      options.closeRegistration();
+      data.closeRegistration();
       return new LeisureEditCore($(div), options);
     };
     prismAliases = {
