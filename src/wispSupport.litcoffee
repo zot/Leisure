@@ -246,7 +246,7 @@ Compile Wisp code, optionally in a namespace.
               env = this
               envConsole = log: (args...)-> env.write args.join ' '
               try
-                setLounge env, -> (cont ? identity) _.filter func(null, envConsole, args...), (n)-> typeof n != 'undefined'
+                setLounge env, -> (cont ? identity) _.filter func.call(env, null, envConsole, args...), (n)-> typeof n != 'undefined'
               catch err
                 console.error err.stack ? err
                 if original != blockSource(env.data.getBlock block._id).trim()

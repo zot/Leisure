@@ -394,7 +394,7 @@
             };
             try {
               return setLounge(env, function() {
-                return (cont != null ? cont : identity)(_.filter(func.apply(null, [null, envConsole].concat(slice.call(args))), function(n) {
+                return (cont != null ? cont : identity)(_.filter(func.call.apply(func, [env, null, envConsole].concat(slice.call(args))), function(n) {
                   return typeof n !== 'undefined';
                 }));
               });
