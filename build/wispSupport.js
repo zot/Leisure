@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['./eval', './docOrg', 'lib/bluebird.min', './gen'], function(Eval, DocOrg, Bluebird, Gen) {
-    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, blockSource, codeOffset, compile, envFunc, findNs, jsCodeFor, lineColumnStrOffset, parseIt, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
+    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, atOrAfter, blockSource, codeOffset, compile, envFunc, findNs, jsCodeFor, lineColumnStrOffset, parseIt, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
     setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset;
     blockSource = DocOrg.blockSource;
     Promise = Bluebird.Promise;
@@ -115,7 +115,7 @@
           for (j = 0, len = ref1.length; j < len; j++) {
             node = ref1[j];
             if (node.op === 'def') {
-              names[node.id.id.name] = true;
+              names[translateIdentifierWord(node.id.id.name)] = true;
             }
           }
           if (this.result.ast[0].op === 'ns' && this.result.ast[0].require) {
@@ -167,7 +167,7 @@
       };
 
       Compiler.prototype.scanNodes = function() {
-        var addReturn, children, code, con, destroyingExport, exprPos, exprs, file, foundEnd, head, lastLoc, nodes, prevCode, ref1, returnNode, splicedResult, startedPush, tail;
+        var addReturn, children, code, con, declaredNs, destroyingExport, exportLocs, exprPos, exprs, file, foundEnd, head, inExpr, lastLoc, nodes, prevCode, ref1, returnNode, splicedResult, startedPush, tail;
         if (this.returnList) {
           exprs = _.filter(_.map(this.result.ast, (function(_this) {
             return function(n, i) {
@@ -196,6 +196,11 @@
           code: ''
         };
         con = SourceMapConsumer.fromSourceMap(this.result['source-map']);
+        inExpr = false;
+        declaredNs = false;
+        exportLocs = _.filter(_.map(this.result.ast, function(n) {
+          return n["export"] && n.start;
+        }));
         nodes = SourceNode.fromStringWithSourceMap(this.result.code, con);
         if (addReturn) {
           addReturn = lastLoc = _.last(_.filter(_.map(this.result.ast, (function(_this) {
@@ -229,7 +234,13 @@
               return;
             }
             if (_this.nsName) {
-              code = code.replace(/^ *var /g, ' ');
+              if (exportLocs.length && atOrAfter(loc, exportLocs[0]) && code.match(/^ *var/)) {
+                declaredNs = true;
+                exportLocs.shift();
+                code = code.replace(/^ *var /g, ' ');
+              } else if (!declaredNs && code.match(/^ *var/)) {
+                code = code.replace(/^ *var /g, ' ');
+              }
             }
             if (_this.returnList && !startedPush && loc.line >= ((ref1 = exprs[exprPos]) != null ? ref1.start.line : void 0) && loc.column >= exprs[exprPos].start.column - 1) {
               startedPush = true;
@@ -303,6 +314,9 @@
       return Compiler;
 
     })();
+    atOrAfter = function(nodeLoc, astLoc) {
+      return nodeLoc.line - 1 > astLoc.line || (nodeLoc.line - 1 === astLoc.line && nodeLoc.column >= astLoc.column);
+    };
     compile = function(s, nsName, wrapFunction, returnList) {
       this.wrapFunction = wrapFunction;
       return new Compiler().compile(s, nsName, this.wrapFunction, returnList);

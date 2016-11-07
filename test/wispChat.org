@@ -1,18 +1,19 @@
 #+TITLE:Wisp Chat Test
 * Namespace
 #+BEGIN_SRC wisp :results def
-  (ns chat
-    (:require
-     [wisp.runtime :refer [print]]
-     [wisp.ast :refer [symbol symbol? keyword? keyword name namespace
-                       gensym unquote? unquote-splicing? quote?
-                       syntax-quote? quote-string pr-str]]
-     [wisp.sequence :refer [list? list conj partition seq
-                            empty? map vec every? concat
-                            first second third rest last
-                            butlast interleave cons count
-                            some assoc reduce filter seq?]]
-     ))
+    (ns chat
+      (:require
+       [wisp.runtime :refer [print]]
+       [wisp.ast :refer [symbol symbol? keyword? keyword name namespace
+                         gensym unquote? unquote-splicing? quote?
+                         syntax-quote? quote-string pr-str]]
+       [wisp.sequence :refer [lazy-seq lazy-seq? list? list cons
+                              sequential? reverse map filter reduce
+                              count empty? first second third rest
+                              last butlast take take-while drop conj
+                              assoc concat seq seq? vec sort repeat
+                              every? some partition interleave nth]]
+       ))
 #+END_SRC
 * Testing
 :properties:
@@ -23,6 +24,11 @@
 null
 (rest '(a))
 (rest [1 2])
+(sum 1 2 3)
+(subtract 10 1 2)
+(strict-equal? 1 2)
+(greater-than 1)
+(less-than 1)
 #+END_SRC
 
 Hit C-c C-c to execute this -- it should make new peeps data
@@ -51,6 +57,62 @@ on a peer's behalf.
 :namespace: chat
 :end:
 properties has (ns chat (:require [wisp.sequence :refer [map]] [wisp.runtime :refer [print]]))
+** Utilities
+#+BEGIN_SRC wisp :results def
+  (defn sum [& args]
+    (loop [tot 0
+           a args]
+      (if (empty? a)
+        tot
+        (recur (+ tot (first a)) (rest a)))))
+  (defn multiply [& args]
+    (loop [tot 1
+           a args]
+      (if (empty? a)
+        tot
+        (recur (* tot (first a)) (rest a)))))
+  (defn subtract [& args]
+    (if (empty? args)
+      (throw (Error "Wrong number of arguments (0) passed to: subtract"))
+      (loop [tot (first args)
+             a (rest args)]
+        (if (empty? a)
+          tot
+          (recur (- tot (first a)) (rest a))))))
+  (defn divide [& args]
+    (if (empty? args)
+      (throw (Error "Wrong number of arguments (0) passed to: divide"))
+      (loop [tot (first args)
+             a (rest args)]
+        (if (empty? a)
+          tot
+          (recur (/ tot (first a)) (rest a))))))
+  (defn strict-equal? [& args]
+    (if (or (empty? args) (empty? (rest args)))
+      (throw (Error (str "Wrong number of arguments (" (.-length args)  ") passed to: strict-equal?")))
+      (let [target (first args)]
+        (loop [a (rest args)]
+          (cond (empty? a) true
+                (not (== target (first a))) false
+                :else (recur (rest a)))))))
+  (defn- gt [name args]
+    (loop [min (first args)
+           a (rest args)]
+      (if (empty? a)
+        true
+        (and (> min (first a)) (recur (first a) (rest a))))))
+  (defn- lt [name args]
+    (loop [max (first args)
+           a (rest args)]
+      (if (empty? a)
+        true
+        (and (< max (first a)) (recur (first a) (rest a))))))
+  (defn not-greater-than [& args] (not (gt "not-greater-than" args)))
+  (defn greater-than [& args] (gt "greater-than" args))
+  (defn not-less-than [& args] (not (lt "not-less-than" args)))
+  (defn less-than [& args] (lt "less-than" args))
+  (print "utilties")
+#+END_SRC
 ** Initial defs
 #+BEGIN_SRC wisp :results def
   (def data Lounge.data)

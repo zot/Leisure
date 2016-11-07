@@ -82,7 +82,7 @@ Compile Wisp code, optionally in a namespace.
             nsObj = findNs @nsName, Leisure.WispNS, true
             names = {_ns_: true}
             for node in @result.ast when node.op == 'def'
-              names[node.id.id.name] = true
+              names[translateIdentifierWord node.id.id.name] = true
             if @result.ast[0].op == 'ns' && @result.ast[0].require
               for req in @result.ast[0].require
                 for ref in req.refer
@@ -137,6 +137,9 @@ Compile Wisp code, optionally in a namespace.
           # prevCode lookback hack for inserting 'push(' before operation
           prevCode = code: ''
           con = SourceMapConsumer.fromSourceMap @result['source-map']
+          inExpr = false
+          declaredNs = false
+          exportLocs = _.filter _.map @result.ast, (n)-> n.export && n.start
           nodes = SourceNode.fromStringWithSourceMap @result.code, con
           if addReturn
             addReturn = lastLoc = _.last _.filter(_.map(@result.ast, (n, i)=> if !(n.op in ['def', 'ns']) && n.form then @result['js-ast'].body[i].loc?.start), identity)
@@ -152,7 +155,13 @@ Compile Wisp code, optionally in a namespace.
             else if destroyingExport
               if code.match(/ *= */) then destroyingExport = false
               return
-            if @nsName then code = code.replace /^ *var /g, ' '
+            if @nsName
+              if exportLocs.length && atOrAfter(loc, exportLocs[0]) && code.match /^ *var/
+                declaredNs = true
+                exportLocs.shift()
+                code = code.replace /^ *var /g, ' '
+              else if !declaredNs && code.match /^ *var/
+                code = code.replace /^ *var /g, ' '
             if @returnList && !startedPush && loc.line >= exprs[exprPos]?.start.line && loc.column >= exprs[exprPos].start.column - 1
               startedPush = true
               if prevCode.node
@@ -191,6 +200,9 @@ Compile Wisp code, optionally in a namespace.
           splicedResult = new SourceNode(1, 0, file, children).toStringWithSourceMap()
           if file then splicedResult.map.setSourceContent file, con.sourceContentFor file
           splicedResult.code + "\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify splicedResult.map.toJSON()}\n"
+
+      atOrAfter = (nodeLoc, astLoc)->
+        nodeLoc.line - 1 > astLoc.line || (nodeLoc.line - 1 == astLoc.line && nodeLoc.column >= astLoc.column)
 
       compile = (s, nsName, @wrapFunction, returnList)->
         new Compiler().compile s, nsName, @wrapFunction, returnList
