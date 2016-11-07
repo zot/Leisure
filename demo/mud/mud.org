@@ -4,7 +4,7 @@
 :hidden: true
 :end:
 #+BEGIN_SRC wisp :results def
-  (ns chat
+  (ns mud.core
     (:require
      [wisp.runtime :refer [print]]
      [wisp.ast :refer [symbol symbol? keyword? keyword name namespace
@@ -19,8 +19,17 @@
      ))
 #+END_SRC
 * Plumbing
+:properties:
+:namespace: mud.core
+:end:
 * GUI
+:properties:
+:namespace: mud.core
+:end:
 * Parser
+:properties:
+:namespace: mud.core
+:end:
 * Utilites
 #+BEGIN_SRC wisp :results def
   (defn sum [& args]
