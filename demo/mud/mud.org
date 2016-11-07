@@ -1,4 +1,16 @@
 #+TITLE:CthulhuMUD
+* Data format
+** Mud objects
+#+BEGIN_SRC yaml :index location location
+id: mud-10
+type: thing
+name: fred
+prefix: hungry
+title: the barbarian
+description: Fred is a nice guy
+activity: hopping around
+location: mud-3
+#+END_SRC
 * Setup
 :properties:
 :hidden: true
@@ -17,11 +29,29 @@
                             assoc concat seq seq? vec sort repeat
                             every? some partition interleave nth]]
      ))
+  (def data Lounge.data)
 #+END_SRC
 * Plumbing
 :properties:
 :namespace: mud.core
 :end:
+#+NAME: mudState
+#+BEGIN_SRC yaml
+currentId: 0
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defmacro collaboratively [name & args] `(.doCollaboratively data (.-name ~name) ~args))
+  (defn registerCollaborativeFuncs [funcs] (map #(.registerCollaborativeCode data %1) funcs))
+  (defn nextId []
+    (let [game (.getData data "mudState")
+          id (+ 1 (:currentId game))]
+      (.log window.console "currentId: " id)
+      (set! (:currentId game) id)
+      (.setData data "gameState" game)
+      id))
+#+END_SRC
+
 * GUI
 :properties:
 :namespace: mud.core
