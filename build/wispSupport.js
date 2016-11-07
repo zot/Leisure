@@ -138,7 +138,7 @@
             }
           }
           if (this.result.ast[0].require) {
-            this.reqs += "var require = function(s) {\n  return Leisure.wispRequire(s, '" + this.nsName + "');\n};\n";
+            this.reqs += "var require = function(s) {\n  return Leisure.wispRequire(s, '" + (translateIdentifierWord(this.nsName)) + "');\n};\n";
           }
           if (this.result.ast[0].op !== 'ns') {
             this.reqs += "var _ns_ = {\n  id: '" + this.nsName + "',\n  doc: void 0\n};\n";

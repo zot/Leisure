@@ -93,7 +93,7 @@ Compile Wisp code, optionally in a namespace.
               else @reqs += "var exports = window.Leisure.WispNS.#{@nsName};\n"
             if @result.ast[0].require then @reqs += """
               var require = function(s) {
-                return Leisure.wispRequire(s, '#{@nsName}');
+                return Leisure.wispRequire(s, '#{translateIdentifierWord @nsName}');
               };
 
             """
