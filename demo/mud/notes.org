@@ -1,4 +1,7 @@
 #+TITLE:Notes about the MUD
+* Notes
+** Verify Wisp controllers and observers work
+*** controller: (set! this.initializeView func)
 * World Structure
 ** Graph of arbitrary rooms
 ** Each game object gets a YAML block
@@ -19,6 +22,9 @@
 * Operations
 ** Save/load a file
 * Future
+:properties:
+:hidden: true
+:end:
 ** Performance and security
 *** authentication/authorization
 *** optimistic parsing
