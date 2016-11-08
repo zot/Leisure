@@ -3,13 +3,12 @@
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
-  define(['./editor', './editorSupport', './ui', './export', './modes'], function(Editor, EditorSupport, UI, BrowserExports, Modes) {
-    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, doSlideValue, editorCount, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, mergeExports, normalize, openSearch, preserveSelection, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
+  define(['./editor', './editorSupport', './ui', './modes'], function(Editor, EditorSupport, UI, Modes) {
+    var LeisureEditCore, OrgEditing, SearchEditor, addController, addSearchDataFilter, addView, basicDataFilter, chr, configureSearch, doSlideValue, editorCount, editorForToolbar, fancyMode, findEditor, grams, hasView, indexQuery, initializePendingViews, mergeContext, normalize, openSearch, preserveSelection, removeController, removeView, renderView, searchForBlocks, searchToken, tokenize, viewKey, withContext;
     findEditor = Editor.findEditor, LeisureEditCore = Editor.LeisureEditCore, preserveSelection = Editor.preserveSelection;
     OrgEditing = EditorSupport.OrgEditing, editorForToolbar = EditorSupport.editorForToolbar, basicDataFilter = EditorSupport.basicDataFilter;
     fancyMode = Modes.fancyMode, doSlideValue = Modes.doSlideValue;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews;
-    mergeExports = BrowserExports.mergeExports;
     searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g;
     editorCount = 0;
     normalize = function(str) {
@@ -55,14 +54,8 @@
       return gr;
     };
     tokenize = function(query) {
-      var j, len, ref, ref1, results1, token;
-      ref1 = (ref = query.match(searchToken)) != null ? ref : [];
-      results1 = [];
-      for (j = 0, len = ref1.length; j < len; j++) {
-        token = ref1[j];
-        results1.push(normalize(token));
-      }
-      return results1;
+      var ref;
+      return _.map((ref = query.match(searchToken)) != null ? ref : [], normalize);
     };
     indexQuery = function(query) {
       var j, len, ref, token, tokens, tri;
@@ -124,7 +117,7 @@
       });
     };
     searchForBlocks = function(data, query) {
-      var block, blocks, count, counts, g, gram, gramBlocks, j, ref, ref1, results, sizes, tokens;
+      var blocks, count, counts, g, gram, gramBlocks, j, ref, ref1, results, sizes, tokens;
       ref = indexQuery(query), tokens = ref.tokens, g = ref.grams;
       ref1 = data.ftsIndex, gramBlocks = ref1.gramBlocks, sizes = ref1.sizes;
       counts = [];
@@ -142,14 +135,7 @@
         counts.sort(function(a, b) {
           return b.size - a.size;
         });
-        results = (function() {
-          var results1;
-          results1 = [];
-          for (block in gramBlocks[counts.pop().gram]) {
-            results1.push(block);
-          }
-          return results1;
-        })();
+        results = _.keys(gramBlocks[counts.pop().gram]);
         for (j = counts.length - 1; j >= 0; j += -1) {
           count = counts[j];
           blocks = gramBlocks[count.gram];
@@ -281,7 +267,7 @@
       });
       return opts;
     };
-    mergeExports({
+    Object.assign(Leisure, {
       openSearch: openSearch,
       configureSearch: configureSearch,
       searchForBlocks: searchForBlocks

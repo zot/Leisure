@@ -30,15 +30,11 @@ location: mud-3
                             every? some partition interleave nth]]
      ))
   (def data Lounge.data)
-  (defmacro ->
-    [& operations]
-    (reduce
-     (fn [form operation]
-       (cons (first operation)
-             (cons form (rest operation))))
-     (first operations)
-     (rest operations)))
 #+END_SRC
+** Import utilities
+:properties:
+:import: utilities.org
+:end:
 * Plumbing
 :properties:
 :namespace: mud.core

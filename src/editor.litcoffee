@@ -263,7 +263,7 @@ Observable class
               @off callbackType, callback
           else
             if @listeners[type]
-              @listeners[type] = (l for l in @listeners[type] when l != callback)
+              @listeners[type] = _.filter @listeners[type], (l)-> l != callback
           this
         trigger: (type, args...)->
           if !@suppressingTriggers
@@ -313,7 +313,7 @@ Events:
               func()
             catch
               @selectDocRange pos
-        getCopy: (id)-> copy @options.getBlock id
+        getCopy: (id)-> copyBlock @options.getBlock id
         getText: -> @options.getText()
         blockForCaret: -> @blockForNode @domCursorForCaret().node
         blockForNode: (node)-> @options.getBlock @options.idForNode node
@@ -469,7 +469,7 @@ Events:
           useEvent e
           sel = getSelection()
           if sel.type == 'Range'
-            html = (htmlForNode node for node in sel.getRangeAt(0).cloneContents().childNodes).join ''
+            html = _.map(sel.getRangeAt(0).cloneContents().childNodes, htmlForNode).join ''
             text = @selectedText sel
             @options.simulateCut html: html, text: text
             r = @getSelectedDocRange()
@@ -546,7 +546,7 @@ Events:
             if sel.type == 'Range'
               dragRange = @getSelectedBlockRange()
               clipboard = e.originalEvent.dataTransfer
-              clipboard.setData 'text/html', (htmlForNode node for node in sel.getRangeAt(0).cloneContents().childNodes).join ''
+              clipboard.setData 'text/html', _.map(sel.getRangeAt(0).cloneContents().childNodes, htmlForNode).join ''
               clipboard.setData 'text/plain', @selectedText sel
               clipboard.effectAllowed = 'copyMove'
               clipboard.dropEffect = 'move'
@@ -565,7 +565,7 @@ Events:
             sel = getSelection()
             if sel.type == 'Range'
               clipboard = e.originalEvent.clipboardData
-              clipboard.setData 'text/html', (htmlForNode node for node in sel.getRangeAt(0).cloneContents().childNodes).join ''
+              clipboard.setData 'text/html', _.map(sel.getRangeAt(0).cloneContents().childNodes, htmlForNode).join ''
               clipboard.setData 'text/plain', @selectedText sel
               @replace e, @getSelectedBlockRange(), ''
           @node.on 'copy', (e)=>
@@ -573,7 +573,7 @@ Events:
             sel = getSelection()
             if sel.type == 'Range'
               clipboard = e.originalEvent.clipboardData
-              clipboard.setData 'text/html', (htmlForNode node for node in sel.getRangeAt(0).cloneContents().childNodes).join ''
+              clipboard.setData 'text/html', _.map(sel.getRangeAt(0).cloneContents().childNodes, htmlForNode).join ''
               clipboard.setData 'text/plain', @selectedText sel
           @node.on 'paste', (e)=>
             useEvent e
@@ -1086,13 +1086,7 @@ situations to provide STM-like change management.
           newBlocks.pop()
         oldBlocks: oldBlocks, newBlocks: newBlocks, offset: offset, prev: prev
 
-      copyBlock = (block)->
-        if !block then null
-        else
-          bl = {}
-          for k,v of block
-            bl[k] = v
-          bl
+      copyBlock = (block)-> if !block then null else Object.assign {}, block
 
       activating = false
 
@@ -1696,13 +1690,6 @@ adapted from Vega on [StackOverflow](http://stackoverflow.com/a/13127566/1026782
         if typeof str == 'string' then str.replace /[<>&]/g, (c)-> replacements[c]
         else str
 
-      copy = (obj)->
-        if obj
-          bl = {}
-          for k,v of obj
-            bl[k] = v
-          bl
-
       findEditor = (node)->
         target = $(node)
         while target.length && !($(target).data().editor instanceof LeisureEditCore)
@@ -1766,7 +1753,6 @@ Exports
         blockText
         posFor
         escapeHtml
-        copy
         findEditor
         copyBlock
         preserveSelection

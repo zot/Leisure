@@ -22,11 +22,8 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.min', './export'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird, Exports)->
+define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.min'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird)->
 
-  {
-    mergeExports
-  } = Exports
   {
     readFile,
     statFile,
@@ -914,7 +911,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'li
 
   jsonConvert = (obj)->
     if obj instanceof Array
-      consFrom (jsonConvert i for i in obj)
+      consFrom (_.map obj, jsonConvert)
     else if typeof obj == 'object'
       t = rz L_nil
       for k, v of obj
@@ -1114,7 +1111,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'li
     bind
   }
 
-  mergeExports {
+  Object.assign Leisure, {
     stateValues: values
     runMonad: runMonad2
     Runtime

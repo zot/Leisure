@@ -2,12 +2,12 @@
 (function() {
   var slice = [].slice;
 
-  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements', './export'], function(jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep, Exports) {
-    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, fileTypes, getDocumentParams, isDelete, isInsert, isRetain, makeImageBlob, mergeExports, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, typeForFile, validateBatch;
-    mergeExports = Exports.mergeExports;
+  define(['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements'], function(jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep) {
+    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, fileTypes, getDocumentParams, isDelete, isInsert, isRetain, makeImageBlob, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, typeForFile, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
+    ajaxGet = Utilities.ajaxGet;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
-    OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor, ajaxGet = Support.ajaxGet, makeImageBlob = Support.makeImageBlob;
+    OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor, makeImageBlob = Support.makeImageBlob;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod, callOriginal = Advice.callOriginal;
     noTrim = Common.noTrim;
     Promise = Bluebird.Promise;
@@ -744,7 +744,7 @@
         return done(names.join(' '));
       });
     };
-    mergeExports({
+    Object.assign(Leisure, {
       configurePeerOpts: configureOpts
     });
     return {

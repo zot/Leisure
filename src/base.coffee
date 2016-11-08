@@ -38,6 +38,7 @@ define files, (btoa)->
   root.nsLog = (args...)-> if root.shouldNsLog then console.log args...
 
   (window ? global).verbose = {}
+  (window ? global).Leisure = (window ? global).Leisure ? {}
 
   verboseMsg = (label, msg...)-> if (window ? global).verbose[label] then console.log msg...
 

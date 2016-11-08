@@ -5,18 +5,18 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     slice1 = [].slice;
 
-  define(['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
-    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addSelectionBubble, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copy, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, mergeExports, modifyingKey, monitorSelectionChange, orgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet;
+  define(['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
+    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addSelectionBubble, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, modifyingKey, monitorSelectionChange, orgDoc, parseOrgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock, parseYaml = DocOrg.parseYaml;
     Nil = Ast.Nil;
+    ajaxGet = Utilities.ajaxGet;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, presentHtml = Eval.presentHtml, setLounge = Eval.setLounge, blockVars = Eval.blockVars, blocksObserved = Eval.blocksObserved, hasCodeAttribute = Eval.hasCodeAttribute, isYamlResult = Eval.isYamlResult, escapeString = Eval.escapeString;
-    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, BasicEditingOptions = Editor.BasicEditingOptions, modifyingKey = Editor.modifyingKey;
+    LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, BasicEditingOptions = Editor.BasicEditingOptions, modifyingKey = Editor.modifyingKey;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
     hasDatabase = DB.hasDatabase, transaction = DB.transaction;
-    mergeExports = BrowserExports.mergeExports;
     dump = Yaml.dump;
     Map = Immutable.Map, Set = Immutable.Set;
     Promise = Bluebird.Promise;
@@ -327,11 +327,7 @@
       };
 
       OrgData.prototype.parseBlocks = function(text) {
-        if (text === '') {
-          return [];
-        } else {
-          return orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')));
-        }
+        return parseOrgDoc(text);
       };
 
       OrgData.prototype.nextSibling = function(thing, changes) {
@@ -488,22 +484,19 @@
       };
 
       OrgData.prototype.removesAndSets = function(arg1) {
-        var block, blocks, id, removes, sets;
+        var blocks, id, removes, sets;
         sets = arg1.sets, removes = arg1.removes;
         blocks = {};
         for (id in removes) {
           blocks[id] = false;
         }
-        for (id in sets) {
-          block = sets[id];
-          blocks[id] = block;
-        }
+        Object.assign(blocks, sets);
         return blocks;
       };
 
       OrgData.prototype.processDefaults = function(lorgText) {
         var block, id, j, len, viewBlocks;
-        viewBlocks = orgDoc(parseOrgMode(lorgText.replace(/\r\n?/g, '\n')));
+        viewBlocks = parseOrgDoc(lorgText);
         id = 0;
         for (j = 0, len = viewBlocks.length; j < len; j++) {
           block = viewBlocks[j];
@@ -577,8 +570,6 @@
                   id: newBlock._id,
                   key: key
                 }));
-              } else {
-                results1.push(void 0);
               }
             }
             return results1;
@@ -1578,6 +1569,13 @@
       return OrgData;
 
     })(DataStore);
+    parseOrgDoc = function(text) {
+      if (text === '') {
+        return [];
+      } else {
+        return orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')));
+      }
+    };
     fileTypes = {
       jpg: 'image/jpeg',
       jpeg: 'image/jpeg',
@@ -1720,7 +1718,7 @@
     addChange = function(block, changes) {
       if (!changes.sets[block._id]) {
         changes.oldBlocks.push(block);
-        changes.newBlocks.push(changes.sets[block._id] = copy(block));
+        changes.newBlocks.push(changes.sets[block._id] = copyBlock(block));
       }
       return changes.sets[block._id];
     };
@@ -2621,7 +2619,7 @@
       return block != null ? (ref = block.codeAttributes) != null ? (ref1 = ref.results) != null ? ref1.toLowerCase().match(/\bsilent\b/) : void 0 : void 0 : void 0;
     };
     setResult = function(block, result) {
-      var newBlock, prop, ref, ref1, results, text, tmp, value;
+      var newBlock, ref, ref1, results, text, tmp;
       if (block != null ? (ref = block.codeAttributes) != null ? (ref1 = ref.results) != null ? ref1.toLowerCase().match(/\b(def|web|silent)\b/) : void 0 : void 0 : void 0) {
         result = '';
       }
@@ -2631,16 +2629,13 @@
       } else {
         newBlock = copyBlock(block);
         text = (result == null) || result === '' ? block.text.substring(0, results.offset) + block.text.substring(results.offset + results.text.length) : results ? block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length) : block.text + ("#+RESULTS:\n" + result);
-        tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
-        for (prop in tmp) {
-          value = tmp[prop];
-          newBlock[prop] = value;
-        }
+        tmp = parseOrgDoc(text)[0];
+        Object.assign(newBlock, tmp);
         return newBlock;
       }
     };
     setError = function(block, offset, msg) {
-      var err, error, newBlock, prop, ref, results, text, tmp, value;
+      var err, error, newBlock, ref, results, text, tmp;
       ref = blockCodeItems(this, block), error = ref.error, results = ref.results;
       if ((offset == null) && !error) {
         return block;
@@ -2649,11 +2644,8 @@
         msg = msg ? escapeString(msg.trim()) + "\n" : void 0;
         err = "#+ERROR: " + offset + ", " + msg + "\n";
         text = error ? offset == null ? block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length) : block.text.substring(0, error.offset) + err + block.text.substring(error.offset + error.text.length) : results ? block.text.substring(0, results.offset) + err + block.text.substring(results.offset) : block.text + err;
-        tmp = orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')))[0];
-        for (prop in tmp) {
-          value = tmp[prop];
-          newBlock[prop] = value;
-        }
+        tmp = parseOrgDoc(text)[0];
+        Object.assign(newBlock, tmp);
         return newBlock;
       }
     };
@@ -2796,27 +2788,7 @@
         text: newText.substring(startOff, newText.length - endOff)
       };
     };
-    ajaxGet = function(url) {
-      return new Promise(function(resolve, reject) {
-        var xhr;
-        xhr = new XMLHttpRequest;
-        xhr.responseType = 'arraybuffer';
-        xhr.onerror = reject;
-        xhr.onload = function(e) {
-          var binary, i, j, len, ref;
-          binary = '';
-          ref = new Uint8Array(e.target.response);
-          for (j = 0, len = ref.length; j < len; j++) {
-            i = ref[j];
-            binary += String.fromCharCode(i);
-          }
-          return resolve(binary);
-        };
-        xhr.open("GET", url);
-        return xhr.send(null);
-      });
-    };
-    mergeExports({
+    Object.assign(Leisure, {
       blockCodeItems: blockCodeItems,
       findEditor: findEditor,
       showHide: showHide,
@@ -2867,14 +2839,14 @@
       getDocumentParams: getDocumentParams,
       basicDataFilter: basicDataFilter,
       replacementFor: replacementFor,
-      ajaxGet: ajaxGet,
       parseYaml: parseYaml,
       makeImageBlob: makeImageBlob,
       makeBlobUrl: makeBlobUrl,
       getId: getId,
       fileTypes: fileTypes,
       updateSelection: updateSelection,
-      addSelectionBubble: addSelectionBubble
+      addSelectionBubble: addSelectionBubble,
+      parseOrgDoc: parseOrgDoc
     };
   });
 

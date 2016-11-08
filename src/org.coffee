@@ -234,13 +234,10 @@ define ['lib/lazy'], (Lazy)->
       for tag in parseTags @tags
         set[tag] = true
       set
-    addProperties: (props)->
-      for k, v of @properties
-        props[k] = v
-      props
+    addProperties: (props)-> Object.assign props, @properties
     addAllTags: -> @addTags @parent?.addAllTags() || {}
     allProperties: -> @addProperties @parent?.allProperties() || {}
-    allTags: -> k for k of @addAllTags()
+    allTags: -> _.keys @addAllTags()
     parts: ->
       m = @text.match headlineRE
       level: (m[HL_LEVEL] ? '').trim().length
@@ -442,8 +439,7 @@ define ['lib/lazy'], (Lazy)->
         if !(node instanceof Headline) && !(node instanceof Fragment) then console.log "WARNING: Drawer's parent is not a Headline'"
         else
           if !node.properties then node.properties = {}
-          for k, v of @properties()
-            node.properties[k] = v
+          Object.assign node.properties, @properties()
 
   class Example extends Meat
     constructor: (@text, @offset, @contentPos, @contentLength)->

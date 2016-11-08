@@ -30,9 +30,8 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.min', './export'], function(Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird, Exports) {
-    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Monad3, Nil, Promise, Runtime, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, checkPartial, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeHamt, makeMonad, makeSyncMonad, mergeExports, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
-    mergeExports = Exports.mergeExports;
+  define(['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.min'], function(Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird) {
+    var LeisureObject, Leisure_unit, Map, Monad, Monad2, Monad3, Nil, Promise, Runtime, SimpyCons, _false, _identity, _true, _unit, actors, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, checkPartial, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeHamt, makeMonad, makeSyncMonad, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextHamtPair, nextMonad, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile;
     ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
     parseYaml = DocOrg.parseYaml;
     define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall, leisureFunctionNamed = Ast.leisureFunctionNamed;
@@ -1492,17 +1491,9 @@ misrepresented as being the original software.
       return rz(L_acons)(lz(k), lz(v), lz(list));
     };
     jsonConvert = function(obj) {
-      var i, k, t, v;
+      var k, t, v;
       if (obj instanceof Array) {
-        return consFrom((function() {
-          var j, len, results;
-          results = [];
-          for (j = 0, len = obj.length; j < len; j++) {
-            i = obj[j];
-            results.push(jsonConvert(i));
-          }
-          return results;
-        })());
+        return consFrom(_.map(obj, jsonConvert));
       } else if (typeof obj === 'object') {
         t = rz(L_nil);
         for (k in obj) {
@@ -1773,7 +1764,7 @@ misrepresented as being the original software.
       partialCall: partialCall,
       bind: bind
     };
-    mergeExports({
+    Object.assign(Leisure, {
       stateValues: values,
       runMonad: runMonad2,
       Runtime: Runtime,

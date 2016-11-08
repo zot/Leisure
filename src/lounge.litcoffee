@@ -1,13 +1,10 @@
 Lounge accessors
 
-    define ['./export'], (Exports)->
-      {
-        mergeExports
-      } = Exports
+    define [], ->
 
       getBlockNamed = (name)-> Lounge.opts.data.getBlockNamed name
 
-      mergeExports {
+      Object.assign Leisure, {
         getBlockNamed
       }
 

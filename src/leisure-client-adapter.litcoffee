@@ -27,14 +27,14 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 
-    define ['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements', './export'], (jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep, Exports)->
-      {
-        mergeExports
-      } = Exports
+    define ['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements'], (jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep)->
       {
         Map
         Set
       } = window.Immutable = immutable
+      {
+        ajaxGet
+      } = Utilities
       {
         DataStore
         preserveSelection
@@ -48,7 +48,6 @@ misrepresented as being the original software.
         editorToolbar
         basicDataFilter
         replacementFor
-        ajaxGet
         makeImageBlob
       } = Support
       {
@@ -415,9 +414,10 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           .then (names)->
             done names.join ' '
 
-      mergeExports {
+      Object.assign Leisure, {
         configurePeerOpts: configureOpts
       }
+
       {
         Peer
       }

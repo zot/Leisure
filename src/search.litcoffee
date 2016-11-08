@@ -1,4 +1,4 @@
-    define ['./editor', './editorSupport', './ui', './export', './modes'], (Editor, EditorSupport, UI, BrowserExports, Modes)->
+    define ['./editor', './editorSupport', './ui', './modes'], (Editor, EditorSupport, UI, Modes)->
       {
         findEditor
         LeisureEditCore
@@ -25,9 +25,6 @@
         mergeContext
         initializePendingViews
       } = UI
-      {
-        mergeExports
-      } = BrowserExports
 
       searchToken = /[^\'\"]+|\'[^\']*\'|\"[^\"]*\"/g
       editorCount = 0
@@ -50,7 +47,7 @@
             gr[str.substring i, i + 3] = true
         gr
 
-      tokenize = (query)-> normalize token for token in query.match(searchToken) ? []
+      tokenize = (query)-> _.map query.match(searchToken) ? [], normalize
 
       indexQuery = (query)->
         tri = {}
@@ -95,7 +92,7 @@
           else counts.push gram: gram, size: sizes[gram]
         if counts.length
           counts.sort (a, b)-> b.size - a.size
-          results = (block for block of gramBlocks[counts.pop().gram])
+          results = _.keys gramBlocks[counts.pop().gram]
           for count in counts by -1
             blocks = gramBlocks[count.gram]
             results = _.filter results, (x)-> blocks[x]
@@ -162,7 +159,7 @@
         input.on 'input', (e)-> opts.search()
         opts
 
-      mergeExports {
+      Object.assign Leisure, {
         openSearch
         configureSearch
         searchForBlocks

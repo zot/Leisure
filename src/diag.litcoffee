@@ -1,4 +1,4 @@
-    define ['./editor', './editorSupport', './export'], (Editor, EditorSupport, Exports)->
+    define ['./editor', './editorSupport'], (Editor, EditorSupport)->
       bindCount = 0
 
       {
@@ -9,9 +9,6 @@
       {
         editorForToolbar
       } = EditorSupport
-      {
-        mergeExports
-      } = Exports
 
       errorDisplay = null
 
@@ -171,7 +168,7 @@
           ' <span class="err">[' + ("#{err}: #{block[err]}" for err in bad).join(', ') + ']</span>'
         else ''
 
-      mergeExports {
+      Object.assign Leisure, {
         showDiag
         getDiagShowing
       }

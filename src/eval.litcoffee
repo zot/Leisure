@@ -1,7 +1,7 @@
 Evaulation support for Leisure
 
     define.amd = true
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = AcornLoose
@@ -12,9 +12,6 @@ Evaulation support for Leisure
         unescapePresentationHtml
         Nil
       } = Ast
-      {
-        mergeExports
-      } = Exports
       {
         Node
         resolve
@@ -259,7 +256,7 @@ Evaulation support for Leisure
         if isYamlResult block
           if items.length == 1 then items = items[0]
           ': ' + (dump items, {sortKeys: true, flowLevel: Number block.codeAttributes.flowlevel ? 2}).trim().replace(/\n/g, '\n: ') + '\n'
-        else prefix + (presentHtml item for item in items).join ''
+        else prefix + _.map(items, presentHtml).join ''
 
       writeValues = (env, values)-> env.write values.join '\n'
 
@@ -648,7 +645,7 @@ Evaulation support for Leisure
         '\"': "\\\""
         '\\': "\\\\"
 
-      unescaped = _.fromPairs ([e, c] for c, e of escaped)
+      unescaped = _.invert escaped
 
       specials = /[\b\f\n\r\t\v\"\\]/g
 
@@ -667,7 +664,7 @@ Evaulation support for Leisure
           pos = newPos + 1
         Math.min str.length, pos + 1 + column
 
-      mergeExports {
+      Object.assign Leisure, {
         evalLeisure
         runLeisureMonad
         setLounge

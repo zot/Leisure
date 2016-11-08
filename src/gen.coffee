@@ -116,9 +116,8 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast,
 
   checkChild = (child)->
     if Array.isArray child
-      for c in child
-        checkChild c
-    else check (typeof child == 'string') || (child instanceof SourceNode), c
+      child.forEach checkChild
+    else check (typeof child == 'string') || (child instanceof SourceNode), child
 
   currentFile = 'NEVERGIVENFILE.lsr'
   currentFuncName = undefined
@@ -317,12 +316,6 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast,
     if n == 0 then ast
     else if (d = dumpAnno ast) instanceof Leisure_lambda then getNthLambdaBody getLambdaBody(d), n - 1
     else throw new Error "Expected lambda but got #{ast}"
-
-  strRepeat = (string, n)->
-    result = string
-    for i in [1...n]
-      result += string
-    result
 
   (window ? global ? {}).curryCall = curryCall = (args, func)->
     f = func args[0]

@@ -172,7 +172,7 @@
 
       createDocFromOrg = (org, collection, reloading, filter)->
         doc = orgDoc org
-        if filter? then doc = (filter block for block in doc)
+        if filter? then doc = _.map doc, filter
         replaceOrgDoc doc, collection, reloading
         collection
 

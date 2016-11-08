@@ -3,6 +3,7 @@
 ** Verify Wisp controllers and observers work
 *** DONE controller: (set! this.initializeView func)
     CLOSED: [2016-11-07 Mon 22:00]
+** Make storage area and use it for config document
 * World Structure
 ** Graph of arbitrary rooms
 ** Each game object gets a YAML block

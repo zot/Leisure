@@ -426,13 +426,7 @@ misrepresented as being the original software.
       };
 
       Headline.prototype.addProperties = function(props) {
-        var k, ref, v;
-        ref = this.properties;
-        for (k in ref) {
-          v = ref[k];
-          props[k] = v;
-        }
-        return props;
+        return Object.assign(props, this.properties);
       };
 
       Headline.prototype.addAllTags = function() {
@@ -446,12 +440,7 @@ misrepresented as being the original software.
       };
 
       Headline.prototype.allTags = function() {
-        var k, results;
-        results = [];
-        for (k in this.addAllTags()) {
-          results.push(k);
-        }
-        return results;
+        return _.keys(this.addAllTags());
       };
 
       Headline.prototype.parts = function() {
@@ -943,7 +932,6 @@ misrepresented as being the original software.
       };
 
       Drawer.prototype.linkTo = function(node) {
-        var k, ref, results, v;
         Drawer.__super__.linkTo.call(this, node);
         if (this.isProperties()) {
           if (!(node instanceof Headline) && !(node instanceof Fragment)) {
@@ -952,13 +940,7 @@ misrepresented as being the original software.
             if (!node.properties) {
               node.properties = {};
             }
-            ref = this.properties();
-            results = [];
-            for (k in ref) {
-              v = ref[k];
-              results.push(node.properties[k] = v);
-            }
-            return results;
+            return Object.assign(node.properties, this.properties());
           }
         }
       };

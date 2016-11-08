@@ -3,7 +3,7 @@
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], (Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1)->
+    define ['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], (Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1)->
       {
         defaultEnv
         CodeContext
@@ -26,6 +26,9 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         Nil
       } = Ast
       {
+        ajaxGet
+      } = Utilities
+      {
         languageEnvMaker
         Html
         presentHtml
@@ -44,7 +47,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         blockText
         posFor
         escapeHtml
-        copy
         findEditor
         copyBlock
         preserveSelection
@@ -71,9 +73,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         hasDatabase
         transaction
       } = DB
-      {
-        mergeExports
-      } = BrowserExports
       {
         dump
       } = Yaml
@@ -247,9 +246,7 @@ same names for blocks other than printing a warning.
           if context
             for filter in @filters
               filter.replaceText? this, context
-        parseBlocks: (text)->
-          if text == '' then []
-          else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
+        parseBlocks: (text)-> parseOrgDoc text
         nextSibling: (thing, changes)-> @getBlock @getBlock(thing, changes)?.nextSibling, changes
         previousSibling: (thing, changes)-> @getBlock @getBlock(thing, changes).previousSibling, changes
         reducePreviousSiblings: (thing, changes, func, arg)->
@@ -331,11 +328,10 @@ that must be done regardless of the source of changes
           blocks = {}
           for id of removes
             blocks[id] = false
-          for id, block of sets
-            blocks[id] = block
+          Object.assign blocks, sets
           blocks
         processDefaults: (lorgText)->
-          viewBlocks = orgDoc parseOrgMode lorgText.replace /\r\n?/g, '\n'
+          viewBlocks = parseOrgDoc lorgText
           id = 0
           for block in viewBlocks
             block._id = "default-#{id++}"
@@ -362,8 +358,8 @@ that must be done regardless of the source of changes
                 if !(key in k) then @deleteBlockKey id: oldBlock._id, key: key
             if newBlock.keys
               k = oldBlock?.keys ? []
-              for key in newBlock.keys
-                if !(key in k) then @addBlockKey id: newBlock._id, key: key
+              for key in newBlock.keys when !(key in k)
+                @addBlockKey id: newBlock._id, key: key
         addBlockKey: (k)->
           [first, rest] = @indexes.split (m)-> m >= k.key
           @indexes = first.concat rest.addFirst k
@@ -417,10 +413,10 @@ that must be done regardless of the source of changes
           setLounge env, func
         triggerUpdate: (channelKeys..., block)->
           if items = @observers.get channelKeys...
-            for id, v of items
+            for id, v of items when v == true && block._id != id && !@running[id]
               # verify that it's exactly equal to true
               # if not, then it's not really an observer
-              if v == true && block._id != id && !@running[id] then @pendingObserves[id] = block
+              @pendingObserves[id] = block
           null
         checkPropChange: (oldBlock, newBlock, isDefault)->
           if oldBlock?.title && !newBlock.title
@@ -821,6 +817,10 @@ that must be done regardless of the source of changes
           if optBlock?.local then throw new Error "Attempt to use local block in collaborative code"
           else if !@inCollaboration then throw new Error "Not running collboartively"
 
+      parseOrgDoc = (text)->
+        if text == '' then []
+        else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
+
       fileTypes =
         jpg: 'image/jpeg'
         jpeg: 'image/jpeg'
@@ -896,7 +896,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       addChange = (block, changes)->
         if !changes.sets[block._id]
           changes.oldBlocks.push block
-          changes.newBlocks.push changes.sets[block._id] = copy block
+          changes.newBlocks.push changes.sets[block._id] = copyBlock block
         changes.sets[block._id]
 
       greduce = (thing, changes, func, arg, next)->
@@ -1197,8 +1197,8 @@ NMap is a very simple trie.
             @replaceBlock oldBlock, block.text, 'code'
         changesHidden: (changes)->
           if @canHideSlides()
-            for change in changes.oldBlocks
-              if @shouldHide change then return true
+            for change in changes.oldBlocks when @shouldHide change
+              return true
           false
         checkPropertyChange: (changes, change, oldBlock)->
           change.type == 'chunk' && !_.isEqual change.properties, @getBlock(change._id)?.properties
@@ -1247,8 +1247,8 @@ NMap is a very simple trie.
                     replaceBlock setResult newBlock, result
                     if newBlock.text != change.text
                       changes.sets[newBlock._id] = newBlock
-                      for block, i in changes.newBlocks
-                        if block._id == newBlock._id then changes.newBlocks[i] = newBlock
+                      for block, i in changes.newBlocks when block._id == newBlock._id
+                        changes.newBlocks[i] = newBlock
                       start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
                       changes.repls.push repl = replacementFor start, change.text, newBlock.text
                       repl.source = 'code'
@@ -1344,9 +1344,8 @@ NMap is a very simple trie.
           else if results
             block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length)
           else block.text + "#+RESULTS:\n#{result}"
-          [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
-          for prop, value of tmp
-            newBlock[prop] = value
+          [tmp] = parseOrgDoc text
+          Object.assign newBlock, tmp
           newBlock
 
       setError = (block, offset, msg)->
@@ -1364,9 +1363,8 @@ NMap is a very simple trie.
           else if results
             block.text.substring(0, results.offset) + err + block.text.substring(results.offset)
           else block.text + err
-          [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
-          for prop, value of tmp
-            newBlock[prop] = value
+          [tmp] = parseOrgDoc text
+          Object.assign newBlock, tmp
           newBlock
 
       isDynamic = (block)-> hasCodeAttribute block, 'results', 'dynamic'
@@ -1498,22 +1496,9 @@ NMap is a very simple trie.
           text: newText.substring startOff, newText.length - endOff
         }
 
-      ajaxGet = (url)->
-        new Promise (resolve, reject)->
-          xhr = new XMLHttpRequest
-          xhr.responseType = 'arraybuffer'
-          xhr.onerror = reject
-          xhr.onload = (e)->
-            binary = ''
-            for i in new Uint8Array(e.target.response)
-              binary += String.fromCharCode i
-            resolve binary
-          xhr.open "GET", url
-          xhr.send null
-
 Exports
 
-      mergeExports {
+      Object.assign Leisure, {
         blockCodeItems
         findEditor
         showHide
@@ -1565,7 +1550,6 @@ Exports
         getDocumentParams
         basicDataFilter
         replacementFor
-        ajaxGet
         parseYaml
         makeImageBlob
         makeBlobUrl
@@ -1573,4 +1557,5 @@ Exports
         fileTypes
         updateSelection
         addSelectionBubble
+        parseOrgDoc
       }

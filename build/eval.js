@@ -5,14 +5,13 @@
 
   define.amd = true;
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree) {
-    var Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, c, callFail, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, e, envTemplate, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mergeExports, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree) {
+    var Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, envTemplate, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = AcornLoose;
     lispyScript = lsrequire("lispyscript");
     getType = Ast.getType, cons = Ast.cons, unescapePresentationHtml = Ast.unescapePresentationHtml, Nil = Ast.Nil;
-    mergeExports = Exports.mergeExports;
     Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
     (typeof window !== "undefined" && window !== null ? window : global).resolve = rz = resolve;
     (typeof window !== "undefined" && window !== null ? window : global).lazy = lz = lazy;
@@ -406,7 +405,7 @@
       }
     };
     basicFormat = function(block, prefix, items) {
-      var item, ref;
+      var ref;
       if (isYamlResult(block)) {
         if (items.length === 1) {
           items = items[0];
@@ -416,15 +415,7 @@
           flowLevel: Number((ref = block.codeAttributes.flowlevel) != null ? ref : 2)
         })).trim().replace(/\n/g, '\n: ') + '\n';
       } else {
-        return prefix + ((function() {
-          var j, len, results1;
-          results1 = [];
-          for (j = 0, len = items.length; j < len; j++) {
-            item = items[j];
-            results1.push(presentHtml(item));
-          }
-          return results1;
-        })()).join('');
+        return prefix + _.map(items, presentHtml).join('');
       }
     };
     writeValues = function(env, values) {
@@ -1109,15 +1100,7 @@
       '\"': "\\\"",
       '\\': "\\\\"
     };
-    unescaped = _.fromPairs((function() {
-      var results1;
-      results1 = [];
-      for (c in escaped) {
-        e = escaped[c];
-        results1.push([e, c]);
-      }
-      return results1;
-    })());
+    unescaped = _.invert(escaped);
     specials = /[\b\f\n\r\t\v\"\\]/g;
     slashed = /\\./g;
     escapeString = function(str) {
@@ -1143,7 +1126,7 @@
       }
       return Math.min(str.length, pos + 1 + column);
     };
-    mergeExports({
+    Object.assign(Leisure, {
       evalLeisure: evalLeisure,
       runLeisureMonad: runLeisureMonad,
       setLounge: setLounge,

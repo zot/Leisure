@@ -2,10 +2,9 @@
 (function() {
   var slice = [].slice;
 
-  define(['handlebars', './export', './editor', './coffee-script', 'immutable'], function(Handlebars, Exports, Editor, CoffeeScript, Immutable) {
-    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, mergeExports, nextImageSrc, nextViewId, pendingViews, preserveSelection, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, replaceImage, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
+  define(['handlebars', './editor', './coffee-script', 'immutable'], function(Handlebars, Editor, CoffeeScript, Immutable) {
+    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, nextImageSrc, nextViewId, pendingViews, preserveSelection, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, replaceImage, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
     ref = window.Handlebars = Handlebars, compile = ref.compile, create = ref.create, registerHelper = ref.registerHelper;
-    mergeExports = Exports.mergeExports;
     escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection;
     Set = Immutable.Set;
     templates = {};
@@ -536,7 +535,7 @@
         }
       });
     };
-    return root = mergeExports({
+    return root = Object.assign(Leisure, {
       UI: {
         withContext: withContext,
         mergeContext: mergeContext,

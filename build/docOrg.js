@@ -289,18 +289,10 @@
       return !org || org instanceof Headline;
     };
     createDocFromOrg = function(org, collection, reloading, filter) {
-      var block, doc;
+      var doc;
       doc = orgDoc(org);
       if (filter != null) {
-        doc = (function() {
-          var j, len1, results1;
-          results1 = [];
-          for (j = 0, len1 = doc.length; j < len1; j++) {
-            block = doc[j];
-            results1.push(filter(block));
-          }
-          return results1;
-        })();
+        doc = _.map(doc, filter);
       }
       replaceOrgDoc(doc, collection, reloading);
       return collection;
