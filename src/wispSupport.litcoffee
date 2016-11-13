@@ -1,6 +1,6 @@
 Clojure support for Lounge
 
-    define ['./eval', './docOrg', 'lib/bluebird.min', './gen'], (Eval, DocOrg, Bluebird, Gen)->
+    define ['./eval', './docOrg', 'bluebird', './gen'], (Eval, DocOrg, Bluebird, Gen)->
       {
         setLounge
         parseIt

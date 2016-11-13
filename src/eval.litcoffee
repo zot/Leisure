@@ -1,7 +1,7 @@
 Evaulation support for Leisure
 
     define.amd = true
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = AcornLoose
@@ -444,7 +444,7 @@ Evaulation support for Leisure
           new Promise((succeed)=>
             @compileBlock(block).call this, (result)->
               succeed result
-              cont).catch (err)->
+              cont? result).catch (err)->
                 console.error err.stack ? err
                 env.errorAt 0, err.message
         env.compileBlock = (block)->

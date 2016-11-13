@@ -2,7 +2,7 @@
 (function() {
   var slice = [].slice;
 
-  define(['./eval', './docOrg', 'lib/bluebird.min', './gen'], function(Eval, DocOrg, Bluebird, Gen) {
+  define(['./eval', './docOrg', 'bluebird', './gen'], function(Eval, DocOrg, Bluebird, Gen) {
     var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, atOrAfter, blockSource, codeOffset, compile, envFunc, findNs, jsCodeFor, lineColumnStrOffset, parseIt, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
     setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset;
     blockSource = DocOrg.blockSource;

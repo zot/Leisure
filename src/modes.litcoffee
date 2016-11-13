@@ -1,4 +1,4 @@
-    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lodash', 'jquery', './ui', 'handlebars', './lib/prism', './editorSupport', 'lib/bluebird.min', './advice', './lib/prism-leisure', 'lib/js-yaml'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml)->
+    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lodash', 'jquery', './ui', 'handlebars', './lib/prism', './editorSupport', 'bluebird', './advice', './lib/prism-leisure', 'lib/js-yaml'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml)->
 
       {
         defaultEnv
@@ -214,7 +214,9 @@
                   env.eval = (text)-> controllerEval.call controller, text
                   env.write = (str)-> console.log str
                   env.errorAt = (offset, msg)-> console.log msg
-                  opts.data.getCode(block).call controller, null, viewNode
+                  p = opts.data.getCode block
+                  if p instanceof Promise then p.then (func)-> func.call controller, null, viewNode
+                  else p.call controller, null, viewNode
               controller?.initializeView? viewNode[0], vars
         text = Handlebars.compile(html)(vars, data: UI.context)
         if !id && controllerName

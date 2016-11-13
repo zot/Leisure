@@ -1,6 +1,6 @@
 Note data accesses and changes.
 
-    define ['./base', './org', './docOrg', 'lodash', './advice', 'lib/bluebird.min'], (Base, Org, DocOrg, _, Advice, Bluebird)->
+    define ['./base', './org', './docOrg', 'lodash', './advice', 'bluebird'], (Base, Org, DocOrg, _, Advice, Bluebird)->
       {
         changeAdvice
       } = Advice

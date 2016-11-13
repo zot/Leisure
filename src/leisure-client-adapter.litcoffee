@@ -27,7 +27,7 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 
-    define ['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements'], (jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep)->
+    define ['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'bluebird', 'lib/ot/ot', './replacements'], (jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep)->
       {
         Map
         Set
@@ -409,10 +409,8 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             else cont()
 
       window.randomUserName = randomUserName = (done)->
-        Promise
-          .all(ajaxGet 'http://randomword.setgetgo.com/get.php' for i in [0...2])
-          .then (names)->
-            done names.join ' '
+        a = 'a'.charCodeAt(0)
+        'user' + (String.fromCharCode a + Math.floor(Math.random() * 26) for i in [0...10]).join
 
       Object.assign Leisure, {
         configurePeerOpts: configureOpts

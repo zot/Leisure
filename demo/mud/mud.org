@@ -1,4 +1,8 @@
 #+TITLE:CthulhuMUD
+* Test
+#+BEGIN_SRC wisp :results dynamic
+(-> 3)
+#+END_SRC
 * Data format
 ** Mud objects
 #+BEGIN_SRC yaml :index location location

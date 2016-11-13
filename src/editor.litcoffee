@@ -135,7 +135,7 @@ Code
 ====
 Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEditCore).
 
-    define ['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'lib/bluebird.min'], (jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird)->
+    define ['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'bluebird'], (jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird)->
       {
         selectRange,
       } = DOMCursor

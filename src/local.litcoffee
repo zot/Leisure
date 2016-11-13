@@ -148,13 +148,13 @@ Code for local-mode.  This will not be loaded under meteor.
             ED.options.loadName = load
             configureLocal ED.options
             tanglePresent = false
-            $.get(load + '.tangle', cache: false)
+            $.ajax(load + '.tangle')
               .done((content)->
                 tanglePresent = ED.options.data.tangled = true
                 #console.log "Handle tangle:", content
                 ED.options.data.loadTangles content)
               .always ->
-                $.get(load, cache: false)
+                $.ajax(load)
                   .then (data)->
                     #console.log "Tangle present: ", tanglePresent
                     ED.options.load load, data
@@ -173,5 +173,7 @@ Code for local-mode.  This will not be loaded under meteor.
               window.PEER.connectToSession u.toString(), null, (n)-> p2pConnections.html n), 1
           $('#globalLoad').remove()
 
-    require ['jquery', 'lodash'], -> require ['acorn', 'acorn_walk'], -> require ['acorn_loose'], ->
-      require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage'], init
+    require ['jquery', 'lodash', 'bluebird'], (jq, ld, Bluebird)->
+      #Bluebird.Promise.config longStackTraces: true, monitoring: true
+      require ['acorn', 'acorn_walk'], -> require ['acorn_loose'], ->
+        require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage'], init

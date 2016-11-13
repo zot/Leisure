@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'lib/bluebird.min'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird)->
+define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird)->
 
   {
     readFile,

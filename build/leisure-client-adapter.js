@@ -2,7 +2,7 @@
 (function() {
   var slice = [].slice;
 
-  define(['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements'], function(jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep) {
+  define(['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'bluebird', 'lib/ot/ot', './replacements'], function(jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep) {
     var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, fileTypes, getDocumentParams, isDelete, isInsert, isRetain, makeImageBlob, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, typeForFile, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     ajaxGet = Utilities.ajaxGet;
@@ -732,17 +732,16 @@
       });
     };
     window.randomUserName = randomUserName = function(done) {
-      var i;
-      return Promise.all((function() {
+      var a, i;
+      a = 'a'.charCodeAt(0);
+      return 'user' + ((function() {
         var j, results;
         results = [];
-        for (i = j = 0; j < 2; i = ++j) {
-          results.push(ajaxGet('http://randomword.setgetgo.com/get.php'));
+        for (i = j = 0; j < 10; i = ++j) {
+          results.push(String.fromCharCode(a + Math.floor(Math.random() * 26)));
         }
         return results;
-      })()).then(function(names) {
-        return done(names.join(' '));
-      });
+      })()).join;
     };
     Object.assign(Leisure, {
       configurePeerOpts: configureOpts

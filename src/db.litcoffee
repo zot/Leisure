@@ -1,6 +1,6 @@
 IndexedDb support for Leisure
 
-    define ['lib/bluebird.min'], (Bluebird)->
+    define ['bluebird'], (Bluebird)->
       {
         Promise
       } = Bluebird
