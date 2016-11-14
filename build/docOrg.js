@@ -349,8 +349,8 @@
       }
       return results1;
     };
-    orgDoc = function(org) {
-      return createOrgDoc(org, false)[0].toArray();
+    orgDoc = function(org, withProperties) {
+      return createOrgDoc(org, false, withProperties)[0].toArray();
     };
     lineCodeBlockType = function(line) {
       var type;
@@ -365,12 +365,12 @@
         return 'chunk';
       }
     };
-    createOrgDoc = function(org, local) {
+    createOrgDoc = function(org, local, withProps) {
       var block, children, next, ref, ref1, result, title;
       next = org.next;
       if (org instanceof Headline) {
         local = local || (org.level === 1 && org.properties.local);
-        children = createChildrenDocs(org, local);
+        children = createChildrenDocs(org, local, withProps);
         result = org.level === 0 ? (org.children.length && children) || _L([
           {
             text: '\n',
@@ -401,6 +401,10 @@
         }
         result = _L(checkProps(org, [block]));
       }
+      block = result.last();
+      if (withProps && block.type === 'code') {
+        block.properties = org.allProperties();
+      }
       if (local) {
         result.each(function(item) {
           return item.local = true;
@@ -427,7 +431,7 @@
         return block.properties = org.properties();
       }
     };
-    createChildrenDocs = function(org, local) {
+    createChildrenDocs = function(org, local, withProps) {
       var child, childDoc, children, mergedText, newTitle, offset, properties, ref, ref1, ref2, title;
       children = _L();
       child = org.children[0];
@@ -448,7 +452,7 @@
             child = child.next;
           } else {
             ref = checkMerged(mergedText, properties, children, offset), mergedText = ref[0], properties = ref[1], children = ref[2];
-            ref1 = createOrgDoc(child, local), childDoc = ref1[0], child = ref1[1];
+            ref1 = createOrgDoc(child, local, withProps), childDoc = ref1[0], child = ref1[1];
             if (title) {
               (children.isEmpty() ? childDoc : children).first().title = title;
               title = null;

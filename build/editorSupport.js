@@ -375,16 +375,36 @@
       OrgData.prototype.properties = function(thing) {
         var bl, props;
         props = {};
-        while (bl = this.getBlock(thing)) {
-          if (bl.codeAttributes) {
+        bl = this.getBlock(thing);
+        if (bl.type !== 'headline') {
+          if (bl.type === 'code') {
             _.defaults(props, bl.codeAttributes);
-          }
-          if (bl.properties) {
+            _.defaults(props, bl.properties);
+          } else if (bl.type === 'chunk') {
             _.defaults(props, bl.properties);
           }
-          thing = this.parent(bl);
+          bl = this.parent(bl);
+        }
+        while (bl) {
+          this.scrapePropertiesInto(bl, props);
+          bl = this.parent(bl);
         }
         return props;
+      };
+
+      OrgData.prototype.scrapePropertiesInto = function(block, props) {
+        var child, j, len, ref, results1;
+        ref = this.children(block);
+        results1 = [];
+        for (j = 0, len = ref.length; j < len; j++) {
+          child = ref[j];
+          if (child.type === 'chunk' && child.properties && !_.isEmpty(child.properties)) {
+            results1.push(_.defaults(props, child.properties));
+          } else {
+            results1.push(void 0);
+          }
+        }
+        return results1;
       };
 
       OrgData.prototype.firstChild = function(thing, changes) {
@@ -998,18 +1018,18 @@
       };
 
       OrgData.prototype.textForDataNamed = function(name, data, attrs) {
-        var k, opts, v;
-        opts = ((function() {
-          var results1;
-          results1 = [];
-          for (k in attrs) {
-            v = attrs[k];
-            results1.push(":" + k + " " + v);
+        var item, j, k, len, opts, v;
+        opts = '';
+        for (k in attrs) {
+          v = attrs[k];
+          if (_.isArray(v)) {
+            for (j = 0, len = v.length; j < len; j++) {
+              item = v[j];
+              opts += " :" + k + " " + item;
+            }
+          } else {
+            opts += " :" + k + " " + v;
           }
-          return results1;
-        })()).join(' ');
-        if (opts) {
-          opts = ' ' + opts;
         }
         return (name ? '#+NAME: ' + name + '\n' : '') + "#+BEGIN_SRC yaml" + opts + "\n" + (dump(data, _.defaults(attrs != null ? attrs : {}, {
           sortKeys: true,
@@ -1573,7 +1593,7 @@
       if (text === '') {
         return [];
       } else {
-        return orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')));
+        return orgDoc(parseOrgMode(text.replace(/\r\n/g, '\n')), true);
       }
     };
     fileTypes = {
@@ -2818,7 +2838,9 @@
       makeBlobUrl: makeBlobUrl,
       makeImageBlob: makeImageBlob,
       addSelectionBubble: addSelectionBubble,
-      Advice: Advice
+      Advice: Advice,
+      Immutable: Immutable,
+      FingerTree: FingerTree
     });
     return {
       createLocalData: createLocalData,

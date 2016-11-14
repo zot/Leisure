@@ -258,11 +258,21 @@ same names for blocks other than printing a warning.
         parent: (thing, changes)-> @getBlock @firstSibling(thing, changes)?.prev, changes
         properties: (thing)->
           props = {}
-          while bl = @getBlock thing
-            if bl.codeAttributes then _.defaults props, bl.codeAttributes
-            if bl.properties then _.defaults props, bl.properties
-            thing = @parent bl
+          bl = @getBlock thing
+          if bl.type != 'headline'
+            if bl.type == 'code'
+              _.defaults props, bl.codeAttributes
+              _.defaults props, bl.properties
+            else if bl.type == 'chunk' then _.defaults props, bl.properties
+            bl = @parent bl
+          while bl
+            @scrapePropertiesInto bl, props
+            bl = @parent bl
           props
+        scrapePropertiesInto: (block, props)->
+          for child in @children block
+            if child.type == 'chunk' && child.properties && !_.isEmpty child.properties
+              _.defaults props, child.properties
         firstChild: (thing, changes)->
           if (block = @getBlock thing, changes) && (n = @getBlock block.next, changes) && !n.previousSibling
             n
@@ -558,8 +568,12 @@ that must be done regardless of the source of changes
             changes.removes[old._id] = true
             @trigger 'change', changes
         textForDataNamed: (name, data, attrs)->
-          opts = (":#{k} #{v}" for k, v of attrs).join ' '
-          if opts then opts = ' ' + opts
+          opts = ''
+          for k, v of attrs
+            if _.isArray v
+              for item in v
+                opts += " :#{k} #{item}"
+            else opts += " :#{k} #{v}"
           """
           #{if name then '#+NAME: ' + name + '\n' else ''}#+BEGIN_SRC yaml#{opts}
           #{dump(data, _.defaults attrs ? {}, {sortKeys: true, flowLevel: 2}).trim()}
@@ -819,7 +833,7 @@ that must be done regardless of the source of changes
 
       parseOrgDoc = (text)->
         if text == '' then []
-        else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
+        else orgDoc parseOrgMode(text.replace /\r\n/g, '\n'), true
 
       fileTypes =
         jpg: 'image/jpeg'
@@ -1529,6 +1543,8 @@ Exports
         makeImageBlob
         addSelectionBubble
         Advice
+        Immutable
+        FingerTree
       }
 
       {

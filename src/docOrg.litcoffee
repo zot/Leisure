@@ -206,7 +206,7 @@
             doc.prev = prev._id
           prev = doc
 
-      orgDoc = (org)-> createOrgDoc(org, false)[0].toArray()
+      orgDoc = (org, withProperties)-> createOrgDoc(org, false, withProperties)[0].toArray()
 
       lineCodeBlockType = (line)->
         type = line && root.matchLine line
@@ -215,11 +215,11 @@
         else if type == 'headline-1' then 'headline'
         else 'chunk'
 
-      createOrgDoc = (org, local)->
+      createOrgDoc = (org, local, withProps)->
         next = org.next
         if org instanceof Headline
           local = local || (org.level == 1 && org.properties.local)
-          children = createChildrenDocs org, local
+          children = createChildrenDocs org, local, withProps
           result = if org.level == 0 then (org.children.length && children) || _L([text: '\n', type: 'chunk', offset: org.offset])
           else
             _L([text: org.text, type: 'headline', level: org.level, offset: org.offset, properties: org.properties]).concat children
@@ -229,6 +229,9 @@
           block = text: org.allText(), type: 'chunk', offset: org.offset
           if title = findTitle org then block.title = title
           result = _L(checkProps org, [block])
+        block = result.last()
+        if withProps && block.type == 'code'
+          block.properties = org.allProperties()
         if local then result.each (item)-> item.local = true
         [result, next]
 
@@ -243,7 +246,7 @@
         if org.isProperties?()
           block.properties = org.properties()
 
-      createChildrenDocs = (org, local)->
+      createChildrenDocs = (org, local, withProps)->
         children = _L()
         child = org.children[0]
         title = null
@@ -259,7 +262,7 @@
               child = child.next
             else
               [mergedText, properties, children] = checkMerged mergedText, properties, children, offset
-              [childDoc, child] = createOrgDoc child, local
+              [childDoc, child] = createOrgDoc child, local, withProps
               if title
                 (if children.isEmpty() then childDoc else children).first().title = title
                 title = null

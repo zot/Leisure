@@ -1769,7 +1769,10 @@ misrepresented as being the original software.
       runMonad: runMonad2,
       Runtime: Runtime,
       leisureFunctionNamed: leisureFunctionNamed,
-      nameSub: nameSub
+      nameSub: nameSub,
+      dbg: function() {
+        debugger;
+      }
     });
     return Runtime;
   });

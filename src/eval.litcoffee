@@ -68,7 +68,7 @@ Evaulation support for Leisure
         currentGeneratedFileName()
 
       requirePromise = (file)-> new Promise (resolve, reject)->
-        require [file], resolve
+        requirejs [file], resolve
 
       leisurePromise = null
 

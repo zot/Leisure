@@ -34,7 +34,7 @@
     };
     requirePromise = function(file) {
       return new Promise(function(resolve, reject) {
-        return require([file], resolve);
+        return requirejs([file], resolve);
       });
     };
     leisurePromise = null;

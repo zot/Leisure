@@ -2,12 +2,19 @@
 (function() {
   var slice = [].slice;
 
-  define(['./eval', './docOrg', 'bluebird', './gen'], function(Eval, DocOrg, Bluebird, Gen) {
-    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, atOrAfter, blockSource, codeOffset, compile, envFunc, findNs, jsCodeFor, lineColumnStrOffset, parseIt, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
+  define(['./eval', './docOrg', 'bluebird', './gen', 'immutable', './editor', './editorSupport', 'acorn'], function(Eval, DocOrg, Bluebird, Gen, Immutable, Editor, EditorSupport, Acorn) {
+    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, atOrAfter, blockSource, codeOffset, compile, envFunc, findNs, jsCodeFor, lineColumnStrOffset, modules, parseIt, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
     setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset;
     blockSource = DocOrg.blockSource;
     Promise = Bluebird.Promise;
     SourceNode = Gen.SourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator;
+    modules = {
+      immutable: Immutable,
+      "eval": Eval,
+      docOrg: DocOrg,
+      editor: Editor,
+      editorSupport: EditorSupport
+    };
     Wisp = null;
     wispCompile = null;
     wispFileCounter = 0;
@@ -17,7 +24,7 @@
       if (m = s.match(/^(\.)?wisp\./)) {
         return findNs(s.substring(m[0].length), Wisp);
       } else {
-        return findNs(s, Leisure.WispNS);
+        return findNs(s, Leisure.WispNS) || modules[s];
       }
     };
     findNs = function(nsName, obj, create) {
@@ -45,36 +52,34 @@
     translateIdentifierWord = null;
     wispPromise = function() {
       return wp || (wp = new Promise(function(resolve, reject) {
-        return setTimeout((function() {
-          var req;
-          req = window.require;
-          window.require = null;
-          return req(['lib/wisp'], function(W) {
-            var baseWispCompile, exports;
-            Leisure.Wisp = Wisp = W;
-            translateIdentifierWord = W.backend.escodegen.writer.translateIdentifierWord;
-            baseWispCompile = Wisp.compiler.compile;
-            window.require = req;
-            wispCompile = function() {
-              var args, node;
-              args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-              node = baseWispCompile.apply(null, args);
-              if (node.error) {
-                throw node.error;
-              }
-              return node;
-            };
-            Leisure.wispCompilePrim = wispCompile;
-            Leisure.wispCompileBase = baseWispCompile;
-            Leisure.WispNS = {
-              lounge: {
-                tools: {}
-              }
-            };
-            exports = Leisure.WispNS.lounge.tools;
-            return resolve(wispCompile);
-          });
-        }), 100);
+        var req;
+        req = window.require;
+        window.require = null;
+        return requirejs(['lib/wisp'], function(W) {
+          var baseWispCompile, exports;
+          Leisure.Wisp = Wisp = W;
+          translateIdentifierWord = W.backend.escodegen.writer.translateIdentifierWord;
+          baseWispCompile = Wisp.compiler.compile;
+          window.require = req;
+          wispCompile = function() {
+            var args, node;
+            args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+            node = baseWispCompile.apply(null, args);
+            if (node.error) {
+              throw node.error;
+            }
+            return node;
+          };
+          Leisure.wispCompilePrim = wispCompile;
+          Leisure.wispCompileBase = baseWispCompile;
+          Leisure.WispNS = {
+            lounge: {
+              tools: {}
+            }
+          };
+          exports = Leisure.WispNS.lounge.tools;
+          return resolve(wispCompile);
+        });
       }));
     };
     Compiler = (function() {
@@ -108,9 +113,7 @@
         });
         if (this.nsName) {
           nsObj = findNs(this.nsName, Leisure.WispNS, true);
-          names = {
-            _ns_: true
-          };
+          names = {};
           ref1 = this.result.ast;
           for (j = 0, len = ref1.length; j < len; j++) {
             node = ref1[j];
@@ -141,7 +144,7 @@
             this.reqs += "var require = function(s) {\n  return Leisure.wispRequire(s, '" + (translateIdentifierWord(this.nsName)) + "');\n};\n";
           }
           if (this.result.ast[0].op !== 'ns') {
-            this.reqs += "var _ns_ = {\n  id: '" + this.nsName + "',\n  doc: void 0\n};\n";
+            this.reqs += "_ns_ = {\n  id: '" + this.nsName + "',\n  doc: void 0\n};\n";
           } else if (this.result.ast[0].doc) {
             this.splice = "exports._ns_.doc = _ns_.doc;\n";
           }
@@ -167,7 +170,7 @@
       };
 
       Compiler.prototype.scanNodes = function() {
-        var addReturn, children, code, con, declaredNs, destroyingExport, exportLocs, exprPos, exprs, file, foundEnd, head, inExpr, lastLoc, nodes, prevCode, ref1, returnNode, splicedResult, startedPush, tail;
+        var addReturn, children, code, con, declaredNs, destroyingExport, exportLocs, exprPos, exprs, file, foundEnd, head, inExpr, lastChildren, lastCode, lastLoc, nodes, prevCode, ref1, ref2, ref3, returnNode, splicedResult, startedPush, tail;
         if (this.returnList) {
           exprs = _.filter(_.map(this.result.ast, (function(_this) {
             return function(n, i) {
@@ -214,7 +217,7 @@
         }
         nodes.walk((function(_this) {
           return function(code, loc) {
-            var c, c2, node, ref1;
+            var c, c2, node, ref1, ref2, usedPrev;
             if (code.match(/\/\/# sourceMappingURL=/)) {
               foundEnd = true;
               code = code.replace(/\/\/# sourceMappingURL=.*/, '');
@@ -242,22 +245,30 @@
                 code = code.replace(/^ *var /g, ' ');
               }
             }
-            if (_this.returnList && !startedPush && loc.line >= ((ref1 = exprs[exprPos]) != null ? ref1.start.line : void 0) && loc.column >= exprs[exprPos].start.column - 1) {
-              startedPush = true;
-              if (prevCode.node) {
+            if (startedPush && (loc.line != null) && ((loc.line > exprs[exprPos].end.line) || (loc.line === exprs[exprPos].end.line && loc.column > exprs[exprPos].end.column))) {
+              startedPush = false;
+              if (prevCode != null ? prevCode.node : void 0) {
                 c = prevCode.node.children[0];
-                c2 = c.replace(/((^|\n) *)([^ \n]+)$/, '$1$$ret$$.push($3');
+                c2 = c.replace(/;([ \n]*)$/, ');$1');
               }
               if (prevCode.node && c !== c2) {
                 prevCode.node.children[0] = c2;
               } else {
+                code = code.replace(/;([ \n]*)$/, ');$1');
+              }
+              exprPos++;
+            }
+            if (_this.returnList && !startedPush && (loc.line > ((ref1 = exprs[exprPos]) != null ? ref1.start.line : void 0) || (loc.line === ((ref2 = exprs[exprPos]) != null ? ref2.start.line : void 0) && loc.column >= exprs[exprPos].start.column))) {
+              startedPush = true;
+              usedPrev = false;
+              if ((prevCode != null ? prevCode.node : void 0) && !prevCode.loc.line && !prevCode.node.children[0].match(/;/)) {
+                c = prevCode.node.children[0];
+                prevCode.node.children[0] = "$ret$.push(" + c;
+                usedPrev = true;
+              }
+              if (!usedPrev) {
                 code = "$ret$.push(" + code;
               }
-            }
-            if (startedPush && (loc.line != null) && (code.match(/;[ \n]*$/) || (loc.line >= exprs[exprPos].end.line && loc.column >= exprs[exprPos].end.column))) {
-              startedPush = false;
-              code = code.replace(/;([ \n]*)$/, ');$1');
-              exprPos++;
             }
             if (_this.pad) {
               code = code.replace(/\n/g, '\n' + _this.pad);
@@ -272,11 +283,13 @@
               _this.gennedNs = true;
               tail.push(node);
             }
-            return prevCode = {
-              code: code,
-              loc: loc,
-              node: node
-            };
+            if (code.trim()) {
+              return prevCode = {
+                code: code,
+                loc: loc,
+                node: node
+              };
+            }
           };
         })(this));
         file = (ref1 = _.find(nodes.children, function(n) {
@@ -295,7 +308,9 @@
           children.push(this.wrapFunction ? "\n" + this.pad + "return $ret$;\n" : "\n" + this.pad + "$ret$;\n");
         }
         if (startedPush) {
-          tail.push(");");
+          lastChildren = ((ref2 = _.last(tail)) != null ? ref2.children : void 0) || ((ref3 = _.last(head)) != null ? ref3.children : void 0);
+          lastCode = lastChildren[lastChildren.length - 1];
+          lastChildren[lastChildren.length - 1] = lastCode.replace(/;([ \n]*)$/, ');$1');
         }
         if (this.reqs) {
           children.unshift(this.reqs);
@@ -308,6 +323,7 @@
         if (file) {
           splicedResult.map.setSourceContent(file, con.sourceContentFor(file));
         }
+        Acorn.parse(splicedResult.code);
         return splicedResult.code + ("\n//# sourceMappingURL=data:application/json;base64," + (btoa(JSON.stringify(splicedResult.map.toJSON()))) + "\n");
       };
 
@@ -363,64 +379,82 @@
         })(this));
       };
       env.executeBlock = function(block, props, cont) {
-        return this.compileBlock(block).call(this, cont);
+        var p;
+        p = this.compileBlock(block);
+        if (p instanceof Promise) {
+          return p.then(function(f) {
+            return f.call(this, cont);
+          });
+        } else {
+          return p.call(this, cont);
+        }
       };
       env.compileBlock = function(block) {
-        var code, column, err, error, func, ignore, line, m, macros, msg, nameSpace, ns, nsObj, original, pos, props, ref1, ref2, ref3, ref4, res;
-        original = res = "" + (blockSource(block).trim());
-        try {
-          props = this.data.properties(block);
-          ns = (ref1 = (ref2 = props.namespace) != null ? ref2.trim() : void 0) != null ? ref1 : void 0;
-          if (ns) {
-            if (props.macro) {
-              macros = true;
-            }
-            res = "(ns " + ns + ")\n" + res;
-            ns = ns.match(/^[^ ]+/)[0];
-            nsObj = findNs(ns, Leisure.WispNS, true);
-          }
-          ref3 = compile(res, ns, true, true), nameSpace = ref3.nameSpace, code = ref3.code;
-          func = nameSpace ? nameSpace["eval"](code) : eval(code);
+        var action;
+        action = (function(_this) {
           return function() {
-            var args, cont, envConsole, err, error, ref4;
-            cont = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
-            env = this;
-            envConsole = {
-              log: function() {
-                var args;
-                args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-                return env.write(args.join(' '));
-              }
-            };
+            var code, column, err, error, func, ignore, line, m, macros, msg, nameSpace, ns, nsObj, original, pos, props, ref1, ref2, ref3, ref4, res;
+            original = res = "" + (blockSource(block).trim());
             try {
-              return setLounge(env, function() {
-                return (cont != null ? cont : identity)(_.filter(func.call.apply(func, [env, null, envConsole].concat(slice.call(args))), function(n) {
-                  return typeof n !== 'undefined';
-                }));
-              });
+              props = _this.data.properties(block);
+              ns = (ref1 = (ref2 = props.namespace) != null ? ref2.trim() : void 0) != null ? ref1 : void 0;
+              if (ns) {
+                if (props.macro) {
+                  macros = true;
+                }
+                ns = ns.match(/^[^ ]+/)[0];
+                nsObj = findNs(ns, Leisure.WispNS, true);
+              }
+              ref3 = compile(res, ns, true, true), nameSpace = ref3.nameSpace, code = ref3.code;
+              func = nameSpace ? nameSpace["eval"](code) : eval(code);
+              return function() {
+                var args, cont, cur, envConsole, err, error, ref4;
+                cont = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
+                console.log("NAMESPACE: " + (nameSpace != null ? nameSpace._ns_.id : void 0));
+                env = this;
+                envConsole = {
+                  log: function() {
+                    var args;
+                    args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+                    return env.write(args.join(' '));
+                  }
+                };
+                try {
+                  return setLounge(env, function() {
+                    return (cont != null ? cont : identity)(_.filter(func.call.apply(func, [env, null, envConsole].concat(slice.call(args))), function(n) {
+                      return typeof n !== 'undefined';
+                    }));
+                  });
+                } catch (error) {
+                  err = error;
+                  console.error((ref4 = err.stack) != null ? ref4 : err);
+                  if (cur = (env.data.getBlock(block._id)) && original !== blockSource(cur).trim()) {
+                    console.error("Warning, code is from a different version of block " + block._id);
+                  }
+                  env.errorAt(codeOffset(err, code, res, original), err.message);
+                  return (cont != null ? cont : identity)([]);
+                }
+              };
             } catch (error) {
               err = error;
               console.error((ref4 = err.stack) != null ? ref4 : err);
-              if (original !== blockSource(env.data.getBlock(block._id)).trim()) {
-                console.error("Warning, code is from a different version of block " + block._id);
+              if (m = err.message.match(/^([^\n]+)\nline:([^\n]+)\ncolumn:([^\n]+)(\n|$)/)) {
+                ignore = m[0], msg = m[1], line = m[2], column = m[3];
+                pos = lineColumnStrOffset(res, Number(line.trim()), Number(column.trim()));
+                pos += original.length - res.length;
+                return env.errorAt(pos, msg);
+              } else if (code) {
+                return env.errorAt(codeOffset(err, code, res, original), err.message);
+              } else {
+                return env.errorAt(0, err.message);
               }
-              env.errorAt(codeOffset(err, code, res, original), err.message);
-              return (cont != null ? cont : identity)([]);
             }
           };
-        } catch (error) {
-          err = error;
-          console.error((ref4 = err.stack) != null ? ref4 : err);
-          if (m = err.message.match(/^([^\n]+)\nline:([^\n]+)\ncolumn:([^\n]+)(\n|$)/)) {
-            ignore = m[0], msg = m[1], line = m[2], column = m[3];
-            pos = lineColumnStrOffset(res, Number(line.trim()), Number(column.trim()));
-            pos += original.length - res.length;
-            return env.errorAt(pos, msg);
-          } else if (code) {
-            return env.errorAt(codeOffset(err, code, res, original), err.message);
-          } else {
-            return env.errorAt(0, err.message);
-          }
+        })(this);
+        if (wispPromise().isResolved()) {
+          return action();
+        } else {
+          return wispPromise().then(action);
         }
       };
       env.generateCode = function(text, noFunc) {

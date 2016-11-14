@@ -1,7 +1,29 @@
 #+TITLE:CthulhuMUD
+* Setup
+:properties:
+:hidden: true
+:end:
+** Import utilities
+:properties:
+:import: utilities.org
+:end:
 * Test
+:properties:
+:namespace: mud.core
+:end:
+#+NAME: errorTest
+This produces an unexpected token ) error because it terminates the push
+incorrectly.
+#+BEGIN_SRC wisp
+((fn [x] x) 1)
+#+END_SRC
+
 #+BEGIN_SRC wisp :results dynamic
-(-> 3)
+(sum 1 2)
+#+END_SRC
+
+#+BEGIN_SRC wisp :results dynamicX
+(reduce + [1 2 3])
 #+END_SRC
 * Data format
 ** Mud objects
@@ -15,30 +37,6 @@ description: Fred is a nice guy
 activity: hopping around
 location: mud-3
 #+END_SRC
-* Setup
-:properties:
-:hidden: true
-:end:
-#+BEGIN_SRC wisp :results def
-  (ns mud.core
-    (:require
-     [wisp.runtime :refer [print]]
-     [wisp.ast :refer [symbol symbol? keyword? keyword name namespace
-                       gensym unquote? unquote-splicing? quote?
-                       syntax-quote? quote-string pr-str]]
-     [wisp.sequence :refer [lazy-seq lazy-seq? list? list cons
-                            sequential? reverse map filter reduce
-                            count empty? first second third rest
-                            last butlast take take-while drop conj
-                            assoc concat seq seq? vec sort repeat
-                            every? some partition interleave nth]]
-     ))
-  (def data Lounge.data)
-#+END_SRC
-** Import utilities
-:properties:
-:import: utilities.org
-:end:
 * Plumbing
 :properties:
 :namespace: mud.core
@@ -47,7 +45,7 @@ location: mud-3
 #+BEGIN_SRC yaml
 currentId: 0
 #+END_SRC
-
+#+NAME: Basics
 #+BEGIN_SRC wisp :results def
   (defmacro collaboratively [name & args] `(.doCollaboratively data (.-name ~name) ~args))
   (defn registerCollaborativeFuncs [funcs] (map #(.registerCollaborativeCode data %1) funcs))
@@ -60,6 +58,27 @@ currentId: 0
       id))
 #+END_SRC
 
+#+NAME: DataBasics
+#+BEGIN_SRC wisp :results def
+  (def data-headline "data-items")
+  (def location-index "location")
+  (def location-property "location")
+  (defn createObject [object]
+    (.appendDataToHeadline data
+                           data-headline object.id
+                           object
+                           {:flowLevel 3 :index "location location"}))
+  (defn updateObject [object]
+    (.setData data
+              object.id
+              object
+              {:flowLevel 3 :index "#{location-index} #{location-property}"}))
+  (defn deleteObject [id] (.removeData data id))
+  (defn getObject [id] (.getData data id))
+  (defn getContents [id] (.find data location-index id))
+  (defn vec [coll]
+    )
+#+END_SRC
 * GUI
 :properties:
 :namespace: mud.core
@@ -146,58 +165,7 @@ currentId: 0
 :namespace: mud.core
 :end:
 * Utilites
-#+BEGIN_SRC wisp :results def
-  (defn sum [& args]
-    (loop [tot 0
-           a args]
-      (if (empty? a)
-        tot
-        (recur (+ tot (first a)) (rest a)))))
-  (defn multiply [& args]
-    (loop [tot 1
-           a args]
-      (if (empty? a)
-        tot
-        (recur (* tot (first a)) (rest a)))))
-  (defn subtract [& args]
-    (if (empty? args)
-      (throw (Error "Wrong number of arguments (0) passed to: subtract"))
-      (loop [tot (first args)
-             a (rest args)]
-        (if (empty? a)
-          tot
-          (recur (- tot (first a)) (rest a))))))
-  (defn divide [& args]
-    (if (empty? args)
-      (throw (Error "Wrong number of arguments (0) passed to: divide"))
-      (loop [tot (first args)
-             a (rest args)]
-        (if (empty? a)
-          tot
-          (recur (/ tot (first a)) (rest a))))))
-  (defn strict-equal? [& args]
-    (if (or (empty? args) (empty? (rest args)))
-      (throw (Error (str "Wrong number of arguments (" (.-length args)  ") passed to: strict-equal?")))
-      (let [target (first args)]
-        (loop [a (rest args)]
-          (cond (empty? a) true
-                (not (== target (first a))) false
-                :else (recur (rest a)))))))
-  (defn- gt [name args]
-    (loop [min (first args)
-           a (rest args)]
-      (if (empty? a)
-        true
-        (and (> min (first a)) (recur (first a) (rest a))))))
-  (defn- lt [name args]
-    (loop [max (first args)
-           a (rest args)]
-      (if (empty? a)
-        true
-        (and (< max (first a)) (recur (first a) (rest a))))))
-  (defn not-greater-than [& args] (not (gt "not-greater-than" args)))
-  (defn greater-than [& args] (gt "greater-than" args))
-  (defn not-less-than [& args] (not (lt "not-less-than" args)))
-  (defn less-than [& args] (lt "less-than" args))
-  (print "utilties")
-#+END_SRC
+* Data
+:properties:
+:name: data-items
+:end:

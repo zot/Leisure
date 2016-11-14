@@ -1117,6 +1117,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     Runtime
     leisureFunctionNamed
     nameSub
+    dbg: -> debugger
   }
 
   Runtime
