@@ -7,6 +7,120 @@
 :properties:
 :import: utilities.org
 :end:
+
+* GUI
+#+BEGIN_HTML :controller consoleController
+<div class="worldContainer">
+    <div class="leftSide">
+        rooms
+    </div>
+    <div class="rightSide">
+        <div class="textLog">
+            Text log
+        </div>
+        <div class="commandEntry">
+            Enter command:<br>
+            <input class="commandInput" type="text">
+        </div>
+    </div>
+</div>
+#+END_HTML
+
+* GUI
+:properties:
+:namespace: mud.core
+:end:
+#+BEGIN_SRC css
+    .worldContainer {
+        height: 480px;
+        position: relative;
+        width: 640px;
+    }
+    .leftSide {
+        border: 1px solid #777;
+        height: 470px;
+        left: 5px;
+        position: absolute;
+        top: 5px;
+        width: 310px;
+    }
+    .rightSide {
+        border: 1px solid #777;
+        height: 470px;
+        position: absolute;
+        right: 5px;
+        top: 5px;
+        width: 310px;
+    }
+    .textLog {
+        border: 1px solid #777;
+        height: 385px;
+        margin: 5px;
+        padding: 5px;
+        position: absolute;
+        width: 290px;
+    }
+    .commandEntry {
+        border: 1px solid #777;
+        height: 50px;
+        margin: 5px;
+        padding: 5px;
+        position: absolute;
+        top: 400px;
+        width: 290px;
+    }
+    input.commandInput {
+        width: 290px;
+    }
+#+END_SRC
+
+** Mocks
+#+BEGIN_SRC wisp :results def
+  (defn- Game
+    "Game type"
+    []
+    (set! this.listeners {})
+    this
+  )
+  (set! Game.prototype.emit (fn [event] (.log window.console (+ "Sending " (:data event)))))
+  (set! Game.prototype.addListener (fn [type listener] (
+    (if (not (aget this.listeners type))
+      (aset this.listeners :type listener))
+  )))
+  (def game (Game. ))
+  (defn sendCommand
+    "Send Command"
+    [game c]
+    (.emit game {:type "output" :data c}))
+#+END_SRC
+
+** Game Setup
+#+BEGIN_SRC wisp :results def
+
+#+END_SRC
+
+** Controller
+#+NAME: consoleController
+#+BEGIN_SRC wisp :results def
+ (defn init [view]
+   (let [input (aget (.find ($ view) ".commandInput") 0)]
+     (.addEventListener
+      input "keydown"
+      (fn [e]
+        (.stop-propagation e)))
+     (.addEventListener
+      input "keypress"
+      (fn [e]
+        (.stop-propagation e)
+        (if (== e.keyCode 13)
+          (do
+            (sendCommand game (:value input))
+            (set! (:value input) "")
+        ))))))
+
+ (set! this.initializeView init)
+#+END_SRC
+
 * Test
 :properties:
 :namespace: mud.core
@@ -79,86 +193,6 @@ currentId: 0
   (defn vec [coll]
     )
 #+END_SRC
-* GUI
-:properties:
-:namespace: mud.core
-:end:
-#+BEGIN_SRC css
-    .worldContainer {
-        height: 480px;
-        position: relative;
-        width: 640px;
-    }
-    .leftSide {
-        border: 1px solid #777;
-        height: 470px;
-        left: 5px;
-        position: absolute;
-        top: 5px;
-        width: 310px;
-    }
-    .rightSide {
-        border: 1px solid #777;
-        height: 470px;
-        position: absolute;
-        right: 5px;
-        top: 5px;
-        width: 310px;
-    }
-    .textLog {
-        border: 1px solid #777;
-        height: 385px;
-        margin: 5px;
-        padding: 5px;
-        position: absolute;
-        width: 290px;
-    }
-    .commandEntry {
-        border: 1px solid #777;
-        height: 50px;
-        margin: 5px;
-        padding: 5px;
-        position: absolute;
-        top: 400px;
-        width: 290px;
-    }
-    input.commandInput {
-        width: 290px;
-    }
-#+END_SRC
-
-#+NAME: consoleController
-#+BEGIN_SRC wisp
- (defn init [view]
-   (let [input (aget (.find ($ view) ".commandInput") 0)]
-     (.addEventListener
-      input "keydown"
-      (fn [e]
-        (.stop-propagation e)))
-     (.addEventListener
-      input "keypress"
-      (fn [e]
-        (.stop-propagation e)))))
-
- (set! this.initializeView init)
-#+END_SRC
-
-#+BEGIN_HTML :controller consoleController
-<div class="worldContainer">
-    <div class="leftSide">
-        rooms
-    </div>
-    <div class="rightSide">
-        <div class="textLog">
-            Text log
-        </div>
-        <div class="commandEntry">
-            Enter command:<br>
-            <input class="commandInput" type="text">
-        </div>
-    </div>
-</div>
-#+END_HTML
 
 * Parser
 :properties:
