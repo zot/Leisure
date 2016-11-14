@@ -1,0 +1,154 @@
+#+TITLE:Utilities
+* Basic Clojure stuff
+:properties:
+:namespace: mud.core
+:end:
+#+BEGIN_SRC wisp :results def
+    (ns mud.core
+      (:require
+       [wisp.runtime :refer [print]]
+       [wisp.ast :refer [symbol symbol? keyword? keyword name namespace
+                         gensym unquote? unquote-splicing? quote?
+                         syntax-quote? quote-string pr-str]]
+       [wisp.sequence :refer [lazy-seq lazy-seq? list? list cons
+                              sequential? reverse map filter reduce
+                              count empty? first second third rest
+                              last butlast take take-while drop conj
+                              assoc concat seq seq? vec sort repeat
+                              every? some partition interleave nth]]
+       [immutable :refer [List Set Map]
+                  :rename {List ImmutableList Set ImmutableSet Map ImmutableMap}]
+       ))
+    (def data Lounge.data)
+#+END_SRC
+** macros
+#+BEGIN_SRC wisp :results def
+  (defmacro ->
+    [& operations]
+    (reduce
+     (fn [form operation]
+       (cons (first operation)
+             (cons form (rest operation))))
+     (first operations)
+     (rest operations)))
+
+  (defn dbg [] (Leisure.dbg))
+
+  (defmacro advise [fn old args & body]
+    (let [OLD (gensym)]
+      `(let [~OLD ~fn]
+         (set! ~fn (fn ~args
+                     (apply (fn ~(.concat [old] args) ~@body) ~OLD ~args)))
+         nil)))
+#+END_SRC
+** Immutable Funcs
+#+BEGIN_SRC wisp :results def
+  (defn immutablejs? [coll] (or (instance? ImmutableList coll) (instance? ImmutableMap coll)))
+  (defmacro obj-delegate [fn comp]
+    `(let [old ~fn]
+       (set! ~fn (fn [coll]
+                   (if (~comp coll) (~(symbol (.-namespace fn) (str "." (.-name fn))) coll)
+                       (old coll))))
+       nil))
+  (defmacro immutablejs-delegate [fn] `(obj-delegate ~fn immutablejs?))
+
+  (advise sequential? old [coll] (or (old coll) (immutablejs? coll)))
+  (immutablejs-delegate reverse)
+  (immutablejs-delegate count)
+  (immutablejs-delegate empty?)
+  (immutablejs-delegate first)
+  (immutablejs-delegate rest)
+  (immutablejs-delegate last)
+  (immutablejs-delegate sort)
+
+  (defn ivec [coll] (ImmutableList coll))
+  (defn ivec? [coll] (instance? ImmutableList coll))
+  (defn imap [coll] (ImmutableMap coll))
+  (defn imap? [coll] (instance? ImmutableMap coll))
+
+  (advise map old [f coll] (if (immutablejs?) (.map coll f) (old coll f)))
+  (advise filter old [f? coll] (if (immutablejs?)  (.filter coll f?) (old coll f?)))
+  (let [old reduce]
+    (set! reduce
+          (fn [f & params]
+            (let [has-initial (>= (count params) 2)
+                  initial (if has-initial (first params))
+                  coll (if has-initial (second params) (first params))]
+              (if (immutablejs? coll)
+                (if initial (.reduce coll f initial) (.reduce (rest coll) f (first coll)))
+                (apply old f params))))))
+  (advise second old [coll] (if (immutablejs? coll) (.get coll 2) (old coll)))
+  (advise third old [coll] (if (immutablejs? coll) (.get coll 3) (old coll)))
+  (advise third old [coll] (if (immutablejs? coll) (.but-last coll) (old coll)))
+  (advise take old [n coll] (if (immutablejs? coll) (.take coll n) (old coll n)))
+  (advise take-while old [pred coll] (if (immutablejs? coll) (.take-while coll pred) (old coll n)))
+  (advise drop old [n coll] (if (immutablejs? coll) (.drop coll n) (old coll n)))
+  (let [old conj]
+    (set! conj
+          (fn [coll & items]
+            (cond
+              (ivec? coll) (.apply ImmutableList.prototype.push coll items)
+              (imap? coll) (.apply ImmutableMap.prototype.push coll items)
+              :else (old coll items)))))
+  (advise seq old [coll] (if (immutalejs? coll) col (old coll)))
+#+END_SRC
+** System Funcs
+#+BEGIN_SRC wisp :results def
+  (defn sum [& args]
+    (loop [tot 0
+           a args]
+      (if (empty? a)
+        tot
+        (recur (+ tot (first a)) (rest a)))))
+  (defn multiply [& args]
+    (loop [tot 1
+           a args]
+      (if (empty? a)
+        tot
+        (recur (* tot (first a)) (rest a)))))
+  (defn subtract [& args]
+    (if (empty? args)
+      (throw (Error "Wrong number of arguments (0) passed to: subtract"))
+      (loop [tot (first args)
+             a (rest args)]
+        (if (empty? a)
+          tot
+          (recur (- tot (first a)) (rest a))))))
+  (defn divide [& args]
+    (if (empty? args)
+      (throw (Error "Wrong number of arguments (0) passed to: divide"))
+      (loop [tot (first args)
+             a (rest args)]
+        (if (empty? a)
+          tot
+          (recur (/ tot (first a)) (rest a))))))
+  (defn strict-equal? [& args]
+    (if (or (empty? args) (empty? (rest args)))
+      (throw (Error (str "Wrong number of arguments (" (.-length args)  ") passed to: strict-equal?")))
+      (let [target (first args)]
+        (loop [a (rest args)]
+          (cond (empty? a) true
+                (not (== target (first a))) false
+                :else (recur (rest a)))))))
+  (defn- gt [name args]
+    (loop [min (first args)
+           a (rest args)]
+      (if (empty? a)
+        true
+        (and (> min (first a)) (recur (first a) (rest a))))))
+  (defn- lt [name args]
+    (loop [max (first args)
+           a (rest args)]
+      (if (empty? a)
+        true
+        (and (< max (first a)) (recur (first a) (rest a))))))
+  (defn not-greater-than [& args] (not (gt "not-greater-than" args)))
+  (defn greater-than [& args] (gt "greater-than" args))
+  (defn not-less-than [& args] (not (lt "not-less-than" args)))
+  (defn less-than [& args] (lt "less-than" args))
+  (print "utilties")
+#+END_SRC
+** End
+#+BEGIN_SRC wisp :results def
+  (print "loaded utilities")
+#+END_SRC
