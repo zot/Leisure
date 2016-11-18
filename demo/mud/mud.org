@@ -7,7 +7,25 @@
 :properties:
 :import: utilities.org
 :end:
-** name space
+
+* GUI
+#+BEGIN_HTML :controller consoleController
+<div class="worldContainer">
+    <div class="leftSide">
+        rooms
+    </div>
+    <div class="rightSide">
+        <div class="textLog">
+            Text log
+        </div>
+        <div class="commandEntry">
+            Enter command:<br>
+            <input class="commandInput" type="text">
+        </div>
+    </div>
+</div>
+#+END_HTML
+
 * Test
 :properties:
 :namespace: mud.core
