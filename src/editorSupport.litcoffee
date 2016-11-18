@@ -1,4 +1,4 @@
-+Editing support for Leisure
+Editing support for Leisure
 
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)

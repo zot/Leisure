@@ -20,6 +20,10 @@ Clojure support for Lounge
         SourceMapGenerator
       } = Gen
 
+      Leisure.WispNS = lounge: tools: {}
+      Wisp = null
+      wispCompile = null
+      wispFileCounter = 0
       modules =
         immutable: Immutable
         eval: Eval
@@ -27,24 +31,29 @@ Clojure support for Lounge
         editor: Editor
         editorSupport: EditorSupport
 
-      Wisp = null
-      wispCompile = null
-      wispFileCounter = 0
+      class WispScope extends Scope
+        wispEval: (s)->
+          try
+            Leisure.wispScope = this
+            @eval s
+          finally
+            Leisure.wispScope = null
 
       wispRequire = (s, base)->
         s = new URL(s, 'http://x\/' + base.replace(/\./g, "\/")).pathname.replace(/^\//, '').replace '\/', '.'
-        if m = s.match /^(\.)?wisp\./ then findNs s.substring(m[0].length), Wisp
-        else findNs(s, Leisure.WispNS) || modules[s]
+        findNs(s) || modules[s]
 
-      findNs = (nsName, obj, create)->
+      findNs = (nsName, create)->
+        scope = Leisure.WispNS
         for comp in nsName.split '.'
-          if !obj[comp]
-            if create then obj[comp] = new Scope
+          if !scope? then return null
+          else if !scope[comp]
+            if create then scope[comp] = new WispScope
             else return null
-          obj = obj[comp]
-        if create && !obj._ns_ then obj._ns_ =
+          scope = scope[comp]
+        if create && !scope._ns_ then scope._ns_ =
           id: nsName
-        obj
+        scope
 
       wp = null
 
@@ -55,7 +64,7 @@ Clojure support for Lounge
           req = window.require
           window.require = null
           requirejs ['lib/wisp'], (W)->
-            Leisure.Wisp = Wisp = W
+            Leisure.Wisp = Leisure.WispNS.wisp = Wisp = W
             {translateIdentifierWord} = W.backend.escodegen.writer
             baseWispCompile = Wisp.compiler.compile
             window.require = req
@@ -65,8 +74,49 @@ Clojure support for Lounge
               node
             Leisure.wispCompilePrim = wispCompile
             Leisure.wispCompileBase = baseWispCompile
-            Leisure.WispNS = lounge: tools: {}
             exports = Leisure.WispNS.lounge.tools
+            newMacroDef = wispCompile """
+              (defn expand-defmacro
+                "Like defn, but the resulting function name is declared as a
+                macro and will be used as a macro by the compiler when it is
+                called."
+                [&form id & body]
+                (let [fn (with-meta `(defn ~id ~@body) (meta &form))
+                      form `(do ~fn ~id)
+                      ast (analyze form)
+                      code (compile ast)
+                      nsObj (or (and Leisure.wispScope Leisure.wispScope.*ns*) *ns*)
+                      nsName (if nsObj (:id nsObj))
+                      ns (or Leisure.wispScope (and *ns* (Leisure.wispFindNs nsName)))
+                      wrapped (if ns
+                                (str \"(function(){var exports = Leisure.WispNS.\" (:id (:_ns_ ns)) \"; return \" code \";})()\")
+                                code)
+                      macro (if ns
+                              (.eval ns wrapped)
+                              (eval code))]
+
+                (if window.DEBUG_WISP (do debugger 3))
+
+
+                  (install-macro! id macro)
+                  nil))
+              (install-macro! 'defmacro (with-meta expand-defmacro {:implicit [:&form]}))
+            """
+            eval """
+              (function() {
+                var symbol = Leisure.Wisp.ast.symbol;
+                var meta = Leisure.Wisp.ast.meta;
+                var withMeta = Leisure.Wisp.ast.withMeta;
+                var gensym = Leisure.Wisp.ast.gensym;
+                var installMacro = Leisure.Wisp.expander.installMacro;
+                var list = Leisure.Wisp.sequence.list;
+                var vec = Leisure.Wisp.sequence.vec;
+                var analyze = Leisure.Wisp.analyzer.analyze;
+                var compile = Leisure.Wisp.backend.escodegen.writer.compile;
+
+                #{newMacroDef.code}
+              })()
+            """
             resolve wispCompile)
 
 Compile Wisp code, optionally in a namespace.
@@ -77,7 +127,13 @@ Compile Wisp code, optionally in a namespace.
           @reqs = ''
           @splice = ''
           @pad = if @wrapFunction then '  ' else ''
-          @result = wispCompile s, "source-uri": "wispEval-#{wispFileCounter++}"
+          try
+            oldScope = Leisure.wispScope
+            if @nsName && newScope = findNs @nsName
+              Leisure.wispScope = newScope
+            @result = wispCompile s, "source-uri": "wispEval-#{wispFileCounter++}"
+          finally
+            if newScope then Leisure.wispScope = oldScope
           if @result.ast[0].op == 'ns' then @nsName = @result.ast[0].form.tail.head?.name
           nameSpace: @handleNameSpace()
           code: @scanNodes()
@@ -85,7 +141,7 @@ Compile Wisp code, optionally in a namespace.
           @gennedNs = true
           needsExports = _.find @result.ast, (n)-> n.op == 'def'
           if @nsName
-            nsObj = findNs @nsName, Leisure.WispNS, true
+            nsObj = findNs @nsName, true
             names = {}
             for node in @result.ast when node.op == 'def'
               names[translateIdentifierWord node.id.id.name] = true
@@ -225,7 +281,7 @@ Compile Wisp code, optionally in a namespace.
       Leisure.wispCompile = compile
       Leisure.wispEval = wispEval = (args...)->
         {nameSpace, code} = compile args...
-        if nameSpace then nameSpace.eval code
+        if nameSpace then nameSpace.wispEval code
         else eval code
       Leisure.wispRequire = wispRequire
       Leisure.wispFindNs = findNs
@@ -258,9 +314,8 @@ Compile Wisp code, optionally in a namespace.
                 if props.macro then macros = true
                 #res = "(ns #{ns})\n#{res}"
                 ns = ns.match(/^[^ ]+/)[0]
-                nsObj = findNs ns, Leisure.WispNS, true
               {nameSpace, code} = compile res, ns, true, true
-              func = if nameSpace then nameSpace.eval code else eval code
+              func = if nameSpace then nameSpace.wispEval code else eval code
               (cont, args...)->
                 console.log "NAMESPACE: #{nameSpace?._ns_.id}"
                 env = this
@@ -269,7 +324,7 @@ Compile Wisp code, optionally in a namespace.
                   setLounge env, -> (cont ? identity) _.filter func.call(env, null, envConsole, args...), (n)-> typeof n != 'undefined'
                 catch err
                   console.error err.stack ? err
-                  if cur = (env.data.getBlock block._id) && original != blockSource(cur).trim()
+                  if (cur = (env.data.getBlock block._id)) && original != blockSource(cur).trim()
                     console.error "Warning, code is from a different version of block #{block._id}"
                   env.errorAt codeOffset(err, code, res, original), err.message
                   (cont ? identity) []
@@ -287,6 +342,8 @@ Compile Wisp code, optionally in a namespace.
           else wispPromise().then action
         env.generateCode = (text, noFunc)-> debugger
         env
+
+      Leisure.assert = (test, msg)-> assert test, msg
 
       (env)->
         wispPromise().then ->

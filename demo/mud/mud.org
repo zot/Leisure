@@ -7,44 +7,54 @@
 :properties:
 :import: utilities.org
 :end:
+** name space
 * Test
 :properties:
 :namespace: mud.core
 :end:
-#+NAME: errorTest
-This produces an unexpected token ) error because it terminates the push
-incorrectly.
-#+BEGIN_SRC wisp
-((fn [x] x) 1)
-#+END_SRC
-
 #+BEGIN_SRC wisp :results dynamic
-(sum 1 2)
+  ;(macroexpand `(doseq [x [1]] derp)) 
+  ;(doseq [x [1 2]] (print x))
+  ;(map #(list 'a %) '(a b c))
+  ;(conj '(a) 'b)
+  (map first (reverse '((1 2) (3 4))))
+  (zip (ivec '(1 2)) (ivec '(3 4)))
+  (seq (ivec [1 2]))
+  (unzip (zip (ivec '(1 2)) (ivec '(3 4)))) 
+  ;(reduce (fn [r x] (cons x r)) () '(1 2 3))
+  ;(list? ())
+  ;(conj (conj () 'a) 'b)
 #+END_SRC
+#+RESULTS:
+: (3 1)
+: List [ List [ 1, 3 ], List [ 2, 4 ] ]
+: 1,2
+: List [ List [ 1, 2 ], List [ 3, 4 ] ]
 
-#+BEGIN_SRC wisp :results dynamicX
-(reduce + [1 2 3])
-#+END_SRC
-* Data format
-** Mud objects
+
+
+
+* Sample MUD Object
 #+BEGIN_SRC yaml :index location location
 id: mud-10
 type: thing
 name: fred
 prefix: hungry
 title: the barbarian
-description: Fred is a nice guy
-activity: hopping around
+description: Fred is a nice guy.  Tea and crumpets at your place?
+activity: Looking for food
 location: mud-3
 #+END_SRC
 * Plumbing
 :properties:
 :namespace: mud.core
 :end:
+** Mud state
 #+NAME: mudState
 #+BEGIN_SRC yaml
 currentId: 0
 #+END_SRC
+** Basics
 #+NAME: Basics
 #+BEGIN_SRC wisp :results def
   (defmacro collaboratively [name & args] `(.doCollaboratively data (.-name ~name) ~args))
@@ -76,8 +86,96 @@ currentId: 0
   (defn deleteObject [id] (.removeData data id))
   (defn getObject [id] (.getData data id))
   (defn getContents [id] (.find data location-index id))
-  (defn vec [coll]
+#+END_SRC
+
+** Transactions
+#+BEGIN_SRC wisp :results def
+  (defn- Transaction
+    "Transaction type"
+    [updates deletes gets]
+    (set! this.updates (or updates (imap [])))
+    (set! this.deletes (or deletes (iset [])))
+    (set! this.gets (or gets (imap [])))
+    this)
+
+  (set! Transaction.transactionNumber 0)
+
+  (defn- tcopy
+    "Copy a transaction"
+    [updates deletes gets]
+    (Transaction. (or updates this.updates) (or deletes this.deletes) (or gets this.gets)))
+  (set! Transaction.prototype.copy tcopy)
+
+  (defn transaction
+    "Create a transaction"
+    [] (Transaction.))
+  (defn transaction<-update
+    "Update or insert data"
+    [trans object]
+    (.copy trans
+     (.set (:updates this) (:_id object) object)
+     (.delete (:deletes this) (:_id object))))
+  (defn transaction<-remove
+    "Remove data"
+    [trans id]
+    (let [id (if (dictionary? id) (:_id id) id)]
+      (.copy trans
+       (.delete (:updates this) id)
+       (.add (:deletes this) id))))
+  (defn transaction<-retrieve
+    "Retrieve data into the transaction"
+    [trans id]
+    (.copy trans null null (.set (:gets trans) id (.getData data id true))))
+  (defn transaction<-retrieveAll
+    "Retrieve data for all of the ids into the transaction"
+    [trans ids]
+    (reduce retrieveIntoTransaction trans ids))
+  (defn transaction<-find
+    "Find data in an index"
+    [trans index key]
+    (.find data index key))
+  (defn transaction<-clearIndex [trans indexName]
+    (reduce remove trans (.find data indexName)))
+  (defn transaction-access
+    "Access data in the transaction"
+    [trans id]
+    (.get (:gets trans) id))
+  (defn transaction-accessAll
+    "Access all requested data in the transaction"
+    [trans ids]
+    (map #(transaction-access trans %) ids))
+  (defn transaction-check
+    "If an object is a transaction, return it, otherwise raise an error"
+    [trans]
+    (if (instance? Transaction trans) trans
+        (throw (Error. (str "Object returned in transaction-> is not a Transaction: " trans)))))
+  (defmacro transaction->
+    "Do expressions with a new transaction"
+    [& body]
+    (let [body (reverse body)
+          altered (reduce (fn [result x] (cons x (cons '(transaction-check) result))) () body)]
+      `(-> (Transaction.) trans ~@altered)))
+  (defn transaction-valid?
+    "Verify that all of a transaction's gets are still valid"
+    [trans]
+    (every (fn [block]
+             (let [curBlock (.getBlock data (:_id block))]
+               (and curBlock
+                    (== (:text block) (:text curBlock)))))
+           (values (:gets trans))))
+  (defn transaction-commit
+    "Commit a transaction"
+    [trans]
     )
+#+END_SRC
+** Examples
+#+BEGIN_SRC wisp
+  (defn test1
+    "Move an object from one place to another"
+    []
+    (-> (transaction)
+     (clearIndex "id")
+     (update )))
 #+END_SRC
 * GUI
 :properties:

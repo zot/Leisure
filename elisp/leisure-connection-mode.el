@@ -538,9 +538,9 @@ FRAME: frame."
   (replace-regexp-in-string leisure/specialStrChars 'leisure/escapeChar str))
 
 (defun leisure/parseString (str)
-  "Parse quoted string STR."
+  "Parse quoted string STR, unescape it, and remove byte order marks."
   (let ((unescaped (leisure/unescapeString str)))
-    (substring unescaped 1 (- (length unescaped) 1))))
+    (replace-regexp-in-string "ï»¿" "" (substring unescaped 1 (- (length unescaped) 1)))))
 
 (defun leisure/unescapeString (str)
   "Unbackslashed version of STR."

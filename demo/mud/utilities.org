@@ -3,23 +3,31 @@
 :properties:
 :namespace: mud.core
 :end:
+** Name space
 #+BEGIN_SRC wisp :results def
-    (ns mud.core
-      (:require
-       [wisp.runtime :refer [print]]
-       [wisp.ast :refer [symbol symbol? keyword? keyword name namespace
-                         gensym unquote? unquote-splicing? quote?
-                         syntax-quote? quote-string pr-str]]
-       [wisp.sequence :refer [lazy-seq lazy-seq? list? list cons
-                              sequential? reverse map filter reduce
-                              count empty? first second third rest
-                              last butlast take take-while drop conj
-                              assoc concat seq seq? vec sort repeat
-                              every? some partition interleave nth]]
-       [immutable :refer [List Set Map]
-                  :rename {List ImmutableList Set ImmutableSet Map ImmutableMap}]
-       ))
-    (def data Lounge.data)
+  (ns mud.core
+    (:require
+     [wisp.runtime :refer [identity odd? even? dictionary? dictionary
+                           keys vals key-values merge satisfies?
+                           contains-vector? map-dictionary error?
+                           string? number? date? boolean? re-pattern?
+                           object? nil? true? false? re-find re-matches
+                           re-pattern inc dec str char int subs and or
+                           print to-string = max min fn? vector?]]
+     [wisp.ast :refer [symbol symbol? keyword? keyword name namespace
+                       gensym unquote? unquote-splicing? quote?
+                       syntax-quote? quote-string pr-str]]
+     [wisp.sequence :refer [lazy-seq lazy-seq? list? list cons
+                            sequential? reverse map filter reduce
+                            count empty? first second third rest
+                            last butlast take take-while drop conj
+                            assoc concat seq seq? vec sort repeat
+                            every? some partition interleave nth]]
+     [wisp.expander :refer [macroexpand]]
+     [immutable :refer [List OrderedSet Map Seq]
+      :rename {List ImmutableList OrderedSet ImmutableSet Map ImmutableMap Seq ImmutableSeq}]
+     ))
+  (def data Lounge.data)
 #+END_SRC
 ** macros
 #+BEGIN_SRC wisp :results def
@@ -43,7 +51,14 @@
 #+END_SRC
 ** Immutable Funcs
 #+BEGIN_SRC wisp :results def
-  (defn immutablejs? [coll] (or (instance? ImmutableList coll) (instance? ImmutableMap coll)))
+  (defn ivec? [coll] (instance? ImmutableList coll))
+  (defn ivec [coll] (if (ivec? coll) coll (ImmutableList (vec coll))))
+  (defn imap? [coll] (instance? ImmutableMap coll))
+  (defn imap [coll] (if (imap? coll) coll (ImmutableMap (vec coll))))
+  (defn iset? [coll] (instance? ImmutableSet coll))
+  (defn iset [coll] (if (iset? coll) coll (ImmutableSet (vec coll))))
+  (defn iseq? [coll] (instance? ImmutableSeq coll))
+  (defn immutablejs? [coll] (or (ivec? coll) (imap? coll) (iseq? coll)))
   (defmacro obj-delegate [fn comp]
     `(let [old ~fn]
        (set! ~fn (fn [coll]
@@ -61,13 +76,10 @@
   (immutablejs-delegate last)
   (immutablejs-delegate sort)
 
-  (defn ivec [coll] (ImmutableList coll))
-  (defn ivec? [coll] (instance? ImmutableList coll))
-  (defn imap [coll] (ImmutableMap coll))
-  (defn imap? [coll] (instance? ImmutableMap coll))
-
-  (advise map old [f coll] (if (immutablejs?) (.map coll f) (old coll f)))
-  (advise filter old [f? coll] (if (immutablejs?)  (.filter coll f?) (old coll f?)))
+  (advise map old [f coll]
+          (if (immutablejs? coll) (.map coll f) (old f coll)))
+  (advise filter old [f? coll]
+          (if (immutablejs? coll)  (.filter coll f?) (old f? coll)))
   (let [old reduce]
     (set! reduce
           (fn [f & params]
@@ -80,17 +92,105 @@
   (advise second old [coll] (if (immutablejs? coll) (.get coll 2) (old coll)))
   (advise third old [coll] (if (immutablejs? coll) (.get coll 3) (old coll)))
   (advise third old [coll] (if (immutablejs? coll) (.but-last coll) (old coll)))
-  (advise take old [n coll] (if (immutablejs? coll) (.take coll n) (old coll n)))
-  (advise take-while old [pred coll] (if (immutablejs? coll) (.take-while coll pred) (old coll n)))
-  (advise drop old [n coll] (if (immutablejs? coll) (.drop coll n) (old coll n)))
+  (advise take old [n coll] (if (immutablejs? coll) (.take coll n) (old n coll)))
+  (advise take-while old [pred coll] (if (immutablejs? coll) (.take-while coll pred) (old pred coll)))
+  (advise drop old [n coll] (if (immutablejs? coll) (.skip coll n) (old n coll)))
   (let [old conj]
     (set! conj
           (fn [coll & items]
             (cond
               (ivec? coll) (.apply ImmutableList.prototype.push coll items)
               (imap? coll) (.apply ImmutableMap.prototype.push coll items)
-              :else (old coll items)))))
-  (advise seq old [coll] (if (immutalejs? coll) col (old coll)))
+              :else (apply old coll items)))))
+  (advise seq old [coll] (if (immutablejs? coll) (.toArray coll) (old coll)))
+  (advise vec old [coll] (if (immutablejs? coll) (.toArray coll) (old coll)))
+#+END_SRC
+** Sequence Funcs
+#+BEGIN_SRC wisp :results def
+  (defn intersperse
+    "Intersperse a sequence with an item"
+    [sequence item]
+    (if (empty? sequence) sequence
+        (let [rest (drop 1 sequence)]
+          (if (empty? rest) sequence
+              (let [sequence (if (list? sequence) (reverse sequence) sequence)]
+                (reduce (fn [result x] (conj result item x))
+                        (take 1 sequence)
+                        (drop 1 sequence)))))))
+  (defn every-other
+    "Get every other item in a vector or list"
+    [l]
+    (loop [l (cond (vector? l) l
+                   (list? l) (if (odd? (count l)) (reverse l)
+                                 (rest (reverse l)))
+                   :else [])
+           result (if (list? l) () [])]
+      (cond (empty? l) result
+            (empty? (rest l)) (conj result (first l))
+            :else (recur (rest (rest l)) (conj result (first l))))))
+
+  (set! window.WISP_DEBUG true)
+
+  (defn values
+    "Get values of a map"
+    [map]
+    (cond
+      (dictionary? map) (Object/values map)
+      (imap? map) (.valueSeq map)
+      :else nil))
+
+  (defn transpose
+    "Transpose a list of lists"
+    [lists]
+    (print (str "lists: " lists))
+    (loop [lists (cond
+                   (list? (first lists)) (apply list lists)
+                   (ivec? (first lists)) (ivec lists)
+                   :else lists)
+           result (cond
+                    (vector? (first lists)) []
+                    (ivec? (first lists)) (ivec [])
+                    :else ())]
+      (if (empty? (first lists))
+        (if (list? (first lists)) (reverse result) result)
+        (recur (map rest lists) (conj result (map first lists))))))
+
+  (defn zip
+    "Gather up corresponding elements into a list"
+    [& lists]
+    (transpose lists))
+
+  (defn unzip
+    "Split up elements into corresponding sequences"
+    [lists]
+    (transpose lists))
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defmacro doseq
+    "Iterate over sequences"
+    [bindings & body]
+    (let [names (every-other bindings)
+          sequences (every-other (rest bindings))
+          seqVars (map (fn [] (gensym)) names)
+          inits (loop [v seqVars
+                       s sequences
+                       inits []]
+                  (if (empty? v) inits
+                      (recur (rest v) (rest s) (conj inits (first v) (first s)))))
+          emptyTests (cons 'or (map (fn [x] `(empty? ~x)) seqVars))
+          nextSeqs (map (fn [x] `(rest ~x)) seqVars)
+          letVars (loop [n names
+                         v seqVars
+                         res []]
+                    (if (empty? n) res
+                        (recur (rest n) (rest v) (conj res (first n) `(first ~(first v))))))
+          peep (.log window.console "letVars" (JSON/stringify letVars))]
+      `(loop ~inits
+         (if ~emptyTests nil
+             (let ~letVars
+               ~@body
+               (recur ~@nextSeqs))))))
 #+END_SRC
 ** System Funcs
 #+BEGIN_SRC wisp :results def
