@@ -391,7 +391,9 @@ that must be done regardless of the source of changes
         queueEval: (func)->
           opts = defaultEnv.opts
           @pendingEvals.push -> withDefaultOptsSet opts, func
-        runOnImport: (func)-> @importPromise.then => func()
+        runOnImport: (func)-> @importPromise.then =>
+          func()
+          null
         scheduleEvals: -> @runOnImport =>
           if @pendingEvals.length
             e = @pendingEvals
@@ -751,11 +753,13 @@ that must be done regardless of the source of changes
                       argData)...), args...
           else func
         blockBounds: (name)->
-          if name
-            block = if typeof name == 'string' then @getBlockNamed name else name
-            start = @offsetForBlock block
-            end = start + block.text.length
-            {start, end, gStart: start, gEnd: end}
+          if !(block = if typeof name == 'string' then @getBlockNamed name else name)
+            throw new Error "No block named #{name}"
+          @baseBlockBounds block
+        baseBlockBounds: (block)->
+          start = @offsetForBlock block
+          end = start + block.text.length
+          {start, end, gStart: start, gEnd: end}
         verifyDataObject: (opType, obj)->
           if !(typeof obj in ['object', 'string', 'number', 'boolean'])
             throw new Error "Attempt to #{opType} value that is not an object."
@@ -781,12 +785,13 @@ that must be done regardless of the source of changes
         setLocalData: (name, value, codeOpts)->
           if !(block = @getBlockNamed name) then throw new Error "No block named #{name}"
           if !block.local then throw new Error "Attempt to use setLocalData with a shared block"
-          @baseSetData name, block, value, codeOpts
+          @baseSetData block, value, codeOpts
         setData: (name, value, codeOpts)->
           if !(block = @getBlockNamed name) then throw new Error "No block named #{name}"
           @checkCollaborating block
-          @baseSetData name, block, value, codeOpts
-        baseSetData: (name, block, value, codeOpts)->
+          @baseSetData block, value, codeOpts
+        baseSetData: (block, value, codeOpts)->
+          name = block.codeName
           @verifyDataObject "set #{name} to ", value
           codeOpts = _.merge {}, block.codeAttributes ? {}, codeOpts ? {}
           [newBlock] = @parseBlocks @textForDataNamed name, value, codeOpts
@@ -794,14 +799,16 @@ that must be done regardless of the source of changes
             newBlock._id = block._id
             @storeLocalBlock newBlock
           else
-            b = @blockBounds name
+            b = @baseBlockBounds block
             b.text = newBlock.text
             b.source = 'code'
             @replaceText b
         removeData: (name)->
           if !(block = @getBlockNamed name) then throw new Error "No block named #{name}"
+          @baseRemoveData block
+        baseRemoveData: (block)->
           @checkCollaborating()
-          b = @blockBounds name
+          b = @baseBlockBounds block
           b.text = ''
           b.source = 'code'
           @replaceText b
@@ -864,6 +871,8 @@ that must be done regardless of the source of changes
           replaceBlock = => @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
           if withUpdates then replaceBlock()
           else @data.runBlock @block, replaceBlock
+
+      sanitize = (str)-> str.replace /[\uFEFF]/g, ''
 
       displayError = (e)->
         console.log "Error: #{e}"
@@ -1222,7 +1231,7 @@ NMap is a very simple trie.
               {source: newSource, results: newResults} = blockCodeItems this, change
               hasChange = !oldBlock || oldBlock.type != 'code' || !(isDynamic(oldBlock) && !isObserver(oldBlock)) || if oldBlock
                 oldSource = blockSource oldBlock
-                newSource.content != oldSource.content
+                newSource.content != oldSource
               if hasChange
                 result = ''
                 newBlock = setError change
@@ -1322,23 +1331,6 @@ NMap is a very simple trie.
           false
         replaceResult: (block, str)-> replaceResult this, @data, block, str
 
-      replaceResult = (source, data, block, str)->
-        if typeof block != 'string' then blockId = block._id
-        if current = data.getBlock block
-          start = data.offsetForBlock current
-          {results, last} = blockCodeItems this, current
-          if str[str.length - 1] != '\n' then str += '\n'
-          str = "#+RESULTS:\n" + str
-          if results
-            start += results.offset
-            end = start + results.text.length
-          else end = (start += last.end())
-          {observing, observer} = current
-          source.replaceText {start, end, text: str, source: 'code'}, true
-          if observer
-            data.getBlock(block._id).observer = observer
-            data.getBlock(block._id).observing = observing
-
       trickyChange = (oldBlock, newBlock)->
         oldBlock._id != newBlock._id ||
           ('headline' in (t = [oldBlock.type, newBlock.type]) && t[0] != t[1]) ||
@@ -1346,7 +1338,22 @@ NMap is a very simple trie.
 
       isSilent = (block)-> block?.codeAttributes?.results?.toLowerCase().match /\bsilent\b/
 
+      replaceResult = (source, data, block, str)->
+        if typeof block != 'string' then blockId = block._id
+        if current = data.getBlock block
+          newBlock = setResult current, str
+          if current.text != newBlock.text
+            start = data.offsetForBlock current
+            repl = replacementFor start, current.text, newBlock.text
+            {observing, observer} = current
+            repl.source = 'code'
+            source.replaceText repl, true
+            if observer
+              data.getBlock(block._id).observer = observer
+              data.getBlock(block._id).observing = observing
+
       setResult = (block, result)->
+        result = sanitize result
         if block?.codeAttributes?.results?.toLowerCase().match /\b(def|web|silent)\b/
           result = ''
         {results} = blockCodeItems this, block

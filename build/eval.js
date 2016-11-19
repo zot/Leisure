@@ -517,7 +517,7 @@
               };
             }
             if ((s = new SourceNode(line, column, source, nodesForGeneratedText(oldNodes, expr))).toString() !== text.substring(expr.start, expr.end)) {
-              console.log("Source nodes don't line up:\n" + (s.toString()));
+              console.warn("Source nodes don't line up:\n" + (s.toString()));
             }
             newSource.push(new SourceNode(line, column, source, ['\nleisure_results.push(', nodesForGeneratedText(oldNodes, expr), ');\n'], name));
           } else {

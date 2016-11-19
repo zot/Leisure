@@ -92,7 +92,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
       class Peer
         constructor: ->
           @data = new OrgData()
-          @namePromise = randomUserName (@name)=>
+          @namd = randomUserName()
           @guardedChangeId = 0
           @guardPromises = {}
         setEditor: (@editor)->
@@ -103,15 +103,12 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           console.log "CONNECTED"
           @con = new SockJS @url
           opened = false
-          @namePromise
-            .finally =>
-              delete @namePromise
-              new Promise (resolve, reject)=>
-                @con.onopen = =>
-                  opened = true
-                  @con.onerror = => @closed()
-                  resolve()
-                @con.onerror = -> if !openend then reject()
+          new Promise (resolve, reject)=>
+            @con.onopen = =>
+              opened = true
+              @con.onerror = => @closed()
+              resolve()
+            @con.onerror = -> if !openend then reject()
           @con.onmessage = (msg)=> @handleMessage JSON.parse msg.data
           @con.onclose = => @closed()
           peer = this

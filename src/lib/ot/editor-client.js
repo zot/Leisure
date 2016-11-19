@@ -4,8 +4,6 @@
 define(['./ot-base', './client', './selection', './undo-manager', './text-operation', './wrapped-operation'], function(ot) {
   'use strict';
 
-  console.log("EDITOR CLIENT");
-
   var Client = ot.Client;
   var Selection = ot.Selection;
   var UndoManager = ot.UndoManager;

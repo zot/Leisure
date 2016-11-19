@@ -14,15 +14,19 @@
                            object? nil? true? false? re-find re-matches
                            re-pattern inc dec str char int subs and or
                            print to-string = max min fn? vector?]]
-     [wisp.ast :refer [symbol symbol? keyword? keyword name namespace
-                       gensym unquote? unquote-splicing? quote?
-                       syntax-quote? quote-string pr-str]]
+     [wisp.ast :refer [symbol symbol? keyword? keyword-name name
+                       namespace gensym unquote? unquote-splicing?
+                       quote? syntax-quote? quote-string pr-str]]
      [wisp.sequence :refer [lazy-seq lazy-seq? list? list cons
                             sequential? reverse map filter reduce
                             count empty? first second third rest
                             last butlast take take-while drop conj
                             assoc concat seq seq? vec sort repeat
                             every? some partition interleave nth]]
+     [wisp.string :refer [split split-lines join upper-case lower-case
+                          capitalize pattern-escape replace-first replace
+                          blank? reverse triml trimr trim]
+                          :rename {reverse string-reverse}]
      [wisp.expander :refer [macroexpand]]
      [immutable :refer [List OrderedSet Map Seq]
       :rename {List ImmutableList OrderedSet ImmutableSet Map ImmutableMap Seq ImmutableSeq}]
@@ -35,8 +39,9 @@
     [& operations]
     (reduce
      (fn [form operation]
-       (cons (first operation)
-             (cons form (rest operation))))
+       (if (seq? operation)
+         (cons (first operation) (cons form (rest operation)))
+         (list operation form)))
      (first operations)
      (rest operations)))
 
@@ -142,7 +147,6 @@
   (defn transpose
     "Transpose a list of lists"
     [lists]
-    (print (str "lists: " lists))
     (loop [lists (cond
                    (list? (first lists)) (apply list lists)
                    (ivec? (first lists)) (ivec lists)
@@ -184,8 +188,7 @@
                          v seqVars
                          res []]
                     (if (empty? n) res
-                        (recur (rest n) (rest v) (conj res (first n) `(first ~(first v))))))
-          peep (.log window.console "letVars" (JSON/stringify letVars))]
+                        (recur (rest n) (rest v) (conj res (first n) `(first ~(first v))))))]
       `(loop ~inits
          (if ~emptyTests nil
              (let ~letVars
@@ -246,9 +249,4 @@
   (defn greater-than [& args] (gt "greater-than" args))
   (defn not-less-than [& args] (not (lt "not-less-than" args)))
   (defn less-than [& args] (lt "less-than" args))
-  (print "utilties")
-#+END_SRC
-** End
-#+BEGIN_SRC wisp :results def
-  (print "loaded utilities")
 #+END_SRC

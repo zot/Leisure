@@ -126,6 +126,7 @@ Compile Wisp code, optionally in a namespace.
         compile: (s, @nsName, @wrapFunction, @returnList)->
           @reqs = ''
           @splice = ''
+          @exportLocs = []
           @pad = if @wrapFunction then '  ' else ''
           try
             oldScope = Leisure.wispScope
@@ -134,18 +135,21 @@ Compile Wisp code, optionally in a namespace.
             @result = wispCompile s, "source-uri": "wispEval-#{wispFileCounter++}"
           finally
             if newScope then Leisure.wispScope = oldScope
-          if @result.ast[0].op == 'ns' then @nsName = @result.ast[0].form.tail.head?.name
+          if @declaresNs = (@result.ast[0].op == 'ns')
+            @nsName = @result.ast[0].form.tail.head?.name
           nameSpace: @handleNameSpace()
           code: @scanNodes()
         handleNameSpace: ->
           @gennedNs = true
-          needsExports = _.find @result.ast, (n)-> n.op == 'def'
+          #needsExports = _.find @result.ast, (n)-> n.op == 'def'
+          needsExports = true
           if @nsName
             nsObj = findNs @nsName, true
             names = {}
-            for node in @result.ast when node.op == 'def'
-              names[translateIdentifierWord node.id.id.name] = true
-            if @result.ast[0].op == 'ns' && @result.ast[0].require
+            findExports @result.ast, names, @exportLocs
+            #for node in @result.ast when node.op == 'def'
+            #  names[translateIdentifierWord node.id.id.name] = true
+            if @declaresNs && @result.ast[0].require
               for req in @result.ast[0].require
                 for ref in req.refer
                   names[translateIdentifierWord (ref.rename ? ref.name).name] = true
@@ -159,7 +163,7 @@ Compile Wisp code, optionally in a namespace.
               };
 
             """
-            if @result.ast[0].op != 'ns' then @reqs += """
+            if @declaresNs then @reqs += """
               _ns_ = {
                 id: '#{@nsName}',
                 doc: void 0
@@ -201,11 +205,13 @@ Compile Wisp code, optionally in a namespace.
           con = SourceMapConsumer.fromSourceMap @result['source-map']
           inExpr = false
           declaredNs = false
-          exportLocs = _.filter _.map @result.ast, (n)-> n.export && n.start
+          #exportLocs = _.filter _.map @result.ast, (n)-> n.export && n.start
           nodes = SourceNode.fromStringWithSourceMap @result.code, con
           if addReturn
             addReturn = lastLoc = _.last _.filter(_.map(@result.ast, (n, i)=> if !(n.op in ['def', 'ns']) && n.form then @result['js-ast'].body[i].loc?.start), identity)
+          prevLoc = line: 1, column: 0
           nodes.walk (code, loc)=>
+            if loc?.line then prevLoc = loc
             if code.match /\/\/# sourceMappingURL=/
               foundEnd = true
               code = code.replace /\/\/# sourceMappingURL=.*/, ''
@@ -218,11 +224,12 @@ Compile Wisp code, optionally in a namespace.
               if code.match(/ *= */) then destroyingExport = false
               return
             if @nsName
-              if exportLocs.length && atOrAfter(loc, exportLocs[0]) && code.match /^ *var/
+              #if @exportLocs.length && atOrAfter(loc, @exportLocs[0]) && code.match /^ *var/
+              if prevLoc && @exportLocs.length && atOrAfter(prevLoc, @exportLocs[0]) && code.match /^ *var/
                 declaredNs = true
-                exportLocs.shift()
+                @exportLocs.shift()
                 code = code.replace /^ *var /g, ' '
-              else if !declaredNs && code.match /^ *var/
+              else if !declaredNs && @declaresNs && code.match /^ *var/
                 code = code.replace /^ *var /g, ' '
             if startedPush && loc.line? && ((loc.line > exprs[exprPos].end.line) || (loc.line == exprs[exprPos].end.line && loc.column > exprs[exprPos].end.column))
               startedPush = false
@@ -272,6 +279,25 @@ Compile Wisp code, optionally in a namespace.
           Acorn.parse splicedResult.code
           splicedResult.code + "\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify splicedResult.map.toJSON()}\n"
 
+      lastExportLoc = null
+
+      findExports = (ast, names, exportLocs)->
+        baseFindExports ast, names, exportLocs
+        lastExportLoc = null
+
+      baseFindExports = (ast, names, exportLocs)->
+        if ast.start then lastExportLoc = ast.start
+        names = names ? []
+        if _.isArray ast
+          for a in ast
+            baseFindExports a, names, exportLocs
+        else
+          if ast.op == 'def'
+            names[translateIdentifierWord ast.id.id.name] = true
+            exportLocs.push lastExportLoc
+          for n in ['statements', 'result', 'methods', 'init']
+            if ast[n] then baseFindExports ast[n], names, exportLocs
+
       atOrAfter = (nodeLoc, astLoc)->
         nodeLoc.line - 1 > astLoc.line || (nodeLoc.line - 1 == astLoc.line && nodeLoc.column >= astLoc.column)
 
@@ -317,7 +343,6 @@ Compile Wisp code, optionally in a namespace.
               {nameSpace, code} = compile res, ns, true, true
               func = if nameSpace then nameSpace.wispEval code else eval code
               (cont, args...)->
-                console.log "NAMESPACE: #{nameSpace?._ns_.id}"
                 env = this
                 envConsole = log: (args...)-> env.write args.join ' '
                 try

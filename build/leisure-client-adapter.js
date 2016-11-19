@@ -30,11 +30,7 @@
     Peer = (function() {
       function Peer() {
         this.data = new OrgData();
-        this.namePromise = randomUserName((function(_this) {
-          return function(name1) {
-            _this.name = name1;
-          };
-        })(this));
+        this.namd = randomUserName();
         this.guardedChangeId = 0;
         this.guardPromises = {};
       }
@@ -58,23 +54,20 @@
         console.log("CONNECTED");
         this.con = new SockJS(this.url);
         opened = false;
-        this.namePromise["finally"]((function(_this) {
-          return function() {
-            delete _this.namePromise;
-            return new Promise(function(resolve, reject) {
-              _this.con.onopen = function() {
-                opened = true;
-                _this.con.onerror = function() {
-                  return _this.closed();
-                };
-                return resolve();
+        new Promise((function(_this) {
+          return function(resolve, reject) {
+            _this.con.onopen = function() {
+              opened = true;
+              _this.con.onerror = function() {
+                return _this.closed();
               };
-              return _this.con.onerror = function() {
-                if (!openend) {
-                  return reject();
-                }
-              };
-            });
+              return resolve();
+            };
+            return _this.con.onerror = function() {
+              if (!openend) {
+                return reject();
+              }
+            };
           };
         })(this));
         this.con.onmessage = (function(_this) {

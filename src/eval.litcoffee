@@ -322,7 +322,7 @@ Evaulation support for Leisure
                  start: expr.start
                  end: expr.end - 1
               if (s = new SourceNode(line, column, source, nodesForGeneratedText(oldNodes, expr))).toString() != text.substring expr.start, expr.end
-                console.log "Source nodes don't line up:\n#{s.toString()}"
+                console.warn "Source nodes don't line up:\n#{s.toString()}"
               newSource.push new SourceNode(line, column, source, ['\nleisure_results.push(', nodesForGeneratedText(oldNodes, expr), ');\n'], name)
             else newSource.push new SourceNode(line, column, source, [text.substring expr.start, expr.end])
           {code, map} = new SourceNode(1, 0, fileName, newSource).toStringWithSourceMap()

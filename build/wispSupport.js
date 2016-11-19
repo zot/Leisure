@@ -5,7 +5,7 @@
     slice = [].slice;
 
   define(['./eval', './docOrg', 'bluebird', './gen', 'immutable', './editor', './editorSupport', 'acorn'], function(Eval, DocOrg, Bluebird, Gen, Immutable, Editor, EditorSupport, Acorn) {
-    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, WispScope, atOrAfter, blockSource, codeOffset, compile, envFunc, findNs, jsCodeFor, lineColumnStrOffset, modules, parseIt, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
+    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, WispScope, atOrAfter, baseFindExports, blockSource, codeOffset, compile, envFunc, findExports, findNs, jsCodeFor, lastExportLoc, lineColumnStrOffset, modules, parseIt, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
     setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset;
     blockSource = DocOrg.blockSource;
     Promise = Bluebird.Promise;
@@ -113,6 +113,7 @@
         this.returnList = returnList1;
         this.reqs = '';
         this.splice = '';
+        this.exportLocs = [];
         this.pad = this.wrapFunction ? '  ' : '';
         try {
           oldScope = Leisure.wispScope;
@@ -127,7 +128,7 @@
             Leisure.wispScope = oldScope;
           }
         }
-        if (this.result.ast[0].op === 'ns') {
+        if (this.declaresNs = this.result.ast[0].op === 'ns') {
           this.nsName = (ref1 = this.result.ast[0].form.tail.head) != null ? ref1.name : void 0;
         }
         return {
@@ -137,29 +138,21 @@
       };
 
       Compiler.prototype.handleNameSpace = function() {
-        var j, k, l, len, len1, len2, names, needsExports, node, nsObj, ref, ref1, ref2, ref3, ref4, ref5, req;
+        var j, k, len, len1, names, needsExports, nsObj, ref, ref1, ref2, ref3, ref4, req;
         this.gennedNs = true;
-        needsExports = _.find(this.result.ast, function(n) {
-          return n.op === 'def';
-        });
+        needsExports = true;
         if (this.nsName) {
           nsObj = findNs(this.nsName, true);
           names = {};
-          ref1 = this.result.ast;
-          for (j = 0, len = ref1.length; j < len; j++) {
-            node = ref1[j];
-            if (node.op === 'def') {
-              names[translateIdentifierWord(node.id.id.name)] = true;
-            }
-          }
-          if (this.result.ast[0].op === 'ns' && this.result.ast[0].require) {
-            ref2 = this.result.ast[0].require;
-            for (k = 0, len1 = ref2.length; k < len1; k++) {
-              req = ref2[k];
-              ref3 = req.refer;
-              for (l = 0, len2 = ref3.length; l < len2; l++) {
-                ref = ref3[l];
-                names[translateIdentifierWord(((ref4 = ref.rename) != null ? ref4 : ref.name).name)] = true;
+          findExports(this.result.ast, names, this.exportLocs);
+          if (this.declaresNs && this.result.ast[0].require) {
+            ref1 = this.result.ast[0].require;
+            for (j = 0, len = ref1.length; j < len; j++) {
+              req = ref1[j];
+              ref2 = req.refer;
+              for (k = 0, len1 = ref2.length; k < len1; k++) {
+                ref = ref2[k];
+                names[translateIdentifierWord(((ref3 = ref.rename) != null ? ref3 : ref.name).name)] = true;
               }
             }
           }
@@ -174,12 +167,12 @@
           if (this.result.ast[0].require) {
             this.reqs += "var require = function(s) {\n  return Leisure.wispRequire(s, '" + (translateIdentifierWord(this.nsName)) + "');\n};\n";
           }
-          if (this.result.ast[0].op !== 'ns') {
+          if (this.declaresNs) {
             this.reqs += "_ns_ = {\n  id: '" + this.nsName + "',\n  doc: void 0\n};\n";
           } else if (this.result.ast[0].doc) {
             this.splice = "exports._ns_.doc = _ns_.doc;\n";
           }
-          this.end = (ref5 = this.result.ast[0].end) != null ? ref5 : {
+          this.end = (ref4 = this.result.ast[0].end) != null ? ref4 : {
             line: 0,
             column: 0
           };
@@ -201,7 +194,7 @@
       };
 
       Compiler.prototype.scanNodes = function() {
-        var addReturn, children, code, con, declaredNs, destroyingExport, exportLocs, exprPos, exprs, file, foundEnd, head, inExpr, lastChildren, lastCode, lastLoc, nodes, prevCode, ref1, ref2, ref3, returnNode, splicedResult, startedPush, tail;
+        var addReturn, children, code, con, declaredNs, destroyingExport, exprPos, exprs, file, foundEnd, head, inExpr, lastChildren, lastCode, lastLoc, nodes, prevCode, prevLoc, ref1, ref2, ref3, returnNode, splicedResult, startedPush, tail;
         if (this.returnList) {
           exprs = _.filter(_.map(this.result.ast, (function(_this) {
             return function(n, i) {
@@ -232,9 +225,6 @@
         con = SourceMapConsumer.fromSourceMap(this.result['source-map']);
         inExpr = false;
         declaredNs = false;
-        exportLocs = _.filter(_.map(this.result.ast, function(n) {
-          return n["export"] && n.start;
-        }));
         nodes = SourceNode.fromStringWithSourceMap(this.result.code, con);
         if (addReturn) {
           addReturn = lastLoc = _.last(_.filter(_.map(this.result.ast, (function(_this) {
@@ -246,9 +236,16 @@
             };
           })(this)), identity));
         }
+        prevLoc = {
+          line: 1,
+          column: 0
+        };
         nodes.walk((function(_this) {
           return function(code, loc) {
             var c, c2, node, ref1, ref2, usedPrev;
+            if (loc != null ? loc.line : void 0) {
+              prevLoc = loc;
+            }
             if (code.match(/\/\/# sourceMappingURL=/)) {
               foundEnd = true;
               code = code.replace(/\/\/# sourceMappingURL=.*/, '');
@@ -268,11 +265,11 @@
               return;
             }
             if (_this.nsName) {
-              if (exportLocs.length && atOrAfter(loc, exportLocs[0]) && code.match(/^ *var/)) {
+              if (prevLoc && _this.exportLocs.length && atOrAfter(prevLoc, _this.exportLocs[0]) && code.match(/^ *var/)) {
                 declaredNs = true;
-                exportLocs.shift();
+                _this.exportLocs.shift();
                 code = code.replace(/^ *var /g, ' ');
-              } else if (!declaredNs && code.match(/^ *var/)) {
+              } else if (!declaredNs && _this.declaresNs && code.match(/^ *var/)) {
                 code = code.replace(/^ *var /g, ' ');
               }
             }
@@ -361,6 +358,42 @@
       return Compiler;
 
     })();
+    lastExportLoc = null;
+    findExports = function(ast, names, exportLocs) {
+      baseFindExports(ast, names, exportLocs);
+      return lastExportLoc = null;
+    };
+    baseFindExports = function(ast, names, exportLocs) {
+      var a, j, k, len, len1, n, ref1, results, results1;
+      if (ast.start) {
+        lastExportLoc = ast.start;
+      }
+      names = names != null ? names : [];
+      if (_.isArray(ast)) {
+        results = [];
+        for (j = 0, len = ast.length; j < len; j++) {
+          a = ast[j];
+          results.push(baseFindExports(a, names, exportLocs));
+        }
+        return results;
+      } else {
+        if (ast.op === 'def') {
+          names[translateIdentifierWord(ast.id.id.name)] = true;
+          exportLocs.push(lastExportLoc);
+        }
+        ref1 = ['statements', 'result', 'methods', 'init'];
+        results1 = [];
+        for (k = 0, len1 = ref1.length; k < len1; k++) {
+          n = ref1[k];
+          if (ast[n]) {
+            results1.push(baseFindExports(ast[n], names, exportLocs));
+          } else {
+            results1.push(void 0);
+          }
+        }
+        return results1;
+      }
+    };
     atOrAfter = function(nodeLoc, astLoc) {
       return nodeLoc.line - 1 > astLoc.line || (nodeLoc.line - 1 === astLoc.line && nodeLoc.column >= astLoc.column);
     };
@@ -440,7 +473,6 @@
               return function() {
                 var args, cont, cur, envConsole, err, error, ref4;
                 cont = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
-                console.log("NAMESPACE: " + (nameSpace != null ? nameSpace._ns_.id : void 0));
                 env = this;
                 envConsole = {
                   log: function() {
