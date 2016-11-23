@@ -11,10 +11,26 @@
 :properties:
 :namespace: mud.core
 :end:
-Replace a.b.c with 4 in this object
 
 #+BEGIN_SRC wisp :results dynamic
+;(map even? '(1 2 3 4))
+;(String '(1 2 3 a))
+(lens a b) 
+;3
+#+END_SRC
+#+ERROR: 25, lensProperty is not defined
 
+#+BEGIN_SRC wisp :results dynamicX
+(transaction->
+  (update (:_id 3 :name "bubba"))
+  ...
+  (custom frob)))
+;; -> (let [t1  (Transaction.)
+            t2  (update (:_id 3 :name "bubba"))
+            ...
+            tN  (frob tM)
+            tO  (tr-check tM tN)]
+            tO)
 #+END_SRC
 
 * Sample MUD Object
@@ -34,10 +50,32 @@ location: mud-3
   ;; Declare collaborative code
   (defcollab munge
     "Munge some data"
-    [x]
-    (transaction->
-     (transaction<-retrieve "ExampleFred")
-     (transaction<-update )))
+    []
+    (tr-commit
+      (transaction->
+       fred <- (get "ExampleFred")
+       joe <- (get "ExampleJoe")
+       (do
+         (aset (:hunger joe) 12)
+         (aset (:height fred) 3))
+       (custom frobnicate joe)))
+
+  ;; possibility 1
+  (defn frobnicate
+    "frobnicate a person"
+    [transaction person]
+    (let [newHp (- (:hitpoints person) 1)]
+      (aset (:hitpoints person) newHp)
+      (tr-update transaction person)))
+
+  ;; possibility 2
+  (defn frobnicate
+    "frobnicate a person"
+    [transaction person]
+    (let [newHp (- (:hitpoints person) 1)]
+      (aset (:hitpoints person) newHp)
+      (transaction-> transaction
+        (update person))))
 
 #+END_SRC
 * GUI
@@ -161,18 +199,20 @@ currentId: 0
     []
     (Lens. identity identity []))
 
-  (defn lens-property
-    [prop]
-    (Lens.
-     (fn [obj] (aget obj prop))
-     (fn [obj val] (let [newObj (cond (dictionary? obj) (Object/assign (Object.) obj)
-                                      (vector? obj) (.slice obj))]
-                     (aset newObj prop val)
-                     newObj))
-     [prop]))
+  (def lens-parsers
+    "Sequence of lens parsers"
+    [])
+
+  (defn parse-lens
+    "Parse lens entry"
+    [entry]
+    (let [parser (find #((:predicate %) entry)  lens-parsers)]
+      (if parser
+        ((:definition parser) entry)
+        (throw (Error. (str "Lens could parse " (String entry)))))))
 
   (defn lens-compose
-    "Compose two lenses"
+    "Compose lenses"
     [l1 l2]
     (if (empty? (:description l1))
       l2
@@ -185,8 +225,53 @@ currentId: 0
          (fn [obj val] (l1set obj (l2set (l1get obj) val)))
          (concat (.-description l1) (.-description l2))))))
 
+  (defn lens-get
+    "Get a value from an object"
+    [lens obj]
+    (.get lens obj))
+
+  (defn lens-set
+    "Put a value into a object"
+    [lens obj value]
+    (.set lens obj value))
+
+  ;(.alert window "******* ADD TRANSACTION SUPPORT TO LENSES *******")
+
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defmacro deflens-parser 
+    "Add a lens parser to the lens builder"
+    [predicate definition]
+    `(set! lens-parsers (conj lens-parsers {:predicate ~predicate :definition ~definition})))
+
+  (deflens-parser ;;; properties
+    #(named? %)
+    (fn
+      [prop]
+      (Lens.
+       (fn [obj] (aget obj prop))
+       (fn [obj val] (let [newObj (cond (dictionary? obj) (Object/assign (Object.) obj)
+                                        (vector? obj) (.slice obj))]
+                       (aset newObj prop val)
+                       newObj))
+       [prop])))
+
+  (deflens-parser ;;; transactions
+    #(and (sequential? %) (named (first %))  (== "transaction" (name (first %))))
+    (fn
+      [id]
+      (Lens.
+       (fn [trans] (tr-get trans id)
+         (fn [trans val] (tr-update val))
+         [`(transaction ~id)]))))
+
   (defmacro lens
     "Make a lens on some data"
+    [& ops]
+    (reduce (fn [l1 l2] (lens-compose l1 l2)) (map parse-lens ops)))
+
+  (defmacro lensX
     [& ops]
     (loop [ops ops
            result ()]
@@ -200,16 +285,16 @@ currentId: 0
                               newLens
                               `(lens-compose ~result ~newLens)))))))
 
-  (defn lens-get
-    "Get a value from an object"
-    [lens obj]
-    (.get lens obj))
-
-  (defn lens-set
-    "Put a value into a object"
-    [lens obj value]
-    (.set lens obj value))
 #+END_SRC
+*** Tests
+#+BEGIN_SRC wisp
+(lens a)
+#+END_SRC
+#+ERROR: 1, lens is not defined
+
+
+#+RESULTS:
+: 
 ** Transactions
 *** Transaction-> macro
 **** (transaction-> STATEMENT ...)
@@ -222,9 +307,9 @@ currentId: 0
 **** VAR <- (find INDEX ID)
 **** [VAR VALUE ...]
 **** (do STATEMENT ...) -- for side effects, return value is ignored
-*** Transaction-> custom s-exprs (not matching standard statements)
-**** transaction is passed in as first argument as with -> macro
-**** must return a (possibly new) transaction -- this is verified
+**** (custom func arg arg arg ...)
+***** func is given transaction as first arg
+***** must return either the given transaction or a child of it
 *** Examples
 #+BEGIN_SRC wisp
   ;(defCollab)
@@ -243,111 +328,273 @@ currentId: 0
     (transaction->
      (clearIndex "id")
      (tlet
-      [fred (transaction<-get "ExampleFred")]
+      [fred (tr-get "ExampleFred")]
       (let
           [name (:name fred)]
           (print name)
           (set! (:name fred) "Charles"))
       :then
-      (transaction<-update fred))))
+      (tr-update fred))))
+#+END_SRC
+*** Utilities
+#+BEGIN_SRC wisp :results def
+  (defn each-nested
+    "Do side effects over a nested list of vectors"
+    [func & items]
+    (.forEach (flatten items) func))
+
+  (defn flatten
+    "Flatten nested sequences"
+    [& items]
+    (let [result []
+          stack []]
+      (loop [item items]
+        (if (and (sequence? item) (not (string? item)) (not (imap? item)) (not (empty? item)))
+          (do
+            (.push stack (rest item))
+            (recur (first item)))
+          (do
+            (if (or (not (sequence? item)) (string? item))
+              (.push result item))
+            (if (empty? stack)
+              result
+              (recur (.pop stack))))))))
+#+END_SRC
+
+tests
+#+BEGIN_SRC wisp
+(= [1 2 3 4 5 6 7 8] (flatten [[1 2] [[3]] 4] 5 [6 [7 [8]]]))
 #+END_SRC
 *** Code
 #+BEGIN_SRC wisp :results def
   (defn- Transaction
-    "Transaction type"
-    [updates removes gets names]
-    (set! this.updates (or updates (imap [])))
-    (set! this.removes (or removes (iset [])))
-    (set! this.gets (or gets (imap [])))
-    (set! this.names (or names (imap [])))
+    "Transaction type:
+      parent - parent transaction
+      updates - map of id->object
+      removes - set of ids
+      gets - map of id->object
+      names - map of name->id"
+    [parent creates updates removes gets names indexer]
+    (set! this.parent parent)
+    (set! this.creates (or (and creates (imap creates)) (iset [])))
+    (set! this.updates (or (and updates (imap updates)) (imap {})))
+    (set! this.removes (or (and removes (iset removes)) (iset [])))
+    (set! this.gets (or (and gets (imap gets)) (imap {})))
+    (set! this.names (or (and names (imap names)) (imap {})))
+    (set! this.indexer (or indexer (.copy (:indexer data))))
     this)
+
+  (defn- tr-string
+    "Convert a transaction to a string (toString())"
+    []
+    (str "(transaction "
+         (JSON/stringify (.toObject (:creates this))) " "
+         (JSON/stringify (.toObject (:updates this))) " "
+         (JSON/stringify (.toArray (:removes this))) " "
+         (JSON/stringify (.toObject (:gets this))) " "
+         (JSON/stringify (.toObject (:names this)))
+         ")"))
+  (set! Transaction.prototype.toString tr-string)
 
   (set! Transaction.transactionNumber 0)
 
   (defn- tcopy
     "Copy a transaction"
-    [updates removes gets names]
+    [creates updates removes gets names indexer]
     (Transaction.
+     this
+     (or creates this.creates)
      (or updates this.updates)
      (or removes this.removes)
      (or gets this.gets)
-     (or names this.names)))
+     (or names this.names)
+     (or indexer this.indexer)))
   (set! Transaction.prototype.copy tcopy)
-
-  (defn each-nested
-    "Do side effects over a nested list of vectors"
-    [func & items]
-    (loop
-        [item (first items)
-         nextItems (rest items)]
-      (if (vector? item)
-        (recur (first item) (conj nextItems (rest item)))
-        (do
-          (func item)
-          (recur (first nextItems) (rest nextItems))))))
 
   (defn transaction
     "Create a transaction"
-    [] (Transaction.))
+    [creates updates removes gets names]
+    (Transaction. nil creates updates removes gets names))
 
-  (defn transaction<-update
+  (defn tr->json
+    "convert a transaction to JSON"
+    [trans]
+    {:creates (.toArray (:creates trans))
+     :updates (.toObject (:updates trans))
+     :removes (.toArray (:removes trans))
+     :gets (.toObject (:gets trans))
+     :names (.toObject (:names trans))})
+
+  (defn json->tr
+    "Create a transaction from a JSON representation"
+    [json]
+    (Transaction.
+     (iset (:creates json))
+     (imap (:updates json))
+     (iset (:removes json))
+     (imap (:gets json))
+     (imap (:names json))
+     (indexAll (:gets json) (:updates json))))
+
+  (defn indexAll
+    "Create indexer for dictionaries of blocks"
+    [& blockDicts]
+    (let [indexer (.copy (:indexer data))]
+      (doseq [dict blockDicts]
+        (doseq [key (keys dict)]
+          (let [block (aget dict key)]
+            (if (:keys block)
+              (set! indexer (.addBlockKey (:id block :key key)))))))
+      indexer))
+
+  (defn tr-update
     "Update or insert data"
     [trans & objects]
-    (.copy trans
-           (.withMutations
-            (:updates this)
-            (fn (map) (each-nested #(.set map (.-_id %) %) objects)))
-           (.delete (:removes this) (:_id object))))
-
-  (defn transaction<-remove
-    "Remove data"
-    [trans id]
-    (let [id (if (dictionary? id) (:_id id) id)]
+    (let [objects (flatten objects)
+          oldGets (:gets trans)
+          oldUpdates (:updates trans)
+          oldObjects (map #(.tr-get %) objects)]
+      debugger
       (.copy trans
-       (.delete (:updates this) id)
-       (.add (:removes this) id))))
+             (:creates trans)
+             (.withMutations ;;; updates
+              oldUpdates
+              (fn [map]
+                (doseq [item objects] (.set map (:_id item) item))
+                map))
+             (.withMutations ;;; removes
+              (:removes trans)
+              (fn [set]
+                (doseq [item objects] (.delete set item))
+                set))
+             nil ;;; gets
+             (.withMutations ;;; names
+              (:names trans)
+              (fn [map]
+                (doseq [item objects
+                        oldItem oldObjects]
+                  (let [name (:codeName item)
+                        oldName (and oldItem (:codeName oldItem))]
+                    (if (not (== name oldName))
+                      (if oldName
+                        (set! map (.delete map oldName)))
+                      (if name (.set map name (:_id item))))))
+                map))
+             (let [indexer (:indexer trans)] ;;; indexer
+               (doseq [item objects
+                       oldItem oldObjects]
+                 (if oldItem
+                   (doseq [key (.keysFor indexer oldItem)]
+                     (set! indexer (.deleteBlockKey key))))
+                 (doseq [key (.keysFor indexer item)]
+                   (set! indexer (.addBlockKey key))))
+               indexer))))
 
-  (defn transaction<-retrieve
-    "Retrieve data into the transaction, try by name first and then id."
-    [trans id]
-    (let [block (or (.getData data id) (.getBlock data id))
-          newSets (.set (:gets trans) (:_id block) block)
-          newNames (if (:codeName block)
-                     (.set (:names trans) (:codeName block) (:id block))
-                     (:names trans))]
-      (.copy trans null null newSets newNames)))
+  (defn tr-remove
+    "Remove data -- arguments can be names, ids, or objects"
+    [trans & things]
+    (let [updates (:updates trans)
+          creates (:creates trans)
+          items (map #(tr-get %) (filter #(.contains updates %) (flatten things)))
+          ids (map #(:_id %) items)]
+      (.copy trans
+             (.withMutations ;;; creates
+              creates
+              (fn [creates] (doseq [id ids] (.remove creates id))))
+             (.withMutations ;;; updates
+              updates
+              (fn [updates] (doseq [id ids] (.remove updates id))))
+             (.withMutations ;;; removes
+              (:removes trans)
+              (fn [removes]
+                (doseq [item (filter #(not (.contains creates %)) ids)]
+                  (.add removes item))))
+             nil ;;; gets
+             (.withMutations ;;; names
+              (:names trans)
+              (fn [names]
+                (doseq [item items]
+                  (let [id (:_id item)
+                        name (:codeName item)]
+                    (if name
+                      (.remove names name))))))
+             (let [indexer (:indexer trans)] ;;; indexer
+               (doseq [item items]
+                 (doseq [key (.keysFor indexer item)]
+                   (set! indexer (.deleteBlockKey key))))
+               indexer))))
 
-  (defn transaction<-retrieveAll
-    "Retrieve data for all of the ids into the transaction"
-    [trans ids]
-    ;(reduce retrieveIntoTransaction trans ids)
-    (reduce transaction<-retrieve trans ids))
+  (defn tr-read
+    "Read data into the transaction.
+    (tr-read trans ids) -> [newTransaction, data1, data2, ...]
+    (tr-read trans ids func) -> result of (func newTransaction, data1, data2, ...)
+    ids is can actually be a combination of names and ids"
+    ([trans ids func] (apply func (tr-read ids)))
+    ([trans ids]
+     (let [removes (:removes trans)
+           updates (:updates trans)
+           gets (:gets trans)
+           allIds (flattenIds)
+           filteredIds (filter #(tr-realId %) allIds)
+           filteredIds (filter #(and id (not (or (.contains removes %)
+                                                 (.contains updates %))) ids))
+           newGets (filter identity (map #(.getBlock data (or (.getNamedBlockId data %) %) filteredIds)))
+           named (filter #(:codeName %) newGets)
+           newTrans (if (empty? newGets)
+                      trans
+                      (.copy trans null null null
+                             (.withModifications
+                              (:gets trans)
+                              (fn [gets] (doseq [item newGets]
+                                           (.set gets (:_id item) item))))
+                             (if (empty? named)
+                               null
+                               (.withModifications
+                                (:names trans)
+                                (fn [names] (doseq [item named]
+                                              (.set names (:codeName item) (:_id item))))))))]
+       (let [result (map #(tr-get %) allIds)]
+         (.unshift result newTrans)
+         result))))
 
-  (defn transaction<-find
+  (defn tr-find
     "Find data in an index"
     [trans index key]
-    (.find data index key))
+    (tr-get trans func (.find (:indexer trans) index key)))
 
-  (defn transaction<-clearIndex [trans indexName]
-    (reduce remove trans (.find data indexName)))
+  (defn tr-clearIndex
+    "Remove data in an index"
+    [trans indexName]
+    (tr-remove trans (tr-find trans indexName)))
 
-  (defn transaction-get
-    "Access data in the transaction"
-    [trans id]
-    (.get (:gets trans) (or (.get (:names trans) id) id)))
+  (defn tr-realId
+    "Get real Id for a thing"
+    [trans thing]
+    (let [id (if (dictionary? thing) (:_id thing) thing)]
+      (and (string? id)
+           (or (.get (:names trans) id)
+               (.getNamedBlockId data id)
+               id))))
 
-  (defn transaction-accessAll
-    "Access all requested data in the transaction"
-    [trans ids]
-    (map #(transaction-access trans %) ids))
+  (defn tr-get
+    "Get a thing"
+    [trans thing]
+    (let [id (tr-realId thing)]
+      (and id
+           (not (.contains (:removes trans) id))
+           (or (.get (:updates trans) id)
+               (.get (:gets trans id))))))
 
-  (defn transaction-check
+  (defn tr-check
     "If an object is a transaction, return it, otherwise raise an error"
-    [trans]
-    (if (instance? Transaction trans) trans
-        (throw (Error. (str "Object returned in transaction-> is not a Transaction: " trans)))))
+    [value errMsg]
+    (if (instance? Transaction value) value
+        (let [err (Error. (str errMsg value))]
+          (.error window.console errMsg value)
+          (.error window.console err)
+          (throw err))))
 
-  (defn transaction-valid?
+  (defn tr-valid?
     "Verify that all of a transaction's gets are still valid"
     [trans]
     (every (fn [block]
@@ -356,22 +603,121 @@ currentId: 0
                     (== (:text block) (:text curBlock)))))
            (values (:gets trans))))
 
-  (defn transaction-commit
+  (defn tr-commit
     "Commit a transaction"
     [trans]
+    (tr-check trans "Attempt to commit an object that is not a transaction: ")
     (doseq [update (:updates trans)]
       (.baseSetData data update (:codeAttributes update)))
     (doseq [del (:removes trans)]
       (.baseRemoveData data del)))
 #+END_SRC
-*** Transaction macro
+*** Transaction macro examples
+**** get usages
+#+BEGIN_SRC wisp
+  (transaction-> (Transaction.)
+   [a b c] <- (get "bob" "fred" "joe")
+   (do (print a b c))
+   ...)
+#+END_SRC
+**** get generated code
+#+BEGIN_SRC wisp
+(let [T1 (transaction)
+      RETRIEVE (tr-retrieve T1 "bob" "fred" "joe")
+      T2 (aget RETRIEVE 0)
+      a (aget RETRIEVE 1)
+      b (aget RETRIEVE 2)
+      c (aget RETRIEVE 3)]
+  (print a b c)
+  ...)
+#+END_SRC
+**** update usages
+#+BEGIN_SRC wisp
+  (transaction-> (Transaction.)
+   (update a b c)
+   ...)
+#+END_SRC
+**** update generated code
+#+BEGIN_SRC wisp
+********************
+#+END_SRC
+**** custom usages
+#+BEGIN_SRC wisp
+(transaction-> (Transaction.)
+  (custom frobnicate x y z)
+  ...)
+#+END_SRC
+**** custom generated code
+#+BEGIN_SRC wisp
+  (let [T1 (transaction)
+        T2 (tr-check (frobnicate T1 x y z))]
+    ...)
+#+END_SRC
+*** Transaction macro code
+#+BEGIN_SRC wisp :results def
+  (defn insert-arg
+    "Insert an item as the first arg in an expr"
+    [arg expr]
+    (if (seq? expr)
+      (cons (first expr) (cons arg (rest expr)))
+      (list expr arg)))
+
+  (defn filter-lets
+    "Arrow through transaction exprs using let bindings"
+    [body func]
+    (let [vars []]
+      (loop [exprs body
+             lastExpr nil
+             lastVar nil]
+        (if (empty? exprs)
+          (if (empty? vars) (or lastExpr lastVar) `(let ~vars ~lastExpr))
+          (let [expr (first exprs)
+                expr (if lastVar
+                       (insert-arg lastVar expr)
+                       expr)
+                expr (if func (func expr) expr)]
+            (if lastExpr (.push vars lastVar lastExpr))
+            (recur (rest exprs)
+                   (if (or lastVar func) expr)
+                   (if (or lastVar func)
+                     (gensym)
+                     expr)))))))
+
+  (def transactionArrowErrMsg
+    "transaction-> expression returned an object that is not a transaction: ")
+#+END_SRC
+
 #+BEGIN_SRC wisp :results def
   (defmacro transaction->
-    "Do expressions with a new transaction"
+    "Arrow through transaction exprs, verifying that each value is a transaction"
     [& body]
-    (let [body (reverse body)
-          altered (reduce (fn [result x] (cons x (cons '(transaction-check) result))) () body)]
-      `(-> (Transaction.) trans ~@altered)))
+    (filter-lets body #(list 'tr-check % 'transactionArrowErrMsg)))
+
+  (defmacro do->
+    "Do side effects and return the result of the first expression"
+    [expr & body]
+    (if (empty? body)
+      expr
+      (let [name (gensym)]
+        `(let [~name ~expr]
+           ~@body
+           ~name))))
+#+END_SRC
+*** Transaction macro tests
+#+BEGIN_SRC wisp
+(macroexpand '(transaction->))
+(macroexpand '(transaction-> a))
+(macroexpand '(transaction-> a b))
+(macroexpand '(transaction-> a b (c d)))
+(macroexpand '(side-effects a b c))
+#+END_SRC
+*** Example code
+#+BEGIN_SRC wisp
+  (tr-commit
+   (transaction-> (Transaction.)
+    (tr-read ["fred" "bob"]
+             (fn [trans fred bob]
+               (aset (:))))))
 #+END_SRC
 * GUI
 :properties:
@@ -459,6 +805,10 @@ currentId: 0
 :namespace: mud.core
 :end:
 * Utilites
+* NOTES
+** Unit testing
+*** Make doc for each test dungeon
+*** Import mud.org (hopefully nested imports work)
 * Data
 :properties:
 :name: data-items

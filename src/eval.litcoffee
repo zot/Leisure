@@ -258,7 +258,9 @@ Evaulation support for Leisure
           ': ' + (dump items, {sortKeys: true, flowLevel: Number block.codeAttributes.flowlevel ? 2}).trim().replace(/\n/g, '\n: ') + '\n'
         else prefix + _.map(items, presentHtml).join ''
 
-      writeValues = (env, values)-> env.write values.join '\n'
+      arrayify = (val)-> if _.isArray(val) then val else [val]
+
+      writeResults = (env, values)-> env.write arrayify(values).join '\n'
 
       defaultEnv.formatResult = (block, prefix, items)-> basicFormat block, prefix, items
 
@@ -283,7 +285,7 @@ Evaulation support for Leisure
       jsEnv = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
           new Promise((succeed)->
-            writeValues env, value = jsEval(env, text)
+            writeResults env, value = jsEval(env, text)
             succeed value
             cont? value).catch (err)=>
               @errorAt 0, err.message
@@ -424,18 +426,16 @@ Evaulation support for Leisure
           try
             console = log: (str)=> env.write env.presentValue str
             value = setLounge env, -> eval(lispyScript._compile(text));
-            if typeof value != 'undefined' then writeValues env, [value]
+            if typeof value != 'undefined' then writeResults env, [value]
           catch err
             @errorAt 0, err.message
           cont? value
         env
 
-      arrayify = (val)-> if _.isArray(val) then val else [val]
-
       csEnv = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
           new Promise((succeed)=>
-            writeValues env, values = arrayify(@runWith {}, eval "(function(){#{@blockCode text, null, null, null, true}})")
+            writeResults env, values = (@runWith {}, eval "(function(){#{@blockCode text, null, null, null, true}})")
             succeed values ? []
             cont? values ? []).catch (err)->
               console.error err.stack ? err
@@ -545,6 +545,8 @@ Evaulation support for Leisure
         executeBlock: null
         generateCode: null
         compileBlock: null
+
+<span id="Scope">Scope class</span>
 
       class Scope
         constructor: ->
@@ -702,4 +704,5 @@ Evaulation support for Leisure
         autoLoadEnv
         Scope
         lineColumnStrOffset
+        writeResults
       }

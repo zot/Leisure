@@ -6,7 +6,7 @@
   define.amd = true;
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree) {
-    var Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, envTemplate, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeValues, yamlEnv;
+    var Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, envTemplate, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
     acornLoose = AcornLoose;
@@ -418,8 +418,15 @@
         return prefix + _.map(items, presentHtml).join('');
       }
     };
-    writeValues = function(env, values) {
-      return env.write(values.join('\n'));
+    arrayify = function(val) {
+      if (_.isArray(val)) {
+        return val;
+      } else {
+        return [val];
+      }
+    };
+    writeResults = function(env, values) {
+      return env.write(arrayify(values).join('\n'));
     };
     defaultEnv.formatResult = function(block, prefix, items) {
       return basicFormat(block, prefix, items);
@@ -454,7 +461,7 @@
           return function() {
             return new Promise(function(succeed) {
               var value;
-              writeValues(env, value = jsEval(env, text));
+              writeResults(env, value = jsEval(env, text));
               succeed(value);
               return typeof cont === "function" ? cont(value) : void 0;
             })["catch"](function(err) {
@@ -710,7 +717,7 @@
                 return eval(lispyScript._compile(text));
               });
               if (typeof value !== 'undefined') {
-                writeValues(env, [value]);
+                writeResults(env, [value]);
               }
             } catch (error) {
               err = error;
@@ -722,20 +729,13 @@
       };
       return env;
     };
-    arrayify = function(val) {
-      if (_.isArray(val)) {
-        return val;
-      } else {
-        return [val];
-      }
-    };
     csEnv = function(env) {
       env.executeText = function(text, props, cont) {
         return setLounge(this, (function(_this) {
           return function() {
             return new Promise(function(succeed) {
               var values;
-              writeValues(env, values = arrayify(_this.runWith({}, eval("(function(){" + (_this.blockCode(text, null, null, null, true)) + "})"))));
+              writeResults(env, values = _this.runWith({}, eval("(function(){" + (_this.blockCode(text, null, null, null, true)) + "})")));
               succeed(values != null ? values : []);
               return typeof cont === "function" ? cont(values != null ? values : []) : void 0;
             })["catch"](function(err) {
@@ -1162,7 +1162,8 @@
       getLeisurePromise: getLeisurePromise,
       autoLoadEnv: autoLoadEnv,
       Scope: Scope,
-      lineColumnStrOffset: lineColumnStrOffset
+      lineColumnStrOffset: lineColumnStrOffset,
+      writeResults: writeResults
     };
   });
 

@@ -1,12 +1,13 @@
 Clojure support for Lounge
 
-    define ['./eval', './docOrg', 'bluebird', './gen', 'immutable', './editor', './editorSupport', 'acorn'], (Eval, DocOrg, Bluebird, Gen, Immutable, Editor, EditorSupport, Acorn)->
+    define ['./eval', './docOrg', 'bluebird', './gen', 'immutable', './editor', './editorSupport', 'acorn', 'lodash', 'jquery'], (Eval, DocOrg, Bluebird, Gen, Immutable, Editor, EditorSupport, Acorn, _, $)->
       {
         setLounge
         parseIt
         jsCodeFor
         Scope
         lineColumnStrOffset
+        presentHtml
       } = Eval
       {
         blockSource
@@ -27,11 +28,17 @@ Clojure support for Lounge
       modules =
         immutable: Immutable
         eval: Eval
-        docOrg: DocOrg
+        "doc-org": DocOrg
         editor: Editor
-        editorSupport: EditorSupport
+        "editor-support": EditorSupport
+        lodash: _
+        jquery: $
 
       class WispScope extends Scope
+        constructor: (nsName)->
+          super()
+          @_ns_ = id: nsName
+          @exports = {}
         wispEval: (s)->
           try
             Leisure.wispScope = this
@@ -40,19 +47,13 @@ Clojure support for Lounge
             Leisure.wispScope = null
 
       wispRequire = (s, base)->
-        s = new URL(s, 'http://x\/' + base.replace(/\./g, "\/")).pathname.replace(/^\//, '').replace '\/', '.'
-        findNs(s) || modules[s]
+        s = new URL(s, 'http://x\/' + base.replace(/\./g, "\/")).pathname.replace(/^\//, '').replace /\//g, '.'
+        _.get(modules, s) || findNs(s).exports
 
       findNs = (nsName, create)->
-        scope = Leisure.WispNS
-        for comp in nsName.split '.'
-          if !scope? then return null
-          else if !scope[comp]
-            if create then scope[comp] = new WispScope
-            else return null
-          scope = scope[comp]
-        if create && !scope._ns_ then scope._ns_ =
-          id: nsName
+        scope = _.get Leisure.WispNS, nsName
+        if !scope && create
+          _.set Leisure.WispNS, nsName, scope = new WispScope nsName
         scope
 
       wp = null
@@ -64,7 +65,7 @@ Clojure support for Lounge
           req = window.require
           window.require = null
           requirejs ['lib/wisp'], (W)->
-            Leisure.Wisp = Leisure.WispNS.wisp = Wisp = W
+            Leisure.Wisp = modules.wisp = Wisp = W
             {translateIdentifierWord} = W.backend.escodegen.writer
             baseWispCompile = Wisp.compiler.compile
             window.require = req
@@ -89,7 +90,7 @@ Clojure support for Lounge
                       nsName (if nsObj (:id nsObj))
                       ns (or Leisure.wispScope (and *ns* (Leisure.wispFindNs nsName)))
                       wrapped (if ns
-                                (str \"(function(){var exports = Leisure.WispNS.\" (:id (:_ns_ ns)) \"; return \" code \";})()\")
+                                (str \"(function(){var exports = Leisure.WispNS.\" (:id (:_ns_ ns)) \".exports; return \" code \";})()\")
                                 code)
                       macro (if ns
                               (.eval ns wrapped)
@@ -155,8 +156,8 @@ Compile Wisp code, optionally in a namespace.
                   names[translateIdentifierWord (ref.rename ? ref.name).name] = true
             nsObj.newNames _.keys names
             if needsExports
-              if @wrapFunction then @reqs += "exports = exports || window.Leisure.WispNS.#{@nsName};\n"
-              else @reqs += "var exports = window.Leisure.WispNS.#{@nsName};\n"
+              if @wrapFunction then @reqs += "exports = exports || window.Leisure.WispNS.#{@nsName}.exports;\n"
+              else @reqs += "var exports = window.Leisure.WispNS.#{@nsName}.exports;\n"
             if @result.ast[0].require then @reqs += """
               var require = function(s) {
                 return Leisure.wispRequire(s, '#{translateIdentifierWord @nsName}');
@@ -210,8 +211,9 @@ Compile Wisp code, optionally in a namespace.
           if addReturn
             addReturn = lastLoc = _.last _.filter(_.map(@result.ast, (n, i)=> if !(n.op in ['def', 'ns']) && n.form then @result['js-ast'].body[i].loc?.start), identity)
           prevLoc = line: 1, column: 0
+          prevLocCode = null
           nodes.walk (code, loc)=>
-            if loc?.line then prevLoc = loc
+            if loc?.line && (loc.line > prevLoc.line || loc.column > prevLoc.column) then prevLoc = loc
             if code.match /\/\/# sourceMappingURL=/
               foundEnd = true
               code = code.replace /\/\/# sourceMappingURL=.*/, ''
@@ -231,12 +233,15 @@ Compile Wisp code, optionally in a namespace.
                 code = code.replace /^ *var /g, ' '
               else if !declaredNs && @declaresNs && code.match /^ *var/
                 code = code.replace /^ *var /g, ' '
-            if startedPush && loc.line? && ((loc.line > exprs[exprPos].end.line) || (loc.line == exprs[exprPos].end.line && loc.column > exprs[exprPos].end.column))
+            #closeLoc = (!loc.line? && code.match(/^void 0;/) && prevLoc) || loc
+            closeLoc = (loc.line? && loc) || prevLoc
+            if startedPush && closeLoc.line? && ((closeLoc.line > exprs[exprPos].end.line) || (closeLoc.line == exprs[exprPos].end.line && (code.match(/^void 0;/) || closeLoc.column > exprs[exprPos].end.column)))
               startedPush = false
-              if prevCode?.node
-                c = prevCode.node.children[0]
+              node = (prevNonVoid || prevCode)
+              if node?.node
+                c = node.node.children[0]
                 c2 = c.replace(/;([ \n]*)$/, ');$1')
-              if prevCode.node && c != c2 then prevCode.node.children[0] = c2
+              if node.node && c != c2 then node.node.children[0] = c2
               else code = code.replace(/;([ \n]*)$/, ');$1')
               exprPos++
             if @returnList && !startedPush && (loc.line > exprs[exprPos]?.start.line || (loc.line == exprs[exprPos]?.start.line && loc.column >= exprs[exprPos].start.column))
@@ -256,7 +261,12 @@ Compile Wisp code, optionally in a namespace.
             else
               @gennedNs = true
               tail.push node
-            if code.trim() then prevCode = {code, loc, node}
+            if code.trim()
+              prevCode = {code, loc, node}
+              if !code.match /^void 0;/ then prevNonVoid = prevCode
+              if loc.line? && (loc.line > prevLoc || (loc.line == prevLoc && loc.column > prevLoc.column))
+                prevLoc = loc
+                prevLocCode = prevCode
           file = (_.find nodes.children, (n)-> n instanceof SourceNode)?.source
           children = [head, new SourceNode(1, 0, file, @splice), tail]
           if returnNode
@@ -323,6 +333,8 @@ Compile Wisp code, optionally in a namespace.
         lineColumnStrOffset(src, line, column) + (originalSrc ? src).length - src.length
 
       envFunc = (env)->
+        env.presentHtml = (str)->
+          presentHtml str.replace(/\uFEFF/g, '').replace(/\uA789/g, ':').replace(/\u2044/g, '\/')
         env.executeText = (text, props, cont)-> setLounge this, =>
           result = [Leisure.wispEval(text)]
           if cont then cont result else result

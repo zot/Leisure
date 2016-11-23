@@ -4,9 +4,9 @@
     hasProp = {}.hasOwnProperty,
     slice = [].slice;
 
-  define(['./eval', './docOrg', 'bluebird', './gen', 'immutable', './editor', './editorSupport', 'acorn'], function(Eval, DocOrg, Bluebird, Gen, Immutable, Editor, EditorSupport, Acorn) {
-    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, WispScope, atOrAfter, baseFindExports, blockSource, codeOffset, compile, envFunc, findExports, findNs, jsCodeFor, lastExportLoc, lineColumnStrOffset, modules, parseIt, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
-    setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset;
+  define(['./eval', './docOrg', 'bluebird', './gen', 'immutable', './editor', './editorSupport', 'acorn', 'lodash', 'jquery'], function(Eval, DocOrg, Bluebird, Gen, Immutable, Editor, EditorSupport, Acorn, _, $) {
+    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, WispScope, atOrAfter, baseFindExports, blockSource, codeOffset, compile, envFunc, findExports, findNs, jsCodeFor, lastExportLoc, lineColumnStrOffset, modules, parseIt, presentHtml, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
+    setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset, presentHtml = Eval.presentHtml;
     blockSource = DocOrg.blockSource;
     Promise = Bluebird.Promise;
     SourceNode = Gen.SourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator;
@@ -21,15 +21,21 @@
     modules = {
       immutable: Immutable,
       "eval": Eval,
-      docOrg: DocOrg,
+      "doc-org": DocOrg,
       editor: Editor,
-      editorSupport: EditorSupport
+      "editor-support": EditorSupport,
+      lodash: _,
+      jquery: $
     };
     WispScope = (function(superClass) {
       extend(WispScope, superClass);
 
-      function WispScope() {
-        return WispScope.__super__.constructor.apply(this, arguments);
+      function WispScope(nsName) {
+        WispScope.__super__.constructor.call(this);
+        this._ns_ = {
+          id: nsName
+        };
+        this.exports = {};
       }
 
       WispScope.prototype.wispEval = function(s) {
@@ -45,30 +51,14 @@
 
     })(Scope);
     wispRequire = function(s, base) {
-      s = new URL(s, 'http://x\/' + base.replace(/\./g, "\/")).pathname.replace(/^\//, '').replace('\/', '.');
-      return findNs(s) || modules[s];
+      s = new URL(s, 'http://x\/' + base.replace(/\./g, "\/")).pathname.replace(/^\//, '').replace(/\//g, '.');
+      return _.get(modules, s) || findNs(s).exports;
     };
     findNs = function(nsName, create) {
-      var comp, j, len, ref1, scope;
-      scope = Leisure.WispNS;
-      ref1 = nsName.split('.');
-      for (j = 0, len = ref1.length; j < len; j++) {
-        comp = ref1[j];
-        if (scope == null) {
-          return null;
-        } else if (!scope[comp]) {
-          if (create) {
-            scope[comp] = new WispScope;
-          } else {
-            return null;
-          }
-        }
-        scope = scope[comp];
-      }
-      if (create && !scope._ns_) {
-        scope._ns_ = {
-          id: nsName
-        };
+      var scope;
+      scope = _.get(Leisure.WispNS, nsName);
+      if (!scope && create) {
+        _.set(Leisure.WispNS, nsName, scope = new WispScope(nsName));
       }
       return scope;
     };
@@ -81,7 +71,7 @@
         window.require = null;
         return requirejs(['lib/wisp'], function(W) {
           var baseWispCompile, exports, newMacroDef;
-          Leisure.Wisp = Leisure.WispNS.wisp = Wisp = W;
+          Leisure.Wisp = modules.wisp = Wisp = W;
           translateIdentifierWord = W.backend.escodegen.writer.translateIdentifierWord;
           baseWispCompile = Wisp.compiler.compile;
           window.require = req;
@@ -97,7 +87,7 @@
           Leisure.wispCompilePrim = wispCompile;
           Leisure.wispCompileBase = baseWispCompile;
           exports = Leisure.WispNS.lounge.tools;
-          newMacroDef = wispCompile("(defn expand-defmacro\n  \"Like defn, but the resulting function name is declared as a\n  macro and will be used as a macro by the compiler when it is\n  called.\"\n  [&form id & body]\n  (let [fn (with-meta `(defn ~id ~@body) (meta &form))\n        form `(do ~fn ~id)\n        ast (analyze form)\n        code (compile ast)\n        nsObj (or (and Leisure.wispScope Leisure.wispScope.*ns*) *ns*)\n        nsName (if nsObj (:id nsObj))\n        ns (or Leisure.wispScope (and *ns* (Leisure.wispFindNs nsName)))\n        wrapped (if ns\n                  (str \"(function(){var exports = Leisure.WispNS.\" (:id (:_ns_ ns)) \"; return \" code \";})()\")\n                  code)\n        macro (if ns\n                (.eval ns wrapped)\n                (eval code))]\n\n  (if window.DEBUG_WISP (do debugger 3))\n\n\n    (install-macro! id macro)\n    nil))\n(install-macro! 'defmacro (with-meta expand-defmacro {:implicit [:&form]}))");
+          newMacroDef = wispCompile("(defn expand-defmacro\n  \"Like defn, but the resulting function name is declared as a\n  macro and will be used as a macro by the compiler when it is\n  called.\"\n  [&form id & body]\n  (let [fn (with-meta `(defn ~id ~@body) (meta &form))\n        form `(do ~fn ~id)\n        ast (analyze form)\n        code (compile ast)\n        nsObj (or (and Leisure.wispScope Leisure.wispScope.*ns*) *ns*)\n        nsName (if nsObj (:id nsObj))\n        ns (or Leisure.wispScope (and *ns* (Leisure.wispFindNs nsName)))\n        wrapped (if ns\n                  (str \"(function(){var exports = Leisure.WispNS.\" (:id (:_ns_ ns)) \".exports; return \" code \";})()\")\n                  code)\n        macro (if ns\n                (.eval ns wrapped)\n                (eval code))]\n\n  (if window.DEBUG_WISP (do debugger 3))\n\n\n    (install-macro! id macro)\n    nil))\n(install-macro! 'defmacro (with-meta expand-defmacro {:implicit [:&form]}))");
           eval("(function() {\n  var symbol = Leisure.Wisp.ast.symbol;\n  var meta = Leisure.Wisp.ast.meta;\n  var withMeta = Leisure.Wisp.ast.withMeta;\n  var gensym = Leisure.Wisp.ast.gensym;\n  var installMacro = Leisure.Wisp.expander.installMacro;\n  var list = Leisure.Wisp.sequence.list;\n  var vec = Leisure.Wisp.sequence.vec;\n  var analyze = Leisure.Wisp.analyzer.analyze;\n  var compile = Leisure.Wisp.backend.escodegen.writer.compile;\n\n  " + newMacroDef.code + "\n})()");
           return resolve(wispCompile);
         });
@@ -159,9 +149,9 @@
           nsObj.newNames(_.keys(names));
           if (needsExports) {
             if (this.wrapFunction) {
-              this.reqs += "exports = exports || window.Leisure.WispNS." + this.nsName + ";\n";
+              this.reqs += "exports = exports || window.Leisure.WispNS." + this.nsName + ".exports;\n";
             } else {
-              this.reqs += "var exports = window.Leisure.WispNS." + this.nsName + ";\n";
+              this.reqs += "var exports = window.Leisure.WispNS." + this.nsName + ".exports;\n";
             }
           }
           if (this.result.ast[0].require) {
@@ -194,7 +184,7 @@
       };
 
       Compiler.prototype.scanNodes = function() {
-        var addReturn, children, code, con, declaredNs, destroyingExport, exprPos, exprs, file, foundEnd, head, inExpr, lastChildren, lastCode, lastLoc, nodes, prevCode, prevLoc, ref1, ref2, ref3, returnNode, splicedResult, startedPush, tail;
+        var addReturn, children, code, con, declaredNs, destroyingExport, exprPos, exprs, file, foundEnd, head, inExpr, lastChildren, lastCode, lastLoc, nodes, prevCode, prevLoc, prevLocCode, ref1, ref2, ref3, returnNode, splicedResult, startedPush, tail;
         if (this.returnList) {
           exprs = _.filter(_.map(this.result.ast, (function(_this) {
             return function(n, i) {
@@ -240,10 +230,11 @@
           line: 1,
           column: 0
         };
+        prevLocCode = null;
         nodes.walk((function(_this) {
           return function(code, loc) {
-            var c, c2, node, ref1, ref2, usedPrev;
-            if (loc != null ? loc.line : void 0) {
+            var c, c2, closeLoc, node, prevNonVoid, ref1, ref2, usedPrev;
+            if ((loc != null ? loc.line : void 0) && (loc.line > prevLoc.line || loc.column > prevLoc.column)) {
               prevLoc = loc;
             }
             if (code.match(/\/\/# sourceMappingURL=/)) {
@@ -273,14 +264,16 @@
                 code = code.replace(/^ *var /g, ' ');
               }
             }
-            if (startedPush && (loc.line != null) && ((loc.line > exprs[exprPos].end.line) || (loc.line === exprs[exprPos].end.line && loc.column > exprs[exprPos].end.column))) {
+            closeLoc = ((loc.line != null) && loc) || prevLoc;
+            if (startedPush && (closeLoc.line != null) && ((closeLoc.line > exprs[exprPos].end.line) || (closeLoc.line === exprs[exprPos].end.line && (code.match(/^void 0;/) || closeLoc.column > exprs[exprPos].end.column)))) {
               startedPush = false;
-              if (prevCode != null ? prevCode.node : void 0) {
-                c = prevCode.node.children[0];
+              node = prevNonVoid || prevCode;
+              if (node != null ? node.node : void 0) {
+                c = node.node.children[0];
                 c2 = c.replace(/;([ \n]*)$/, ');$1');
               }
-              if (prevCode.node && c !== c2) {
-                prevCode.node.children[0] = c2;
+              if (node.node && c !== c2) {
+                node.node.children[0] = c2;
               } else {
                 code = code.replace(/;([ \n]*)$/, ');$1');
               }
@@ -312,11 +305,18 @@
               tail.push(node);
             }
             if (code.trim()) {
-              return prevCode = {
+              prevCode = {
                 code: code,
                 loc: loc,
                 node: node
               };
+              if (!code.match(/^void 0;/)) {
+                prevNonVoid = prevCode;
+              }
+              if ((loc.line != null) && (loc.line > prevLoc || (loc.line === prevLoc && loc.column > prevLoc.column))) {
+                prevLoc = loc;
+                return prevLocCode = prevCode;
+              }
             }
           };
         })(this));
@@ -429,6 +429,9 @@
       return lineColumnStrOffset(src, line, column) + (originalSrc != null ? originalSrc : src).length - src.length;
     };
     envFunc = function(env) {
+      env.presentHtml = function(str) {
+        return presentHtml(str.replace(/\uFEFF/g, '').replace(/\uA789/g, ':').replace(/\u2044/g, '\/'));
+      };
       env.executeText = function(text, props, cont) {
         return setLounge(this, (function(_this) {
           return function() {

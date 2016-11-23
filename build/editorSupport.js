@@ -6,13 +6,13 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
-    var BasicEditingOptions, CodeContext, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addSelectionBubble, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, modifyingKey, monitorSelectionChange, orgDoc, parseOrgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, sanitize, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet;
+    var BasicEditingOptions, CodeContext, DataIndexer, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addSelectionBubble, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, getYaml, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, modifyingKey, monitorSelectionChange, orgDoc, parseOrgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, sanitize, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet, writeResults;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock, parseYaml = DocOrg.parseYaml;
     Nil = Ast.Nil;
     ajaxGet = Utilities.ajaxGet;
-    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, presentHtml = Eval.presentHtml, setLounge = Eval.setLounge, blockVars = Eval.blockVars, blocksObserved = Eval.blocksObserved, hasCodeAttribute = Eval.hasCodeAttribute, isYamlResult = Eval.isYamlResult, escapeString = Eval.escapeString;
+    languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, presentHtml = Eval.presentHtml, setLounge = Eval.setLounge, blockVars = Eval.blockVars, blocksObserved = Eval.blocksObserved, hasCodeAttribute = Eval.hasCodeAttribute, isYamlResult = Eval.isYamlResult, escapeString = Eval.escapeString, writeResults = Eval.writeResults;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, BasicEditingOptions = Editor.BasicEditingOptions, modifyingKey = Editor.modifyingKey;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr;
@@ -89,21 +89,7 @@
       OrgData.prototype.initializeLocalData = function() {
         this.namedBlocks = {};
         this.localBlocks = {};
-        this.indexes = FingerTree.fromArray([], {
-          identity: function() {
-            return [];
-          },
-          measure: function(v) {
-            return v.key;
-          },
-          sum: function(a, b) {
-            if (compareSorted(a, b) < 1) {
-              return b;
-            } else {
-              return a;
-            }
-          }
-        });
+        this.indexer = new DataIndexer();
         this.imported = {
           css: {},
           view: {},
@@ -537,40 +523,20 @@
       };
 
       OrgData.prototype.checkIndexChange = function(oldBlock, newBlock, isDefault) {
-        var index, j, k, key, l, len, len1, ref, ref1, ref2, ref3, ref4, results1, yaml;
+        var j, k, key, keys, l, len, len1, ref, ref1, ref2, ref3, results1;
         if (newBlock) {
-          if ((index = (ref = newBlock.codeAttributes) != null ? ref.index : void 0) && (yaml = this.getYaml(newBlock))) {
-            newBlock.keys = ((function() {
-              var j, len, ref1, results1;
-              ref1 = (function() {
-                var l, len, ref1, results2;
-                ref1 = index.split(',');
-                results2 = [];
-                for (l = 0, len = ref1.length; l < len; l++) {
-                  k = ref1[l];
-                  results2.push(k.trim().split(keySplitPat));
-                }
-                return results2;
-              })();
-              results1 = [];
-              for (j = 0, len = ref1.length; j < len; j++) {
-                key = ref1[j];
-                if (key.length === 2) {
-                  results1.push([key[0].trim(), key[1].trim(), newBlock._id]);
-                }
-              }
-              return results1;
-            })()).sort(compareSorted);
+          if (keys = this.indexer.keysFor(newBlock)) {
+            newBlock.keys = keys;
           } else {
             delete newBlock.keys;
           }
         }
         if (!(_.isEqual(newBlock != null ? newBlock.keys : void 0, oldBlock != null ? oldBlock.keys : void 0))) {
           if (oldBlock != null ? oldBlock.keys : void 0) {
-            k = (ref1 = newBlock != null ? newBlock.keys : void 0) != null ? ref1 : [];
-            ref2 = oldBlock.keys;
-            for (j = 0, len = ref2.length; j < len; j++) {
-              key = ref2[j];
+            k = (ref = newBlock != null ? newBlock.keys : void 0) != null ? ref : [];
+            ref1 = oldBlock.keys;
+            for (j = 0, len = ref1.length; j < len; j++) {
+              key = ref1[j];
               if (!(indexOf.call(k, key) >= 0)) {
                 this.deleteBlockKey({
                   id: oldBlock._id,
@@ -580,11 +546,11 @@
             }
           }
           if (newBlock.keys) {
-            k = (ref3 = oldBlock != null ? oldBlock.keys : void 0) != null ? ref3 : [];
-            ref4 = newBlock.keys;
+            k = (ref2 = oldBlock != null ? oldBlock.keys : void 0) != null ? ref2 : [];
+            ref3 = newBlock.keys;
             results1 = [];
-            for (l = 0, len1 = ref4.length; l < len1; l++) {
-              key = ref4[l];
+            for (l = 0, len1 = ref3.length; l < len1; l++) {
+              key = ref3[l];
               if (!(indexOf.call(k, key) >= 0)) {
                 results1.push(this.addBlockKey({
                   id: newBlock._id,
@@ -598,42 +564,15 @@
       };
 
       OrgData.prototype.addBlockKey = function(k) {
-        var first, ref, rest;
-        ref = this.indexes.split(function(m) {
-          return m >= k.key;
-        }), first = ref[0], rest = ref[1];
-        return this.indexes = first.concat(rest.addFirst(k));
+        return this.indexer.addBlockKey(k);
       };
 
       OrgData.prototype.deleteBlockKey = function(k) {
-        var first, found, r, ref, rest;
-        ref = this.indexes.split(function(m) {
-          return m === k.key;
-        }), first = ref[0], rest = ref[1];
-        r = rest;
-        while (!r.isEmpty() && (found = r.peekFirst() && found.key === k.key && found.id === k.id)) {
-          r = r.removeFirst();
-        }
-        if (r !== rest) {
-          return this.indexes = first.concat(rest);
-        }
+        return this.indexer.deleteBlockKey(k);
       };
 
       OrgData.prototype.find = function(index, key) {
-        var first, k, ref, rest, result;
-        k = [index];
-        result = [];
-        if (key) {
-          k.push(key);
-        }
-        ref = this.indexes.split(function(m) {
-          return compareSorted(k, m) < 1;
-        }), first = ref[0], rest = ref[1];
-        while (!rest.isEmpty() && isPrefix(k, rest.peekFirst().key)) {
-          result.push(rest.peekFirst().id);
-          rest = rest.removeFirst();
-        }
-        return result;
+        return this.indexer.find(index, key);
       };
 
       OrgData.prototype.queueEval = function(func) {
@@ -1152,16 +1091,20 @@
           }
         });
         if (env.executeBlock) {
-          return env.executeBlock(block);
+          return env.executeBlock(block, function(r) {
+            return writeResults(env, r);
+          });
         } else if (code = this.getCode(block)) {
           if (code instanceof Promise) {
             return code.then(function(func) {
               return setLounge(env, function() {
-                return func.call(env);
+                return writeResults(env, func.call(env));
               });
             });
           } else {
-            return setLounge(env, code);
+            return setLounge(env, function() {
+              return writeResults(env, code());
+            });
           }
         } else {
           return this.oldExecuteBlock(block, envConf);
@@ -1316,9 +1259,7 @@
       };
 
       OrgData.prototype.getYaml = function(block) {
-        var firstResult, ref, ref1, results;
-        block = this.getBlock(block);
-        return (ref = block.yaml) != null ? ref : (block.yaml = isYamlResult(block) ? ((ref1 = blockCodeItems(this, block), results = ref1.results, ref1), results ? (firstResult = results.text.indexOf('\n') + 1, parseYaml(results.text.substring(firstResult).replace(/(^|\n): /gm, '$1'))) : void 0) : null);
+        return getYaml(this.getBlock(block));
       };
 
       OrgData.prototype.getCode = function(block, env) {
@@ -1601,6 +1542,103 @@
       return OrgData;
 
     })(DataStore);
+    DataIndexer = (function() {
+      function DataIndexer(indexes) {
+        this.indexes = indexes;
+        if (!this.indexes) {
+          this.indexes = FingerTree.fromArray([], {
+            identity: function() {
+              return [];
+            },
+            measure: function(v) {
+              return v.key;
+            },
+            sum: function(a, b) {
+              if (compareSorted(a, b) < 1) {
+                return b;
+              } else {
+                return a;
+              }
+            }
+          });
+        }
+      }
+
+      DataIndexer.prototype.copy = function() {
+        return new DataIndexer(this.indexes);
+      };
+
+      DataIndexer.prototype.keysFor = function(block) {
+        var index, k, key, ref, yaml;
+        return block.keys = ((index = (ref = block.codeAttributes) != null ? ref.index : void 0) && (yaml = getYaml(block)) ? ((function() {
+          var j, len, ref1, results1;
+          ref1 = (function() {
+            var l, len, ref1, results2;
+            ref1 = index.split(',');
+            results2 = [];
+            for (l = 0, len = ref1.length; l < len; l++) {
+              k = ref1[l];
+              results2.push(k.trim().split(keySplitPat));
+            }
+            return results2;
+          })();
+          results1 = [];
+          for (j = 0, len = ref1.length; j < len; j++) {
+            key = ref1[j];
+            if (key.length === 2) {
+              results1.push([key[0].trim(), key[1].trim(), block._id]);
+            }
+          }
+          return results1;
+        })()).sort(compareSorted) : void 0);
+      };
+
+      DataIndexer.prototype.addBlockKey = function(k) {
+        var first, ref, rest;
+        ref = this.indexes.split(function(m) {
+          return m >= k.key;
+        }), first = ref[0], rest = ref[1];
+        return this.indexes = first.concat(rest.addFirst(k));
+      };
+
+      DataIndexer.prototype.deleteBlockKey = function(k) {
+        var first, found, r, ref, rest;
+        ref = this.indexes.split(function(m) {
+          return m === k.key;
+        }), first = ref[0], rest = ref[1];
+        r = rest;
+        while (!r.isEmpty() && (found = r.peekFirst() && found.key === k.key && found.id === k.id)) {
+          r = r.removeFirst();
+        }
+        if (r !== rest) {
+          return this.indexes = first.concat(rest);
+        }
+      };
+
+      DataIndexer.prototype.find = function(index, key) {
+        var first, k, ref, rest, result;
+        k = [index];
+        result = [];
+        if (key) {
+          k.push(key);
+        }
+        ref = this.indexes.split(function(m) {
+          return compareSorted(k, m) < 1;
+        }), first = ref[0], rest = ref[1];
+        while (!rest.isEmpty() && isPrefix(k, rest.peekFirst().key)) {
+          result.push(rest.peekFirst().id);
+          rest = rest.removeFirst();
+        }
+        return result;
+      };
+
+      return DataIndexer;
+
+    })();
+    getYaml = function(block) {
+      var firstResult, ref, ref1, results;
+      return (ref = block.yaml) != null ? ref : (block.yaml = isYamlResult(block) ? ((ref1 = blockCodeItems(this, block), results = ref1.results, ref1), results ? (firstResult = results.text.indexOf('\n') + 1, parseYaml(results.text.substring(firstResult).replace(/(^|\n): /gm, '$1'))) : void 0) : null);
+    };
     parseOrgDoc = function(text) {
       if (text === '') {
         return [];
@@ -1682,7 +1720,9 @@
 
     })(ParsedCodeBlock);
     sanitize = function(str) {
-      return str.replace(/[\uFEFF]/g, '');
+      str = str.replace(/\uFEFF/g, '');
+      str = str.replace(/\uA789/g, ':');
+      return str = str.replace(/\u2044/g, '\/');
     };
     displayError = function(e) {
       console.log("Error: " + e);
@@ -2553,6 +2593,7 @@
           sync = true;
           env = envM({
             __proto__: defaultEnv,
+            presentHtml: presentHtml,
             opts: opts = this,
             data: this.data
           });
@@ -2567,7 +2608,7 @@
             env.write = function() {};
           } else {
             env.write = function(str) {
-              result += presentHtml(str);
+              result += env.presentHtml(str);
               if (!sync) {
                 return opts.update(newBlock = setResult(block, result));
               }
@@ -2577,7 +2618,9 @@
             return cont(prompt(str, defaultValue));
           };
           setLounge(env, function() {
-            return env.executeBlock(block, Nil, function() {});
+            return env.executeBlock(block, Nil, function(r) {
+              return writeResults(env, r);
+            });
           });
           sync = false;
           if (!silent) {
@@ -2873,7 +2916,8 @@
       fileTypes: fileTypes,
       updateSelection: updateSelection,
       addSelectionBubble: addSelectionBubble,
-      parseOrgDoc: parseOrgDoc
+      parseOrgDoc: parseOrgDoc,
+      DataIndexer: DataIndexer
     };
   });
 

@@ -38,6 +38,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         hasCodeAttribute
         isYamlResult
         escapeString
+        writeResults
       } = Eval
       {
         LeisureEditCore
@@ -142,10 +143,7 @@ and previousSibling ids to indicate the tree structure of the org document
         initializeLocalData: ->
           @namedBlocks = {}
           @localBlocks = {}
-          @indexes = FingerTree.fromArray [],
-            identity: -> []
-            measure: (v)-> v.key
-            sum: (a, b)-> if compareSorted(a, b) < 1 then b else a
+          @indexer = new DataIndexer()
           @imported =
             css: {}
             view: {}
@@ -357,9 +355,8 @@ that must be done regardless of the source of changes
           @checkControlChange oldBlock, newBlock, isDefault
         checkIndexChange: (oldBlock, newBlock, isDefault)->
           if newBlock
-            if (index = newBlock.codeAttributes?.index) && yaml = @getYaml newBlock
-              newBlock.keys = (for key in ((k.trim().split keySplitPat) for k in index.split ',') when key.length == 2
-                [key[0].trim(), key[1].trim(), newBlock._id]).sort compareSorted
+            if keys = @indexer.keysFor newBlock
+              newBlock.keys = keys
             else delete newBlock.keys
           if !(_.isEqual newBlock?.keys, oldBlock?.keys)
             if oldBlock?.keys
@@ -370,24 +367,9 @@ that must be done regardless of the source of changes
               k = oldBlock?.keys ? []
               for key in newBlock.keys when !(key in k)
                 @addBlockKey id: newBlock._id, key: key
-        addBlockKey: (k)->
-          [first, rest] = @indexes.split (m)-> m >= k.key
-          @indexes = first.concat rest.addFirst k
-        deleteBlockKey: (k)->
-          [first, rest] = @indexes.split (m)-> m == k.key
-          r = rest
-          while !r.isEmpty() && found = r.peekFirst() && found.key == k.key && found.id == k.id
-            r = r.removeFirst()
-          if r != rest then @indexes = first.concat rest
-        find: (index, key)->
-          k = [index]
-          result = []
-          if key then k.push key
-          [first, rest] = @indexes.split (m)-> compareSorted(k, m) < 1
-          while !rest.isEmpty() && isPrefix k, rest.peekFirst().key
-            result.push rest.peekFirst().id
-            rest = rest.removeFirst()
-          result
+        addBlockKey: (k)-> @indexer.addBlockKey k
+        deleteBlockKey: (k)-> @indexer.deleteBlockKey k
+        find: (index, key)-> @indexer.find index, key
         queueEval: (func)->
           opts = defaultEnv.opts
           @pendingEvals.push -> withDefaultOptsSet opts, func
@@ -633,10 +615,11 @@ that must be done regardless of the source of changes
               env.silent = true
               if isSilent newBlock then write = ->
               else env.write = (str)-> console.log str
-          if env.executeBlock then env.executeBlock block
+          if env.executeBlock then env.executeBlock block, (r)-> writeResults env, r
           else if code = @getCode block
-            if code instanceof Promise then code.then (func)-> setLounge env, -> func.call env
-            else setLounge env, code
+            if code instanceof Promise then code.then (func)-> setLounge env, ->
+              writeResults env, func.call env
+            else setLounge env, -> writeResults env, code()
           else @oldExecuteBlock block, envConf
         env: (language, envConf)->
           if env = languageEnvMaker(language)?(__proto__: defaultEnv)
@@ -700,14 +683,7 @@ that must be done regardless of the source of changes
           if error
             start = @offsetForBlock(block) + error.offset
             @runBlock block, => @replaceText {start, end: start + error.text.length, text: '', source: 'code'}, true
-        getYaml: (block)->
-          block = @getBlock block
-          block.yaml ? (block.yaml = if isYamlResult block
-            {results} = blockCodeItems this, block
-            if results
-              firstResult = results.text.indexOf('\n') + 1
-              parseYaml results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
-          else null)
+        getYaml: (block)-> getYaml @getBlock block
         getCode: (block, env)->
           block = @getBlock block
           if block.code then block.code
@@ -838,6 +814,45 @@ that must be done regardless of the source of changes
           if optBlock?.local then throw new Error "Attempt to use local block in collaborative code"
           else if !@inCollaboration then throw new Error "Not running collboartively"
 
+      class DataIndexer
+        constructor: (@indexes)->
+          if !@indexes
+            @indexes = FingerTree.fromArray [],
+              identity: -> []
+              measure: (v)-> v.key
+              sum: (a, b)-> if compareSorted(a, b) < 1 then b else a
+        copy: -> new DataIndexer @indexes
+        keysFor: (block)->
+          block.keys = (if (index = block.codeAttributes?.index) && yaml = getYaml block
+            (for key in ((k.trim().split keySplitPat) for k in index.split ',') when key.length == 2
+              [key[0].trim(), key[1].trim(), block._id]).sort compareSorted)
+        addBlockKey: (k)->
+          [first, rest] = @indexes.split (m)-> m >= k.key
+          @indexes = first.concat rest.addFirst k
+        deleteBlockKey: (k)->
+          [first, rest] = @indexes.split (m)-> m == k.key
+          r = rest
+          while !r.isEmpty() && found = r.peekFirst() && found.key == k.key && found.id == k.id
+            r = r.removeFirst()
+          if r != rest then @indexes = first.concat rest
+        find: (index, key)->
+          k = [index]
+          result = []
+          if key then k.push key
+          [first, rest] = @indexes.split (m)-> compareSorted(k, m) < 1
+          while !rest.isEmpty() && isPrefix k, rest.peekFirst().key
+            result.push rest.peekFirst().id
+            rest = rest.removeFirst()
+          result
+
+      getYaml = (block)->
+        block.yaml ? (block.yaml = if isYamlResult block
+          {results} = blockCodeItems this, block
+          if results
+            firstResult = results.text.indexOf('\n') + 1
+            parseYaml results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
+        else null)
+
       parseOrgDoc = (text)->
         if text == '' then []
         else orgDoc parseOrgMode(text.replace /\r\n/g, '\n'), true
@@ -872,7 +887,10 @@ that must be done regardless of the source of changes
           if withUpdates then replaceBlock()
           else @data.runBlock @block, replaceBlock
 
-      sanitize = (str)-> str.replace /[\uFEFF]/g, ''
+      sanitize = (str)->
+        str = str.replace(/\uFEFF/g, '')
+        str = str.replace(/\uA789/g, ':')
+        str = str.replace(/\u2044/g, '\/')
 
       displayError = (e)->
         console.log "Error: #{e}"
@@ -1304,6 +1322,7 @@ NMap is a very simple trie.
             sync = true
             env = envM
               __proto__: defaultEnv
+              presentHtml: presentHtml
               opts: opts = this
               data: @data
             newBlock = setError block
@@ -1312,10 +1331,10 @@ NMap is a very simple trie.
               if newBlock != block && !sync then opts.update newBlock
             if silent = isSilent block then env.write = ->
             else env.write = (str)->
-              result += presentHtml str
+              result += env.presentHtml str
               if !sync then opts.update newBlock = setResult block, result
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
-            setLounge env, -> env.executeBlock block, Nil, ->
+            setLounge env, -> env.executeBlock block, Nil, (r)-> writeResults env, r
             sync = false
             if !silent then newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock
@@ -1581,4 +1600,5 @@ Exports
         updateSelection
         addSelectionBubble
         parseOrgDoc
+        DataIndexer
       }

@@ -154,7 +154,7 @@ window.App = window.App
 App.x = 2
 if !App.gothicFont
   App.gothicFont = true
-  Lounge.opts.data.getFile('illuminated/GrusskartenGotisch.woff').then (contents)->
+  this.opts.data.getFile('illuminated/GrusskartenGotisch.woff').then (contents)->
     debugger
     #font = Leisure.makeBlobUrl contents, 'application/font-woff'
     font = "data:application/font-woff;base64,#{btoa contents}"
@@ -169,7 +169,7 @@ if !App.gothicFont
     """
   for l in "W"
     name = "illuminated/dropCaps/#{l}.png"
-    Lounge.opts.data.getFile(name).then (contents)->
+    this.opts.data.getFile(name).then (contents)->
       img = Leisure.makeImageBlob name, contents
       $(document.head).append """
         <style id='letter-#{l}'>

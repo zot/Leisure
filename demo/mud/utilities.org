@@ -28,9 +28,10 @@
                           blank? reverse triml trimr trim]
                           :rename {reverse string-reverse}]
      [wisp.expander :refer [macroexpand]]
+     [wisp.backend.escodegen.writer :refer [translate-identifier-word]]
      [immutable :refer [List OrderedSet Map Seq]
       :rename {List ImmutableList OrderedSet ImmutableSet Map ImmutableMap Seq ImmutableSeq}]
-     ))
+     [editor-support :refer [DataIndexer]]))
   (def data Lounge.data)
 #+END_SRC
 ** macros
@@ -111,7 +112,15 @@
   (advise vec old [coll] (if (immutablejs? coll) (.toArray coll) (old coll)))
 #+END_SRC
 ** Sequence Funcs
+*** Code
 #+BEGIN_SRC wisp :results def
+  (defn find
+    [satisfies? sequence]
+    (loop [sequence sequence]
+      (cond
+        (empty? sequence) sequence
+        (satisfies? (first sequence)) (first sequence)
+        :else (recur (rest sequence)))))
   (defn intersperse
     "Intersperse a sequence with an item"
     [sequence item]
@@ -194,6 +203,16 @@
              (let ~letVars
                ~@body
                (recur ~@nextSeqs))))))
+#+END_SRC
+*** Tests
+#+BEGIN_SRC wisp
+  (= (find even? [1 1 2 3 4]) 2)
+  (= (intersperse [1 2 3] 10) [1 10 2 10 3])
+#+END_SRC
+** Writer tweaks
+#+BEGIN_SRC wisp :results def
+  (advise translate-identifier-word old [form]
+          (old (join "-colon-" (split (name form) ":"))))
 #+END_SRC
 ** System Funcs
 #+BEGIN_SRC wisp :results def
