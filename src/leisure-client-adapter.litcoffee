@@ -27,14 +27,14 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 
-    define ['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements', './export'], (jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep, Exports)->
-      {
-        mergeExports
-      } = Exports
+    define ['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'bluebird', 'lib/ot/ot', './replacements'], (jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep)->
       {
         Map
         Set
       } = window.Immutable = immutable
+      {
+        ajaxGet
+      } = Utilities
       {
         DataStore
         preserveSelection
@@ -48,7 +48,6 @@ misrepresented as being the original software.
         editorToolbar
         basicDataFilter
         replacementFor
-        ajaxGet
         makeImageBlob
       } = Support
       {
@@ -93,7 +92,7 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
       class Peer
         constructor: ->
           @data = new OrgData()
-          @namePromise = randomUserName (@name)=>
+          @namd = randomUserName()
           @guardedChangeId = 0
           @guardPromises = {}
         setEditor: (@editor)->
@@ -104,15 +103,12 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
           console.log "CONNECTED"
           @con = new SockJS @url
           opened = false
-          @namePromise
-            .finally =>
-              delete @namePromise
-              new Promise (resolve, reject)=>
-                @con.onopen = =>
-                  opened = true
-                  @con.onerror = => @closed()
-                  resolve()
-                @con.onerror = -> if !openend then reject()
+          new Promise (resolve, reject)=>
+            @con.onopen = =>
+              opened = true
+              @con.onerror = => @closed()
+              resolve()
+            @con.onerror = -> if !openend then reject()
           @con.onmessage = (msg)=> @handleMessage JSON.parse msg.data
           @con.onclose = => @closed()
           peer = this
@@ -410,14 +406,13 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
             else cont()
 
       window.randomUserName = randomUserName = (done)->
-        Promise
-          .all(ajaxGet 'http://randomword.setgetgo.com/get.php' for i in [0...2])
-          .then (names)->
-            done names.join ' '
+        a = 'a'.charCodeAt(0)
+        'user' + (String.fromCharCode a + Math.floor(Math.random() * 26) for i in [0...10]).join
 
-      mergeExports {
+      Object.assign Leisure, {
         configurePeerOpts: configureOpts
       }
+
       {
         Peer
       }

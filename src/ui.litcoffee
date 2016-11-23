@@ -1,15 +1,12 @@
 Leisure's UI system uses a piece of data's "type" and the "context" (a string) to
 choose a handlebars template.
 
-    define ['handlebars', './export', './editor', './coffee-script', 'immutable'], (Handlebars, Exports, Editor, CoffeeScript, Immutable)->
+    define ['handlebars', './editor', './coffee-script', 'immutable'], (Handlebars, Editor, CoffeeScript, Immutable)->
       {
         compile
         create
         registerHelper
       } = window.Handlebars = Handlebars
-      {
-        mergeExports
-      } = Exports
       {
         escapeHtml
         findEditor
@@ -352,7 +349,7 @@ choose a handlebars template.
             when "'" then '&#39;'
             when '&' then '&amp;'
 
-      root = mergeExports({
+      root = Object.assign(Leisure, {
         UI: {
           withContext
           mergeContext

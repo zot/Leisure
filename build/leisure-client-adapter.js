@@ -2,12 +2,12 @@
 (function() {
   var slice = [].slice;
 
-  define(['jquery', 'immutable', './editor', './editorSupport', 'sockjs', './advice', './common', 'lib/bluebird.min', 'lib/ot/ot', './replacements', './export'], function(jq, immutable, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep, Exports) {
-    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, fileTypes, getDocumentParams, isDelete, isInsert, isRetain, makeImageBlob, mergeExports, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, typeForFile, validateBatch;
-    mergeExports = Exports.mergeExports;
+  define(['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'bluebird', 'lib/ot/ot', './replacements'], function(jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep) {
+    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, fileTypes, getDocumentParams, isDelete, isInsert, isRetain, makeImageBlob, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, typeForFile, validateBatch;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
+    ajaxGet = Utilities.ajaxGet;
     DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
-    OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor, ajaxGet = Support.ajaxGet, makeImageBlob = Support.makeImageBlob;
+    OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor, makeImageBlob = Support.makeImageBlob;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod, callOriginal = Advice.callOriginal;
     noTrim = Common.noTrim;
     Promise = Bluebird.Promise;
@@ -30,11 +30,7 @@
     Peer = (function() {
       function Peer() {
         this.data = new OrgData();
-        this.namePromise = randomUserName((function(_this) {
-          return function(name1) {
-            _this.name = name1;
-          };
-        })(this));
+        this.namd = randomUserName();
         this.guardedChangeId = 0;
         this.guardPromises = {};
       }
@@ -58,23 +54,20 @@
         console.log("CONNECTED");
         this.con = new SockJS(this.url);
         opened = false;
-        this.namePromise["finally"]((function(_this) {
-          return function() {
-            delete _this.namePromise;
-            return new Promise(function(resolve, reject) {
-              _this.con.onopen = function() {
-                opened = true;
-                _this.con.onerror = function() {
-                  return _this.closed();
-                };
-                return resolve();
+        new Promise((function(_this) {
+          return function(resolve, reject) {
+            _this.con.onopen = function() {
+              opened = true;
+              _this.con.onerror = function() {
+                return _this.closed();
               };
-              return _this.con.onerror = function() {
-                if (!openend) {
-                  return reject();
-                }
-              };
-            });
+              return resolve();
+            };
+            return _this.con.onerror = function() {
+              if (!openend) {
+                return reject();
+              }
+            };
           };
         })(this));
         this.con.onmessage = (function(_this) {
@@ -732,19 +725,18 @@
       });
     };
     window.randomUserName = randomUserName = function(done) {
-      var i;
-      return Promise.all((function() {
+      var a, i;
+      a = 'a'.charCodeAt(0);
+      return 'user' + ((function() {
         var j, results;
         results = [];
-        for (i = j = 0; j < 2; i = ++j) {
-          results.push(ajaxGet('http://randomword.setgetgo.com/get.php'));
+        for (i = j = 0; j < 10; i = ++j) {
+          results.push(String.fromCharCode(a + Math.floor(Math.random() * 26)));
         }
         return results;
-      })()).then(function(names) {
-        return done(names.join(' '));
-      });
+      })()).join;
     };
-    mergeExports({
+    Object.assign(Leisure, {
       configurePeerOpts: configureOpts
     });
     return {

@@ -1,9 +1,9 @@
-+Editing support for Leisure
+Editing support for Leisure
 
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['./base', './org', './docOrg', './ast', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './export', './lib/prism', './advice', 'lib/js-yaml', 'lib/bluebird.min', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], (Base, Org, DocOrg, Ast, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, BrowserExports, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1)->
+    define ['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], (Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1)->
       {
         defaultEnv
         CodeContext
@@ -26,6 +26,9 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         Nil
       } = Ast
       {
+        ajaxGet
+      } = Utilities
+      {
         languageEnvMaker
         Html
         presentHtml
@@ -35,6 +38,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         hasCodeAttribute
         isYamlResult
         escapeString
+        writeResults
       } = Eval
       {
         LeisureEditCore
@@ -44,7 +48,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         blockText
         posFor
         escapeHtml
-        copy
         findEditor
         copyBlock
         preserveSelection
@@ -71,9 +74,6 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
         hasDatabase
         transaction
       } = DB
-      {
-        mergeExports
-      } = BrowserExports
       {
         dump
       } = Yaml
@@ -143,10 +143,7 @@ and previousSibling ids to indicate the tree structure of the org document
         initializeLocalData: ->
           @namedBlocks = {}
           @localBlocks = {}
-          @indexes = FingerTree.fromArray [],
-            identity: -> []
-            measure: (v)-> v.key
-            sum: (a, b)-> if compareSorted(a, b) < 1 then b else a
+          @indexer = new DataIndexer()
           @imported =
             css: {}
             view: {}
@@ -247,9 +244,7 @@ same names for blocks other than printing a warning.
           if context
             for filter in @filters
               filter.replaceText? this, context
-        parseBlocks: (text)->
-          if text == '' then []
-          else orgDoc parseOrgMode text.replace /\r\n/g, '\n'
+        parseBlocks: (text)-> parseOrgDoc text
         nextSibling: (thing, changes)-> @getBlock @getBlock(thing, changes)?.nextSibling, changes
         previousSibling: (thing, changes)-> @getBlock @getBlock(thing, changes).previousSibling, changes
         reducePreviousSiblings: (thing, changes, func, arg)->
@@ -261,11 +256,21 @@ same names for blocks other than printing a warning.
         parent: (thing, changes)-> @getBlock @firstSibling(thing, changes)?.prev, changes
         properties: (thing)->
           props = {}
-          while bl = @getBlock thing
-            if bl.codeAttributes then _.defaults props, bl.codeAttributes
-            if bl.properties then _.defaults props, bl.properties
-            thing = @parent bl
+          bl = @getBlock thing
+          if bl.type != 'headline'
+            if bl.type == 'code'
+              _.defaults props, bl.codeAttributes
+              _.defaults props, bl.properties
+            else if bl.type == 'chunk' then _.defaults props, bl.properties
+            bl = @parent bl
+          while bl
+            @scrapePropertiesInto bl, props
+            bl = @parent bl
           props
+        scrapePropertiesInto: (block, props)->
+          for child in @children block
+            if child.type == 'chunk' && child.properties && !_.isEmpty child.properties
+              _.defaults props, child.properties
         firstChild: (thing, changes)->
           if (block = @getBlock thing, changes) && (n = @getBlock block.next, changes) && !n.previousSibling
             n
@@ -331,11 +336,10 @@ that must be done regardless of the source of changes
           blocks = {}
           for id of removes
             blocks[id] = false
-          for id, block of sets
-            blocks[id] = block
+          Object.assign blocks, sets
           blocks
         processDefaults: (lorgText)->
-          viewBlocks = orgDoc parseOrgMode lorgText.replace /\r\n?/g, '\n'
+          viewBlocks = parseOrgDoc lorgText
           id = 0
           for block in viewBlocks
             block._id = "default-#{id++}"
@@ -351,9 +355,8 @@ that must be done regardless of the source of changes
           @checkControlChange oldBlock, newBlock, isDefault
         checkIndexChange: (oldBlock, newBlock, isDefault)->
           if newBlock
-            if (index = newBlock.codeAttributes?.index) && yaml = @getYaml newBlock
-              newBlock.keys = (for key in ((k.trim().split keySplitPat) for k in index.split ',') when key.length == 2
-                [key[0].trim(), key[1].trim(), newBlock._id]).sort compareSorted
+            if keys = @indexer.keysFor newBlock
+              newBlock.keys = keys
             else delete newBlock.keys
           if !(_.isEqual newBlock?.keys, oldBlock?.keys)
             if oldBlock?.keys
@@ -362,30 +365,17 @@ that must be done regardless of the source of changes
                 if !(key in k) then @deleteBlockKey id: oldBlock._id, key: key
             if newBlock.keys
               k = oldBlock?.keys ? []
-              for key in newBlock.keys
-                if !(key in k) then @addBlockKey id: newBlock._id, key: key
-        addBlockKey: (k)->
-          [first, rest] = @indexes.split (m)-> m >= k.key
-          @indexes = first.concat rest.addFirst k
-        deleteBlockKey: (k)->
-          [first, rest] = @indexes.split (m)-> m == k.key
-          r = rest
-          while !r.isEmpty() && found = r.peekFirst() && found.key == k.key && found.id == k.id
-            r = r.removeFirst()
-          if r != rest then @indexes = first.concat rest
-        find: (index, key)->
-          k = [index]
-          result = []
-          if key then k.push key
-          [first, rest] = @indexes.split (m)-> compareSorted(k, m) < 1
-          while !rest.isEmpty() && isPrefix k, rest.peekFirst().key
-            result.push rest.peekFirst().id
-            rest = rest.removeFirst()
-          result
+              for key in newBlock.keys when !(key in k)
+                @addBlockKey id: newBlock._id, key: key
+        addBlockKey: (k)-> @indexer.addBlockKey k
+        deleteBlockKey: (k)-> @indexer.deleteBlockKey k
+        find: (index, key)-> @indexer.find index, key
         queueEval: (func)->
           opts = defaultEnv.opts
           @pendingEvals.push -> withDefaultOptsSet opts, func
-        runOnImport: (func)-> @importPromise.then => func()
+        runOnImport: (func)-> @importPromise.then =>
+          func()
+          null
         scheduleEvals: -> @runOnImport =>
           if @pendingEvals.length
             e = @pendingEvals
@@ -417,10 +407,10 @@ that must be done regardless of the source of changes
           setLounge env, func
         triggerUpdate: (channelKeys..., block)->
           if items = @observers.get channelKeys...
-            for id, v of items
+            for id, v of items when v == true && block._id != id && !@running[id]
               # verify that it's exactly equal to true
               # if not, then it's not really an observer
-              if v == true && block._id != id && !@running[id] then @pendingObserves[id] = block
+              @pendingObserves[id] = block
           null
         checkPropChange: (oldBlock, newBlock, isDefault)->
           if oldBlock?.title && !newBlock.title
@@ -562,8 +552,12 @@ that must be done regardless of the source of changes
             changes.removes[old._id] = true
             @trigger 'change', changes
         textForDataNamed: (name, data, attrs)->
-          opts = (":#{k} #{v}" for k, v of attrs).join ' '
-          if opts then opts = ' ' + opts
+          opts = ''
+          for k, v of attrs
+            if _.isArray v
+              for item in v
+                opts += " :#{k} #{item}"
+            else opts += " :#{k} #{v}"
           """
           #{if name then '#+NAME: ' + name + '\n' else ''}#+BEGIN_SRC yaml#{opts}
           #{dump(data, _.defaults attrs ? {}, {sortKeys: true, flowLevel: 2}).trim()}
@@ -621,10 +615,11 @@ that must be done regardless of the source of changes
               env.silent = true
               if isSilent newBlock then write = ->
               else env.write = (str)-> console.log str
-          if env.executeBlock then env.executeBlock block
+          if env.executeBlock then env.executeBlock block, (r)-> writeResults env, r
           else if code = @getCode block
-            if code instanceof Promise then code.then (func)-> setLounge env, -> func.call env
-            else setLounge env, code
+            if code instanceof Promise then code.then (func)-> setLounge env, ->
+              writeResults env, func.call env
+            else setLounge env, -> writeResults env, code()
           else @oldExecuteBlock block, envConf
         env: (language, envConf)->
           if env = languageEnvMaker(language)?(__proto__: defaultEnv)
@@ -688,14 +683,7 @@ that must be done regardless of the source of changes
           if error
             start = @offsetForBlock(block) + error.offset
             @runBlock block, => @replaceText {start, end: start + error.text.length, text: '', source: 'code'}, true
-        getYaml: (block)->
-          block = @getBlock block
-          block.yaml ? (block.yaml = if isYamlResult block
-            {results} = blockCodeItems this, block
-            if results
-              firstResult = results.text.indexOf('\n') + 1
-              parseYaml results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
-          else null)
+        getYaml: (block)-> getYaml @getBlock block
         getCode: (block, env)->
           block = @getBlock block
           if block.code then block.code
@@ -741,11 +729,13 @@ that must be done regardless of the source of changes
                       argData)...), args...
           else func
         blockBounds: (name)->
-          if name
-            block = if typeof name == 'string' then @getBlockNamed name else name
-            start = @offsetForBlock block
-            end = start + block.text.length
-            {start, end, gStart: start, gEnd: end}
+          if !(block = if typeof name == 'string' then @getBlockNamed name else name)
+            throw new Error "No block named #{name}"
+          @baseBlockBounds block
+        baseBlockBounds: (block)->
+          start = @offsetForBlock block
+          end = start + block.text.length
+          {start, end, gStart: start, gEnd: end}
         verifyDataObject: (opType, obj)->
           if !(typeof obj in ['object', 'string', 'number', 'boolean'])
             throw new Error "Attempt to #{opType} value that is not an object."
@@ -771,12 +761,13 @@ that must be done regardless of the source of changes
         setLocalData: (name, value, codeOpts)->
           if !(block = @getBlockNamed name) then throw new Error "No block named #{name}"
           if !block.local then throw new Error "Attempt to use setLocalData with a shared block"
-          @baseSetData name, block, value, codeOpts
+          @baseSetData block, value, codeOpts
         setData: (name, value, codeOpts)->
           if !(block = @getBlockNamed name) then throw new Error "No block named #{name}"
           @checkCollaborating block
-          @baseSetData name, block, value, codeOpts
-        baseSetData: (name, block, value, codeOpts)->
+          @baseSetData block, value, codeOpts
+        baseSetData: (block, value, codeOpts)->
+          name = block.codeName
           @verifyDataObject "set #{name} to ", value
           codeOpts = _.merge {}, block.codeAttributes ? {}, codeOpts ? {}
           [newBlock] = @parseBlocks @textForDataNamed name, value, codeOpts
@@ -784,14 +775,16 @@ that must be done regardless of the source of changes
             newBlock._id = block._id
             @storeLocalBlock newBlock
           else
-            b = @blockBounds name
+            b = @baseBlockBounds block
             b.text = newBlock.text
             b.source = 'code'
             @replaceText b
         removeData: (name)->
           if !(block = @getBlockNamed name) then throw new Error "No block named #{name}"
+          @baseRemoveData block
+        baseRemoveData: (block)->
           @checkCollaborating()
-          b = @blockBounds name
+          b = @baseBlockBounds block
           b.text = ''
           b.source = 'code'
           @replaceText b
@@ -820,6 +813,49 @@ that must be done regardless of the source of changes
         checkCollaborating: (optBlock)->
           if optBlock?.local then throw new Error "Attempt to use local block in collaborative code"
           else if !@inCollaboration then throw new Error "Not running collboartively"
+
+      class DataIndexer
+        constructor: (@indexes)->
+          if !@indexes
+            @indexes = FingerTree.fromArray [],
+              identity: -> []
+              measure: (v)-> v.key
+              sum: (a, b)-> if compareSorted(a, b) < 1 then b else a
+        copy: -> new DataIndexer @indexes
+        keysFor: (block)->
+          block.keys = (if (index = block.codeAttributes?.index) && yaml = getYaml block
+            (for key in ((k.trim().split keySplitPat) for k in index.split ',') when key.length == 2
+              [key[0].trim(), key[1].trim(), block._id]).sort compareSorted)
+        addBlockKey: (k)->
+          [first, rest] = @indexes.split (m)-> m >= k.key
+          @indexes = first.concat rest.addFirst k
+        deleteBlockKey: (k)->
+          [first, rest] = @indexes.split (m)-> m == k.key
+          r = rest
+          while !r.isEmpty() && found = r.peekFirst() && found.key == k.key && found.id == k.id
+            r = r.removeFirst()
+          if r != rest then @indexes = first.concat rest
+        find: (index, key)->
+          k = [index]
+          result = []
+          if key then k.push key
+          [first, rest] = @indexes.split (m)-> compareSorted(k, m) < 1
+          while !rest.isEmpty() && isPrefix k, rest.peekFirst().key
+            result.push rest.peekFirst().id
+            rest = rest.removeFirst()
+          result
+
+      getYaml = (block)->
+        block.yaml ? (block.yaml = if isYamlResult block
+          {results} = blockCodeItems this, block
+          if results
+            firstResult = results.text.indexOf('\n') + 1
+            parseYaml results.text.substring(firstResult).replace /(^|\n): /gm, '$1'
+        else null)
+
+      parseOrgDoc = (text)->
+        if text == '' then []
+        else orgDoc parseOrgMode(text.replace /\r\n/g, '\n'), true
 
       fileTypes =
         jpg: 'image/jpeg'
@@ -850,6 +886,11 @@ that must be done regardless of the source of changes
           replaceBlock = => @data.replaceText {start, end: start + @data.getBlock(@block._id).text.length, text: @block.text, source: 'code'}
           if withUpdates then replaceBlock()
           else @data.runBlock @block, replaceBlock
+
+      sanitize = (str)->
+        str = str.replace(/\uFEFF/g, '')
+        str = str.replace(/\uA789/g, ':')
+        str = str.replace(/\u2044/g, '\/')
 
       displayError = (e)->
         console.log "Error: #{e}"
@@ -896,7 +937,7 @@ and `call` to set "this" for the code, which you can't do with the primitive `ev
       addChange = (block, changes)->
         if !changes.sets[block._id]
           changes.oldBlocks.push block
-          changes.newBlocks.push changes.sets[block._id] = copy block
+          changes.newBlocks.push changes.sets[block._id] = copyBlock block
         changes.sets[block._id]
 
       greduce = (thing, changes, func, arg, next)->
@@ -1197,8 +1238,8 @@ NMap is a very simple trie.
             @replaceBlock oldBlock, block.text, 'code'
         changesHidden: (changes)->
           if @canHideSlides()
-            for change in changes.oldBlocks
-              if @shouldHide change then return true
+            for change in changes.oldBlocks when @shouldHide change
+              return true
           false
         checkPropertyChange: (changes, change, oldBlock)->
           change.type == 'chunk' && !_.isEqual change.properties, @getBlock(change._id)?.properties
@@ -1208,7 +1249,7 @@ NMap is a very simple trie.
               {source: newSource, results: newResults} = blockCodeItems this, change
               hasChange = !oldBlock || oldBlock.type != 'code' || !(isDynamic(oldBlock) && !isObserver(oldBlock)) || if oldBlock
                 oldSource = blockSource oldBlock
-                newSource.content != oldSource.content
+                newSource.content != oldSource
               if hasChange
                 result = ''
                 newBlock = setError change
@@ -1247,8 +1288,8 @@ NMap is a very simple trie.
                     replaceBlock setResult newBlock, result
                     if newBlock.text != change.text
                       changes.sets[newBlock._id] = newBlock
-                      for block, i in changes.newBlocks
-                        if block._id == newBlock._id then changes.newBlocks[i] = newBlock
+                      for block, i in changes.newBlocks when block._id == newBlock._id
+                        changes.newBlocks[i] = newBlock
                       start = @offsetForNewBlock newBlock, oldBlocks, newBlocks
                       changes.repls.push repl = replacementFor start, change.text, newBlock.text
                       repl.source = 'code'
@@ -1281,6 +1322,7 @@ NMap is a very simple trie.
             sync = true
             env = envM
               __proto__: defaultEnv
+              presentHtml: presentHtml
               opts: opts = this
               data: @data
             newBlock = setError block
@@ -1289,10 +1331,10 @@ NMap is a very simple trie.
               if newBlock != block && !sync then opts.update newBlock
             if silent = isSilent block then env.write = ->
             else env.write = (str)->
-              result += presentHtml str
+              result += env.presentHtml str
               if !sync then opts.update newBlock = setResult block, result
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
-            setLounge env, -> env.executeBlock block, Nil, ->
+            setLounge env, -> env.executeBlock block, Nil, (r)-> writeResults env, r
             sync = false
             if !silent then newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock
@@ -1308,23 +1350,6 @@ NMap is a very simple trie.
           false
         replaceResult: (block, str)-> replaceResult this, @data, block, str
 
-      replaceResult = (source, data, block, str)->
-        if typeof block != 'string' then blockId = block._id
-        if current = data.getBlock block
-          start = data.offsetForBlock current
-          {results, last} = blockCodeItems this, current
-          if str[str.length - 1] != '\n' then str += '\n'
-          str = "#+RESULTS:\n" + str
-          if results
-            start += results.offset
-            end = start + results.text.length
-          else end = (start += last.end())
-          {observing, observer} = current
-          source.replaceText {start, end, text: str, source: 'code'}, true
-          if observer
-            data.getBlock(block._id).observer = observer
-            data.getBlock(block._id).observing = observing
-
       trickyChange = (oldBlock, newBlock)->
         oldBlock._id != newBlock._id ||
           ('headline' in (t = [oldBlock.type, newBlock.type]) && t[0] != t[1]) ||
@@ -1332,7 +1357,22 @@ NMap is a very simple trie.
 
       isSilent = (block)-> block?.codeAttributes?.results?.toLowerCase().match /\bsilent\b/
 
+      replaceResult = (source, data, block, str)->
+        if typeof block != 'string' then blockId = block._id
+        if current = data.getBlock block
+          newBlock = setResult current, str
+          if current.text != newBlock.text
+            start = data.offsetForBlock current
+            repl = replacementFor start, current.text, newBlock.text
+            {observing, observer} = current
+            repl.source = 'code'
+            source.replaceText repl, true
+            if observer
+              data.getBlock(block._id).observer = observer
+              data.getBlock(block._id).observing = observing
+
       setResult = (block, result)->
+        result = sanitize result
         if block?.codeAttributes?.results?.toLowerCase().match /\b(def|web|silent)\b/
           result = ''
         {results} = blockCodeItems this, block
@@ -1344,9 +1384,8 @@ NMap is a very simple trie.
           else if results
             block.text.substring(0, results.offset + results.contentPos) + result + block.text.substring(results.offset + results.text.length)
           else block.text + "#+RESULTS:\n#{result}"
-          [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
-          for prop, value of tmp
-            newBlock[prop] = value
+          [tmp] = parseOrgDoc text
+          Object.assign newBlock, tmp
           newBlock
 
       setError = (block, offset, msg)->
@@ -1364,9 +1403,8 @@ NMap is a very simple trie.
           else if results
             block.text.substring(0, results.offset) + err + block.text.substring(results.offset)
           else block.text + err
-          [tmp] = orgDoc parseOrgMode text.replace /\r\n/g, '\n'
-          for prop, value of tmp
-            newBlock[prop] = value
+          [tmp] = parseOrgDoc text
+          Object.assign newBlock, tmp
           newBlock
 
       isDynamic = (block)-> hasCodeAttribute block, 'results', 'dynamic'
@@ -1498,22 +1536,9 @@ NMap is a very simple trie.
           text: newText.substring startOff, newText.length - endOff
         }
 
-      ajaxGet = (url)->
-        new Promise (resolve, reject)->
-          xhr = new XMLHttpRequest
-          xhr.responseType = 'arraybuffer'
-          xhr.onerror = reject
-          xhr.onload = (e)->
-            binary = ''
-            for i in new Uint8Array(e.target.response)
-              binary += String.fromCharCode i
-            resolve binary
-          xhr.open "GET", url
-          xhr.send null
-
 Exports
 
-      mergeExports {
+      Object.assign Leisure, {
         blockCodeItems
         findEditor
         showHide
@@ -1544,6 +1569,8 @@ Exports
         makeImageBlob
         addSelectionBubble
         Advice
+        Immutable
+        FingerTree
       }
 
       {
@@ -1565,7 +1592,6 @@ Exports
         getDocumentParams
         basicDataFilter
         replacementFor
-        ajaxGet
         parseYaml
         makeImageBlob
         makeBlobUrl
@@ -1573,4 +1599,6 @@ Exports
         fileTypes
         updateSelection
         addSelectionBubble
+        parseOrgDoc
+        DataIndexer
       }

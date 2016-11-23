@@ -538,8 +538,9 @@ FRAME: frame."
   (replace-regexp-in-string leisure/specialStrChars 'leisure/escapeChar str))
 
 (defun leisure/parseString (str)
-  "Parse quoted string STR."
+  "Parse quoted string STR and unescape it."
   (let ((unescaped (leisure/unescapeString str)))
+    ;(replace-regexp-in-string "ï»¿" "" (substring unescaped 1 (- (length unescaped) 1)))))
     (substring unescaped 1 (- (length unescaped) 1))))
 
 (defun leisure/unescapeString (str)
@@ -610,7 +611,8 @@ FRAME: frame."
       (let ((newText (buffer-substring-no-properties start end)))
         (decf start)
         (leisure/sendChange start (+ start oldLength) newText))
-    (leisure/print "Not monitoring after change")))
+    ;(leisure/print "Not monitoring after change")
+    ))
 
 (defun leisure/bufString ()
   "Get the buffer string without properties."

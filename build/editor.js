@@ -5,8 +5,8 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'lib/bluebird.min'], function(jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copy, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, imbeddedBoundary, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, sameCharacter, selectRange, shiftKey, shiftUps, spaces, specialKeys, treeToArray, useEvent, validateBatch, wrapDiag;
+  define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'bluebird'], function(jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird) {
+    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, imbeddedBoundary, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, sameCharacter, selectRange, shiftKey, shiftUps, spaces, specialKeys, treeToArray, useEvent, validateBatch, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
@@ -113,7 +113,7 @@
       };
 
       Observable.prototype.off = function(type, callback) {
-        var callbackType, l;
+        var callbackType;
         if (typeof type === 'object') {
           for (callbackType in type) {
             callback = type[callbackType];
@@ -121,18 +121,9 @@
           }
         } else {
           if (this.listeners[type]) {
-            this.listeners[type] = (function() {
-              var j, len, ref, results1;
-              ref = this.listeners[type];
-              results1 = [];
-              for (j = 0, len = ref.length; j < len; j++) {
-                l = ref[j];
-                if (l !== callback) {
-                  results1.push(l);
-                }
-              }
-              return results1;
-            }).call(this);
+            this.listeners[type] = _.filter(this.listeners[type], function(l) {
+              return l !== callback;
+            });
           }
         }
         return this;
@@ -211,7 +202,7 @@
       };
 
       LeisureEditCore.prototype.getCopy = function(id) {
-        return copy(this.options.getBlock(id));
+        return copyBlock(this.options.getBlock(id));
       };
 
       LeisureEditCore.prototype.getText = function() {
@@ -507,20 +498,11 @@
       };
 
       LeisureEditCore.prototype.cutText = function(e) {
-        var html, node, r, sel, text;
+        var html, r, sel, text;
         useEvent(e);
         sel = getSelection();
         if (sel.type === 'Range') {
-          html = ((function() {
-            var j, len, ref, results1;
-            ref = sel.getRangeAt(0).cloneContents().childNodes;
-            results1 = [];
-            for (j = 0, len = ref.length; j < len; j++) {
-              node = ref[j];
-              results1.push(htmlForNode(node));
-            }
-            return results1;
-          })()).join('');
+          html = _.map(sel.getRangeAt(0).cloneContents().childNodes, htmlForNode).join('');
           text = this.selectedText(sel);
           this.options.simulateCut({
             html: html,
@@ -633,21 +615,12 @@
         })(this));
         this.node.on('dragstart', (function(_this) {
           return function(e) {
-            var clipboard, node, sel;
+            var clipboard, sel;
             sel = getSelection();
             if (sel.type === 'Range') {
               dragRange = _this.getSelectedBlockRange();
               clipboard = e.originalEvent.dataTransfer;
-              clipboard.setData('text/html', ((function() {
-                var j, len, ref, results1;
-                ref = sel.getRangeAt(0).cloneContents().childNodes;
-                results1 = [];
-                for (j = 0, len = ref.length; j < len; j++) {
-                  node = ref[j];
-                  results1.push(htmlForNode(node));
-                }
-                return results1;
-              })()).join(''));
+              clipboard.setData('text/html', _.map(sel.getRangeAt(0).cloneContents().childNodes, htmlForNode).join(''));
               clipboard.setData('text/plain', _this.selectedText(sel));
               clipboard.effectAllowed = 'copyMove';
               clipboard.dropEffect = 'move';
@@ -674,21 +647,12 @@
       LeisureEditCore.prototype.bindClipboard = function() {
         this.node.on('cut', (function(_this) {
           return function(e) {
-            var clipboard, node, sel;
+            var clipboard, sel;
             useEvent(e);
             sel = getSelection();
             if (sel.type === 'Range') {
               clipboard = e.originalEvent.clipboardData;
-              clipboard.setData('text/html', ((function() {
-                var j, len, ref, results1;
-                ref = sel.getRangeAt(0).cloneContents().childNodes;
-                results1 = [];
-                for (j = 0, len = ref.length; j < len; j++) {
-                  node = ref[j];
-                  results1.push(htmlForNode(node));
-                }
-                return results1;
-              })()).join(''));
+              clipboard.setData('text/html', _.map(sel.getRangeAt(0).cloneContents().childNodes, htmlForNode).join(''));
               clipboard.setData('text/plain', _this.selectedText(sel));
               return _this.replace(e, _this.getSelectedBlockRange(), '');
             }
@@ -696,21 +660,12 @@
         })(this));
         this.node.on('copy', (function(_this) {
           return function(e) {
-            var clipboard, node, sel;
+            var clipboard, sel;
             useEvent(e);
             sel = getSelection();
             if (sel.type === 'Range') {
               clipboard = e.originalEvent.clipboardData;
-              clipboard.setData('text/html', ((function() {
-                var j, len, ref, results1;
-                ref = sel.getRangeAt(0).cloneContents().childNodes;
-                results1 = [];
-                for (j = 0, len = ref.length; j < len; j++) {
-                  node = ref[j];
-                  results1.push(htmlForNode(node));
-                }
-                return results1;
-              })()).join(''));
+              clipboard.setData('text/html', _.map(sel.getRangeAt(0).cloneContents().childNodes, htmlForNode).join(''));
               return clipboard.setData('text/plain', _this.selectedText(sel));
             }
           };
@@ -1465,16 +1420,10 @@
       };
     };
     copyBlock = function(block) {
-      var bl, k, v;
       if (!block) {
         return null;
       } else {
-        bl = {};
-        for (k in block) {
-          v = block[k];
-          bl[k] = v;
-        }
-        return bl;
+        return Object.assign({}, block);
       }
     };
     activating = false;
@@ -2538,17 +2487,6 @@
         return str;
       }
     };
-    copy = function(obj) {
-      var bl, k, v;
-      if (obj) {
-        bl = {};
-        for (k in obj) {
-          v = obj[k];
-          bl[k] = v;
-        }
-        return bl;
-      }
-    };
     findEditor = function(node) {
       var ref, target;
       target = $(node);
@@ -2619,7 +2557,6 @@
       blockText: blockText,
       posFor: posFor,
       escapeHtml: escapeHtml,
-      copy: copy,
       findEditor: findEditor,
       copyBlock: copyBlock,
       preserveSelection: preserveSelection,

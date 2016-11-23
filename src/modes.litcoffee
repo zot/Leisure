@@ -1,4 +1,4 @@
-    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lodash', 'jquery', './ui', 'handlebars', './export', './lib/prism', './editorSupport', 'lib/bluebird.min', './advice', './lib/prism-leisure', 'lib/js-yaml'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, BrowserExports, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml)->
+    define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lodash', 'jquery', './ui', 'handlebars', './lib/prism', './editorSupport', 'bluebird', './advice', './lib/prism-leisure', 'lib/js-yaml'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml)->
 
       {
         defaultEnv
@@ -82,9 +82,6 @@
         pushPendingInitialzation
         nextViewId
       } = UI
-      {
-        mergeExports
-      } = BrowserExports
       {
         OrgEditing
         blockOrg
@@ -217,7 +214,9 @@
                   env.eval = (text)-> controllerEval.call controller, text
                   env.write = (str)-> console.log str
                   env.errorAt = (offset, msg)-> console.log msg
-                  opts.data.getCode(block).call controller, null, viewNode
+                  p = opts.data.getCode block
+                  if p instanceof Promise then p.then (func)-> func.call controller, null, viewNode
+                  else p.call controller, null, viewNode
               controller?.initializeView? viewNode[0], vars
         text = Handlebars.compile(html)(vars, data: UI.context)
         if !id && controllerName
@@ -341,7 +340,7 @@
         " ": ' '
 
       fancyHtml = (str)->
-        if typeof str == 'string' then str.replace /[<>&'"]| +/g, (c)->
+        if typeof str == 'string' then str.replace /[<>&\'\"]| +/g, (c)->
           if c == ' ' then c
           else if c[0] == ' '
             s = ''
@@ -882,14 +881,14 @@ Returns [] if org does not fit the pattern.
         else
           cs.awaitingChange = true
           {start, offset, numberCount, numberOffset, delta} = pos
-          cs.editor.options.collaborativeCode.doSlideValue(start, offset, numberCount, numberOffset, delta)
+          cs.editor.options.data.collaborativeCode.doSlideValue(cs.editor.options, start, offset, numberCount, numberOffset, delta)
             .then ->
               cs.awaitingChange = false
               if pos = cs.nextChange
                 cs.nextChange = null
                 sendSliderChange pos
 
-      doSlideValue = ({options: opts, slaveId}, start, offset, numberCount, numberOffset, delta)->
+      doSlideValue = ({slaveId}, opts, start, offset, numberCount, numberOffset, delta)->
         #console.log "Slider#{if slaveId then ' from slave ' + slaveId else ''} start: #{start}, offset: #{offset}, numberCount: #{numberCount}, numberOffset: #{numberOffset}, change: #{delta}"
         {block} = opts.data.blockOffsetForDocOffset start
         node = opts.nodeForId block
@@ -992,7 +991,7 @@ Returns [] if org does not fit the pattern.
         options = new OrgEditing(data).setMode fancyMode
         data.openRegistration()
         data.registerCollaborativeCode 'doSlideValue', doSlideValue
-        data.registerCollaborativeCode 'viewBoundSet', (context, name, data)-> options.setData name, data
+        data.registerCollaborativeCode 'viewBoundSet', (context, name, data)-> data.setData name, data
         data.closeRegistration()
         new LeisureEditCore $(div), options
 
@@ -1038,7 +1037,7 @@ Returns [] if org does not fit the pattern.
 
 Exports
 
-      mergeExports {
+      Object.assign Leisure, {
         plainMode
         fancyMode
         toggleSlideMode

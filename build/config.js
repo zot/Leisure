@@ -12,7 +12,8 @@
       handlebars: 'lib/handlebars-v4.0.5',
       sockjs: 'lib/sockjs-1.0.0.min',
       lispyscript: './lib/lispyscript/browser-bundle',
-      lodash: './lib/lodash.full-4.14.1'
+      lodash: './lib/lodash.full-4.14.1',
+      bluebird: './lib/bluebird-3.4.6'
     }
   });
 

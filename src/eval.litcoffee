@@ -1,7 +1,7 @@
 Evaulation support for Leisure
 
     define.amd = true
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'lib/bluebird.min', './gen', './export', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Exports, Yaml, DocOrg, _, FingerTree)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = AcornLoose
@@ -12,9 +12,6 @@ Evaulation support for Leisure
         unescapePresentationHtml
         Nil
       } = Ast
-      {
-        mergeExports
-      } = Exports
       {
         Node
         resolve
@@ -71,7 +68,7 @@ Evaulation support for Leisure
         currentGeneratedFileName()
 
       requirePromise = (file)-> new Promise (resolve, reject)->
-        require [file], resolve
+        requirejs [file], resolve
 
       leisurePromise = null
 
@@ -259,9 +256,11 @@ Evaulation support for Leisure
         if isYamlResult block
           if items.length == 1 then items = items[0]
           ': ' + (dump items, {sortKeys: true, flowLevel: Number block.codeAttributes.flowlevel ? 2}).trim().replace(/\n/g, '\n: ') + '\n'
-        else prefix + (presentHtml item for item in items).join ''
+        else prefix + _.map(items, presentHtml).join ''
 
-      writeValues = (env, values)-> env.write values.join '\n'
+      arrayify = (val)-> if _.isArray(val) then val else [val]
+
+      writeResults = (env, values)-> env.write arrayify(values).join '\n'
 
       defaultEnv.formatResult = (block, prefix, items)-> basicFormat block, prefix, items
 
@@ -286,7 +285,7 @@ Evaulation support for Leisure
       jsEnv = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
           new Promise((succeed)->
-            writeValues env, value = jsEval(env, text)
+            writeResults env, value = jsEval(env, text)
             succeed value
             cont? value).catch (err)=>
               @errorAt 0, err.message
@@ -325,7 +324,7 @@ Evaulation support for Leisure
                  start: expr.start
                  end: expr.end - 1
               if (s = new SourceNode(line, column, source, nodesForGeneratedText(oldNodes, expr))).toString() != text.substring expr.start, expr.end
-                console.log "Source nodes don't line up:\n#{s.toString()}"
+                console.warn "Source nodes don't line up:\n#{s.toString()}"
               newSource.push new SourceNode(line, column, source, ['\nleisure_results.push(', nodesForGeneratedText(oldNodes, expr), ');\n'], name)
             else newSource.push new SourceNode(line, column, source, [text.substring expr.start, expr.end])
           {code, map} = new SourceNode(1, 0, fileName, newSource).toStringWithSourceMap()
@@ -427,18 +426,16 @@ Evaulation support for Leisure
           try
             console = log: (str)=> env.write env.presentValue str
             value = setLounge env, -> eval(lispyScript._compile(text));
-            if typeof value != 'undefined' then writeValues env, [value]
+            if typeof value != 'undefined' then writeResults env, [value]
           catch err
             @errorAt 0, err.message
           cont? value
         env
 
-      arrayify = (val)-> if _.isArray(val) then val else [val]
-
       csEnv = (env)->
         env.executeText = (text, props, cont)-> setLounge this, =>
           new Promise((succeed)=>
-            writeValues env, values = arrayify(@runWith {}, eval "(function(){#{@blockCode text, null, null, null, true}})")
+            writeResults env, values = (@runWith {}, eval "(function(){#{@blockCode text, null, null, null, true}})")
             succeed values ? []
             cont? values ? []).catch (err)->
               console.error err.stack ? err
@@ -447,7 +444,7 @@ Evaulation support for Leisure
           new Promise((succeed)=>
             @compileBlock(block).call this, (result)->
               succeed result
-              cont).catch (err)->
+              cont? result).catch (err)->
                 console.error err.stack ? err
                 env.errorAt 0, err.message
         env.compileBlock = (block)->
@@ -648,7 +645,7 @@ Evaulation support for Leisure
         '\"': "\\\""
         '\\': "\\\\"
 
-      unescaped = _.fromPairs ([e, c] for c, e of escaped)
+      unescaped = _.invert escaped
 
       specials = /[\b\f\n\r\t\v\"\\]/g
 
@@ -667,7 +664,7 @@ Evaulation support for Leisure
           pos = newPos + 1
         Math.min str.length, pos + 1 + column
 
-      mergeExports {
+      Object.assign Leisure, {
         evalLeisure
         runLeisureMonad
         setLounge
@@ -705,4 +702,5 @@ Evaulation support for Leisure
         autoLoadEnv
         Scope
         lineColumnStrOffset
+        writeResults
       }

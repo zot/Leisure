@@ -35,7 +35,7 @@ misrepresented as being the original software.
   files = !(typeof window !== "undefined" && window !== null ? window : global).btoa ? ['btoa'] : [null];
 
   define(files, function(btoa) {
-    var CodeContext, SimpyCons, baseLeisureCall, concat, defaultEnv, errors, funcInfo, genInfo, leisureCall, primConsFrom, readDir, readFile, root, rz, serverIncrement, simpyCons, slice, statFile, test, testCount, verboseMsg, writeFile;
+    var CodeContext, SimpyCons, baseLeisureCall, concat, defaultEnv, errors, funcInfo, genInfo, leisureCall, primConsFrom, readDir, readFile, ref, root, rz, serverIncrement, simpyCons, slice, statFile, test, testCount, verboseMsg, writeFile;
     if (!btoa) {
       btoa = (typeof window !== "undefined" && window !== null ? window : global).btoa;
     }
@@ -51,6 +51,7 @@ misrepresented as being the original software.
       }
     };
     (typeof window !== "undefined" && window !== null ? window : global).verbose = {};
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure = (ref = (typeof window !== "undefined" && window !== null ? window : global).Leisure) != null ? ref : {};
     verboseMsg = function() {
       var label, msg;
       label = arguments[0], msg = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
@@ -179,8 +180,8 @@ misrepresented as being the original software.
       }
 
       SimpyCons.prototype.toArray = function() {
-        var array, h, ref;
-        return (ref = this._array) != null ? ref : ((function() {
+        var array, h, ref1;
+        return (ref1 = this._array) != null ? ref1 : ((function() {
           h = this;
           array = [];
           while (h !== null) {

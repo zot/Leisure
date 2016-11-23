@@ -113,8 +113,7 @@ App.blockMinimap.updateFunc()
 #+END_SRC
 ** Support for the observer
 #+BEGIN_SRC coffee :results def
-opts = Lounge.opts
-data = opts.data
+data = @opts.data
 persistence = 500
 colMax = 80
 oldHeats = {}
@@ -144,7 +143,7 @@ populateMap = ->
         curRow = 'x'
       curRow += heat
     if curRow != 'x' then rows.push curRow
-    opts.setLocalData 'blockMap', rows
+    data.setLocalData 'blockMap', rows
   if stillActive then setTimeout App.blockMinimap.updateFunc, persistence * 0.8
 
 # Always set this in case anyone edits this block

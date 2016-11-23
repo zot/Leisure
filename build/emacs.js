@@ -2,10 +2,9 @@
 (function() {
   var slice = [].slice;
 
-  define(['lodash', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice) {
-    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, configureOpts, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, findEditor, getDocumentParams, imgCount, knownLanguages, localResources, makeBlobUrl, mergeExports, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceImage, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
-    mergeExports = Exports.mergeExports;
-    findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
+  define(['lodash', './ui', './editor', './editorSupport', './diag', './eval', './advice'], function(_, UI, Editor, EditorSupport, Diag, Eval, Advice) {
+    var basicDataFilter, blockRangeFor, changeAdvice, clearDiag, close, computeNewStructure, configureEmacs, configureOpts, connect, connected, diag, diagMessage, error, escapeAttr, escapeString, fetchImage, fileCount, fileTypes, getDocumentParams, imgCount, knownLanguages, localResources, makeBlobUrl, message, messages, msgPat, open, preserveSelection, pushPendingInitialzation, receiveFile, replace, replaceImage, replaceMsgPat, replaceWhile, sendCcCc, sendConcurrentBlockChange, sendFollowLink, sendGetFile, sendReplace, shouldSendConcurrent, showDiag, showMessage, typeForFile, unescapeString;
+    preserveSelection = Editor.preserveSelection, computeNewStructure = Editor.computeNewStructure;
     changeAdvice = Advice.changeAdvice;
     showMessage = UI.showMessage, pushPendingInitialzation = UI.pushPendingInitialzation, escapeAttr = UI.escapeAttr, localResources = UI.localResources;
     getDocumentParams = EditorSupport.getDocumentParams, basicDataFilter = EditorSupport.basicDataFilter, fileTypes = EditorSupport.fileTypes, makeBlobUrl = EditorSupport.makeBlobUrl;
@@ -399,7 +398,7 @@
         }
       });
     };
-    mergeExports({
+    Object.assign(Leisure, {
       blockRangeFor: blockRangeFor,
       configureEmacs: configureEmacs,
       configureEmacsOpts: configureOpts

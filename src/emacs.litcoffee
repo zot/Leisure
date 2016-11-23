@@ -1,12 +1,8 @@
 Emacs connection
 
-    define ['lodash', './export', './ui', './editor', './editorSupport', './diag', './eval', './advice'], (_, Exports, UI, Editor, EditorSupport, Diag, Eval, Advice)->
+    define ['lodash', './ui', './editor', './editorSupport', './diag', './eval', './advice'], (_, UI, Editor, EditorSupport, Diag, Eval, Advice)->
 
       {
-        mergeExports
-      } = Exports
-      {
-        findEditor
         preserveSelection
         computeNewStructure
       } = Editor
@@ -269,7 +265,7 @@ Emacs connection
                 [ignore, host, port, cookie] = m
                 connect opts, host, port.substring(1), cookie.substring(1)
 
-      mergeExports {
+      Object.assign Leisure, {
         blockRangeFor
         configureEmacs
         configureEmacsOpts: configureOpts
