@@ -546,7 +546,7 @@ Evaulation support for Leisure
         generateCode: null
         compileBlock: null
 
-<span id="Scope">Scope class</span>
+## Scope class
 
       class Scope
         constructor: ->
