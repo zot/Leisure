@@ -281,7 +281,9 @@ currentId: 0
             (map (fn [x] `(~(lens-find x) ~(string-vec x)))
                  ops)))
 #+END_SRC
+
 *** Tests
+
 #+BEGIN_SRC wisp
 (= "(lens a b c)" (str (lens a b c)))
 (= 1 ((lens a) {:a 1}))
@@ -289,14 +291,10 @@ currentId: 0
 (= 1 ((lens a b c) {:a {:b {:c 1}}}))
 (= {:a {:b {:c 2}}} ((lens a b c) {:a {:b {:c 1}}} 2))
 #+END_SRC
-#+RESULTS:
-: true
-: true
-: true
-: true
-: true
+
 ** Patterns
 *** Code
+
 #+BEGIN_SRC wisp :results def
   ;; Pattern matches return [results] or nil
   ;; Pattern sets return [obj] or nil
@@ -386,12 +384,14 @@ currentId: 0
        all-vars
        (fn
          ([obj]
-          (let [results (map #((first %) (second %)) (zip pats obj))]
-            (and (every? identity results)
-                 (apply Object/assign {} (vec results)))))
+          (if (list? obj)
+            (let [results (map #((first %) (second %)) (zip pats obj))]
+              (and (every? identity results)
+                   (apply Object/assign {} (vec results))))))
          ([obj values]
-          (let [matches (map #((first %) (second %) values) (zip pats obj))]
-            (if (every? identity matches) (map first matches))))))))
+          (if (list? obj)
+            (let [matches (map #((first %) (second %) values) (zip pats obj))]
+              (if (every? identity matches) (map first matches)))))))))
 
   (defn pattern-vector
     "Map patterns into a vector"
@@ -403,12 +403,14 @@ currentId: 0
        all-vars
        (fn
          ([obj]
-          (let [results (map #((first %) (second %)) (zip pats obj))]
-            (and (every? identity results)
-                 (apply Object/assign {} results))))
+          (if (vector? obj)
+            (let [results (map #((first %) (second %)) (zip pats obj))]
+              (and (every? identity results)
+                   (apply Object/assign {} results)))))
          ([obj values]
-          (let [matches (map #((first %) (second %) values) (zip pats obj))]
-            (if (every? identity matches) (map first matches))))))))
+          (if (vector? obj)
+            (let [matches (map #((first %) (second %) values) (zip pats obj))]
+              (if (every? identity matches) (map first matches)))))))))
 
   (defn pattern-dictionary
     "Zip patterns into an object"
@@ -426,13 +428,15 @@ currentId: 0
        all-vars
        (fn
          ([obj]
-          (let [results (map #((aget % 0) (aget obj (aget % 1))) patNames)]
-            (and (every? identity results)
-                 (apply Object/assign {} results))))
+          (if (dictionary? obj)
+            (let [results (map #((aget % 0) (aget obj (aget % 1))) patNames)]
+              (and (every? identity results)
+                   (apply Object/assign {} results)))))
          ([obj values]
-          (let [matches (map #(% obj values) pats)]
-            (if (every? identity matches)
-              (Object/assign {} obj (zipObject names (map first matches))))))))))
+          (if (dictionary? obj)
+            (let [matches (map #(% obj values) pats)]
+              (if (every? identity matches)
+                (Object/assign {} obj (zipObject names (map first matches)))))))))))
 
   (defn pattern-make
     "Pattern maker"
@@ -448,17 +452,17 @@ currentId: 0
                             (pattern-constant pat)
                             (pattern-dictionary
                              keys
-                             (map pattern-make values))))
+                             pats)))
       (vector? pat) (let [pats (map pattern-make pat)]
                       (if (every? #(empty? (.-vars %)) pats)
                         (pattern-constant pat)
-                        (pattern-vector (map pattern-make pats))))
+                        (pattern-vector pats)))
       (and (list? pat)
            (= 'quote (first pat))) (let [items (second pat)
                                          pats (map pattern-make items)]
            (if (every? #(empty? (.-vars %)) pats)
              (pattern-constant pat)
-             (pattern-list (map pattern-make items))))
+             (pattern-list pats)))
       ;;(sequential? pat) (pattern-sequence pat)
       :else (pattern-constant pat)))
 
@@ -492,13 +496,73 @@ currentId: 0
       :else `(pattern-constant '~pat)))
 #+END_SRC
 
+#+NAME: Pattern Decls
+
+#+BEGIN_SRC wisp :results def
+  (defn pattern-decls
+    "Process pattern-based let declarations"
+    [vars error-tag]
+    (let [decls []
+          n 0]
+      (doseq [pat (every-other vars)
+              value (every-other (rest vars))]
+        (if (symbol? pat)
+          (.push decls pat value)
+          (let [pattern (pattern-make pat)
+                patternVar (gensym)]
+            (.push decls patternVar `(or ((pattern ~pat) ~value)
+                                         (throw (Error. (str ~error-tag " " ~n " does not match pattern: " ~(.-description pattern))))))
+            (doseq [v (keys (.-vars pattern))]
+              (.push decls (symbol v) `(aget ~patternVar  ~(name v))))))
+        (set! n (+ 1 n)))
+      decls))
+#+END_SRC
+
 #+BEGIN_SRC wisp :results def
   (defmacro pattern
     "Make a pattern"
     [pat]
     (pattern-make-form pat))
+
+  (defmacro p-let
+    "Let with patterns"
+    [vars & body]
+    `(let ~(pattern-decls vars "Variable") ~@body))
+
+  (defmacro p-defn
+    "Defn with patterns"
+    [name args & body]
+    (.apply window.console.log null args)
+    (if (every? #(symbol? %) args)
+      `(defn ~name ~args ~@body)
+      (let [doc (and (string? args) args)
+            args (if doc (first body) args)
+            body (if doc (rest body) body)
+            doc (or doc "")
+            gens (map (fn [] (gensym)) args)
+            decls (pattern-decls (interleave args gens) "Argument")]
+        `(defn ^{:doc ~doc} ~name ~gens
+           (let ~decls ~@body)))))
 #+END_SRC
+
 *** Tests
+#+BEGIN_SRC wisp :results dynamic
+;(macroexpand '(plet [[a] [1] b 2] prin a)))
+(p-let [{:a fred} {:a 3} b 2] [b fred])
+(macroexpand '(p-defn q [a] (print a)))
+(p-defn q [[a]] (print a)) 
+(map (fn [] (.log window.console arguments)) [1 2])
+(q [:hello])
+;(or ((pattern [fred])[ ]3 4)
+;(drop 2 [1 2 3 4 5])
+;(JSON/stringify (pattern-match-all (pattern [a]) 2 (pattern fred) 7))
+#+END_SRC
+#+RESULTS:
+: hello
+: 2,3
+: (&#39;def &#39;q (&#39;fn &#39;q [&#39;a] (&#39;print &#39;a)))
+: ,
+
 #+BEGIN_SRC wisp :results dynamic
 (= "(pattern fred)" (str (pattern fred)))
 (= "(pattern \"fred\")" (str (pattern "fred")))
@@ -517,26 +581,7 @@ currentId: 0
 (->boolean ((pattern [1]) [1]))
 (= 1 (aget ((pattern [fred]) [1]) :fred))
 (= [2] ((pattern [fred]) [1] {:fred 2}))
- 
 #+END_SRC
-#+RESULTS:
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
-: true
 
 ** Transactions
 *** Transaction-> macro
