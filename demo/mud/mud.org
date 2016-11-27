@@ -305,7 +305,6 @@ currentId: 0
     [description vars func]
     (set! func.description description)
     (set! func.vars vars)
-    (set! func.match func)
     (let [to-string (str "(pattern " description ")")]
       (set! func.toString (fn [] to-string)))
     func)
@@ -344,7 +343,10 @@ currentId: 0
   (defn pattern-constant-value
     "Extract value for constant"
     [value]
-    (or (and (named? value) (name value)) value))
+    (cond
+      (named? value) (name value)
+      (and (list? value) (= 'quote (first value))) (second value)
+      :else value))
 
   (defn pattern-edn
     "Pattern encoding for a value"
@@ -371,27 +373,64 @@ currentId: 0
        (pattern-edn value)
        {}
        (fn
-         ([obj] (and (= value (pattern-constant-value obj)) [{}]))
+         ([obj] (and (= value (pattern-constant-value obj)) {}))
          ([obj values] (and (= value (pattern-constant-value obj)) [obj]))))))
 
-  (defn pattern-dictionary
-    "Zip patterns into an object"
-    [names pats]
-    (let [patDict (zipObject names pats)
-          patNames (transpose [pats names])
-          desc (map #(str "{:" (name (aget % 1)) " " (.-description (aget % 0)) "}")
-                    patNames)
+  (defn pattern-list
+    "Map patterns into a list"
+    [pats]
+    (let [desc (str "'(" (join " " (map #(.-description %) pats)) ")")
           all-vars (apply Object/assign {} (map #(.-vars %) pats))]
       (pattern-fn
        desc
        all-vars
        (fn
          ([obj]
-          (let [results (map #(.match (aget % 0) (aget obj (aget % 1))) patNames)]
+          (let [results (map #((first %) (second %)) (zip pats obj))]
+            (and (every? identity results)
+                 (apply Object/assign {} (vec results)))))
+         ([obj values]
+          (let [matches (map #((first %) (second %) values) (zip pats obj))]
+            (if (every? identity matches) (map first matches))))))))
+
+  (defn pattern-vector
+    "Map patterns into a vector"
+    [pats]
+    (let [desc (str "[" (join " " (map #(.-description %) pats)) "]")
+          all-vars (apply Object/assign {} (map #(.-vars %) pats))]
+      (pattern-fn
+       desc
+       all-vars
+       (fn
+         ([obj]
+          (let [results (map #((first %) (second %)) (zip pats obj))]
             (and (every? identity results)
                  (apply Object/assign {} results))))
          ([obj values]
-          (let [matches (map #(.match % obj values) pats)]
+          (let [matches (map #((first %) (second %) values) (zip pats obj))]
+            (if (every? identity matches) (map first matches))))))))
+
+  (defn pattern-dictionary
+    "Zip patterns into an object"
+    [names pats]
+    (let [patDict (zipObject names pats)
+          patNames (transpose [pats names])
+          desc (str "{"
+                    (join " " (map #(str ":" (name (aget % 1))
+                                         " " (.-description (aget % 0)))
+                                   patNames))
+                    "}")
+          all-vars (apply Object/assign {} (map #(.-vars %) pats))]
+      (pattern-fn
+       desc
+       all-vars
+       (fn
+         ([obj]
+          (let [results (map #((aget % 0) (aget obj (aget % 1))) patNames)]
+            (and (every? identity results)
+                 (apply Object/assign {} results))))
+         ([obj values]
+          (let [matches (map #(% obj values) pats)]
             (if (every? identity matches)
               (Object/assign {} obj (zipObject names (map first matches))))))))))
 
@@ -410,6 +449,16 @@ currentId: 0
                             (pattern-dictionary
                              keys
                              (map pattern-make values))))
+      (vector? pat) (let [pats (map pattern-make pat)]
+                      (if (every? #(empty? (.-vars %)) pats)
+                        (pattern-constant pat)
+                        (pattern-vector (map pattern-make pats))))
+      (and (list? pat)
+           (= 'quote (first pat))) (let [items (second pat)
+                                         pats (map pattern-make items)]
+           (if (every? #(empty? (.-vars %)) pats)
+             (pattern-constant pat)
+             (pattern-list (map pattern-make items))))
       ;;(sequential? pat) (pattern-sequence pat)
       :else (pattern-constant pat)))
 
@@ -427,12 +476,18 @@ currentId: 0
                             `(pattern-dictionary
                               ~keys
                               ~(map pattern-make-form values))))
-      (and
-       (list? pat)
-       (= 'quote (first pat))) (let [pats (map pattern-make (second pat))]
-                                 (if (every? #(empty? (.-vars %)) pats)
-                                   `(pattern-constant ~pat)
-                                   `(pattern-list pats)))
+      (vector? pat) (let [pats (map pattern-make pat)]
+                    (if (every? #(empty? (.-vars %)) pats)
+                      `(pattern-constant ~pat)
+                      `(pattern-vector [~@(map pattern-make-form pat)])))
+      (and (list? pat)
+           (= 'quote (first pat))) (let [items (second pat)
+                                         pats (map pattern-make items)]
+                                     (if (every? #(empty? (.-vars %)) pats)
+                                       `(pattern-constant ~pat)
+                                       `(pattern-list
+                                         (list ~@(map pattern-make-form items)))))
+      (list? pat) (throw (Error. (str "Unrecognized list pattern.  Did you mean '" pat "?")))
       ;;(sequential? pat) (pattern-sequence pat)
       :else `(pattern-constant '~pat)))
 #+END_SRC
@@ -450,11 +505,19 @@ currentId: 0
 (= "(pattern \"fred\")" (str (pattern :fred)))
 (= "(pattern \":fred\")" (str (pattern ":fred")))
 (= "(pattern {:a 1})" (str (pattern {:a 1})))
+(= "(pattern '(1 fred))" (str (pattern '(1 fred))))
+(= "(pattern [1 fred])" (str (pattern [1 fred])))
 (->boolean ((pattern {:a 1}) {:a 1}))
 (not (->boolean ((pattern {:a 1}) {:a 2})))
 (= 3 (aget ((pattern {:a fred}) {:a 3}) :fred))
 (= 5 (aget ((pattern {:a fred}) ((pattern {:a fred}) {:a 3} {:fred 5})) :fred))
-
+(->boolean ((pattern '(1)) '(1)))
+(= 1 (aget ((pattern '(fred)) '(1)) :fred))
+(= '(2) ((pattern '(fred)) '(1) {:fred 2}))
+(->boolean ((pattern [1]) [1]))
+(= 1 (aget ((pattern [fred]) [1]) :fred))
+(= [2] ((pattern [fred]) [1] {:fred 2}))
+ 
 #+END_SRC
 #+RESULTS:
 : true
@@ -466,7 +529,15 @@ currentId: 0
 : true
 : true
 : true
- 
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+
 ** Transactions
 *** Transaction-> macro
 **** (transaction-> STATEMENT ...)
