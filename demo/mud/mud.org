@@ -13,12 +13,26 @@
 :end:
 
 #+BEGIN_SRC wisp :results dynamic
-;(map even? '(1 2 3 4))
-;(String '(1 2 3 a))
-(lens a b) 
-;3
+;(macroexpand '(deflens bubba "" [p] #(named? %) `(lens-property ~(name prop))
+;  (Lens.
+;   (fn [obj] (aget obj prop))
+;   (fn [obj val] (let [newObj (cond (dictionary? obj) (Object/assign (Object.) obj)
+;                                    (vector? obj) (.slice obj))]
+;                   (aset newObj prop val)
+;                   newObj))
+;   [prop])))
+;(macroexpand '(lens a))
+;(lens-parse 'a) 
+;(.log window.console lens-parsers)
+(macroexpand '(lens ab))
+;(JSON/stringify (lens-set (lens ab) {:ab 2} 3))
 #+END_SRC
-#+ERROR: 25, lensProperty is not defined
+#+RESULTS:
+: (&#39;lens-property &quot;a&quot;)
+: (lens ab)
+: {&quot;ab&quot;:3}
+
+
 
 #+BEGIN_SRC wisp :results dynamicX
 (transaction->
@@ -175,25 +189,30 @@ currentId: 0
 #+END_SRC
 
 #+BEGIN_SRC wisp :results def
-  (defn- Lens
-    "Lens type"
-    [get set description]
-    (set! this.get get)
-    (set! this.set set)
-    (set! this.description description)
-    this)
+  (defn lens->string
+    "Display a lens"
+    []
+    (join (concat ["(lens"]
+                  [(if (empty? this.description) "" " ")]
+                  (intersperse this.description " ")
+                  [")"])))
 
-  (set! Lens.prototype.toString
-        (fn []
-          (join (concat ["(lens"]
-                        [(if (empty? this.description) "" " ")]
-                        (intersperse this.description " ")
-                        [")"]))))
+  (defn- lens-make
+    "Make a func into a lens"
+    [func description]
+    (set! func.description description)
+    (set! func.toString lens->string)
+    func)
 
-  (defn o
-    "Compose 2 functions of one variable"
-    [f1 f2]
-    (fn [x] (f1 (f2 x))))
+  (defn lens-compose
+    "Compose lenses"
+    [l1 l2]
+    (lens-make
+     (fn
+       ([obj] (l2 (l1 obj)))
+       ([obj val]
+        (l1 obj (l2 (l1 obj) val))))
+     (concat (.-description l1) (.-description l2))))
 
   (defn lens-empty
     []
@@ -203,98 +222,251 @@ currentId: 0
     "Sequence of lens parsers"
     [])
 
-  (defn parse-lens
-    "Parse lens entry"
+  (defn lens-find
+    "Find a lens"
     [entry]
-    (let [parser (find #((:predicate %) entry)  lens-parsers)]
-      (if parser
-        ((:definition parser) entry)
-        (throw (Error. (str "Lens could parse " (String entry)))))))
+    (:definition (or (find #((:predicate %) entry) lens-parsers)
+                     (throw (Error. (str "Lens could parse " (String entry)))))))
 
-  (defn lens-compose
-    "Compose lenses"
-    [l1 l2]
-    (if (empty? (:description l1))
-      l2
-      (let [l1get (.-get l1)
-            l1set (.-set l1)
-            l2get (.-get l2)
-            l2set (.-set l2)]
-        (Lens.
-         (o l2get l1get)
-         (fn [obj val] (l1set obj (l2set (l1get obj) val)))
-         (concat (.-description l1) (.-description l2))))))
+  (defn string-vec
+    "Convert items to a vector of strings"
+    [items]
+    (if (named? items) (name items)
+        (if (sequential? items)
+          (map #(string-vec %) (vec items)))))
 
-  (defn lens-get
-    "Get a value from an object"
-    [lens obj]
-    (.get lens obj))
-
-  (defn lens-set
-    "Put a value into a object"
-    [lens obj value]
-    (.set lens obj value))
-
-  ;(.alert window "******* ADD TRANSACTION SUPPORT TO LENSES *******")
-
+  ;;(.alert window "******* ADD TRANSACTION SUPPORT TO LENSES *******")
 #+END_SRC
 
 #+BEGIN_SRC wisp :results def
-  (defmacro deflens-parser 
+  (defmacro deflens
     "Add a lens parser to the lens builder"
-    [predicate definition]
-    `(set! lens-parsers (conj lens-parsers {:predicate ~predicate :definition ~definition})))
+    [name doc args predicate params & body]
+    `(def ~name
+        (do
+          (set! lens-parsers
+                (conj lens-parsers
+                      {:predicate ~predicate :definition '~name}))
+          (fn ~args ~@body))))
 
-  (deflens-parser ;;; properties
-    #(named? %)
-    (fn
-      [prop]
-      (Lens.
-       (fn [obj] (aget obj prop))
-       (fn [obj val] (let [newObj (cond (dictionary? obj) (Object/assign (Object.) obj)
-                                        (vector? obj) (.slice obj))]
-                       (aset newObj prop val)
-                       newObj))
-       [prop])))
+  (deflens lens-property
+    "Property lens"
+    [prop]
+    #(named? %) (list (name prop))
+    (lens-make
+     (fn
+       ([obj] (aget obj prop))
+       ([obj val] (let [new-obj (cond (dictionary? obj)
+                                      (Object/assign (Object.) obj)
+                                      (vector? obj) (.slice obj))]
+                    (aset new-obj prop val)
+                    new-obj)))
+      [prop]))
 
-  (deflens-parser ;;; transactions
-    #(and (sequential? %) (named (first %))  (== "transaction" (name (first %))))
-    (fn
-      [id]
-      (Lens.
-       (fn [trans] (tr-get trans id)
-         (fn [trans val] (tr-update val))
-         [`(transaction ~id)]))))
+  (deflens lens-transaction
+    "Transaction lens"
+    [id]
+    #(and (sequential? %) (named (first %)) (== "transaction" (name (first %))) (named (second %)))
+    `(lens-transaction ~(name id))
+    (lens-make
+     (fn
+       ([trans] (tr-get trans id))
+       ([trans val] (tr-update val)))
+     [`(transaction ~id)]))
 
   (defmacro lens
     "Make a lens on some data"
     [& ops]
-    (reduce (fn [l1 l2] (lens-compose l1 l2)) (map parse-lens ops)))
-
-  (defmacro lensX
-    [& ops]
-    (loop [ops ops
-           result ()]
-      (if (empty? ops)
-        result
-        (let [op (first ops)
-              newLens (cond (named? op) `(lens-property ~(no-colon op))
-                            (number? op) `(lens-property ~op)
-                            :else (throw (Error. (str "Bad lens operation: " op))))]
-          (recur (rest ops) (if (empty? result)
-                              newLens
-                              `(lens-compose ~result ~newLens)))))))
-
+    (reduce (fn [l1 l2] `(lens-compose ~l1 ~l2))
+            (map (fn [x] `(~(lens-find x) ~(string-vec x)))
+                 ops)))
 #+END_SRC
 *** Tests
 #+BEGIN_SRC wisp
-(lens a)
+(= "(lens a b c)" (str (lens a b c)))
+(= 1 ((lens a) {:a 1}))
+(= {:a 2} ((lens a) {:a 1} 2))
+(= 1 ((lens a b c) {:a {:b {:c 1}}}))
+(= {:a {:b {:c 2}}} ((lens a b c) {:a {:b {:c 1}}} 2))
 #+END_SRC
-#+ERROR: 1, lens is not defined
-
-
 #+RESULTS:
-: 
+: true
+: true
+: true
+: true
+: true
+** Patterns
+*** Code
+#+BEGIN_SRC wisp :results def
+  ;; Pattern matches return [results] or nil
+  ;; Pattern sets return [obj] or nil
+
+  (defn pattern-fn
+    [description vars func]
+    (set! func.description description)
+    (set! func.vars vars)
+    (set! func.match func)
+    (let [to-string (str "(pattern " description ")")]
+      (set! func.toString (fn [] to-string)))
+    func)
+
+  (defn pattern-var?
+    "Is this a var pattern?"
+    [sym]
+    (symbol? sym))
+
+  (defn pattern-var
+    "Pattern for vars"
+    [sym]
+    (let [name (if (and (string? sym) (= ":" (first sym)))
+                 (name (rest sym))
+                 (name sym))
+          vars {}]
+      (aset vars name true)
+      (pattern-fn
+       name
+       vars
+       (fn
+         ([obj] (dictionary name obj))
+         ([obj values]
+          [(if (has values name)
+              (aget values name)
+              obj)])))))
+
+  (defn pattern-constant?
+    "Is this a constant pattern?"
+    [value]
+    (or
+     (named? value)
+     (number? value)
+     (boolean? value)))
+
+  (defn pattern-constant-value
+    "Extract value for constant"
+    [value]
+    (or (and (named? value) (name value)) value))
+
+  (defn pattern-edn
+    "Pattern encoding for a value"
+    [val]
+    (cond
+      (named? val) (str "\"" val "\"")
+      (dictionary? val) (str "{"
+                             (join " " (map #(str ":" (name (aget % 0)) " " (pattern-edn (aget % 1))) val))
+                             "}")
+      (vector? val) (str "[" (join " " (map #(pattern-edn %) val)) "]")
+      (list? val) (str "(quote (" (join " " (map #(pattern-edn %) val)) "))")
+      (iset? val) (str "(iset " (pattern-edn (.toJS val)) ")")
+      (imap? val) (str "(imap " (pattern-edn (.toJS val)) ")")
+      (ivec? val) (str "(ivec " (pattern-edn (.toJS val)) ")")
+      (iseq? val) (str "(iseq " (pattern-edn (.toJS val)) ")")
+      (or (boolean? val) (number? val)) (str val)
+      :else (throw (str "Could not encode value: " val))))
+
+  (defn pattern-constant
+    "Pattern for constants"
+    [value]
+    (let [value (pattern-constant-value value)]
+      (pattern-fn
+       (pattern-edn value)
+       {}
+       (fn
+         ([obj] (and (= value (pattern-constant-value obj)) [{}]))
+         ([obj values] (and (= value (pattern-constant-value obj)) [obj]))))))
+
+  (defn pattern-dictionary
+    "Zip patterns into an object"
+    [names pats]
+    (let [patDict (zipObject names pats)
+          patNames (transpose [pats names])
+          desc (map #(str "{:" (name (aget % 1)) " " (.-description (aget % 0)) "}")
+                    patNames)
+          all-vars (apply Object/assign {} (map #(.-vars %) pats))]
+      (pattern-fn
+       desc
+       all-vars
+       (fn
+         ([obj]
+          (let [results (map #(.match (aget % 0) (aget obj (aget % 1))) patNames)]
+            (and (every? identity results)
+                 (apply Object/assign {} results))))
+         ([obj values]
+          (let [matches (map #(.match % obj values) pats)]
+            (if (every? identity matches)
+              (Object/assign {} obj (zipObject names (map first matches))))))))))
+
+  (defn pattern-make
+    "Pattern maker"
+    [pat]
+    (cond
+      (and (list? pat) (= 'quote (first pat))) (pattern-constant (first pat))
+      (pattern-var? pat) (pattern-var pat)
+      (pattern-constant? pat) (pattern-constant pat)
+      (dictionary? pat) (let [keys (keys pat)
+                              values (map #(aget pat %) keys)
+                              pats (map pattern-make values)]
+                          (if (every? #(empty? (.-vars %)) pats)
+                            (pattern-constant pat)
+                            (pattern-dictionary
+                             keys
+                             (map pattern-make values))))
+      ;;(sequential? pat) (pattern-sequence pat)
+      :else (pattern-constant pat)))
+
+  (defn pattern-make-form
+    "Compile a pattern maker"
+    [pat]
+    (cond
+      (pattern-var? pat) `(pattern-var '~pat)
+      (pattern-constant? pat) `(pattern-constant '~pat)
+      (dictionary? pat) (let [keys (keys pat)
+                              values (map #(aget pat %) keys)
+                              pats (map pattern-make values)]
+                          (if (every? #(empty? (.-vars %)) pats)
+                            `(pattern-constant ~pat)
+                            `(pattern-dictionary
+                              ~keys
+                              ~(map pattern-make-form values))))
+      (and
+       (list? pat)
+       (= 'quote (first pat))) (let [pats (map pattern-make (second pat))]
+                                 (if (every? #(empty? (.-vars %)) pats)
+                                   `(pattern-constant ~pat)
+                                   `(pattern-list pats)))
+      ;;(sequential? pat) (pattern-sequence pat)
+      :else `(pattern-constant '~pat)))
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defmacro pattern
+    "Make a pattern"
+    [pat]
+    (pattern-make-form pat))
+#+END_SRC
+*** Tests
+#+BEGIN_SRC wisp :results dynamic
+(= "(pattern fred)" (str (pattern fred)))
+(= "(pattern \"fred\")" (str (pattern "fred")))
+(= "(pattern \"fred\")" (str (pattern :fred)))
+(= "(pattern \":fred\")" (str (pattern ":fred")))
+(= "(pattern {:a 1})" (str (pattern {:a 1})))
+(->boolean ((pattern {:a 1}) {:a 1}))
+(not (->boolean ((pattern {:a 1}) {:a 2})))
+(= 3 (aget ((pattern {:a fred}) {:a 3}) :fred))
+(= 5 (aget ((pattern {:a fred}) ((pattern {:a fred}) {:a 3} {:fred 5})) :fred))
+
+#+END_SRC
+#+RESULTS:
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+ 
 ** Transactions
 *** Transaction-> macro
 **** (transaction-> STATEMENT ...)
@@ -409,12 +581,13 @@ tests
      (or gets this.gets)
      (or names this.names)
      (or indexer this.indexer)))
+
   (set! Transaction.prototype.copy tcopy)
 
   (defn transaction
     "Create a transaction"
-    [creates updates removes gets names]
-    (Transaction. nil creates updates removes gets names))
+    [creates updates removes gets names indexer]
+    (Transaction. nil creates updates removes gets names indexer))
 
   (defn tr->json
     "convert a transaction to JSON"
@@ -685,13 +858,6 @@ tests
 
   (def transactionArrowErrMsg
     "transaction-> expression returned an object that is not a transaction: ")
-#+END_SRC
-
-#+BEGIN_SRC wisp :results def
-  (defmacro transaction->
-    "Arrow through transaction exprs, verifying that each value is a transaction"
-    [& body]
-    (filter-lets body #(list 'tr-check % 'transactionArrowErrMsg)))
 
   (defmacro do->
     "Do side effects and return the result of the first expression"
@@ -703,14 +869,37 @@ tests
            ~@body
            ~name))))
 #+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defmacro transaction->
+    "Arrow through transaction exprs, verifying that each value is a transaction"
+    [& body]
+    (filter-lets body #(list 'tr-check % 'transactionArrowErrMsg)))
+#+END_SRC
 *** Transaction macro tests
 #+BEGIN_SRC wisp
 (macroexpand '(transaction->))
 (macroexpand '(transaction-> a))
 (macroexpand '(transaction-> a b))
 (macroexpand '(transaction-> a b (c d)))
-(macroexpand '(side-effects a b c))
+(macroexpand '(do-> a b c))
+(macroexpand '(transaction-> a (do-> b (c d)) e f))
 #+END_SRC
+#+RESULTS:
+: (&#39;tr-check &#39;a &#39;transactionArrowErrMsg)
+: (&#39;let [&#39;G__115 (&#39;tr-check &#39;a &#39;transactionArrowErrMsg)] (&#39;tr-check (&#39;b &#39;G__115) &#39;transactionArrowErrMsg))
+: (&#39;let [&#39;G__117 (&#39;tr-check &#39;a &#39;transactionArrowErrMsg) &#39;G__118 (&#39;tr-check (&#39;b &#39;G__117) &#39;transactionArrowErrMsg)] (&#39;tr-check (&#39;c &#39;G__118 &#39;d) &#39;transactionArrowErrMsg))
+: (&#39;let [&#39;G__120 &#39;a] &#39;b &#39;c &#39;G__120)
+: (&#39;let [&#39;G__121 (&#39;tr-check &#39;a &#39;transactionArrowErrMsg) &#39;G__122 (&#39;tr-check (&#39;do-&gt; &#39;G__121 &#39;b (&#39;c &#39;d)) &#39;transactionArrowErrMsg) &#39;G__123 (&#39;tr-check (&#39;e &#39;G__122) &#39;transactionArrowErrMsg)] (&#39;tr-check (&#39;f &#39;G__123) &#39;transactionArrowErrMsg))
+
+#+BEGIN_SRC wisp
+debugger
+(-> 33 (do-> 1 2 3) (+ 2))
+#+END_SRC
+
+
+#+RESULTS:
+: 35
 *** Example code
 #+BEGIN_SRC wisp
   (tr-commit

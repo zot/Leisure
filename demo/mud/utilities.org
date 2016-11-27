@@ -31,7 +31,9 @@
      [wisp.backend.escodegen.writer :refer [translate-identifier-word]]
      [immutable :refer [List OrderedSet Map Seq]
       :rename {List ImmutableList OrderedSet ImmutableSet Map ImmutableMap Seq ImmutableSeq}]
+     [lodash :refer [zipObject has]]
      [editor-support :refer [DataIndexer]]))
+;(Leisure/dbg)
   (def data Lounge.data)
 #+END_SRC
 ** macros
@@ -64,7 +66,7 @@
   (defn iset? [coll] (instance? ImmutableSet coll))
   (defn iset [coll] (if (iset? coll) coll (ImmutableSet (vec coll))))
   (defn iseq? [coll] (instance? ImmutableSeq coll))
-  (defn immutablejs? [coll] (or (ivec? coll) (imap? coll) (iseq? coll)))
+  (defn immutablejs? [coll] (or (ivec? coll) (imap? coll) (iseq? coll) (iset? coll)))
   (defmacro obj-delegate [fn comp]
     `(let [old ~fn]
        (set! ~fn (fn [coll]
@@ -118,7 +120,7 @@
     [satisfies? sequence]
     (loop [sequence sequence]
       (cond
-        (empty? sequence) sequence
+        (empty? sequence) nil
         (satisfies? (first sequence)) (first sequence)
         :else (recur (rest sequence)))))
   (defn intersperse
@@ -208,6 +210,28 @@
 #+BEGIN_SRC wisp
   (= (find even? [1 1 2 3 4]) 2)
   (= (intersperse [1 2 3] 10) [1 10 2 10 3])
+#+END_SRC
+** Testing
+#+BEGIN_SRC wisp :results def
+  (defn ->boolean
+    "Convert an object to a boolean"
+    [x]
+    (not (not x)))
+#+END_SRC
+** edn
+#+BEGIN_SRC wisp :results def
+  (defn ->edn
+    "EDN for a value"
+    [val]
+    (cond
+      (named? val) (str "\"" val "\"")
+      (dictionary? val) (str "{"
+                             (join " " (map #(str ":" (aget % 0) " " (edn (aget % 1))) val))
+                             "}")
+      (vector? val) (str "[" (join " " (map #(edn %) val)) "]")
+      (list? val) (str "(" (join " " (map #(edn %) val)) ")")
+      (or (boolean? val) (number? val)) (str val)
+      :else (throw (str "Could not encode value: " val))))
 #+END_SRC
 ** Writer tweaks
 #+BEGIN_SRC wisp :results def
