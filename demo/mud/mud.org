@@ -24,13 +24,14 @@
 ;(macroexpand '(lens a))
 ;(lens-parse 'a) 
 ;(.log window.console lens-parsers)
-(macroexpand '(lens ab))
+;(macroexpand '(lens ab))
 ;(JSON/stringify (lens-set (lens ab) {:ab 2} 3))
+;(.log window.console (with-meta (with-meta (fn [] 3) {:a 1}) {:b 2}))
+(Leisure/dbg) 
+(let [a {:a 1}] (JSON/stringify [a (merge a {:a 2 :b 1})]))
 #+END_SRC
 #+RESULTS:
-: (&#39;lens-property &quot;a&quot;)
-: (lens ab)
-: {&quot;ab&quot;:3}
+: [{&quot;a&quot;:1},{&quot;a&quot;:2,&quot;b&quot;:1}]
 
 
 
@@ -301,8 +302,9 @@ currentId: 0
 
   (defn pattern-fn
     [description vars func]
-    (set! func.description description)
-    (set! func.vars vars)
+    (with-meta func (merge (or (meta func) {})
+                           {:description description
+                            :vars vars}))
     (let [to-string (str "(pattern " description ")")]
       (set! func.toString (fn [] to-string)))
     func)
@@ -377,8 +379,8 @@ currentId: 0
   (defn pattern-list
     "Map patterns into a list"
     [pats]
-    (let [desc (str "'(" (join " " (map #(.-description %) pats)) ")")
-          all-vars (apply Object/assign {} (map #(.-vars %) pats))]
+    (let [desc (str "'(" (join " " (map #(aget (meta %) :description) pats)) ")")
+          all-vars (apply Object/assign {} (map #(aget (meta %) :vars) pats))]
       (pattern-fn
        desc
        all-vars
@@ -396,8 +398,8 @@ currentId: 0
   (defn pattern-vector
     "Map patterns into a vector"
     [pats]
-    (let [desc (str "[" (join " " (map #(.-description %) pats)) "]")
-          all-vars (apply Object/assign {} (map #(.-vars %) pats))]
+    (let [desc (str "[" (join " " (map #(aget (meta %) :description) pats)) "]")
+          all-vars (apply Object/assign {} (map #(aget (meta %) :vars) pats))]
       (pattern-fn
        desc
        all-vars
@@ -419,10 +421,10 @@ currentId: 0
           patNames (transpose [pats names])
           desc (str "{"
                     (join " " (map #(str ":" (name (aget % 1))
-                                         " " (.-description (aget % 0)))
+                                         " " (aget (meta (aget % 0)) :description))
                                    patNames))
                     "}")
-          all-vars (apply Object/assign {} (map #(.-vars %) pats))]
+          all-vars (apply Object/assign {} (map #(aget (meta %) :vars) pats))]
       (pattern-fn
        desc
        all-vars
@@ -448,19 +450,19 @@ currentId: 0
       (dictionary? pat) (let [keys (keys pat)
                               values (map #(aget pat %) keys)
                               pats (map pattern-make values)]
-                          (if (every? #(empty? (.-vars %)) pats)
+                          (if (every? #(empty? (aget (meta %) :vars)) pats)
                             (pattern-constant pat)
                             (pattern-dictionary
                              keys
                              pats)))
       (vector? pat) (let [pats (map pattern-make pat)]
-                      (if (every? #(empty? (.-vars %)) pats)
+                      (if (every? #(empty? (aget (meta %) :vars)) pats)
                         (pattern-constant pat)
                         (pattern-vector pats)))
       (and (list? pat)
            (= 'quote (first pat))) (let [items (second pat)
                                          pats (map pattern-make items)]
-           (if (every? #(empty? (.-vars %)) pats)
+           (if (every? #(empty? (aget (meta %) :vars)) pats)
              (pattern-constant pat)
              (pattern-list pats)))
       ;;(sequential? pat) (pattern-sequence pat)
@@ -475,19 +477,19 @@ currentId: 0
       (dictionary? pat) (let [keys (keys pat)
                               values (map #(aget pat %) keys)
                               pats (map pattern-make values)]
-                          (if (every? #(empty? (.-vars %)) pats)
+                          (if (every? #(empty? (aget (meta %) :vars)) pats)
                             `(pattern-constant ~pat)
                             `(pattern-dictionary
                               ~keys
                               ~(map pattern-make-form values))))
       (vector? pat) (let [pats (map pattern-make pat)]
-                    (if (every? #(empty? (.-vars %)) pats)
+                    (if (every? #(empty? (aget (meta %) :vars)) pats)
                       `(pattern-constant ~pat)
                       `(pattern-vector [~@(map pattern-make-form pat)])))
       (and (list? pat)
            (= 'quote (first pat))) (let [items (second pat)
                                          pats (map pattern-make items)]
-                                     (if (every? #(empty? (.-vars %)) pats)
+                                     (if (every? #(empty? (aget (meta %) :vars)) pats)
                                        `(pattern-constant ~pat)
                                        `(pattern-list
                                          (list ~@(map pattern-make-form items)))))
@@ -580,8 +582,26 @@ currentId: 0
 (= '(2) ((pattern '(fred)) '(1) {:fred 2}))
 (->boolean ((pattern [1]) [1]))
 (= 1 (aget ((pattern [fred]) [1]) :fred))
-(= [2] ((pattern [fred]) [1] {:fred 2}))
+(= [2] ((pattern [fred]) [1] {:fred 2})) 
 #+END_SRC
+#+RESULTS:
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
 
 ** Transactions
 *** Transaction-> macro

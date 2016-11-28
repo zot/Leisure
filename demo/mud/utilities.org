@@ -16,7 +16,8 @@
                            print to-string = max min fn? vector?]]
      [wisp.ast :refer [symbol symbol? keyword? keyword-name name
                        namespace gensym unquote? unquote-splicing?
-                       quote? syntax-quote? quote-string pr-str]]
+                       quote? syntax-quote? quote-string pr-str
+                       meta with-meta]]
      [wisp.sequence :refer [lazy-seq lazy-seq? list? list cons
                             sequential? reverse map filter reduce
                             count empty? first second third rest
