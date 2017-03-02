@@ -5,7 +5,7 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     slice1 = [].slice;
 
-  define(['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
+  define(['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
     var BasicEditingOptions, CodeContext, DataIndexer, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addSelectionBubble, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, getYaml, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, modifyingKey, monitorSelectionChange, orgDoc, parseOrgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, sanitize, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet, writeResults;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
@@ -162,13 +162,7 @@
         this.loadName = name;
         return this.makeChanges((function(_this) {
           return function() {
-            var block, changes, filter, id, j, len, newBlocks, ref, ref1, ref2, replacement;
-            replacement = context != null ? context : {
-              start: 0,
-              end: _this.getLength(),
-              text: text,
-              source: 'load'
-            };
+            var block, changes, filter, id, j, len, newBlocks, ref, ref1, ref2;
             _this.initializeLocalData();
             _this.loading = true;
             _this.suppressTriggers(function() {
@@ -180,14 +174,12 @@
               filter.clear(_this);
             }
             newBlocks = _this.blockList();
-            if (!changes) {
-              changes = {
-                sets: _this.blocks,
-                oldBlocks: [],
-                newBlocks: newBlocks,
-                first: _this.first
-              };
-            }
+            changes = {
+              sets: _this.blocks,
+              oldBlocks: [],
+              newBlocks: newBlocks,
+              first: _this.first
+            };
             _this.linkAllSiblings(changes);
             ref1 = changes.sets;
             for (id in ref1) {

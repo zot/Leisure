@@ -5,12 +5,11 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  define(['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'bluebird'], function(jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird) {
-    var BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, Promise, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getEventChar, htmlForNode, idCounter, imbeddedBoundary, indexNode, insertAfterSplit, insertInSplit, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, sameCharacter, selectRange, shiftKey, shiftUps, spaces, specialKeys, treeToArray, useEvent, validateBatch, wrapDiag;
+  define(['./domCursor', 'fingertree', 'immutable', './advice', 'lodash'], function(DOMCursor, Fingertree, Immutable, Advice, _) {
+    var $, BS, BasicEditingOptions, BlockErrors, DEL, DOWN, DataStore, DataStoreEditingOptions, END, ENTER, FJQData, FeatherJQ, HOME, LEFT, LeisureEditCore, Observable, PAGEDOWN, PAGEUP, RIGHT, Set, TAB, UP, _to_ascii, activating, afterMethod, beforeMethod, blockText, changeAdvice, computeNewStructure, copyBlock, defaultBindings, dragRange, escapeHtml, eventChar, findEditor, getDataProperty, getEventChar, getEvents, getNodeData, getUserData, htmlForNode, idCounter, imbeddedBoundary, indexNode, insertAfterSplit, insertInSplit, is$, isAlphabetic, isEditable, keyFuncs, last, link, maxLastKeys, modifiers, modifyingKey, posFor, preserveSelection, preservingSelection, replacements, root, runEvent, sameCharacter, selectRange, set$, shiftKey, shiftUps, spaces, specialKeys, treeToArray, useEvent, wrapDiag;
     selectRange = DOMCursor.selectRange;
     Set = Immutable.Set;
     beforeMethod = Advice.beforeMethod, afterMethod = Advice.afterMethod, changeAdvice = Advice.changeAdvice;
-    Promise = Bluebird.Promise;
     imbeddedBoundary = /.\b./;
     maxLastKeys = 4;
     BS = 8;
@@ -121,7 +120,7 @@
           }
         } else {
           if (this.listeners[type]) {
-            this.listeners[type] = _.filter(this.listeners[type], function(l) {
+            this.listeners[type] = this.listeners[type].filter(function(l) {
               return l !== callback;
             });
           }
@@ -130,12 +129,12 @@
       };
 
       Observable.prototype.trigger = function() {
-        var args, j, len, listener, ref, results1, type;
+        var args, j, len1, listener, ref, results1, type;
         type = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
         if (!this.suppressingTriggers) {
           ref = this.listeners[type] || [];
           results1 = [];
-          for (j = 0, len = ref.length; j < len; j++) {
+          for (j = 0, len1 = ref.length; j < len1; j++) {
             listener = ref[j];
             results1.push(listener.apply(null, args));
           }
@@ -157,6 +156,243 @@
       return Observable;
 
     })();
+    FeatherJQ = (function(superClass) {
+      extend(FeatherJQ, superClass);
+
+      function FeatherJQ() {
+        var j, len1, results, spec, specs;
+        specs = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        results = [];
+        results.__proto__ = FeatherJQ.prototype;
+        for (j = 0, len1 = specs.length; j < len1; j++) {
+          spec = specs[j];
+          results.pushResult(spec);
+        }
+        return results;
+      }
+
+      FeatherJQ.prototype.find = function(sel) {
+        var j, len1, len2, node, o, ref, result, results;
+        results = $();
+        for (j = 0, len1 = this.length; j < len1; j++) {
+          node = this[j];
+          if (node.querySelectorAll != null) {
+            ref = node.querySelectorAll(sel);
+            for (o = 0, len2 = ref.length; o < len2; o++) {
+              result = ref[o];
+              results.push(result);
+            }
+          }
+        }
+        return results;
+      };
+
+      FeatherJQ.prototype.attr = function(name, value) {
+        var j, len1, node;
+        if (value != null) {
+          for (j = 0, len1 = this.length; j < len1; j++) {
+            node = this[j];
+            node.setAttribute(name, value);
+          }
+          return this;
+        } else {
+          return typeof this[0] === "function" ? this[0](getAttribute(name)) : void 0;
+        }
+      };
+
+      FeatherJQ.prototype.prop = function(name, value) {
+        var j, len1, node, ref;
+        if (value != null) {
+          for (j = 0, len1 = this.length; j < len1; j++) {
+            node = this[j];
+            node[name] = value;
+          }
+          return this;
+        } else {
+          return (ref = this[0]) != null ? ref[name] : void 0;
+        }
+      };
+
+      FeatherJQ.prototype.closest = function(sel) {
+        var j, len1, n, node, result;
+        result = $();
+        for (j = 0, len1 = this.length; j < len1; j++) {
+          node = this[j];
+          if (n = (node.closest != null ? node : node.parentNode).closest(sel)) {
+            result.push(n);
+          }
+        }
+        return result;
+      };
+
+      FeatherJQ.prototype.is = function(sel) {
+        var j, len1, node;
+        for (j = 0, len1 = this.length; j < len1; j++) {
+          node = this[j];
+          if (typeof node.matches === "function" ? node.matches(sel) : void 0) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      FeatherJQ.prototype.parent = function() {
+        var j, len1, node, p, result;
+        result = $();
+        for (j = 0, len1 = this.length; j < len1; j++) {
+          node = this[j];
+          if (p = node.parentNode) {
+            result.push(p);
+          }
+        }
+        return result;
+      };
+
+      FeatherJQ.prototype.data = function(key, value) {
+        var j, len1, node, ref, results1;
+        if (!key) {
+          return getUserData(this[0], true);
+        } else if (value == null) {
+          return (ref = getUserData(this[0], true)) != null ? ref[key] : void 0;
+        } else {
+          results1 = [];
+          for (j = 0, len1 = this.length; j < len1; j++) {
+            node = this[j];
+            getUserData(node, true)[key] = value;
+            results1.push(this);
+          }
+          return results1;
+        }
+      };
+
+      FeatherJQ.prototype.on = function(evtType, func) {
+        var evt, j, len1, node, results1;
+        results1 = [];
+        for (j = 0, len1 = this.length; j < len1; j++) {
+          node = this[j];
+          evt = getEvents(node);
+          if (!evt[evtType]) {
+            node.addEventListener(evtType, runEvent);
+            evt[evtType] = [];
+          }
+          results1.push(evt[evtType].push(func));
+        }
+        return results1;
+      };
+
+      FeatherJQ.prototype.off = function(evtType, func) {
+        var events, h, j, len1, node, results1;
+        results1 = [];
+        for (j = 0, len1 = this.length; j < len1; j++) {
+          node = this[j];
+          if (!(events = getEvents(node) && events[evtType])) {
+            continue;
+          }
+          events = func ? (function() {
+            var len2, o, ref, results2;
+            ref = events[evtType];
+            results2 = [];
+            for (o = 0, len2 = ref.length; o < len2; o++) {
+              h = ref[o];
+              if (h !== func) {
+                results2.push(h);
+              }
+            }
+            return results2;
+          })() : [];
+          if (!events.length) {
+            results1.push(delete events[evtType]);
+          } else {
+            results1.push(void 0);
+          }
+        }
+        return results1;
+      };
+
+      FeatherJQ.prototype.pushResult = function(spec) {
+        var div, err, error;
+        if (typeof spec === 'string') {
+          try {
+            return this.push.apply(this, document.querySelectorAll(spec));
+          } catch (error) {
+            err = error;
+            div = document.createElement('div');
+            div.innerHTML = html;
+            return this.push.apply(this, div.children);
+          }
+        } else if (typeof spec === 'object' && spec.nodeName) {
+          return this.push(spec);
+        } else if (typeof spec === 'object' && spec.prop) {
+          return this.push.apply(this, spec);
+        } else {
+          return this.push(spec);
+        }
+      };
+
+      return FeatherJQ;
+
+    })(Array);
+    $ = FeatherJQ;
+    is$ = function(obj) {
+      return obj instanceof FeatherJQ || (obj.prop && obj.attr);
+    };
+    set$ = function(new$, is$Func) {
+      $ = new$;
+      return is$ = is$Func || is$;
+    };
+    FJQData = new WeakMap;
+    runEvent = function(evt) {
+      var handler, j, len1, ref, ref1;
+      ref1 = (ref = getEvents(evt.currentTarget)) != null ? ref : [];
+      for (j = 0, len1 = ref1.length; j < len1; j++) {
+        handler = ref1[j];
+        handler(evt);
+      }
+      return null;
+    };
+    getNodeData = function(node, create) {
+      if (create || FJQData.has(node)) {
+        if (!FJQData.has(node)) {
+          FJQData.set(node, {});
+        }
+        return FJQData.get(node);
+      }
+    };
+    getDataProperty = function(node, prop, create) {
+      var d;
+      if (d = getNodeData(node, create)) {
+        if (!d[prop]) {
+          d[prop] = {};
+        }
+        return d[prop];
+      }
+    };
+    getUserData = function(node, create) {
+      if (node) {
+        return getDataProperty(node, 'userData', create);
+      }
+    };
+    getEvents = function(node, create) {
+      return getDataProperty(node, 'events', create);
+    };
+    $.ajax = function(arg) {
+      var data, success, url, xhr;
+      url = arg.url, success = arg.success, data = arg.data;
+      xhr = new XMLHttpRequest;
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          return success(xhr.responseText);
+        }
+      };
+      xhr.open((data ? 'POST' : 'GET'), url, true);
+      return xhr.send(data);
+    };
+    $.get = function(url, success) {
+      return $.ajax({
+        url: url,
+        success: success
+      });
+    };
     LeisureEditCore = (function(superClass) {
       extend(LeisureEditCore, superClass);
 
@@ -223,7 +459,7 @@
 
       LeisureEditCore.prototype.blockTextForNode = function(node) {
         var next, nextPos, parent, ref;
-        parent = $(this.blockNodeForNode(node))[0];
+        parent = this.blockNodeForNode(node)[0];
         if (next = (ref = this.options.getBlock(this.options.idForNode(node))) != null ? ref.next : void 0) {
           nextPos = this.domCursorForText(this.options.nodeForId(next), 0);
           return this.domCursorForText(parent, 0, parent).getTextTo(nextPos);
@@ -255,7 +491,7 @@
       };
 
       LeisureEditCore.prototype.domCursor = function(node, pos) {
-        if (node instanceof jQuery) {
+        if (is$(node)) {
           node = node[0];
           pos = pos != null ? pos : 0;
         } else if (node instanceof DOMCursor) {
@@ -311,7 +547,7 @@
       LeisureEditCore.prototype.loadURL = function(url) {
         return $.get(url, (function(_this) {
           return function(text) {
-            return _this.options.load(text);
+            return _this.options.load(url, text);
           };
         })(this));
       };
@@ -862,9 +1098,9 @@
       };
 
       LeisureEditCore.prototype.findKeyBinding = function(e, r) {
-        var f, j, k, len, ref;
+        var f, j, k, len1, ref;
         ref = this.keyCombos;
-        for (j = 0, len = ref.length; j < len; j++) {
+        for (j = 0, len1 = ref.length; j < len1; j++) {
           k = ref[j];
           if (f = this.options.bindings[k]) {
             this.lastKeys = [];
@@ -1070,13 +1306,13 @@
       };
 
       LeisureEditCore.prototype.activateScripts = function(jq) {
-        var activating, j, len, newScript, ref, results1, script, text;
+        var activating, j, len1, newScript, ref, results1, script, text;
         if (!activating) {
           activating = true;
           try {
             ref = jq.find('script');
             results1 = [];
-            for (j = 0, len = ref.length; j < len; j++) {
+            for (j = 0, len1 = ref.length; j < len1; j++) {
               script = ref[j];
               text = !script.type || script.type.toLowerCase() === 'text/javascript' ? script.textContent : script.type.toLowerCase() === 'text/coffeescript' ? CoffeeScript.compile(script.textContent, {
                 bare: true
@@ -1193,17 +1429,6 @@
 
       BasicEditingOptions.prototype.newId = function() {
         return this.data.newId();
-      };
-
-      BasicEditingOptions.prototype.batchReplace = function(replacementFunc, contFunc, errorFunc) {
-        var err, error;
-        try {
-          this.data.batchReplace(replacementFunc());
-          return contFunc();
-        } catch (error) {
-          err = error;
-          return errorFunc(err);
-        }
       };
 
       BasicEditingOptions.prototype.changeStructure = function(oldBlocks, newText) {
@@ -1336,11 +1561,25 @@
       };
 
       BasicEditingOptions.prototype.getText = function() {
-        return this.data.getText();
+        var block, text;
+        text = '';
+        block = this.data.getBlock(this.data.getFirst());
+        while (block) {
+          text += block.text;
+          block = this.data.getBlock(block.next);
+        }
+        return text;
       };
 
       BasicEditingOptions.prototype.getLength = function() {
-        return this.data.getLength();
+        var block, len;
+        len = 0;
+        block = this.data.getBlock(this.data.getFirst());
+        while (block) {
+          len += block.text.length;
+          block = this.data.getBlock(block.next);
+        }
+        return len;
       };
 
       BasicEditingOptions.prototype.isValidDocOffset = function(offset) {
@@ -1349,7 +1588,7 @@
 
       BasicEditingOptions.prototype.validatePositions = function() {
         var block, cursor, j, node, offset, ref;
-        block = this.data.blocks[this.data.getFirst()];
+        block = this.data.getBlock(this.data.getFirst());
         while (block) {
           if (node = this.nodeForId(block._id)[0]) {
             cursor = this.domCursor(node, 0).mutable();
@@ -1364,7 +1603,7 @@
               cursor.forwardChar();
             }
           }
-          block = this.data.blocks[block.next];
+          block = this.data.getBlock(block.next);
         }
       };
 
@@ -1440,10 +1679,10 @@
       }
 
       DataStore.prototype.load = function(name, text) {
-        var block, blockMap, i, j, len, newBlocks, prev, ref;
+        var block, blockMap, i, j, len1, newBlocks, prev, ref;
         blockMap = {};
         newBlocks = this.parseBlocks(text);
-        for (i = j = 0, len = newBlocks.length; j < len; i = ++j) {
+        for (i = j = 0, len1 = newBlocks.length; j < len1; i = ++j) {
           block = newBlocks[i];
           block._id = this.newId();
           blockMap[block._id] = block;
@@ -1638,17 +1877,6 @@
         }
       };
 
-      DataStore.prototype.batchReplace = function(replacements) {
-        var j, len, ref, repl, results1;
-        ref = validateBatch(replacements);
-        results1 = [];
-        for (j = 0, len = ref.length; j < len; j++) {
-          repl = ref[j];
-          results1.push(this.replaceText(repl));
-        }
-        return results1;
-      };
-
       DataStore.prototype.replaceText = function(arg) {
         var end, newBlocks, oldBlocks, prev, ref, start, text;
         start = arg.start, end = arg.end, text = arg.text;
@@ -1657,16 +1885,6 @@
           this.change(this.changesFor(prev, oldBlocks.slice(), newBlocks.slice()));
           return this.floatMarks(start, end, text.length);
         }
-      };
-
-      DataStore.prototype.guardedReplaceText = function(start, end, text, gStart, gEnd) {
-        this.replaceText({
-          start: start,
-          end: end,
-          text: text,
-          source: 'edit'
-        });
-        return Promise.resolve();
       };
 
       DataStore.prototype.changesForReplacement = function(start, end, text) {
@@ -1681,14 +1899,14 @@
       };
 
       DataStore.prototype.computeRemovesAndNewBlockIds = function(oldBlocks, newBlocks, newBlockMap, removes) {
-        var i, j, len, len1, newBlock, o, oldBlock, prev, ref;
+        var i, j, len1, len2, newBlock, o, oldBlock, prev, ref;
         ref = oldBlocks.slice(newBlocks.length, oldBlocks.length);
-        for (j = 0, len = ref.length; j < len; j++) {
+        for (j = 0, len1 = ref.length; j < len1; j++) {
           oldBlock = ref[j];
           removes[oldBlock._id] = oldBlock;
         }
         prev = null;
-        for (i = o = 0, len1 = newBlocks.length; o < len1; i = ++o) {
+        for (i = o = 0, len2 = newBlocks.length; o < len2; i = ++o) {
           newBlock = newBlocks[i];
           if (oldBlock = oldBlocks[i]) {
             newBlock._id = oldBlock._id;
@@ -2120,7 +2338,7 @@
       };
 
       DataStore.prototype.verifyIndex = function() {
-        var bArray, blockIds, errs, iArray, j, last, len, node, offset, ref, treeIds;
+        var bArray, blockIds, errs, iArray, j, last, len1, node, offset, ref, treeIds;
         iArray = this.indexArray();
         treeIds = _.map(iArray, _.property('id'));
         bArray = this.blockArray();
@@ -2130,7 +2348,7 @@
         }
         last = null;
         errs = new BlockErrors();
-        for (j = 0, len = iArray.length; j < len; j++) {
+        for (j = 0, len1 = iArray.length; j < len1; j++) {
           node = iArray[j];
           if (node.length !== ((ref = this.getBlock(node.id)) != null ? ref.text.length : void 0)) {
             errs.badId(node.id, 'bad index length');
@@ -2186,25 +2404,6 @@
       return DataStore;
 
     })(Observable);
-    validateBatch = function(guardedReplacements) {
-      var first, j, len, repl, repls;
-      if (!guardedReplacements.length) {
-        return guardedReplacements;
-      } else {
-        repls = _.sortBy(guardedReplacements, function(x) {
-          return -x.gEnd;
-        });
-        first = repls[0].gEnd;
-        for (j = 0, len = repls.length; j < len; j++) {
-          repl = repls[j];
-          if (first < repl.gEnd) {
-            throw new Error("Attempt to perform overlapping replacements in batch");
-          }
-          first = repl.gStart;
-        }
-        return _.orderBy(guardedReplacements, 'end', 'desc');
-      }
-    };
     BlockErrors = (function() {
       function BlockErrors() {
         this.order = [];
@@ -2225,11 +2424,11 @@
       };
 
       BlockErrors.prototype.errors = function() {
-        var id, j, len, ref, results1;
+        var id, j, len1, ref, results1;
         if (!this.isEmpty()) {
           ref = this.order;
           results1 = [];
-          for (j = 0, len = ref.length; j < len; j++) {
+          for (j = 0, len1 = ref.length; j < len1; j++) {
             id = ref[j];
             results1.push([id, "(" + this.ids[id] + ")"]);
           }
@@ -2276,8 +2475,8 @@
     DataStoreEditingOptions = (function(superClass) {
       extend(DataStoreEditingOptions, superClass);
 
-      function DataStoreEditingOptions(data) {
-        this.data = data;
+      function DataStoreEditingOptions(data1) {
+        this.data = data1;
         DataStoreEditingOptions.__super__.constructor.call(this);
         this.callbacks = {};
         this.addDataCallbacks({
@@ -2366,9 +2565,9 @@
     blockText = function(blocks) {
       var block;
       return ((function() {
-        var j, len, results1;
+        var j, len1, results1;
         results1 = [];
-        for (j = 0, len = blocks.length; j < len; j++) {
+        for (j = 0, len1 = blocks.length; j < len1; j++) {
           block = blocks[j];
           results1.push(block.text);
         }
@@ -2562,11 +2761,12 @@
       preserveSelection: preserveSelection,
       treeToArray: treeToArray,
       computeNewStructure: computeNewStructure,
-      validateBatch: validateBatch,
       getEventChar: getEventChar,
       useEvent: useEvent,
       getSelection: getSelection,
-      modifyingKey: modifyingKey
+      modifyingKey: modifyingKey,
+      $: $,
+      set$: set$
     };
   });
 

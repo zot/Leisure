@@ -1,4 +1,4 @@
-LeisureEditCore
+LeisureEditCore ([example editor](http://team-cthulhu.github.io/LeisureEditCore/examples/index.html))
 ===============
 Copyright (C) 2015, Bill Burdick, Roy Riggs, TEAM CTHULHU
 
@@ -14,8 +14,6 @@ pluggable with an options object that contains customization hooks.
 Code and examples are in Coffeescript (a JS build is provided as a
 convenience).
 
-*NOTE:* parseBlocks has moved to DataStore.  Pluggability changes later.
-
 Basic Idea
 ==========
 
@@ -25,15 +23,17 @@ LeisureEditCore edits a doubly-linked list of newline-terminated text
 The rendered DOM tree contains the full text of the block list in the
 proper order, along with ids from the blocks.  Some of the text may
 not be visible and there may be a lot of items in the rendered DOM
-that are not in the backing structure.  Also, the rendered DOM may
-have a nested tree-structure.
+that are not in the blocks.  Also, the rendered DOM may have a nested
+tree-structure.
 
 When the user makes a change, the editor:
 
-1. maps the cursor location in the DOM to the corresponding location in the backing structure
-2. changes backing structure text, regenerating part of the backing structure
-3. rerenders the corrsponding DOM
-4. replaces the new DOM into the page
+  1. maps the cursor location in the DOM to the corresponding location in the blocks
+  2. changes block text, regenerating part of the blocks
+  3. rerenders the DOM corresponding to the changed blocks
+  4. replaces the new DOM into the page
+
+![Editor flow](editorFlow.png)
 
 Of course the editor supports [custom key bindings](#defaultBindings).
 
@@ -42,67 +42,58 @@ Using/Installing LeisureEditCore
 Make sure your webpage loads the javascript files in the `build` directory.  Follow
 the instructions below to use it.
 
-LeisureEditCore
-===============
-Create a LeisureEditCore object like this: `new LeisureEditCore element, options`.
-
-`element` is the HTML element that you want to contain editable code.
-
-`options` is an object that tells LeisureEditCore things like how to convert text
-to a list of block objects (see below).
+[Here](http://team-cthulhu.github.io/LeisureEditCore/examples/index.html) is an example that edits org-mode text.
 
 Blocks
-======
-* `_id`: the block id
-* `type`: the type of block as a string (examples: 'text', 'code')
-* `prev`: the id of the previous block (optional)
-* `next`: the id of the next block (optional)
-* `text`: the text of the block
-* EXTRA STUFF: you can store other things in your blocks
+------
+  * `_id`: the block id
+  * `text`: the text of the block
+  * `prev`: the id of the previous block (optional)
+  * `next`: the id of the next block (optional)
+  * EXTRA STUFF: you can store whatever extra things you like in your text blocks
 
-Options
-=======
-When you make a LeisureEditCore instance, you must provide an options
-object.  BasicEditingOptions is the base options class and
-DataStoreEditingOptions is more deluxe and connects to an
-observable data store (you can use an instance of DataStore or
-adapt one of your own).
+BlockOffsets
+------------
+{block: aBlock, offset: aNumber}
+aBlock can be an id or a block
 
-Hooks you must define for BasicEditingOptions objects
------------------------------------------------------
-Here are the hook methods you need to provide:
+Editor (see below for more detailed documentation)
+--------------------------------------------------
+An instance of LeisureEditCore.  You must provide an HTML node to
+contain the document contents and an options object to configure the
+editor.
 
-* `parseBlocks(text) -> blocks`: parse text into array of blocks -- DO NOT provide _id, prev, or next, they may be overwritten!
-* `renderBlock(block) -> [html, next]`: render a block (and potentially its children) and return the HTML and the next blockId if there is one
-  * Block DOM (DOM for a block) must be a single element with the same id as the block.
-  * Block DOM may contain nested block DOM.
-  * each block's DOM should have the same id as the block and have a data-block attribute
-  * non-editable parts of the DOM should have contenteditable=false
-  * completely skipped parts should be non-editable and have a data-noncontent attribute
+Editor options object (see below for more detailed documentation)
+-----------------------------------------------------------------
+DataStoreEditingOptions is the recommended options object but
+you can also subclass BasicEditingOptions.
 
-After that, you must render the changes into HTML and replace them into the element.
+Data object (see below for more detailed documentation)
+-------------------------------------------------------
+Manages the document.  It's responsible for parsing text into blocks,
+accessing the blocks, making changes, and converting between block
+locations and document locations.
 
-Properties of BasicEditingOptions
----------------------------------
-* `blocks {id -> block}`: block table
-* `first`: id of first block
-* `bindings {keys -> binding(editor, event, selectionRange)}`: a map of bindings (can use LeisureEditCore.defaultBindings)
+Basic usage
+-----------
+To use this in the recommended way...
 
-Methods of BasicEditingOptions
-------------------------------
-* `getBlock(id) -> block?`: get the current block for id
-* `getContainer(node) -> Node?`: get block DOM node containing for a node
-* `getFirst() -> blockId`: get the first block id
-* `domCursor(node, pos) -> DOMCursor`: return a domCursor that skips over non-content
-* `keyUp(editor) -> void`: handle keyup after-actions
-* `topRect() -> rect?`: returns null or the rectangle of a toolbar at the page top
-* `blockColumn(pos) -> colNum`: returns the start column on the page for the current block
-* `load(el, text) -> void`: parse text into blocks and replace el's contents with rendered DOM
+1. The code uses AMD style and depends on 'lodash', 'fingertree', and 'immutable' which you will probably need to map.  This is so that if you are using any of these packages, you won't have to include them more than once.
+1. Subclass DataStoreEditingOptions and provide a renderBlock(block) method
+1. Subclass DataStore and provide a parseBlocks(text) method
+1. Create an editor object with your options object on your data object
+1. Call the load(name, text) method on your options object
 
-Packages we use
-===============
-- [jQuery](http://jquery.com/), for DOM slicing and dicing
-- [DOMCursor](https://github.com/zot/DOMCursor) (included), for finding text locations in DOM trees
+Included packages
+=================
+- [DOMCursor](https://github.com/zot/DOMCursor) -- locating text in DOM trees
+- [Advice](advice.litcoffee) -- method advice
+
+Third-party packages we use (also included)
+===========================================
+- [lodash](https://lodash.com/) -- collection, FP, and async utilities
+- [fingertree](https://github.com/qiao/fingertree.js) -- the swiss army knife of data structures
+- [immutable](http://facebook.github.io/immutable-js) -- immutable data structures
 
 Building
 ========
@@ -131,11 +122,17 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 
-Code
-====
-Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEditCore).
+LeisureEditCore
+===============
+Create a LeisureEditCore object like this: `new LeisureEditCore editorElement, options`.
 
-    define ['jquery', './domCursor', './lib/fingertree', 'immutable', './advice', 'bluebird'], (jq, DOMCursor, Fingertree, Immutable, Advice, Bluebird)->
+`editorElement` is the HTML element that you want to contain editable text.
+
+`options` is an object that tells LeisureEditCore things like how to
+convert text to a list of block objects (see below).  See
+BasicEditingOptions and DataStoreEditingOptions for more info.
+
+    define ['./domCursor', 'fingertree', 'immutable', './advice', 'lodash'], (DOMCursor, Fingertree, Immutable, Advice, _)->
       {
         selectRange,
       } = DOMCursor
@@ -147,9 +144,6 @@ Here is the code for [LeisureEditCore](https://github.com/TEAM-CTHULHU/LeisureEd
         afterMethod
         changeAdvice
       } = Advice
-      {
-        Promise
-      } = Bluebird
       imbeddedBoundary = /.\b./
       maxLastKeys = 4
       BS = 8
@@ -263,7 +257,7 @@ Observable class
               @off callbackType, callback
           else
             if @listeners[type]
-              @listeners[type] = _.filter @listeners[type], (l)-> l != callback
+              @listeners[type] = @listeners[type].filter (l)-> l != callback
           this
         trigger: (type, args...)->
           if !@suppressingTriggers
@@ -276,6 +270,121 @@ Observable class
             func()
           finally
             @suppressingTriggers = oldSuppress
+
+FeatherJQ class
+===============
+A featherweight JQuery replacement.  Users can use set$ to make it use
+the real jQuery, like this: `set$($, (obj)-> obj instanceof $)`
+
+      class FeatherJQ extends Array
+        constructor: (specs...)->
+          results = []
+          results.__proto__ = FeatherJQ.prototype
+          for spec in specs
+            results.pushResult spec
+          return results
+        find: (sel)->
+          results = $()
+          for node in this
+            if node.querySelectorAll?
+              for result in node.querySelectorAll(sel)
+                results.push result
+          results
+        attr: (name, value)->
+          if value?
+            for node in this
+              node.setAttribute name, value
+            this
+          else this[0]?getAttribute name
+        prop: (name, value)->
+          if value?
+            for node in this
+              node[name] = value
+            this
+          else this[0]?[name]
+        closest: (sel)->
+          result = $()
+          for node in this
+            if n = (if node.closest? then node else node.parentNode).closest sel
+              result.push n
+          result
+        is: (sel)->
+          for node in this
+            if node.matches? sel then return true
+          false
+        parent: ->
+          result = $()
+          for node in this
+            if p = node.parentNode then result.push p
+          result
+        data: (key, value)->
+          if !key then getUserData this[0], true
+          else if !value? then getUserData(this[0], true)?[key]
+          else for node in this
+            getUserData(node, true)[key] = value
+            this
+        on: (evtType, func)->
+          for node in this
+            evt = getEvents node
+            if !evt[evtType]
+              node.addEventListener evtType, runEvent
+              evt[evtType] = []
+            evt[evtType].push func
+        off: (evtType, func)->
+          for node in this when events = getEvents(node) && events[evtType]
+            events = if func then (h for h in events[evtType] when h != func) else []
+            if !events.length then delete events[evtType]
+        pushResult: (spec)->
+          if typeof spec == 'string'
+            try
+              @push document.querySelectorAll(spec)...
+            catch err
+              div = document.createElement 'div'
+              div.innerHTML = html
+              @push div.children...
+          #else if spec instanceof FeatherJQ then @push spec...
+          else if typeof spec == 'object' && spec.nodeName then @push spec
+          else if typeof spec == 'object' && spec.prop then @push spec...
+          else @push spec
+
+      $ = FeatherJQ
+
+      is$ = (obj)-> obj instanceof FeatherJQ || (obj.prop && obj.attr)
+
+      set$ = (new$, is$Func)->
+        $ = new$
+        is$ = is$Func || is$
+
+      FJQData = new WeakMap
+
+      runEvent = (evt)->
+        for handler in getEvents(evt.currentTarget) ? []
+          handler evt
+        null
+
+      getNodeData = (node, create)->
+        if create || FJQData.has node
+          if !FJQData.has node then FJQData.set node, {}
+          FJQData.get node
+
+      getDataProperty = (node, prop, create)->
+        if d = getNodeData node, create
+          if !d[prop] then d[prop] = {}
+          d[prop]
+
+      getUserData = (node, create)-> if node then getDataProperty node, 'userData', create
+
+      getEvents = (node, create)-> getDataProperty node, 'events', create
+
+      $.ajax = ({url, success, data})->
+        xhr = new XMLHttpRequest
+        xhr.onreadystatechange = ->
+            if xhr.readyState == XMLHttpRequest.DONE then success xhr.responseText
+        xhr.open (if data then 'POST' else 'GET'), url, true
+        xhr.send data
+
+      $.get = (url, success)-> $.ajax {url, success}
+        
 
 LeisureEditCore class
 =====================
@@ -319,7 +428,7 @@ Events:
         blockForNode: (node)-> @options.getBlock @options.idForNode node
         blockNodeForNode: (node)-> @options.nodeForId @options.idForNode node
         blockTextForNode: (node)->
-          parent = $(@blockNodeForNode(node))[0]
+          parent = @blockNodeForNode(node)[0]
           if next = @options.getBlock(@options.idForNode node)?.next
             nextPos = @domCursorForText @options.nodeForId(next), 0
             @domCursorForText(parent, 0, parent).getTextTo nextPos
@@ -336,7 +445,7 @@ Events:
             block = @options.getBlock block.next
           if badIds.length then badIds
         domCursor: (node, pos)->
-          if node instanceof jQuery
+          if is$ node
             node = node[0]
             pos = pos ? 0
           else if node instanceof DOMCursor
@@ -372,7 +481,7 @@ Events:
               .mutable()
               .countChars targ.node, targ.pos
           else -1
-        loadURL: (url)-> $.get url, (text)=> @options.load text
+        loadURL: (url)-> $.get url, (text)=> @options.load url, text
         domCursorForDocOffset: (dOff)->
           bOff = @options.blockOffsetForDocOffset dOff
           node = @options.nodeForId bOff.block
@@ -865,16 +974,37 @@ BasicEditingOptions class
 BasicEditingOptions is an the options base class.
 
 Events:
-  `load`: new text loaded into the editor
-
-      class BasicEditingOptions extends Observable
+  `load`: new text was loaded into the editor
 
 Hook methods (required)
 -----------------------
 
 `renderBlock(block) -> [html, next]`: render a block (and potentially its children) and return the HTML and the next blockId if there is one
-* Block DOM (DOM for a block) must be a single element with the same id as the block.
-* Block DOM may contain nested block DOM.
+
+  * Block DOM (DOM for a block) must be a single element with the same id as the block.
+  * Block DOM may contain nested block DOM.
+  * each block's DOM should have the same id as the block and have a data-block attribute
+  * non-editable parts of the DOM should have contenteditable=false
+  * completely skipped parts should be non-editable and have a data-noncontent attribute
+
+Properties of BasicEditingOptions
+---------------------------------
+* `blocks {id -> block}`: block table
+* `first`: id of first block
+* `bindings {keys -> binding(editor, event, selectionRange)}`: a map of bindings (can use LeisureEditCore.defaultBindings)
+
+Methods of BasicEditingOptions
+------------------------------
+* `getBlock(id) -> block?`: get the current block for id
+* `getContainer(node) -> Node?`: get block DOM node containing for a node
+* `getFirst() -> blockId`: get the first block id
+* `domCursor(node, pos) -> DOMCursor`: return a domCursor that skips over non-content
+* `keyUp(editor) -> void`: handle keyup after-actions
+* `topRect() -> rect?`: returns null or the rectangle of a toolbar at the page top
+* `blockColumn(pos) -> colNum`: returns the start column on the page for the current block
+* `load(el, text) -> void`: parse text into blocks and replace el's contents with rendered DOM
+
+      class BasicEditingOptions extends Observable
 
         renderBlock: (block)-> throw new Error "options.renderBlock(block) is not implemented"
 
@@ -935,26 +1065,6 @@ Main code
         setEditor: (@editor)->
         newId: -> @data.newId()
 
-batchReplace is a potentially asynchronous operation that performs a
-list of non-overlapping replacements produced by replacementFunc().
-replacementFunc() should be stateless because it may potentially be
-called more than one time.  The replacements it returns should be an
-array of objects with "start", "end", "text", "gStart", "gEnd"
-properties where start and end all refer to the current document
-(i.e. they are not based on the replacement order).
-
-After the replacements succeed, it calls the continuation function.
-
-Variations of this code may want to override this in collaborative
-situations to provide STM-like change management.
-
-        batchReplace: (replacementFunc, contFunc, errorFunc)->
-          try
-            @data.batchReplace replacementFunc()
-            contFunc()
-          catch err
-            errorFunc err
-
 `changeStructure(oldBlocks, newText)`: Compute blocks affected by transforming oldBlocks into newText
 
         changeStructure: (oldBlocks, newText)->
@@ -993,7 +1103,7 @@ situations to provide STM-like change management.
           if @editor.node[0].compareDocumentPosition(node) & Element.DOCUMENT_POSITION_CONTAINED_BY
             $(node).closest('[data-block]')[0]
 
-`load(el, text) -> void`: parse text into blocks and replace el's contents with rendered DOM
+`load(name, text) -> void`: parse text into blocks and trigger a 'load' event
 
         load: (name, text)->
           @options.suppressTriggers =>
@@ -1038,11 +1148,23 @@ situations to provide STM-like change management.
           while next && [html, next] = @renderBlock @getBlock next
             result += html
           result
-        getText: -> @data.getText()
-        getLength: -> @data.getLength()
+        getText: ->
+          text = ''
+          block = @data.getBlock @data.getFirst()
+          while block
+            text += block.text
+            block = @data.getBlock block.next
+          text
+        getLength: ->
+          len = 0
+          block = @data.getBlock @data.getFirst()
+          while block
+            len += block.text.length
+            block = @data.getBlock block.next
+          len
         isValidDocOffset: (offset)-> 0 <= offset <= @getLength()
         validatePositions: ->
-          block = @data.blocks[@data.getFirst()]
+          block = @data.getBlock @data.getFirst()
           while block
             if node = @nodeForId(block._id)[0]
               cursor = @domCursor(node, 0).mutable()
@@ -1051,7 +1173,7 @@ situations to provide STM-like change management.
                 if cursor.isEmpty() || !sameCharacter cursor.character(), block.text[offset]
                   return {block, offset}
                 cursor.forwardChar()
-            block = @data.blocks[block.next]
+            block = @data.getBlock block.next
 
       spaces = String.fromCharCode( 32, 160)
 
@@ -1092,10 +1214,17 @@ situations to provide STM-like change management.
 
 DataStore
 =========
-Events:
-  `change {adds, updates, removes, oldFirst, old}`: data changed
+An efficient block storage mechanism used by DataStoreEditingOptions
 
-API methods
+Hook methods -- you must define these in your subclass
+------------------------------------------------------
+* `parseBlocks(text) -> blocks`: parse text into array of blocks -- DO NOT provide _id, prev, or next, they may be overwritten!
+
+Events
+------
+Data objects support the Observable protocol and emit change events in response to data changes
+
+`change {adds, updates, removes, oldFirst, old}`
 
   * `oldFirst id`: the previous first (might be the same as the current)
   * `adds {id->true}`: added items
@@ -1103,16 +1232,30 @@ API methods
   * `removes {id->true}`: removed items
   * `old {id->old block}`: the old items from updates and removes
 
-Data model -- override/reset these if you want to change how the store accesses data
+Internal API -- provide/override these if you want to change how the store accesses data
+----------------------------------------------------------------------------------------
 
-  * `blocks` - currently holds the block object
-  * `getFirst()`
-  * `setFirst(firstId)`
-  * `getBlock(id)`
-  * `setBlock(id, block)`
-  * `deleteBlock(id)`
-  * `eachBlock(func(block [, id]))` -- iterate with func (exit if func returns false)
-  * `load(first, blocks)` -- should trigger 'load'
+* `getFirst()`
+* `setFirst(firstId)`
+* `getBlock(id)`
+* `setBlock(id, block)`
+* `deleteBlock(id)`
+* `eachBlock(func(block [, id]))` -- iterate with func (exit if func returns false)
+* `load(first, blocks)` -- should trigger 'load'
+
+External API -- used from outside; alternative data objects must support these methods.
+---------------------------------------------------------------------------------------
+
+In addition to the methods below, data objects must support the Observable protocol and emit
+change events in response to data changes
+
+* `getFirst() -> id`: id of the first block
+* `getBlock(id) -> block`: the block for id
+* `load(name, text)`: replace the current document
+* `newId()`:
+* `docOffsetForBlockOffset(args...) -> offset`: args can be a blockOffset or block, offset
+* `blockOffsetForDocOffset(offset) -> blockOffset`: the block offset for a position in the document
+* `suppressTriggers(func) -> func's return value`: suppress triggers while executing func (inherited from Observable)
 
 <!-- -->
 
@@ -1153,6 +1296,9 @@ Data model -- override/reset these if you want to change how the store accesses 
             makeChanges: diag: afterMethod ->
               if @changeCount == 0 then @diag()
           if flag then @diag()
+
+`getLength() -> number`: the length of the entire document
+
         getLength: -> @blockIndex.measure().length
         makeChanges: (func)->
           @changeCount++
@@ -1208,21 +1354,11 @@ Data model -- override/reset these if you want to change how the store accesses 
             @marks = first.concat rest.removeFirst().addFirst
               name: n.name
               offset: n.offset + newLength - oldLength
-
-BatchReplace expects sortedReplacements to be non-overlapping and
-sorted in reverse order by position.
-
-        batchReplace: (replacements)->
-          for repl in validateBatch replacements
-            @replaceText repl
         replaceText: ({start, end, text})->
           {prev, oldBlocks, newBlocks} = @changesForReplacement start, end, text
           if oldBlocks
             @change @changesFor prev, oldBlocks.slice(), newBlocks.slice()
             @floatMarks start, end, text.length
-        guardedReplaceText: (start, end, text, gStart, gEnd)->
-          @replaceText {start, end, text, source: 'edit'}
-          Promise.resolve()
         changesForReplacement: (start, end, text)->
           {blocks, newText} = @blockOverlapsForReplacement start, end, text
           {oldBlocks, newBlocks, offset, prev} = change = computeNewStructure this, blocks, newText
@@ -1374,6 +1510,9 @@ sorted in reverse order by position.
             [first, rest] = @splitBlockIndexOnId id
             if rest.peekFirst()?.id == id
               @setIndex first.concat rest.removeFirst()
+
+`docOffsetForBlockOffset(args...) -> offset`: args can be a blockOffset or block, offset
+
         docOffsetForBlockOffset: (block, offset)->
           if typeof block == 'object'
             offset = block.offset
@@ -1405,6 +1544,9 @@ sorted in reverse order by position.
           if startOffset.block == endOffset.block
             block.text.substring startOffset.offset, endOffset.offset
           else text.substring(startOffset.offset) + block.text.substring 0, endOffset.offset
+
+`getText(): -> string`: the text for the entire document
+
         getText: ->
           text = ''
           @eachBlock (block)-> text += block.text
@@ -1510,20 +1652,6 @@ sorted in reverse order by position.
           blocks: blocks
           blockText: fullText
           newText: fullText.substring(0, start - offset) + text + (fullText.substring end - offset)
-
-ValidateBatch takes a set of guarded replacements and returns the
-replacements reverse-sorted by position and throws an error if the
-guard regions overlap.
-
-      validateBatch = (guardedReplacements)->
-        if !guardedReplacements.length then guardedReplacements
-        else
-          repls = _.sortBy guardedReplacements, (x)-> -x.gEnd
-          first = repls[0].gEnd
-          for repl in repls
-            if first < repl.gEnd then throw new Error "Attempt to perform overlapping replacements in batch"
-            first = repl.gStart
-          _.orderBy guardedReplacements, 'end', 'desc'
 
       class BlockErrors
         constructor: ->
@@ -1758,9 +1886,10 @@ Exports
         preserveSelection
         treeToArray
         computeNewStructure
-        validateBatch
         getEventChar
         useEvent
         getSelection
         modifyingKey
+        $
+        set$
       }

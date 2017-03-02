@@ -294,6 +294,12 @@ currentId: 0
 #+END_SRC
 
 ** Patterns
+*** atomic values, dictionaries, and vectors are depicted as normal, with optional variables to match values
+*** lists are depicted as '(...) to allow parenthesized operations and extensibility (and, or, ivec, iset, etc.)
+*** TODO Add alternation (or A B C), conjunction (and A B C), and tails [... & X]
+**** (or pat1 ... patN) tries each pattern in succession, stopping at the first one that succeeds
+**** (and pat1 ... patN) tries each pattern in succession, stopping at the first one that fails
+**** & pat as the last part of a sequence matches the rest of the sequence
 *** Code
 
 #+BEGIN_SRC wisp :results def
@@ -308,6 +314,11 @@ currentId: 0
     (let [to-string (str "(pattern " description ")")]
       (set! func.toString (fn [] to-string)))
     func)
+
+  ;;(defn pattern-compose
+  ;;  "Compose a pattern with a dictionary of patterns, keyed by points in the original pattern"
+  ;;  [original patterns]
+  ;;  )
 
   (defn pattern-var?
     "Is this a var pattern?"

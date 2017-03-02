@@ -173,7 +173,9 @@ Code for local-mode.  This will not be loaded under meteor.
               window.PEER.connectToSession u.toString(), null, (n)-> p2pConnections.html n), 1
           $('#globalLoad').remove()
 
-    require ['jquery', 'lodash', 'bluebird'], (jq, ld, Bluebird)->
+    require ['./editor', 'jquery', 'lodash', 'bluebird'], (editor, $, ld, Bluebird)->
       #Bluebird.Promise.config longStackTraces: true, monitoring: true
+      editor.set$ $, (obj)-> obj instanceof $
+      debugger
       require ['acorn', 'acorn_walk'], -> require ['acorn_loose'], ->
         require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage'], init

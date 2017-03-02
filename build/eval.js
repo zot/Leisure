@@ -5,7 +5,7 @@
 
   define.amd = true;
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree) {
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree) {
     var Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, envTemplate, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, leisureEnv, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, runLeisureMonad, runMonad, runMonad2, runNextResult, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, stringFor, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
     acorn = Acorn;
     acornWalk = AcornWalk;
@@ -883,7 +883,7 @@
     };
     Html = (function() {
       function Html(content) {
-        this.content = stringFor(v);
+        this.content = stringFor(content);
       }
 
       return Html;

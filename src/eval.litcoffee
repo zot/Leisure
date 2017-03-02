@@ -1,7 +1,7 @@
 Evaulation support for Leisure
 
     define.amd = true
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = AcornLoose
@@ -513,7 +513,7 @@ Evaulation support for Leisure
       stringFor = (v)-> if v.toString then v.toString() else String v
 
       class Html
-        constructor: (content)-> @content = stringFor v
+        constructor: (content)-> @content = stringFor content
 
       html = (content)-> new Html content
 

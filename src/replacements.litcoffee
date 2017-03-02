@@ -1,6 +1,6 @@
 Simple operational transformation engine
 
-    define ['./lib/fingertree', 'lodash', './testing', 'immutable'], (Fingertree, _, Testing, Immutable)->
+    define ['fingertree', 'lodash', './testing', 'immutable'], (Fingertree, _, Testing, Immutable)->
       {
         assert
         assertEq
