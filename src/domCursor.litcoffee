@@ -100,6 +100,8 @@ The DOMCursor class...
           @computeType()
           @savedTextPosition = null
 
+        isCollapsed: -> !@isEmpty() && isCollapsed @node
+
         computeType: ->
           @type = if !@node then 'empty'
           else if @node.nodeType == @node.TEXT_NODE then 'text'
@@ -287,7 +289,7 @@ the previous text node (node, node.length)
 
 **filterTextNodes** adds visible text node filtering to the current filter; the cursor will only find visible text nodes
 
-        filterVisibleTextNodes: -> @filterTextNodes().addFilter (n)-> !isCollapsed n.node
+        filterVisibleTextNodes: -> @filterTextNodes().addFilter (n)-> !n.isCollapsed()
 
 **filterParent** adds parent filtering to the current filter; the cursor will only find nodes that are contained in the parent (or equal to it)
 

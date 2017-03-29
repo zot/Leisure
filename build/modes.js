@@ -1354,7 +1354,7 @@
         ignore = m[0], type = m[1], viewName = m[2];
         type = type != null ? type : obj.type;
         objectName = blockCodeItems(opts, block).name;
-        return "<span class='hidden'>" + (escapeHtml(results)) + "</span>" + (renderView(type, viewName, obj));
+        return "<span class='hidden'>" + (escapeHtml(results)) + "</span>" + (renderView(type, viewName, obj, null, null, null, null, 'data-noncontent'));
       } else if (false && isYamlResult(block)) {
         return "<span class='hidden'>" + (results.substring(0, firstResult)) + "</span><span class='yaml results-verbatim' data-noncontent>" + (results.substring(firstResult).replace(/^(: )(.*\n)/gm, function(m, g1, g2) {
           return goodHtml(g2);

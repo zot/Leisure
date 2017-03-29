@@ -485,7 +485,7 @@ Events:
         domCursorForDocOffset: (dOff)->
           bOff = @options.blockOffsetForDocOffset dOff
           node = @options.nodeForId bOff.block
-          @domCursorForText(node, 0).mutable().forwardChars bOff.offset
+          @domCursorForText(node, 0, @node[0]).mutable().forwardChars bOff.offset
         docOffsetForCaret: ->
           s = getSelection()
           if s.type == 'None' then -1
@@ -847,16 +847,16 @@ Events:
               @docOffset r.endContainer, Math.max r.startOffset, r.endOffset
             else @docOffset r.endContainer, r.endOffset
           start = pos = @domCursorForCaret().firstText().save()
-          if !pos.isEmpty() && @options.isValidDocOffset(offset) && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
+          if !pos.isEmpty() && @options.isValidDocOffset(offset) && (@domCursorForCaret().firstText().equals(start) || pos.isCollapsed())
             pos = @domCursorForDocOffset offset
-            while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
-              if DOMCursor.isCollapsed pos.node
+            while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || pos.isCollapsed())
+              if pos.isCollapsed()
                 pos.next().moveCaret()
               else pos.forwardChars(1).moveCaret()
           if pos.isEmpty()
             offset = @options.getLength() - 1
             pos = @domCursorForDocOffset(offset).firstText()
-            while !pos.isEmpty() && DOMCursor.isCollapsed pos.node
+            while !pos.isEmpty() && pos.isCollapsed()
               pos = @domCursorForDocOffset --offset
           else if !@options.isValidDocOffset(offset)
             pos = start
@@ -870,16 +870,16 @@ Events:
               @docOffset r.endContainer, Math.min r.startOffset, r.endOffset
             else @docOffset r.startContainer, r.startOffset
           start = pos = @domCursorForCaret().firstText().save()
-          if !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
+          if !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || pos.isCollapsed())
             pos = @domCursorForDocOffset offset
-            while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed pos.node)
-              if DOMCursor.isCollapsed pos.node
+            while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || pos.isCollapsed())
+              if pos.isCollapsed()
                 pos.prev()
               else pos.backwardChar().moveCaret()
           if pos.isEmpty()
             offset = 0
             pos = @domCursorForDocOffset(offset).firstText()
-            while !pos.isEmpty() && DOMCursor.isCollapsed pos.node
+            while !pos.isEmpty() && pos.isCollapsed()
               pos = @domCursorForDocOffset ++offset
           pos.moveCaret()
         firstText: -> @domCursor(@node, 0).firstText().node

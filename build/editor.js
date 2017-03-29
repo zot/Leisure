@@ -556,7 +556,7 @@
         var bOff, node;
         bOff = this.options.blockOffsetForDocOffset(dOff);
         node = this.options.nodeForId(bOff.block);
-        return this.domCursorForText(node, 0).mutable().forwardChars(bOff.offset);
+        return this.domCursorForText(node, 0, this.node[0]).mutable().forwardChars(bOff.offset);
       };
 
       LeisureEditCore.prototype.docOffsetForCaret = function() {
@@ -1176,10 +1176,10 @@
         sel = getSelection();
         offset = sel.type === 'None' ? 0 : (r = sel.getRangeAt(0), offset = r.endContainer === r.startContainer ? this.docOffset(r.endContainer, Math.max(r.startOffset, r.endOffset)) : this.docOffset(r.endContainer, r.endOffset));
         start = pos = this.domCursorForCaret().firstText().save();
-        if (!pos.isEmpty() && this.options.isValidDocOffset(offset) && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
+        if (!pos.isEmpty() && this.options.isValidDocOffset(offset) && (this.domCursorForCaret().firstText().equals(start) || pos.isCollapsed())) {
           pos = this.domCursorForDocOffset(offset);
-          while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
-            if (DOMCursor.isCollapsed(pos.node)) {
+          while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || pos.isCollapsed())) {
+            if (pos.isCollapsed()) {
               pos.next().moveCaret();
             } else {
               pos.forwardChars(1).moveCaret();
@@ -1189,7 +1189,7 @@
         if (pos.isEmpty()) {
           offset = this.options.getLength() - 1;
           pos = this.domCursorForDocOffset(offset).firstText();
-          while (!pos.isEmpty() && DOMCursor.isCollapsed(pos.node)) {
+          while (!pos.isEmpty() && pos.isCollapsed()) {
             pos = this.domCursorForDocOffset(--offset);
           }
         } else if (!this.options.isValidDocOffset(offset)) {
@@ -1203,10 +1203,10 @@
         sel = getSelection();
         offset = sel.type === 'None' ? 0 : (r = sel.getRangeAt(0), offset = r.endContainer === r.startContainer ? this.docOffset(r.endContainer, Math.min(r.startOffset, r.endOffset)) : this.docOffset(r.startContainer, r.startOffset));
         start = pos = this.domCursorForCaret().firstText().save();
-        if (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
+        if (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || pos.isCollapsed())) {
           pos = this.domCursorForDocOffset(offset);
-          while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || DOMCursor.isCollapsed(pos.node))) {
-            if (DOMCursor.isCollapsed(pos.node)) {
+          while (!pos.isEmpty() && (this.domCursorForCaret().firstText().equals(start) || pos.isCollapsed())) {
+            if (pos.isCollapsed()) {
               pos.prev();
             } else {
               pos.backwardChar().moveCaret();
@@ -1216,7 +1216,7 @@
         if (pos.isEmpty()) {
           offset = 0;
           pos = this.domCursorForDocOffset(offset).firstText();
-          while (!pos.isEmpty() && DOMCursor.isCollapsed(pos.node)) {
+          while (!pos.isEmpty() && pos.isCollapsed()) {
             pos = this.domCursorForDocOffset(++offset);
           }
         }

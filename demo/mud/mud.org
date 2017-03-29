@@ -614,7 +614,7 @@ currentId: 0
 : true
 : true
 
-** Transactions
+** Transactions: pending changes to the world
 *** Transaction-> macro
 **** (transaction-> STATEMENT ...)
 *** Transastion-> standard statements
@@ -686,251 +686,252 @@ tests
 #+END_SRC
 *** Code
 #+BEGIN_SRC wisp :results def
-  (defn- Transaction
-    "Transaction type:
-      parent - parent transaction
-      updates - map of id->object
-      removes - set of ids
-      gets - map of id->object
-      names - map of name->id"
-    [parent creates updates removes gets names indexer]
-    (set! this.parent parent)
-    (set! this.creates (or (and creates (imap creates)) (iset [])))
-    (set! this.updates (or (and updates (imap updates)) (imap {})))
-    (set! this.removes (or (and removes (iset removes)) (iset [])))
-    (set! this.gets (or (and gets (imap gets)) (imap {})))
-    (set! this.names (or (and names (imap names)) (imap {})))
-    (set! this.indexer (or indexer (.copy (:indexer data))))
-    this)
+(defn- Transaction
+  "Transaction type:
+    parent - parent transaction
+    creates - set of ids
+    updates - map of id->object
+    removes - set of ids
+    gets - map of id->object
+    names - map of name->id"
+  [parent creates updates removes gets names indexer]
+  (set! this.parent parent)
+  (set! this.creates (or (and creates (imap creates)) (iset [])))
+  (set! this.updates (or (and updates (imap updates)) (imap {})))
+  (set! this.removes (or (and removes (iset removes)) (iset [])))
+  (set! this.gets (or (and gets (imap gets)) (imap {})))
+  (set! this.names (or (and names (imap names)) (imap {})))
+  (set! this.indexer (or indexer (.copy (:indexer data))))
+  this)
 
-  (defn- tr-string
-    "Convert a transaction to a string (toString())"
-    []
-    (str "(transaction "
-         (JSON/stringify (.toObject (:creates this))) " "
-         (JSON/stringify (.toObject (:updates this))) " "
-         (JSON/stringify (.toArray (:removes this))) " "
-         (JSON/stringify (.toObject (:gets this))) " "
-         (JSON/stringify (.toObject (:names this)))
-         ")"))
-  (set! Transaction.prototype.toString tr-string)
+(defn- tr-string
+  "Convert a transaction to a string (toString())"
+  []
+  (str "(transaction "
+       (JSON/stringify (.toObject (:creates this))) " "
+       (JSON/stringify (.toObject (:updates this))) " "
+       (JSON/stringify (.toArray (:removes this))) " "
+       (JSON/stringify (.toObject (:gets this))) " "
+       (JSON/stringify (.toObject (:names this)))
+       ")"))
+(set! Transaction.prototype.toString tr-string)
 
-  (set! Transaction.transactionNumber 0)
+(set! Transaction.transactionNumber 0)
 
-  (defn- tcopy
-    "Copy a transaction"
-    [creates updates removes gets names indexer]
-    (Transaction.
-     this
-     (or creates this.creates)
-     (or updates this.updates)
-     (or removes this.removes)
-     (or gets this.gets)
-     (or names this.names)
-     (or indexer this.indexer)))
+(defn- tcopy
+  "Copy a transaction"
+  [creates updates removes gets names indexer]
+  (Transaction.
+   this
+   (or creates this.creates)
+   (or updates this.updates)
+   (or removes this.removes)
+   (or gets this.gets)
+   (or names this.names)
+   (or indexer this.indexer)))
 
-  (set! Transaction.prototype.copy tcopy)
+(set! Transaction.prototype.copy tcopy)
 
-  (defn transaction
-    "Create a transaction"
-    [creates updates removes gets names indexer]
-    (Transaction. nil creates updates removes gets names indexer))
+(defn transaction
+  "Create a transaction"
+  [creates updates removes gets names indexer]
+  (Transaction. nil creates updates removes gets names indexer))
 
-  (defn tr->json
-    "convert a transaction to JSON"
-    [trans]
-    {:creates (.toArray (:creates trans))
-     :updates (.toObject (:updates trans))
-     :removes (.toArray (:removes trans))
-     :gets (.toObject (:gets trans))
-     :names (.toObject (:names trans))})
+(defn tr->json
+  "convert a transaction to JSON"
+  [trans]
+  {:creates (.toArray (:creates trans))
+   :updates (.toObject (:updates trans))
+   :removes (.toArray (:removes trans))
+   :gets (.toObject (:gets trans))
+   :names (.toObject (:names trans))})
 
-  (defn json->tr
-    "Create a transaction from a JSON representation"
-    [json]
-    (Transaction.
-     (iset (:creates json))
-     (imap (:updates json))
-     (iset (:removes json))
-     (imap (:gets json))
-     (imap (:names json))
-     (indexAll (:gets json) (:updates json))))
+(defn json->tr
+  "Create a transaction from a JSON representation"
+  [json]
+  (Transaction.
+   (iset (:creates json))
+   (imap (:updates json))
+   (iset (:removes json))
+   (imap (:gets json))
+   (imap (:names json))
+   (indexAll (:gets json) (:updates json))))
 
-  (defn indexAll
-    "Create indexer for dictionaries of blocks"
-    [& blockDicts]
-    (let [indexer (.copy (:indexer data))]
-      (doseq [dict blockDicts]
-        (doseq [key (keys dict)]
-          (let [block (aget dict key)]
-            (if (:keys block)
-              (set! indexer (.addBlockKey (:id block :key key)))))))
-      indexer))
+(defn indexAll
+  "Create indexer for dictionaries of blocks"
+  [& blockDicts]
+  (let [indexer (.copy (:indexer data))]
+    (doseq [dict blockDicts]
+      (doseq [key (keys dict)]
+        (let [block (aget dict key)]
+          (if (:keys block)
+            (set! indexer (.addBlockKey (:id block :key key)))))))
+    indexer))
 
-  (defn tr-update
-    "Update or insert data"
-    [trans & objects]
-    (let [objects (flatten objects)
-          oldGets (:gets trans)
-          oldUpdates (:updates trans)
-          oldObjects (map #(.tr-get %) objects)]
-      debugger
-      (.copy trans
-             (:creates trans)
-             (.withMutations ;;; updates
-              oldUpdates
-              (fn [map]
-                (doseq [item objects] (.set map (:_id item) item))
-                map))
-             (.withMutations ;;; removes
-              (:removes trans)
-              (fn [set]
-                (doseq [item objects] (.delete set item))
-                set))
-             nil ;;; gets
-             (.withMutations ;;; names
-              (:names trans)
-              (fn [map]
-                (doseq [item objects
-                        oldItem oldObjects]
-                  (let [name (:codeName item)
-                        oldName (and oldItem (:codeName oldItem))]
-                    (if (not (== name oldName))
-                      (if oldName
-                        (set! map (.delete map oldName)))
-                      (if name (.set map name (:_id item))))))
-                map))
-             (let [indexer (:indexer trans)] ;;; indexer
-               (doseq [item objects
-                       oldItem oldObjects]
-                 (if oldItem
-                   (doseq [key (.keysFor indexer oldItem)]
-                     (set! indexer (.deleteBlockKey key))))
-                 (doseq [key (.keysFor indexer item)]
-                   (set! indexer (.addBlockKey key))))
-               indexer))))
-
-  (defn tr-remove
-    "Remove data -- arguments can be names, ids, or objects"
-    [trans & things]
-    (let [updates (:updates trans)
-          creates (:creates trans)
-          items (map #(tr-get %) (filter #(.contains updates %) (flatten things)))
-          ids (map #(:_id %) items)]
-      (.copy trans
-             (.withMutations ;;; creates
-              creates
-              (fn [creates] (doseq [id ids] (.remove creates id))))
-             (.withMutations ;;; updates
-              updates
-              (fn [updates] (doseq [id ids] (.remove updates id))))
-             (.withMutations ;;; removes
-              (:removes trans)
-              (fn [removes]
-                (doseq [item (filter #(not (.contains creates %)) ids)]
-                  (.add removes item))))
-             nil ;;; gets
-             (.withMutations ;;; names
-              (:names trans)
-              (fn [names]
-                (doseq [item items]
-                  (let [id (:_id item)
-                        name (:codeName item)]
-                    (if name
-                      (.remove names name))))))
-             (let [indexer (:indexer trans)] ;;; indexer
-               (doseq [item items]
-                 (doseq [key (.keysFor indexer item)]
+(defn tr-update
+  "Update or insert data"
+  [trans & objects]
+  (let [objects (flatten objects)
+        oldGets (:gets trans)
+        oldUpdates (:updates trans)
+        oldObjects (map #(.tr-get %) objects)]
+    debugger
+    (.copy trans
+           (:creates trans)
+           (.withMutations ;;; updates
+            oldUpdates
+            (fn [map]
+              (doseq [item objects] (.set map (:_id item) item))
+              map))
+           (.withMutations ;;; removes
+            (:removes trans)
+            (fn [set]
+              (doseq [item objects] (.delete set item))
+              set))
+           nil ;;; gets
+           (.withMutations ;;; names
+            (:names trans)
+            (fn [map]
+              (doseq [item objects
+                      oldItem oldObjects]
+                (let [name (:codeName item)
+                      oldName (and oldItem (:codeName oldItem))]
+                  (if (not (== name oldName))
+                    (if oldName
+                      (set! map (.delete map oldName)))
+                    (if name (.set map name (:_id item))))))
+              map))
+           (let [indexer (:indexer trans)] ;;; indexer
+             (doseq [item objects
+                     oldItem oldObjects]
+               (if oldItem
+                 (doseq [key (.keysFor indexer oldItem)]
                    (set! indexer (.deleteBlockKey key))))
-               indexer))))
+               (doseq [key (.keysFor indexer item)]
+                 (set! indexer (.addBlockKey key))))
+             indexer))))
 
-  (defn tr-read
-    "Read data into the transaction.
-    (tr-read trans ids) -> [newTransaction, data1, data2, ...]
-    (tr-read trans ids func) -> result of (func newTransaction, data1, data2, ...)
-    ids is can actually be a combination of names and ids"
-    ([trans ids func] (apply func (tr-read ids)))
-    ([trans ids]
-     (let [removes (:removes trans)
-           updates (:updates trans)
-           gets (:gets trans)
-           allIds (flattenIds)
-           filteredIds (filter #(tr-realId %) allIds)
-           filteredIds (filter #(and id (not (or (.contains removes %)
-                                                 (.contains updates %))) ids))
-           newGets (filter identity (map #(.getBlock data (or (.getNamedBlockId data %) %) filteredIds)))
-           named (filter #(:codeName %) newGets)
-           newTrans (if (empty? newGets)
-                      trans
-                      (.copy trans null null null
+(defn tr-remove
+  "Remove data -- arguments can be names, ids, or objects"
+  [trans & things]
+  (let [updates (:updates trans)
+        creates (:creates trans)
+        items (map #(tr-get %) (filter #(.contains updates %) (flatten things)))
+        ids (map #(:_id %) items)]
+    (.copy trans
+           (.withMutations ;;; creates
+            creates
+            (fn [creates] (doseq [id ids] (.remove creates id))))
+           (.withMutations ;;; updates
+            updates
+            (fn [updates] (doseq [id ids] (.remove updates id))))
+           (.withMutations ;;; removes
+            (:removes trans)
+            (fn [removes]
+              (doseq [item (filter #(not (.contains creates %)) ids)]
+                (.add removes item))))
+           nil ;;; gets
+           (.withMutations ;;; names
+            (:names trans)
+            (fn [names]
+              (doseq [item items]
+                (let [id (:_id item)
+                      name (:codeName item)]
+                  (if name
+                    (.remove names name))))))
+           (let [indexer (:indexer trans)] ;;; indexer
+             (doseq [item items]
+               (doseq [key (.keysFor indexer item)]
+                 (set! indexer (.deleteBlockKey key))))
+             indexer))))
+
+(defn tr-read
+  "Read data into the transaction.
+  (tr-read trans ids) -> [newTransaction, data1, data2, ...]
+  (tr-read trans ids func) -> result of (func newTransaction, data1, data2, ...)
+  ids is can actually be a combination of names and ids"
+  ([trans ids func] (apply func (tr-read ids)))
+  ([trans ids]
+   (let [removes (:removes trans)
+         updates (:updates trans)
+         gets (:gets trans)
+         allIds (flattenIds)
+         filteredIds (filter #(tr-realId %) allIds)
+         filteredIds (filter #(and id (not (or (.contains removes %)
+                                               (.contains updates %))) ids))
+         newGets (filter identity (map #(.getBlock data (or (.getNamedBlockId data %) %) filteredIds)))
+         named (filter #(:codeName %) newGets)
+         newTrans (if (empty? newGets)
+                    trans
+                    (.copy trans null null null
+                           (.withModifications
+                            (:gets trans)
+                            (fn [gets] (doseq [item newGets]
+                                         (.set gets (:_id item) item))))
+                           (if (empty? named)
+                             null
                              (.withModifications
-                              (:gets trans)
-                              (fn [gets] (doseq [item newGets]
-                                           (.set gets (:_id item) item))))
-                             (if (empty? named)
-                               null
-                               (.withModifications
-                                (:names trans)
-                                (fn [names] (doseq [item named]
-                                              (.set names (:codeName item) (:_id item))))))))]
-       (let [result (map #(tr-get %) allIds)]
-         (.unshift result newTrans)
-         result))))
+                              (:names trans)
+                              (fn [names] (doseq [item named]
+                                            (.set names (:codeName item) (:_id item))))))))]
+     (let [result (map #(tr-get %) allIds)]
+       (.unshift result newTrans)
+       result))))
 
-  (defn tr-find
-    "Find data in an index"
-    [trans index key]
-    (tr-get trans func (.find (:indexer trans) index key)))
+(defn tr-find
+  "Find data in an index"
+  [trans index key]
+  (tr-get trans func (.find (:indexer trans) index key)))
 
-  (defn tr-clearIndex
-    "Remove data in an index"
-    [trans indexName]
-    (tr-remove trans (tr-find trans indexName)))
+(defn tr-clearIndex
+  "Remove data in an index"
+  [trans indexName]
+  (tr-remove trans (tr-find trans indexName)))
 
-  (defn tr-realId
-    "Get real Id for a thing"
-    [trans thing]
-    (let [id (if (dictionary? thing) (:_id thing) thing)]
-      (and (string? id)
-           (or (.get (:names trans) id)
-               (.getNamedBlockId data id)
-               id))))
+(defn tr-realId
+  "Get real Id for a thing"
+  [trans thing]
+  (let [id (if (dictionary? thing) (:_id thing) thing)]
+    (and (string? id)
+         (or (.get (:names trans) id)
+             (.getNamedBlockId data id)
+             id))))
 
-  (defn tr-get
-    "Get a thing"
-    [trans thing]
-    (let [id (tr-realId thing)]
-      (and id
-           (not (.contains (:removes trans) id))
-           (or (.get (:updates trans) id)
-               (.get (:gets trans id))))))
+(defn tr-get
+  "Get a thing"
+  [trans thing]
+  (let [id (tr-realId thing)]
+    (and id
+         (not (.contains (:removes trans) id))
+         (or (.get (:updates trans) id)
+             (.get (:gets trans id))))))
 
-  (defn tr-check
-    "If an object is a transaction, return it, otherwise raise an error"
-    [value errMsg]
-    (if (instance? Transaction value) value
-        (let [err (Error. (str errMsg value))]
-          (.error window.console errMsg value)
-          (.error window.console err)
-          (throw err))))
+(defn tr-check
+  "If an object is a transaction, return it, otherwise raise an error"
+  [value errMsg]
+  (if (instance? Transaction value) value
+      (let [err (Error. (str errMsg value))]
+        (.error window.console errMsg value)
+        (.error window.console err)
+        (throw err))))
 
-  (defn tr-valid?
-    "Verify that all of a transaction's gets are still valid"
-    [trans]
-    (every (fn [block]
-             (let [curBlock (.getBlock data (:_id block))]
-               (and curBlock
-                    (== (:text block) (:text curBlock)))))
-           (values (:gets trans))))
+(defn tr-valid?
+  "Verify that all of a transaction's gets are still valid"
+  [trans]
+  (every (fn [block]
+           (let [curBlock (.getBlock data (:_id block))]
+             (and curBlock
+                  (== (:text block) (:text curBlock)))))
+         (values (:gets trans))))
 
-  (defn tr-commit
-    "Commit a transaction"
-    [trans]
-    (tr-check trans "Attempt to commit an object that is not a transaction: ")
-    (doseq [update (:updates trans)]
-      (.baseSetData data update (:codeAttributes update)))
-    (doseq [del (:removes trans)]
-      (.baseRemoveData data del)))
+(defn tr-commit
+  "Commit a transaction"
+  [trans]
+  (tr-check trans "Attempt to commit an object that is not a transaction: ")
+  (doseq [update (:updates trans)]
+    (.baseSetData data update (:codeAttributes update)))
+  (doseq [del (:removes trans)]
+    (.baseRemoveData data del)))
 #+END_SRC
 *** Transaction macro examples
 **** get usages

@@ -1713,7 +1713,8 @@ body.loading, body.slides {
     position: fixed;
     left: 0px;
     right: 0px;
-    top: 45px;
+/*    top: 45px;*/
+    top: 0;
     text-align: center;
     z-index: 10;
 }

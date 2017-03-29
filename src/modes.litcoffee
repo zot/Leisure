@@ -976,7 +976,7 @@ Returns [] if org does not fit the pattern.
           type = type ? obj.type
           {name: objectName} = blockCodeItems opts, block
           #"<span class='hidden'>#{escapeHtml results}</span>#{renderView type, viewName, obj, null, block, objectName}"
-          "<span class='hidden'>#{escapeHtml results}</span>#{renderView type, viewName, obj}"
+          "<span class='hidden'>#{escapeHtml results}</span>#{renderView type, viewName, obj, null, null, null, null, 'data-noncontent'}"
         else if false && isYamlResult block
           "<span class='hidden'>#{results.substring 0, firstResult}</span><span class='yaml results-verbatim' data-noncontent>#{results.substring(firstResult).replace /^(: )(.*\n)/gm, (m, g1, g2)-> goodHtml(g2)}</span>"
         else if !firstResult || results[firstResult] == ':'
