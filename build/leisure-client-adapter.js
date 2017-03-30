@@ -3,10 +3,10 @@
   var slice = [].slice;
 
   define(['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'bluebird', 'lib/ot/ot', './replacements'], function(jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep) {
-    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, fileTypes, getDocumentParams, isDelete, isInsert, isRetain, makeImageBlob, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, typeForFile, validateBatch;
+    var DataStore, EditorClient, Map, OrgData, Peer, Promise, Replacements, Selection, Set, TextOperation, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockText, callOriginal, changeAdvice, computeNewStructure, configureOpts, diag, editorToolbar, fileTypes, getDocumentParams, isDelete, isInsert, isRetain, makeImageBlob, noTrim, preserveSelection, randomUserName, ref, replacementFor, replacements, typeForFile;
     ref = window.Immutable = immutable, Map = ref.Map, Set = ref.Set;
     ajaxGet = Utilities.ajaxGet;
-    DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure, validateBatch = Editor.validateBatch;
+    DataStore = Editor.DataStore, preserveSelection = Editor.preserveSelection, blockText = Editor.blockText, computeNewStructure = Editor.computeNewStructure;
     OrgData = Support.OrgData, getDocumentParams = Support.getDocumentParams, editorToolbar = Support.editorToolbar, basicDataFilter = Support.basicDataFilter, replacementFor = Support.replacementFor, makeImageBlob = Support.makeImageBlob;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod, callOriginal = Advice.callOriginal;
     noTrim = Common.noTrim;
@@ -179,9 +179,6 @@
       Peer.prototype.closed = function() {
         return changeAdvice(this.editor.options, false, {
           changesFor: {
-            p2p: true
-          },
-          batchReplace: {
             p2p: true
           },
           doCollaboratively: {
@@ -671,16 +668,7 @@
         return;
       }
       peer = data.peer;
-      changeAdvice(data, true, {
-        guardedReplaceText: {
-          p2p: function(parent) {
-            return function(start, end, text, gStart, gEnd) {
-              var reps;
-              reps = Replacements.fromArray([start, end, text]);
-              return peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, this.getLength()), [gStart, gEnd]);
-            };
-          }
-        },
+      return changeAdvice(data, true, {
         replaceText: {
           p2p: function(parent) {
             return function(repl) {
@@ -692,33 +680,6 @@
                 peer.editorCallbacks.change(peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen));
               }
               return parent(repl);
-            };
-          }
-        }
-      });
-      return changeAdvice(opts, true, {
-        batchReplace: {
-          p2p: function(parent) {
-            return function(replacementFunc, cont, error) {
-              var guards, ops, r, repls;
-              repls = validateBatch(replacementFunc());
-              if (repls.length) {
-                ops = peer.opsFor(repls, this.getLength());
-                guards = _.flatten((function() {
-                  var j, len1, results;
-                  results = [];
-                  for (j = 0, len1 = repls.length; j < len1; j++) {
-                    r = repls[j];
-                    if (r.gStart != null) {
-                      results.push([r.gStart, r.gEnd]);
-                    }
-                  }
-                  return results;
-                })());
-                return peer.sendGuardedOperation(peer.editorClient.revision, ops, guards).then(cont, error)["catch"](error);
-              } else {
-                return cont();
-              }
             };
           }
         }

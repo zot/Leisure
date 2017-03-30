@@ -49,6 +49,8 @@ body.cthulhu {
 .cthulhu ::-moz-selection {
     background: #1c3d34; /* Firefox */
 }
+[data-view='leisure-toolbar'].collapse + .cthulhu.slides [name=dummy_headline],
+[data-view='leisure-toolbar'].collapse + .cthulhu.slides #dummy_headline,
 .cthulhu.slides [name=dummy_headline],
 .cthulhu.slides #dummy_headline {
     height: 240px;
@@ -241,6 +243,8 @@ body.cthulhu {
 body.googie {
     background-color: #ecf0f1;
 }
+[data-view='leisure-toolbar'].collapse + .googie.slides [name=dummy_headline],
+[data-view='leisure-toolbar'].collapse + .googie.slides #dummy_headline,
 .googie.slides [name=dummy_headline],
 .googie.slides #dummy_headline {
     /*height: 240px;*/
@@ -665,6 +669,8 @@ body.console {
 .steampunk button#team_cthulhu:hover {
     background-color: #27ae60;
 }
+[data-view='leisure-toolbar'].collapse +.steampunk.slides [name=dummy_headline],
+[data-view='leisure-toolbar'].collapse +.steampunk.slides #dummy_headline,
 .steampunk.slides [name=dummy_headline],
 .steampunk.slides #dummy_headline {
     height: 0px;
@@ -1180,6 +1186,11 @@ body {
 .slides #dummy_headline {
     height: 122px;
 }
+[data-view='leisure-toolbar'].collapse + .slides [name=dummy_headline],
+[data-view='leisure-toolbar'].collapse + .slides #dummy_headline {
+/*    height: calc(122px + 2em);*/
+    height: calc(122px + 1em);
+}
 .slides hr.first, .slides hr.last, .slides hr.inner {
     display: none;
 }
@@ -1313,6 +1324,12 @@ button#team_cthulhu:hover {
 #nextSlide, #prevSlide {
     top: 80px;
     z-index: 999;
+}
+[data-view='leisure-toolbar'].collapse + [maindoc] [name=nextSlide],
+[data-view='leisure-toolbar'].collapse + [maindoc] [name=prevSlide],
+[data-view='leisure-toolbar'].collapse + [maindoc] #nextSlide,
+[data-view='leisure-toolbar'].collapse + [maindoc] #prevSlide {
+    top: calc(40px + 0.25em);
 }
 [name=nextSlide],
 #nextSlide {
@@ -1713,7 +1730,8 @@ body.loading, body.slides {
     position: fixed;
     left: 0px;
     right: 0px;
-    top: 45px;
+/*    top: 45px;*/
+    top: 0;
     text-align: center;
     z-index: 10;
 }
@@ -1721,7 +1739,11 @@ body.loading, body.slides {
     top: 0px;
 }
 [data-view='leisure-toolbar'].collapse + [maindoc].slides [data-edit-mode='fancy'][data-org-headline='1'] > .maincontent > [data-org-type='text'] {
-    top: 0.25em;
+    top: 0;
+}
+[data-view='leisure-toolbar'].collapse + [maindoc].slides [data-edit-mode='fancy'][data-org-headline='1'] > .maincontent > [data-org-type='text'] > [data-org-type='headline-content']
+{
+    top: 0;
 }
 .slides [data-edit-mode='fancy'][data-org-headline='1'] > .maincontent > [data-org-type='text'] > [data-org-type='headline-content'] {
     display: table;

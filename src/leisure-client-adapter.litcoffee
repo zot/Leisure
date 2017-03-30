@@ -40,7 +40,6 @@ misrepresented as being the original software.
         preserveSelection
         blockText
         computeNewStructure
-        validateBatch
       } = Editor
       {
         OrgData
@@ -157,7 +156,6 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         closed: ->
           changeAdvice @editor.options, false,
             changesFor: p2p: true
-            batchReplace: p2p: true
             doCollaboratively: p2p: true
         send: (type, msg)->
           msg.type = type
@@ -384,9 +382,6 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
         if !data.peer then return
         peer = data.peer
         changeAdvice data, true,
-          guardedReplaceText: p2p: (parent)-> (start, end, text, gStart, gEnd)->
-            reps = Replacements.fromArray [start, end, text]
-            peer.sendGuardedOperation(peer.editorClient.revision, peer.opsFor(reps, @getLength()), [gStart, gEnd])
           replaceText: p2p: (parent)-> (repl)->
             if repl.source != 'peer'
               oldLen = @getLength()
@@ -394,16 +389,6 @@ Peer is the top-level object for a peer-to-peer-capable Leisure instance.
               newLen = oldLen + text.length - end + start
               peer.editorCallbacks.change peer.opFor(repl, oldLen), peer.inverseOpFor(repl, newLen)
             parent repl
-        changeAdvice opts, true,
-          batchReplace: p2p: (parent)-> (replacementFunc, cont, error)->
-            repls = validateBatch(replacementFunc())
-            if repls.length
-              ops = peer.opsFor repls, @getLength()
-              guards = _.flatten([r.gStart, r.gEnd] for r in repls when r.gStart?)
-              peer.sendGuardedOperation(peer.editorClient.revision, ops, guards)
-                .then cont, error
-                .catch error
-            else cont()
 
       window.randomUserName = randomUserName = (done)->
         a = 'a'.charCodeAt(0)

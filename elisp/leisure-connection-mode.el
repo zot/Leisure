@@ -77,6 +77,7 @@
 
 (require 'websocket)
 (require 'dl)
+(require 'cl)
 (require 'cl-lib)
 
 (defgroup leisure ()

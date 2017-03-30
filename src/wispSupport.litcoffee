@@ -211,9 +211,10 @@ Compile Wisp code, optionally in a namespace.
           if addReturn
             addReturn = lastLoc = _.last _.filter(_.map(@result.ast, (n, i)=> if !(n.op in ['def', 'ns']) && n.form then @result['js-ast'].body[i].loc?.start), identity)
           prevLoc = line: 1, column: 0
-          prevLocCode = null
+          prevSemi = null
           nodes.walk (code, loc)=>
-            if loc?.line && (loc.line > prevLoc.line || loc.column > prevLoc.column) then prevLoc = loc
+            if loc?.line && (loc.line > prevLoc.line || loc.column > prevLoc.column)
+              prevLoc = loc
             if code.match /\/\/# sourceMappingURL=/
               foundEnd = true
               code = code.replace /\/\/# sourceMappingURL=.*/, ''
@@ -226,22 +227,19 @@ Compile Wisp code, optionally in a namespace.
               if code.match(/ *= */) then destroyingExport = false
               return
             if @nsName
-              #if @exportLocs.length && atOrAfter(loc, @exportLocs[0]) && code.match /^ *var/
               if prevLoc && @exportLocs.length && atOrAfter(prevLoc, @exportLocs[0]) && code.match /^ *var/
                 declaredNs = true
                 @exportLocs.shift()
                 code = code.replace /^ *var /g, ' '
               else if !declaredNs && @declaresNs && code.match /^ *var/
                 code = code.replace /^ *var /g, ' '
-            #closeLoc = (!loc.line? && code.match(/^void 0;/) && prevLoc) || loc
             closeLoc = (loc.line? && loc) || prevLoc
-            if startedPush && closeLoc.line? && ((closeLoc.line > exprs[exprPos].end.line) || (closeLoc.line == exprs[exprPos].end.line && (code.match(/^void 0;/) || closeLoc.column > exprs[exprPos].end.column)))
+            if (startedPush && closeLoc.line? && ((closeLoc.line > exprs[exprPos].end.line) || (closeLoc.line == exprs[exprPos].end.line && (code.match(/^void 0;/) || closeLoc.column > exprs[exprPos].end.column))))
               startedPush = false
-              node = (prevNonVoid || prevCode)
-              if node?.node
-                c = node.node.children[0]
+              if prevSemi
+                c = prevSemi.node.children[0]
                 c2 = c.replace(/;([ \n]*)$/, ');$1')
-              if node.node && c != c2 then node.node.children[0] = c2
+              if prevSemi.node && c != c2 then prevSemi.node.children[0] = c2
               else code = code.replace(/;([ \n]*)$/, ');$1')
               exprPos++
             if @returnList && !startedPush && (loc.line > exprs[exprPos]?.start.line || (loc.line == exprs[exprPos]?.start.line && loc.column >= exprs[exprPos].start.column))
@@ -263,10 +261,9 @@ Compile Wisp code, optionally in a namespace.
               tail.push node
             if code.trim()
               prevCode = {code, loc, node}
-              if !code.match /^void 0;/ then prevNonVoid = prevCode
-              if loc.line? && (loc.line > prevLoc || (loc.line == prevLoc && loc.column > prevLoc.column))
+              if code.match(/;[ \n]*$/) && !code.match(/^void 0;/) then prevSemi = prevCode
+              if loc.line && (loc.line > prevLoc.line || (loc.line == prevLoc.line && loc.column > prevLoc.column))
                 prevLoc = loc
-                prevLocCode = prevCode
           file = (_.find nodes.children, (n)-> n instanceof SourceNode)?.source
           children = [head, new SourceNode(1, 0, file, @splice), tail]
           if returnNode
@@ -288,6 +285,12 @@ Compile Wisp code, optionally in a namespace.
           if file then splicedResult.map.setSourceContent file, con.sourceContentFor file
           Acorn.parse splicedResult.code
           splicedResult.code + "\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify splicedResult.map.toJSON()}\n"
+
+      dumpNodes = (nodes)->
+        output = ""
+        nodes.walk (code, loc)->
+          output += "#{loc.line}:#{loc.column} #{code}\n"
+        output
 
       lastExportLoc = null
 
@@ -334,6 +337,9 @@ Compile Wisp code, optionally in a namespace.
 
       envFunc = (env)->
         env.presentHtml = (str)->
+          if str.toString()
+            str = str.toString()
+            if str.name then str = str.name
           presentHtml str.replace(/\uFEFF/g, '').replace(/\uA789/g, ':').replace(/\u2044/g, '\/')
         env.executeText = (text, props, cont)-> setLounge this, =>
           result = [Leisure.wispEval(text)]

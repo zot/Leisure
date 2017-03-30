@@ -3,7 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
-    define ['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'lib/fingertree', './tangle', 'lib/sha1'], (Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1)->
+    define ['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'fingertree', './tangle', 'lib/sha1'], (Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1)->
       {
         defaultEnv
         CodeContext
@@ -186,18 +186,13 @@ same names for blocks other than printing a warning.
         load: (name, text, context)->
           @loadName = name
           @makeChanges =>
-            replacement = context ?
-              start: 0
-              end: @getLength()
-              text: text
-              source: 'load'
             @initializeLocalData()
             @loading = true
             @suppressTriggers => super name, text
             for filter in @filters
               filter.clear this
             newBlocks = @blockList()
-            if !changes then changes = sets: @blocks, oldBlocks: [], newBlocks: newBlocks, first: @first
+            changes = sets: @blocks, oldBlocks: [], newBlocks: newBlocks, first: @first
             @linkAllSiblings changes
             for id, block of changes.sets
               @checkImports block

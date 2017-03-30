@@ -41,7 +41,7 @@ title heading should put a title in the HTML and show a title screen in slide mo
 ** Collaborative for both users and developers
 ** Modeless, there is no disctinction between run-time and development-time
 ** Unified, the document is the program and the program is the document
-*** WHen the program changes data, the document changes
+*** When the program changes data, the document changes
 *** When a user edits data in the documetn, the data changes
 *** The program can protect document regions from editing
 * Illuminated programs live in documents that are...
@@ -157,7 +157,7 @@ src="http://www.chartgo.com/preview.do?title={{
 This block of data represents a rotation.
 #+BEGIN_SRC yaml
 type: rotator
-degrees: 73
+degrees: 71
 #+END_SRC
  [[leisure:rotator]] [[leisure:rotator/two]]
 ** Want to edit these views?  Click Show/hide or search for rot.

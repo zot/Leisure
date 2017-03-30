@@ -172,7 +172,7 @@ choose a handlebars template.
                     else
                       preserveSelection -> opts.collaborativeCode.viewBoundSet name, data
 
-      renderView = (type, contextName, data, targets, block, blockName, addIds)->
+      renderView = (type, contextName, data, targets, block, blockName, addIds, extraAttrs)->
         if !block && root.context?.currentBlock?.yaml == data
           block = root.context?.currentBlock
         blockName = blockName ? block?.codeName
@@ -196,6 +196,7 @@ choose a handlebars template.
         attrs += " class='#{classAttr}'"
         if block && blockName then attrs += " data-view-block-name='#{blockName}'"
         else if block then attrs += " data-view-block='#{block._id}'"
+        if extraAttrs then attrs += " " + extraAttrs.trim()
         if targets
           for node in targets
             if root.context?.dontRender?.has(node) then continue

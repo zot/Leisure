@@ -1,7 +1,7 @@
 Connect to the Atom editor. Atom needs line/col coordinates so we need to Map
 offsets <--> line/col.
 
-    define ['lodash', './ui', './editor', './editorSupport', './diag', './eval', './advice', './lib/fingertree'], (_, UI, Editor, EditorSupport, Diag, Eval, Advice, Fingertree)->
+    define ['lodash', './ui', './editor', './editorSupport', './diag', './eval', './advice', 'fingertree'], (_, UI, Editor, EditorSupport, Diag, Eval, Advice, Fingertree)->
       if !window.atomView then return configureAtom: ->
       {
         getDocumentParams

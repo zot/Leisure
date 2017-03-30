@@ -240,7 +240,7 @@
       }
       return results;
     };
-    renderView = function(type, contextName, data, targets, block, blockName, addIds) {
+    renderView = function(type, contextName, data, targets, block, blockName, addIds, extraAttrs) {
       var attr, attrs, classAttr, isTop, j, key, len, node, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, requestedKey, results, settings, template, value;
       if (!block && ((ref1 = root.context) != null ? (ref2 = ref1.currentBlock) != null ? ref2.yaml : void 0 : void 0) === data) {
         block = (ref3 = root.context) != null ? ref3.currentBlock : void 0;
@@ -281,6 +281,9 @@
         attrs += " data-view-block-name='" + blockName + "'";
       } else if (block) {
         attrs += " data-view-block='" + block._id + "'";
+      }
+      if (extraAttrs) {
+        attrs += " " + extraAttrs.trim();
       }
       if (targets) {
         results = [];

@@ -5,7 +5,7 @@
     slice = [].slice;
 
   define(['./eval', './docOrg', 'bluebird', './gen', 'immutable', './editor', './editorSupport', 'acorn', 'lodash', 'jquery'], function(Eval, DocOrg, Bluebird, Gen, Immutable, Editor, EditorSupport, Acorn, _, $) {
-    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, WispScope, atOrAfter, baseFindExports, blockSource, codeOffset, compile, envFunc, findExports, findNs, jsCodeFor, lastExportLoc, lineColumnStrOffset, modules, parseIt, presentHtml, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
+    var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, WispScope, atOrAfter, baseFindExports, blockSource, codeOffset, compile, dumpNodes, envFunc, findExports, findNs, jsCodeFor, lastExportLoc, lineColumnStrOffset, modules, parseIt, presentHtml, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
     setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset, presentHtml = Eval.presentHtml;
     blockSource = DocOrg.blockSource;
     Promise = Bluebird.Promise;
@@ -184,7 +184,7 @@
       };
 
       Compiler.prototype.scanNodes = function() {
-        var addReturn, children, code, con, declaredNs, destroyingExport, exprPos, exprs, file, foundEnd, head, inExpr, lastChildren, lastCode, lastLoc, nodes, prevCode, prevLoc, prevLocCode, ref1, ref2, ref3, returnNode, splicedResult, startedPush, tail;
+        var addReturn, children, code, con, declaredNs, destroyingExport, exprPos, exprs, file, foundEnd, head, inExpr, lastChildren, lastCode, lastLoc, nodes, prevCode, prevLoc, prevSemi, ref1, ref2, ref3, returnNode, splicedResult, startedPush, tail;
         if (this.returnList) {
           exprs = _.filter(_.map(this.result.ast, (function(_this) {
             return function(n, i) {
@@ -230,10 +230,10 @@
           line: 1,
           column: 0
         };
-        prevLocCode = null;
+        prevSemi = null;
         nodes.walk((function(_this) {
           return function(code, loc) {
-            var c, c2, closeLoc, node, prevNonVoid, ref1, ref2, usedPrev;
+            var c, c2, closeLoc, node, ref1, ref2, usedPrev;
             if ((loc != null ? loc.line : void 0) && (loc.line > prevLoc.line || loc.column > prevLoc.column)) {
               prevLoc = loc;
             }
@@ -267,13 +267,12 @@
             closeLoc = ((loc.line != null) && loc) || prevLoc;
             if (startedPush && (closeLoc.line != null) && ((closeLoc.line > exprs[exprPos].end.line) || (closeLoc.line === exprs[exprPos].end.line && (code.match(/^void 0;/) || closeLoc.column > exprs[exprPos].end.column)))) {
               startedPush = false;
-              node = prevNonVoid || prevCode;
-              if (node != null ? node.node : void 0) {
-                c = node.node.children[0];
+              if (prevSemi) {
+                c = prevSemi.node.children[0];
                 c2 = c.replace(/;([ \n]*)$/, ');$1');
               }
-              if (node.node && c !== c2) {
-                node.node.children[0] = c2;
+              if (prevSemi.node && c !== c2) {
+                prevSemi.node.children[0] = c2;
               } else {
                 code = code.replace(/;([ \n]*)$/, ');$1');
               }
@@ -310,12 +309,11 @@
                 loc: loc,
                 node: node
               };
-              if (!code.match(/^void 0;/)) {
-                prevNonVoid = prevCode;
+              if (code.match(/;[ \n]*$/) && !code.match(/^void 0;/)) {
+                prevSemi = prevCode;
               }
-              if ((loc.line != null) && (loc.line > prevLoc || (loc.line === prevLoc && loc.column > prevLoc.column))) {
-                prevLoc = loc;
-                return prevLocCode = prevCode;
+              if (loc.line && (loc.line > prevLoc.line || (loc.line === prevLoc.line && loc.column > prevLoc.column))) {
+                return prevLoc = loc;
               }
             }
           };
@@ -358,6 +356,14 @@
       return Compiler;
 
     })();
+    dumpNodes = function(nodes) {
+      var output;
+      output = "";
+      nodes.walk(function(code, loc) {
+        return output += loc.line + ":" + loc.column + " " + code + "\n";
+      });
+      return output;
+    };
     lastExportLoc = null;
     findExports = function(ast, names, exportLocs) {
       baseFindExports(ast, names, exportLocs);
@@ -430,6 +436,12 @@
     };
     envFunc = function(env) {
       env.presentHtml = function(str) {
+        if (str.toString()) {
+          str = str.toString();
+          if (str.name) {
+            str = str.name;
+          }
+        }
         return presentHtml(str.replace(/\uFEFF/g, '').replace(/\uA789/g, ':').replace(/\u2044/g, '\/'));
       };
       env.executeText = function(text, props, cont) {

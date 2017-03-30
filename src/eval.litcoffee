@@ -1,7 +1,7 @@
 Evaulation support for Leisure
 
     define.amd = true
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', './lib/fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree)->
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = AcornLoose
@@ -249,7 +249,7 @@ Evaulation support for Leisure
 
       presentHtml = (v)->
         str = ': ' + (if v instanceof Html then v.content.replace(/\r?\n/g, '\\n')
-        else escapeHtml String(v).replace(/\r?\n/g, '\n: '))
+        else escapeHtml stringFor(v).replace(/\r?\n/g, '\n: '))
         if _.last(str) == '\n' then str else str + '\n'
 
       basicFormat = (block, prefix, items)->
@@ -510,8 +510,10 @@ Evaulation support for Leisure
 
       indentCode = (str)-> str.replace /\n/g, '\n  '
 
+      stringFor = (v)-> if v.toString then v.toString() else String v
+
       class Html
-        constructor: (content)-> @content = String(content)
+        constructor: (content)-> @content = stringFor content
 
       html = (content)-> new Html content
 
@@ -545,6 +547,8 @@ Evaulation support for Leisure
         executeBlock: null
         generateCode: null
         compileBlock: null
+
+## Scope class
 
       class Scope
         constructor: ->
@@ -651,9 +655,9 @@ Evaulation support for Leisure
 
       slashed = /\\./g
 
-      escapeString = (str)-> String(str).replace specials, (c)-> escaped[c]
+      escapeString = (str)-> stringFor(str).replace specials, (c)-> escaped[c]
 
-      unescapeString = (str)-> String(str).replace slashed, (c)-> unescaped[c] ? c[1]
+      unescapeString = (str)-> stringFor(str).replace slashed, (c)-> unescaped[c] ? c[1]
 
       lineColumnStrOffset = (str, line, column)->
         pos = -1

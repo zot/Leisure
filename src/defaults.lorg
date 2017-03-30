@@ -209,6 +209,9 @@ updateButton = (view, hiding)->
   margin-top: 2.5em;
   overflow: auto;
 }
+.collapse + [maindoc] {
+  height: 100%;
+}
 [data-view='leisure-toolbar'].collapse + [maindoc] {
   margin-top: 0;
 }

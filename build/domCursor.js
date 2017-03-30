@@ -54,6 +54,10 @@
         this.savedTextPosition = null;
       }
 
+      DOMCursor.prototype.isCollapsed = function() {
+        return !this.isEmpty() && isCollapsed(this.node);
+      };
+
       DOMCursor.prototype.computeType = function() {
         this.type = !this.node ? 'empty' : this.node.nodeType === this.node.TEXT_NODE ? 'text' : 'element';
         return this;
@@ -304,7 +308,7 @@
 
       DOMCursor.prototype.filterVisibleTextNodes = function() {
         return this.filterTextNodes().addFilter(function(n) {
-          return !isCollapsed(n.node);
+          return !n.isCollapsed();
         });
       };
 
