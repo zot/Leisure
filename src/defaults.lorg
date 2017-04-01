@@ -680,7 +680,7 @@ span[data-block='code'].fancy {
 * Code buttons
 #+BEGIN_SRC coffee :results def
 Handlebars.registerPartial 'codeMenuButton', """
-<div name='codeMenuButton' data-widget-holder data-noncontent><button data-code-toggle><i class="fa fa-glass"></i></button><button data-code-button><div data-widget-border></div></button></div>
+<div name='codebar'><div name='codeMenuButton' data-widget-holder><button data-code-toggle><i class="fa fa-glass"></i></button><button data-code-button><div data-widget-border></div></button></div><div name='codeCollapse'><i class='fa fa-caret-down' aria-hidden='true'></i></div></div>
 """
 
 codeMenuString = """
@@ -732,15 +732,48 @@ Leisure.initCodeMenu = (view)->
     menu.position my: 'left top', of: $(view).find('[name=codeMenuButton]'), at: 'left top'
   $(view).find('[name=codeMenuButton] [data-code-toggle]').on 'click', (e)->
     console.log "TOGGLE!"
+  $(view).find('[name=codeCollapse]').on 'mousedown', (e)->
+    e.preventDefault()
+    button = e.currentTarget
+    codeBlock = $(button).closest('[data-block]')[0]
+    if codeBlock
+      if codeBlock.hasAttribute 'data-collapsed'
+        codeBlock.removeAttribute 'data-collapsed'
+        $(button).html '<i class="fa fa-caret-down" aria-hidden="true"></i>'
+      else
+        codeBlock.setAttribute 'data-collapsed', ''
+        $(button).html '<i class="fa fa-caret-right" aria-hidden="true"></i>'
 #+END_SRC
 
 #+BEGIN_SRC css
-[data-view="leisure-code/results-only"]:hover [name=codeMenuButton][data-widget-holder],
-[data-view=leisure-code]:hover [name=codeMenuButton][data-widget-holder] {
+[data-view="leisure-code/results-only"]:hover [name=codebar],
+[data-view=leisure-code]:hover [name=codebar] {
   display: initial;
 }
-[name=codeMenuButton][data-widget-holder] {
+[name=codebar] {
   display: none;
+  padding-left: 1em;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+[name=codeCollapse] {
+  position: absolute;
+  top: 1em;
+  left: 0;
+}
+[name=codeCollapse] i {
+  width: 1em;
+  color: black;
+  font-size: 24;
+}
+[data-block=code][data-collapsed] .code-text,
+[data-block=code][data-collapsed] .code-results,
+[data-block=headline][data-collapsed] .maincontent > *:last-child {
+  display: none;
+}
+[data-block=headline][data-collapsed] .maincontent > [data-org-type=text] .maintext > *:first-child::before {
+  content: " \f0da";
 }
 #codeMenu {
   display: inline-block;

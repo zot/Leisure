@@ -1922,8 +1922,21 @@
       OrgEditing.prototype.dataChanged = function(changes) {
         return preserveSelection((function(_this) {
           return function() {
+            var slide;
             OrgEditing.__super__.dataChanged.call(_this, changes);
-            return initializePendingViews();
+            initializePendingViews();
+            if (_this.currentSlide) {
+              slide = _this.nodeForId(_this.currentSlide).closest('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]');
+              if (!slide.hasClass('currentSlide')) {
+                slide.addClass('currentSlide');
+                if (!_this.find('firstSlide').length) {
+                  slide.addClass('firstSlide');
+                }
+                if (!_this.find('lastSlide').length) {
+                  return slide.addClass('lastSlide');
+                }
+              }
+            }
           };
         })(this));
       };
@@ -1997,7 +2010,7 @@
       };
 
       OrgEditing.prototype.changed = function(changes) {
-        var block, i, id, j, l, len, len1, len2, nameNodes, nb, newBlock, newBlocks, node, o, oldBlock, oldBlocks, ref, ref1, viewNodes;
+        var block, i, id, j, l, len, len1, len2, nameNodes, nb, newBlock, newBlocks, node, o, observers, oldBlock, oldBlocks, ref, viewNodes;
         newBlocks = changes.newBlocks, oldBlocks = changes.oldBlocks;
         if ((newBlocks.length === (ref = oldBlocks.length) && ref === 1)) {
           for (i = j = 0, len = newBlocks.length; j < len; i = ++j) {
@@ -2013,14 +2026,15 @@
           for (l = 0, len1 = newBlocks.length; l < len1; l++) {
             block = newBlocks[l];
             viewNodes = viewNodes.add(this.find("[data-view-block='" + block._id + "']"));
-            if (block.codeName) {
-              nameNodes = viewNodes.add(this.find("[data-view-block-name='" + block.codeName + "']"));
-            }
             viewNodes = this.findViewsForDefiner(block, viewNodes);
             viewNodes = this.findViewsForDefiner(changes.old[block._id], viewNodes);
-            ref1 = this.find("[data-observe~='" + block._id + "']");
-            for (o = 0, len2 = ref1.length; o < len2; o++) {
-              node = ref1[o];
+            observers = this.find("[data-observe~='" + block._id + "']");
+            if (block.codeName) {
+              nameNodes = viewNodes.add(this.find("[data-view-block-name~='" + block.codeName + "']"));
+              observers = observers.add(this.find("[data-observe~='" + block.codeName + "']"));
+            }
+            for (o = 0, len2 = observers.length; o < len2; o++) {
+              node = observers[o];
               if (id = this.idForNode(node)) {
                 nb.push(this.getBlock(id, changes));
               }
@@ -2030,38 +2044,47 @@
           this.mode.renderChanged(this, nb, this.idPrefix, true);
           return this.withNewContext((function(_this) {
             return function() {
-              var blk, blkName, data, len3, len4, name, q, ref2, ref3, ref4, ref5, ref6, ref7, results1, s, view;
-              ref2 = viewNodes.filter(function(n) {
+              var blk, blkName, data, len3, len4, name, q, ref1, ref2, ref3, ref4, results1, s, view;
+              ref1 = viewNodes.filter(function(n) {
                 return !nb[_this.idForNode(n)];
               });
-              for (q = 0, len3 = ref2.length; q < len3; q++) {
-                node = ref2[q];
+              for (q = 0, len3 = ref1.length; q < len3; q++) {
+                node = ref1[q];
                 node = $(node);
-                ref4 = ((ref3 = $(node).attr('data-requested-view')) != null ? ref3 : '').split('/'), view = ref4[0], name = ref4[1];
+                ref3 = ((ref2 = $(node).attr('data-requested-view')) != null ? ref2 : '').split('/'), view = ref3[0], name = ref3[1];
                 if ((block = _this.blockForNode(node)) && (data = _this.data.getYaml(block))) {
                   renderView(view, name, data, node, block);
                 } else if (block = _this.findBlockForResultView(node)) {
                   renderView(view, name, false, node, block);
                 }
               }
-              ref5 = nameNodes.filter(function(n) {
+              ref4 = nameNodes.filter(function(n) {
                 return !nb[_this.idForNode(n)];
               });
               results1 = [];
-              for (s = 0, len4 = ref5.length; s < len4; s++) {
-                node = ref5[s];
+              for (s = 0, len4 = ref4.length; s < len4; s++) {
+                node = ref4[s];
                 node = $(node);
-                if ((data = _this.data.getYaml(blk = _this.data.getBlockNamed(blkName = node.attr('data-view-block-name'))))) {
-                  if (node.hasClass('error')) {
-                    view = data.type;
-                    name = node.attr('data-view-name');
-                  } else {
-                    ref7 = ((ref6 = node.attr('data-requested-view')) != null ? ref6 : '').split('/'), view = ref7[0], name = ref7[1];
+                results1.push((function() {
+                  var len5, ref5, ref6, ref7, results2, u;
+                  ref5 = node.attr('data-view-block-name').split(/\s+/);
+                  results2 = [];
+                  for (u = 0, len5 = ref5.length; u < len5; u++) {
+                    blkName = ref5[u];
+                    if (data = this.data.getYaml(blk = this.data.getBlockNamed(blkName))) {
+                      if (node.hasClass('error')) {
+                        view = data.type;
+                        name = node.attr('data-view-name');
+                      } else {
+                        ref7 = ((ref6 = node.attr('data-requested-view')) != null ? ref6 : '').split('/'), view = ref7[0], name = ref7[1];
+                      }
+                      results2.push(renderView(view, name, data, node, blk, blkName));
+                    } else {
+                      results2.push(void 0);
+                    }
                   }
-                  results1.push(renderView(view, name, data, node, blk, blkName));
-                } else {
-                  results1.push(void 0);
-                }
+                  return results2;
+                }).call(_this));
               }
               return results1;
             };

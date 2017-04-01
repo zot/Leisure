@@ -1007,6 +1007,12 @@ NMap is a very simple trie.
           preserveSelection =>
             super changes
             initializePendingViews()
+            if @currentSlide
+              slide = @nodeForId(@currentSlide).closest('[data-view=leisure-top-headline], [data-view=leisure-top-chunk]')
+              if !slide.hasClass 'currentSlide'
+                slide.addClass('currentSlide')
+                if !@find('firstSlide').length then slide.addClass('firstSlide')
+                if !@find('lastSlide').length then slide.addClass('lastSlide')
         dataLoaded: ->
           super()
           @rerenderAll()
@@ -1046,11 +1052,13 @@ NMap is a very simple trie.
             nameNodes = $()
             for block in newBlocks
               viewNodes = viewNodes.add @find "[data-view-block='#{block._id}']"
-              if block.codeName
-                nameNodes = viewNodes.add @find "[data-view-block-name='#{block.codeName}']"
               viewNodes = @findViewsForDefiner block, viewNodes
               viewNodes = @findViewsForDefiner changes.old[block._id], viewNodes
-              for node in @find "[data-observe~='#{block._id}']"
+              observers = @find "[data-observe~='#{block._id}']"
+              if block.codeName
+                nameNodes = viewNodes.add @find "[data-view-block-name~='#{block.codeName}']"
+                observers = observers.add @find "[data-observe~='#{block.codeName}']"
+              for node in observers
                 if id = @idForNode node
                   nb.push @getBlock id, changes
             nb = _.values(_.keyBy(nb, '_id'))
@@ -1065,12 +1073,13 @@ NMap is a very simple trie.
                   renderView view, name, false, node, block
               for node in nameNodes.filter((n)=> !nb[@idForNode n])
                 node = $(node)
-                if (data = @data.getYaml blk = @data.getBlockNamed(blkName = node.attr 'data-view-block-name'))
-                  if node.hasClass 'error'
-                    view = data.type
-                    name = node.attr 'data-view-name'
-                  else [view, name] = (node.attr('data-requested-view') ? '').split '/'
-                  renderView view, name, data, node, blk, blkName
+                for blkName in node.attr('data-view-block-name').split(/\s+/)
+                  if data = @data.getYaml blk = @data.getBlockNamed(blkName)
+                    if node.hasClass 'error'
+                      view = data.type
+                      name = node.attr 'data-view-name'
+                    else [view, name] = (node.attr('data-requested-view') ? '').split '/'
+                    renderView view, name, data, node, blk, blkName
           else super changes
         blockForNode: (node)->
           @getBlock(node.attr 'data-view-block') ?

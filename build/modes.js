@@ -3,7 +3,7 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lodash', 'jquery', './ui', 'handlebars', './lib/prism', './editorSupport', 'bluebird', './advice', './lib/prism-leisure', 'lib/js-yaml'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, Keyword, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addPendingTooltip, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, findFirstLetter, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isFirstText, isHiddenSlide, isMeat, isSidebar, isViewResult, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeFirst, maybeReplaceHtml, mergeContext, mergeMeat, namedNode, nextImageSrc, nextViewId, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, parseYaml, pendingTooltips, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, unescapeString, updateSelection, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, Keyword, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addPendingTooltip, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, findFirstLetter, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isFirstText, isHiddenSlide, isMeat, isSidebar, isViewResult, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeFirst, maybeReplaceHtml, mergeContext, mergeMeat, namedNode, nextImageSrc, nextViewId, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, parseYaml, pendingTooltips, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, touchedBlocks, unescapeString, updateSelection, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Keyword = Org.Keyword, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
@@ -11,7 +11,7 @@
     Nil = Ast.Nil;
     languageEnvMaker = Eval.languageEnvMaker, Html = Eval.Html, escapeHtml = Eval.escapeHtml, html = Eval.html, blockVars = Eval.blockVars, isYamlResult = Eval.isYamlResult, unescapeString = Eval.unescapeString;
     LeisureEditCore = Editor.LeisureEditCore, last = Editor.last, DataStore = Editor.DataStore, DataStoreEditingOptions = Editor.DataStoreEditingOptions, blockText = Editor.blockText, posFor = Editor.posFor, escapeHtml = Editor.escapeHtml, copy = Editor.copy, findEditor = Editor.findEditor, copyBlock = Editor.copyBlock, preserveSelection = Editor.preserveSelection, getEventChar = Editor.getEventChar;
-    addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr, nextImageSrc = UI.nextImageSrc, prevImageSrc = UI.prevImageSrc, pushPendingInitialzation = UI.pushPendingInitialzation, nextViewId = UI.nextViewId;
+    addView = UI.addView, removeView = UI.removeView, renderView = UI.renderView, hasView = UI.hasView, viewKey = UI.viewKey, addController = UI.addController, removeController = UI.removeController, withContext = UI.withContext, mergeContext = UI.mergeContext, initializePendingViews = UI.initializePendingViews, escapeAttr = UI.escapeAttr, nextImageSrc = UI.nextImageSrc, prevImageSrc = UI.prevImageSrc, pushPendingInitialzation = UI.pushPendingInitialzation, nextViewId = UI.nextViewId, touchedBlocks = UI.touchedBlocks;
     OrgEditing = EditorSupport.OrgEditing, blockOrg = EditorSupport.blockOrg, blockCodeItems = EditorSupport.blockCodeItems, blockIsHidden = EditorSupport.blockIsHidden, blockEnvMaker = EditorSupport.blockEnvMaker, controllerEval = EditorSupport.controllerEval, updateSelection = EditorSupport.updateSelection;
     Promise = Bluebird.Promise;
     singleControllers = {};
@@ -177,64 +177,81 @@
       return fancyMode.render(UI.context.opts, block, UI.context.prefix)[0];
     });
     Handlebars.registerHelper('renderHtml', function(html, options) {
-      var controllerName, data, id, ids, opts, ref, ref1, ref10, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, text, vars;
+      var controllerName, data, id, ids, opts, ref, ref1, ref10, ref11, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, tblocks, text, vars;
       opts = (ref = UI.context) != null ? ref.opts : void 0;
       ref3 = blockVars(opts != null ? opts.data : void 0, (ref1 = this.block) != null ? (ref2 = ref1.codeAttributes) != null ? ref2["var"] : void 0 : void 0), vars = ref3[0], ids = ref3[1];
       data = (ref4 = UI.context) != null ? (ref5 = ref4.opts) != null ? ref5.data : void 0 : void 0;
-      controllerName = (ref6 = this.block.codeAttributes) != null ? ref6.controller : void 0;
-      id = (ref7 = (ref8 = UI.context) != null ? ref8.simpleViewId : void 0) != null ? ref7 : this.id;
-      if (controllerName || (ids.length > 0 && (id = (ref9 = (ref10 = UI.context) != null ? ref10.simpleViewId : void 0) != null ? ref9 : this.id))) {
-        pushPendingInitialzation((function(_this) {
-          return function() {
-            var block, blocks, controller, env, j, len, node, p, ref11, viewNode;
-            viewNode = $("#" + id);
-            if (ids.length && (node = opts.nodeForId(_this.block._id)) && (node[0] === viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)) {
-              blocks = (ref11 = node.attr('data-observe')) != null ? ref11 : '';
-              for (j = 0, len = ids.length; j < len; j++) {
-                id = ids[j];
-                blocks += " " + id;
+      controllerName = (ref6 = this.block) != null ? (ref7 = ref6.codeAttributes) != null ? ref7.controller : void 0 : void 0;
+      id = (ref8 = (ref9 = UI.context) != null ? ref9.simpleViewId : void 0) != null ? ref8 : this.id;
+      if (html) {
+        vars = _.merge(vars, tblocks = touchedBlocks(html, options.data.opts.data));
+        if (controllerName || (ids.length > 0 && (id = (ref10 = (ref11 = UI.context) != null ? ref11.simpleViewId : void 0) != null ? ref10 : this.id)) || !_.isEmpty(tblocks)) {
+          pushPendingInitialzation((function(_this) {
+            return function() {
+              var blk, block, blocks, controller, env, j, len, len1, n, node, p, ref12, ref13, ref14, s, viewNode;
+              viewNode = $("#" + id);
+              if (ids.length && (node = opts.nodeForId(_this.block._id)) && (node[0] === viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)) {
+                blocks = (ref12 = node.attr('data-observe')) != null ? ref12 : '';
+                for (j = 0, len = ids.length; j < len; j++) {
+                  id = ids[j];
+                  blocks += " " + id;
+                }
+                node.attr('data-observe', blocks);
               }
-              node.attr('data-observe', blocks);
-            }
-            if (controllerName) {
-              if (!(controller = singleControllers[controllerName])) {
-                if (block = opts.data.getBlockNamed(controllerName)) {
-                  controller = singleControllers[controllerName] = {};
-                  env = blockEnvMaker(block)({
-                    __proto__: defaultEnv
-                  });
-                  env["eval"] = function(text) {
-                    return controllerEval.call(controller, text);
-                  };
-                  env.write = function(str) {
-                    return console.log(str);
-                  };
-                  env.errorAt = function(offset, msg) {
-                    return console.log(msg);
-                  };
-                  p = opts.data.getCode(block);
-                  if (p instanceof Promise) {
-                    p.then(function(func) {
-                      return func.call(controller, null, viewNode);
+              if (!_.isEmpty(tblocks)) {
+                s = new Set();
+                ref14 = ((ref13 = viewNode.attr('data-observe')) != null ? ref13 : '').split(/\s+/);
+                for (n = 0, len1 = ref14.length; n < len1; n++) {
+                  blk = ref14[n];
+                  s.add(blk);
+                }
+                for (blk in tblocks) {
+                  s.add(blk);
+                }
+                viewNode.attr('data-observe', _.toArray(s).join(' ').trim());
+              }
+              if (controllerName) {
+                if (!(controller = singleControllers[controllerName])) {
+                  if (block = opts.data.getBlockNamed(controllerName)) {
+                    controller = singleControllers[controllerName] = {};
+                    env = blockEnvMaker(block)({
+                      __proto__: defaultEnv
                     });
-                  } else {
-                    p.call(controller, null, viewNode);
+                    env["eval"] = function(text) {
+                      return controllerEval.call(controller, text);
+                    };
+                    env.write = function(str) {
+                      return console.log(str);
+                    };
+                    env.errorAt = function(offset, msg) {
+                      return console.log(msg);
+                    };
+                    p = opts.data.getCode(block);
+                    if (p instanceof Promise) {
+                      p.then(function(func) {
+                        return func.call(controller, null, viewNode);
+                      });
+                    } else {
+                      p.call(controller, null, viewNode);
+                    }
                   }
                 }
+                return controller != null ? typeof controller.initializeView === "function" ? controller.initializeView(viewNode[0], vars) : void 0 : void 0;
               }
-              return controller != null ? typeof controller.initializeView === "function" ? controller.initializeView(viewNode[0], vars) : void 0 : void 0;
-            }
-          };
-        })(this));
-      }
-      text = Handlebars.compile(html)(vars, {
-        data: UI.context
-      });
-      if (!id && controllerName) {
-        id = nextViewId();
-        return "<span id='" + id + "'>" + text + "</span>";
+            };
+          })(this));
+        }
+        text = Handlebars.compile(html)(vars, {
+          data: UI.context
+        });
+        if (!id && controllerName) {
+          id = nextViewId();
+          return "<span id='" + id + "'>" + text + "</span>";
+        } else {
+          return text;
+        }
       } else {
-        return text;
+        return '';
       }
     });
     initializePendingViews = function() {
@@ -1376,8 +1393,8 @@
       options = new OrgEditing(data).setMode(fancyMode);
       data.openRegistration();
       data.registerCollaborativeCode('doSlideValue', doSlideValue);
-      data.registerCollaborativeCode('viewBoundSet', function(context, name, data) {
-        return data.setData(name, data);
+      data.registerCollaborativeCode('viewBoundSet', function(context, name, value) {
+        return data.setData(name, value);
       });
       data.closeRegistration();
       return new LeisureEditCore($(div), options);
