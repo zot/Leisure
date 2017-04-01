@@ -81,6 +81,7 @@
         prevImageSrc
         pushPendingInitialzation
         nextViewId
+        touchedBlocks
       } = UI
       {
         OrgEditing
@@ -196,33 +197,43 @@
         opts = UI.context?.opts
         [vars, ids] = blockVars opts?.data, this.block?.codeAttributes?.var
         data = UI.context?.opts?.data
-        controllerName = @block.codeAttributes?.controller
+        controllerName = @block?.codeAttributes?.controller
         id = UI.context?.simpleViewId ? this.id
-        if controllerName || (ids.length > 0 && (id = UI.context?.simpleViewId ? this.id))
-          pushPendingInitialzation =>
-            viewNode = $("##{id}")
-            if ids.length && (node = opts.nodeForId(@block._id)) && (node[0] == viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)
-              blocks = node.attr('data-observe') ? ''
-              for id in ids
-                blocks += " #{id}"
-              node.attr 'data-observe', blocks
-            if controllerName
-              if !(controller = singleControllers[controllerName])
-                if block = opts.data.getBlockNamed controllerName
-                  controller = singleControllers[controllerName] = {}
-                  env = blockEnvMaker(block) __proto__: defaultEnv
-                  env.eval = (text)-> controllerEval.call controller, text
-                  env.write = (str)-> console.log str
-                  env.errorAt = (offset, msg)-> console.log msg
-                  p = opts.data.getCode block
-                  if p instanceof Promise then p.then (func)-> func.call controller, null, viewNode
-                  else p.call controller, null, viewNode
-              controller?.initializeView? viewNode[0], vars
-        text = Handlebars.compile(html)(vars, data: UI.context)
-        if !id && controllerName
-          id = nextViewId()
-          "<span id='#{id}'>#{text}</span>"
-        else text
+        if html
+          vars = _.merge vars, tblocks = touchedBlocks html, options.data.opts.data
+          if controllerName || (ids.length > 0 && (id = UI.context?.simpleViewId ? this.id)) || !_.isEmpty(tblocks)
+            pushPendingInitialzation =>
+              viewNode = $("##{id}")
+              if ids.length && (node = opts.nodeForId(@block._id)) && (node[0] == viewNode[0] || node[0].compareDocumentPosition(viewNode[0]) & Element.DOCUMENT_POSITION_CONTAINS)
+                blocks = node.attr('data-observe') ? ''
+                for id in ids
+                  blocks += " #{id}"
+                node.attr 'data-observe', blocks
+              if !_.isEmpty tblocks
+                s = new Set()
+                for blk in (viewNode.attr('data-observe') ? '').split /\s+/
+                  s.add blk
+                for blk of tblocks
+                  s.add blk
+                viewNode.attr 'data-observe', _.toArray(s).join(' ').trim()
+              if controllerName
+                if !(controller = singleControllers[controllerName])
+                  if block = opts.data.getBlockNamed controllerName
+                    controller = singleControllers[controllerName] = {}
+                    env = blockEnvMaker(block) __proto__: defaultEnv
+                    env.eval = (text)-> controllerEval.call controller, text
+                    env.write = (str)-> console.log str
+                    env.errorAt = (offset, msg)-> console.log msg
+                    p = opts.data.getCode block
+                    if p instanceof Promise then p.then (func)-> func.call controller, null, viewNode
+                    else p.call controller, null, viewNode
+                controller?.initializeView? viewNode[0], vars
+          text = Handlebars.compile(html)(vars, data: UI.context)
+          if !id && controllerName
+            id = nextViewId()
+            "<span id='#{id}'>#{text}</span>"
+          else text
+        else ''
 
       initializePendingViews = ->
         UI.initializePendingViews()
@@ -991,7 +1002,7 @@ Returns [] if org does not fit the pattern.
         options = new OrgEditing(data).setMode fancyMode
         data.openRegistration()
         data.registerCollaborativeCode 'doSlideValue', doSlideValue
-        data.registerCollaborativeCode 'viewBoundSet', (context, name, data)-> data.setData name, data
+        data.registerCollaborativeCode 'viewBoundSet', (context, name, value)-> data.setData name, value
         data.closeRegistration()
         new LeisureEditCore $(div), options
 

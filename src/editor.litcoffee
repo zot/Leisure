@@ -1835,6 +1835,7 @@ selection, regardless of the current value of LeisureEditCore.editing.
         else if $(document.activeElement).is 'input[input-number]'
           num = document.activeElement.getAttribute 'input-number'
           parentId = $(document.activeElement).closest('[data-view-block-name]').prop 'id'
+          if !parentId then parentId = $(document.activeElement).closest('[data-block]').prop 'id'
           input = document.activeElement
           start = input.selectionStart
           end = input.selectionEnd

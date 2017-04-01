@@ -3,7 +3,7 @@
   var slice = [].slice;
 
   define(['handlebars', './editor', './coffee-script', 'immutable'], function(Handlebars, Editor, CoffeeScript, Immutable) {
-    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, nextImageSrc, nextViewId, pendingViews, preserveSelection, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, replaceImage, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, viewIdCounter, viewKey, withContext;
+    var Set, activateScripts, activating, addController, addView, bindView, compile, condenseHtml, configurePanels, controllers, create, defaults, dontRerender, escapeAttr, escapeHtml, findEditor, getController, getControllers, getPanel, getPendingViews, getTemplate, getTemplates, getView, hasView, imageRefreshCounter, initializePendingViews, localResources, mergeContext, nextImageSrc, nextViewId, pendingViews, preserveSelection, prevImageSrc, pushPendingInitialzation, ref, refreshImage, registerHelper, removeController, removeView, renderView, replaceImage, root, runTemplate, setPanelExpanded, showMessage, simpleRenderView, templates, touchedBlocks, traverse, viewIdCounter, viewKey, withContext;
     ref = window.Handlebars = Handlebars, compile = ref.compile, create = ref.create, registerHelper = ref.registerHelper;
     escapeHtml = Editor.escapeHtml, findEditor = Editor.findEditor, preserveSelection = Editor.preserveSelection;
     Set = Immutable.Set;
@@ -119,10 +119,14 @@
     };
     dontRerender = function(view, func) {
       var oldDonts, ref1, ref2;
-      oldDonts = (ref1 = (ref2 = root.context) != null ? ref2.dontRender : void 0) != null ? ref1 : new Set();
-      return mergeContext({
-        dontRender: oldDonts.add(view)
-      }, func);
+      if (view) {
+        oldDonts = (ref1 = (ref2 = root.context) != null ? ref2.dontRender : void 0) != null ? ref1 : new Set();
+        return mergeContext({
+          dontRender: oldDonts.add(view)
+        }, func);
+      } else {
+        return func();
+      }
     };
     condenseHtml = function(html, extreme) {
       if (extreme) {
@@ -143,14 +147,14 @@
       return '';
     });
     Handlebars.registerHelper('find', function() {
-      var data, item, items, j, k, len, name, options, ref1, res;
+      var data, item, items, j, l, len, name, options, ref1, res;
       name = 2 <= arguments.length ? slice.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), options = arguments[j++];
       data = options.data.opts.data;
       items = name.length === 1 ? data.find(name[0]) : data.find(name[0], name[1]);
       res = "<span data-find-index='" + name[0] + "'>";
       ref1 = items != null ? items : [];
-      for (k = 0, len = ref1.length; k < len; k++) {
-        item = ref1[k];
+      for (l = 0, len = ref1.length; l < len; l++) {
+        item = ref1[l];
         mergeContext({
           currentBlock: data.getBlock(item)
         }, function() {
@@ -160,14 +164,14 @@
       return res + "</span>";
     });
     Handlebars.registerHelper('findReverse', function() {
-      var data, item, items, j, k, len, name, options, ref1, res;
+      var data, item, items, j, l, len, name, options, ref1, res;
       name = 2 <= arguments.length ? slice.call(arguments, 0, j = arguments.length - 1) : (j = 0, []), options = arguments[j++];
       data = options.data.opts.data;
       items = name.length === 1 ? data.find(name[0]) : data.find(name[0], name[1]);
       res = '';
       ref1 = (items != null ? items : []).reverse();
-      for (k = 0, len = ref1.length; k < len; k++) {
-        item = ref1[k];
+      for (l = 0, len = ref1.length; l < len; l++) {
+        item = ref1[l];
         res += options.fn(data.getYaml(item), options);
       }
       return res;
@@ -188,7 +192,7 @@
       return simpleRenderView("data-view='" + name + "' data-requested-view='" + name + "' class='view'", name, opts.fn, this);
     });
     bindView = function(view) {
-      var getter, i, input, j, len, name, oldValue, opts, parent, path, ref1, ref2, results, setter;
+      var getter, i, index, input, j, len, name, oldValue, opts, parent, path, ref1, ref2, results, setter;
       if (!(opts = (ref1 = findEditor(view)) != null ? ref1.options : void 0)) {
         return;
       }
@@ -196,9 +200,15 @@
       results = [];
       for (i = j = 0, len = ref2.length; j < len; i = ++j) {
         input = ref2[i];
-        if (name = (parent = $(input).closest('[data-view-block-name]')).attr('data-view-block-name')) {
+        path = input.getAttribute('data-value');
+        if (index = path.indexOf('.')) {
+          name = path.substring(0, index);
+          path = path.substring(index + 1);
+        } else {
+          (parent = $(input).closest('[data-view-block-name]')).attr('data-view-block-name');
+        }
+        if (name) {
           input.setAttribute('input-number', i);
-          path = input.getAttribute('data-value');
           getter = eval("(function(data){return data." + path + "})");
           setter = eval("(function(data, value){data." + path + " = value})");
           oldValue = input.value = getter(opts.data.getYaml(opts.data.getBlockNamed(name)));
@@ -219,16 +229,18 @@
                 start = input.selectionStart;
                 end = input.selectionEnd;
                 return dontRerender(view, function() {
-                  return dontRerender(parent[0], function() {
-                    var block;
-                    block = opts.data.getBlockNamed(name);
-                    if (block.local) {
-                      return opts.setLocalData(name, data);
-                    } else {
-                      return preserveSelection(function() {
-                        return opts.collaborativeCode.viewBoundSet(name, data);
-                      });
-                    }
+                  return dontRerender(parent != null ? parent[0] : void 0, function() {
+                    return dontRerender(view, function() {
+                      var block;
+                      block = opts.data.getBlockNamed(name);
+                      if (block.local) {
+                        return opts.setLocalData(name, data);
+                      } else {
+                        return preserveSelection(function() {
+                          return opts.data.collaborativeCode.viewBoundSet(name, data);
+                        });
+                      }
+                    });
                   });
                 });
               }
@@ -239,6 +251,60 @@
         }
       }
       return results;
+    };
+    traverse = function(obj, func, t, key, path, set) {
+      var directive, j, k, len, v;
+      if (typeof obj === 'object') {
+        if (!set) {
+          set = new Set();
+        }
+        if (!set.has(obj)) {
+          if (!path) {
+            path = [];
+          }
+          set.add(obj);
+          switch (directive = func(obj, t, key, path, set)) {
+            case 'stop':
+              'stop';
+              break;
+            case 'skip':
+              break;
+            default:
+              path.push([key, obj]);
+              if (_.isArray(obj)) {
+                for (k = j = 0, len = obj.length; j < len; k = ++j) {
+                  v = obj[k];
+                  if (traverse(v, func, t, k, path, set) === 'stop') {
+                    return;
+                  }
+                }
+              } else {
+                for (k in obj) {
+                  v = obj[k];
+                  if (traverse(v, func, t, k, path, set) === 'stop') {
+                    return;
+                  }
+                }
+              }
+              path.pop();
+          }
+        }
+      }
+      return null;
+    };
+    touchedBlocks = function(html, data) {
+      var v;
+      v = {};
+      traverse(Handlebars.parse(html), function(obj) {
+        var block, blockName, d;
+        if (obj.type === 'PathExpression') {
+          blockName = obj.parts[0];
+          if ((block = data.getBlockNamed(blockName))) {
+            return v[blockName] = (d = data.getYaml(block)) ? d : null;
+          }
+        }
+      });
+      return v;
     };
     renderView = function(type, contextName, data, targets, block, blockName, addIds, extraAttrs) {
       var attr, attrs, classAttr, isTop, j, key, len, node, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, requestedKey, results, settings, template, value;
@@ -374,7 +440,7 @@
             block: block
           }
         }, context), function() {
-          var err, error, img, j, k, l, len, len1, len2, len3, m, newScript, node, ref1, ref2, ref3, ref4, results, script;
+          var err, error, img, j, l, len, len1, len2, len3, m, newScript, node, o, ref1, ref2, ref3, ref4, results, script;
           root.context.currentView = el;
           activating = true;
           try {
@@ -392,8 +458,8 @@
               }
             }
             ref2 = el.find('script[type="text/coffeescript"]').add(el.find('script[type="text/literate-coffeescript"]'));
-            for (k = 0, len1 = ref2.length; k < len1; k++) {
-              script = ref2[k];
+            for (l = 0, len1 = ref2.length; l < len1; l++) {
+              script = ref2[l];
               root.currentScript = script;
               CoffeeScript.run(script.innerHTML);
             }
@@ -405,13 +471,13 @@
               }
             }
             ref4 = el.find('img');
-            for (l = 0, len2 = ref4.length; l < len2; l++) {
-              img = ref4[l];
+            for (m = 0, len2 = ref4.length; m < len2; m++) {
+              img = ref4[m];
               refreshImage(img);
             }
             results = [];
-            for (m = 0, len3 = el.length; m < len3; m++) {
-              node = el[m];
+            for (o = 0, len3 = el.length; o < len3; o++) {
+              node = el[o];
               results.push(bindView(node));
             }
             return results;
@@ -564,7 +630,9 @@
         activateScripts: activateScripts,
         pendingScripts: [],
         localResources: localResources,
-        nextViewId: nextViewId
+        nextViewId: nextViewId,
+        traverse: traverse,
+        touchedBlocks: touchedBlocks
       },
       condenseHtml: condenseHtml,
       Handlebars: Handlebars
