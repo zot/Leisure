@@ -576,12 +576,17 @@
       };
 
       OrgData.prototype.runOnImport = function(func) {
-        return this.importPromise.then((function(_this) {
-          return function() {
-            func();
-            return null;
-          };
-        })(this));
+        if (this.importPromise.isResolved) {
+          func();
+          return this.importPromise;
+        } else {
+          return this.importPromise.then((function(_this) {
+            return function() {
+              func();
+              return null;
+            };
+          })(this));
+        }
       };
 
       OrgData.prototype.scheduleEvals = function() {
@@ -1485,14 +1490,14 @@
           func = name;
           name = func.name;
         }
-        this.collaborativeCode[name] = (function(_this) {
+        this.collaborativeBase[name] = func;
+        return this.collaborativeCode[name] = (function(_this) {
           return function() {
             var args;
             args = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
             return _this.doCollaboratively(name, args);
           };
         })(this);
-        return this.collaborativeBase[name] = func;
       };
 
       OrgData.prototype._runCollaborativeCode = function(name, slaveId, args) {

@@ -368,9 +368,13 @@ that must be done regardless of the source of changes
         queueEval: (func)->
           opts = defaultEnv.opts
           @pendingEvals.push -> withDefaultOptsSet opts, func
-        runOnImport: (func)-> @importPromise.then =>
-          func()
-          null
+        runOnImport: (func)->
+          if @importPromise.isResolved
+            func()
+            @importPromise
+          else @importPromise.then =>
+            func()
+            null
         scheduleEvals: -> @runOnImport =>
           if @pendingEvals.length
             e = @pendingEvals
@@ -791,8 +795,8 @@ that must be done regardless of the source of changes
           if typeof name == 'function'
             func = name
             name = func.name
-          @collaborativeCode[name] = (args...)=> @doCollaboratively name, args
           @collaborativeBase[name] = func
+          @collaborativeCode[name] = (args...)=> @doCollaboratively name, args
         _runCollaborativeCode: (name, slaveId, args)->
           new Promise (succeed, fail)=>
             try
