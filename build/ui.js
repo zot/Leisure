@@ -191,8 +191,8 @@
     Handlebars.registerHelper('viewWrapper', function(name, data, opts) {
       return simpleRenderView("data-view='" + name + "' data-requested-view='" + name + "' class='view'", name, opts.fn, this);
     });
-    bindView = function(view) {
-      var getter, i, index, input, j, len, name, oldValue, opts, parent, path, ref1, ref2, results, setter;
+    bindView = function(view, block) {
+      var i, index, input, j, len, name, opts, parent, path, ref1, ref2, results;
       if (!(opts = (ref1 = findEditor(view)) != null ? ref1.options : void 0)) {
         return;
       }
@@ -208,11 +208,12 @@
           (parent = $(input).closest('[data-view-block-name]')).attr('data-view-block-name');
         }
         if (name) {
-          input.setAttribute('input-number', i);
-          getter = eval("(function(data){return data." + path + "})");
-          setter = eval("(function(data, value){data." + path + " = value})");
-          oldValue = input.value = getter(opts.data.getYaml(opts.data.getBlockNamed(name)));
-          results.push((function(name) {
+          results.push((function(name, input, path) {
+            var getter, oldValue, setter;
+            input.setAttribute('input-number', i);
+            getter = eval("(function(data){return data." + path + "})");
+            setter = eval("(function(data, value){data." + path + " = value})");
+            oldValue = input.value = getter(opts.data.getYaml(opts.data.getBlockNamed(name)));
             input.onkeypress = function(e) {
               return e.stopPropagation();
             };
@@ -223,15 +224,15 @@
               var data, end, start;
               e.stopPropagation();
               if (input.value !== oldValue) {
-                oldValue = input.value;
+                oldValue = typeof oldValue === 'number' ? Number(input.value) : input.value;
                 data = _.clone(opts.data.getYaml(opts.data.getBlockNamed(name)), true);
-                setter(data, input.value);
+                setter(data, oldValue);
                 start = input.selectionStart;
                 end = input.selectionEnd;
-                return dontRerender(view, function() {
-                  return dontRerender(parent != null ? parent[0] : void 0, function() {
-                    return dontRerender(view, function() {
-                      var block;
+                return dontRerender(parent != null ? parent[0] : void 0, function() {
+                  return dontRerender(view, function() {
+                    return opts.data.allowObservation(function() {
+                      console.log('render', view);
                       block = opts.data.getBlockNamed(name);
                       if (block.local) {
                         return opts.setLocalData(name, data);
@@ -245,7 +246,7 @@
                 });
               }
             };
-          })(name));
+          })(name, input, path));
         } else {
           results.push(void 0);
         }
@@ -478,7 +479,7 @@
             results = [];
             for (o = 0, len3 = el.length; o < len3; o++) {
               node = el[o];
-              results.push(bindView(node));
+              results.push(bindView(node, data != null ? data.block : void 0));
             }
             return results;
           } catch (error) {
