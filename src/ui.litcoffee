@@ -147,7 +147,7 @@ choose a handlebars template.
       Handlebars.registerHelper 'viewWrapper', (name, data, opts)->
         simpleRenderView "data-view='#{name}' data-requested-view='#{name}' class='view'", name, opts.fn, this
 
-      bindView = (view)->
+      bindView = (view, block)->
         if !(opts = findEditor(view)?.options) then return
         for input, i in $(view).find 'input[data-value]'
           path = input.getAttribute 'data-value'
@@ -156,22 +156,23 @@ choose a handlebars template.
             path = path.substring index + 1
           else (parent = $(input).closest('[data-view-block-name]')).attr 'data-view-block-name'
           if name
-            input.setAttribute 'input-number', i
-            getter = eval "(function(data){return data.#{path}})"
-            setter = eval "(function(data, value){data.#{path} = value})"
-            oldValue = input.value = getter opts.data.getYaml opts.data.getBlockNamed name
-            do (name)->
+            do (name, input, path)->
+              input.setAttribute 'input-number', i
+              getter = eval "(function(data){return data.#{path}})"
+              setter = eval "(function(data, value){data.#{path} = value})"
+              oldValue = input.value = getter opts.data.getYaml opts.data.getBlockNamed name
               input.onkeypress = (e)-> e.stopPropagation()
               input.onkeydown = (e)-> e.stopPropagation()
               input.onkeyup = (e)->
                 e.stopPropagation()
                 if input.value != oldValue
-                  oldValue = input.value
+                  oldValue = if typeof oldValue == 'number' then Number(input.value) else input.value
                   data = _.clone opts.data.getYaml(opts.data.getBlockNamed name), true
-                  setter data, input.value
+                  setter data, oldValue
                   start = input.selectionStart
                   end = input.selectionEnd
-                  dontRerender view, -> dontRerender parent?[0], -> dontRerender view, ->
+                  dontRerender parent?[0], -> dontRerender view, -> opts.data.allowObservation ->
+                    console.log 'render', view
                     block = opts.data.getBlockNamed name
                     if block.local then opts.setLocalData name, data
                     else
@@ -204,13 +205,6 @@ choose a handlebars template.
             if (block = data.getBlockNamed(blockName))
               v[blockName] = if d = data.getYaml block then d else null
         v
-
-****************
-This isn't rendering and updatable view for bindings to the external scope
-HTML blocks with no variables can reference blocks in the external scope
-Use handlebars to extract the refrences to be able to construct the proper
-data to send
-****************
 
       renderView = (type, contextName, data, targets, block, blockName, addIds, extraAttrs)->
         if !block && root.context?.currentBlock?.yaml == data
@@ -303,7 +297,7 @@ data to send
               for img in el.find 'img'
                 refreshImage img
               for node in el
-                bindView node
+                bindView node, data?.block
             catch err
               console.error err
             finally

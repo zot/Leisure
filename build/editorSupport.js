@@ -6,7 +6,7 @@
     slice1 = [].slice;
 
   define(['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'fingertree', './tangle', 'lib/sha1'], function(Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1) {
-    var BasicEditingOptions, CodeContext, DataIndexer, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addSelectionBubble, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, getYaml, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, modifyingKey, monitorSelectionChange, orgDoc, parseOrgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, sanitize, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet, writeResults;
+    var BasicEditingOptions, CodeContext, DataIndexer, DataStore, DataStoreEditingOptions, EditorParsedCodeBlock, Fragment, Headline, Html, LeisureEditCore, Map, NMap, Nil, OrgData, OrgEditing, ParsedCodeBlock, Promise, Set, actualSelectionUpdate, addChange, addController, addSelectionBubble, addView, afterMethod, ajaxGet, basicDataFilter, beforeMethod, blockCodeItems, blockElementId, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, blockViewType, blocksObserved, breakpoint, bubbleLeftOffset, bubbleTopOffset, changeAdvice, compareSorted, configureMenu, controllerEval, copyBlock, createBlockEnv, createLocalData, defaultEnv, displayError, docBlockOrg, documentParams, dump, editorForToolbar, editorToolbar, escapeAttr, escapeHtml, escapeString, fileTypes, findEditor, followLink, getCodeItems, getDocumentParams, getId, getYaml, greduce, hasCodeAttribute, hasDatabase, headlineRE, initializePendingViews, installSelectionMenu, isContentEditable, isControl, isCss, isDynamic, isObserver, isPrefix, isSilent, isText, isYamlResult, keySplitPat, languageEnvMaker, last, localDb, localStore, localStoreName, makeBlobUrl, makeImageBlob, mergeContext, modifyingKey, monitorSelectionChange, orgDoc, parseOrgDoc, parseOrgMode, parseYaml, posFor, postCallPat, presentHtml, preserveSelection, removeController, removeView, renderView, replaceResult, replacementFor, sanitize, selectionActive, selectionMenu, setError, setLounge, setResult, shouldTangle, showHide, throttledUpdateSelection, toolbarFor, transaction, trickyChange, updateSelection, withContext, withDefaultOptsSet, writeResults;
     defaultEnv = Base.defaultEnv, CodeContext = Base.CodeContext;
     parseOrgMode = Org.parseOrgMode, Fragment = Org.Fragment, Headline = Org.Headline, headlineRE = Org.headlineRE;
     orgDoc = DocOrg.orgDoc, getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, docBlockOrg = DocOrg.blockOrg, ParsedCodeBlock = DocOrg.ParsedCodeBlock, parseYaml = DocOrg.parseYaml;
@@ -2803,13 +2803,18 @@
       $(document.body).removeClass('selection');
       return editor != null ? editor.trigger('selection') : void 0;
     };
-    updateSelection = _.throttle((function() {
+    throttledUpdateSelection = _.throttle((function() {
       actualSelectionUpdate();
       return actualSelectionUpdate();
     }), 30, {
       leading: true,
       trailing: true
     });
+    updateSelection = function(e) {
+      if ($(getSelection().anchorNode).closest('[data-noncontent]').length === 0) {
+        return throttledUpdateSelection(e);
+      }
+    };
     monitorSelectionChange = function() {
       $(document).on('selectionchange', updateSelection);
       return $(window).on('blur focus', function(e) {

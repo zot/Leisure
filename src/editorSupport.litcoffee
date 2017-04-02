@@ -1486,11 +1486,15 @@ NMap is a very simple trie.
         $(document.body).removeClass 'selection'
         editor?.trigger 'selection'
 
-      updateSelection = _.throttle (->
+      throttledUpdateSelection = _.throttle (->
         actualSelectionUpdate()
         actualSelectionUpdate()), 30,
         leading: true
         trailing: true
+
+      updateSelection = (e)->
+        if $(getSelection().anchorNode).closest('[data-noncontent]').length == 0
+          throttledUpdateSelection e
 
       monitorSelectionChange = ->
         $(document).on 'selectionchange', updateSelection
