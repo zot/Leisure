@@ -17,7 +17,7 @@ documents are:
   - changing the document changes the program and vice-versa (this goes for data, content, and also code)
 - introspective (documents can react to their own changes and alter themselves as they run)
 *[[https://en.wikipedia.org/wiki/Illuminati][Illuminated Programming]]* is our term for application, source code, and data,
-all rolled up into one interactive, collboratively editable document. A Leisure
+all rolled up into one interactive, collaboratively editable document. A Leisure
 document might hide its code and data and appear to be just an app or it might
 present the code and data along with the app(s), like [[http://textcraft.org:3333/#load=/demo/game.lorg][this game]] in the old
 version of Leisure does, or it might be mostly a document with interactive
@@ -57,7 +57,7 @@ talk more publicly about it.
   - coffee -cmw -o build src server
   - this is a very quick command but it won't return because of the -w
   - the -w puts coffee in 'watch' mode, so it will sit there
-  - it will sit there and wait for you to change files, comipling them as you do
+  - it will sit there and wait for you to change files, compiling them as you do
 ** test using a chrome profile that allows local file access
 - Run chrome with special chrome arguments
   - --allow-file-access-from-files --user-data-dir=LEISURE_DEVELOPMENT_DIR
