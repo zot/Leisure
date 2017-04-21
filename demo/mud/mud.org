@@ -27,25 +27,28 @@
 ;(macroexpand '(lens ab))
 ;(JSON/stringify (lens-set (lens ab) {:ab 2} 3))
 ;(.log window.console (with-meta (with-meta (fn [] 3) {:a 1}) {:b 2}))
-(Leisure/dbg) 
-(let [a {:a 1}] (JSON/stringify [a (merge a {:a 2 :b 1})]))
+;(Leisure/dbg) 
+;(let [a {:a 1}] (JSON/stringify [a (merge a {:a 2 :b 1})]))
+(defmacro x [a] (do (.log console a) a))
+
+(x a)
+
 #+END_SRC
-#+RESULTS:
-: [{&quot;a&quot;:1},{&quot;a&quot;:2,&quot;b&quot;:1}]
+#+ERROR: 0, a is not defined
 
 
 
 #+BEGIN_SRC wisp :results dynamicX
 (transaction->
   (update (:_id 3 :name "bubba"))
-  ...
-  (custom frob)))
+;;  ...
+  (custom frob))
 ;; -> (let [t1  (Transaction.)
-            t2  (update (:_id 3 :name "bubba"))
-            ...
-            tN  (frob tM)
-            tO  (tr-check tM tN)]
-            tO)
+;;            t2  (update (:_id 3 :name "bubba"))
+;;            ;;...
+;;            tN  (frob tM)
+;;            tO  (tr-check tM tN)]
+;;            tO)
 #+END_SRC
 
 * Sample MUD Object
@@ -62,36 +65,39 @@ location: mud-3
 #+END_SRC
 * Sample MUD Code
 #+BEGIN_SRC wisp
-  ;; Declare collaborative code
-  (defcollab munge
-    "Munge some data"
+;; Declare collaborative code
+(defcollab munge
+  "Munge some data"
+  []
+  (tr-commit
+    (transaction->
+     fred <- (get "ExampleFred") ; sets fred to a proxy
+     joe <- (get "ExampleJoe") ; sets joe to a proxy
+     (aset (:hunger joe) 12)
+     (aset (:height fred) 3)
+     (frobnicate joe))))
+
+(defcollab munge
+  "Munge some data"
+  []
+  (tr-commit
+    (transaction->
+     [fred (tr-get "ExampleFred")
+      joe (tr-get "ExampleJoe")]
+     (aset (:hunger joe) 12)
+     (aset (:height fred) 3)
+     [bubba (tr-get "ExampleBubba")]
+     (frobnicate joe))))
+
+(defn frobnicate [transaction]
+  (transaction-> transaction
     []
-    (tr-commit
-      (transaction->
-       fred <- (get "ExampleFred")
-       joe <- (get "ExampleJoe")
-       (do
-         (aset (:hunger joe) 12)
-         (aset (:height fred) 3))
-       (custom frobnicate joe)))
+    asdfasdf)
 
-  ;; possibility 1
-  (defn frobnicate
-    "frobnicate a person"
-    [transaction person]
-    (let [newHp (- (:hitpoints person) 1)]
-      (aset (:hitpoints person) newHp)
-      (tr-update transaction person)))
+(transaction-> trans [...] ...)
+(transaction-> [...] ...)
 
-  ;; possibility 2
-  (defn frobnicate
-    "frobnicate a person"
-    [transaction person]
-    (let [newHp (- (:hitpoints person) 1)]
-      (aset (:hitpoints person) newHp)
-      (transaction-> transaction
-        (update person))))
-
+assignments expect a return value of [transaction value]
 #+END_SRC
 * GUI
 #+BEGIN_HTML :controller consoleController
@@ -560,13 +566,13 @@ currentId: 0
 
 *** Tests
 #+BEGIN_SRC wisp :results dynamic
-;(macroexpand '(plet [[a] [1] b 2] prin a)))
+;(macroexpand '(plet [[a] [1] b 2] prin a))
 (p-let [{:a fred} {:a 3} b 2] [b fred])
 (macroexpand '(p-defn q [a] (print a)))
 (p-defn q [[a]] (print a)) 
 (map (fn [] (.log window.console arguments)) [1 2])
 (q [:hello])
-;(or ((pattern [fred])[ ]3 4)
+;(or ((pattern [fred])[ ] 3 4))
 ;(drop 2 [1 2 3 4 5])
 ;(JSON/stringify (pattern-match-all (pattern [a]) 2 (pattern fred) 7))
 #+END_SRC
@@ -615,6 +621,23 @@ currentId: 0
 : true
 
 ** Transactions: pending changes to the world
+*** Proxies for ease of transactions
+**** Use a proxy on each retrieved piece of data in a transaction
+**** mark items as dirty when they are changed
+  #+BEGIN_SRC wisp :results def
+  (defn tr-init-proxy-methods
+	"Initialize proxy methods for a transaction proxies"
+	[trans]
+	(set! (:proxy-methods trans)
+          {:set (fn [target property value receiver] 
+                  (set! (aget (:dirty trans) property) true)
+                  (set! (aget target property) value))}))
+
+  (defn tr-proxy
+	"Make a transaction proxy on an object"
+	[trans obj]
+	(Proxy. obj (:proxy-methods trans)))
+  #+END_SRC
 *** Transaction-> macro
 **** (transaction-> STATEMENT ...)
 *** Transastion-> standard statements
@@ -685,6 +708,7 @@ tests
 (= [1 2 3 4 5 6 7 8] (flatten [[1 2] [[3]] 4] 5 [6 [7 [8]]]))
 #+END_SRC
 *** Code
+#+NAME: transaction-object
 #+BEGIN_SRC wisp :results def
 (defn- Transaction
   "Transaction type:

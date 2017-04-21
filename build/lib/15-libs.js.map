@@ -1,9 +1,9 @@
 {
   "version": 3,
   "file": "15-libs.js",
-  "sourceRoot": "..\\..",
+  "sourceRoot": "../..",
   "sources": [
-    "src\\lib\\15-libs.coffee"
+    "src/lib/15-libs.coffee"
   ],
   "names": [],
   "mappings": ";AAAA;AAAA,MAAA;;EAAA,IAAA,GAAO,oDAAC,SAAS,MAAV,CAAiB,CAAC;;AAEzB,OAAA,QAAA;;IACE,IAAK,CAAA,CAAA,CAAL,GAAU;AADZ;;EAGA,IAAI,CAAC,IAAL,GAAY;AALZ"

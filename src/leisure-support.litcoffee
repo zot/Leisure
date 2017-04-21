@@ -136,10 +136,16 @@ Support code for Leisure
           env.opts.setTheme theme
           cont _unit
 
-      dispatchCollaborative = (opts, name, args)->
+      collabId = 0
+
+      dispatchCollaborative = (name, args)->
         new Monad2 "collaborative-#{name}", (env, cont)->
-          env.opts.doCollaboratively(name, _.map(args, (el)-> L_toJson(el)))
-            .then (result)-> cont right jsonConvert result
+          console.log "starting collaborative call ", id = ++collabId
+          (env.data || Lounge.data).doCollaboratively(name, _.map(args, (el)-> L_toJson(el)))
+            .then (result)->
+              console.log "finishing collaboarative call ", id
+              cont right jsonConvert result
+              null
             .catch (err)-> cont left err.stack
 
       defaultEnvWithOpts = (opts)->
@@ -149,29 +155,43 @@ Support code for Leisure
 
       define 'registerCollaborative', (name, func)->
         new Monad2 'registerCollaborative', (env, cont)->
-          opts = env.opts
-          dispatchSrc = """
-          (function(#{('a' + i for i in [1 .. func.length - 1]).join ', '}){
-            return isPartial(arguments) ? partialCall(arguments) : dispatchCollaborative(opts, name, arguments);
-          })
-          """
-          dispatchFunc = eval dispatchSrc
-          define rz(name), dispatchFunc, dispatchFunc.length, dispatchSrc
-          opts.registerCollaborativeCode name, (context, args...)->
+          data = env.data || Lounge.data
+          name = rz name
+          func = rz func
+          if func.length > 1
+            dispatchSrc = """
+            (function(#{('a' + i for i in [1 .. func.length - 1]).join ', '}){
+              return isPartial(arguments) ? partialCall(arguments) : dispatchCollaborative(name, arguments);
+            })
+            """
+            dispatchFunc = eval dispatchSrc
+          else
+            monad = dispatchCollaborative name, []
+            dispatchFunc = monad
+          define name, dispatchFunc, dispatchFunc.length, dispatchSrc
+          data.openRegistration()
+          data.registerCollaborativeCode name, (context, args...)->
             cvtArgs = _.map(args, (el)-> jsonConvert(el))
             cvtArgs.unshift acons 'options', context.options, acons('slaveId', context.slaveId, L_nil)
             runMonad2 func.apply(null, cvtArgs), defaultEnvWithOpts(opts), ->
+          data.closeRegistration()
           cont _unit
 
       define 'getData', (name)->
         new Monad2 'getData', (env, cont)->
-          d = env.opts.getData rz(name), true
+          d = env.data.getData rz(name)
+          if d then cont some jsonConvert d
+          else cont none
+
+      define 'getDataUnsafe', (name)->
+        new Monad2 'getData', (env, cont)->
+          d = env.data.getData rz(name), true
           if d then cont some jsonConvert d
           else cont none
 
       define 'getLocalData', (name)->
         new Monad2 'getLocalData', (env, cont)->
-          d = env.opts.getLocalData rz(name), true
+          d = env.data.getLocalData rz(name), true
           if d then cont some jsonConvert d
           else cont none
 

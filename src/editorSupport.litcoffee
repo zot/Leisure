@@ -614,7 +614,8 @@ that must be done regardless of the source of changes
               env.silent = true
               if isSilent newBlock then write = ->
               else env.write = (str)-> console.log str
-          if env.executeBlock then env.executeBlock block, (r)-> writeResults env, r
+          if env.executeBlock != defaultEnv.executeBlock
+            env.executeBlock block, (r)-> writeResults env, r
           else if code = @getCode block
             if code instanceof Promise then code.then (func)-> setLounge env, ->
               writeResults env, func.call env

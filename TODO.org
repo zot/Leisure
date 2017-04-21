@@ -1,3 +1,40 @@
+* TODO [#A] Run all test cases                                      :feature:
+* TODO [#A] Search box doesn't show images properly
+* TODO [#A] Editor error, inserting duplicate character
+** change Illuminated.org/Test Cases/App.x = 2 to another number
+* TODO [#A] Process import blocks before local ones so testImport.org works
+* TODO [#A] Document Storage
+- save/load file
+- save/use/ignore/clear with local storage (offer on startup)
+- checkpointing and loading
+  - Github: allow a branch for a session
+** OLD store selected documents in an IndexedDB and refresh storage when loaded
+ - Allow loading from DB or from file, etc.
+ - Make save button that saves the document under its name, confirming if it will overwrite
+ - Export/load zip file
+** OLD load *and save* gists or fiddles
+* TODO [#A] Undo: for OT, register with UndoManager, for local, use replacements
+* TODO [#A] omniscient debug logging for Leisure
+[[http://omniscientdebugger.github.io/]]
+** log closure creates and calls with indexeddb, logger gives each an id on create
+#+BEGIN_SRC coffee
+
+  #\a b. c -> logger.create (a, b)-> logger.call(arguments)
+
+logger.create = (f)-> f.id = ++id
+logger.call = (args)->
+  item = new Array args.length + 2
+  item[0] = Date.now()
+  item[1] = f.id
+  for a, i in args
+    if typeof a == 'function' then item[i + 2] = func: a.id
+    else if typeof a == 'object' then item[i + 2] = object: a
+    else item[i + 2] = a
+  this.batch.push item
+#+END_SRC
+** referenced global values should be the same at the end as at the start, because functional
+** spew minimal log records, using IndexedDB to store only by time
+** when first starting the debugger, add extra indexes (time + state key)
 * CHECKIT [#A] Yarn package manager: https://code.facebook.com/posts/1840075619545360/yarn-a-new-package-manager-for-javascript/
 * CHECKIT [#A] CLJS DevTools: https://github.com/binaryage/cljs-devtools
 * CHECKIT [#A] Nightlight CLJ browser-dev env: https://sekao.net/nightlight/
@@ -6,20 +43,11 @@
 ** from this page: http://zurb.com/forrst/posts/Tracking_the_caret_position_in_a_contenteditable-P4l
 * TODO [#A] env.errorAt no longer works
 * TODO [#A] Number expers in coffeescript don't work
-* TODO [#A] store selected documents in an IndexedDB and refresh storage when loaded
-- Allow loading from DB or from file, etc.
-- Make save button that saves the document under its name, confirming if it will overwrite
-- Export/load zip file
 * TODO [#A] integrate stylus into Lounge (do less later)
 * BUG [#A] make word-selections drag properly in adjusted selections
 * BUG [#A] leisure unterminated string doesn't throw a proper error
 * TODO [#A] disable local data access during collborative code
 * TODO [#A] Working source in a :working: drawer, c-s transfers it to src block
-* TODO [#A] Storage
-- save/clear to local storage (offer to use, ignore, or clear on startup)
-- save/load file
-- checkpointing and loading
-  - Github: allow a branch for a session
 * TODO [#A] More reactive visual gizmos
 ** TODO better use of heatmap
 ** TODO tree visualization package
@@ -31,13 +59,11 @@
 * TODO change :control blocks to use :var instead of @initializeView
 * TODO Use Object.create() instead of __proto__
 * TODO P2P should transmit document name to slaves if it's a public URL
-* TODO [#A] Undo: for OT, register with UndoManager, for local, use replacements
 * TODO [#A] Finish the big arity substitution for primitives and codegen
 * TODO Write program to test new vele mechanics
 * TODO [#A] Martini button in Leisure bar that toggles the entire page
 * TODO [#A] structural keybord commands
 * TODO Make a drawer for WIP content
-* TODO load *and save* gists or fiddles
 * TODO View on a block's content
 ** Edit a src block's content
 ** Edit a headline's content

@@ -178,8 +178,13 @@ Evaulation support for Leisure
           if getLeisurePromise().isResolved() then exec() else getLeisurePromise().then exec
         env.compileBlock = (block)->
           p = @generateCode blockSource(block)
-          if p instanceof Promise then p.then (result)-> eval result.code else eval p.code
+          if p instanceof Promise then p.then (result)-> eval codeFor result else eval p.code
         env
+
+      codeFor = (codeObject)->
+        if typeof codeObject == 'string' then codeObject
+        else if codeObject.map? then jsCodeFor codeObject
+        else codeObject.code
 
       codeMap = (sourceNode, content, fileName)->
         fileName = fileName ? currentGeneratedFileName()
@@ -505,8 +510,8 @@ Evaulation support for Leisure
         env
 
       jsCodeFor = (codeMap)->
-        #"#{codeMap.code}\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify codeMap.map.toJSON()}\n"
-        "#{codeMap.code}\n"
+        #"#{codeMap.code}\n"
+        "#{codeMap.code}\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify codeMap.map.toJSON()}\n"
 
       indentCode = (str)-> str.replace /\n/g, '\n  '
 
@@ -556,7 +561,7 @@ Evaulation support for Leisure
           @nameSet = {}
           @setters = {}
           @getters = {}
-          @eval = (-> (s)-> eval(s))()
+          @eval = eval newEvalFuncString()
         newNames: (names)->
           newNames = _.without names, @names...
           totalNames = newNames.concat _.without @names, names...
@@ -566,8 +571,9 @@ Evaulation support for Leisure
             code = """
               #{('var ' + n + ' = null;' for n in newNames).join '\n  '}
 
-              (function(str) {return eval(str)})
+              (#{newEvalFuncString()})
             """
+
             @names = totalNames
             @eval = @eval(code)
         get: (name)->
@@ -582,6 +588,14 @@ Evaulation support for Leisure
           if !(s = @setters[name])
             s = @setters[name] = @eval "(function($v$) {#{name} = $v$})"
           s value
+
+      gensymCounter = 0
+
+      gensym = (prefix)-> "$L_#{prefix}_#{gensymCounter++}$"
+
+      newEvalFuncString = ->
+        evalVar = gensym "EXPR"
+        "(function(#{evalVar}) {return eval(#{evalVar})})"
 
       installEnv = (names, func)->
         for langName in names
@@ -611,7 +625,7 @@ Evaulation support for Leisure
         func.autoLoad = true
         installEnv names, func
 
-      localEval = do (html)-> (x)-> eval x
+      localEval = ($x$)-> eval $x$
 
       languageEnvMaker = (name)-> knownLanguages[name?.toLowerCase()]
 
