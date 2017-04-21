@@ -151,13 +151,18 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast,
 
   genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
 
-  gen = (ast)-> genMap(ast).toStringWithSourceMap(file: currentFile).code
+  gen = (ast)-> jsCodeFor new SourceNode(1, 0, currentFile, ['(', genMap(ast), ')']).toStringWithSourceMap(file: currentFile)
+
+  jsCodeFor = (codeMap)->
+    "#{codeMap.code}\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify codeMap.map.toJSON()}\n"
+
+  codeNum = 0
 
   genSource = (source, ast)->
     #console.log "SOURCE: #{source}\nAST: #{ast}"
     funcname = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName' then getAnnoData ast else null
     #withFile "data:text/plain;base64,#{btoa source}", funcname, ->
-    withFile "dynamic code with source", funcname, ->
+    withFile "dynamic code with source #{++codeNum}", funcname, ->
       sm = genNode(ast).prepend("\n").toStringWithSourceMap
         file: "dynamic code with source"
       map = JSON.parse sm.map.toString()
@@ -518,11 +523,12 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast,
 
   define 'runAst', ((code)->(ast)->
     new Monad2 'runAst', (env, cont)->
+      console.log "running code", code
       jsCode = null
       try
-        jsCode = gen rz ast
-        cont eval "(#{jsCode})"
-        #runMonad2 eval("(#{jsCode})"), env, cont
+        #jsCode = gen rz ast
+        jsCode = genSource rz(code), rz(ast)
+        cont eval jsCode
       catch err
         dumpMonadStack err, env
         codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else '')
@@ -531,12 +537,10 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast,
         cont parseErr (lz '\n\nParse error: ' + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
 
   define 'genAst', ((ast)->
-    jsCode = null
     try
       gen rz ast
     catch err
-      codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else '')
-      parseErr (lz '\n\nParse error: ' + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
+      parseErr (lz '\n\nParse error: ' + err.toString() + "AST: "), (ast)), null, null, null, 'parser'
 
   {
     gen

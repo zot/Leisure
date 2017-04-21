@@ -41,6 +41,16 @@ in as long as you mark it as data-noncontent, etc.
     </button>
     <label name="showHide"><input type='checkbox'></input>Fred</label>
     <button name='search'>Search</button>
+    <span name='storage-panel' class='expandable-panel'>
+      <button class='label'>Storage</button>
+      <span class='contents'>
+        <button name='saveFile'>Click to save</button>
+        <button name='loadFile'>Load File</button>
+        <button name='saveToBrowser'>Save in Browser</button>
+        <button name='reloadFromBrowser'>Reload from Browser</button>
+        <button name='removeFromBrowser'>Remove from Browser</button>
+      </span>
+    </span>
     <span class='expandable-panel'>
       <button class='label'>Visual</button>
       <span class='contents'>
@@ -116,6 +126,18 @@ themes = [
   view.find('[name=team_cthulhu]').button()
   updateButton view, Leisure.editorForToolbar(view[0]).options.hiding
   view.find('[name="search"]').button().on 'click', (e)-> Leisure.openSearch e
+  #view.find('[name="storage-panel"]').on 'click', (e)->
+  #  Leisure.presentation.configureSaveLink view.find('[name="saveFile"]'), Leisure.editorForToolbar view[0]
+  view.find('[name="saveFile"]').button().on 'click', (e)->
+    Leisure.presentation.saveFile Leisure.editorForToolbar view[0]
+  view.find('[name="loadFile"]').button().on 'click', (e)->
+    Leisure.presentation.loadFile Leisure.editorForToolbar view[0]
+  view.find('[name="saveToBrowser"]').button().on 'click', (e)->
+    Leisure.presentation.saveToBrowser Leisure.editorForToolbar view[0]
+  view.find('[name="reloadFromBrowser"]').button().on 'click', (e)->
+    Leisure.presentation.reloadFromBrowser Leisure.editorForToolbar view[0]
+  view.find('[name="removeFromBrowser"]').button().on 'click', (e)->
+    Leisure.presentation.removeFromBrowser Leisure.editorForToolbar view[0]
   view.find('[name="diag"]').button().on 'click', (e)->
     show = !Leisure.getDiagShowing view
     Leisure.showDiag view, show

@@ -99,6 +99,10 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     i = i || 0
     if i < array.length then cons array[i], consFrom(array, i + 1) else rz L_nil
 
+  noMemo = (f)->
+    Object.defineProperty f, 'memo', set: ->
+    f
+
 ############
 # LOGIC
 ############
@@ -457,7 +461,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
           r = cont res
           if promiseSucceed then promiseSucceed r else r
         if sync then r
-        else new Promise (succeed, fail)-> promiseSucceed = succeed
+        else new Promise (succeed, fail)->
+          promiseSucceed = succeed
+          null
       else cont monad
 
   if global.L_DEBUG
@@ -679,13 +685,17 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 #    makeSyncMonad (env, cont)->
 #      cont (root.E = new Error(msg)).stack
 
-  define 'debug', (x)->
+  define 'debug', ->
     debugger
-    x
+    _unit
+
+  noMemo L_debug
 
   #define 'debug', new Monad2 'debug', (env, cont)->
   #    debugger
   #    cont _unit
+
+# TODO make this use eval.litcoffee's gensym
 
   define 'gensym', makeSyncMonad (env, cont)-> cont "G#{gensymCounter++}"
 

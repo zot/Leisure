@@ -2,7 +2,7 @@ Code for local-mode.  This will not be loaded under meteor.
 
     require ['./domCursor'], (DC)-> window.DOMCursor = DC
 
-    init = (base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle, Storage)->
+    init = (base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle, Storage, Presentation)->
 
       {
         OrgData
@@ -56,6 +56,7 @@ Code for local-mode.  This will not be loaded under meteor.
       p2pPanel = null
       p2pConnections = null
       DEFAULT_PAGE='demo/documentComputers.lorg'
+      Leisure.presentation = Presentation
 
       Leisure.configureP2P = ({panel, hostField, sessionField, createSessionButton, connections})->
         p2pPanel = panel
@@ -178,4 +179,4 @@ Code for local-mode.  This will not be loaded under meteor.
       editor.set$ $, (obj)-> obj instanceof $
       debugger
       require ['acorn', 'acorn_walk'], -> require ['acorn_loose'], ->
-        require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage'], init
+        require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage', './presentation'], init
