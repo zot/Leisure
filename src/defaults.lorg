@@ -132,11 +132,11 @@ themes = [
     Leisure.presentation.saveFile Leisure.editorForToolbar view[0]
   view.find('[name="loadFile"]').button().on 'click', (e)->
     Leisure.presentation.loadFile Leisure.editorForToolbar view[0]
-  view.find('[name="saveToBrowser"]').button().on 'click', (e)->
+  view.find('[name="saveToBrowser"]').button(disabled: true).on 'click', (e)->
     Leisure.presentation.saveToBrowser Leisure.editorForToolbar view[0]
-  view.find('[name="reloadFromBrowser"]').button().on 'click', (e)->
+  view.find('[name="reloadFromBrowser"]').button(disabled: true).on 'click', (e)->
     Leisure.presentation.reloadFromBrowser Leisure.editorForToolbar view[0]
-  view.find('[name="removeFromBrowser"]').button().on 'click', (e)->
+  view.find('[name="removeFromBrowser"]').button(disabled: true).on 'click', (e)->
     Leisure.presentation.removeFromBrowser Leisure.editorForToolbar view[0]
   view.find('[name="diag"]').button().on 'click', (e)->
     show = !Leisure.getDiagShowing view
