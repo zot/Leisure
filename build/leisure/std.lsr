@@ -255,7 +255,7 @@ sortBy cmp l = mergeSort cmp l
 # YAML and JSON
 #################
 
-toJson obj = (isMapList obj)
+toJson obj = (isMapLike obj)
   toJsonObject (_map (\pair . cons (head pair) (toJson (tail pair))) (toList obj))
   (isListLike obj)
     toJsonArray (_map (\item . toJson item) (toList obj))
