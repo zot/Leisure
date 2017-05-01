@@ -143,7 +143,11 @@ withCons l nilCase cont = isCons l (l (\h t D . cont h t) nilCase) nilCase
 cons a b = \f . f a b
 isCons c = hasType c cons
 isList l = or (hasType l cons) (hasType l nil)
-assertType msg type value = assert (hasType value type) (strCat (cons msg (cons ' should be type ' (cons (getDataType type) (cons ', but its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))))) value
+assertType msg type value =
+  assert
+    hasType value type
+    strCat (cons msg (cons ' should be type ' (cons (getDataType type) (cons ', but its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))))
+    value
 # nil is the same as false, but it's useful separate as a marker
 nil = \a b . b
 isNil n = hasType n nil
@@ -158,9 +162,32 @@ removeLast l = isNil (tail l)
 length list = isCons list
   + 1 (length (tail list))
   assert (hasType list nil) (strCat (cons "length argument is not a proper list: " (cons list nil))) 0
-append a b = isNil a
-  b
-  cons (head a) (append (tail a) b)
+
+# foldl (\prev el . ...) initial list 
+# foldr (\el next . ...) list final
+# call func on list items and the previous result of the func or on the result of the next fold
+# foldl is left-recursive, starting at the beginning of the list and proceding forward
+# foldr is right-recursive, starting at the end of the list and processing backward
+# foldr can work on infinite lists, but foldl cannot
+## _X funcs are primitives that won't be overriden by defCase in std.lsr
+_foldl func initialValue l = l (\h t D . foldl func (func initialValue h) t) initialValue
+_foldl1 func l = l \h t . foldl func h t
+_foldr func finalValue list = list
+  \h t D . func h (foldr func finalValue t)
+  finalValue
+_foldr1 func list = list \h t . isNil t
+  h
+  func h (foldr1 func t)
+_append a b = _foldr cons b a
+foldl = _foldl
+foldl1 = _foldl1
+foldr = _foldr
+foldr1 = _foldr1
+append = _append
+reverse l = rev l nil
+rev l result = isNil l
+  result
+  rev (tail l) (cons (head l) result)
 flatten list = isCons list
   subflatten list nil
   list
@@ -169,10 +196,6 @@ subflatten list result = isNil list
   isCons list
     subflatten (head list) (subflatten (tail list) result)
     cons list result
-reverse l = rev l nil
-rev l result = isNil l
-  result
-  rev (tail l) (cons (head l) result)
 filter func list = isNil list
   nil
   func (head list) (cons (head list)) id (filter func (tail list))
@@ -181,44 +204,6 @@ find predicate list = isNil list
   predicate (head list) (some (head list)) (find predicate (tail list))
 contains list item = find (\el . eq el item) list (\x . true) false
 
-# make a new list by applying func (which takes exactly 1 arg) to each element of list
-# eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
-map func l = isCons l
-  cons (func (head l)) (map func (tail l))
-  l
-
-# map, but preserve the old list where possible, so that == works on it
-mapSave func l = isNil l
-  nil
-  \\
-    newH = func (head l)
-    newT = mapSave func (tail l)
-    .
-    and (eq newH (head l)) (eq newT (tail l))
-      l
-      cons newH newT
-
-# foldl (\prev el . ...) list
-# foldr (\el prev . ...) list
-# call func on list items and previous result of the fold
-# foldl is left-recursive, starting at the beginning of the list and proceding forward
-# foldr is right-recursive, starting at the end of the list and processing backward
-# foldr can work on infinite lists, but foldl cannot
-foldl func initialValue l = l (\h t D . foldl func (func initialValue h) t) initialValue
-foldl1 func l = l \h t . foldl func h t
-foldr func initialValue list = list
-  \h t D . func h (foldr func initialValue t)
-  initialValue
-foldr1 func list = list \h t . isNil t
-  h
-  func h (foldr1 func t)
-
-intersperse list element = list (\h t D .
-  isNil t
-    list
-    cons h (cons element (intersperse t element))) nil
-
-join list el = strCat (intersperse list el)
 findIndex func list = idx list func 0
 idx list func pos = list
   \h t D . func h
@@ -227,15 +212,19 @@ idx list func pos = list
   -1
 index list el = find (\item . == el item) list
 
-increasing x = cons x (increasing (+ x 1))
-wholes = increasing 0
-naturals = tail wholes
+# make a new list by applying func (which takes exactly 1 arg) to each element of list
+# eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
+_map func l = isCons l
+  cons (func (head l)) (_map func (tail l))
+  l
+map = _map
 
-zip a b = isNil a
-  nil
-  isNil b
-    nil
-    cons (cons (head a) (head b)) (zip (tail a) (tail b))
+intersperse list element = list (\h t D .
+  isNil t
+    list
+    cons h (cons element (intersperse t element))) nil
+
+join list el = strCat (intersperse list el)
 
 ############
 # ASSOC LISTS
@@ -246,13 +235,9 @@ assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . so
 rassoc v alist = find (\el . eq v (tail el)) alist (\cell . cell \head tail . some head) none
 isAlist obj = or (isNil obj) (hasProperty obj 'assoc')
 aconsPair keyValue list = \@ type cons . \f . \@ assoc true . f keyValue list
-appendAlist a b = isNil a
-  b
-  aconsPair (head a) (appendAlist (tail a) b)
-keys list = map (\l . head l) list
-
+appendAlist a b = _foldr aconsPair a b
+keys list = _map (\l . head l) list
 getProperty func prop = assoc prop (getProperties func)
-
 hasProperty func prop = getProperty func prop
   \_ . true
   false
@@ -291,19 +276,6 @@ mergeSort cmp l = l
       merge cmp (mergeSort cmp e) (mergeSort cmp o)
   nil
 
-### this quicksort is really, really slow
-### so it's renamed to slowsort
-slowsort less list = (qs less list) nil
-# qs is written using a difference list so it can append in linear time
-# sortedFunc must return whether the two args are in sorted order
-# \rest . (qs ... makes a difference list.  id is the empty difference list.
-qs sortedFunc list = list
-  \h t D . \\
-    greater = filter (sortedFunc h) t
-    lesser = filter (compose not (sortedFunc h)) t
-    .
-    \rest . (qs sortedFunc lesser) (cons h ((qs sortedFunc greater) rest))
-  id
 insertSorted sortFunc item list = list
   \h t D . sortFunc item h (cons item list) (cons h (insertSorted sortFunc item t))
   cons item nil
@@ -707,7 +679,7 @@ getLetLambda pos def args names =
   withCons def (parseErr "Let expected binding at " pos) \arg rest .
     not (isToken arg) (parseErr "Let expected binding at " pos)
       isTokenString arg '='
-        createAst nil (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names
+        createAst nil (cons (token '\\' pos) (_append (reverse args) (cons (token '.' (position arg)) rest))) names
         getLetLambda pos rest (cons arg args) names
 
 #################
@@ -718,7 +690,7 @@ getLetLambda pos def args names =
 
 countedScanLineG lineStarts str pat groups props onDef onExpr = \\
   toks = countedTokens lineStarts str pat
-  groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
+  groupToks = _foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
   .
   # check if it's a definition
   find (\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
@@ -792,7 +764,7 @@ subSpliceFuncProps props ast = \\
       head ast
       subSpliceFuncProps props (tail ast)
 
-addProps props ast = foldr
+addProps props ast = _foldr
   \prop result . cons '\\@' (cons (head prop) (cons (tail prop) (cons '.' result)))
   ast
   props
@@ -806,7 +778,7 @@ checkSetDataType toks curToks name = withCons curToks toks \h t .
 
 arity toks n = isTokenString (head toks) '=' n (arity (tail toks) (+ n 1))
 
-tokListStr toks = jsonStringify (join (map (\t . tokenString t) toks) ' ')
+tokListStr toks = jsonStringify (join (_map (\t . tokenString t) toks) ' ')
 
 linePat = regexp '\\r?\\n(?=[^ ]|$)'
 
@@ -823,7 +795,7 @@ lineScrub = regexpFlags '\\r\\n' 'g'
 #  line 33 starts at position 17 in the string
 #  line 34 starts at position 83 in the string
 
-linesForFile text = map tail (countedLinesForFile "NOTHING.lsr" text)
+linesForFile text = _map tail (countedLinesForFile "NOTHING.lsr" text)
 
 countedLinesForFile name text = filter
   \line . isNil (strMatch (tail line) emptyLinePat)
@@ -869,7 +841,7 @@ defPat = regexp '^[^ =]+.* =( |$)'
 
 unanchoredDefPat = regexp '^((?:\\s*\\n|#[^\\n]*\\n)*)([^=\\n]*)(=\\([^=]+=|=)?'
 
-namesForLines lines = foldl
+namesForLines lines = _foldl
   \result line . \\
     m = strMatch line defPat
     .
@@ -916,11 +888,11 @@ baseMacroSub macs expr = isToken expr
             subH = baseMacroSub macs h
             .
             withToken subH
-              cons subH (map (baseMacroSub macs) t)
+              cons subH (_map (baseMacroSub macs) t)
               \tok pos . baseMacroSub macs (cons subH t)
           \tok pos . assoc tok macs
             \def . baseMacroSub macs (def t)
-            cons h (map (baseMacroSub macs) t)
+            cons h (_map (baseMacroSub macs) t)
 
 macroSubLet macs list = list
   \h t D . isTokenString h '.'
@@ -981,7 +953,7 @@ addToken del = primBind (getValue 'tokenList')
         \_ . computeTokenPat newDels
 
 computeTokenPat dels = \\
-  delPats = map (\item . strReplace item regexpEscapePat "\\$&") dels
+  delPats = _map (\item . strReplace item regexpEscapePat "\\$&") dels
   newPat = strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil)))
   .
   setValue 'tokenPat' newPat
@@ -1115,7 +1087,7 @@ runFile text = runNamedFile "RUNFILE.lsr" text
 
 runNamedFile name text = \\
   counted = countedLinesForFile name text
-  lines = map tail counted
+  lines = _map tail counted
   names = namesForLines lines
   .
   #countedRunLines name names counted
@@ -1138,7 +1110,7 @@ baseLoadString file contents = primBind (getValue 'activeTokenPacks')
 
 load file = primBind (baseLoad file)
   \result . \\
-    errs = foldr (\line results . tail line (\er . cons er results) (\x . results)) nil result
+    errs = _foldr (\line results . tail line (\er . cons er results) (\x . results)) nil result
     .
     isNil errs
       right true
@@ -1158,7 +1130,7 @@ scanFile file = primBind (readFile file)
     \err . err
       \_ . primBind (runNamedFile file contents)
         counted = countedLinesForFile name text
-        lines = map tail counted
+        lines = _map tail counted
         names = namesForLines lines
         .
         countedScanLines name names counted
@@ -1186,12 +1158,12 @@ useTokenPack name = primBind (getValue 'tokenPacks')
         \activePacks . primBind (getValue 'parseFilters')
           \filters . assoc name packs
             \pack . \\
-              groupToks = foldl (\value el . el \h t . cons h (cons t value)) nil (head (tail pack))
-              newToks = mergeSort (\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
+              groupToks = _foldl (\value el . el \h t . cons h (cons t value)) nil (head (tail pack))
+              newToks = mergeSort (\a b . > (strLen a) (strLen b)) (_append (head pack) (_append groupToks tokens))
               .
               primBind (setValue 'tokenList' newToks)
                 \_ . primBind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))
-                  \_ . primBind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))
+                  \_ . primBind (setValue 'parseFilters' (_append filters (head (tail (tail pack)))))
                     \_ . primBind (computeTokenPat newToks)
                       \_ . setValue 'activeTokenPacks' (cons name activePacks)
             nil
@@ -1200,19 +1172,19 @@ resetTokenPacks packs = primBind (setValue 'tokenGroups' nil)
   \_ . primBind (setValue 'tokenList' nil)
     \_ . primBind (setValue 'activeTokenPacks' nil)
       \_ . primBind (setValue 'parseFilters' nil)
-        \_ . foldr1
+        \_ . _foldr1
           \packCmd result . primBind packCmd \_ . result
-          map useTokenPack packs
+          _map useTokenPack packs
 
 resetStdTokenPacks = primBind (getValue 'stdTokenPacks')
   \stds . primBind (resetTokenPacks stds)
     \_ . setValue 'activeTokenPacks' nil
 
 addStdTokenPacks morePacks = primBind (getValue 'stdTokenPacks')
-  \stds . setValue 'stdTokenPacks' (append stds morePacks)
+  \stds . setValue 'stdTokenPacks' (_append stds morePacks)
 
 addParseFilter filt = primBind (getValue 'parseFilters')
-  \filters . setValue 'parseFilters' (append filters (cons filt nil))
+  \filters . setValue 'parseFilters' (_append filters (cons filt nil))
 
 ############
 # DIAG

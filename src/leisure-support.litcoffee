@@ -138,26 +138,24 @@ Support code for Leisure
 
       collabId = 0
 
+      envData = (env)-> (env.data || env.opts.data || Lounge.data)
+
       dispatchCollaborative = (name, args)->
         new Monad2 "collaborative-#{name}", (env, cont)->
-          console.log "starting collaborative call ", id = ++collabId
-          (env.data || Lounge.data).doCollaboratively(name, _.map(args, (el)-> L_toJson(el)))
-            .then (result)->
-              console.log "finishing collaboarative call ", id
-              cont right jsonConvert result
-              null
+          envData(env).doCollaboratively(name, _.map(args, (el)-> L_toJson(el)))
+            .then (result)-> cont right jsonConvert result
             .catch (err)-> cont left err.stack
 
-      defaultEnvWithOpts = (opts)->
+      defaultEnvWithData = (data)->
         env = Object.create defaultEnv
-        env.opts = opts
+        env.data = data
         env
 
-      define 'registerCollaborative', (name, func)->
-        new Monad2 'registerCollaborative', (env, cont)->
-          data = env.data || Lounge.data
-          name = rz name
+      define 'makeCollaborative', (func)->
+        new Monad2 'makeCollaborative', (env, cont)->
+          data = envData env
           func = rz func
+          name = func.leisureName
           if func.length > 1
             dispatchSrc = """
             (function(#{('a' + i for i in [1 .. func.length - 1]).join ', '}){
@@ -165,58 +163,77 @@ Support code for Leisure
             })
             """
             dispatchFunc = eval dispatchSrc
+            funcLen = dispatchFunc.length
           else
-            monad = dispatchCollaborative name, []
-            dispatchFunc = monad
-          define name, dispatchFunc, dispatchFunc.length, dispatchSrc
+            dispatchFunc = dispatchCollaborative name, []
+            funcLen = 0
+          define name, dispatchFunc, funcLen, dispatchSrc
           data.openRegistration()
           data.registerCollaborativeCode name, (context, args...)->
             cvtArgs = _.map(args, (el)-> jsonConvert(el))
             cvtArgs.unshift acons 'options', context.options, acons('slaveId', context.slaveId, L_nil)
-            runMonad2 func.apply(null, cvtArgs), defaultEnvWithOpts(opts), ->
+            runMonad2 func.apply(null, cvtArgs), defaultEnvWithData(data), ->
           data.closeRegistration()
           cont _unit
 
       define 'getData', (name)->
         new Monad2 'getData', (env, cont)->
-          d = env.data.getData rz(name)
+          d = envData(env).getData rz(name)
+          if d then cont jsonConvert d
+          else cont _unit
+
+      define 'getDataOpt', (name)->
+        new Monad2 'getData', (env, cont)->
+          d = envData(env).getData rz(name)
           if d then cont some jsonConvert d
           else cont none
 
       define 'getDataUnsafe', (name)->
         new Monad2 'getData', (env, cont)->
-          d = env.data.getData rz(name), true
+          d = envData(env).getData rz(name), true
+          if d then cont jsonConvert d
+          else cont _unit
+
+      define 'getDataUnsafeOpt', (name)->
+        new Monad2 'getData', (env, cont)->
+          d = envData(env).getData rz(name), true
           if d then cont some jsonConvert d
           else cont none
 
       define 'getLocalData', (name)->
         new Monad2 'getLocalData', (env, cont)->
-          d = env.data.getLocalData rz(name), true
+          d = envData(env).getLocalData rz(name), true
+          if d then cont jsonConvert d
+          else cont _unit
+
+      define 'getLocalDataOpt', (name)->
+        new Monad2 'getLocalData', (env, cont)->
+          d = envData(env).getLocalData rz(name), true
           if d then cont some jsonConvert d
           else cont none
 
       define 'setData', (name, value)-> if r = doPartial arguments then r else
         new Monad2 'setData', (env, cont)->
-          cont jsonConvert env.opts.setData rz(name), L_toJson rz value
+          cont jsonConvert envData(env).setData rz(name), L_toJson rz value
 
       define 'setLocalData', (name, value)-> if r = doPartial arguments then r else
         new Monad2 'setLocalData', (env, cont)->
-          cont jsonConvert env.opts.setLocalData rz(name), L_toJson rz value
+          cont jsonConvert envData(env).setLocalData rz(name), L_toJson rz value
 
       define 'appendData', (headline, name, value)-> if r = doPartial arguments then r else
         new Monad2 'appendData', (env, cont)->
-          env.opts.appendDataToHeadline rz(headline), rz(name), L_toJson rz value
+          envData(env).appendDataToHeadline rz(headline), rz(name), L_toJson rz value
           cont jsonConvert rz value
 
       define 'appendDataWithAttrs', (headline, name, attrs, value)->
         if r = doPartial arguments then r else
           new Monad2 'appendDataWithAttrs', (env, cont)->
-            env.opts.appendDataToHeadline rz(headline), (!isNil(rz name) && rz(name)), L_toJson(rz(value)), parseCodeAttributes(rz(attrs))
+            envData(env).appendDataToHeadline rz(headline), (!isNil(rz name) && rz(name)), L_toJson(rz(value)), parseCodeAttributes(rz(attrs))
             cont rz value
 
       define 'removeData', (name)->
         new Monad2 'removeData', (env, cont)->
-          env.opts.removeData rz(name)
+          envData(env).removeData rz(name)
           cont _unit
 
       define 'getImage', (name)-> if isPartial arguments then partialCall arguments else

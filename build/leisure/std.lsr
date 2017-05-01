@@ -112,7 +112,7 @@ visit func l = \\
 stripNesting l = isCons l
   l \h t . (isCons h) && (isNil t)
     stripNesting h
-    map stripNesting l
+    _map stripNesting l
   l
 
 
@@ -165,10 +165,34 @@ findOption func list = do
       result
 
 ## difference lists
-dlempty = id
-dl item = \rest . item:rest
-dlPush list item = dlAppend list (dl item)
-dlAppend a b = \rest . a (b rest)
+differenceList = \@dataType differenceList .\@type differenceList . \x . x
+dlitem item = \@type differenceList . \rest . item : rest
+dlpush list item = dlappend list \rest . item : rest
+dlappend a b = \@type differenceList . \rest . a (b rest)
+dllist l = \@type differenceList . \rest . _append l rest
+
+isDl x = hasType x differenceList
+
+addTokenGroup 'dl[' ']'
+
+defMacro 'dl[' \list .
+  ['\\@' 'type' 'differenceList' '.' '\\' 'rest' '.' (listifyDl (head list) 'rest')]
+
+listifyDl list lvar =
+  isNil list
+    lvar
+    partition [] (flip isTokenString '|') list \front middle back .
+      isNil middle
+        _foldl (\acc el . ['cons' el acc]) lvar (reverse list)
+        _foldl (\acc el . ['cons' el acc]) [[back] lvar] (reverse front)
+
+addTokenGroup 'hamt{' '}'
+
+defMacro 'hamt{' \list . (listifyOp 'hamtPair' (head list) 'hamt')
+
+hamtPair keyValue hamt = keyValue \key value . hamtSet key value hamt
+
+isHamt h = hasType h hamt
 
 # remove any x's found in list
 remove x l = removeIf (eq x) l
@@ -231,10 +255,10 @@ sortBy cmp l = mergeSort cmp l
 # YAML and JSON
 #################
 
-toJson obj = (isAlist obj) && (not (isNil obj))
-  toJsonObject (map (\pair . cons (head pair) (toJson (tail pair))) obj)
-  (isCons obj) || (isNil obj)
-    toJsonArray (map (\item . toJson item) obj)
+toJson obj = (isMapList obj)
+  toJsonObject (_map (\pair . cons (head pair) (toJson (tail pair))) (toList obj))
+  (isListLike obj)
+    toJsonArray (_map (\item . toJson item) (toList obj))
     obj
 
 toYaml jsonStuff = jsonToYaml (toJson jsonStuff)
@@ -266,13 +290,13 @@ defMacro 'defCase' \list . \\
 makeCaseArgs orig funcName altName rest args = rest
   \h t D . isTokenString h '|'
     makeCaseCondition orig funcName altName (args nil) t id
-    makeCaseArgs orig funcName altName t (dlPush args h)
+    makeCaseArgs orig funcName altName t (dlpush args h)
   parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
 makeCaseCondition orig funcName altName args rest cond = rest
   \h t D . isTokenString h '->'
-    ['bind' (foldr1 append [['advise' funcName altName (length args) '\\'] args ['.' (cond nil) ['some' t] 'none']]) ['\\' '_' '.' 'unit']]
-    makeCaseCondition orig funcName altName args t (dlPush cond h)
+    ['bind' (_foldr1 _append [['advise' funcName altName (length args) '\\'] args ['.' (cond nil) ['some' t] 'none']]) ['\\' '_' '.' 'unit']]
+    makeCaseCondition orig funcName altName args t (dlpush cond h)
  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
 ######################
@@ -287,34 +311,114 @@ defCase equal.cons a b | and (isCons a) (isCons b) -> and
 # sequences
 ######################
 
+zip a b = isNil a
+  nil
+  isNil b
+    nil
+    cons (cons (head a) (head b)) (zip (tail a) (tail b))
+
+mapchunks func list =
+  isNil list
+    nil
+    do
+      r = func list
+      isCons r
+        r \result rest . [result | mapchunks func rest]
+        [r]
+
+# map, but preserve the old list where possible, so that == works on it
+mapSave func l = isNil l
+  nil
+  \\
+    newH = func (head l)
+    newT = mapSave func (tail l)
+    .
+    and (eq newH (head l)) (eq newT (tail l))
+      l
+      cons newH newT
+
+### this "quicksort" is really, really slow
+### so it's renamed to slowsort
+slowsort less list = (qs less list) nil
+# qs is written using a difference list so it can append in linear time
+# sortedFunc must return whether the two args are in sorted order
+# \rest . (qs ... makes a difference list.  id is the empty difference list.
+qs sortedFunc list = list
+  \h t D . \\
+    greater = filter (sortedFunc h) t
+    lesser = filter (compose not (sortedFunc h)) t
+    .
+    \rest . (qs sortedFunc lesser) (cons h ((qs sortedFunc greater) rest))
+  id
+
 # you can add more cases to isListLike if you want
-isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString])
+isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString isDl isHamt])
+isMapLike l = isSome (find (\f . f l) [isAlist isHamt])
 
 toList x = [x]
 
-defCase toList.list l | (isCons l) || (isNil l) -> l
+defCase toList.list l | isList l -> l
 defCase toList.repeat r | isRepeat r -> runRepeat 0 (r id) id
 defCase toList.range r | isRange r -> r \a b . runRepeat a b id
 defCase toList.opt o | isOption o -> o (\x . [x]) []
 defCase toList.either e | isEither e -> e (\_ . []) (\x . [x])
 defCase toList.string s | isString s -> strToList s
+defCase toList.differenceList l | isDl l -> l []
+defCase toList.hamt h | isHamt h -> hamtPairs h
 
+defCase head.any x | not (isList x) -> head (toList x)
+defCase head.range r | isRange r -> r \a b . a < b a nil
+defCase head.string s | isString s -> strAt s 0
+
+defCase tail.any x | not (isList x) -> tail (toList x)
+defCase tail.range r | isRange r -> r \a b . a < b (range a + 1 b) r
+defCase tail.string s | isString s -> strSubstring s 1 (strLen s)
+defCase tail.differenceList l | isDl l -> dllist (tail (toList l))
+
+defCase append.any x y | not (and (isList x) (isList y)) -> _append (toList x) (toList y)
+defCase append.range x y | and[(isRange x) (isRange y) (x \xa xb . y \ya yb . xb == ya)] ->
+  x \xa xb . y \ya yb . range xa yb
+defCase append.string x y | isString x -> x + y
+defCase append.differenceList x y | isDl x -> dlappend x (isDl y y (dllist (toList y)))
+
+defCase map.any func l | not (isList l) -> _map func (toList l)
 defCase map.repeat func r | isRepeat r -> runRepeat 0 (r id) func
 defCase map.range func r | isRange r -> r \a b . runRepeat a b func
 defCase map.opt func o | isOption o -> o (compose some func) none
 defCase map.either func e | isEither e -> e (\_ . e) (compose right func)
-defCase map.string func s | isString s -> strCat (map func (strToList s))
+defCase map.string func s | isString s -> strCat (_map func (strToList s))
+defCase map.alist func alist | isAlist alist ->
+  _foldr (\el result . set (head el) (func (tail el)) result) nil alist
+defCase map.hamt func h | isHamt h ->
+  _foldr (\el result . set (head el) (func (tail el)) result) hamt (toList h)
+defCase map.dl func l | isDl l -> dllist (_map func (l []))
 
-# folding
+defCase foldl.any func init l | not (isList l) -> _foldl func init (toList l)
+defCase foldl1.any func l | not (isList l) -> _foldl1 func (toList l)
+defCase foldr.any func final l | not (isList l) -> _foldr func final (toList l)
+defCase foldr1.any func l | not (isList l) -> _foldr1 func (toList l)
 
-defCase bind2.listLike init list cont | isListLike list ->
-  foldl (\acc el . maybeBind acc \accVal . do
-    ret = cont accVal el
-    ret == unit
-      accVal
-      ret) init (toList list)
+######################
+# maps
+######################
+get key alist = find (\el . eq key (head el)) alist (\cell . cell \head tail . tail) unit
+getOpt key alist = find (\el . eq key (head el)) alist (\cell . cell \head tail . some tail) none
+set key value list = acons key value (aremove key list)
+defCase get.hamt key h | isHamt h -> hamtGet key h
+defCase getOpt.hamt key h | isHamt h -> hamtGetOpt key h
+defCase set.hamt key value h | isHamt h -> hamtSet key value h
 
+######################
+# numbers
+######################
+
+increasing x = cons x (increasing (+ x 1))
+wholes = increasing 0
+naturals = tail wholes
+
+######################
 # show
+######################
 ## Generic presentation
 
 showBase func obj = func obj
@@ -342,16 +446,22 @@ defCase showBase.range func obj | hasType obj range -> obj \start end .
 defCase showBase.repeat func obj | hasType obj repeat -> concat['(repeat ' (obj id) ')']
 defCase showBase.hamt func obj | hasType obj hamt -> concatFlat[
   'hamt{'
-  intersperse (map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) (hamtPairs obj)) ' '
+  intersperse (_map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) (hamtPairs obj)) ' '
   '}']
 
 defCase showBase.assoc func obj | (isAlist obj) && (not (isNil obj)) -> concatFlat[
   '{'
-  intersperse (map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) obj) ' '
+  intersperse (_map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) obj) ' '
   '}']
 
 defCase showBase.left func obj | hasType obj left -> concat["(left " (showBase func (obj id id)) ")"]
 defCase showBase.right func obj | hasType obj right -> concat["(right " (showBase func (obj id id)) ")"]
+defCase showBase.differenceList func l | isDl l -> concatFlat[
+  'dl['
+  intersperse (_map (showBase func) (l [])) ' '
+  ']']
+defCase showBase.triple func obj | hasType obj triple ->
+  obj \a b c . concat["(triple " (showBase func a) " " (showBase func b) " " (showBase func c) ")"]
 
 ## presentation
 
@@ -373,8 +483,8 @@ presentFunction obj = do
       id
       'unknown')]
     and (> (length info) 1) (getFunction (head info) (\func . hasProperty func 'infix') false)
-      [(present (head (tail info))) (head info) | map present (tail (tail info))]
-      cons (head info) (map present (tail info))
+      [(present (head (tail info))) (head info) | _map present (tail (tail info))]
+      cons (head info) (_map present (tail info))
   concat["(" (join guts ' ') ")"]
 
 defCase presentHtml.func obj | (getType obj) == '*function' ->
@@ -386,7 +496,9 @@ defCase present.none obj | hasType obj none -> "none"
 
 defCase presentHtml.html obj | hasType obj html -> obj id
 
-## bind
+######################
+# binding
+######################
 # binding false returns unit and the list binding ellides unit values from results
 #
 # This makes bind useful for list comprehensions, like this:
@@ -396,16 +508,17 @@ defCase presentHtml.html obj | hasType obj html -> obj id
 #   x > 1
 #   x + 2
 
-#wrapped -- make a value bindable without interpretation
 wrapped x = \f . f x
 
-defCase showBase.wrapped func v | hasType v wrapped -> concat['wrapped ' (showBase func (v id))]
+defMacro 'wrap' \list . ['wrapped' list]
+
+defCase showBase.wrapped func v | hasType v wrapped -> concat['wrap ' (showBase func (v id))]
 
 defCase bind.wrapped v cont | hasType v wrapped -> cont (v id)
 
 defCase bind.bool bool cont | or (bool == true) (bool == false) -> bool
   cont true
-  unit
+  false
 
 defCase bind.option opt cont | isOption opt -> log "USING OPTION BIND" opt
   \value . cont value
@@ -415,26 +528,43 @@ defCase bind.either either cont | isEither either -> either
   \_ . either
   \value . cont value
 
-forWrapper x = \f . f x
+defMacro 'for' \list . ['toList' list]
 
-defMacro 'for' \list . ['forWrapper' list]
+defMacro 'flat' \list . ['flatWrapper' list]
 
-defCase bind.forWrapper fe cont | hasType fe forWrapper  ->
-  bind (fe id) \x . monadicMap false cont x
+flatWrapper m = \f . f m
 
-defMacro 'forFlat' \list . ['forFlatWrapper' list]
+defCase showBase.flat func v | hasType v flatWrapper -> concat['flat ' (showBase func (v id))]
 
-forFlatWrapper m = \f . f m
+defCase bind.flat fe cont | hasType fe flatWrapper -> monadicFlatMap cont (fe id)
 
-defCase bind.forFlatWrapper fe cont | hasType fe forFlatWrapper ->
-  bind (fe id) \x . monadicMap true cont x
+defCase bind.list l cont | isList l -> monadicMap cont l
 
-monadicMap isFlat cont list = foldr (\el acc . maybeBind (cont el) \elVal . maybeBind acc \accVal .
+defCase bind.differenceList l cont | isDl l -> primBind (monadicMap cont l) \l . dllist l
+
+# add 2-variable bind for alist and hamt?
+
+fold l i = \f . f l i
+
+defCase showBase.fold func v | hasType v fold ->
+  concat['fold ' (showBase func \l i . l) (showBase func \l i . i)]
+
+defCase bind.fold fr cont | hasType fr fold -> fr \list init .
+  _foldl (\acc el . maybeBind acc \accVal . do
+    ret = cont accVal el
+    ret == unit
+      accVal
+      ret) init (toList list)
+
+monadicFlatMap cont list = _foldr (\el acc . maybeBind (cont el) \elVal . maybeBind acc \accVal .
   elVal == unit
     accVal
-    isFlat
-      append elVal accVal
-      [elVal | accVal]) [] (toList list)
+    _append elVal accVal) [] (toList list)
+
+monadicMap cont list = _foldr (\el acc . maybeBind (cont el) \elVal . maybeBind acc \accVal .
+  elVal == unit
+    accVal
+    [elVal | accVal]) [] (toList list)
 
 maybeBind item cont = isMonad item
   primBind item cont
@@ -459,19 +589,18 @@ defCase bind.wrappedRun m cont | hasType m wrappedRun -> bind (m id) \x . bind x
 #######################
 
 # defWrapper func realFunc x y -> log "Calling func" realFunc x y
-defMacro 'defWrapper' \list . grabLeftOfArrow list nil \left right .
-  ['override' concat["'" (strTokenString (head left)) "'"] (append ['\\' | tail left] ['.' | right])]
+defMacro 'defWrapper' \list . partition [] (flip isTokenString '->') list \left arrow right . do
+  name = concat["'" (strTokenString (head left)) "'"]
+  oldName = head (tail left)
+  args = tail (tail left)
+  ['override' name (_append ['\\' oldName '.' '\\@' 'arity' (length args) '.' '\\' | args] ['.' | right])]
 
-grabLeftOfArrow list left cont = isTokenString (head list) '->'
-  cont (reverse left) (tail list)
-  grabLeftOfArrow (tail list) (head list) : left cont
-
-defWrapper head oldHead list -> assertType 'head argument' cons list \h t . h
-defWrapper tail oldTail list -> assertType 'tail argument' cons list \h t . t
-defWrapper hamtWith oldHamtWith key value hamt -> oldHamtWith
-  assertType 'hamtWith key' '*string' key
+#defWrapper head oldHead list -> assertType 'head argument' cons list \h t . h
+#defWrapper tail oldTail list -> assertType 'tail argument' cons list \h t . t
+defWrapper hamtSet oldHamtSet key value aHamt -> oldHamtSet
+  key
   value
-  hamt
+  assertType 'hamtSet hamt' hamt aHamt
 
 #######################
 ## output tag functions
@@ -479,7 +608,7 @@ defWrapper hamtWith oldHamtWith key value hamt -> oldHamtWith
 
 html x = \f . f x
 
-defTokenPack 'util' [['->' '--' '++'] ['js[':']' 'write[':']' 's[':']' 'err[':']'] []]
+defTokenPack 'util' [['->' '--' '++'] ['js[':']' 'write[':']' 's[':']' 'err[':']' 'dl[':']' 'hamt{':'}'] []]
 addStdTokenPacks ['util']
 
 #####
@@ -519,7 +648,7 @@ getAnnoBody ast = _3of3 ast
 definitionList = do
   f <- funcList
   m <- getValue 'macroDefs'
-  sort (append f (map head m))
+  sort (_append f (_map head m))
 
 eval str = do
   ast <- newParseLine 0 nil str

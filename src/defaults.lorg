@@ -45,10 +45,10 @@ in as long as you mark it as data-noncontent, etc.
       <button class='label'>Storage</button>
       <span class='contents'>
         <button name='saveFile'>Click to save</button>
-        <button name='loadFile'>Load File</button>
-        <button name='saveToBrowser'>Save in Browser</button>
-        <button name='reloadFromBrowser'>Reload from Browser</button>
-        <button name='removeFromBrowser'>Remove from Browser</button>
+        <button name='loadFile'>Load file</button>
+        <button name='saveToBrowser'>Save in browser</button>
+        <button name='reloadFromBrowser'>Reload from browser</button>
+        <button name='removeFromBrowser'>Remove from browser</button>
       </span>
     </span>
     <span class='expandable-panel'>

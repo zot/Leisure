@@ -535,7 +535,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
           if sync then async = false
           else runMonad2 b, env, cont
         sync = false
-        if async then return _unit
+        if async then return _true
       runMonad2 b, env, cont)
     bnd.isBind = true
     bnd.arg = m
@@ -548,6 +548,14 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       runMonad2 rz(value), env, (r)->
         ret = cont r
       ret
+
+  envTag = 0
+
+  define 'tagEnv', new Monad2 'tagEnv', (env, cont)->
+    if !env.tag then env.tag = ++envTag
+    cont lz env.tag
+
+  define 'currentTag', new Monad2 'currentTag', (env, cont)-> cont lz envTag
 
   values = {}
 
@@ -593,18 +601,27 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'send', (name, msg)-> if isPartial arguments then partialCall arguments else
     setTimeout (-> runMonad2 (rz(actors[name])(msg)), rz(actors[name]).env), 1
 
+######
+## global values
+######
+
   define 'hasValue', (name)->
     makeSyncMonad (env, cont)->
       cont booleanFor values[rz name]?
 
   define 'getValueOr', (name, defaultValue)-> if isPartial arguments then partialCall arguments else
-    makeSyncMonad (env, cont)->
+    new Monad2 (env, cont)->
       cont(values[rz name] ? rz(defaultValue))
+
+  define 'getValueOpt', (name)-> if isPartial arguments then partialCall arguments else
+    new Monad2 (env, cont)->
+      if v = values[rz name] then cont some v
+      else cont none
 
   define 'getValue', (name)->
     new Monad2 'getValue', (env, cont)->
-      if !(rz(name) of values) then throw new Error "No value named '#{rz name}'"
-      cont values[rz name]
+      if v = values[rz name] then cont v
+      else cont _unit
 
 # New getValue for when the option monad is integrated with the parser
 #define 'getValue', (name)->
@@ -617,13 +634,17 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       cont _unit
 
   define 'deleteValue', (name)->
-    makeSyncMonad (env, cont)->
+    new Monad2 (env, cont)->
       delete values[rz name]
       cont _unit
 
   setValue = (key, value)-> values[key] = value
 
   getValue = (key)-> values[key]
+
+######
+## local values
+######
 
   define 'envHas', (name)->
     makeSyncMonad (env, cont)->
@@ -635,8 +656,11 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'envGet', (name)->
     makeSyncMonad (env, cont)->
-      if !(rz(name) of env.values) then throw new Error "No value named '#{rz name}'"
-      cont env.values[rz name]
+      cont env.values[rz name] ? _unit
+
+  define 'envGetOpt', (name)->
+    makeSyncMonad (env, cont)->
+      cont if v = env.values[rz name] then some v else none
 
   define 'envSet', (name, value)-> if isPartial arguments then partialCall arguments else
     makeSyncMonad (env, cont)->
@@ -659,8 +683,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     cont consFrom global.leisureFuncNames.toArray().sort()
 
   define 'funcs', makeSyncMonad (env, cont)->
-    console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
-    cont _unit
+    cont lz global.leisureFuncNames
 
   define 'funcSrc', (func)->
     if typeof rz(func) == 'function'
@@ -674,7 +697,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       n = "L_#{nameSub rz name}"
       oldDef = global[n]
       if !oldDef then throw new Error("No definition for #{rz name}")
-      global[n] = -> rz(newFunc)(oldDef)
+      global[n] = lz rz(newFunc)(oldDef)
       cont _unit
 
 #######################
@@ -690,6 +713,10 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     _unit
 
   noMemo L_debug
+
+  define 'debugX', (x)->
+    debugger
+    resolve x
 
   #define 'debug', new Monad2 'debug', (env, cont)->
   #    debugger
@@ -799,36 +826,39 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 ##################
 
 # later advice overrides earlier advice
+  advise = (name, alt, arity, def)->
+    info = functionInfo[name]
+    if !info then info = functionInfo[name] =
+      src: ''
+      arity: -1
+      alts: {}
+      altList: []
+    if !info.alts[alt] then info.altList.push alt
+    info.alts[alt] = def
+    alts = (info.alts[i] for i in info.altList)
+    alts.reverse()
+    nm = "L_#{nameSub name}"
+    newDef = -> if arguments.length != arity then Leisure_primCall arguments.callee, 0, arguments, arity else
+      for alt in alts
+        opt = alt
+        for arg in arguments
+          opt = opt arg
+        if getType(opt) == 'some' then return opt(lz (x)->rz x)(lz _false)
+      if info.mainDef
+        res = info.mainDef
+        for arg in arguments
+          res = res arg
+        return res
+      throw new Error "No default definition for #{name}"
+    functionInfo[name].newArity = true
+    LeisureFunctionInfo.def = newDef
+    newDef.leisureName = name
+    global[nm] = global.leisureFuncNames[nm] = lz newDef
+    def
+
   define 'advise', (name, alt, arity, def)-> if isPartial arguments then partialCall arguments else
     makeMonad (env, cont)->
-      info = functionInfo[rz name]
-      if !info then info = functionInfo[rz name] =
-        src: ''
-        arity: -1
-        alts: {}
-        altList: []
-      if !info.alts[rz alt] then info.altList.push rz alt
-      info.alts[rz alt] = rz def
-      alts = (info.alts[i] for i in info.altList)
-      alts.reverse()
-      nm = "L_#{nameSub rz name}"
-      newDef = -> if arguments.length != rz arity then Leisure_primCall arguments.callee, 0, arguments, rz arity else
-        for alt in alts
-          opt = alt
-          for arg in arguments
-            opt = opt arg
-          if getType(opt) == 'some' then return opt(lz (x)->rz x)(lz _false)
-        if info.mainDef
-          res = rz info.mainDef
-          for arg in arguments
-            res = res arg
-          return res
-        throw new Error "No default definition for #{rz name}"
-      functionInfo[name].newArity = true
-      LeisureFunctionInfo.def = newDef
-      newDef.leisureName = name
-      global[nm] = global.leisureFuncNames[nm] = lz newDef
-      cont def
+      cont advise rz(name), rz(alt), rz(arity), rz(def)
 
   curry = (arity, func)-> -> lz (arg)-> lz (subcurry arity, func, null) arg
 
@@ -870,28 +900,27 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 #######################
 
   makeHamt = (hamt)->
-    hamt.leisureType = 'hamt'
-    hamt
+    h = (f)-> f hamt
+    h.leisureType = 'hamt'
+    h
 
   hamt = makeHamt Map()
   hamt.leisureDataType = 'hamt'
 
   define 'hamt', hamt
-
-  define 'hamtWith', (key, value, hamt)-> if isPartial arguments then partialCall arguments else
-    makeHamt rz(hamt).set rz(key), rz(value)
+  
   define 'hamtSet', (key, value, hamt)-> if isPartial arguments then partialCall arguments else
-    makeHamt rz(hamt).set rz(key), rz(value)
-
-  define 'hamtFetch', (key, hamt)-> if isPartial arguments then partialCall arguments else
-    rz(hamt).get rz(key)
+    makeHamt rz(hamt)(identity).set rz(key), rz(value)
 
   define 'hamtGet', (key, hamt)-> if isPartial arguments then partialCall arguments else
-    v = rz(hamt).get rz(key)
+    rz(hamt)(identity).get rz(key)
+
+  define 'hamtGetOpt', (key, hamt)-> if isPartial arguments then partialCall arguments else
+    v = rz(hamt)(identity).get rz(key)
     if v != undefined then some v else none
 
-  define 'hamtWithout', (key, hamt)-> if isPartial arguments then partialCall arguments else
-    makeHamt rz(hamt).remove rz(key)
+  define 'hamtRemove', (key, hamt)-> if isPartial arguments then partialCall arguments else
+    makeHamt rz(hamt)(identity).remove rz(key)
 
 #  define 'hamtOpts', (eq)->(hash)->
 #
@@ -905,13 +934,15 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 #
 #  define 'hamtDissocOpts', (hamt)->(key)->(opts)-> amt.dissoc(rz(hamt), rz(key), rz(opts))
 
-  define 'hamtPairs', (hamt)-> nextHamtPair rz(hamt).entries()
+  define 'hamtPairs', (hamt)->
+    h = rz(hamt)(identity)
+    nextHamtPair h, h.keySeq()
 
-  nextHamtPair = (entries)->
-    if entries.size == 0 then rz L_nil
+  nextHamtPair = (hamt, keys)->
+    if !keys.size then rz L_nil
     else
-      f = entries.first()
-      rz(L_acons)(f[0], f[1], -> nextHamtPair entries.rest)
+      k = keys.first()
+      rz(L_acons)(lz(k), lz(hamt.get(k)), -> nextHamtPair hamt, keys.rest())
 
 #################
 # YAML and JSON

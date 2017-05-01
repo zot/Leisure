@@ -15,7 +15,9 @@
         i[0].onchange = (e)->
           file = e.target.files[0]
           reader = new FileReader()
-          reader.onload = -> editor.options.load file.name, reader.result
+          reader.onload = ->
+            console.log "loaded"
+            editor.options.load file.name, reader.result
           reader.readAsText file
         i[0].click()
         i.remove()

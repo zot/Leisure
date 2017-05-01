@@ -1,44 +1,63 @@
 #+TITLE:Leisure Features
+* Scratch
+#+BEGIN_SRC leisure :results dynamic
+#+END_SRC
+
 * An experimental, dynamically typed, lazy language with strong metaprogramming
 Leisure is an attempt to make a dynamically typed, lazy language that is
-convenient, powerful, useable, and, most of all, *fun* to use.
+- *fun* to use
+- *easy* to use
+- convenient
+- powerful
 * "Lazy" (call-by-need)
-#+BEGIN_SRC leisure
+#+BEGIN_SRC leisure :results dynamic
 ones = [1 | ones]
 take 4 ones
 #+END_SRC
 #+RESULTS:
+: 
 : [1 1 1 1]
 * Dynamically typed
-#+BEGIN_SRC leisure
+#+BEGIN_SRC leisure :results dynamic
 [1 'hello' [2]]
 #+END_SRC
+#+RESULTS:
+: [1 "hello" [2]]
 ** Defining new types simply by returning a lambda
-#+BEGIN_SRC leisure
+#+BEGIN_SRC leisure :results dynamic
 newType x = \f . f x
 getType (newType 3)
 #+END_SRC
 #+RESULTS:
+: 
 : "newType"
 * Metaprogramming
 ** macros (like LISP macros)
 "do" is a macro
 ** parse filters (a bit like #lang in Racket)
-infix notation is implemented as a parse filter
+** Infix notation is implemented as a parse filter
+#+BEGIN_SRC leisure :results dynamic
+1 + 2 * 3
+#+END_SRC
+#+RESULTS:
+: 7
 * Partial application, meaningfully displayed
-#+BEGIN_SRC leisure
+#+BEGIN_SRC leisure :results dynamic
 [(cons 'a') 'b' (cons 'c') (cons 'd' nil)]
 #+END_SRC
 #+RESULTS:
 : [<span class="partial-application">(cons "a")</span> "b" <span class="partial-application">(cons "c")</span> ["d"]]
 * monad makes asynchronous I/O straightforward
-#+BEGIN_SRC leisure
+#+BEGIN_SRC leisure :results dynamic
 do
   name <- prompt 'What is your name?'
+  name
 #+END_SRC
+#+RESULTS:
+: (some "Fred")
 * Powerful "do" blocks
 ** Dynamically typed
-#+BEGIN_SRC leisure
+#+BEGIN_SRC leisure :results dynamic
 a = do
   x <- 1
   x + 1
@@ -51,39 +70,127 @@ a
 b
 #+END_SRC
 #+RESULTS:
+: 
+: 
 : "*number"
 : "*Monad2"
 : 2
-: 2
-** lifter macros run, for, forFlat
-*** for
-#+BEGIN_SRC leisure
+: 4
+** Mapping over lists (also: options, booleans, eithers)
+#+BEGIN_SRC leisure :results dynamic
 do
-  x <- for [4 5 6]
+  x <- [4 5 6]
   x + 1
 #+END_SRC
 #+RESULTS:
 : [5 6 7]
-*** forFlat
-#+BEGIN_SRC leisure
+** wrap items to prevent binding behavior
+#+BEGIN_SRC leisure :results dynamic
 do
-  x <- forFlat [1 2 3]
-  y <- for [4 5 6]
+  i <- wrap [1 2 3]
+  i
+#+END_SRC
+#+RESULTS:
+: [1 2 3]
+** lifting macros run, for, flat, fold
+*** run
+#+BEGIN_SRC leisure :results dynamic
+do
+  setValue 'xOption' (some 3)
+  x <- run getValue 'xOption'
+  x + 5
+#+END_SRC
+#+RESULTS:
+: 8
+*** for
+#+BEGIN_SRC leisure :results dynamic
+do
+  x <- for repeat 3
+  x + 5
+#+END_SRC
+#+RESULTS:
+: [5 6 7]
+*** flat
+#+BEGIN_SRC leisure :results dynamic
+do
+  x <- flat [1 2 3]
+  y <- flat [4 5 6]
   [x y]
 #+END_SRC
 #+RESULTS:
-: [[1 4] [1 5] [1 6] [2 4] [2 5] [2 6] [3 4] [3 5] [3 6]]
-** folding
-#+BEGIN_SRC leisure
+: [1 4 1 5 1 6 2 4 2 5 2 6 3 4 3 5 3 6]
+*** fold
+#+BEGIN_SRC leisure :results dynamic
 do
-  x <-|i = 0| [1 2 3 4]
+  x i <- fold [1 2 3 4] 0
   i + x
 #+END_SRC
 #+RESULTS:
 : 10
+* Powerful built-in data types
+** Sequences
+*** Sequence functions work on sequence types: head, tail, append, map, and the fold functions
+** Lists
+#+BEGIN_SRC leisure :results dynamic
+[1 2]
+head [1 2]
+tail [1 2]
+#+END_SRC
+#+RESULTS:
+: [1 2]
+: 1
+: [2]
+** Difference lists
+#+BEGIN_SRC leisure :results dynamic
+dl[1]
+dl[1 | dl[2]]
+tail dl[1 2]
+#+END_SRC
+#+RESULTS:
+: dl[1]
+: dl[1 2]
+: dl[2]
+
+** Association lists
+#+BEGIN_SRC leisure :results dynamic
+{'a':1 'b':2}
+set 'c' 3 {'a':1 'b':2}
+get 'b' {'a':1 'b':2}
+getOpt 'a' {'a':1 'b':2}
+#+END_SRC
+#+RESULTS:
+: {"a":1 "b":2}
+: {"c":3 "a":1 "b":2}
+: 2
+: (some 1)
+** HAMTs (courtesy of [[http://facebook.github.io/immutable-js/][immutable.js]])
+#+BEGIN_SRC leisure :results dynamic
+hamt
+hamt{'a':1 'c':2 'b':3}
+get 'a' {'a':1 'c':2 'b':3}
+set 'a' 4 {'a':1 'c':2 'b':3}
+getOpt 'a' {'a':1 'c':2 'b':3}
+#+END_SRC
+#+RESULTS:
+: hamt{}
+: hamt{"b":3 "c":2 "a":1}
+: 1
+: {"a":4 "c":2 "b":3}
+: (some 1)
+
 * JavaScript integration
 ** The "js" Leisure function returns an IO value
 *** It will auto-convert returned JS functions into Leisure functions that properly handle call-by-need
 ** JS code can call Leisure functions
 ** The JS runMonad() function will run monadic Leisure values
 *** runMonad returns a promise if the code was determined to be asynchronous
+** JSON support
+#+BEGIN_SRC leisure :results dynamic
+do
+  f <- run js['(function(j){return JSON.stringify(resolve(j))})']
+  r <- run f (toJson {'a':1})
+  write r
+#+END_SRC
+#+RESULTS:
+: {&quot;a&quot;:1}
+: 

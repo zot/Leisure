@@ -22,7 +22,8 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast, Runtime, _, SourceMap)->
+define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support'], (Base, Ast, Runtime, _, SourceMap, SourceMapSupport)->
+  SourceMapSupport?.install()
   {
     simpyCons,
     resolve,
@@ -163,15 +164,19 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast,
     funcname = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName' then getAnnoData ast else null
     #withFile "data:text/plain;base64,#{btoa source}", funcname, ->
     withFile "dynamic code with source #{++codeNum}", funcname, ->
-      sm = genNode(ast).prepend("\n").toStringWithSourceMap
-        file: "dynamic code with source"
-      map = JSON.parse sm.map.toString()
-      map.sourcesContent =  [source]
-      code = "(#{sm.code})\n//# sourceMappingURL=data:application/json;utf-8;base64,#{btoa JSON.stringify map}\n"
-      #code = "(#{sm.code})\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify map}\n"
-      #console.log "CODE: #{code}"
-      #console.log "MAP: #{JSON.stringify map}"
-      code
+      try
+        sm = genNode(ast).prepend("\n").toStringWithSourceMap
+          file: "dynamic code with source"
+        map = JSON.parse sm.map.toString()
+        map.sourcesContent =  [source]
+        code = "(#{sm.code})\n//# sourceMappingURL=data:application/json;utf-8;base64,#{btoa JSON.stringify map}\n"
+        #code = "(#{sm.code})\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify map}\n"
+        #console.log "CODE: #{code}"
+        #console.log "MAP: #{JSON.stringify map}"
+        code
+      catch err
+        err.message = "Error generating code for:\n  #{source.trim().replace /\n/g, '\n  '}\n#{err.message}"
+        throw err
 
   genMap = (ast)->
     #console.log "GEN AST: #{ast}"
@@ -357,7 +362,8 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast,
     else def
 
   lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
-  parseErr = (a, b)-> rz(L_parseErr)(a)(b)
+  #parseErr = (a, b)-> rz(L_parseErr)(a)(b)
+  parseErr = (a, b)-> rz(L_parseErr)(a, b)
 
   lconsFrom = (array)->
     if array instanceof Array
@@ -523,7 +529,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast,
 
   define 'runAst', ((code)->(ast)->
     new Monad2 'runAst', (env, cont)->
-      console.log "running code", code
+      #console.log "running code", code
       jsCode = null
       try
         #jsCode = gen rz ast
@@ -532,9 +538,10 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map'], (Base, Ast,
       catch err
         dumpMonadStack err, env
         codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else '')
-        msg = '\n\nParse error: ' + err.toString() + "\n#{codeMsg}AST: "
-        console.log msg + ast() + '\n' + err.stack
-        cont parseErr (lz '\n\nParse error: ' + err.toString() + "\n#{codeMsg}AST: "), (ast)), null, null, null, 'parser'
+        baseMsg = "\n\nParse error: #{err.message}\n#{codeMsg}AST: "
+        err.message = "#{baseMsg}#{ast()}"
+        console.log err
+        cont parseErr (lz baseMsg), (ast)), null, null, null, 'parser'
 
   define 'genAst', ((ast)->
     try
