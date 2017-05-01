@@ -3,7 +3,7 @@
 #+BEGIN_SRC leisure :results dynamic
 #+END_SRC
 
-* An experimental, dynamically typed, lazy language with strong metaprogramming
+* An experimental, dynamically typed, lazy, functional language with strong metaprogramming
 Leisure is an attempt to make a dynamically typed, lazy language that is
 - *fun* to use
 - *easy* to use
@@ -19,10 +19,10 @@ take 4 ones
 : [1 1 1 1]
 * Dynamically typed
 #+BEGIN_SRC leisure :results dynamic
-[1 'hello' [2]]
+flatten [1 'hello' [2]]
 #+END_SRC
 #+RESULTS:
-: [1 "hello" [2]]
+: [1 "hello" 2]
 ** Defining new types simply by returning a lambda
 #+BEGIN_SRC leisure :results dynamic
 newType x = \f . f x
@@ -31,6 +31,18 @@ getType (newType 3)
 #+RESULTS:
 : 
 : "newType"
+* Extend functions with new cases
+#+BEGIN_SRC leisure :results dynamic
+frobnicate x = x + 1
+frobnicate 'hello'
+defCase frobnicate.string s | isString s -> (strLen s) + 1
+frobnicate 'hello'
+#+END_SRC
+#+RESULTS:
+: 
+: "hello1"
+: 
+: 6
 * Metaprogramming
 ** macros (like LISP macros)
 "do" is a macro
@@ -47,7 +59,7 @@ getType (newType 3)
 #+END_SRC
 #+RESULTS:
 : [<span class="partial-application">(cons "a")</span> "b" <span class="partial-application">(cons "c")</span> ["d"]]
-* monad makes asynchronous I/O straightforward
+* Monadic IO make asynchronous code straightforward
 #+BEGIN_SRC leisure :results dynamic
 do
   name <- prompt 'What is your name?'
@@ -127,6 +139,7 @@ do
 #+END_SRC
 #+RESULTS:
 : 10
+
 * Powerful built-in data types
 ** Sequences
 *** Sequence functions work on sequence types: head, tail, append, map, and the fold functions
