@@ -186,13 +186,30 @@ listifyDl list lvar =
         _foldl (\acc el . ['cons' el acc]) lvar (reverse list)
         _foldl (\acc el . ['cons' el acc]) [[back] lvar] (reverse front)
 
-addTokenGroup 'hamt{' '}'
+addTokenGroup 'map{' '}'
 
-defMacro 'hamt{' \list . (listifyOp 'hamtPair' (head list) 'hamt')
+defMacro 'map{' \list . (listifyOp 'mapPair' (head list) 'hamt')
 
-hamtPair keyValue hamt = keyValue \key value . hamtSet key value hamt
+mapPair keyValue map = keyValue \key value . mapSet key value map
 
-isHamt h = hasType h hamt
+isMap h = hasType h hamt
+
+addTokenGroup 'set{' '}'
+
+defMacro 'set{' \list . (listifyOp 'setAdd' (head list) 'amtSet')
+
+isSet s = hasType s amtSet
+
+addTokenGroup 'vec{' '}'
+
+defMacro 'vec{' \list . (listifyOp 'vectorUnshift' (head list) 'vector')
+
+isVector v = hasType v vector
+
+push = vectorPush
+pop = vectorPop
+shift = vectorShift
+unshift = vectorUnshift
 
 # remove any x's found in list
 remove x l = removeIf (eq x) l
@@ -311,6 +328,8 @@ defCase equal.cons a b | and (isCons a) (isCons b) -> and
 # sequences
 ######################
 
+conj a list = cons a list
+
 zip a b = isNil a
   nil
   isNil b
@@ -352,8 +371,8 @@ qs sortedFunc list = list
   id
 
 # you can add more cases to isListLike if you want
-isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString isDl isHamt])
-isMapLike l = isSome (find (\f . f l) [isAlist isHamt])
+isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString isDl isMap isSet isVector])
+isMapLike l = isSome (find (\f . f l) [isAlist isMap])
 
 toList x = [x]
 
@@ -364,22 +383,69 @@ defCase toList.opt o | isOption o -> o (\x . [x]) []
 defCase toList.either e | isEither e -> e (\_ . []) (\x . [x])
 defCase toList.string s | isString s -> strToList s
 defCase toList.differenceList l | isDl l -> l []
-defCase toList.hamt h | isHamt h -> hamtPairs h
+defCase toList.map h | isMap h -> mapPairs h
+defCase toList.set s | isSet s -> setItems s
+defCase toList.vector v | isVector v -> vectorItems v
+
+defCase conj.range v r | isRange r -> r \a b .
+  b == v
+    range a b + 1
+    a - 1 == v
+      range v a
+      a < v && v < b
+        r
+        v < a
+          [v | toList r]
+          dlpush (dllist (toList r)) v
+defCase conj.repeat v r | isRepeat r -> r \count .
+  count == v
+    repeat count + 1
+    (0 <= v) && v < count
+      r
+      v < 0
+        [v | toList r]
+        dlpush (dllist (toList r)) v
+defCase conj.string v s | isString s -> s + v
+defCase conj.differenceList v l | isDl l -> dlpush l v
+defCase conj.alist v h | (isAlist h) || (isCons v) || (!isCons (tail v)) ->
+  aconsf (head v) (tail v) h
+defCase conj.map v h | (isMap h) || (isCons v) || (!isCons (tail v)) ->
+  mapSet (head v) (tail v) h
+defCase conj.set v s | isSet s -> setAdd v s
+defCase conj.vector val vec | isVector vec -> vectorPush val vec
 
 defCase head.any x | not (isList x) -> head (toList x)
 defCase head.range r | isRange r -> r \a b . a < b a nil
 defCase head.string s | isString s -> strAt s 0
+defCase head.map h | isMap h -> mapFirst h
+defCase head.set s | isSet s -> setFirst s
+defCase head.vector v | isVector v -> vectorFirst v
 
 defCase tail.any x | not (isList x) -> tail (toList x)
 defCase tail.range r | isRange r -> r \a b . a < b (range a + 1 b) r
 defCase tail.string s | isString s -> strSubstring s 1 (strLen s)
 defCase tail.differenceList l | isDl l -> dllist (tail (toList l))
+defCase tail.map h | isMap h -> mapRest h
+defCase tail.set s | isSet s -> setRest s
+defCase tail.vector v | isVector v -> vectorRest s
 
 defCase append.any x y | not (and (isList x) (isList y)) -> _append (toList x) (toList y)
 defCase append.range x y | and[(isRange x) (isRange y) (x \xa xb . y \ya yb . xb == ya)] ->
   x \xa xb . y \ya yb . range xa yb
 defCase append.string x y | isString x -> x + y
 defCase append.differenceList x y | isDl x -> dlappend x (isDl y y (dllist (toList y)))
+defCase append.map x y | and (isMap x) (isMapLike y) ->
+  isMap y
+    mapMerge x y
+    _foldr (\el result . el \k v . set k v result) x (toList y)
+defCase append.set x y | isSet x ->
+  isSet y
+    setUnion x y
+    _foldr (\el result . setAdd el result) x (toList y)
+defCase append.vector x y | isVector x ->
+  isSet y
+    vectorConcat x y
+    _foldr (\el result . vectorPush el result) x (toList (vectorReverse y))
 
 defCase map.any func l | not (isList l) -> _map func (toList l)
 defCase map.repeat func r | isRepeat r -> runRepeat 0 (r id) func
@@ -389,9 +455,13 @@ defCase map.either func e | isEither e -> e (\_ . e) (compose right func)
 defCase map.string func s | isString s -> strCat (_map func (strToList s))
 defCase map.alist func alist | isAlist alist ->
   _foldr (\el result . set (head el) (func (tail el)) result) nil alist
-defCase map.hamt func h | isHamt h ->
+defCase map.differenceList func l | isDl l -> dllist (_map func (l []))
+defCase map.map func h | isMap h ->
   _foldr (\el result . set (head el) (func (tail el)) result) hamt (toList h)
-defCase map.dl func l | isDl l -> dllist (_map func (l []))
+defCase map.set func s | isSet s ->
+  _foldr (\el result . set (head el) (func (tail el)) result) amtSet (setItems s)
+defCase map.vector func v | isVector v ->
+  _foldr (\el result . vectorPush (func el) result) vector (vectorItems v)
 
 defCase foldl.any func init l | not (isList l) -> _foldl func init (toList l)
 defCase foldl1.any func l | not (isList l) -> _foldl1 func (toList l)
@@ -404,9 +474,9 @@ defCase foldr1.any func l | not (isList l) -> _foldr1 func (toList l)
 get key alist = find (\el . eq key (head el)) alist (\cell . cell \head tail . tail) unit
 getOpt key alist = find (\el . eq key (head el)) alist (\cell . cell \head tail . some tail) none
 set key value list = acons key value (aremove key list)
-defCase get.hamt key h | isHamt h -> hamtGet key h
-defCase getOpt.hamt key h | isHamt h -> hamtGetOpt key h
-defCase set.hamt key value h | isHamt h -> hamtSet key value h
+defCase get.map key h | isMap h -> mapGet key h
+defCase getOpt.map key h | isMap h -> mapGetOpt key h
+defCase set.map key value h | isMap h -> mapSet key value h
 
 ######################
 # numbers
@@ -444,9 +514,19 @@ defCase showBase.range func obj | hasType obj range -> obj \start end .
   concat['(range ' start ' ' end ')']
 
 defCase showBase.repeat func obj | hasType obj repeat -> concat['(repeat ' (obj id) ')']
-defCase showBase.hamt func obj | hasType obj hamt -> concatFlat[
-  'hamt{'
-  intersperse (_map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) (hamtPairs obj)) ' '
+defCase showBase.map func obj | hasType obj hamt -> concatFlat[
+  'map{'
+  intersperse (_map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) (mapPairs obj)) ' '
+  '}']
+
+defCase showBase.set func obj | isSet obj -> concatFlat[
+  'set{'
+  intersperse (setItems obj) ' '
+  '}']
+
+defCase showBase.vector func obj | isVector obj -> concatFlat[
+  'vec{'
+  intersperse (vectorItems obj) ' '
   '}']
 
 defCase showBase.assoc func obj | (isAlist obj) && (not (isNil obj)) -> concatFlat[
@@ -542,7 +622,7 @@ defCase bind.list l cont | isList l -> monadicMap cont l
 
 defCase bind.differenceList l cont | isDl l -> primBind (monadicMap cont l) \l . dllist l
 
-# add 2-variable bind for alist and hamt?
+# add 2-variable bind for alist and map?
 
 fold l i = \f . f l i
 
@@ -597,10 +677,10 @@ defMacro 'defWrapper' \list . partition [] (flip isTokenString '->') list \left 
 
 #defWrapper head oldHead list -> assertType 'head argument' cons list \h t . h
 #defWrapper tail oldTail list -> assertType 'tail argument' cons list \h t . t
-defWrapper hamtSet oldHamtSet key value aHamt -> oldHamtSet
+defWrapper mapSet oldMapSet key value aMap -> oldMapSet
   key
   value
-  assertType 'hamtSet hamt' hamt aHamt
+  assertType 'mapSet map' hamt aMap
 
 #######################
 ## output tag functions
@@ -608,7 +688,7 @@ defWrapper hamtSet oldHamtSet key value aHamt -> oldHamtSet
 
 html x = \f . f x
 
-defTokenPack 'util' [['->' '--' '++'] ['js[':']' 'write[':']' 's[':']' 'err[':']' 'dl[':']' 'hamt{':'}'] []]
+defTokenPack 'util' [['->' '--' '++'] ['js[':']' 'write[':']' 's[':']' 'err[':']' 'dl[':']' 'map{':'}' 'set{':'}' 'vec{':'}'] []]
 addStdTokenPacks ['util']
 
 #####

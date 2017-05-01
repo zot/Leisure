@@ -63,6 +63,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   } = Ast
   {
     Map
+    Set
+    List
   } = Immutable
   {
     dump
@@ -899,50 +901,135 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 # AMTs
 #######################
 
-  makeHamt = (hamt)->
-    h = (f)-> f hamt
+  makeMap = (map)->
+    h = (f)-> f map
     h.leisureType = 'hamt'
     h
 
-  hamt = makeHamt Map()
+  hamt = makeMap Map()
   hamt.leisureDataType = 'hamt'
 
   define 'hamt', hamt
   
-  define 'hamtSet', (key, value, hamt)-> if isPartial arguments then partialCall arguments else
-    makeHamt rz(hamt)(identity).set rz(key), rz(value)
+  define 'mapSet', (key, value, map)-> if isPartial arguments then partialCall arguments else
+    makeMap rz(map)(identity).set rz(key), rz(value)
 
-  define 'hamtGet', (key, hamt)-> if isPartial arguments then partialCall arguments else
-    rz(hamt)(identity).get rz(key)
+  define 'mapGet', (key, map)-> if isPartial arguments then partialCall arguments else
+    rz(map)(identity).get rz(key)
 
-  define 'hamtGetOpt', (key, hamt)-> if isPartial arguments then partialCall arguments else
-    v = rz(hamt)(identity).get rz(key)
+  define 'mapGetOpt', (key, map)-> if isPartial arguments then partialCall arguments else
+    v = rz(map)(identity).get rz(key)
     if v != undefined then some v else none
 
-  define 'hamtRemove', (key, hamt)-> if isPartial arguments then partialCall arguments else
-    makeHamt rz(hamt)(identity).remove rz(key)
+  define 'mapRemove', (key, map)-> if isPartial arguments then partialCall arguments else
+    makeMap rz(map)(identity).remove rz(key)
 
-#  define 'hamtOpts', (eq)->(hash)->
+#  define 'mapOpts', (eq)->(hash)->
 #
-#  define 'hamtAssocOpts', (hamt)->(key)->(value)->(opts)-> amt.assoc(rz(hamt), rz(key), rz(value), rz(opts))
+#  define 'mapAssocOpts', (map)->(key)->(value)->(opts)-> amt.assoc(rz(map), rz(key), rz(value), rz(opts))
 #
-#  define 'hamtFetchOpts', (hamt)->(key)->(opts)-> amt.get(rz(hamt), rz(key), rz(opts))
+#  define 'mapFetchOpts', (map)->(key)->(opts)-> amt.get(rz(map), rz(key), rz(opts))
 #
-#  define 'hamtGetOpts', (hamt)->(key)->(opts)->
-#    v = amt.get(rz(hamt), rz(key), rz(opts))
+#  define 'mapGetOpts', (map)->(key)->(opts)->
+#    v = amt.get(rz(map), rz(key), rz(opts))
 #    if v != null then some v else none
 #
-#  define 'hamtDissocOpts', (hamt)->(key)->(opts)-> amt.dissoc(rz(hamt), rz(key), rz(opts))
+#  define 'mapDissocOpts', (map)->(key)->(opts)-> amt.dissoc(rz(map), rz(key), rz(opts))
 
-  define 'hamtPairs', (hamt)->
-    h = rz(hamt)(identity)
-    nextHamtPair h, h.keySeq()
+  define 'mapFirst', (map)->
+    map = rz(map)(identity)
+    key = map.keySeq().first()
+    rz(L_cons)(lz key)(lz map.get key)
 
-  nextHamtPair = (hamt, keys)->
+  define 'mapRest', (map)-> makeMap rz(map)(identity).rest()
+
+  define 'mapPairs', (map)->
+    h = rz(map)(identity)
+    nextMapPair h, h.reverse().keySeq()
+
+  nextMapPair = (map, keys)->
     if !keys.size then rz L_nil
     else
       k = keys.first()
-      rz(L_acons)(lz(k), lz(hamt.get(k)), -> nextHamtPair hamt, keys.rest())
+      rz(L_acons)(lz(k), lz(map.get(k)), -> nextMapPair map, keys.rest())
+
+  define 'mapReverse', (map)-> makeMap rz(map)(identity).reverse()
+
+  makeSet = (set)->
+    s = (f)-> f set
+    s.leisureType = 'amtSet'
+    s
+
+  amtSet = makeSet Set()
+  amtSet.leisureDataType = 'amtSet'
+
+  define 'amtSet', amtSet
+
+  define 'setAdd', (value, set)-> if isPartial arguments then partialCall arguments else
+    makeSet rz(set)(identity).add rz value
+
+  define 'setRemove', (value, set)-> if isPartial arguments then partialCall arguments else
+    makeSet rz(set)(identity).delete rz value
+
+  define 'setUnion', (setA, setB)-> if isPartial arguments then partialCall arguments else
+    makeSet rz(setA)(identity).union rz(setB)(identity)
+
+  define 'setIntersect', (setA, setB)-> if isPartial arguments then partialCall arguments else
+    makeSet rz(setA)(identity).intersect rz(setB)(identity)
+
+  define 'setSubtract', (setA, setB)-> if isPartial arguments then partialCall arguments else
+    makeSet rz(setA)(identity).subtract rz(setB)(identity)
+
+  define 'setItems', (set)-> nextSetItem rz(set)(identity).reverse()
+
+  nextSetItem = (s)->
+    if !s.size then rz L_nil
+    else rz(L_cons)(lz(s.first()), -> nextSetItem s.rest())
+
+  define 'setFirst', (set)-> makeSet rz(set)(identity).first()
+
+  define 'setRest', (set)-> makeSet rz(set)(identity).rest()
+
+  define 'setReverse', (set)-> makeSet rz(set)(identity).reverse()
+
+
+
+  makeVector = (vec)->
+    v = (f)-> f vec
+    v.leisureType = 'vector'
+    v
+
+  vector = makeVector List()
+  vector.leisureDataType = 'vector'
+
+  define 'vector', vector
+
+  define 'vectorPush', (value, vec)-> if isPartial arguments then partialCall arguments else
+    makeVector rz(vec)(identity).push rz value
+
+  define 'vectorPop', (value, vec)-> if isPartial arguments then partialCall arguments else
+    makeVector rz(vec)(identity).pop()
+
+  define 'vectorShift', (value, vec)-> if isPartial arguments then partialCall arguments else
+    makeVector rz(vec)(identity).shift()
+
+  define 'vectorUnshift', (value, vec)-> if isPartial arguments then partialCall arguments else
+    makeVector rz(vec)(identity).unshift rz value
+
+  define 'vectorConcatg', (vecA, vecB)-> if isPartial arguments then partialCall arguments else
+    makeSet rz(vecA)(identity).concat rz(vecB)(identity)
+
+  define 'vectorItems', (vec)-> nextVectorItem rz(vec)(identity)
+
+  nextVectorItem = (v)->
+    if !v.size then rz L_nil
+    else rz(L_cons)(lz(v.first()), -> nextVectorItem v.rest())
+
+  define 'vectorFirst', (vec)-> makeVector rz(vec)(identity).first()
+
+  define 'vectorRest', (vec)-> makeVector rz(vec)(identity).rest()
+
+  define 'vectorReverse', (vec)-> makeVector rz(vec)(identity).reverse()
 
 #################
 # YAML and JSON
@@ -1142,7 +1229,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     newConsFrom: consFrom
     escapePresentationHtml
     unescapePresentationHtml
-    makeHamt
+    makeMap
     jsonConvert
     lacons
     dumpMonadStack
