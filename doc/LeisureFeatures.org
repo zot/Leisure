@@ -1,5 +1,8 @@
 #+TITLE:Leisure Features
 * Scratch
+:properties:
+:hidden: true
+:end:
 #+BEGIN_SRC leisure :results dynamic
 #+END_SRC
 
