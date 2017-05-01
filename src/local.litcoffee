@@ -178,5 +178,6 @@ Code for local-mode.  This will not be loaded under meteor.
       #Bluebird.Promise.config longStackTraces: true, monitoring: true
       editor.set$ $, (obj)-> obj instanceof $
       debugger
-      require ['acorn', 'acorn_walk'], -> require ['acorn_loose'], ->
-        require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage', './presentation'], init
+      require ['acorn', 'acorn_walk'], ->
+        require ['acorn_loose'], ->
+          require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage', './presentation'], init

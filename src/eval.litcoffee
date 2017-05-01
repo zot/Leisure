@@ -1,7 +1,9 @@
 Evaulation support for Leisure
 
     define.amd = true
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport)->
+      SourceMapSupport?.install()
+      
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = AcornLoose
@@ -32,6 +34,8 @@ Evaulation support for Leisure
         _true
         jsonConvert
         getLeisurePromise
+        left
+        right
       } = Runtime
       {
         Promise
@@ -110,8 +114,7 @@ Evaulation support for Leisure
       defaultEnv.errorAt = (offset, msg)-> debugger; console.log msg
 
       id = lz (x)-> rz x
-      getLeft = (x)-> x(id)(id)
-      getRight = (x)-> x(id)(id)
+      getLeft = getRight = (x)-> x(id)(id)
       show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
       (window ? global).evalLeisure = evalLeisure = (str, cont)->
@@ -125,20 +128,42 @@ Evaulation support for Leisure
         env.presentValue = (v)-> v
         runMonad2 value, env, cont
 
+      class ErrorCache
+        constructor: (@limit = 10)->
+          @cacheArray = []
+          @cacheSet = {}
+        addError: (err)->
+          while @cacheArray.length >= @limit
+            e = @cacheArray.shift()
+            delete @cacheSet[e.cacheId]
+          err.cacheId = "errorid#{Math.round(Math.abs(Math.random() * 1000000000))}"
+          @cacheSet[err.cacheId] = err
+          @cacheArray.push err
+          err.cacheId
+
+      errCache = new ErrorCache
+      Leisure.errCache = errCache.cacheSet
+
       leisureEnv = (env)->
-        env.presentValue = (v)-> html rz(L_showHtml) lz v
-        env.executeText = (text, props, cont)-> setLounge this, ->
-          if opts = env.opts then console.log "OPTS:", opts
-          getLeisurePromise().then (->
-            if !env.opts then env.opts = opts
-            leisureExec env, text, props, ((result)->
+        env.presentValue = (v)->
+          try
+            str = rz(L_showHtml) lz v
+          catch err
+            errId = errCache.addError err
+            str = "<span class='error'><a href='javascript:void(Leisure.errCache.#{errId} ? console.log([Leisure.errCache.#{errId}], Leisure.errCache.#{errId}) : console.log(\"Error no longer avable: #{errId}\"))'>Print in console</a><br>Error computing value: #{err.stack.replace(/\n/g, '<br>')}</span>"
+          html str
+        env.executeText = (text, props, cont)-> setLounge this, =>
+          if opts = @opts then console.log "OPTS:", opts
+          getLeisurePromise().then (=>
+            if !@opts then @opts = opts
+            leisureExec this, text, props, ((result)=>
               r = result.head().tail()
               if getType(r) == 'left' then throw new Error getLeft r
               else
                 r = getRight r
                 cont? r))
-            .catch (err)->
-              env.errorAt 0, err?.message ? err
+            .catch (err)=>
+              @errorAt 0, err?.message ? err
               console.error e
               console.error "Leisure text: #{text}"
         env.XexecuteText = (text, props, cont)-> setLounge this, ->
@@ -155,18 +180,22 @@ Evaulation support for Leisure
               leisureExec env, text, props, cont, (err)-> env.errorAt 0, err?.message ? err),
             (err)-> env.errorAt 0, err?.message ? err
         env.formatResult = (block, prefix, items)-> basicFormat block, prefix, [@presentValue items]
-        env.genBlock = (block)-> @generateCode blockSource(block), true
-        env.generateCode = (text, noFunc)-> setLounge this, ->
+        env.genBlock = (block, cont)-> @generateCode blockSource(block), true, cont
+        env.executeBlock = (block, cont)-> runWithPromiseCont ((c)=> @genBlock block, c), cont
+        env.generateCode = (text, noFunc, cont)-> setLounge this, =>
           exec = =>
-            leisureExec env, text, L_nil, ((result)->
+            leisureExec this, text, L_nil, ((result)->
               errs = []
+              results = []
               #asts = _.map result.toArray(), (el)-> el.head()
               asts = _.map result.toArray(), (el)->
-                if (result = el.tail()(id, id)) && result instanceof Error
-                  errs.push err
+                result = getRight el.tail()
+                if result instanceof Error then errs.push err
+                else if cont then results.push result
                 el.head()
               if errs.length then throw new Error _.map(errs, (el)-> el.message).join('\n')
               else withFile (fileName = currentGeneratedFileName()), null, ->
+                cont? results
                 codeMap new SourceNode(1, 0, fileName, [
                   (if !noFunc then '(function(cont){return ' else []),
                   'L_runMonads([\n    ',
@@ -178,8 +207,30 @@ Evaulation support for Leisure
           if getLeisurePromise().isResolved() then exec() else getLeisurePromise().then exec
         env.compileBlock = (block)->
           p = @generateCode blockSource(block)
-          if p instanceof Promise then p.then (result)-> eval codeFor result else eval p.code
+          if p instanceof Promise then p.then (result)-> eval codeFor result else eval codeFor p
         env
+
+      runWithPromiseCont = (func, cont)->
+        sync = false
+        res = null
+        succeedPromise = null
+        failPromise = null
+        try
+          func (result)->
+            sync = true
+            if succeedPromise
+              cont result
+              succeedPromise result
+            else res = result
+          if sync
+            cont res
+            res
+          else new Promise (resolve, reject)->
+            succeedPromise = resolve
+            failPromise = reject
+        catch err
+          if failPromise then failPromise err
+          else throw err
 
       codeFor = (codeObject)->
         if typeof codeObject == 'string' then codeObject
@@ -217,30 +268,34 @@ Evaulation support for Leisure
           setLounge env, =>
             result = rz(L_baseLoadString)(nextGeneratedFileName(), text)
             runMonad2 result, env, (results)->
-              runNextResult results, env, (->
+              runNextResult results, env, ((finalResults)->
                 setValue 'parser_funcProps', old
-                (cont ? (x)->x)(results)), errCont
+                (cont ? (x)->x)(finalResults)), errCont, []
         catch err
           callFail errCont, err
 
-      runNextResult = (results, env, cont, errCont)->
+      runNextResult = (results, env, cont, errCont, finalResults)->
         while results != rz(L_nil)
           if getType(results.head().tail()) == 'left'
-            env.write "PARSE ERROR: #{getLeft results.head().tail()}"
+            v = results.head().tail()
+            if !(getLeft(v) instanceof Error) then v = left new Error getLeft v
+            finalResults.push cons results.head().head(), v
+            env.write "ERROR: #{getLeft results.head().tail()}"
           else
             sync = true
             async = true
             try
               setLounge env, => runMonad2 getRight(results.head().tail()), env, (res2)->
-                if getType(res2) != 'unit' then env.write env.presentValue res2
+                finalResults.push cons results.head().head(), L_right res2
+                #if getType(res2) != 'unit' then env.write env.presentValue res2
                 if sync then async = false
-                else runNextResult results.tail(), env, cont, errCont
+                else runNextResult results.tail(), env, cont, errCont, finalResults
             catch err
               callFail errCont, err
             sync = false
             if async then return
           results = results.tail()
-        cont()
+        cont newConsFrom finalResults
 
       hasCodeAttribute = (block, attr, value)->
         if !block.attributeWords? then block.attributeWords = {}
@@ -265,7 +320,11 @@ Evaulation support for Leisure
 
       arrayify = (val)-> if _.isArray(val) then val else [val]
 
-      writeResults = (env, values)-> env.write arrayify(values).join '\n'
+      writeResults = (env, values)->
+        first = true
+        for value in arrayify(values)
+          if !first then env.write '\n'
+          env.write env.presentValue value
 
       defaultEnv.formatResult = (block, prefix, items)-> basicFormat block, prefix, items
 
@@ -721,4 +780,5 @@ Evaulation support for Leisure
         Scope
         lineColumnStrOffset
         writeResults
+        runWithPromiseCont
       }

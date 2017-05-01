@@ -58,6 +58,7 @@ define files, (btoa)->
   defaultEnv =
     __proto__: CodeContext.prototype
     presentValue: (x)-> String(x) + '\n'
+    write: (v)-> console.log v
     values: {}
     errorHandlers: []
     prompt: -> null

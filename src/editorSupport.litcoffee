@@ -595,8 +595,8 @@ that must be done regardless of the source of changes
               else Promise.resolve result), ((env)->
                 envConf? env
                 if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
-                  env.silent = true
-                  env.write = (str)-> console.log str)
+                  env.silent = true)
+                  #env.write = (str)-> console.log str)
           if !completedFlag
             completedFlag = true
             new Promise (success)-> cont = success
@@ -605,26 +605,33 @@ that must be done regardless of the source of changes
           @executeText block.language, blockSource(block), null, ((env)->
             envConf? env
             if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'silent']
-              env.silent = true
-              env.write = (str)-> console.log str)
+              env.silent = true)
+              #env.write = (str)-> console.log str)
         executeBlock: (block, envConf)->
           env = @env block.language, (env)->
-            envConf? env
             if newBlock?.codeAttributes?.results?.toLowerCase() in ['def', 'web', 'silent']
               env.silent = true
               if isSilent newBlock then write = ->
-              else env.write = (str)-> console.log str
+              else
+                #env.write = (str)-> console.log str
+                env.presentValue = (v)-> v
+            envConf? env
           if env.executeBlock != defaultEnv.executeBlock
-            env.executeBlock block, (r)-> writeResults env, r
+            try
+              env.executeBlock block, (r)-> writeResults env, r
+            catch err
+              env.errorAt 0, String err
           else if code = @getCode block
-            if code instanceof Promise then code.then (func)-> setLounge env, ->
-              writeResults env, func.call env
+            if code instanceof Promise
+              code
+                .then (func)-> setLounge env, -> func.call env
+                .then (result)-> writeResults env, result
             else setLounge env, -> writeResults env, code()
           else @oldExecuteBlock block, envConf
         env: (language, envConf)->
-          if env = languageEnvMaker(language)?(__proto__: defaultEnv)
+          if env = Object.create languageEnvMaker(language)?(__proto__: defaultEnv)
             env.data = this
-            env.write = (str)-> console.log str
+            #env.write = (str)-> console.log str
             envConf?(env)
             env
         executeText: (language, text, cont, envConf)->
@@ -1266,34 +1273,29 @@ NMap is a very simple trie.
                   bl.code = newBlock.code
                   newBlock = bl
                 state = 'idle'
-                env = envM
-                  __proto__: defaultEnv
-                  write: ->
-                  opts: this
-                  data: @data
-                  prompt: (str, defaultValue, cont)-> cont prompt(str, defaultValue)
                 opts = this
-                do (change)=>
-                  env.errorAt = (offset, msg)->
-                    cur = newBlock
-                    replaceBlock setError cur, offset, msg
-                    if newBlock != change && state == 'pending'
-                      opts.replaceBlock cur, newBlock.text, 'code'
-                  env.write = (str)=>
-                    result += presentHtml str
-                    if result[result.length - 1] != '\n' then result += '\n'
-                    if state == 'pending' then @replaceResult change._id, result
                 try
-                  setLounge env, =>
-                    func = @data.getCode(newBlock, env)
-                    if typeof func == 'function'
-                      func.call env, (data)->
-                        if state == 'pending' then env.write data
-                        else result += env.formatResult newBlock, '', data
-                        state = 'finished'
-                    else state = 'finished'
-                  if state == 'idle' then state = 'pending'
-                  else if state == 'finished'
+                  values = @data.executeBlock newBlock, (env)=>
+                    env.opts = this
+                    env.data = @data
+                    env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
+                    env.errorAt = (offset, msg)->
+                      cur = newBlock
+                      replaceBlock setError cur, offset, msg
+                      if newBlock != change && state == 'pending'
+                        opts.replaceBlock cur, newBlock.text, 'code'
+                    env.write = (str)=>
+                      result += presentHtml str
+                      if result[result.length - 1] != '\n' then result += '\n'
+                      if state == 'pending' then @replaceResult change._id, result
+                  if values instanceof Promise
+                    state = 'pending'
+                    values.then (results)->
+                      replaceBlock setResult newBlock, result
+                      opts.replaceBlock newBlock, newBlock.text, 'code'
+                      state = 'finished'
+                  else
+                    state = 'finished'
                     replaceBlock setResult newBlock, result
                     if newBlock.text != change.text
                       changes.sets[newBlock._id] = newBlock

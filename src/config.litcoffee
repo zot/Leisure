@@ -15,13 +15,8 @@ Project-wide requirejs configuration for Leisure
         # is using jQuery 1.9.0 located at
         # js/lib/jquery-1.9.0.js, relative to
         # the HTML page.
-        #jquery: 'lib/jquery-3.1.0'
-        #jquery: 'lib/jquery-2.1.4.min'
 
         jquery: 'lib/jquery-2.1.4'
-        #jq: 'lib/jquery-2.1.4'
-
-        #jqueryui:   'lib/jquery-ui-1.9.1.custom.min'
         jqueryui:    'lib/jquery-ui.min-1.11.4'
         #jqueryui:   'lib/jquery-ui-1.11.4'
         acorn:       'lib/acorn-3.2.0'
@@ -32,10 +27,9 @@ Project-wide requirejs configuration for Leisure
         sockjs:      'lib/sockjs-1.0.0.min'
         lispyscript: 'lib/lispyscript/browser-bundle'
         lodash:      'lib/lodash.full-4.14.1'
-        #lodash:     'lib/lodash.min'
-        #bluebird:   'lib/bluebird-3.4.6.min'
-        bluebird:    'lib/bluebird-3.4.6'
+        bluebird:    'lib/bluebird-3.5.0'
         fingertree:  'lib/fingertree'
+        "browser-source-map-support": 'lib/browser-source-map-support-0.4.14'
 
     #define 'TEST', [], "HELLO"
     #require ['./editor'], (editor)->

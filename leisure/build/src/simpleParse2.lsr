@@ -55,7 +55,7 @@ dropAfter func list = isNil list
 # change this to return a list of results
 doall x = isNil x
   unit
-  foldr1 (\el res . primBind el \_ . res) x
+  _foldr1 (\el res . primBind el \_ . res) x
 
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list
@@ -66,13 +66,13 @@ aremove key list = isNil list
 addTokenGroup '[' ']'
 addToken '|'
 
-listifyOp op list = list
+listifyOp op list last = list
   \h t D . isTokenString h '|'
     cons t nil
-    cons (cons op (cons h (listifyOp op t))) nil
-  cons 'nil' nil
+    cons (cons op (cons h (listifyOp op t last))) nil
+  cons last nil
 
-listify list = listifyOp 'cons' list
+listify list = listifyOp 'cons' list 'nil'
 
 # parse filter 'listFilter' gathers items after the '|' into a single argument
 
@@ -135,32 +135,18 @@ filterLambda code func = code \h t . cons h
 
 defMacro '[' \list . list \h t . listify h
 
-setValue 'listMacros' ['[' '{' 'hamt{']
+setValue 'listMacros' ['[' '{']
 
 addParseFilter listFilter
 
 addTokenGroup '{' '}'
 
-defMacro '{' \list . list \h t . listifyOp 'aconsPair' h
-
-addTokenGroup 'hamt{' '}'
-
-defMacro 'hamt{' \list . list \h t . hamtify h
-
-hamtWithPair pair t = hamtWith (head pair) (tail pair) t
-
-hamtify list = list
-  \h t D . isTokenString h '|'
-    cons t nil
-    and (isCons h) (or (isTokenString (head h) 'cons') (isTokenString (head h) ':'))
-      [['hamtWith' (head (tail h)) (head (tail (tail h))) | hamtify t]]
-      [['hamtWithPair' h | hamtify t]]
-  ['hamt']
+defMacro '{' \list . list \h t . listifyOp 'aconsPair' h 'nil'
 
 defTokenPack 'list' [
   #adding = here so so we don't need spaces around = in definitions
   ['|' '=']
-  {['{' | '}'] ['hamt{' | '}'] ['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']'] ['print[' | ']'] ['concatFlat[' | ']']}
+  {['{' | '}'] ['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']'] ['print[' | ']'] ['concatFlat[' | ']']}
   [listFilter]]
 
 ### Yay!  From here down, we can use full list constructors!
@@ -175,7 +161,7 @@ addTokenGroup 'print[' ']'
 
 addTokenGroup 'concatFlat[' ']'
 
-listMacroFoldOp op emptyCase list = list \h t . foldr
+listMacroFoldOp op emptyCase list = list \h t . _foldr
     \case result . [op case result]
     emptyCase
     h
@@ -195,7 +181,7 @@ infix code = primBind (getValue 'infixPrecedence')
     \right . primBind (getValue 'tokenGroups')
       \groups . filterApplies
         code
-        \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
+        \expr . infixRearrange prec right (_map (\cell . tail cell) groups) expr
 
 infixRearrange prec right closes list = \\
   len = length list
@@ -260,7 +246,7 @@ rightAssoc = [':']
 
 setPrecedenceLevels levels = primBind
   setValue 'infixPrecedence' levels
-  \_ . doall (map addInfixProp (flatten levels))
+  \_ . doall (_map addInfixProp (flatten levels))
 
 addInfixProp funcName = getFunction funcName
   \func . setProperty func 'infix' true
@@ -307,38 +293,13 @@ doClause steppingClause clause prefix inLet foldVar = \\
           prefix
             \ph pt D . isNil pt
               makeBind (isNil prefix '_' (head prefix)) t
-              parseErr "More than one variable in do-clause: " clause
+              any (\el . not (or (isString el) (isToken el))) prefix
+                parseErr "Non-variable for bind in do clause: " clause
+                triple false foldVar \rest . inLet (cons '.') id
+                  ['bind' t (_append ['\\' | prefix] ['.' | rest])]
             makeBind '_' t
-        isTokenString h '<-|'
-          parseBind2 clause (isNil prefix '_' (head prefix)) t inLet foldVar
-          doClause t clause [h | prefix] inLet foldVar
+        doClause t clause [h | prefix] inLet foldVar
     makeBind '_' clause
-
-parseBind2 clause var list inLet foldVar = \\
-  acc = takeUpto (\t . isTokenString t '|') list
-  value = dropAfter (\t . isTokenString t '|') list
-  accVar = isNil acc
-    foldVar
-    head acc
-  accEq = at acc 1
-  accInit = isNil acc
-    foldVar
-    tail (tail acc)
-  .
-  not (isCons value) && ((isNil acc) || ((length acc) > 2 && (isTokenString accEq '=')))
-    err "Fold clause expects VAR <-| ACC_VAR = ACC_VALUE | VALUE or VAR <-| | VALUE"
-    triple false accVar \rest . inLet (cons '.') id
-      ['bind2' accInit value ['\\' accVar var '.' | rest]]
-
-checkFoldFormat l clause = partition [] (flip isTokenString '=') l \var eq rest .
-  isNil eq
-    parseErr "Bad fold format, expected '=': " clause
-    not 1 == (length var)
-      parseErr "Bad fold format, expected one accumulator variable: " clause
-      partition [] (flip isTokenString '|') rest \init pipe results .
-        isNil pipe
-          parseErr "Bad fold format, expected '|' after init: " clause
-          triple (head var) init results
 
 triple a b c = \f . f a b c
 triple1 t = t \a b c . a
@@ -351,13 +312,9 @@ partition res func list = isNil list
     triple (reverse res) (head list) (tail list)
     partition [(head list) | res] func (tail list)
 
-bind2 i m cont = bind m (cont i)
-
 addToken '<-'
 
-addToken '<-|'
-
-defTokenPack 'do' [['<-' '<-|'] [] []]
+defTokenPack 'do' [['<-'] [] []]
 
 addStdTokenPacks ['do' 'list' 'infix']
 resetStdTokenPacks

@@ -34,12 +34,17 @@ requirejs = require('requirejs').config
   baseUrl: baseDir
   paths:
     lib: baseDir + '/lib'
-    immutable: baseDir + '/lib/immutable-3.8.1.min'
+    #immutable: baseDir + '/lib/immutable-3.8.1.min'
+    immutable: 'lib/immutable-3.8.1.min'
     acorn: 'lib/acorn-3.2.0'
     acorn_loose: 'lib/acorn_loose-3.2.0'
     acorn_walk: 'lib/acorn_walk-3.2.0'
     handlebars: 'lib/handlebars-v4.0.5'
     lispyscript: 'lib/lispyscript/leisureReplPatch'
+    lodash:      'lib/lodash.full-4.14.1'
+    bluebird:    'lib/bluebird-3.5.0'
+    fingertree:  'lib/fingertree'
+    "browser-source-map-support": 'lib/browser-source-map-support-0.4.14'
 
 ((typeof window != 'undefined' && window) || global).Lazy = requirejs('lib/lazy')
 
@@ -56,7 +61,7 @@ Error.stackTraceLimit = Infinity
 rz = resolve
 lz = lazy
 lc = Leisure_call
-_ = require 'lodash.min'
+_ = requirejs 'lodash'
 fs = require 'fs'
 #compiler = require 'compiler'
 
@@ -98,7 +103,7 @@ global.btoa = require 'btoa'
 } = requirejs './runtime'
 {
   Promise
-} = requirejs 'lib/bluebird.min'
+} = requirejs 'bluebird'
 {
   tangle
   jsCodeFor

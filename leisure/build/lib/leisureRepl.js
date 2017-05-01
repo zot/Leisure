@@ -41,12 +41,16 @@ misrepresented as being the original software.
     baseUrl: baseDir,
     paths: {
       lib: baseDir + '/lib',
-      immutable: baseDir + '/lib/immutable-3.8.1.min',
+      immutable: 'lib/immutable-3.8.1.min',
       acorn: 'lib/acorn-3.2.0',
       acorn_loose: 'lib/acorn_loose-3.2.0',
       acorn_walk: 'lib/acorn_walk-3.2.0',
       handlebars: 'lib/handlebars-v4.0.5',
-      lispyscript: 'lib/lispyscript/leisureReplPatch'
+      lispyscript: 'lib/lispyscript/leisureReplPatch',
+      lodash: 'lib/lodash.full-4.14.1',
+      bluebird: 'lib/bluebird-3.5.0',
+      fingertree: 'lib/fingertree',
+      "browser-source-map-support": 'lib/browser-source-map-support-0.4.14'
     }
   });
 
@@ -62,7 +66,7 @@ misrepresented as being the original software.
 
   lc = Leisure_call;
 
-  _ = require('lodash.min');
+  _ = requirejs('lodash');
 
   fs = require('fs');
 
@@ -80,7 +84,7 @@ misrepresented as being the original software.
 
   ref4 = requirejs('./runtime'), identity = ref4.identity, runMonad2 = ref4.runMonad2, isMonad = ref4.isMonad, asyncMonad = ref4.asyncMonad, replaceErr = ref4.replaceErr, getMonadSyncMode = ref4.getMonadSyncMode, setWarnAsync = ref4.setWarnAsync, requireFiles = ref4.requireFiles, getValue = ref4.getValue;
 
-  Promise = requirejs('lib/bluebird.min').Promise;
+  Promise = requirejs('bluebird').Promise;
 
   ref5 = requirejs('./tangle'), tangle = ref5.tangle, jsCodeFor = ref5.jsCodeFor;
 
@@ -457,11 +461,14 @@ misrepresented as being the original software.
         return console.log(err.stack);
       } else {
         return tangle(data).then(function(result) {
-          console.log("TANGLE " + file + "...");
-          console.log(jsCodeFor(result));
-          console.log("SOURCE MAP\n" + (JSON.stringify(result.map.toJSON())));
-          return cont([]);
+          return fs.writeFile(file + ".tangle", result, function(err) {
+            if (err) {
+              throw err;
+            }
+            return cont([]);
+          });
         })["catch"](function(err) {
+          console.error(err.stack);
           throw err;
         });
       }

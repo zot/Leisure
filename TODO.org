@@ -1,3 +1,4 @@
+* TODO [#A] Leisure source map numbers are off
 * TODO [#A] Run all test cases                                      :feature:
 * TODO [#A] Search box doesn't show images properly
 * TODO [#A] Editor error, inserting duplicate character
