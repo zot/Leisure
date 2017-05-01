@@ -188,9 +188,10 @@ getOpt 'a' {'a':1 'c':2 'b':3}
 #+BEGIN_SRC leisure :results dynamic
 do
   f <- run js['(function(j){return JSON.stringify(resolve(j))})']
-  r <- run f (toJson {'a':1})
+  r <- run f (toJson {'a':1 'b':2})
   write r
 #+END_SRC
+
 #+RESULTS:
-: {&quot;a&quot;:1}
+: {&quot;a&quot;:1,&quot;b&quot;:2}
 : 
