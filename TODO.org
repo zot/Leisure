@@ -1,3 +1,4 @@
+* TODO [#A] Make text/block/yaml connection more tenuous and generated on demand
 * TODO [#A] Leisure source map numbers are off
 * TODO [#A] Run all test cases                                      :feature:
 * TODO [#A] Search box doesn't show images properly

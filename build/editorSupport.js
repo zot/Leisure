@@ -1630,7 +1630,7 @@
     })();
     getYaml = function(block) {
       var firstResult, ref, ref1, results;
-      return (ref = block.yaml) != null ? ref : (block.yaml = isYamlResult(block) ? ((ref1 = blockCodeItems(this, block), results = ref1.results, ref1), results ? (firstResult = results.text.indexOf('\n') + 1, parseYaml(results.text.substring(firstResult).replace(/(^|\n): /gm, '$1'))) : void 0) : null);
+      return _.cloneDeep((ref = block.yaml) != null ? ref : (block.yaml = isYamlResult(block) ? ((ref1 = blockCodeItems(this, block), results = ref1.results, ref1), results ? (firstResult = results.text.indexOf('\n') + 1, parseYaml(results.text.substring(firstResult).replace(/(^|\n): /gm, '$1'))) : void 0) : null));
     };
     parseOrgDoc = function(text) {
       if (text === '') {
