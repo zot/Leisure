@@ -181,20 +181,26 @@ getOpt 'a' {'a':1 'b':2}
 : {"c":3 "a":1 "b":2}
 : 2
 : (some 1)
-** HAMTs (courtesy of [[http://facebook.github.io/immutable-js/][immutable.js]])
+** Maps, sets, and vectors (courtesy of [[http://facebook.github.io/immutable-js/][immutable.js]])
 #+BEGIN_SRC leisure :results dynamic
-hamt
-hamt{'a':1 'c':2 'b':3}
-get 'a' {'a':1 'c':2 'b':3}
-set 'a' 4 {'a':1 'c':2 'b':3}
-getOpt 'a' {'a':1 'c':2 'b':3}
+map{}
+map{'a':1 'c':2 'b':3}
+get 'a' map{'a':1 'c':2 'b':3}
+set 'a' 4 map{'a':1 'c':2 'b':3}
+getOpt 'a' map{'a':1 'c':2 'b':3}
+set{1 2 3}
+append set{1 2} set{2 3}
+append vec{1 2} vec{2 3}
 #+END_SRC
 #+RESULTS:
-: hamt{}
-: hamt{"b":3 "c":2 "a":1}
+: map{}
+: map{"a":1 "c":2 "b":3}
 : 1
-: {"a":4 "c":2 "b":3}
+: map{"a":4 "c":2 "b":3}
 : (some 1)
+: set{1 2 3}
+: set{3 1 2}
+: vec{1 2 2 3}
 
 * JavaScript integration
 ** The "js" Leisure function returns an IO value

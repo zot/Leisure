@@ -1,29 +1,56 @@
 #+TITLE: Data access
 * Transaction code
-The basic transaction object
+The basic transaction object.
 
 #+BEGIN_SRC leisure :results def
-transaction creates reads updates deletes = \f . f creates reads updates deletes
-
+transaction creates reads updates deletes data = \f . f creates reads updates deletes data
+emptyTransaction = transaction hamt{} hamt{} 
 isTransaction t = hasType t transaction
 
-defCase showBase.transaction func obj | isTransaction obj -> obj \creates reads updates deletes .
+trCreates transaction = transaction \creates reads updates deletes data . creates
+trReads transaction = transaction \creates reads updates deletes data . reads
+trUpdates transaction = transaction \creates reads updates deletes data . updates
+trDeletes transaction = transaction \creates reads updates deletes data . deletes
+trData transaction = transaction \creates reads updates deletes data . data
+
+defCase showBase.transaction func obj | isTransaction obj -> obj \creates reads updates deletes data .
   concat['(transaction ' (showBase func creates) ' ' (showBase func reads) ' ' (showBase func updates) ' ' (showBase func deletes) ')']
 
-defCase toJson.transaction tr | isTransaction tr -> tr \creates reads updates deletes .
+defCase toJson.transaction tr | isTransaction tr -> tr \creates reads updates deletes data .
   toJsonObject {
     'type':'transaction'
     'creates':(toJson creates)
     'reads':(toJson reads)
     'updates':(toJson updates)
     'deletes':(toJson deletes)}
+
+currentTransaction = do
+  tr <- envGetOpt 'transaction'
+  tr id do
+    tr = 
+
+trGet name = do
+  transaction <- currentTransaction
+  valueOpt = getOpt name (trData transaction)
+  valueOpt id do
+    d <- getDataUnsafe name
+    
 #+END_SRC
 
-#+BEGIN_SRC leisure :results dynamicx
-setValue 'x' (toJson (transaction 1 2 3 4))
+#+BEGIN_SRC leisure :results dynamic
+isSet (setAdd 'a' amtSet)
 #+END_SRC
+#+ERROR: 0, ReferenceError: err is not defined
 #+RESULTS:
+: ERROR: 
 : 
+: Parse error: L_isSet is not defined
+: CODE: 
+: (
+: resolve(L_isSet)(function(){&quot;use strict&quot;;return resolve(L_setAdd)(&quot;a&quot;, L_amtSet);}))
+: //# sourceMappingURL=data:application/json;utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImR5bmFtaWMgY29kZSB3aXRoIHNvdXJjZSAyMyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtBQUFBLGlCQUFPLGlEQUFPLEdBQVAsRUFBVyxRQUFYLEdBQVAiLCJmaWxlIjoiZHluYW1pYyBjb2RlIHdpdGggc291cmNlIiwic291cmNlc0NvbnRlbnQiOlsiaXNTZXQgKHNldEFkZCAnYScgYW10U2V0KSJdfQ==
+: 
+: AST: anno(\@filename notebook-39 . isSet (setAdd a amtSet))
 
 * Collaborative code
 #+BEGIN_SRC leisure :results def
@@ -63,7 +90,7 @@ number: 2
 
 #+BEGIN_SRC leisure :results dynamic
 set 'a' 1 {}
-#+END_SRC#
+#+END_SRC
 #+RESULTS:
 : {"a":1}
 
