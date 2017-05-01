@@ -1,0 +1,1176 @@
+#+TITLE:CthulhuMUD
+* Setup
+:properties:
+:hidden: true
+:end:
+** Import utilities
+:properties:
+:import: utilities.org
+:end:
+* Test
+:properties:
+:namespace: mud.core
+:end:
+
+#+BEGIN_SRC wisp :results dynamic
+;(macroexpand '(deflens bubba "" [p] #(named? %) `(lens-property ~(name prop))
+;  (Lens.
+;   (fn [obj] (aget obj prop))
+;   (fn [obj val] (let [newObj (cond (dictionary? obj) (Object/assign (Object.) obj)
+;                                    (vector? obj) (.slice obj))]
+;                   (aset newObj prop val)
+;                   newObj))
+;   [prop])))
+;(macroexpand '(lens a))
+;(lens-parse 'a) 
+;(.log window.console lens-parsers)
+;(macroexpand '(lens ab))
+;(JSON/stringify (lens-set (lens ab) {:ab 2} 3))
+;(.log window.console (with-meta (with-meta (fn [] 3) {:a 1}) {:b 2}))
+;(Leisure/dbg) 
+;(let [a {:a 1}] (JSON/stringify [a (merge a {:a 2 :b 1})]))
+(defmacro x [a] (do (.log console a) a))
+
+(x a)
+
+#+END_SRC
+#+ERROR: 0, a is not defined
+
+
+
+#+BEGIN_SRC wisp :results dynamicX
+(transaction->
+  (update (:_id 3 :name "bubba"))
+;;  ...
+  (custom frob))
+;; -> (let [t1  (Transaction.)
+;;            t2  (update (:_id 3 :name "bubba"))
+;;            ;;...
+;;            tN  (frob tM)
+;;            tO  (tr-check tM tN)]
+;;            tO)
+#+END_SRC
+
+* Sample MUD Object
+#+NAME: ExampleFred
+#+BEGIN_SRC yaml :index location location
+id: mud-10
+type: thing
+name: fred
+prefix: hungry
+title: the barbarian
+description: Fred is a nice guy.  Tea and crumpets at your place?
+activity: Looking for food
+location: mud-3
+#+END_SRC
+* Sample MUD Code
+#+BEGIN_SRC wisp
+;; Declare collaborative code
+(defcollab munge
+  "Munge some data"
+  []
+  (tr-commit
+    (transaction->
+     fred <- (get "ExampleFred") ; sets fred to a proxy
+     joe <- (get "ExampleJoe") ; sets joe to a proxy
+     (aset (:hunger joe) 12)
+     (aset (:height fred) 3)
+     (frobnicate joe))))
+
+(defcollab munge
+  "Munge some data"
+  []
+  (tr-commit
+    (transaction->
+     [fred (tr-get "ExampleFred")
+      joe (tr-get "ExampleJoe")]
+     (aset (:hunger joe) 12)
+     (aset (:height fred) 3)
+     [bubba (tr-get "ExampleBubba")]
+     (frobnicate joe))))
+
+(defn frobnicate [transaction]
+  (transaction-> transaction
+    []
+    asdfasdf)
+
+(transaction-> trans [...] ...)
+(transaction-> [...] ...)
+
+assignments expect a return value of [transaction value]
+#+END_SRC
+* GUI
+#+BEGIN_HTML :controller consoleController
+<div class="worldContainer">
+    <div class="leftSide">
+        rooms
+    </div>
+    <div class="rightSide">
+        <div class="textLog">
+            Text log
+        </div>
+        <div class="commandEntry">
+            Enter command:<br>
+            <input class="commandInput" type="text">
+        </div>
+    </div>
+</div>
+#+END_HTML
+* Plumbing
+:properties:
+:namespace: mud.core
+:end:
+** Mud state
+#+NAME: mudState
+#+BEGIN_SRC yaml
+currentId: 0
+#+END_SRC
+** Basics
+#+NAME: Basics
+#+BEGIN_SRC wisp :results def
+  (defmacro collaboratively [name & args] `(.doCollaboratively data (.-name ~name) ~args))
+  (defn registerCollaborativeFuncs [& funcs] (map #(.registerCollaborativeCode data %1) funcs))
+  (defmacro defcollab
+    [name args & body]
+    (let [doc (if (string? args) args "")
+          args (if (string? args) (first body) args)
+          body (if (string? args) (rest body) body)]
+      `(do
+         (defn ^{:doc ~doc} ~name ~args ~@body)
+         (.openRegistration data)
+         (registerCollaborativeFuncs ~name)
+         (.closeRegistration data))))
+  (defn nextId []
+    (let [game (.getData data "mudState")
+          id (+ 1 (:currentId game))]
+      (.log window.console "currentId: " id)
+      (set! (:currentId game) id)
+      (.setData data "gameState" game)
+      id))
+#+END_SRC
+
+#+NAME: DataBasics
+#+BEGIN_SRC wisp :results def
+  (def data-headline "data-items")
+  (def location-index "location")
+  (def location-property "location")
+  (defn createObject [object]
+    (.appendDataToHeadline data
+                           data-headline object.id
+                           object
+                           {:flowLevel 3 :index "location location"}))
+  (defn updateObject [object]
+    (.setData data
+              object.id
+              object
+              {:flowLevel 3 :index "#{location-index} #{location-property}"}))
+  (defn deleteObject [id] (.removeData data id))
+  (defn getObject [id] (.getData data id))
+  (defn getContents [id] (.find data location-index id))
+#+END_SRC
+
+** Lenses
+*** Examples
+#+BEGIN_SRC wisp :results dynamic
+(JSON/stringify (lens-set (lens a b c) {:a {:b {:c 3 :d 5} :e 7}} 4))
+(JSON/stringify (lens-set (lens 0) [2 3 4] 7))
+(lens-get (lens a 1) {:a [2 3 4]})
+#+END_SRC
+#+RESULTS:
+: {&quot;a&quot;:{&quot;b&quot;:{&quot;c&quot;:4,&quot;d&quot;:5},&quot;e&quot;:7}}
+: [7,3,4]
+: 3
+*** Code
+#+BEGIN_SRC wisp :results def
+(defn- no-colon
+  [sym]
+  (let [n (name sym)]
+    (if (== ":" (first n))
+      (rest n)
+      n)))
+
+(defn named?
+  "Is this a named thing?"
+  [x]
+  (or (symbol? x) (keyword? x) (string? x)))
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defn lens->string
+    "Display a lens"
+    []
+    (join (concat ["(lens"]
+                  [(if (empty? this.description) "" " ")]
+                  (intersperse this.description " ")
+                  [")"])))
+
+  (defn- lens-make
+    "Make a func into a lens"
+    [func description]
+    (set! func.description description)
+    (set! func.toString lens->string)
+    func)
+
+  (defn lens-compose
+    "Compose lenses"
+    [l1 l2]
+    (lens-make
+     (fn
+       ([obj] (l2 (l1 obj)))
+       ([obj val]
+        (l1 obj (l2 (l1 obj) val))))
+     (concat (.-description l1) (.-description l2))))
+
+  (defn lens-empty
+    []
+    (Lens. identity identity []))
+
+  (def lens-parsers
+    "Sequence of lens parsers"
+    [])
+
+  (defn lens-find
+    "Find a lens"
+    [entry]
+    (:definition (or (find #((:predicate %) entry) lens-parsers)
+                     (throw (Error. (str "Lens could parse " (String entry)))))))
+
+  (defn string-vec
+    "Convert items to a vector of strings"
+    [items]
+    (if (named? items) (name items)
+        (if (sequential? items)
+          (map #(string-vec %) (vec items)))))
+
+  ;;(.alert window "******* ADD TRANSACTION SUPPORT TO LENSES *******")
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defmacro deflens
+    "Add a lens parser to the lens builder"
+    [name doc args predicate params & body]
+    `(def ~name
+        (do
+          (set! lens-parsers
+                (conj lens-parsers
+                      {:predicate ~predicate :definition '~name}))
+          (fn ~args ~@body))))
+
+  (deflens lens-property
+    "Property lens"
+    [prop]
+    #(named? %) (list (name prop))
+    (lens-make
+     (fn
+       ([obj] (aget obj prop))
+       ([obj val] (let [new-obj (cond (dictionary? obj)
+                                      (Object/assign (Object.) obj)
+                                      (vector? obj) (.slice obj))]
+                    (aset new-obj prop val)
+                    new-obj)))
+      [prop]))
+
+  (deflens lens-transaction
+    "Transaction lens"
+    [id]
+    #(and (sequential? %) (named (first %)) (== "transaction" (name (first %))) (named (second %)))
+    `(lens-transaction ~(name id))
+    (lens-make
+     (fn
+       ([trans] (tr-get trans id))
+       ([trans val] (tr-update val)))
+     [`(transaction ~id)]))
+
+  (defmacro lens
+    "Make a lens on some data"
+    [& ops]
+    (reduce (fn [l1 l2] `(lens-compose ~l1 ~l2))
+            (map (fn [x] `(~(lens-find x) ~(string-vec x)))
+                 ops)))
+#+END_SRC
+
+*** Tests
+
+#+BEGIN_SRC wisp
+(= "(lens a b c)" (str (lens a b c)))
+(= 1 ((lens a) {:a 1}))
+(= {:a 2} ((lens a) {:a 1} 2))
+(= 1 ((lens a b c) {:a {:b {:c 1}}}))
+(= {:a {:b {:c 2}}} ((lens a b c) {:a {:b {:c 1}}} 2))
+#+END_SRC
+
+** Patterns
+*** atomic values, dictionaries, and vectors are depicted as normal, with optional variables to match values
+*** lists are depicted as '(...) to allow parenthesized operations and extensibility (and, or, ivec, iset, etc.)
+*** TODO Add alternation (or A B C), conjunction (and A B C), and tails [... & X]
+**** (or pat1 ... patN) tries each pattern in succession, stopping at the first one that succeeds
+**** (and pat1 ... patN) tries each pattern in succession, stopping at the first one that fails
+**** & pat as the last part of a sequence matches the rest of the sequence
+*** Code
+
+#+BEGIN_SRC wisp :results def
+  ;; Pattern matches return [results] or nil
+  ;; Pattern sets return [obj] or nil
+
+  (defn pattern-fn
+    [description vars func]
+    (with-meta func (merge (or (meta func) {})
+                           {:description description
+                            :vars vars}))
+    (let [to-string (str "(pattern " description ")")]
+      (set! func.toString (fn [] to-string)))
+    func)
+
+  ;;(defn pattern-compose
+  ;;  "Compose a pattern with a dictionary of patterns, keyed by points in the original pattern"
+  ;;  [original patterns]
+  ;;  )
+
+  (defn pattern-var?
+    "Is this a var pattern?"
+    [sym]
+    (symbol? sym))
+
+  (defn pattern-var
+    "Pattern for vars"
+    [sym]
+    (let [name (if (and (string? sym) (= ":" (first sym)))
+                 (name (rest sym))
+                 (name sym))
+          vars {}]
+      (aset vars name true)
+      (pattern-fn
+       name
+       vars
+       (fn
+         ([obj] (dictionary name obj))
+         ([obj values]
+          [(if (has values name)
+              (aget values name)
+              obj)])))))
+
+  (defn pattern-constant?
+    "Is this a constant pattern?"
+    [value]
+    (or
+     (named? value)
+     (number? value)
+     (boolean? value)))
+
+  (defn pattern-constant-value
+    "Extract value for constant"
+    [value]
+    (cond
+      (named? value) (name value)
+      (and (list? value) (= 'quote (first value))) (second value)
+      :else value))
+
+  (defn pattern-edn
+    "Pattern encoding for a value"
+    [val]
+    (cond
+      (named? val) (str "\"" val "\"")
+      (dictionary? val) (str "{"
+                             (join " " (map #(str ":" (name (aget % 0)) " " (pattern-edn (aget % 1))) val))
+                             "}")
+      (vector? val) (str "[" (join " " (map #(pattern-edn %) val)) "]")
+      (list? val) (str "(quote (" (join " " (map #(pattern-edn %) val)) "))")
+      (iset? val) (str "(iset " (pattern-edn (.toJS val)) ")")
+      (imap? val) (str "(imap " (pattern-edn (.toJS val)) ")")
+      (ivec? val) (str "(ivec " (pattern-edn (.toJS val)) ")")
+      (iseq? val) (str "(iseq " (pattern-edn (.toJS val)) ")")
+      (or (boolean? val) (number? val)) (str val)
+      :else (throw (str "Could not encode value: " val))))
+
+  (defn pattern-constant
+    "Pattern for constants"
+    [value]
+    (let [value (pattern-constant-value value)]
+      (pattern-fn
+       (pattern-edn value)
+       {}
+       (fn
+         ([obj] (and (= value (pattern-constant-value obj)) {}))
+         ([obj values] (and (= value (pattern-constant-value obj)) [obj]))))))
+
+  (defn pattern-list
+    "Map patterns into a list"
+    [pats]
+    (let [desc (str "'(" (join " " (map #(aget (meta %) :description) pats)) ")")
+          all-vars (apply Object/assign {} (map #(aget (meta %) :vars) pats))]
+      (pattern-fn
+       desc
+       all-vars
+       (fn
+         ([obj]
+          (if (list? obj)
+            (let [results (map #((first %) (second %)) (zip pats obj))]
+              (and (every? identity results)
+                   (apply Object/assign {} (vec results))))))
+         ([obj values]
+          (if (list? obj)
+            (let [matches (map #((first %) (second %) values) (zip pats obj))]
+              (if (every? identity matches) (map first matches)))))))))
+
+  (defn pattern-vector
+    "Map patterns into a vector"
+    [pats]
+    (let [desc (str "[" (join " " (map #(aget (meta %) :description) pats)) "]")
+          all-vars (apply Object/assign {} (map #(aget (meta %) :vars) pats))]
+      (pattern-fn
+       desc
+       all-vars
+       (fn
+         ([obj]
+          (if (vector? obj)
+            (let [results (map #((first %) (second %)) (zip pats obj))]
+              (and (every? identity results)
+                   (apply Object/assign {} results)))))
+         ([obj values]
+          (if (vector? obj)
+            (let [matches (map #((first %) (second %) values) (zip pats obj))]
+              (if (every? identity matches) (map first matches)))))))))
+
+  (defn pattern-dictionary
+    "Zip patterns into an object"
+    [names pats]
+    (let [patDict (zipObject names pats)
+          patNames (transpose [pats names])
+          desc (str "{"
+                    (join " " (map #(str ":" (name (aget % 1))
+                                         " " (aget (meta (aget % 0)) :description))
+                                   patNames))
+                    "}")
+          all-vars (apply Object/assign {} (map #(aget (meta %) :vars) pats))]
+      (pattern-fn
+       desc
+       all-vars
+       (fn
+         ([obj]
+          (if (dictionary? obj)
+            (let [results (map #((aget % 0) (aget obj (aget % 1))) patNames)]
+              (and (every? identity results)
+                   (apply Object/assign {} results)))))
+         ([obj values]
+          (if (dictionary? obj)
+            (let [matches (map #(% obj values) pats)]
+              (if (every? identity matches)
+                (Object/assign {} obj (zipObject names (map first matches)))))))))))
+
+  (defn pattern-make
+    "Pattern maker"
+    [pat]
+    (cond
+      (and (list? pat) (= 'quote (first pat))) (pattern-constant (first pat))
+      (pattern-var? pat) (pattern-var pat)
+      (pattern-constant? pat) (pattern-constant pat)
+      (dictionary? pat) (let [keys (keys pat)
+                              values (map #(aget pat %) keys)
+                              pats (map pattern-make values)]
+                          (if (every? #(empty? (aget (meta %) :vars)) pats)
+                            (pattern-constant pat)
+                            (pattern-dictionary
+                             keys
+                             pats)))
+      (vector? pat) (let [pats (map pattern-make pat)]
+                      (if (every? #(empty? (aget (meta %) :vars)) pats)
+                        (pattern-constant pat)
+                        (pattern-vector pats)))
+      (and (list? pat)
+           (= 'quote (first pat))) (let [items (second pat)
+                                         pats (map pattern-make items)]
+           (if (every? #(empty? (aget (meta %) :vars)) pats)
+             (pattern-constant pat)
+             (pattern-list pats)))
+      ;;(sequential? pat) (pattern-sequence pat)
+      :else (pattern-constant pat)))
+
+  (defn pattern-make-form
+    "Compile a pattern maker"
+    [pat]
+    (cond
+      (pattern-var? pat) `(pattern-var '~pat)
+      (pattern-constant? pat) `(pattern-constant '~pat)
+      (dictionary? pat) (let [keys (keys pat)
+                              values (map #(aget pat %) keys)
+                              pats (map pattern-make values)]
+                          (if (every? #(empty? (aget (meta %) :vars)) pats)
+                            `(pattern-constant ~pat)
+                            `(pattern-dictionary
+                              ~keys
+                              ~(map pattern-make-form values))))
+      (vector? pat) (let [pats (map pattern-make pat)]
+                    (if (every? #(empty? (aget (meta %) :vars)) pats)
+                      `(pattern-constant ~pat)
+                      `(pattern-vector [~@(map pattern-make-form pat)])))
+      (and (list? pat)
+           (= 'quote (first pat))) (let [items (second pat)
+                                         pats (map pattern-make items)]
+                                     (if (every? #(empty? (aget (meta %) :vars)) pats)
+                                       `(pattern-constant ~pat)
+                                       `(pattern-list
+                                         (list ~@(map pattern-make-form items)))))
+      (list? pat) (throw (Error. (str "Unrecognized list pattern.  Did you mean '" pat "?")))
+      ;;(sequential? pat) (pattern-sequence pat)
+      :else `(pattern-constant '~pat)))
+#+END_SRC
+
+#+NAME: Pattern Decls
+
+#+BEGIN_SRC wisp :results def
+  (defn pattern-decls
+    "Process pattern-based let declarations"
+    [vars error-tag]
+    (let [decls []
+          n 0]
+      (doseq [pat (every-other vars)
+              value (every-other (rest vars))]
+        (if (symbol? pat)
+          (.push decls pat value)
+          (let [pattern (pattern-make pat)
+                patternVar (gensym)]
+            (.push decls patternVar `(or ((pattern ~pat) ~value)
+                                         (throw (Error. (str ~error-tag " " ~n " does not match pattern: " ~(.-description pattern))))))
+            (doseq [v (keys (.-vars pattern))]
+              (.push decls (symbol v) `(aget ~patternVar  ~(name v))))))
+        (set! n (+ 1 n)))
+      decls))
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defmacro pattern
+    "Make a pattern"
+    [pat]
+    (pattern-make-form pat))
+
+  (defmacro p-let
+    "Let with patterns"
+    [vars & body]
+    `(let ~(pattern-decls vars "Variable") ~@body))
+
+  (defmacro p-defn
+    "Defn with patterns"
+    [name args & body]
+    (.apply window.console.log null args)
+    (if (every? #(symbol? %) args)
+      `(defn ~name ~args ~@body)
+      (let [doc (and (string? args) args)
+            args (if doc (first body) args)
+            body (if doc (rest body) body)
+            doc (or doc "")
+            gens (map (fn [] (gensym)) args)
+            decls (pattern-decls (interleave args gens) "Argument")]
+        `(defn ^{:doc ~doc} ~name ~gens
+           (let ~decls ~@body)))))
+#+END_SRC
+
+*** Tests
+#+BEGIN_SRC wisp :results dynamic
+;(macroexpand '(plet [[a] [1] b 2] prin a))
+(p-let [{:a fred} {:a 3} b 2] [b fred])
+(macroexpand '(p-defn q [a] (print a)))
+(p-defn q [[a]] (print a)) 
+(map (fn [] (.log window.console arguments)) [1 2])
+(q [:hello])
+;(or ((pattern [fred])[ ] 3 4))
+;(drop 2 [1 2 3 4 5])
+;(JSON/stringify (pattern-match-all (pattern [a]) 2 (pattern fred) 7))
+#+END_SRC
+#+RESULTS:
+: hello
+: 2,3
+: (&#39;def &#39;q (&#39;fn &#39;q [&#39;a] (&#39;print &#39;a)))
+: ,
+
+#+BEGIN_SRC wisp :results dynamic
+(= "(pattern fred)" (str (pattern fred)))
+(= "(pattern \"fred\")" (str (pattern "fred")))
+(= "(pattern \"fred\")" (str (pattern :fred)))
+(= "(pattern \":fred\")" (str (pattern ":fred")))
+(= "(pattern {:a 1})" (str (pattern {:a 1})))
+(= "(pattern '(1 fred))" (str (pattern '(1 fred))))
+(= "(pattern [1 fred])" (str (pattern [1 fred])))
+(->boolean ((pattern {:a 1}) {:a 1}))
+(not (->boolean ((pattern {:a 1}) {:a 2})))
+(= 3 (aget ((pattern {:a fred}) {:a 3}) :fred))
+(= 5 (aget ((pattern {:a fred}) ((pattern {:a fred}) {:a 3} {:fred 5})) :fred))
+(->boolean ((pattern '(1)) '(1)))
+(= 1 (aget ((pattern '(fred)) '(1)) :fred))
+(= '(2) ((pattern '(fred)) '(1) {:fred 2}))
+(->boolean ((pattern [1]) [1]))
+(= 1 (aget ((pattern [fred]) [1]) :fred))
+(= [2] ((pattern [fred]) [1] {:fred 2})) 
+#+END_SRC
+#+RESULTS:
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+: true
+
+** Transactions: pending changes to the world
+*** Proxies for ease of transactions
+**** Use a proxy on each retrieved piece of data in a transaction
+**** mark items as dirty when they are changed
+  #+BEGIN_SRC wisp :results def
+  (defn tr-init-proxy-methods
+	"Initialize proxy methods for a transaction proxies"
+	[trans]
+	(set! (:proxy-methods trans)
+          {:set (fn [target property value receiver] 
+                  (set! (aget (:dirty trans) property) true)
+                  (set! (aget target property) value))}))
+
+  (defn tr-proxy
+	"Make a transaction proxy on an object"
+	[trans obj]
+	(Proxy. obj (:proxy-methods trans)))
+  #+END_SRC
+*** Transaction-> macro
+**** (transaction-> STATEMENT ...)
+*** Transastion-> standard statements
+**** (clearIndex INDEX)
+**** (update DATA/SEQUENCE ...) -- makes a transaction with a copy of the data
+**** (remove DATA/ID/SEQUENCE ...)
+**** VAR <- (get ID)
+**** VAR <- (find INDEX)
+**** VAR <- (find INDEX ID)
+**** [VAR VALUE ...]
+**** (do STATEMENT ...) -- for side effects, return value is ignored
+**** (custom func arg arg arg ...)
+***** func is given transaction as first arg
+***** must return either the given transaction or a child of it
+*** Examples
+#+BEGIN_SRC wisp
+  ;(defCollab)
+  (defn test1
+    "Move an object from one place to another"
+    []
+    (transaction->
+     (clearIndex "id")
+     fred <- (tget "ExampleFred")
+     [name (tget (lens name) fred)]
+     (do (print (str "Name: " name)))))
+
+  (defn test2
+    "Move an object from one place to another"
+    []
+    (transaction->
+     (clearIndex "id")
+     (tlet
+      [fred (tr-get "ExampleFred")]
+      (let
+          [name (:name fred)]
+          (print name)
+          (set! (:name fred) "Charles"))
+      :then
+      (tr-update fred))))
+#+END_SRC
+*** Utilities
+#+BEGIN_SRC wisp :results def
+  (defn each-nested
+    "Do side effects over a nested list of vectors"
+    [func & items]
+    (.forEach (flatten items) func))
+
+  (defn flatten
+    "Flatten nested sequences"
+    [& items]
+    (let [result []
+          stack []]
+      (loop [item items]
+        (if (and (sequence? item) (not (string? item)) (not (imap? item)) (not (empty? item)))
+          (do
+            (.push stack (rest item))
+            (recur (first item)))
+          (do
+            (if (or (not (sequence? item)) (string? item))
+              (.push result item))
+            (if (empty? stack)
+              result
+              (recur (.pop stack))))))))
+#+END_SRC
+
+tests
+#+BEGIN_SRC wisp
+(= [1 2 3 4 5 6 7 8] (flatten [[1 2] [[3]] 4] 5 [6 [7 [8]]]))
+#+END_SRC
+*** Code
+#+NAME: transaction-object
+#+BEGIN_SRC wisp :results def
+(defn- Transaction
+  "Transaction type:
+    parent - parent transaction
+    creates - set of ids
+    updates - map of id->object
+    removes - set of ids
+    gets - map of id->object
+    names - map of name->id"
+  [parent creates updates removes gets names indexer]
+  (set! this.parent parent)
+  (set! this.creates (or (and creates (imap creates)) (iset [])))
+  (set! this.updates (or (and updates (imap updates)) (imap {})))
+  (set! this.removes (or (and removes (iset removes)) (iset [])))
+  (set! this.gets (or (and gets (imap gets)) (imap {})))
+  (set! this.names (or (and names (imap names)) (imap {})))
+  (set! this.indexer (or indexer (.copy (:indexer data))))
+  this)
+
+(defn- tr-string
+  "Convert a transaction to a string (toString())"
+  []
+  (str "(transaction "
+       (JSON/stringify (.toObject (:creates this))) " "
+       (JSON/stringify (.toObject (:updates this))) " "
+       (JSON/stringify (.toArray (:removes this))) " "
+       (JSON/stringify (.toObject (:gets this))) " "
+       (JSON/stringify (.toObject (:names this)))
+       ")"))
+(set! Transaction.prototype.toString tr-string)
+
+(set! Transaction.transactionNumber 0)
+
+(defn- tcopy
+  "Copy a transaction"
+  [creates updates removes gets names indexer]
+  (Transaction.
+   this
+   (or creates this.creates)
+   (or updates this.updates)
+   (or removes this.removes)
+   (or gets this.gets)
+   (or names this.names)
+   (or indexer this.indexer)))
+
+(set! Transaction.prototype.copy tcopy)
+
+(defn transaction
+  "Create a transaction"
+  [creates updates removes gets names indexer]
+  (Transaction. nil creates updates removes gets names indexer))
+
+(defn tr->json
+  "convert a transaction to JSON"
+  [trans]
+  {:creates (.toArray (:creates trans))
+   :updates (.toObject (:updates trans))
+   :removes (.toArray (:removes trans))
+   :gets (.toObject (:gets trans))
+   :names (.toObject (:names trans))})
+
+(defn json->tr
+  "Create a transaction from a JSON representation"
+  [json]
+  (Transaction.
+   (iset (:creates json))
+   (imap (:updates json))
+   (iset (:removes json))
+   (imap (:gets json))
+   (imap (:names json))
+   (indexAll (:gets json) (:updates json))))
+
+(defn indexAll
+  "Create indexer for dictionaries of blocks"
+  [& blockDicts]
+  (let [indexer (.copy (:indexer data))]
+    (doseq [dict blockDicts]
+      (doseq [key (keys dict)]
+        (let [block (aget dict key)]
+          (if (:keys block)
+            (set! indexer (.addBlockKey (:id block :key key)))))))
+    indexer))
+
+(defn tr-update
+  "Update or insert data"
+  [trans & objects]
+  (let [objects (flatten objects)
+        oldGets (:gets trans)
+        oldUpdates (:updates trans)
+        oldObjects (map #(.tr-get %) objects)]
+    debugger
+    (.copy trans
+           (:creates trans)
+           (.withMutations ;;; updates
+            oldUpdates
+            (fn [map]
+              (doseq [item objects] (.set map (:_id item) item))
+              map))
+           (.withMutations ;;; removes
+            (:removes trans)
+            (fn [set]
+              (doseq [item objects] (.delete set item))
+              set))
+           nil ;;; gets
+           (.withMutations ;;; names
+            (:names trans)
+            (fn [map]
+              (doseq [item objects
+                      oldItem oldObjects]
+                (let [name (:codeName item)
+                      oldName (and oldItem (:codeName oldItem))]
+                  (if (not (== name oldName))
+                    (if oldName
+                      (set! map (.delete map oldName)))
+                    (if name (.set map name (:_id item))))))
+              map))
+           (let [indexer (:indexer trans)] ;;; indexer
+             (doseq [item objects
+                     oldItem oldObjects]
+               (if oldItem
+                 (doseq [key (.keysFor indexer oldItem)]
+                   (set! indexer (.deleteBlockKey key))))
+               (doseq [key (.keysFor indexer item)]
+                 (set! indexer (.addBlockKey key))))
+             indexer))))
+
+(defn tr-remove
+  "Remove data -- arguments can be names, ids, or objects"
+  [trans & things]
+  (let [updates (:updates trans)
+        creates (:creates trans)
+        items (map #(tr-get %) (filter #(.contains updates %) (flatten things)))
+        ids (map #(:_id %) items)]
+    (.copy trans
+           (.withMutations ;;; creates
+            creates
+            (fn [creates] (doseq [id ids] (.remove creates id))))
+           (.withMutations ;;; updates
+            updates
+            (fn [updates] (doseq [id ids] (.remove updates id))))
+           (.withMutations ;;; removes
+            (:removes trans)
+            (fn [removes]
+              (doseq [item (filter #(not (.contains creates %)) ids)]
+                (.add removes item))))
+           nil ;;; gets
+           (.withMutations ;;; names
+            (:names trans)
+            (fn [names]
+              (doseq [item items]
+                (let [id (:_id item)
+                      name (:codeName item)]
+                  (if name
+                    (.remove names name))))))
+           (let [indexer (:indexer trans)] ;;; indexer
+             (doseq [item items]
+               (doseq [key (.keysFor indexer item)]
+                 (set! indexer (.deleteBlockKey key))))
+             indexer))))
+
+(defn tr-read
+  "Read data into the transaction.
+  (tr-read trans ids) -> [newTransaction, data1, data2, ...]
+  (tr-read trans ids func) -> result of (func newTransaction, data1, data2, ...)
+  ids is can actually be a combination of names and ids"
+  ([trans ids func] (apply func (tr-read ids)))
+  ([trans ids]
+   (let [removes (:removes trans)
+         updates (:updates trans)
+         gets (:gets trans)
+         allIds (flattenIds)
+         filteredIds (filter #(tr-realId %) allIds)
+         filteredIds (filter #(and id (not (or (.contains removes %)
+                                               (.contains updates %))) ids))
+         newGets (filter identity (map #(.getBlock data (or (.getNamedBlockId data %) %) filteredIds)))
+         named (filter #(:codeName %) newGets)
+         newTrans (if (empty? newGets)
+                    trans
+                    (.copy trans null null null
+                           (.withModifications
+                            (:gets trans)
+                            (fn [gets] (doseq [item newGets]
+                                         (.set gets (:_id item) item))))
+                           (if (empty? named)
+                             null
+                             (.withModifications
+                              (:names trans)
+                              (fn [names] (doseq [item named]
+                                            (.set names (:codeName item) (:_id item))))))))]
+     (let [result (map #(tr-get %) allIds)]
+       (.unshift result newTrans)
+       result))))
+
+(defn tr-find
+  "Find data in an index"
+  [trans index key]
+  (tr-get trans func (.find (:indexer trans) index key)))
+
+(defn tr-clearIndex
+  "Remove data in an index"
+  [trans indexName]
+  (tr-remove trans (tr-find trans indexName)))
+
+(defn tr-realId
+  "Get real Id for a thing"
+  [trans thing]
+  (let [id (if (dictionary? thing) (:_id thing) thing)]
+    (and (string? id)
+         (or (.get (:names trans) id)
+             (.getNamedBlockId data id)
+             id))))
+
+(defn tr-get
+  "Get a thing"
+  [trans thing]
+  (let [id (tr-realId thing)]
+    (and id
+         (not (.contains (:removes trans) id))
+         (or (.get (:updates trans) id)
+             (.get (:gets trans id))))))
+
+(defn tr-check
+  "If an object is a transaction, return it, otherwise raise an error"
+  [value errMsg]
+  (if (instance? Transaction value) value
+      (let [err (Error. (str errMsg value))]
+        (.error window.console errMsg value)
+        (.error window.console err)
+        (throw err))))
+
+(defn tr-valid?
+  "Verify that all of a transaction's gets are still valid"
+  [trans]
+  (every (fn [block]
+           (let [curBlock (.getBlock data (:_id block))]
+             (and curBlock
+                  (== (:text block) (:text curBlock)))))
+         (values (:gets trans))))
+
+(defn tr-commit
+  "Commit a transaction"
+  [trans]
+  (tr-check trans "Attempt to commit an object that is not a transaction: ")
+  (doseq [update (:updates trans)]
+    (.baseSetData data update (:codeAttributes update)))
+  (doseq [del (:removes trans)]
+    (.baseRemoveData data del)))
+#+END_SRC
+*** Transaction macro examples
+**** get usages
+#+BEGIN_SRC wisp
+  (transaction-> (Transaction.)
+   [a b c] <- (get "bob" "fred" "joe")
+   (do (print a b c))
+   ...)
+#+END_SRC
+**** get generated code
+#+BEGIN_SRC wisp
+(let [T1 (transaction)
+      RETRIEVE (tr-retrieve T1 "bob" "fred" "joe")
+      T2 (aget RETRIEVE 0)
+      a (aget RETRIEVE 1)
+      b (aget RETRIEVE 2)
+      c (aget RETRIEVE 3)]
+  (print a b c)
+  ...)
+#+END_SRC
+**** update usages
+#+BEGIN_SRC wisp
+  (transaction-> (Transaction.)
+   (update a b c)
+   ...)
+#+END_SRC
+**** update generated code
+#+BEGIN_SRC wisp
+********************
+#+END_SRC
+**** custom usages
+#+BEGIN_SRC wisp
+(transaction-> (Transaction.)
+  (custom frobnicate x y z)
+  ...)
+#+END_SRC
+**** custom generated code
+#+BEGIN_SRC wisp
+  (let [T1 (transaction)
+        T2 (tr-check (frobnicate T1 x y z))]
+    ...)
+#+END_SRC
+*** Transaction macro code
+#+BEGIN_SRC wisp :results def
+  (defn insert-arg
+    "Insert an item as the first arg in an expr"
+    [arg expr]
+    (if (seq? expr)
+      (cons (first expr) (cons arg (rest expr)))
+      (list expr arg)))
+
+  (defn filter-lets
+    "Arrow through transaction exprs using let bindings"
+    [body func]
+    (let [vars []]
+      (loop [exprs body
+             lastExpr nil
+             lastVar nil]
+        (if (empty? exprs)
+          (if (empty? vars) (or lastExpr lastVar) `(let ~vars ~lastExpr))
+          (let [expr (first exprs)
+                expr (if lastVar
+                       (insert-arg lastVar expr)
+                       expr)
+                expr (if func (func expr) expr)]
+            (if lastExpr (.push vars lastVar lastExpr))
+            (recur (rest exprs)
+                   (if (or lastVar func) expr)
+                   (if (or lastVar func)
+                     (gensym)
+                     expr)))))))
+
+  (def transactionArrowErrMsg
+    "transaction-> expression returned an object that is not a transaction: ")
+
+  (defmacro do->
+    "Do side effects and return the result of the first expression"
+    [expr & body]
+    (if (empty? body)
+      expr
+      (let [name (gensym)]
+        `(let [~name ~expr]
+           ~@body
+           ~name))))
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defmacro transaction->
+    "Arrow through transaction exprs, verifying that each value is a transaction"
+    [& body]
+    (filter-lets body #(list 'tr-check % 'transactionArrowErrMsg)))
+#+END_SRC
+*** Transaction macro tests
+#+BEGIN_SRC wisp
+(macroexpand '(transaction->))
+(macroexpand '(transaction-> a))
+(macroexpand '(transaction-> a b))
+(macroexpand '(transaction-> a b (c d)))
+(macroexpand '(do-> a b c))
+(macroexpand '(transaction-> a (do-> b (c d)) e f))
+#+END_SRC
+#+RESULTS:
+: (&#39;tr-check &#39;a &#39;transactionArrowErrMsg)
+: (&#39;let [&#39;G__115 (&#39;tr-check &#39;a &#39;transactionArrowErrMsg)] (&#39;tr-check (&#39;b &#39;G__115) &#39;transactionArrowErrMsg))
+: (&#39;let [&#39;G__117 (&#39;tr-check &#39;a &#39;transactionArrowErrMsg) &#39;G__118 (&#39;tr-check (&#39;b &#39;G__117) &#39;transactionArrowErrMsg)] (&#39;tr-check (&#39;c &#39;G__118 &#39;d) &#39;transactionArrowErrMsg))
+: (&#39;let [&#39;G__120 &#39;a] &#39;b &#39;c &#39;G__120)
+: (&#39;let [&#39;G__121 (&#39;tr-check &#39;a &#39;transactionArrowErrMsg) &#39;G__122 (&#39;tr-check (&#39;do-&gt; &#39;G__121 &#39;b (&#39;c &#39;d)) &#39;transactionArrowErrMsg) &#39;G__123 (&#39;tr-check (&#39;e &#39;G__122) &#39;transactionArrowErrMsg)] (&#39;tr-check (&#39;f &#39;G__123) &#39;transactionArrowErrMsg))
+
+#+BEGIN_SRC wisp
+debugger
+(-> 33 (do-> 1 2 3) (+ 2))
+#+END_SRC
+
+
+#+RESULTS:
+: 35
+*** Example code
+#+BEGIN_SRC wisp
+  (tr-commit
+   (transaction-> (Transaction.)
+    (tr-read ["fred" "bob"]
+             (fn [trans fred bob]
+               (aset (:))))))
+#+END_SRC
+* GUI
+:properties:
+:namespace: mud.core
+:end:
+#+BEGIN_SRC css
+    .worldContainer {
+        height: 480px;
+        position: relative;
+        width: 640px;
+    }
+    .leftSide {
+        border: 1px solid #777;
+        height: 470px;
+        left: 5px;
+        position: absolute;
+        top: 5px;
+        width: 310px;
+    }
+    .rightSide {
+        border: 1px solid #777;
+        height: 470px;
+        position: absolute;
+        right: 5px;
+        top: 5px;
+        width: 310px;
+    }
+    .textLog {
+        border: 1px solid #777;
+        height: 385px;
+        margin: 5px;
+        padding: 5px;
+        position: absolute;
+        width: 290px;
+    }
+    .commandEntry {
+        border: 1px solid #777;
+        height: 50px;
+        margin: 5px;
+        padding: 5px;
+        position: absolute;
+        top: 400px;
+        width: 290px;
+    }
+    input.commandInput {
+        width: 290px;
+    }
+#+END_SRC
+
+#+NAME: consoleController
+#+BEGIN_SRC wisp
+ (defn init [view]
+   (let [input (aget (.find ($ view) ".commandInput") 0)]
+     (.addEventListener
+      input "keydown"
+      (fn [e]
+        (.stop-propagation e)))
+     (.addEventListener
+      input "keypress"
+      (fn [e]
+        (.stop-propagation e)))))
+
+ (set! this.initializeView init)
+#+END_SRC
+
+#+BEGIN_HTML :controller consoleController
+<div class="worldContainer">
+    <div class="leftSide">
+        rooms
+    </div>
+    <div class="rightSide">
+        <div class="textLog">
+            Text log
+        </div>
+        <div class="commandEntry">
+            Enter command:<br>
+            <input class="commandInput" type="text">
+        </div>
+    </div>
+</div>
+#+END_HTML
+
+* Parser
+:properties:
+:namespace: mud.core
+:end:
+* Utilites
+* NOTES
+** Unit testing
+*** Make doc for each test dungeon
+*** Import mud.org (hopefully nested imports work)
+* Data
+:properties:
+:name: data-items
+:end:

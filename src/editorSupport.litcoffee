@@ -853,7 +853,7 @@ that must be done regardless of the source of changes
           result
 
       getYaml = (block)->
-        block.yaml ? (block.yaml = if isYamlResult block
+        _.cloneDeep block.yaml ? (block.yaml = if isYamlResult block
           {results} = blockCodeItems this, block
           if results
             firstResult = results.text.indexOf('\n') + 1

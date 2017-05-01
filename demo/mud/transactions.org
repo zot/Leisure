@@ -1,0 +1,92 @@
+#+TITLE: Data access
+* Transaction code
+The basic transaction object
+
+#+BEGIN_SRC leisure :results def
+transaction creates reads updates deletes = \f . f creates reads updates deletes
+
+isTransaction t = hasType t transaction
+
+defCase showBase.transaction func obj | isTransaction obj -> obj \creates reads updates deletes .
+  concat['(transaction ' (showBase func creates) ' ' (showBase func reads) ' ' (showBase func updates) ' ' (showBase func deletes) ')']
+
+defCase toJson.transaction tr | isTransaction tr -> tr \creates reads updates deletes .
+  toJsonObject {
+    'type':'transaction'
+    'creates':(toJson creates)
+    'reads':(toJson reads)
+    'updates':(toJson updates)
+    'deletes':(toJson deletes)}
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamicx
+setValue 'x' (toJson (transaction 1 2 3 4))
+#+END_SRC
+#+RESULTS:
+: 
+
+* Collaborative code
+#+BEGIN_SRC leisure :results def
+mungeBubbaNumber env n = do
+  debug
+  b <- getData 'bubba'
+  setData 'bubba' (set 'number' n b)
+makeCollaborative mungeBubbaNumber
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+mungeBubbaNumber 28
+#+END_SRC
+
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  b <- getDataUnsafe 'bubba'
+  c = set 'number' 5 b
+  print c
+#+END_SRC
+#+RESULTS:
+: {"number":5 "name":"bubba"}
+: 
+
+#+NAME: bubba
+#+BEGIN_SRC yaml
+name: bubba
+number: 34
+#+END_SRC
+
+#+NAME: fred
+#+BEGIN_SRC yaml
+name: fred
+number: 2
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+set 'a' 1 {}
+#+END_SRC#
+#+RESULTS:
+: {"a":1}
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  i <- for repeat 4
+  print i
+  i
+#+END_SRC
+#+RESULTS:
+: 0
+: 1
+: 2
+: 3
+: [0 1 2 3]
+
+
+#+BEGIN_SRC leisure :results dynamic
+#+END_SRC
+
+
+* Transactions
+Minimalistic collaborative transactions. Since we execute collaborative code on
+the master peer, we'd like to execute as much code on the slave peers as possible. So,
+we have a transaction object that records the assumptions in a transaction, along with
+transaction

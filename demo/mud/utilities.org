@@ -1,0 +1,365 @@
+#+TITLE:Utilities
+* break
+#+BEGIN_SRC cs def
+debugger
+#+END_SRC
+* Basic Clojure stuff
+:properties:
+:namespace: mud.core
+:end:
+** Name space
+#+BEGIN_SRC wisp :results def
+(ns mud.core
+  (:require
+   [wisp.runtime :refer [identity odd? even? dictionary? dictionary
+                         keys vals key-values merge satisfies?
+                         contains-vector? map-dictionary error?
+                         string? number? date? boolean? re-pattern?
+                         object? nil? true? false? re-find re-matches
+                         re-pattern inc dec str char int subs and or
+                         print to-string = max min fn? vector?]]
+   [wisp.ast :refer [symbol symbol? keyword? keyword-name name
+                     namespace gensym unquote? unquote-splicing?
+                     quote? syntax-quote? quote-string pr-str
+                     meta with-meta]]
+   [wisp.sequence :refer [lazy-seq lazy-seq? list? list cons
+                          sequential? reverse map filter reduce
+                          count empty? first second third rest
+                          last butlast take take-while drop conj
+                          assoc concat seq seq? vec sort repeat
+                          every? some partition interleave nth]]
+   [wisp.string :refer [split split-lines join upper-case lower-case
+                        capitalize pattern-escape replace-first replace
+                        blank? reverse triml trimr trim]
+                        :rename {reverse string-reverse}]
+   [wisp.compiler :refer [read-forms]]
+   [wisp.expander :refer [macroexpand]]
+   [wisp.backend.escodegen.writer :refer [translate-identifier-word]]
+   [immutable :refer [List OrderedSet Map Seq]
+    :rename {List ImmutableList OrderedSet ImmutableSet Map ImmutableMap Seq ImmutableSeq}]
+   [lodash :refer [zipObject has]]
+   [editor-support :refer [DataIndexer]]))
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+(Leisure/dbg)
+(def data Lounge.data)
+#+END_SRC
+
+** macros
+#+BEGIN_SRC wisp :results def
+(defmacro ->
+  [& operations]
+  (reduce
+   (fn [form operation]
+     (if (seq? operation)
+       (cons (first operation) (cons form (rest operation)))
+       (list operation form)))
+   (first operations)
+   (rest operations)))
+
+(defn dbg [] (Leisure.dbg))
+
+(defmacro advise [fn old args & body]
+  (let [OLD (gensym)]
+    `(let [~OLD ~fn]
+       (set! ~fn (fn ~args
+                   (apply (fn ~(.concat [old] args) ~@body) ~OLD ~args)))
+       nil)))
+
+(defmacro set-> [form value]
+  `(set! ~form ~(if (seq? value)
+                  (cons (first value) (cons form (rest value)))
+                  (list value form))))
+
+(defmacro alias [newName namespace]
+  `(def ~newName ~namespace))
+#+END_SRC
+** Immutable Funcs
+#+BEGIN_SRC wisp :results def
+(defn ivec? [coll] (instance? ImmutableList coll))
+(defn ivec [coll] (if (ivec? coll) coll (ImmutableList (vec coll))))
+(defn imap? [coll] (instance? ImmutableMap coll))
+(defn imap [coll] (if (imap? coll) coll (ImmutableMap (vec coll))))
+(defn iset? [coll] (instance? ImmutableSet coll))
+(defn set? [coll] (instance? ImmutableSet coll))
+(defn iset [coll] (if (iset? coll) coll (ImmutableSet (vec coll))))
+(defn set [& coll] (iset coll))
+(defn iseq? [coll] (instance? ImmutableSeq coll))
+(defn immutablejs? [coll] (or (ivec? coll) (imap? coll) (iseq? coll) (iset? coll)))
+(defmacro obj-delegate [fn comp]
+  `(let [old ~fn]
+     (set! ~fn (fn [coll]
+                 (if (~comp coll) (~(symbol (.-namespace fn) (str "." (.-name fn))) coll)
+                     (old coll))))
+     nil))
+(defmacro immutablejs-delegate [fn] `(obj-delegate ~fn immutablejs?))
+
+(advise sequential? old [coll] (or (old coll) (immutablejs? coll)))
+(immutablejs-delegate reverse)
+(immutablejs-delegate count)
+(immutablejs-delegate empty?)
+(immutablejs-delegate first)
+(immutablejs-delegate rest)
+(immutablejs-delegate last)
+(immutablejs-delegate sort)
+
+(advise map old [f coll]
+        (if (immutablejs? coll) (.map coll f) (old f coll)))
+(advise filter old [f? coll]
+        (if (immutablejs? coll)  (.filter coll f?) (old f? coll)))
+(let [old reduce]
+  (set! reduce
+        (fn [f & params]
+          (let [has-initial (>= (count params) 2)
+                initial (if has-initial (first params))
+                coll (if has-initial (second params) (first params))]
+            (if (immutablejs? coll)
+              (if initial (.reduce coll f initial) (.reduce (rest coll) f (first coll)))
+              (apply old f params))))))
+(advise second old [coll] (if (immutablejs? coll) (.get coll 2) (old coll)))
+(advise third old [coll] (if (immutablejs? coll) (.get coll 3) (old coll)))
+(advise third old [coll] (if (immutablejs? coll) (.but-last coll) (old coll)))
+(advise take old [n coll] (if (immutablejs? coll) (.take coll n) (old n coll)))
+(advise take-while old [pred coll] (if (immutablejs? coll) (.take-while coll pred) (old pred coll)))
+(advise drop old [n coll] (if (immutablejs? coll) (.skip coll n) (old n coll)))
+(let [old conj]
+  (set! conj
+        (fn [coll & items]
+          (cond
+            (ivec? coll) (.apply ImmutableList.prototype.push coll items)
+            (imap? coll) (.apply ImmutableMap.prototype.push coll items)
+            :else (apply old coll items)))))
+(advise seq old [coll] (if (immutablejs? coll) (.toArray coll) (old coll)))
+(advise vec old [coll] (if (immutablejs? coll) (.toArray coll) (old coll)))
+(defn join
+  "Returns a string of all elements in coll, as returned by (seq coll),
+   separated by an optional separator.
+   Redefined here so it uses the advised vec"
+  ([coll]
+     (apply str (vec coll)))
+  ([separator coll]
+     (.join (vec coll) separator)))
+#+END_SRC
+** Sequence Funcs
+*** Code
+#+BEGIN_SRC wisp :results def
+(defn find
+  [satisfies? sequence]
+  (loop [sequence sequence]
+    (cond
+      (empty? sequence) nil
+      (satisfies? (first sequence)) (first sequence)
+      :else (recur (rest sequence)))))
+
+(defn contains?
+  "Does this sequence contain this item?"
+  [sequence item]
+  (find #(== % item) sequence))
+
+(defn intersperse
+  "Intersperse a sequence with an item"
+  [sequence item]
+  (if (empty? sequence) sequence
+      (let [rest (drop 1 sequence)]
+        (if (empty? rest) sequence
+            (let [sequence (if (list? sequence) (reverse sequence) sequence)]
+              (reduce (fn [result x] (conj result item x))
+                      (take 1 sequence)
+                      (drop 1 sequence)))))))
+(defn every-other
+  "Get every other item in a vector or list"
+  [l]
+  (loop [l (cond (vector? l) l
+                 (list? l) (if (odd? (count l)) (reverse l)
+                               (rest (reverse l)))
+                 :else [])
+         result (if (list? l) () [])]
+    (cond (empty? l) result
+          (empty? (rest l)) (conj result (first l))
+          :else (recur (rest (rest l)) (conj result (first l))))))
+
+(set! window.WISP_DEBUG true)
+
+(defn values
+  "Get values of a map"
+  [map]
+  (cond
+    (dictionary? map) (Object/values map)
+    (imap? map) (.valueSeq map)
+    :else nil))
+
+(defn transpose
+  "Transpose a list of lists"
+  [lists]
+  (loop [lists (cond
+                 (list? (first lists)) (apply list lists)
+                 (ivec? (first lists)) (ivec lists)
+                 :else lists)
+         result (cond
+                  (vector? (first lists)) []
+                  (ivec? (first lists)) (ivec [])
+                  :else ())]
+    (if (empty? (first lists))
+      (if (list? (first lists)) (reverse result) result)
+      (recur (map rest lists) (conj result (map first lists))))))
+
+(defn zip
+  "Gather up corresponding elements into a list"
+  [& lists]
+  (transpose lists))
+
+(defn unzip
+  "Split up elements into corresponding sequences"
+  [lists]
+  (transpose lists))
+#+END_SRC
+
+#+BEGIN_SRC wisp :results def
+  (defmacro doseq
+    "Iterate over sequences"
+    [bindings & body]
+    (let [names (every-other bindings)
+          sequences (every-other (rest bindings))
+          seqVars (map (fn [] (gensym)) names)
+          inits (loop [v seqVars
+                       s sequences
+                       inits []]
+                  (if (empty? v) inits
+                      (recur (rest v) (rest s) (conj inits (first v) (first s)))))
+          emptyTests (cons 'or (map (fn [x] `(empty? ~x)) seqVars))
+          nextSeqs (map (fn [x] `(rest ~x)) seqVars)
+          letVars (loop [n names
+                         v seqVars
+                         res []]
+                    (if (empty? n) res
+                        (recur (rest n) (rest v) (conj res (first n) `(first ~(first v))))))]
+      `(loop ~inits
+         (if ~emptyTests nil
+             (let ~letVars
+               ~@body
+               (recur ~@nextSeqs))))))
+#+END_SRC
+*** Tests
+#+BEGIN_SRC wisp
+  (= (find even? [1 1 2 3 4]) 2)
+  (= (intersperse [1 2 3] 10) [1 10 2 10 3])
+#+END_SRC
+** EDN
+   :properties:
+   :namespace: mud.core
+   :end:
+#+BEGIN_SRC wisp :results def
+(def space (re-pattern " "))  
+(defn edn-stringify
+  "stringify an object to edn"
+  [obj]
+  (cond (or (string? obj)
+            (and (or (symbol? obj) (keyword? obj)) (re-find space obj)))
+          (JSON/stringify (name obj))
+        (symbol? obj) (name obj)
+        (or (keyword? obj) (boolean? obj) (number? obj)) (str obj)
+        (nil? obj) "nil"
+        (set? obj) (edn-seq "#{" (map edn-stringify obj) "}")
+        (list? obj) (edn-seq "(" (map edn-stringify obj) ")")
+        (vector? obj) (edn-seq "[" (map edn-stringify obj) "]")
+        (dictionary? obj) (edn-seq "{"
+                                    (map (fn [el]
+										   (let [k (aget el 0)
+                                                 v (aget el 1)]
+                                             (str k " " (edn-stringify v)))) obj)
+                                    "}")
+
+        :else obj))
+
+(defn edn-seq
+  [start seq end]
+  (str start (join (intersperse seq " ")) end))
+
+(defn <-edn
+  "parse a EDN string"
+  [s]
+  (aget (:forms (read-forms s "anonymous.wisp")) 0))
+#+END_SRC
+** Testing
+#+BEGIN_SRC wisp :results def
+  (defn ->boolean
+    "Convert an object to a boolean"
+    [x]
+    (not (not x)))
+#+END_SRC
+** edn
+#+BEGIN_SRC wisp :results def
+  (defn ->edn
+    "EDN for a value"
+    [val]
+    (cond
+      (named? val) (str "\"" val "\"")
+      (dictionary? val) (str "{"
+                             (join " " (map #(str ":" (aget % 0) " " (edn (aget % 1))) val))
+                             "}")
+      (vector? val) (str "[" (join " " (map #(edn %) val)) "]")
+      (list? val) (str "(" (join " " (map #(edn %) val)) ")")
+      (or (boolean? val) (number? val)) (str val)
+      :else (throw (str "Could not encode value: " val))))
+#+END_SRC
+** Writer tweaks
+#+BEGIN_SRC wisp :results def
+  (advise translate-identifier-word old [form]
+          (old (join "-colon-" (split (name form) ":"))))
+#+END_SRC
+** System Funcs
+#+BEGIN_SRC wisp :results def
+  (defn sum [& args]
+    (loop [tot 0
+           a args]
+      (if (empty? a)
+        tot
+        (recur (+ tot (first a)) (rest a)))))
+  (defn multiply [& args]
+    (loop [tot 1
+           a args]
+      (if (empty? a)
+        tot
+        (recur (* tot (first a)) (rest a)))))
+  (defn subtract [& args]
+    (if (empty? args)
+      (throw (Error "Wrong number of arguments (0) passed to: subtract"))
+      (loop [tot (first args)
+             a (rest args)]
+        (if (empty? a)
+          tot
+          (recur (- tot (first a)) (rest a))))))
+  (defn divide [& args]
+    (if (empty? args)
+      (throw (Error "Wrong number of arguments (0) passed to: divide"))
+      (loop [tot (first args)
+             a (rest args)]
+        (if (empty? a)
+          tot
+          (recur (/ tot (first a)) (rest a))))))
+  (defn strict-equal? [& args]
+    (if (or (empty? args) (empty? (rest args)))
+      (throw (Error (str "Wrong number of arguments (" (.-length args)  ") passed to: strict-equal?")))
+      (let [target (first args)]
+        (loop [a (rest args)]
+          (cond (empty? a) true
+                (not (== target (first a))) false
+                :else (recur (rest a)))))))
+  (defn- gt [name args]
+    (loop [min (first args)
+           a (rest args)]
+      (if (empty? a)
+        true
+        (and (> min (first a)) (recur (first a) (rest a))))))
+  (defn- lt [name args]
+    (loop [max (first args)
+           a (rest args)]
+      (if (empty? a)
+        true
+        (and (< max (first a)) (recur (first a) (rest a))))))
+  (defn not-greater-than [& args] (not (gt "not-greater-than" args)))
+  (defn greater-than [& args] (gt "greater-than" args))
+  (defn not-less-than [& args] (not (lt "not-less-than" args)))
+  (defn less-than [& args] (lt "less-than" args))
+#+END_SRC

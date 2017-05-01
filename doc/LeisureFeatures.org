@@ -13,6 +13,8 @@ Leisure is an attempt to make a dynamically typed, lazy language that is
 - convenient
 - powerful
 * "Lazy" (call-by-need)
+Among other things, it lets you write infinitely recursive functions and make infinite structures that are actually useful.
+
 #+BEGIN_SRC leisure :results dynamic
 ones = [1 | ones]
 take 4 ones

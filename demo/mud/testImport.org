@@ -1,0 +1,40 @@
+* break
+#+BEGIN_SRC cs :results def
+debugger
+#+END_SRC
+* Setup
+:properties:
+:hidden: trueX
+:import: utilities.org
+:end:
+* Name space
+#+BEGIN_SRC wisp :results def
+(ns mud.testimport
+  (:require
+   [wisp.runtime :refer [identity odd? even? dictionary? dictionary
+                         keys vals key-values merge satisfies?
+                         contains-vector? map-dictionary error?
+                         string? number? date? boolean? re-pattern?
+                         object? nil? true? false? re-find re-matches
+                         re-pattern inc dec str char int subs and or
+                         print to-string = max min fn? vector?]]
+   [wisp.ast :refer [symbol symbol? keyword? keyword-name name
+                     namespace gensym unquote? unquote-splicing?
+                     quote? syntax-quote? quote-string pr-str
+                     meta with-meta]]
+   [wisp.sequence :refer [lazy-seq lazy-seq? list? list cons
+                          sequential? reverse map filter reduce
+                          count empty? first second third rest
+                          last butlast take take-while drop conj
+                          assoc concat seq seq? vec sort repeat
+                          every? some partition interleave nth]]
+   [wisp.string :refer [split split-lines join upper-case lower-case
+                        capitalize pattern-escape replace-first replace
+                        blank? reverse triml trimr trim]
+                        :rename {reverse string-reverse}]
+   [wisp.compiler :refer [read-forms]]
+   [wisp.expander :refer [macroexpand]]
+   [wisp.backend.escodegen.writer :refer [translate-identifier-word]]
+   [mud.utilities :refer [dbg]]))
+#+END_SRC
+** bubba

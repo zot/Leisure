@@ -1,0 +1,8 @@
+#+TITLE: Leisure tests
+* Multiple def call bug
+#+BEGIN_SRC leisure :results def
+debug
+print 'THIS SHOULD ONLY APPEAR ONCE!'
+print 'SAME FOR THIS!'
+print 'THIS TOO!'
+#+END_SRC

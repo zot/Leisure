@@ -1,0 +1,110 @@
+#+TITLE: Data access
+* Collaborative code
+#+BEGIN_SRC leisure :results def
+mungeBubbaNumber env n = do
+  b <- getData 'bubba'
+  setData 'bubba' (aconsf 'number' n b)
+makeCollaborative mungeBubbaNumber
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+mungeBubbaNumber 34
+#+END_SRC
+#+RESULTS:
+: (right )
+
+#+BEGIN_SRC leisure :results dynamic
+[39
+#+END_SRC
+#+RESULTS:
+: [39]
+
+#+NAME: bubba
+#+BEGIN_SRC yaml
+name: bubba
+number: 34
+#+END_SRC
+
+#+NAME: fred
+#+BEGIN_SRC yaml
+name: fred
+number: 2
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic
+doall [
+  print 'one'
+  do
+    print 'two'
+    t <- tagEnv
+    print t
+    u <- tagEnv
+    print u
+    ct1 <- currentTag
+    print['current tag: ' ct1]
+    n <- prompt 'name?'
+    ct2 <- currentTag
+    print['current tag: ' ct2]
+    print 'three'
+  do
+    print 'four'
+    t <- tagEnv
+    print['currentTag: ' t]
+    print 'five']
+
+#+END_SRC
+#+RESULTS:
+: "one"
+: "two"
+: 1
+: 1
+: "current tag: 1"
+: "current tag: 1"
+: "three"
+: "four"
+: "currentTag: 1"
+: "five"
+: 
+
+#+BEGIN_SRC leisure :results dynamic
+do
+  i <- for repeat 4
+  print i
+  i
+#+END_SRC
+#+RESULTS:
+: 0
+: 1
+: 2
+: 3
+: [0 1 2 3]
+
+
+#+BEGIN_SRC leisure :results dynamic
+subpartition predicate list result =
+  isNil list
+    nil
+    predicate (head list)
+      cons (reverse result) list
+      subpartition predicate (tail list) (cons (head list) result)
+partition predicate list = subpartition predicate list []
+partition (isTokenString '<-') ['x' 'z' '<-' 3 4]
+#+END_SRC
+#+RESULTS:
+: 
+: 
+: [["x" "z"] "&lt;-" 3 4]
+
+
+* Transactions
+Tonilimistic collaborative transactions. Since we execute collaborative code on
+the master peer, we'd like to execute as much code on the slave peers as possible. So,
+we have a transaction object that records the assumptions in a transaction, along with
+transaction
+* Transaction code
+The basic transaction object
+
+#+BEGIN_SRC leisure :results def
+transaction creates reads updates deletes = \f . f creates reads updates deletes
+
+#+END_SRC

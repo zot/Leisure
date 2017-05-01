@@ -1,0 +1,14 @@
+#+TITLE:Things to do with mud
+* Environmentalism
+** run all test cases
+** browser load/save
+** better navigation, narrow to subtree, etc.
+* Leisure Linguistics
+** try to clean up generated code
+** speed
+** debugging
+** AST showing
+* Game
+** isometric view
+** basic functionality
+*** transactions

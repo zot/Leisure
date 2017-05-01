@@ -1,0 +1,28 @@
+#+TITLE:Errors
+* Setup
+:properties:
+:hidden: true
+:end:
+** Import utilities
+:properties:
+:import: utilities.org
+:end:
+
+* Test
+:properties:
+:namespace: mud.core
+:end:
+#+NAME: errorTest
+This produces an unexpected token ) error because it terminates the push
+incorrectly.
+#+BEGIN_SRC wisp
+((fn [x] x) 1)
+#+END_SRC
+
+#+BEGIN_SRC wisp :results dynamic
+(sum 1 2)
+#+END_SRC
+
+#+BEGIN_SRC wisp :results dynamicX
+(reduce + [1 2 3])
+#+END_SRC
