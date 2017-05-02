@@ -209,6 +209,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define '_strLen', (str)-> rz(str).length
   define '_strToLowerCase', (str)-> rz(str).toLowerCase()
   define '_strToUpperCase', (str)-> rz(str).toUpperCase()
+  define '_strReverse', (str)->
+    s = rz(str)
+    result = ''
+    for i in [s.length - 1 .. 0] by -1
+      result += s[i]
+    result
   define '_strReplace', (str, pat, repl)-> if isPartial arguments then partialCall arguments else
     rz(str).replace rz(pat), rz(repl)
   strCoord = (str, coord)-> if coord < 0 then str.length + coord else coord
@@ -902,7 +908,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 #######################
 
   makeMap = (map)->
-    h = (f)-> f map
+    h = (f)-> f(-> mapFirst map)(-> mapRest map)
+    h.map = map
     h.leisureType = 'hamt'
     h
 
@@ -911,18 +918,21 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'hamt', hamt
   
+  define 'mapSize', (map)-> if isPartial arguments then partialCall arguments else
+    rz(map).map.size
+
   define 'mapSet', (key, value, map)-> if isPartial arguments then partialCall arguments else
-    makeMap rz(map)(identity).set rz(key), rz(value)
+    makeMap rz(map).map.set rz(key), rz(value)
 
   define 'mapGet', (key, map)-> if isPartial arguments then partialCall arguments else
-    rz(map)(identity).get rz(key)
+    rz(map).map.get rz(key)
 
   define 'mapGetOpt', (key, map)-> if isPartial arguments then partialCall arguments else
-    v = rz(map)(identity).get rz(key)
+    v = rz(map).map.get rz(key)
     if v != undefined then some v else none
 
   define 'mapRemove', (key, map)-> if isPartial arguments then partialCall arguments else
-    makeMap rz(map)(identity).remove rz(key)
+    makeMap rz(map).map.remove rz(key)
 
 #  define 'mapOpts', (eq)->(hash)->
 #
@@ -936,16 +946,19 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 #
 #  define 'mapDissocOpts', (map)->(key)->(opts)-> amt.dissoc(rz(map), rz(key), rz(opts))
 
-  define 'mapFirst', (map)->
-    map = rz(map)(identity)
-    key = map.keySeq().first()
+  mapFirst = (map)->
+    key = map.reverse().keySeq().first()
     rz(L_cons)(lz key)(lz map.get key)
 
-  define 'mapRest', (map)-> makeMap rz(map)(identity).rest()
+  define 'mapFirst', (map)-> mapFirst rz(map).map
+
+  mapRest = (map)-> makeMap map.butLast()
+
+  define 'mapRest', (map)-> mapRest rz(map).map
 
   define 'mapPairs', (map)->
-    h = rz(map)(identity)
-    nextMapPair h, h.reverse().keySeq()
+    h = rz(map).map.reverse()
+    nextMapPair h, h.keySeq()
 
   nextMapPair = (map, keys)->
     if !keys.size then rz L_nil
@@ -953,10 +966,11 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       k = keys.first()
       rz(L_acons)(lz(k), lz(map.get(k)), -> nextMapPair map, keys.rest())
 
-  define 'mapReverse', (map)-> makeMap rz(map)(identity).reverse()
+  define 'mapReverse', (map)-> makeMap rz(map).map.reverse()
 
   makeSet = (set)->
-    s = (f)-> f set
+    s = (f)-> f(-> set.first())(-> setRest set)
+    s.set = set
     s.leisureType = 'amtSet'
     s
 
@@ -965,37 +979,40 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'amtSet', amtSet
 
+  define 'setSize', (set)-> rz(set).set.size
+
   define 'setAdd', (value, set)-> if isPartial arguments then partialCall arguments else
-    makeSet rz(set)(identity).add rz value
+    makeSet rz(set).set.add rz value
 
   define 'setRemove', (value, set)-> if isPartial arguments then partialCall arguments else
-    makeSet rz(set)(identity).delete rz value
+    makeSet rz(set).set.delete rz value
 
   define 'setUnion', (setA, setB)-> if isPartial arguments then partialCall arguments else
-    makeSet rz(setA)(identity).union rz(setB)(identity)
+    makeSet rz(setA).set.union rz(setB).set
 
   define 'setIntersect', (setA, setB)-> if isPartial arguments then partialCall arguments else
-    makeSet rz(setA)(identity).intersect rz(setB)(identity)
+    makeSet rz(setA).set.intersect rz(setB).set
 
   define 'setSubtract', (setA, setB)-> if isPartial arguments then partialCall arguments else
-    makeSet rz(setA)(identity).subtract rz(setB)(identity)
+    makeSet rz(setA).set.subtract rz(setB).set
 
-  define 'setItems', (set)-> nextSetItem rz(set)(identity).reverse()
+  define 'setItems', (set)-> nextSetItem rz(set).set.reverse()
 
   nextSetItem = (s)->
     if !s.size then rz L_nil
     else rz(L_cons)(lz(s.first()), -> nextSetItem s.rest())
 
-  define 'setFirst', (set)-> makeSet rz(set)(identity).first()
+  define 'setFirst', (set)-> rz(set).set.first()
 
-  define 'setRest', (set)-> makeSet rz(set)(identity).rest()
+  setRest = (set)-> makeSet set.butLast()
 
-  define 'setReverse', (set)-> makeSet rz(set)(identity).reverse()
+  define 'setRest', (set)-> setRest rz(set).set
 
-
+  define 'setReverse', (set)-> makeSet rz(set).set.reverse()
 
   makeVector = (vec)->
-    v = (f)-> f vec
+    v = (f)-> f(-> vec.first())(-> vectorRest vec)
+    v.vector = vec
     v.leisureType = 'vector'
     v
 
@@ -1004,32 +1021,40 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'vector', vector
 
+  define 'vectorSize', (value, vec)-> rz(vec).vector.size
+
   define 'vectorPush', (value, vec)-> if isPartial arguments then partialCall arguments else
-    makeVector rz(vec)(identity).push rz value
+    makeVector rz(vec).vector.push rz value
 
   define 'vectorPop', (value, vec)-> if isPartial arguments then partialCall arguments else
-    makeVector rz(vec)(identity).pop()
+    makeVector rz(vec).vector.pop()
 
   define 'vectorShift', (value, vec)-> if isPartial arguments then partialCall arguments else
-    makeVector rz(vec)(identity).shift()
+    makeVector rz(vec).vector.shift()
 
   define 'vectorUnshift', (value, vec)-> if isPartial arguments then partialCall arguments else
-    makeVector rz(vec)(identity).unshift rz value
+    makeVector rz(vec).vector.unshift rz value
 
   define 'vectorConcatg', (vecA, vecB)-> if isPartial arguments then partialCall arguments else
-    makeSet rz(vecA)(identity).concat rz(vecB)(identity)
+    makeSet rz(vecA).vector.concat rz(vecB).vector
 
-  define 'vectorItems', (vec)-> nextVectorItem rz(vec)(identity)
+  define 'vectorItems', (vec)-> nextVectorItem rz(vec).vector
 
   nextVectorItem = (v)->
     if !v.size then rz L_nil
     else rz(L_cons)(lz(v.first()), -> nextVectorItem v.rest())
 
-  define 'vectorFirst', (vec)-> makeVector rz(vec)(identity).first()
+  define 'vectorFirst', (vec)-> rz(vec).vector.first()
 
-  define 'vectorRest', (vec)-> makeVector rz(vec)(identity).rest()
+  vectorRest = (vec)-> makeVector vec.rest()
 
-  define 'vectorReverse', (vec)-> makeVector rz(vec)(identity).reverse()
+  define 'vectorRest', (vec)-> vectorRest rz(vec).vector
+
+  define 'vectorReverse', (vec)-> makeVector rz(vec).vector.reverse()
+
+  define 'vectorRemove', (item, vec)-> if isPartial arguments then partialCall arguments else
+    item = rz item
+    makeVector rz(vec).vector.filter (el)-> el != item
 
 #################
 # YAML and JSON
