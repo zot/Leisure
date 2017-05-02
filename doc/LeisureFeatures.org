@@ -146,8 +146,47 @@ do
 : 10
 
 * Powerful built-in data types
-** Sequences
-*** Sequence functions work on sequence types: head, tail, append, map, and the fold functions
+** Unkeyed Sequences: lists, difference lists, vectors, sets
+** Keyed Sequences: alists, maps
+*** order for keyed sequences is the order in which the items were inserted
+so head will return the first item inserted
+** Common sequence functions work on both keyed and unkeyed sequencess
+- conj item seq
+- head seq
+- tail seq
+- length seq
+- empty seq
+- reverse seq
+- append seqA seqB *(note: the return value is the same type as the first seqA)*
+- delete item seq *(note: keyed sequences treat item as a key)*
+- map func seq
+  - func el *(note: keyed sequences pass [key | value] as item)*
+- foldl func init seq
+  - func v item *(note: keyed sequences pass [key | value] as item)*
+- foldl1 func seq
+  - func v item *(note: keyed sequences pass [key | value] as item)*
+- foldr func final seq
+  - func item v *(note: keyed sequences pass [key | value] as item)*
+- foldr1 func seq
+  - func item v *(note: keyed sequences pass [key | value] as item)*
+- tolist seq *(note: keyed sequences return their entries as [key | value])*
+** Common keyed sequene
+- get key seq
+- getOpt key seq
+- set key value seq
+- delete key seq
+** Unkeyed sequences
+- [1 2]
+- dl[1 2]
+- vec[1 2]
+- set[1 2]
+** Keyed sequences
+- {'a':1 'b':2}
+- map{'a':1 'b':2}
+** Sequences can specify a tail collection (to append)
+- map{'a':1 | map{'b':2}}
+** Lists [] can support a tail item
+- [1 2 | 3]
 ** Lists
 #+BEGIN_SRC leisure :results dynamic
 [1 2]
@@ -184,13 +223,13 @@ getOpt 'a' {'a':1 'b':2}
 ** Maps, sets, and vectors (courtesy of [[http://facebook.github.io/immutable-js/][immutable.js]])
 #+BEGIN_SRC leisure :results dynamic
 map{}
-map{'a':1 'c':2 'b':3}
+map{'a':1 'c':2 'b':3 | map{'d':4}}
 get 'a' map{'a':1 'c':2 'b':3}
 set 'a' 4 map{'a':1 'c':2 'b':3}
 getOpt 'a' map{'a':1 'c':2 'b':3}
-set{1 2 3}
-append set{1 2} set{2 3}
-append vec{1 2} vec{2 3}
+set[1 2 3 | set[4 5]]
+append set[1 2] set[2 3]
+append vec[1 2] vec[2 3]
 #+END_SRC
 #+RESULTS:
 : map{}

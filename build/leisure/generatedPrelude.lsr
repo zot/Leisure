@@ -78,6 +78,7 @@ strStartsWith string prefix = _strStartsWith
   assertType 'strStartsWith string' '*string' string
   assertType 'strStartsWith prefix' '*string' prefix
 strLen string = _strLen (assertType 'strLen string' '*string' string)
+strReverse string = _strReverse (assertType 'strLen string' '*string' string)
 strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' '*string' string)
 strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' '*string' string)
 strReplace string pat repl = _strReplace
@@ -184,24 +185,28 @@ foldl1 = _foldl1
 foldr = _foldr
 foldr1 = _foldr1
 append = _append
-reverse l = rev l nil
+_reverse l = rev l nil
+reverse = _reverse
 rev l result = isNil l
   result
   rev (tail l) (cons (head l) result)
-flatten list = isCons list
+_flatten list = isCons list
   subflatten list nil
   list
+flatten = _flatten
 subflatten list result = isNil list
   result
   isCons list
     subflatten (head list) (subflatten (tail list) result)
     cons list result
-filter func list = isNil list
+_filter func list = isNil list
   nil
-  func (head list) (cons (head list)) id (filter func (tail list))
-find predicate list = isNil list
+  func (head list) (cons (head list)) id (_filter func (tail list))
+filter = _filter
+_find predicate list = isNil list
   none
-  predicate (head list) (some (head list)) (find predicate (tail list))
+  predicate (head list) (some (head list)) (_find predicate (tail list))
+find = _find
 contains list item = find (\el . eq el item) list (\x . true) false
 
 findIndex func list = idx list func 0
@@ -367,7 +372,7 @@ makeMoreTokens lineStarts strings start result = strings
       or (or (strStartsWith h ' ') (strStartsWith h '#')) (and (strMatches h emptyToken) (or (isNil t) (strMatches (head t) lineStart)))
         result
         cons (makeTokenAt lineStarts h start) result
-  reverse result
+  _reverse result
 
 makeTokenAt lineStarts txt offset = isNil (strMatch txt zeroNum)
   token txt (filePosFor lineStarts offset)
@@ -390,7 +395,7 @@ matchOffset str match = isNil match
   strLen str
   head (tail (tail match))
 
-basicSplitTokens str pat prevIsDel = reverse
+basicSplitTokens str pat prevIsDel = _reverse
   _withRecur (_basicSplitTokens str pat prevIsDel nil)
 
 _basicSplitTokens str pat prevIsDel toks = == str ''
@@ -454,8 +459,8 @@ parseTok toks groups = withCons toks nil \h t .
 parseGroup left toks gr close groups = withCons toks (parseErr 'Unterminated group starting ' (loc left))
   \h t . isTokenString h close
     eq close ')'
-      cons (parensFromToks left h (reverse gr)) t
-      cons (cons left (cons (reverse gr) (cons h nil))) t
+      cons (parensFromToks left h (_reverse gr)) t
+      cons (cons left (cons (_reverse gr) (cons h nil))) t
     withToken h
       ifNotErr (parseTok toks groups) \list . list \restH restT .
         parseGroup left restT (cons restH gr) close groups
@@ -465,10 +470,10 @@ parseGroup left toks gr close groups = withCons toks (parseErr 'Unterminated gro
           ifNotErr (parseTok toks groups) \list . list \restH restT . parseGroup left restT (cons restH gr) close groups
 
 parseIndent indent toks gr groups =
-  withCons toks (cons (makeParens (tokenFilepos indent) (lexEnd (head gr)) (reverse gr)) nil)
+  withCons toks (cons (makeParens (tokenFilepos indent) (lexEnd (head gr)) (_reverse gr)) nil)
     \h t . or (withToken h false (\txt pos . rassoc txt groups (\open . true) false))
       and (or (isTokenStart h '\n') (isTokenStart h '\r\n')) (<= (strLen (tokenString h)) (strLen (tokenString indent)))
-      cons (makeParens (tokenFilepos indent) (tokenFilepos h) (reverse gr)) toks
+      cons (makeParens (tokenFilepos indent) (tokenFilepos h) (_reverse gr)) toks
       ifNotErr (parseTok toks groups) \list . list \restH restT . parseIndent indent restT (cons restH gr) groups
 
 #################
@@ -679,7 +684,7 @@ getLetLambda pos def args names =
   withCons def (parseErr "Let expected binding at " pos) \arg rest .
     not (isToken arg) (parseErr "Let expected binding at " pos)
       isTokenString arg '='
-        createAst nil (cons (token '\\' pos) (_append (reverse args) (cons (token '.' (position arg)) rest))) names
+        createAst nil (cons (token '\\' pos) (_append (_reverse args) (cons (token '.' (position arg)) rest))) names
         getLetLambda pos rest (cons arg args) names
 
 #################
@@ -816,7 +821,7 @@ countedLinesForFile name text = filter
 #      cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk)
 #        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
 
-countedLines filename lineOffset str = reverse
+countedLines filename lineOffset str = _reverse
   _withRecur
     _countedLines filename lineOffset str nil
 
@@ -1007,7 +1012,7 @@ tokensM str =
 parseLines lines result = lines
   \h t D . primBind (parseLineM h)
     \ast . parseLines t (cons ast result)
-  reverse result
+  _reverse result
 
 parseFile text = parseLines (linesForFile text) nil
 
@@ -1081,7 +1086,7 @@ runLines names lines = lines
 countedRunLines file names countedLines result = countedLines
   \h t D . primBind (countedRunLine file names h)
     \line . countedRunLines file names t (cons line result)
-  reverse result
+  _reverse result
 
 runFile text = runNamedFile "RUNFILE.lsr" text
 
@@ -1524,7 +1529,7 @@ triple3 t = t \a b c . c
 partition res func list = isNil list
   triple [] [] []
   func (head list)
-    triple (reverse res) (head list) (tail list)
+    triple (_reverse res) (head list) (tail list)
     partition [(head list) | res] func (tail list)
 
 addToken '<-'

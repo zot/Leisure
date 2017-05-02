@@ -31,7 +31,7 @@ misrepresented as being the original software.
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird'], function(Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird) {
-    var LeisureObject, Leisure_unit, List, Map, Monad, Monad2, Monad3, Nil, Promise, Runtime, Set, SimpyCons, _false, _identity, _true, _unit, actors, advise, amtSet, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, checkPartial, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, envTag, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeMap, makeMonad, makeSet, makeSyncMonad, makeVector, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextMapPair, nextMonad, nextSetItem, nextVectorItem, noMemo, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, vector, warnAsync, withSyncModeDo, writeFile;
+    var LeisureObject, Leisure_unit, List, Map, Monad, Monad2, Monad3, Nil, Promise, Runtime, Set, SimpyCons, _false, _identity, _true, _unit, actors, advise, amtSet, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, checkPartial, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, envTag, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeMap, makeMonad, makeSet, makeSyncMonad, makeVector, mapFirst, mapRest, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextMapPair, nextMonad, nextSetItem, nextVectorItem, noMemo, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setRest, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, vector, vectorRest, warnAsync, withSyncModeDo, writeFile;
     ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
     parseYaml = DocOrg.parseYaml;
     define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall, leisureFunctionNamed = Ast.leisureFunctionNamed;
@@ -368,6 +368,15 @@ misrepresented as being the original software.
     });
     define('_strToUpperCase', function(str) {
       return rz(str).toUpperCase();
+    });
+    define('_strReverse', function(str) {
+      var i, j, ref1, result, s;
+      s = rz(str);
+      result = '';
+      for (i = j = ref1 = s.length - 1; j >= 0; i = j += -1) {
+        result += s[i];
+      }
+      return result;
     });
     define('_strReplace', function(str, pat, repl) {
       if (isPartial(arguments)) {
@@ -1470,26 +1479,38 @@ misrepresented as being the original software.
     makeMap = function(map) {
       var h;
       h = function(f) {
-        return f(map);
+        return f(function() {
+          return mapFirst(map);
+        })(function() {
+          return mapRest(map);
+        });
       };
+      h.map = map;
       h.leisureType = 'hamt';
       return h;
     };
     hamt = makeMap(Map());
     hamt.leisureDataType = 'hamt';
     define('hamt', hamt);
+    define('mapSize', function(map) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        return rz(map).map.size;
+      }
+    });
     define('mapSet', function(key, value, map) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeMap(rz(map)(identity).set(rz(key), rz(value)));
+        return makeMap(rz(map).map.set(rz(key), rz(value)));
       }
     });
     define('mapGet', function(key, map) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return rz(map)(identity).get(rz(key));
+        return rz(map).map.get(rz(key));
       }
     });
     define('mapGetOpt', function(key, map) {
@@ -1497,7 +1518,7 @@ misrepresented as being the original software.
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        v = rz(map)(identity).get(rz(key));
+        v = rz(map).map.get(rz(key));
         if (v !== void 0) {
           return some(v);
         } else {
@@ -1509,22 +1530,27 @@ misrepresented as being the original software.
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeMap(rz(map)(identity).remove(rz(key)));
+        return makeMap(rz(map).map.remove(rz(key)));
       }
     });
-    define('mapFirst', function(map) {
+    mapFirst = function(map) {
       var key;
-      map = rz(map)(identity);
-      key = map.keySeq().first();
+      key = map.reverse().keySeq().first();
       return rz(L_cons)(lz(key))(lz(map.get(key)));
+    };
+    define('mapFirst', function(map) {
+      return mapFirst(rz(map).map);
     });
+    mapRest = function(map) {
+      return makeMap(map.butLast());
+    };
     define('mapRest', function(map) {
-      return makeMap(rz(map)(identity).rest());
+      return mapRest(rz(map).map);
     });
     define('mapPairs', function(map) {
       var h;
-      h = rz(map)(identity);
-      return nextMapPair(h, h.reverse().keySeq());
+      h = rz(map).map.reverse();
+      return nextMapPair(h, h.keySeq());
     });
     nextMapPair = function(map, keys) {
       var k;
@@ -1538,56 +1564,64 @@ misrepresented as being the original software.
       }
     };
     define('mapReverse', function(map) {
-      return makeMap(rz(map)(identity).reverse());
+      return makeMap(rz(map).map.reverse());
     });
     makeSet = function(set) {
       var s;
       s = function(f) {
-        return f(set);
+        return f(function() {
+          return set.first();
+        })(function() {
+          return setRest(set);
+        });
       };
+      s.set = set;
       s.leisureType = 'amtSet';
       return s;
     };
     amtSet = makeSet(Set());
     amtSet.leisureDataType = 'amtSet';
     define('amtSet', amtSet);
+    define('setSize', function(set) {
+      return rz(set).set.size;
+    });
     define('setAdd', function(value, set) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeSet(rz(set)(identity).add(rz(value)));
+        return makeSet(rz(set).set.add(rz(value)));
       }
     });
     define('setRemove', function(value, set) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeSet(rz(set)(identity)["delete"](rz(value)));
+        return makeSet(rz(set).set["delete"](rz(value)));
       }
     });
     define('setUnion', function(setA, setB) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeSet(rz(setA)(identity).union(rz(setB)(identity)));
+        return makeSet(rz(setA).set.union(rz(setB).set));
       }
     });
     define('setIntersect', function(setA, setB) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeSet(rz(setA)(identity).intersect(rz(setB)(identity)));
+        return makeSet(rz(setA).set.intersect(rz(setB).set));
       }
     });
     define('setSubtract', function(setA, setB) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeSet(rz(setA)(identity).subtract(rz(setB)(identity)));
+        return makeSet(rz(setA).set.subtract(rz(setB).set));
       }
     });
     define('setItems', function(set) {
-      return nextSetItem(rz(set)(identity).reverse());
+      return nextSetItem(rz(set).set.reverse());
     });
     nextSetItem = function(s) {
       if (!s.size) {
@@ -1599,62 +1633,73 @@ misrepresented as being the original software.
       }
     };
     define('setFirst', function(set) {
-      return makeSet(rz(set)(identity).first());
+      return rz(set).set.first();
     });
+    setRest = function(set) {
+      return makeSet(set.butLast());
+    };
     define('setRest', function(set) {
-      return makeSet(rz(set)(identity).rest());
+      return setRest(rz(set).set);
     });
     define('setReverse', function(set) {
-      return makeSet(rz(set)(identity).reverse());
+      return makeSet(rz(set).set.reverse());
     });
     makeVector = function(vec) {
       var v;
       v = function(f) {
-        return f(vec);
+        return f(function() {
+          return vec.first();
+        })(function() {
+          return vectorRest(vec);
+        });
       };
+      v.vector = vec;
       v.leisureType = 'vector';
       return v;
     };
     vector = makeVector(List());
     vector.leisureDataType = 'vector';
     define('vector', vector);
+    define('vectorSize', function(value, vec) {
+      return rz(vec).vector.size;
+    });
     define('vectorPush', function(value, vec) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeVector(rz(vec)(identity).push(rz(value)));
+        return makeVector(rz(vec).vector.push(rz(value)));
       }
     });
     define('vectorPop', function(value, vec) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeVector(rz(vec)(identity).pop());
+        return makeVector(rz(vec).vector.pop());
       }
     });
     define('vectorShift', function(value, vec) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeVector(rz(vec)(identity).shift());
+        return makeVector(rz(vec).vector.shift());
       }
     });
     define('vectorUnshift', function(value, vec) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeVector(rz(vec)(identity).unshift(rz(value)));
+        return makeVector(rz(vec).vector.unshift(rz(value)));
       }
     });
     define('vectorConcatg', function(vecA, vecB) {
       if (isPartial(arguments)) {
         return partialCall(arguments);
       } else {
-        return makeSet(rz(vecA)(identity).concat(rz(vecB)(identity)));
+        return makeSet(rz(vecA).vector.concat(rz(vecB).vector));
       }
     });
     define('vectorItems', function(vec) {
-      return nextVectorItem(rz(vec)(identity));
+      return nextVectorItem(rz(vec).vector);
     });
     nextVectorItem = function(v) {
       if (!v.size) {
@@ -1666,13 +1711,26 @@ misrepresented as being the original software.
       }
     };
     define('vectorFirst', function(vec) {
-      return makeVector(rz(vec)(identity).first());
+      return rz(vec).vector.first();
     });
+    vectorRest = function(vec) {
+      return makeVector(vec.rest());
+    };
     define('vectorRest', function(vec) {
-      return makeVector(rz(vec)(identity).rest());
+      return vectorRest(rz(vec).vector);
     });
     define('vectorReverse', function(vec) {
-      return makeVector(rz(vec)(identity).reverse());
+      return makeVector(rz(vec).vector.reverse());
+    });
+    define('vectorRemove', function(item, vec) {
+      if (isPartial(arguments)) {
+        return partialCall(arguments);
+      } else {
+        item = rz(item);
+        return makeVector(rz(vec).vector.filter(function(el) {
+          return el !== item;
+        }));
+      }
     });
     lacons = function(k, v, list) {
       return rz(L_acons)(lz(k), lz(v), lz(list));

@@ -3,38 +3,74 @@
 The basic transaction object.
 
 #+BEGIN_SRC leisure :results def
-transaction creates reads updates deletes data = \f . f creates reads updates deletes data
-emptyTransaction = transaction hamt{} hamt{} 
-isTransaction t = hasType t transaction
+transaction creates reads updates deletes data =
+  \f . f creates reads updates deletes data
 
-trCreates transaction = transaction \creates reads updates deletes data . creates
-trReads transaction = transaction \creates reads updates deletes data . reads
-trUpdates transaction = transaction \creates reads updates deletes data . updates
-trDeletes transaction = transaction \creates reads updates deletes data . deletes
-trData transaction = transaction \creates reads updates deletes data . data
+emptyTransaction =
+  transaction set[] map{} set[] set[] map{}
 
-defCase showBase.transaction func obj | isTransaction obj -> obj \creates reads updates deletes data .
-  concat['(transaction ' (showBase func creates) ' ' (showBase func reads) ' ' (showBase func updates) ' ' (showBase func deletes) ')']
+isTransaction t =
+  hasType t transaction
 
-defCase toJson.transaction tr | isTransaction tr -> tr \creates reads updates deletes data .
-  toJsonObject {
-    'type':'transaction'
-    'creates':(toJson creates)
-    'reads':(toJson reads)
-    'updates':(toJson updates)
-    'deletes':(toJson deletes)}
+trCreates transaction =
+  transaction \creates reads updates deletes data . creates
+trReads transaction =
+  transaction \creates reads updates deletes data . reads
+trUpdates transaction =
+  transaction \creates reads updates deletes data . updates
+trDeletes transaction =
+  transaction \creates reads updates deletes data . deletes
+trData transaction =
+  transaction \creates reads updates deletes data . data
+
+trSetData data tr =
+  tr \creates reads updates deletes _ .
+    transaction creates reads  updates deletes data
+
+defCase showBase.transaction func obj | isTransaction obj ->
+  obj \creates reads updates deletes data .
+    s['(transaction ' (showBase func creates) ' ' (showBase func reads) ' ' (showBase func updates) ' ' (showBase func deletes) ')']
+
+defCase toJson.transaction tr | isTransaction tr ->
+  tr \creates reads updates deletes data .
+    toJsonObject {
+      'type':'transaction'
+      'creates':(toJson creates)
+      'reads':(toJson reads)
+      'updates':(toJson updates)
+      'deletes':(toJson deletes)}
 
 currentTransaction = do
   tr <- envGetOpt 'transaction'
-  tr id do
-    tr = 
+  tr id (setTransaction emptyTransaction)
 
-trGet name = do
-  transaction <- currentTransaction
-  valueOpt = getOpt name (trData transaction)
+setTransaction trans = do
+  envSet 'transaction' trans
+  trans
+
+trCreate name value = do
+  trans <- currentTransaction
+  trans \c r u d data . setTransaction
+    transaction (conj name c) r u d (set name value data)
+
+trRead name = do
+  trans <- currentTransaction
+  valueOpt = getOpt name (trData trans)
   valueOpt id do
-    d <- getDataUnsafe name
-    
+    value <- getDataUnsafe name
+    trans \c r u d data . setTransaction
+      transaction c (set name value r) u d (set name value data)
+    value
+
+trUpdate name value = do
+  trans <- currentTransaction
+  trans \c r u d data . setTransaction
+    transaction c r (conj name u) d (set name value data)
+
+trDelete name value = do
+  trans <- currentTransaction
+  trans \c r u d data . setTransaction
+    transaction c r u (conj name d) (delete name data)
 #+END_SRC
 
 #+BEGIN_SRC leisure :results dynamic
