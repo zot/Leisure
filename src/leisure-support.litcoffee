@@ -1,5 +1,6 @@
 Support code for Leisure
 
+    'use strict'
     define ['./base', './ast', './runtime', './gen', './eval', './org', './transaction'], (Base, Ast, Runtime, Gen, Eval, Org, Transaction)->
       {
         define

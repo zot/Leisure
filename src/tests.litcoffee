@@ -1,3 +1,4 @@
+    'use strict'
     define ['./org', './docOrg', 'lodash', './editorSupport', './diag', './testing'], (Org, DocOrg, _, EditorSupport, Diag, Testing)->
       {
         parseOrgMode

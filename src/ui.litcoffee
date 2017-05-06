@@ -1,6 +1,7 @@
 Leisure's UI system uses a piece of data's "type" and the "context" (a string) to
 choose a handlebars template.
 
+    'use strict'
     define ['handlebars', './editor', './coffee-script', 'immutable'], (Handlebars, Editor, CoffeeScript, Immutable)->
       {
         compile

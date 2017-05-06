@@ -25,6 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
+  'use strict';
   var slice = [].slice,
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty,
@@ -42,7 +43,7 @@ misrepresented as being the original software.
     lz = lazy;
     lc = Leisure_call;
     gensymCounter = 0;
-    checkPartial = function(func, args) {
+    checkPartial = window.L_checkPartial = function(func, args) {
       if (typeof func === 'string') {
         func = leisureFunctionNamed(func);
       }
@@ -340,8 +341,17 @@ misrepresented as being the original software.
       }
     };
     define('_strSubstring', function(str, start, end) {
-      var a, b;
-      return checkPartial(L__strSubstring, arguments) || (a = strCoord(rz(str), rz(start)), b = strCoord(rz(str), rz(end)), b < a && rz(end) === 0 ? b = rz(str).length : void 0, rz(str).substring(a, b));
+      var a, b, p;
+      if (p = checkPartial(L__strSubstring, arguments)) {
+        return p;
+      } else {
+        a = strCoord(rz(str), rz(start));
+        b = strCoord(rz(str), rz(end));
+        if (b < a && rz(end) === 0) {
+          b = rz(str).length;
+        }
+        return rz(str).substring(a, b);
+      }
     });
     define('_strSplit', function(str, pat) {
       return checkPartial(L__strSplit, arguments) || consFrom(rz(str).split(rz(pat) instanceof RegExp ? rz(pat) : new RegExp(rz(pat))));
@@ -359,8 +369,10 @@ misrepresented as being the original software.
       return checkPartial(L__strAdd, arguments) || rz(s1) + rz(s2);
     });
     define('_strMatch', function(str, pat) {
-      var groups, m, pos;
-      return checkPartial(L__strMatch, arguments) || ((function() {
+      var groups, m, p, pos;
+      if (p = checkPartial(L__strMatch, arguments)) {
+        return p;
+      } else {
         m = rz(str).match((rz(pat) instanceof RegExp ? rz(pat) : new RegExp(rz(pat))));
         if (m) {
           groups = [];
@@ -378,7 +390,7 @@ misrepresented as being the original software.
         } else {
           return Nil;
         }
-      })());
+      }
     });
     define('_strToList', function(str) {
       return strToList(rz(str));
@@ -407,9 +419,10 @@ misrepresented as being the original software.
       return checkPartial(L__regexpFlags, arguments) || new RegExp(rz(str), rz(flags));
     });
     define('_jsonParse', function(str, failCont, successCont) {
-      var err, p;
-      return checkPartial(L__jsonParse, arguments) || ((function() {
-        var error;
+      var err, error, p;
+      if (p = checkPartial(L__jsonParse, arguments)) {
+        return p;
+      } else {
         try {
           p = JSON.parse(rz(str));
           return rz(successCont)(lz(p));
@@ -417,12 +430,13 @@ misrepresented as being the original software.
           err = error;
           return rz(failCont)(lz(err));
         }
-      })());
+      }
     });
     define('jsonStringify', function(obj, failCont, successCont) {
-      var err, s;
-      return checkPartial(L_jsonStringify, arguments) || ((function() {
-        var error;
+      var err, error, p, s;
+      if (p = checkPartial(L_jsonStringify, arguments)) {
+        return p;
+      } else {
         try {
           s = JSON.stringify(rz(obj));
           return rz(successCont)(lz(s));
@@ -430,7 +444,7 @@ misrepresented as being the original software.
           err = error;
           return rz(failCont)(lz(err));
         }
-      })());
+      }
     });
     define('getProperties', function(func) {
       var ref1;
@@ -836,28 +850,36 @@ misrepresented as being the original software.
       });
     });
     define('bind', bind = function(m, binding) {
-      var bnd;
-      return checkPartial(L_bind, arguments) || (bnd = new Monad2('bind', (function(env, cont) {
-        var async, b, sync;
-        b = bnd;
-        while (b instanceof Monad2 && b.isBind) {
-          sync = true;
-          async = true;
-          runMonad2(rz(b.arg), env, function(result) {
-            b = rz(b.binding)(lz(result));
-            if (sync) {
-              return async = false;
-            } else {
-              return runMonad2(b, env, cont);
+      var bnd, p;
+      if (p = checkPartial(L_bind, arguments)) {
+        return p;
+      } else {
+        bnd = new Monad2('bind', (function(env, cont) {
+          var async, b, sync;
+          b = bnd;
+          while (b instanceof Monad2 && b.isBind) {
+            sync = true;
+            async = true;
+            runMonad2(rz(b.arg), env, function(result) {
+              b = rz(b.binding)(lz(result));
+              if (sync) {
+                return async = false;
+              } else {
+                return runMonad2(b, env, cont);
+              }
+            });
+            sync = false;
+            if (async) {
+              return _true;
             }
-          });
-          sync = false;
-          if (async) {
-            return _true;
           }
-        }
-        return runMonad2(b, env, cont);
-      })), bnd.isBind = true, bnd.arg = m, bnd.binding = binding, bnd);
+          return runMonad2(b, env, cont);
+        }));
+        bnd.isBind = true;
+        bnd.arg = m;
+        bnd.binding = binding;
+        return bnd;
+      }
     });
     define('pierce', function(value) {
       return new Monad2('bind', function(env, cont) {
@@ -921,28 +943,20 @@ misrepresented as being the original software.
       });
     });
     define('getValueOr', function(name, defaultValue) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return new Monad2(function(env, cont) {
-          var ref1;
-          return cont((ref1 = values[rz(name)]) != null ? ref1 : rz(defaultValue));
-        });
-      }
+      return checkPartial(L_getValueOr, arguments) || new Monad2(function(env, cont) {
+        var ref1;
+        return cont((ref1 = values[rz(name)]) != null ? ref1 : rz(defaultValue));
+      });
     });
     define('getValueOpt', function(name) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return new Monad2(function(env, cont) {
-          var v;
-          if (v = values[rz(name)]) {
-            return cont(some(v));
-          } else {
-            return cont(none);
-          }
-        });
-      }
+      return checkPartial(L_getValueOpt, arguments) || new Monad2(function(env, cont) {
+        var v;
+        if (v = values[rz(name)]) {
+          return cont(some(v));
+        } else {
+          return cont(none);
+        }
+      });
     });
     define('getValue', function(name) {
       return new Monad2('getValue', function(env, cont) {
@@ -955,14 +969,10 @@ misrepresented as being the original software.
       });
     });
     define('setValue', function(name, value) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return new Monad2('setValue', function(env, cont) {
-          values[rz(name)] = rz(value);
-          return cont(_unit);
-        });
-      }
+      return checkPartial(L_setValue, arguments) || new Monad2('setValue', function(env, cont) {
+        values[rz(name)] = rz(value);
+        return cont(_unit);
+      });
     });
     define('deleteValue', function(name) {
       return new Monad2(function(env, cont) {
@@ -982,14 +992,10 @@ misrepresented as being the original software.
       });
     });
     define('envGetOr', function(name, defaultValue) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSyncMonad(function(env, cont) {
-          var ref1;
-          return cont((ref1 = env.values[rz(name)]) != null ? ref1 : rz(defaultValue));
-        });
-      }
+      return checkPartial(L_envGetOr, arguments) || makeSyncMonad(function(env, cont) {
+        var ref1;
+        return cont((ref1 = env.values[rz(name)]) != null ? ref1 : rz(defaultValue));
+      });
     });
     define('envGet', function(name) {
       return makeSyncMonad(function(env, cont) {
@@ -1004,14 +1010,10 @@ misrepresented as being the original software.
       });
     });
     define('envSet', function(name, value) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSyncMonad(function(env, cont) {
-          env.values[rz(name)] = rz(value);
-          return cont(_unit);
-        });
-      }
+      return checkPartial(L_envSet, arguments) || makeSyncMonad(function(env, cont) {
+        env.values[rz(name)] = rz(value);
+        return cont(_unit);
+      });
     });
     define('envDelete', function(name) {
       return makeSyncMonad(function(env, cont) {
@@ -1021,14 +1023,10 @@ misrepresented as being the original software.
     });
     setValue('macros', Nil);
     define('defMacro', function(name, def) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSyncMonad(function(env, cont) {
-          values.macros = cons(cons(rz(name), rz(def)), values.macros);
-          return cont(_unit);
-        });
-      }
+      return checkPartial(L_defMacro, arguments) || makeSyncMonad(function(env, cont) {
+        values.macros = cons(cons(rz(name), rz(def)), values.macros);
+        return cont(_unit);
+      });
     });
     define('funcList', makeSyncMonad(function(env, cont) {
       return cont(consFrom(global.leisureFuncNames.toArray().sort()));
@@ -1051,20 +1049,16 @@ misrepresented as being the original software.
       return JSON.stringify(ast2Json(rz(ast)));
     });
     define('override', function(name, newFunc) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSyncMonad(function(env, cont) {
-          var n, oldDef;
-          n = "L_" + (nameSub(rz(name)));
-          oldDef = global[n];
-          if (!oldDef) {
-            throw new Error("No definition for " + (rz(name)));
-          }
-          global[n] = lz(rz(newFunc)(oldDef));
-          return cont(_unit);
-        });
-      }
+      return checkPartial(L_override, arguments) || makeSyncMonad(function(env, cont) {
+        var n, oldDef;
+        n = "L_" + (nameSub(rz(name)));
+        oldDef = global[n];
+        if (!oldDef) {
+          throw new Error("No definition for " + (rz(name)));
+        }
+        global[n] = lz(rz(newFunc)(oldDef));
+        return cont(_unit);
+      });
     });
     define('debug', function() {
       debugger;
@@ -1146,16 +1140,12 @@ misrepresented as being the original software.
       });
     });
     define('writeFile', function(name, data) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return new Monad2('writeFile', function(env, cont) {
-          return env.writeFile(rz(name), rz(data), function(err, contents) {
-            var ref1;
-            return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(contents)));
-          });
+      return checkPartial(L_writeFile, arguments) || new Monad2('writeFile', function(env, cont) {
+        return env.writeFile(rz(name), rz(data), function(err, contents) {
+          var ref1;
+          return cont((err ? left((ref1 = err.stack) != null ? ref1 : err) : right(contents)));
         });
-      }
+      });
     });
     define('statFile', function(file) {
       return makeMonad(function(env, cont) {
@@ -1204,14 +1194,14 @@ misrepresented as being the original software.
     };
     nFunction = function(nArgs, def) {
       var i;
-      return (eval("(function (def) {\n  return function (" + (((function() {
+      return (eval("(function (def) {\n  var f = function (" + (((function() {
         var j, ref1, results;
         results = [];
         for (i = j = 0, ref1 = nArgs; 0 <= ref1 ? j < ref1 : j > ref1; i = 0 <= ref1 ? ++j : --j) {
           results.push("arg" + i);
         }
         return results;
-      })()).join(', ')) + ") {\n    return isPartial(arguments) ? partialCall(arguments) : def.apply(null, arguments);\n  };\n})"))(def);
+      })()).join(', ')) + ") {\n    return checkPartial(f, arguments) || def.apply(null, arguments);\n  };\n  return f;\n})"))(def);
     };
     define('delay', function(timeout) {
       return new Monad2(function(env, cont) {
@@ -1300,13 +1290,9 @@ misrepresented as being the original software.
       return def;
     };
     define('advise', function(name, alt, arity, def) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeMonad(function(env, cont) {
-          return cont(advise(rz(name), rz(alt), rz(arity), rz(def)));
-        });
-      }
+      return checkPartial(L_advise, arguments) || makeMonad(function(env, cont) {
+        return cont(advise(rz(name), rz(alt), rz(arity), rz(def)));
+      });
     });
     curry = function(arity, func) {
       return function() {
@@ -1376,45 +1362,20 @@ misrepresented as being the original software.
     hamt.leisureDataType = 'hamt';
     define('hamt', hamt);
     define('mapSize', function(map) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return rz(map).map.size;
-      }
+      return checkPartial(L_mapSize, arguments) || rz(map).map.size;
     });
     define('mapSet', function(key, value, map) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeMap(rz(map).map.set(rz(key), rz(value)));
-      }
+      return checkPartial(L_mapSet, arguments) || makeMap(rz(map).map.set(rz(key), rz(value)));
     });
     define('mapGet', function(key, map) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return rz(map).map.get(rz(key));
-      }
+      return checkPartial(L_mapGet, arguments) || rz(map).map.get(rz(key));
     });
     define('mapGetOpt', function(key, map) {
       var v;
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        v = rz(map).map.get(rz(key));
-        if (v !== void 0) {
-          return some(v);
-        } else {
-          return none;
-        }
-      }
+      return checkPartial(L_mapGetOpt, arguments) || (v = rz(map).map.get(rz(key)), v !== void 0 ? some(v) : none);
     });
     define('mapRemove', function(key, map) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeMap(rz(map).map.remove(rz(key)));
-      }
+      return checkPartial(L_mapRemove, arguments) || makeMap(rz(map).map.remove(rz(key)));
     });
     mapFirst = function(map) {
       var key;
@@ -1431,11 +1392,7 @@ misrepresented as being the original software.
       return mapRest(rz(map).map);
     });
     define('mapContains', function(item, map) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return booleanFor(rz(map).map.has(rz(item)));
-      }
+      return checkPartial(L_mapContains, arguments) || booleanFor(rz(map).map.has(rz(item)));
     });
     define('mapPairs', function(map) {
       var h;
@@ -1476,46 +1433,22 @@ misrepresented as being the original software.
       return rz(set).set.size;
     });
     define('setContains', function(item, set) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return booleanFor(rz(set).set.contains(rz(item)));
-      }
+      return checkPartial(L_setContains, arguments) || booleanFor(rz(set).set.contains(rz(item)));
     });
     define('setAdd', function(value, set) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSet(rz(set).set.add(rz(value)));
-      }
+      return checkPartial(L_setAdd, arguments) || makeSet(rz(set).set.add(rz(value)));
     });
     define('setRemove', function(value, set) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSet(rz(set).set["delete"](rz(value)));
-      }
+      return checkPartial(L_setRemove, arguments) || makeSet(rz(set).set["delete"](rz(value)));
     });
     define('setUnion', function(setA, setB) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSet(rz(setA).set.union(rz(setB).set));
-      }
+      return checkPartial(L_setUnion, arguments) || makeSet(rz(setA).set.union(rz(setB).set));
     });
     define('setIntersect', function(setA, setB) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSet(rz(setA).set.intersect(rz(setB).set));
-      }
+      return checkPartial(L_setIntersect, arguments) || makeSet(rz(setA).set.intersect(rz(setB).set));
     });
     define('setSubtract', function(setA, setB) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSet(rz(setA).set.subtract(rz(setB).set));
-      }
+      return checkPartial(L_setSubtract, arguments) || makeSet(rz(setA).set.subtract(rz(setB).set));
     });
     define('setItems', function(set) {
       return nextSetItem(rz(set).set.reverse());
@@ -1561,46 +1494,22 @@ misrepresented as being the original software.
       return rz(vec).vector.size;
     });
     define('vectorContains', function(item, vec) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return booleanFor(rz(vec).vector.contains(rz(item)));
-      }
+      return checkPartial(L_vectorContains, arguments) || booleanFor(rz(vec).vector.contains(rz(item)));
     });
     define('vectorPush', function(value, vec) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeVector(rz(vec).vector.push(rz(value)));
-      }
+      return checkPartial(L_vectorPush, arguments) || makeVector(rz(vec).vector.push(rz(value)));
     });
     define('vectorPop', function(value, vec) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeVector(rz(vec).vector.pop());
-      }
+      return checkPartial(L_vectorPop, arguments) || makeVector(rz(vec).vector.pop());
     });
     define('vectorShift', function(value, vec) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeVector(rz(vec).vector.shift());
-      }
+      return checkPartial(L_vectorShift, arguments) || makeVector(rz(vec).vector.shift());
     });
     define('vectorUnshift', function(value, vec) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeVector(rz(vec).vector.unshift(rz(value)));
-      }
+      return checkPartial(L_vectorUnshift, arguments) || makeVector(rz(vec).vector.unshift(rz(value)));
     });
-    define('vectorConcatg', function(vecA, vecB) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        return makeSet(rz(vecA).vector.concat(rz(vecB).vector));
-      }
+    define('vectorConcat', function(vecA, vecB) {
+      return checkPartial(L_vectorConcat, arguments) || makeSet(rz(vecA).vector.concat(rz(vecB).vector));
     });
     define('vectorItems', function(vec) {
       return nextVectorItem(rz(vec).vector);
@@ -1627,14 +1536,9 @@ misrepresented as being the original software.
       return makeVector(rz(vec).vector.reverse());
     });
     define('vectorRemove', function(item, vec) {
-      if (isPartial(arguments)) {
-        return partialCall(arguments);
-      } else {
-        item = rz(item);
-        return makeVector(rz(vec).vector.filter(function(el) {
-          return el !== item;
-        }));
-      }
+      return checkPartial(L_vectorRemove, arguments) || (item = rz(item), makeVector(rz(vec).vector.filter(function(el) {
+        return el !== item;
+      })));
     });
     lacons = function(k, v, list) {
       return rz(L_acons)(lz(k), lz(v), lz(list));

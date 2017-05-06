@@ -1,5 +1,6 @@
 * TODO and agenda code for Leisure
 
+    'use strict'
     define ['./org', './docOrg', './editor', './editorSupport', 'lodash', 'jquery'], (Org, DocOrg, Editor, EditorSupport, _, $)->
       {
         parseOrgMode

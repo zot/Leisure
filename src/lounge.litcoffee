@@ -1,5 +1,6 @@
 Lounge accessors
 
+    'use strict'
     define [], ->
 
       getBlockNamed = (name)-> Lounge.opts.data.getBlockNamed name

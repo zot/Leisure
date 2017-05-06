@@ -1,6 +1,7 @@
 Lounge browser storage. Load and save documents to lounge storage. Saved
 documents will checkpoint as you type.
 
+    'use strict'
     define ['./org', './docOrg', './utilities', './db', './editorSupport'], (Org, DocOrg, Utilites, EditorSupport)->
       {
         parseOrgDoc

@@ -3,6 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
+    'use strict'
     define ['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'fingertree', './tangle', 'lib/sha1'], (Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1)->
       {
         defaultEnv

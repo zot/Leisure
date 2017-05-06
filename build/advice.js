@@ -3,6 +3,7 @@
   var slice = [].slice;
 
   define([], function() {
+    'use strict';
     var Advice, advise, afterMethod, beforeMethod, callOriginal, changeAdvice, unadvise;
     (function() {
       return changeAdvice(object, true, {

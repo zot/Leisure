@@ -25,6 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
+  'use strict';
   var files,
     slice1 = [].slice;
 

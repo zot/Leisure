@@ -1,5 +1,6 @@
 Simple operational transformation engine
 
+    'use strict'
     define ['fingertree', 'lodash', './testing', 'immutable'], (Fingertree, _, Testing, Immutable)->
       {
         assert

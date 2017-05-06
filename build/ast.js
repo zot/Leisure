@@ -25,6 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
+  'use strict';
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
@@ -303,12 +304,6 @@ misrepresented as being the original software.
         return this.tail().each(block);
       };
 
-      Leisure_BaseCons.prototype.length = function() {
-        return this.foldl((function(i, el) {
-          return i + 1;
-        }), 0);
-      };
-
       Leisure_BaseCons.prototype.last = function() {
         var t;
         t = this.tail();
@@ -536,7 +531,6 @@ misrepresented as being the original software.
     };
     nakedDefine = function(name, func, arity, src, method, namespace, isNew, redef) {
       var namedFunc, nm;
-      func.leisureLength = arity || func.length;
       if (!redef && functionInfo[name]) {
         console.error(new Error("WARNING, REDEFINING " + name));
         redefined[name] = true;
@@ -555,7 +549,7 @@ misrepresented as being the original software.
       if (!method && global.noredefs && (global[nm] != null)) {
         throwError("[DEF] Attempt to redefine definition: " + name);
       }
-      functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = typeof func === 'function' && func.memo ? (func.leisureName = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
+      functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = typeof func === 'function' && func.memo ? (func.leisureLength = arity || func.length, func.leisureName = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
       if (root.currentNameSpace) {
         LeisureNameSpaces[namespace != null ? namespace : root.currentNameSpace][nameSub(name)] = namedFunc;
         nsLog("DEFINING " + name + " FOR " + root.currentNameSpace);

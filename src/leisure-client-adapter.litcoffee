@@ -27,6 +27,7 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 
+    'use strict'
     define ['jquery', 'immutable', './utilities', './editor', './editorSupport', 'sockjs', './advice', './common', 'bluebird', 'lib/ot/ot', './replacements'], (jq, immutable, Utilities, Editor, Support, SockJS, Advice, Common, Bluebird, OT, Rep)->
       {
         Map

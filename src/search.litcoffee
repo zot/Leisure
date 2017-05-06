@@ -1,3 +1,4 @@
+    'use strict'
     define ['./editor', './editorSupport', './ui', './modes'], (Editor, EditorSupport, UI, Modes)->
       {
         findEditor

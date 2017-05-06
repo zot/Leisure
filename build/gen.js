@@ -25,6 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
+  'use strict';
   var slice = [].slice;
 
   define(['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support'], function(Base, Ast, Runtime, _, SourceMap, SourceMapSupport) {
@@ -326,7 +327,7 @@ misrepresented as being the original software.
         argList = _.map(args, (function(x) {
           return 'L_' + x;
         })).join(', ');
-        mainFunc = sn(ast, "(function(" + argList + ") {\n    return arguments.callee.length != arguments.length\n        ? Leisure_primCall(arguments.callee, 0, arguments)\n        : ", genUniq(getNthLambdaBody(ast, arity), names, uniq), ";\n})");
+        mainFunc = sn(ast, "(function(){\n  var L_$_F = function(" + argList + ") {\n    return L_checkPartial(L_$_F, arguments) || " + (genUniq(getNthLambdaBody(ast, arity), names, uniq)) + ";\n  };\n  return L_$_F;\n})()");
         result = addLambdaProperties(ast, sn(ast, mainFunc));
         annoAst = ast;
         while (annoAst instanceof Leisure_anno) {

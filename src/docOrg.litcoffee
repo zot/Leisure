@@ -1,3 +1,4 @@
+    'use strict'
     define ['./org', 'lib/js-yaml', 'lib/lazy'], (Org, Yaml, Lazy)->
 
       {

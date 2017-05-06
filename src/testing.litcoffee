@@ -1,5 +1,6 @@
 Simple testing support
 
+    'use strict'
     define [], ->
       strFunc = (str)->
         if typeof str == 'function' then str

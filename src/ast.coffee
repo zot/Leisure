@@ -23,8 +23,9 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['./base', 'lodash'], (base, _)->
+'use strict'
 
+define ['./base', 'lodash'], (base, _)->
   {
     resolve,
     lazy,
@@ -203,7 +204,7 @@ define ['./base', 'lodash'], (base, _)->
     each: (block)->
       block(@head())
       @tail().each(block)
-    length: -> @foldl ((i, el)-> i + 1), 0
+    #length: -> @foldl ((i, el)-> i + 1), 0
     last: ->
       t = @tail()
       if t == Nil then @head() else t.last()
@@ -309,7 +310,6 @@ define ['./base', 'lodash'], (base, _)->
     #  func().leisureContexts = []
     #  func().leisureName = name
     #  func().leisureArity = arity
-    func.leisureLength = arity || func.length
     if !redef && functionInfo[name]
       console.error new Error "WARNING, REDEFINING #{name}"
       redefined[name] = true
@@ -324,6 +324,7 @@ define ['./base', 'lodash'], (base, _)->
     if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
     #namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
     functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = if typeof func == 'function' && func.memo
+      func.leisureLength = arity || func.length
       func.leisureName = name
       if func.__proto__ == Function.prototype then func.__proto__ = LeisureObject
       func

@@ -1,5 +1,6 @@
 Evaulation support for Leisure
 
+    'use strict'
     define.amd = true
     define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport)->
       SourceMapSupport?.install()

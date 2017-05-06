@@ -1,3 +1,4 @@
+    'use strict'
     define ['./editor', './editorSupport'], (Editor, EditorSupport)->
       bindCount = 0
 
