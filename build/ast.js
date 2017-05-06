@@ -29,7 +29,7 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['./base', 'lodash'], function(base, _) {
-    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, makeSuper, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, ref, ref1, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError;
+    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, makeSuper, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, redefined, ref, ref1, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError;
     ref1 = root = base, resolve = ref1.resolve, lazy = ref1.lazy, nsLog = ref1.nsLog;
     rz = resolve;
     lz = lazy;
@@ -74,6 +74,7 @@ misrepresented as being the original software.
       }
       return s;
     };
+    redefined = {};
     leisureFunctionNamed = function(n) {
       return LeisureFunctionInfo[nameSub(n)].def;
     };
@@ -533,8 +534,13 @@ misrepresented as being the original software.
       arity = arity != null ? arity : (typeof func === 'function' && func.length) || 0;
       return nakedDefine(name, lz(func), arity, src, method, namespace, isNew || (arity > 1));
     };
-    nakedDefine = function(name, func, arity, src, method, namespace, isNew) {
+    nakedDefine = function(name, func, arity, src, method, namespace, isNew, redef) {
       var namedFunc, nm;
+      func.leisureLength = arity || func.length;
+      if (!redef && functionInfo[name]) {
+        console.error(new Error("WARNING, REDEFINING " + name));
+        redefined[name] = true;
+      }
       functionInfo[name] = {
         src: src,
         arity: arity,
@@ -1015,6 +1021,7 @@ misrepresented as being the original software.
     root.makeSuper = makeSuper;
     root.supertypes = supertypes;
     root.functionInfo = functionInfo;
+    root.redefined = redefined;
     root.getPos = getPos;
     root.dummyPosition = dummyPosition;
     root.isNil = isNil;

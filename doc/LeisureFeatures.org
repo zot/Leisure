@@ -158,6 +158,7 @@ so head will return the first item inserted
 - empty seq
 - reverse seq
 - append seqA seqB *(note: the return value is the same type as the first seqA)*
+- contains item seq *(note: keyed sequences treat item as a key)*
 - delete item seq *(note: keyed sequences treat item as a key)*
 - map func seq
   - func el *(note: keyed sequences pass [key | value] as item)*

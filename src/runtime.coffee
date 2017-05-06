@@ -85,7 +85,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   checkPartial = (func, args)->
     if typeof func == 'string' then func = leisureFunctionNamed func
-    if func.length != args.length then Leisure_primCall func, 0, args
+    if func.leisureLength != args.length then Leisure_primCall func, 0, args
 
   call = (args...)-> basicCall(args, defaultEnv, identity)
 
@@ -150,34 +150,24 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define '+', (x, y)-> checkPartial(L_$o, arguments) || rz(x) + rz(y)
   define '-', (x, y)-> checkPartial(L_$_, arguments) || rz(x) - rz(y)
-  define '*', (x, y)-> if isPartial arguments then partialCall arguments else
-    rz(x) * rz(y)
-  define '/', (x, y)-> if isPartial arguments then partialCall arguments else
-    rz(x) / rz(y)
-  define '%', (x, y)-> if isPartial arguments then partialCall arguments else
-    rz(x) % rz(y)
-  define '<', (x, y)-> if isPartial arguments then partialCall arguments else
-    booleanFor rz(x) < rz(y)
-  define '<=', (x, y)-> if isPartial arguments then partialCall arguments else
-    booleanFor rz(x) <= rz(y)
-  define '>', (x, y)-> if isPartial arguments then partialCall arguments else
-    booleanFor rz(x) > rz(y)
-  define '>=', (x, y)-> if isPartial arguments then partialCall arguments else
-    booleanFor rz(x) >= rz(y)
+  define '*', (x, y)-> checkPartial(L_$g, arguments) || rz(x) * rz(y)
+  define '/', (x, y)-> checkPartial(L_$f, arguments) || rz(x) / rz(y)
+  define '%', (x, y)-> checkPartial(L_$A, arguments) || rz(x) % rz(y)
+  define '<', (x, y)-> checkPartial(L_$y, arguments) || booleanFor rz(x) < rz(y)
+  define '<=', (x, y)-> checkPartial(L_$y$p, arguments) || booleanFor rz(x) <= rz(y)
+  define '>', (x, y)-> checkPartial(L_$z, arguments) || booleanFor rz(x) > rz(y)
+  define '>=', (x, y)-> checkPartial(L_$z$p, arguments) || booleanFor rz(x) >= rz(y)
   define 'floor', (x)-> Math.floor(rz x)
   define 'ceil', (x)-> Math.ceil(rz x)
-  define 'min', (x, y)-> if isPartial arguments then partialCall arguments else
-    Math.min rz(x), rz(y)
-  define 'max', (x, y)-> if isPartial arguments then partialCall arguments else
-    Math.max rz(x), rz(y)
+  define 'min', (x, y)-> checkPartial(L_min, arguments) || Math.min rz(x), rz(y)
+  define 'max', (x, y)-> checkPartial(L_max, arguments) || Math.max rz(x), rz(y)
   define 'round', (x)-> Math.round(rz x)
   define 'abs', (x)-> Math.abs(rz x)
   define 'sqrt', (x)-> Math.sqrt(rz x)
   define 'acos', (x)-> Math.acos(rz x)
   define 'asin', (x)-> Math.asin(rz x)
   define 'atan', (x)-> Math.atan(rz x)
-  define 'atan2', (x, y)-> if isPartial arguments then partialCall arguments else
-    Math.atan2(rz(x), rz(y))
+  define 'atan2', (x, y)-> checkPartial(L_atan2, arguments) || Math.atan2(rz(x), rz(y))
   define 'cos', (x)-> Math.cos(rz x)
   #define 'log', (x)-> Math.log(rz x)
   define 'sin', (x)-> Math.sin(rz x)
@@ -185,10 +175,10 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'rand', -> makeSyncMonad (env, cont)->
     cont (Math.random())
-  define 'randInt', (low, high)-> if isPartial arguments then partialCall arguments else
+  define 'randInt', (low, high)-> checkPartial(L_randInt, arguments) ||
     makeSyncMonad (env, cont)->
       cont (Math.floor(rz(low) + Math.random() * rz(high)))
-  define '^', (x, y)-> Math.pow(rz(x), rz(y))
+  define '^', (x, y)-> checkPartial(L_$i, arguments) || Math.pow(rz(x), rz(y))
   define 'number', (n)-> Number n
 
 ############
@@ -202,11 +192,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'strString', (data)-> String rz data
   define '_strAsc', (str)-> rz(str).charCodeAt(0)
   define '_strChr', (i)-> String.fromCharCode(rz i)
-  define '_strAt', (str, index)-> if isPartial arguments then partialCall arguments else
+  define '_strAt', (str, index)-> checkPartial(L__strAt, arguments) ||
     rz(str)[strCoord(rz(str), rz(index))]
-  define '_strStartsWith', (str, prefix)-> if isPartial arguments then partialCall arguments else
+  define '_strStartsWith', (str, prefix)-> checkPartial(L__strStartsWith, arguments) ||
     booleanFor rz(str).substring(0, rz(prefix).length) == rz(prefix)
   define '_strLen', (str)-> rz(str).length
+  define '_strTrim', (str)-> String(rz str).trim()
   define '_strToLowerCase', (str)-> rz(str).toLowerCase()
   define '_strToUpperCase', (str)-> rz(str).toUpperCase()
   define '_strReverse', (str)->
@@ -215,20 +206,20 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     for i in [s.length - 1 .. 0] by -1
       result += s[i]
     result
-  define '_strReplace', (str, pat, repl)-> if isPartial arguments then partialCall arguments else
+  define '_strReplace', (str, pat, repl)-> checkPartial(L__strReplace, arguments) ||
     rz(str).replace rz(pat), rz(repl)
   strCoord = (str, coord)-> if coord < 0 then str.length + coord else coord
-  define '_strSubstring', (str, start, end)-> if isPartial arguments then partialCall arguments else
+  define '_strSubstring', (str, start, end)-> checkPartial(L__strSubstring, arguments) || (
     a = strCoord(rz(str), rz(start))
     b = strCoord(rz(str), rz(end))
     if b < a && rz(end) == 0 then b = rz(str).length
-    rz(str).substring a, b
-  define '_strSplit', (str, pat)-> if isPartial arguments then partialCall arguments else
+    rz(str).substring a, b)
+  define '_strSplit', (str, pat)-> checkPartial(L__strSplit, arguments) ||
     consFrom rz(str).split if rz(pat) instanceof RegExp then rz(pat) else new RegExp rz(pat)
   define '_strCat', (list)-> _.map(rz(list).toArray(), (el)-> if typeof el == 'string' then el else rz(L_show)(lz el)).join('')
-  define '_strAdd', (s1, s2)-> if isPartial arguments then partialCall arguments else
+  define '_strAdd', (s1, s2)-> checkPartial(L__strAdd, arguments) ||
     rz(s1) + rz(s2)
-  define '_strMatch', (str, pat)-> if isPartial arguments then partialCall arguments else
+  define '_strMatch', (str, pat)-> checkPartial(L__strMatch, arguments) || (
     m = rz(str).match (if rz(pat) instanceof RegExp then rz pat else new RegExp rz pat)
     if m
       groups = []
@@ -238,15 +229,15 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       if typeof m.index != 'undefined' then consFrom [m[0], consFrom(groups), m.index, m.input]
       else consFrom [m[0], consFrom(groups)]
     else if L_nil then rz L_nil
-    else Nil
+    else Nil)
   define '_strToList', (str)-> strToList rz str
   strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
   define '_strFromList', (list)-> strFromList rz list
   strFromList = (list)-> if list instanceof Leisure_nil then '' else head(list) + strFromList(tail list)
   define '_regexp', (str)-> new RegExp rz str
-  define '_regexpFlags', (str, flags)-> if isPartial arguments then partialCall arguments else
+  define '_regexpFlags', (str, flags)-> checkPartial(L__regexpFlags, arguments) ||
     new RegExp rz(str), rz(flags)
-  define '_jsonParse', (str, failCont, successCont)-> if isPartial arguments then partialCall arguments else
+  define '_jsonParse', (str, failCont, successCont)-> checkPartial(L__jsonParse, arguments) || (
     #str = rz str
     #try
     #  p = JSON.parse str
@@ -261,13 +252,13 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       p = JSON.parse rz str
       rz(successCont) lz p
     catch err
-      rz(failCont) lz err
-  define 'jsonStringify', (obj, failCont, successCont)-> if isPartial arguments then partialCall arguments else
+      rz(failCont) lz err)
+  define 'jsonStringify', (obj, failCont, successCont)-> checkPartial(L_jsonStringify, arguments) || (
     try
       s = JSON.stringify rz obj
       rz(successCont) lz s
     catch err
-      rz(failCont) lz err
+      rz(failCont) lz err)
 
 ############
 # properties
@@ -275,7 +266,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'getProperties', (func)-> if rz(func)?.properties then rz(func).properties else rz L_nil
 
-  define 'setProperty', (func, name, value)-> if isPartial arguments then partialCall arguments else
+  define 'setProperty', (func, name, value)-> checkPartial(L_setProperty, arguments) ||
     makeSyncMonad (env, cont)->
       f = rz func
       f.properties = rz(L_aconsf)(name, value, lz f.properties ? rz(L_nil))
@@ -285,13 +276,13 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 # Diagnostics
 ############
 
-  define 'log', (str, res)-> if isPartial arguments then partialCall arguments else
+  define 'log', (str, res)-> checkPartial(L_log, arguments) || (
     console.log rz str
-    rz res
+    rz res)
 
-  define 'logStack', (str, res)-> if isPartial arguments then partialCall arguments else
+  define 'logStack', (str, res)-> checkPartial(L_logStack, arguments) || (
     console.log new Error(rz str).stack
-    rz res
+    rz res)
 
   # an identity function you can put a breakpoint on
   define 'breakpoint', (x)->
@@ -413,13 +404,13 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   _unit = mkProto Leisure_unit, setType ((_x)-> rz(_x)), 'unit'
 
-  define 'define', (name, arity, src, def)-> if isPartial arguments then partialCall arguments else
+  define 'define', (name, arity, src, def)-> checkPartial(L_define, arguments) ||
     #console.log "DEFINE: #{name}"
     makeSyncMonad (env, cont)->
       nakedDefine rz(name), def, rz(arity), rz(src)
       cont _unit
 
-  define 'newDefine', (name, arity, src, def)-> if isPartial arguments then partialCall arguments else
+  define 'newDefine', (name, arity, src, def)-> checkPartial(L_newDefine, arguments) ||
     new Monad2 (env, cont)->
       if global.verbose?.gen then console.log "DEFINE: #{name}"
       nakedDefine rz(name), def, rz(arity), rz(src), null, null, true
@@ -532,7 +523,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'defer', (v)-> new Monad2 ((env, cont)-> setTimeout (->cont rz v), 1), ->
     "defer #{rz v}"
 
-  define 'bind', bind = (m, binding)-> if isPartial arguments then partialCall arguments else
+  define 'bind', bind = (m, binding)-> checkPartial(L_bind, arguments) || (
     bnd = new Monad2 'bind', ((env, cont)->
       b = bnd
       while b instanceof Monad2 && b.isBind
@@ -548,7 +539,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     bnd.isBind = true
     bnd.arg = m
     bnd.binding = binding
-    bnd
+    bnd)
 
   define 'pierce', (value)->
     new Monad2 'bind', (env, cont)->
@@ -601,12 +592,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 #
   actors = {}
 
-  define 'actor', (name, func)-> if isPartial arguments then partialCall arguments else
+  define 'actor', (name, func)-> checkPartial(L_actor, arguments) || (
     actors[name] = func
     func.env = values: {}
-    func.env.__proto__ = defaultEnv
+    func.env.__proto__ = defaultEnv)
 
-  define 'send', (name, msg)-> if isPartial arguments then partialCall arguments else
+  define 'send', (name, msg)-> checkPartial(L_send, arguments) ||
     setTimeout (-> runMonad2 (rz(actors[name])(msg)), rz(actors[name]).env), 1
 
 ######
@@ -846,7 +837,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     alts = (info.alts[i] for i in info.altList)
     alts.reverse()
     nm = "L_#{nameSub name}"
-    newDef = -> if arguments.length != arity then Leisure_primCall arguments.callee, 0, arguments, arity else
+    newDef = -> if p = checkPartial(info.mainDef, arguments) then p else
       for alt in alts
         opt = alt
         for arg in arguments
@@ -858,6 +849,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
           res = res arg
         return res
       throw new Error "No default definition for #{name}"
+    newDef.leisureLength = info.mainDef.leisureLength
     functionInfo[name].newArity = true
     LeisureFunctionInfo.def = newDef
     newDef.leisureName = name
@@ -956,6 +948,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'mapRest', (map)-> mapRest rz(map).map
 
+  define 'mapContains', (item, map)-> if isPartial arguments then partialCall arguments else
+    booleanFor rz(map).map.has rz(item)
+
   define 'mapPairs', (map)->
     h = rz(map).map.reverse()
     nextMapPair h, h.keySeq()
@@ -980,6 +975,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'amtSet', amtSet
 
   define 'setSize', (set)-> rz(set).set.size
+
+  define 'setContains', (item, set)-> if isPartial arguments then partialCall arguments else
+    booleanFor rz(set).set.contains rz(item)
 
   define 'setAdd', (value, set)-> if isPartial arguments then partialCall arguments else
     makeSet rz(set).set.add rz value
@@ -1022,6 +1020,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'vector', vector
 
   define 'vectorSize', (value, vec)-> rz(vec).vector.size
+
+  define 'vectorContains', (item, vec)-> if isPartial arguments then partialCall arguments else
+    booleanFor rz(vec).vector.contains rz(item)
 
   define 'vectorPush', (value, vec)-> if isPartial arguments then partialCall arguments else
     makeVector rz(vec).vector.push rz value

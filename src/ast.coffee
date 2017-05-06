@@ -82,6 +82,8 @@ define ['./base', 'lodash'], (base, _)->
 ###### definitions
 ######
 
+  redefined = {}
+
   leisureFunctionNamed = (n)-> LeisureFunctionInfo[nameSub n].def
 
   setDataType = (func, dataType)->
@@ -300,13 +302,17 @@ define ['./base', 'lodash'], (base, _)->
     arity = arity ? ((typeof func == 'function' && func.length) || 0)
     nakedDefine name, lz(func), arity, src, method, namespace, isNew || (arity > 1)
 
-  nakedDefine = (name, func, arity, src, method, namespace, isNew) ->
+  nakedDefine = (name, func, arity, src, method, namespace, isNew, redef) ->
     #can't use func(), because it might do something or might fail
     #if typeof func() == 'function'
     #  func().src = src
     #  func().leisureContexts = []
     #  func().leisureName = name
     #  func().leisureArity = arity
+    func.leisureLength = arity || func.length
+    if !redef && functionInfo[name]
+      console.error new Error "WARNING, REDEFINING #{name}"
+      redefined[name] = true
     functionInfo[name] =
       src: src
       arity: arity
@@ -548,6 +554,7 @@ define ['./base', 'lodash'], (base, _)->
   root.makeSuper = makeSuper
   root.supertypes = supertypes
   root.functionInfo = functionInfo
+  root.redefined = redefined
   root.getPos = getPos
   root.dummyPosition = dummyPosition
   root.isNil = isNil

@@ -1,4 +1,13 @@
-* TODO [#A] Make text/block/yaml connection more tenuous and generated on demand
+* TODO [#A] Leisure impl of defCase, defTypeCase, etc.
+* TODO [#A] Make defTypeCase func.type that adds a method to the type's class
+** defTypeCase should add a method named L__FUNC
+** Original definition creates a method in LeisureObject and makes the base function send the message
+** Make sure each type declares a class L__TYPE
+** Make (extend type superType) function use Object.create() or set __proto__ for preexisting types
+*** extend on a preexising type should issue a warning
+* TODO [#A] Generate direct JS syntax using annotation \@js . "3 + 4"
+* TODO [#A] Make +-*/% be macros that compile directly to JS
+* TODO [#A] Make text/block/yaml connection more tenuous and generated on demand?
 * TODO [#A] Leisure source map numbers are off
 * TODO [#A] Run all test cases                                      :feature:
 * TODO [#A] Search box doesn't show images properly

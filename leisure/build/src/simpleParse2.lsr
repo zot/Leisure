@@ -78,7 +78,7 @@ listify list = listifyOp 'cons' list 'nil'
 
 listFilter code = primBind (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
-    and (isToken h) (contains listMacros (tokenString h))
+    and (isToken h) (_contains (tokenString h) listMacros)
       listFilterTail list
       list
 
@@ -206,7 +206,7 @@ absorbArgument opPrec prec right closes head1 head2 tail2 head3 len = \\
   tail4 = tail tail3
   head5 = head tail4
   .
-  infixShouldEatNext opPrec prec (contains right (strTokenString head2)) head3 head4 head5 closes len
+  infixShouldEatNext opPrec prec (_contains (strTokenString head2) right) head3 head4 head5 closes len
     [head1 head2 | absorbArgument (getPrec prec head4) prec right closes head3 head4 tail4 head5 (- len 2)]
     [[head2 head1 head3] | tail3]
 
@@ -215,7 +215,7 @@ isInfixArg closes item = or[
   isCons item
   and[
     isToken item
-    not (contains closes (tokenString item))
+    not (_contains (tokenString item) closes)
     not (isBlockStart item)]]
 
 isInfix opPrec head1 head2 len = and[
@@ -227,7 +227,7 @@ getPrec prec token = \\
   str = tokenString token
   .
   isToken token
-    findIndex (\level . contains level str) prec
+    findIndex (\level . _contains str level) prec
     -1
 
 infixShouldEatNext opPrec prec isRight curArg nextOp nextArg closes len = \\

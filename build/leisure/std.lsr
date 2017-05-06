@@ -138,20 +138,6 @@ runRepeat count limit f = count < limit
   [(f count) | runRepeat (count + 1) limit f]
   []
 
-requireJS file = primBind (getValue 'requiredFiles')
-  \files . contains files file
-    false
-    primBind (loadJS file)
-      \result . result
-        \x . left x
-        \_ . primBind (setValue 'requiredFiles' (cons file files))
-          \_ . right true
-
-loadJS file = primBind (readFile file)
-  \result . result
-    \err . err
-    \contents . js contents
-
 #######################
 ## More list stuff
 #######################
@@ -497,6 +483,16 @@ defCase reverse.differenceList l | isDl l -> dllist (reverse (l []))
 defCase reverse.map h | isMap h -> mapReverse h
 defCase reverse.set s | isSet s -> setReverse s
 defCase reverse.vector v | isVector v -> vectorReverse v
+
+contains item l = _contains item l
+defCase contains.any item l | not (isList l) -> _contains item (tolist l)
+defCase contains.alist item l | isAlist l -> isSome (_find (\el . item == (head el)) l)
+defCase contains.range item r | isRange r -> r \ a b . (isNumber item) && ((a <= item) || (item < b))
+defCase contains.repeat item r | isRepeat r -> r \ count . (isNumber item) && ((0 <= item) || (item < count))
+defCase contains.differenceList item l | isDl l -> _contains item (l [])
+defCase contains.map item h | isMap h -> mapContains item h
+defCase contains.set item s | isSet s -> setContains item s
+defCase contains.vector item v | isVector v -> vectorContains item v
 ######################
 # maps
 ######################
@@ -751,10 +747,23 @@ getAnnoName ast = _1of3 ast
 getAnnoData ast = _2of3 ast
 getAnnoBody ast = _3of3 ast
 
-
 ####
 # Util funcs
 ####
+
+requireJS file = primBind (getValue 'requiredFiles')
+  \files . contains file files
+    false
+    primBind (loadJS file)
+      \result . result
+        \x . left x
+        \_ . primBind (setValue 'requiredFiles' (cons file files))
+          \_ . right true
+
+loadJS file = primBind (readFile file)
+  \result . result
+    \err . err
+    \contents . js contents
 
 definitionList = do
   f <- funcList

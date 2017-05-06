@@ -1,44 +1,68 @@
 #+TITLE: Data access
+* Scratch
+#+BEGIN_SRC leisure :results dynamic
+do
+  currentTransaction
+  trCreate 'bubba' []
+#+END_SRC
+
+
+
+#+RESULTS:
+: (transaction [bubba] [] [] [])
+* Page maxes out memory if left for too long when there's a major stack trace
+* Or something
+* 
 * Transaction code
 The basic transaction object.
 
 #+BEGIN_SRC leisure :results def
-transaction creates reads updates deletes data =
-  \f . f creates reads updates deletes data
+transaction creates reads updates deletes data errors = \f .
+  f creates reads updates deletes data errors
 
-emptyTransaction =
-  transaction set[] map{} set[] set[] map{}
+emptyTransaction = transaction set[] map{} set[] set[] map{} dl[]
 
-isTransaction t =
-  hasType t transaction
+isTransaction t = hasType t transaction
 
-trCreates transaction =
-  transaction \creates reads updates deletes data . creates
-trReads transaction =
-  transaction \creates reads updates deletes data . reads
-trUpdates transaction =
-  transaction \creates reads updates deletes data . updates
-trDeletes transaction =
-  transaction \creates reads updates deletes data . deletes
-trData transaction =
-  transaction \creates reads updates deletes data . data
+trEmpty transaction = transaction \c r u d data errs .
+  and[
+    empty c
+    empty r
+    empty u
+    empty d
+    empty errs]
 
-trSetData data tr =
-  tr \creates reads updates deletes _ .
-    transaction creates reads  updates deletes data
+trCreates transaction = transaction \c r u d data errs . c
+trReads transaction = transaction \c r u d data errs . r
+trUpdates transaction = transaction \c r u d data errs . u
+trDeletes transaction = transaction \c r u d data errs . d
+trData transaction = transaction \c r u d data errs . data
+trErrs transaction = transaction \c r u d data errs . errs
+
+trNoErrs transaction = empty (trErrs transaction)
+
+trSetData data tr = tr \c r u d data errs .
+  transaction c r u d data errs
+  unit
+
+nlist l = s['[' (join (tolist l) ' ') ']']
 
 defCase showBase.transaction func obj | isTransaction obj ->
-  obj \creates reads updates deletes data .
-    s['(transaction ' (showBase func creates) ' ' (showBase func reads) ' ' (showBase func updates) ' ' (showBase func deletes) ')']
+  (trEmpty obj) '(transaction)'
+    obj \c r u d data errs . do
+      r = map head (tolist r)
+      s = s['(transaction ' (nlist c) ' ' (nlist r) ' ' (nlist u) ' ' (nlist d)]
+      s[s ((empty errs) '' s[' ' (showBase func (tolist errs))]) ')']
 
 defCase toJson.transaction tr | isTransaction tr ->
-  tr \creates reads updates deletes data .
+  tr \c r u d data errs .
     toJsonObject {
       'type':'transaction'
-      'creates':(toJson creates)
-      'reads':(toJson reads)
-      'updates':(toJson updates)
-      'deletes':(toJson deletes)}
+      'creates':(toJson c)
+      'reads':(toJson r)
+      'updates':(toJson u)
+      'deletes':(toJson d)
+      'errs':(toJson errs)}
 
 currentTransaction = do
   tr <- envGetOpt 'transaction'
@@ -50,27 +74,32 @@ setTransaction trans = do
 
 trCreate name value = do
   trans <- currentTransaction
-  trans \c r u d data . setTransaction
-    transaction (conj name c) r u d (set name value data)
+  trNoErrs trans
+  trans \c r u d data errs . setTransaction
+    transaction (conj name c) r u d (set name value data) errs
 
 trRead name = do
   trans <- currentTransaction
+  trNoErrs trans
   valueOpt = getOpt name (trData trans)
   valueOpt id do
     value <- getDataUnsafe name
-    trans \c r u d data . setTransaction
-      transaction c (set name value r) u d (set name value data)
+    trans \c r u d data errs . setTransaction
+      transaction c (set name value r) u d (set name value data) errs
     value
 
 trUpdate name value = do
   trans <- currentTransaction
-  trans \c r u d data . setTransaction
-    transaction c r (conj name u) d (set name value data)
+  trNoErrs trans
+  trans \c r u d data errs . do
+    u = (contains name c) u (conj name u)
+    setTransaction (transaction c r u d (set name value data) errs)
 
 trDelete name value = do
   trans <- currentTransaction
-  trans \c r u d data . setTransaction
-    transaction c r u (conj name d) (delete name data)
+  trNoErrs trans
+  trans \c r u d data errs . setTransaction
+    transaction (delete name c) r (delete name u) (conj name d) (delete name data) errs
 #+END_SRC
 
 #+BEGIN_SRC leisure :results dynamic
