@@ -1293,7 +1293,7 @@ NMap is a very simple trie.
                     state = 'pending'
                     values.then (results)->
                       replaceBlock setResult newBlock, result
-                      opts.replaceBlock newBlock, newBlock.text, 'code'
+                      opts.replaceBlock newBlock._id, newBlock.text, 'code'
                       state = 'finished'
                   else
                     state = 'finished'

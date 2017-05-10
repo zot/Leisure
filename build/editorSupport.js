@@ -2517,7 +2517,7 @@
                   state = 'pending';
                   return values.then(function(results) {
                     replaceBlock(setResult(newBlock, result));
-                    opts.replaceBlock(newBlock, newBlock.text, 'code');
+                    opts.replaceBlock(newBlock._id, newBlock.text, 'code');
                     return state = 'finished';
                   });
                 } else {
