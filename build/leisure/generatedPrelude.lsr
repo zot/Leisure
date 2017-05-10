@@ -1526,12 +1526,6 @@ triple1 t = t \a b c . a
 triple2 t = t \a b c . b
 triple3 t = t \a b c . c
 
-partition res func list = isNil list
-  triple [] [] []
-  func (head list)
-    triple (_reverse res) (head list) (tail list)
-    partition [(head list) | res] func (tail list)
-
 addToken '<-'
 
 defTokenPack 'do' [['<-'] [] []]

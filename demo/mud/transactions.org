@@ -1,21 +1,36 @@
 #+TITLE: Data access
 * Scratch
 #+BEGIN_SRC leisure :results dynamic
-do
-  currentTransaction
-  trCreate 'bubba' []
+#simplify '`+ ~(first list) ~(second list)'
+defMacro 'pl' \list . `(+ ~(first list) ~(second list))
+defMacro 'a' \list . do
+  list = stripParens list
+  `(~@(first list) ~@(second list))
+simplify 'pl 2 3'
+#simplify '3 + 4'
+pl 2 33
+simplify 'a [1 2 3] [4 5 6]'
+a [1 2 33] [4 5 6]
+x = [1 2 3]
+y = [4 5 6]
+#c = 4
+#`~@x ~@y
 #+END_SRC
-
-
-
 #+RESULTS:
-: (transaction [bubba] [] [] [])
+: 
+: 
+: ["+" "2" "3"]
+: 35
+: ["cons" "1" ["cons" "2" ["cons" "3" "nil"]]]
+: [1 2 33]
+: 
+: 
+
+
 * Page maxes out memory if left for too long when there's a major stack trace
 * Or something
 * 
-* Transaction code
-The basic transaction object.
-
+* Transaction Objects
 #+BEGIN_SRC leisure :results def
 transaction creates reads updates deletes data errors = \f .
   f creates reads updates deletes data errors
@@ -100,6 +115,53 @@ trDelete name value = do
   trNoErrs trans
   trans \c r u d data errs . setTransaction
     transaction (delete name c) r (delete name u) (conj name d) (delete name data) errs
+#+END_SRC
+
+* Parsing
+#+BEGIN_SRC leisure :results def
+defTokenPack 'mud' [[] ['es[':']'] []]
+addStdTokenPacks ['mud']
+#+END_SRC
+
+* Running a transaction
+#+BEGIN_SRC leisure :results defx
+defMacro 'defTransactionOld' \list . partition (flip isTokenString '->') list \def arrow body . do
+  funcName = tokenString (head def)
+  args = map tokenString (tail def)
+  ['do'
+    ['define' s['"transaction_local_' funcName '"'] (length args) (tokenSrc list)
+      append ['\\' | args] ['.' | body]]
+    ['define' s['"' funcName '"'] (length args) s[funcName ' ' (join args ' ') ' = bind (transaction_local_' funcName ' ' (join args ' ') ') \t . runTransaction "' funcName '" t']
+      append ['\\' | args] ['.' 'bind' [s['transaction_local_' funcName] | args] '\\' 't' '.' 'runTransaction' s['"' funcName '"'] 't']]]
+
+getString s =
+  cond
+    (isString s) s
+    (isToken s) (tokenString s)
+    true (show s)
+
+escapeString s = jsonStringify s id id
+
+defMacro 'es[' \list . `(escapeString (strCat (map getString ~(listify (head list)))))
+
+defMacro 'defTransaction' \list . partition (flip isTokenString '->') list \decl arrow body . do
+  funcName = getString (head decl)
+  localTrans = s['transaction_local_' funcName]
+  args = tail decl
+  arity = length args
+  src = tokenSrc list
+  `(do
+      define ~es[localTrans] ~arity ~src \~@args . ~@body
+      define ~es[funcName] ~arity
+        ~es[funcName ' ' (join args ' ') ' = do\n  t <- ' localTrans ' ' (join args ' ') '\n  runTransaction ' es[funcName] ' t']
+        \~@args . do
+          t <- ~localTrans ~@args
+          runTransaction ~es[funcName] t)
+
+#trCommit = do
+#  trOpt <- envGetOpt 'transaction'
+#  flip trOpt (error 'Attempt to commit with no active transaction') \tr . do
+    
 #+END_SRC
 
 #+BEGIN_SRC leisure :results dynamic

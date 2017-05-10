@@ -311,7 +311,7 @@ define ['./base', 'lodash'], (base, _)->
     #  func().leisureName = name
     #  func().leisureArity = arity
     if !redef && functionInfo[name]
-      console.error new Error "WARNING, REDEFINING #{name}"
+      #console.error new Error "WARNING, REDEFINING #{name}"
       redefined[name] = true
     functionInfo[name] =
       src: src

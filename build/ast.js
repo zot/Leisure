@@ -532,7 +532,6 @@ misrepresented as being the original software.
     nakedDefine = function(name, func, arity, src, method, namespace, isNew, redef) {
       var namedFunc, nm;
       if (!redef && functionInfo[name]) {
-        console.error(new Error("WARNING, REDEFINING " + name));
         redefined[name] = true;
       }
       functionInfo[name] = {

@@ -457,7 +457,7 @@
           };
         })(this));
       };
-      env.executeBlock = function(block, props, cont) {
+      env.executeBlock = function(block, cont) {
         var p;
         p = this.compileBlock(block);
         if (p instanceof Promise) {

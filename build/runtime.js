@@ -43,7 +43,7 @@ misrepresented as being the original software.
     lz = lazy;
     lc = Leisure_call;
     gensymCounter = 0;
-    checkPartial = window.L_checkPartial = function(func, args) {
+    checkPartial = (typeof window !== "undefined" && window !== null ? window : global).L_checkPartial = function(func, args) {
       if (typeof func === 'string') {
         func = leisureFunctionNamed(func);
       }

@@ -1,3 +1,18 @@
+* TODO [#A] Macros that use IO don't recursively replace their contents
+#+BEGIN_SRC leisure :results dynamic
+defMacro 'ignoreFirst' \list . do
+  print['first arg: ' (head list)]
+  tail list
+
+#defMacro 'ignoreFirst' \list . log s['first arg: ' (head list)]
+#  tail list
+
+simplify 'ignoreFirst blah head [1 2 3]' 
+#+END_SRC
+#+RESULTS:
+: "first arg: token blah EMPTYFILE.lsr 1 12"
+: 
+: ["head" ["[" ["1" "2" "3"] "]"]]
 * TODO [#A] Leisure impl of defCase, defTypeCase, etc.
 * TODO [#A] Make defTypeCase func.type that adds a method to the type's class
 ** defTypeCase should add a method named L__FUNC

@@ -49,7 +49,7 @@ frobnicate 'hello'
 : 
 : 6
 * Metaprogramming
-** macros (like LISP macros)
+** Macros (like LISP macros)
 "do" is a macro
 ** parse filters (a bit like #lang in Racket)
 ** Infix notation is implemented as a parse filter

@@ -100,7 +100,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       keySplitPat = new RegExp ' +'
       postCallPat = /^([^(]*)\((.*)\)/
 
-      CodeContext::executeBlock = (block, props, cont)-> @executeText blockSource(block), props, cont
+      CodeContext::executeBlock = (block, cont)-> @executeText blockSource(block), cont
 
       blockOrg = (data, blockOrText)-> docBlockOrg (if typeof blockOrText == 'string' then data.getBlock blockOrText) ? blockOrText
 
@@ -1346,7 +1346,7 @@ NMap is a very simple trie.
               result += env.presentHtml str
               if !sync then opts.update newBlock = setResult block, result
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
-            setLounge env, -> env.executeBlock block, Nil, (r)-> writeResults env, r
+            setLounge env, -> env.executeBlock block, (r)-> writeResults env, r
             sync = false
             if !silent then newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock
@@ -1405,7 +1405,8 @@ NMap is a very simple trie.
         if !offset? && !error then block
         else
           newBlock = copyBlock block
-          msg = if msg then escapeString(msg.trim()) + "\n"
+          #msg = if msg then escapeString(msg.trim()) + "\n"
+          msg = if msg then escapeString(msg.trim())
           err = "#+ERROR: #{offset}, #{msg}\n"
           text = if error
             if !offset?

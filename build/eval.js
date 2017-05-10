@@ -675,7 +675,7 @@
       ref2 = target.split(function(m) {
         return startLen + m > end;
       }), preceding = ref2[0], target = ref2[1];
-      if (!preceding.isEmpty()) {
+      if (!preceding.isEmpty() || !target.isEmpty()) {
         ref3 = preceding.toArray();
         for (j = 0, len = ref3.length; j < len; j++) {
           ref4 = ref3[j], code = ref4[0], node = ref4[1];
@@ -852,7 +852,7 @@
           };
         })(this));
       };
-      env.executeBlock = function(block, props, cont) {
+      env.executeBlock = function(block, cont) {
         return new Promise((function(_this) {
           return function(succeed) {
             return _this.compileBlock(block).call(_this, function(result) {

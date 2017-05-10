@@ -83,7 +83,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 # code
 #########
 
-  checkPartial = window.L_checkPartial = (func, args)->
+  checkPartial = (window ? global).L_checkPartial = (func, args)->
     if typeof func == 'string' then func = leisureFunctionNamed func
     if func.leisureLength != args.length then Leisure_primCall func, 0, args
 
@@ -926,18 +926,6 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'mapRemove', (key, map)-> checkPartial(L_mapRemove, arguments) ||
     makeMap rz(map).map.remove rz(key)
-
-#  define 'mapOpts', (eq)->(hash)->
-#
-#  define 'mapAssocOpts', (map)->(key)->(value)->(opts)-> amt.assoc(rz(map), rz(key), rz(value), rz(opts))
-#
-#  define 'mapFetchOpts', (map)->(key)->(opts)-> amt.get(rz(map), rz(key), rz(opts))
-#
-#  define 'mapGetOpts', (map)->(key)->(opts)->
-#    v = amt.get(rz(map), rz(key), rz(opts))
-#    if v != null then some v else none
-#
-#  define 'mapDissocOpts', (map)->(key)->(opts)-> amt.dissoc(rz(map), rz(key), rz(opts))
 
   mapFirst = (map)->
     key = map.reverse().keySeq().first()

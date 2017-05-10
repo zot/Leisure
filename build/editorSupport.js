@@ -32,8 +32,8 @@
     bubbleLeftOffset = 0;
     keySplitPat = new RegExp(' +');
     postCallPat = /^([^(]*)\((.*)\)/;
-    CodeContext.prototype.executeBlock = function(block, props, cont) {
-      return this.executeText(blockSource(block), props, cont);
+    CodeContext.prototype.executeBlock = function(block, cont) {
+      return this.executeText(blockSource(block), cont);
     };
     blockOrg = function(data, blockOrText) {
       var ref;
@@ -2619,7 +2619,7 @@
             return cont(prompt(str, defaultValue));
           };
           setLounge(env, function() {
-            return env.executeBlock(block, Nil, function(r) {
+            return env.executeBlock(block, function(r) {
               return writeResults(env, r);
             });
           });
@@ -2710,7 +2710,7 @@
         return block;
       } else {
         newBlock = copyBlock(block);
-        msg = msg ? escapeString(msg.trim()) + "\n" : void 0;
+        msg = msg ? escapeString(msg.trim()) : void 0;
         err = "#+ERROR: " + offset + ", " + msg + "\n";
         text = error ? offset == null ? block.text.substring(0, error.offset) + block.text.substring(error.offset + error.text.length) : block.text.substring(0, error.offset) + err + block.text.substring(error.offset + error.text.length) : results ? block.text.substring(0, results.offset) + err + block.text.substring(results.offset) : block.text + err;
         tmp = parseOrgDoc(text)[0];
