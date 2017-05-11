@@ -266,10 +266,14 @@ misrepresented as being the original software.
       };
 
       Leisure_BaseCons.prototype.toArray = function() {
-        return this.foldl((function(i, el) {
-          i.push(el);
-          return i;
-        }), []);
+        var cur, res;
+        res = [];
+        cur = this;
+        while (!cur.isNil()) {
+          res.push(cur.head());
+          cur = cur.tail();
+        }
+        return res;
       };
 
       Leisure_BaseCons.prototype.join = function(str) {

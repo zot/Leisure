@@ -1,3 +1,9 @@
+* TODO [#A] hand optimization
+** useTokenPack->newToks
+** computeTokenPack->newPat
+** initialize all properties in the constructor and in the same order
+** remove try/catch -- delegate try contents to a nested function
+* TODO [#A] make toJson cases for immutable.js data types
 * TODO [#A] Macros that use IO don't recursively replace their contents
 #+BEGIN_SRC leisure :results dynamic
 defMacro 'ignoreFirst' \list . do

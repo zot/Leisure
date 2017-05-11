@@ -216,6 +216,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     rz(str).substring a, b
   define '_strSplit', (str, pat)-> checkPartial(L__strSplit, arguments) ||
     consFrom rz(str).split if rz(pat) instanceof RegExp then rz(pat) else new RegExp rz(pat)
+  define '_strJoin', (list, sep)-> checkPartial(L__strJoin, arguments) ||
+    rz(list).toArray().join rz(sep)
   define '_strCat', (list)-> _.map(rz(list).toArray(), (el)-> if typeof el == 'string' then el else rz(L_show)(lz el)).join('')
   define '_strAdd', (s1, s2)-> checkPartial(L__strAdd, arguments) ||
     rz(s1) + rz(s2)
@@ -259,6 +261,16 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       rz(successCont) lz s
     catch err
       rz(failCont) lz err
+
+############
+# arrays
+############
+
+  define '_sort', (predicate, list)-> checkPartial(L__sort, arguments) || (
+    result = rz(list).toArray()
+    pred = rz(predicate)
+    result.sort (a, b)-> pred(a)(b)(-1)(1)
+    consFrom result)
 
 ############
 # properties

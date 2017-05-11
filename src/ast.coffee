@@ -194,7 +194,13 @@ define ['./base', 'lodash'], (base, _)->
     foldr1: (func)->
       if @tail() == Nil then @head()
       else func @head(), @tail().foldr1(func)
-    toArray: -> @foldl ((i, el)-> i.push(el); i), []
+    toArray: ->
+      res = []
+      cur = this
+      while !cur.isNil()
+        res.push cur.head()
+        cur = cur.tail()
+      res
     join: (str)->@toArray().join(str)
     intersperse: (item)-> cons @head(), @tail().foldr ((el, res)-> cons item, cons el, res), Nil
     reverse: -> @rev Nil

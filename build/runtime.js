@@ -356,6 +356,9 @@ misrepresented as being the original software.
     define('_strSplit', function(str, pat) {
       return checkPartial(L__strSplit, arguments) || consFrom(rz(str).split(rz(pat) instanceof RegExp ? rz(pat) : new RegExp(rz(pat))));
     });
+    define('_strJoin', function(list, sep) {
+      return checkPartial(L__strJoin, arguments) || rz(list).toArray().join(rz(sep));
+    });
     define('_strCat', function(list) {
       return _.map(rz(list).toArray(), function(el) {
         if (typeof el === 'string') {
@@ -445,6 +448,12 @@ misrepresented as being the original software.
           return rz(failCont)(lz(err));
         }
       }
+    });
+    define('_sort', function(predicate, list) {
+      var pred, result;
+      return checkPartial(L__sort, arguments) || (result = rz(list).toArray(), pred = rz(predicate), result.sort(function(a, b) {
+        return pred(a)(b)(-1)(1);
+      }), consFrom(result));
     });
     define('getProperties', function(func) {
       var ref1;
