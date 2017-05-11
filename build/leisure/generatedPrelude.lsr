@@ -207,7 +207,7 @@ _find predicate list = isNil list
   none
   predicate (head list) (some (head list)) (_find predicate (tail list))
 find = _find
-contains list item = find (\el . eq el item) list (\x . true) false
+_contains item list = find (\el . eq el item) list (\x . true) false
 
 findIndex func list = idx list func 0
 idx list func pos = list
@@ -595,7 +595,7 @@ createLitOrRef token names = \\
   tok = tokenString token
   tokRange = (fileposList (position token))
   .
-  contains names tok
+  _contains tok names
     ref tok tokRange
     or (strStartsWith tok '\"') (strStartsWith tok "'")
       parseString tok \str . lit str tokRange
@@ -641,7 +641,7 @@ createApply inList names = withStripped inList \list .
 blockStarts = cons '\\' (cons '\\\\' (cons '\\@' nil))
 
 chainApply func list names = withCons list func \argItem rest .
-  and (isToken argItem) (contains blockStarts (tokenString argItem))
+  and (isToken argItem) (_contains (tokenString argItem) blockStarts)
     ifNotErr (createAst nil list names) \arg . apply func arg
     ifNotErr (createAst nil argItem names) \arg . chainApply (apply func arg) rest names
 
@@ -698,7 +698,7 @@ countedScanLineG lineStarts str pat groups props onDef onExpr = \\
   groupToks = _foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
   .
   # check if it's a definition
-  find (\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
+  find (\tok . or (_contains (tokenString tok) groupToks) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
     toks \name rest . \\
       parseIt func = \\
         parsed = parseToks (checkSetDataType func rest name) groups
@@ -783,7 +783,7 @@ checkSetDataType toks curToks name = withCons curToks toks \h t .
 
 arity toks n = isTokenString (head toks) '=' n (arity (tail toks) (+ n 1))
 
-tokListStr toks = jsonStringify (join (_map (\t . tokenString t) toks) ' ')
+tokListStr toks = jsonStringify (_strJoin (_map (\t . tokenString t) toks) ' ')
 
 linePat = regexp '\\r?\\n(?=[^ ]|$)'
 
@@ -867,7 +867,7 @@ runParseFilters filters line = filters
 
 isBlockStart tok = and
   or (isToken tok) (isString tok)
-  contains blockStarts (strTokenString tok)
+  _contains (strTokenString tok) blockStarts
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
@@ -949,7 +949,7 @@ delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#[^\\r\\n
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
 addToken del = primBind (getValue 'tokenList')
-  \dels . contains dels del
+  \dels . _contains del dels
     false
     \\
       newDels = insertSorted (\a b . > (strLen a) (strLen b)) del dels
@@ -959,7 +959,7 @@ addToken del = primBind (getValue 'tokenList')
 
 computeTokenPat dels = \\
   delPats = _map (\item . strReplace item regexpEscapePat "\\$&") dels
-  newPat = strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil)))
+  newPat = strCat (cons '(' (cons (_strJoin (cons delimiterListPrefix delPats) '|') (cons ')' nil)))
   .
   setValue 'tokenPat' newPat
 
@@ -1122,7 +1122,7 @@ load file = primBind (baseLoad file)
       left errs
 
 require file = primBind (getValue 'requiredFiles')
-  \files . contains files file
+  \files . _contains file files
     right false
     primBind (setValue 'requiredFiles' (cons file files))
       \_. primBind (load file)
@@ -1164,7 +1164,7 @@ useTokenPack name = primBind (getValue 'tokenPacks')
           \filters . assoc name packs
             \pack . \\
               groupToks = _foldl (\value el . el \h t . cons h (cons t value)) nil (head (tail pack))
-              newToks = mergeSort (\a b . > (strLen a) (strLen b)) (_append (head pack) (_append groupToks tokens))
+              newToks = _sort (\a b . > (strLen a) (strLen b)) (_append (head pack) (_append groupToks tokens))
               .
               primBind (setValue 'tokenList' newToks)
                 \_ . primBind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))
@@ -1298,7 +1298,7 @@ listify list = listifyOp 'cons' list 'nil'
 
 listFilter code = primBind (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
-    and (isToken h) (contains listMacros (tokenString h))
+    and (isToken h) (_contains (tokenString h) listMacros)
       listFilterTail list
       list
 
@@ -1426,7 +1426,7 @@ absorbArgument opPrec prec right closes head1 head2 tail2 head3 len = \\
   tail4 = tail tail3
   head5 = head tail4
   .
-  infixShouldEatNext opPrec prec (contains right (strTokenString head2)) head3 head4 head5 closes len
+  infixShouldEatNext opPrec prec (_contains (strTokenString head2) right) head3 head4 head5 closes len
     [head1 head2 | absorbArgument (getPrec prec head4) prec right closes head3 head4 tail4 head5 (- len 2)]
     [[head2 head1 head3] | tail3]
 
@@ -1435,7 +1435,7 @@ isInfixArg closes item = or[
   isCons item
   and[
     isToken item
-    not (contains closes (tokenString item))
+    not (_contains (tokenString item) closes)
     not (isBlockStart item)]]
 
 isInfix opPrec head1 head2 len = and[
@@ -1447,7 +1447,7 @@ getPrec prec token = \\
   str = tokenString token
   .
   isToken token
-    findIndex (\level . contains level str) prec
+    findIndex (\level . _contains str level) prec
     -1
 
 infixShouldEatNext opPrec prec isRight curArg nextOp nextArg closes len = \\
@@ -1525,12 +1525,6 @@ triple a b c = \f . f a b c
 triple1 t = t \a b c . a
 triple2 t = t \a b c . b
 triple3 t = t \a b c . c
-
-partition res func list = isNil list
-  triple [] [] []
-  func (head list)
-    triple (_reverse res) (head list) (tail list)
-    partition [(head list) | res] func (tail list)
 
 addToken '<-'
 

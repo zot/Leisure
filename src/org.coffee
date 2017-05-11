@@ -30,6 +30,7 @@ misrepresented as being the original software.
 # alText() gets its text, plus its childrens'
 #
 
+'use strict'
 define ['lib/lazy'], (Lazy)->
   {
     _

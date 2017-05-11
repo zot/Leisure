@@ -1,3 +1,4 @@
+    'use strict'
     define ['./base', './org', './docOrg', './ast', './eval', './editor', 'lodash', 'jquery', './ui', 'handlebars', './lib/prism', './editorSupport', 'bluebird', './advice', './lib/prism-leisure', 'lib/js-yaml'], (Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml)->
 
       {

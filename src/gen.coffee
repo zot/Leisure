@@ -22,6 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
+'use strict'
 define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support'], (Base, Ast, Runtime, _, SourceMap, SourceMapSupport)->
   SourceMapSupport?.install()
   {
@@ -307,10 +308,13 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       args = getNArgs(arity, ast).toArray()
       argList = _.map(args, ((x)-> 'L_' + x)).join ', '
       mainFunc = sn ast, """
-        (function(#{argList}) {
-            return arguments.callee.length != arguments.length
-                ? Leisure_primCall(arguments.callee, 0, arguments)
-                : """, genUniq(getNthLambdaBody(ast, arity), names, uniq), ";\n})"
+        (function(){
+          var L_$_F = function(#{argList}) {
+            return L_checkPartial(L_$_F, arguments) || #{genUniq(getNthLambdaBody(ast, arity), names, uniq)};
+          };
+          return L_$_F;
+        })()
+      """
       result = addLambdaProperties ast, (sn ast, mainFunc)
       annoAst = ast
       while annoAst instanceof Leisure_anno

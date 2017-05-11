@@ -132,6 +132,7 @@ Create a LeisureEditCore object like this: `new LeisureEditCore editorElement, o
 convert text to a list of block objects (see below).  See
 BasicEditingOptions and DataStoreEditingOptions for more info.
 
+    'use strict'
     define ['./domCursor', 'fingertree', 'immutable', './advice', 'lodash'], (DOMCursor, Fingertree, Immutable, Advice, _)->
       {
         selectRange,

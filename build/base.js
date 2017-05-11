@@ -25,6 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
+  'use strict';
   var files,
     slice1 = [].slice;
 
@@ -90,7 +91,7 @@ misrepresented as being the original software.
     defaultEnv = {
       __proto__: CodeContext.prototype,
       presentValue: function(x) {
-        return String(x) + '\n';
+        return String(x);
       },
       write: function(v) {
         return console.log(v);

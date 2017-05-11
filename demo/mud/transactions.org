@@ -1,44 +1,83 @@
 #+TITLE: Data access
-* Transaction code
-The basic transaction object.
+* Scratch
+#+BEGIN_SRC leisure :results dynamic
+#simplify '`+ ~(first list) ~(second list)'
+defMacro 'pl' \list . `(+ ~(first list) ~(second list))
+defMacro 'a' \list . do
+  list = stripParens list
+  `(~@(first list) ~@(second list))
+simplify 'pl 2 3'
+#simplify '3 + 4'
+pl 2 33
+simplify 'a [1 2 3] [4 5 6]'
+a [1 2 33] [4 5 6]
+x = [1 2 3]
+y = [4 5 6]
+#c = 4
+#`~@x ~@y
+#+END_SRC
+#+RESULTS:
+: 
+: 
+: ["+" "2" "3"]
+: 35
+: ["cons" "1" ["cons" "2" ["cons" "3" "nil"]]]
+: [1 2 33]
+: 
+: 
 
+
+* Page maxes out memory if left for too long when there's a major stack trace
+* Or something
+* 
+* Transaction Objects
 #+BEGIN_SRC leisure :results def
-transaction creates reads updates deletes data =
-  \f . f creates reads updates deletes data
+transaction creates reads updates deletes data errors = \f .
+  f creates reads updates deletes data errors
 
-emptyTransaction =
-  transaction set[] map{} set[] set[] map{}
+emptyTransaction = transaction set[] map{} set[] set[] map{} dl[]
 
-isTransaction t =
-  hasType t transaction
+isTransaction t = hasType t transaction
 
-trCreates transaction =
-  transaction \creates reads updates deletes data . creates
-trReads transaction =
-  transaction \creates reads updates deletes data . reads
-trUpdates transaction =
-  transaction \creates reads updates deletes data . updates
-trDeletes transaction =
-  transaction \creates reads updates deletes data . deletes
-trData transaction =
-  transaction \creates reads updates deletes data . data
+trEmpty transaction = transaction \c r u d data errs .
+  and[
+    empty c
+    empty r
+    empty u
+    empty d
+    empty errs]
 
-trSetData data tr =
-  tr \creates reads updates deletes _ .
-    transaction creates reads  updates deletes data
+trCreates transaction = transaction \c r u d data errs . c
+trReads transaction = transaction \c r u d data errs . r
+trUpdates transaction = transaction \c r u d data errs . u
+trDeletes transaction = transaction \c r u d data errs . d
+trData transaction = transaction \c r u d data errs . data
+trErrs transaction = transaction \c r u d data errs . errs
+
+trNoErrs transaction = empty (trErrs transaction)
+
+trSetData data tr = tr \c r u d data errs .
+  transaction c r u d data errs
+  unit
+
+nlist l = s['[' (join (tolist l) ' ') ']']
 
 defCase showBase.transaction func obj | isTransaction obj ->
-  obj \creates reads updates deletes data .
-    s['(transaction ' (showBase func creates) ' ' (showBase func reads) ' ' (showBase func updates) ' ' (showBase func deletes) ')']
+  (trEmpty obj) '(transaction)'
+    obj \c r u d data errs . do
+      r = map head (tolist r)
+      s = s['(transaction ' (nlist c) ' ' (nlist r) ' ' (nlist u) ' ' (nlist d)]
+      s[s ((empty errs) '' s[' ' (showBase func (tolist errs))]) ')']
 
 defCase toJson.transaction tr | isTransaction tr ->
-  tr \creates reads updates deletes data .
+  tr \c r u d data errs .
     toJsonObject {
       'type':'transaction'
-      'creates':(toJson creates)
-      'reads':(toJson reads)
-      'updates':(toJson updates)
-      'deletes':(toJson deletes)}
+      'creates':(toJson c)
+      'reads':(toJson r)
+      'updates':(toJson u)
+      'deletes':(toJson d)
+      'errs':(toJson errs)}
 
 currentTransaction = do
   tr <- envGetOpt 'transaction'
@@ -50,27 +89,79 @@ setTransaction trans = do
 
 trCreate name value = do
   trans <- currentTransaction
-  trans \c r u d data . setTransaction
-    transaction (conj name c) r u d (set name value data)
+  trNoErrs trans
+  trans \c r u d data errs . setTransaction
+    transaction (conj name c) r u d (set name value data) errs
 
 trRead name = do
   trans <- currentTransaction
+  trNoErrs trans
   valueOpt = getOpt name (trData trans)
   valueOpt id do
     value <- getDataUnsafe name
-    trans \c r u d data . setTransaction
-      transaction c (set name value r) u d (set name value data)
+    trans \c r u d data errs . setTransaction
+      transaction c (set name value r) u d (set name value data) errs
     value
 
 trUpdate name value = do
   trans <- currentTransaction
-  trans \c r u d data . setTransaction
-    transaction c r (conj name u) d (set name value data)
+  trNoErrs trans
+  trans \c r u d data errs . do
+    u = (contains name c) u (conj name u)
+    setTransaction (transaction c r u d (set name value data) errs)
 
 trDelete name value = do
   trans <- currentTransaction
-  trans \c r u d data . setTransaction
-    transaction c r u (conj name d) (delete name data)
+  trNoErrs trans
+  trans \c r u d data errs . setTransaction
+    transaction (delete name c) r (delete name u) (conj name d) (delete name data) errs
+#+END_SRC
+
+* Parsing
+#+BEGIN_SRC leisure :results def
+defTokenPack 'mud' [[] ['es[':']'] []]
+addStdTokenPacks ['mud']
+#+END_SRC
+
+* Running a transaction
+#+BEGIN_SRC leisure :results defx
+defMacro 'defTransactionOld' \list . partition (flip isTokenString '->') list \def arrow body . do
+  funcName = tokenString (head def)
+  args = map tokenString (tail def)
+  ['do'
+    ['define' s['"transaction_local_' funcName '"'] (length args) (tokenSrc list)
+      append ['\\' | args] ['.' | body]]
+    ['define' s['"' funcName '"'] (length args) s[funcName ' ' (join args ' ') ' = bind (transaction_local_' funcName ' ' (join args ' ') ') \t . runTransaction "' funcName '" t']
+      append ['\\' | args] ['.' 'bind' [s['transaction_local_' funcName] | args] '\\' 't' '.' 'runTransaction' s['"' funcName '"'] 't']]]
+
+getString s =
+  cond
+    (isString s) s
+    (isToken s) (tokenString s)
+    true (show s)
+
+escapeString s = jsonStringify s id id
+
+defMacro 'es[' \list . `(escapeString (strCat (map getString ~(listify (head list)))))
+
+defMacro 'defTransaction' \list . partition (flip isTokenString '->') list \decl arrow body . do
+  funcName = getString (head decl)
+  localTrans = s['transaction_local_' funcName]
+  args = tail decl
+  arity = length args
+  src = tokenSrc list
+  `(do
+      define ~es[localTrans] ~arity ~src \~@args . ~@body
+      define ~es[funcName] ~arity
+        ~es[funcName ' ' (join args ' ') ' = do\n  t <- ' localTrans ' ' (join args ' ') '\n  runTransaction ' es[funcName] ' t']
+        \~@args . do
+          t <- ~localTrans ~@args
+          runTransaction ~es[funcName] t)
+
+#trCommit = do
+#  trOpt <- envGetOpt 'transaction'
+#  flip trOpt (error 'Attempt to commit with no active transaction') \tr . do
+    
 #+END_SRC
 
 #+BEGIN_SRC leisure :results dynamic

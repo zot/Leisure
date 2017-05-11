@@ -344,7 +344,7 @@ Compile Wisp code, optionally in a namespace.
         env.executeText = (text, props, cont)-> setLounge this, =>
           result = [Leisure.wispEval(text)]
           if cont then cont result else result
-        env.executeBlock = (block, props, cont)->
+        env.executeBlock = (block, cont)->
           p = @compileBlock(block)
           if p instanceof Promise then p.then (f)-> f.call this, cont
           else p.call this, cont

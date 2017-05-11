@@ -3,6 +3,7 @@ Editing support for Leisure
 This file customizes the editor so it can handle Leisure files.  Here is the Leisure
 block structure:  ![Block structure](private/doc/blockStructure.png)
 
+    'use strict'
     define ['./base', './org', './docOrg', './ast', './utilities', './eval', './leisure-support', './editor', 'lodash', 'jquery', './ui', './db', 'handlebars', './lib/prism', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'fingertree', './tangle', 'lib/sha1'], (Base, Org, DocOrg, Ast, Utilities, Eval, LeisureSupport, Editor, _, $, UI, DB, Handlebars, Prism, Advice, Yaml, Bluebird, Immutable, FingerTree, Tangle, SHA1)->
       {
         defaultEnv
@@ -99,7 +100,7 @@ block structure:  ![Block structure](private/doc/blockStructure.png)
       keySplitPat = new RegExp ' +'
       postCallPat = /^([^(]*)\((.*)\)/
 
-      CodeContext::executeBlock = (block, props, cont)-> @executeText blockSource(block), props, cont
+      CodeContext::executeBlock = (block, cont)-> @executeText blockSource(block), cont
 
       blockOrg = (data, blockOrText)-> docBlockOrg (if typeof blockOrText == 'string' then data.getBlock blockOrText) ? blockOrText
 
@@ -1292,7 +1293,7 @@ NMap is a very simple trie.
                     state = 'pending'
                     values.then (results)->
                       replaceBlock setResult newBlock, result
-                      opts.replaceBlock newBlock, newBlock.text, 'code'
+                      opts.replaceBlock newBlock._id, newBlock.text, 'code'
                       state = 'finished'
                   else
                     state = 'finished'
@@ -1345,7 +1346,7 @@ NMap is a very simple trie.
               result += env.presentHtml str
               if !sync then opts.update newBlock = setResult block, result
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
-            setLounge env, -> env.executeBlock block, Nil, (r)-> writeResults env, r
+            setLounge env, -> env.executeBlock block, (r)-> writeResults env, r
             sync = false
             if !silent then newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock
@@ -1404,7 +1405,8 @@ NMap is a very simple trie.
         if !offset? && !error then block
         else
           newBlock = copyBlock block
-          msg = if msg then escapeString(msg.trim()) + "\n"
+          #msg = if msg then escapeString(msg.trim()) + "\n"
+          msg = if msg then escapeString(msg.trim())
           err = "#+ERROR: #{offset}, #{msg}\n"
           text = if error
             if !offset?

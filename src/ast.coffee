@@ -23,8 +23,9 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-define ['./base', 'lodash'], (base, _)->
+'use strict'
 
+define ['./base', 'lodash'], (base, _)->
   {
     resolve,
     lazy,
@@ -81,6 +82,8 @@ define ['./base', 'lodash'], (base, _)->
 ######
 ###### definitions
 ######
+
+  redefined = {}
 
   leisureFunctionNamed = (n)-> LeisureFunctionInfo[nameSub n].def
 
@@ -191,7 +194,13 @@ define ['./base', 'lodash'], (base, _)->
     foldr1: (func)->
       if @tail() == Nil then @head()
       else func @head(), @tail().foldr1(func)
-    toArray: -> @foldl ((i, el)-> i.push(el); i), []
+    toArray: ->
+      res = []
+      cur = this
+      while !cur.isNil()
+        res.push cur.head()
+        cur = cur.tail()
+      res
     join: (str)->@toArray().join(str)
     intersperse: (item)-> cons @head(), @tail().foldr ((el, res)-> cons item, cons el, res), Nil
     reverse: -> @rev Nil
@@ -201,7 +210,7 @@ define ['./base', 'lodash'], (base, _)->
     each: (block)->
       block(@head())
       @tail().each(block)
-    length: -> @foldl ((i, el)-> i + 1), 0
+    #length: -> @foldl ((i, el)-> i + 1), 0
     last: ->
       t = @tail()
       if t == Nil then @head() else t.last()
@@ -300,13 +309,16 @@ define ['./base', 'lodash'], (base, _)->
     arity = arity ? ((typeof func == 'function' && func.length) || 0)
     nakedDefine name, lz(func), arity, src, method, namespace, isNew || (arity > 1)
 
-  nakedDefine = (name, func, arity, src, method, namespace, isNew) ->
+  nakedDefine = (name, func, arity, src, method, namespace, isNew, redef) ->
     #can't use func(), because it might do something or might fail
     #if typeof func() == 'function'
     #  func().src = src
     #  func().leisureContexts = []
     #  func().leisureName = name
     #  func().leisureArity = arity
+    if !redef && functionInfo[name]
+      #console.error new Error "WARNING, REDEFINING #{name}"
+      redefined[name] = true
     functionInfo[name] =
       src: src
       arity: arity
@@ -318,6 +330,7 @@ define ['./base', 'lodash'], (base, _)->
     if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
     #namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
     functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = if typeof func == 'function' && func.memo
+      func.leisureLength = arity || func.length
       func.leisureName = name
       if func.__proto__ == Function.prototype then func.__proto__ = LeisureObject
       func
@@ -548,6 +561,7 @@ define ['./base', 'lodash'], (base, _)->
   root.makeSuper = makeSuper
   root.supertypes = supertypes
   root.functionInfo = functionInfo
+  root.redefined = redefined
   root.getPos = getPos
   root.dummyPosition = dummyPosition
   root.isNil = isNil

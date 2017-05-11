@@ -1,5 +1,6 @@
 Code for local-mode.  This will not be loaded under meteor.
 
+    'use strict'
     require ['./domCursor'], (DC)-> window.DOMCursor = DC
 
     init = (base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle, Storage, Presentation)->

@@ -1,5 +1,6 @@
 Note data accesses and changes.
 
+    'use strict'
     define ['./base', './org', './docOrg', 'lodash', './advice', 'bluebird'], (Base, Org, DocOrg, _, Advice, Bluebird)->
       {
         changeAdvice

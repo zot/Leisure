@@ -1,5 +1,6 @@
 Lounge utilities.
 
+    'use strict'
     define ['bluebird'], (Bluebird)->
       {
         Promise

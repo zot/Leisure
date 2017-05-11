@@ -16,7 +16,7 @@
 #
 #    MONADS
 #
-# bind m binding -> transform a monad with a function and continue with result of function
+# bind m binding -> monadically transform a value with a function and continue with result of function
 #
 # print string -> print a string and continue with false
 #
@@ -115,13 +115,12 @@ stripNesting l = isCons l
     _map stripNesting l
   l
 
-
 simplify exprString = do
   list <- scanLineM exprString
   stripNesting (visit (\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list)
 
 #######################
-## Monads
+## Monadic values
 #######################
 
 range a b = \f . f a b
@@ -138,23 +137,17 @@ runRepeat count limit f = count < limit
   [(f count) | runRepeat (count + 1) limit f]
   []
 
-requireJS file = primBind (getValue 'requiredFiles')
-  \files . contains files file
-    false
-    primBind (loadJS file)
-      \result . result
-        \x . left x
-        \_ . primBind (setValue 'requiredFiles' (cons file files))
-          \_ . right true
-
-loadJS file = primBind (readFile file)
-  \result . result
-    \err . err
-    \contents . js contents
-
 #######################
 ## More list stuff
 #######################
+
+partition func list = subpartition [] func list
+
+subpartition res func list = isNil list
+  triple [] [] []
+  func (head list)
+    triple (_reverse res) (head list) (tail list)
+    subpartition [(head list) | res] func (tail list)
 
 findOption func list = do
   result = func (head list)
@@ -173,6 +166,10 @@ dllist l = \@type differenceList . \rest . _append l rest
 
 isDl x = hasType x differenceList
 
+addTokenGroup 'append[' ']'
+
+defMacro 'append[' \list . foldr1 (\item rest . ['append' item rest]) (head list)
+
 addTokenGroup 'dl[' ']'
 
 defMacro 'dl[' \list .
@@ -181,7 +178,7 @@ defMacro 'dl[' \list .
 listifyDl list lvar =
   isNil list
     lvar
-    partition [] (flip isTokenString '|') list \front middle back .
+    partition (flip isTokenString '|') list \front middle back .
       isNil middle
         _foldl (\acc el . ['cons' el acc]) lvar (reverse list)
         _foldl (\acc el . ['cons' el acc]) [[back] lvar] (reverse front)
@@ -274,9 +271,9 @@ sortBy cmp l = mergeSort cmp l
 # YAML and JSON
 #################
 
-toJson obj = (isMapLike obj)
+toJson obj = (isKeyedSequence obj)
   toJsonObject (_map (\pair . cons (head pair) (toJson (tail pair))) (tolist obj))
-  (isListLike obj)
+  (isSequence obj)
     toJsonArray (_map (\item . toJson item) (tolist obj))
     obj
 
@@ -338,14 +335,24 @@ zip a b = isNil a
     nil
     cons (cons (head a) (head b)) (zip (tail a) (tail b))
 
+first x = head x
+nth n seq  = head (drop (max 0 n - 1) seq)
+second seq = nth 2 seq
+third seq  = nth 3 seq
+foruth seq = nth 4 seq
+fifth seq  = nth 5 seq
+sixth seq  = nth 6 seq
+
 mapchunks func list =
-  isNil list
+  empty list
     nil
     do
       r = func list
-      isCons r
-        r \result rest . [result | mapchunks func rest]
+      (isSequence r) && (not (empty r))
+        [(head r) | mapchunks func (tail r)]
         [r]
+
+chunk n list = mapchunks (\l . [(take n l) | drop n l]) list
 
 # map, but preserve the old list where possible, so that == works on it
 mapSave func l = isNil l
@@ -372,9 +379,9 @@ qs sortedFunc list = list
     \rest . (qs sortedFunc lesser) (cons h ((qs sortedFunc greater) rest))
   id
 
-# you can add more cases to isListLike if you want
-isListLike l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString isDl isMap isSet isVector])
-isMapLike l = isSome (find (\f . f l) [isAlist isMap])
+# you can add more cases to isSequence and isKeyedSequence if you want
+isSequence l = isSome (find (\f . f l) [isCons isNil isRepeat isRange isOption isEither isString isDl isMap isSet isVector])
+isKeyedSequence l = isSome (find (\f . f l) [isAlist isMap])
 
 tolist x = [x]
 
@@ -448,7 +455,7 @@ defCase append.range x y | and[(isRange x) (isRange y) (x \xa xb . y \ya yb . xb
   x \xa xb . y \ya yb . range xa yb
 defCase append.string x y | isString x -> x + y
 defCase append.differenceList x y | isDl x -> dlappend x (isDl y y (dllist (tolist y)))
-defCase append.map x y | and (isMap x) (isMapLike y) ->
+defCase append.map x y | and (isMap x) (isKeyedSequence y) ->
   isMap y
     mapMerge x y
     _foldr (\el result . el \k v . set k v result) x (tolist y)
@@ -497,6 +504,16 @@ defCase reverse.differenceList l | isDl l -> dllist (reverse (l []))
 defCase reverse.map h | isMap h -> mapReverse h
 defCase reverse.set s | isSet s -> setReverse s
 defCase reverse.vector v | isVector v -> vectorReverse v
+
+contains item l = _contains item l
+defCase contains.any item l | not (isList l) -> _contains item (tolist l)
+defCase contains.alist item l | isAlist l -> isSome (_find (\el . item == (head el)) l)
+defCase contains.range item r | isRange r -> r \ a b . (isNumber item) && ((a <= item) || (item < b))
+defCase contains.repeat item r | isRepeat r -> r \ count . (isNumber item) && ((0 <= item) || (item < count))
+defCase contains.differenceList item l | isDl l -> _contains item (l [])
+defCase contains.map item h | isMap h -> mapContains item h
+defCase contains.set item s | isSet s -> setContains item s
+defCase contains.vector item v | isVector v -> vectorContains item v
 ######################
 # maps
 ######################
@@ -700,7 +717,7 @@ defCase bind.wrappedRun m cont | hasType m wrappedRun -> bind (m id) \x . bind x
 #######################
 
 # defWrapper func realFunc x y -> log "Calling func" realFunc x y
-defMacro 'defWrapper' \list . partition [] (flip isTokenString '->') list \left arrow right . do
+defMacro 'defWrapper' \list . partition (flip isTokenString '->') list \left arrow right . do
   name = concat["'" (strTokenString (head left)) "'"]
   oldName = head (tail left)
   args = tail (tail left)
@@ -719,8 +736,8 @@ defWrapper mapSet oldMapSet key value aMap -> oldMapSet
 
 html x = \f . f x
 
-defTokenPack 'util' [['->' '--' '++'] ['js[':']' 'write[':']' 's[':']' 'err[':']' 'dl[':']' 'map{':'}' 'set[':']' 'vec[':']'] []]
-addStdTokenPacks ['util']
+#defTokenPack 'util' [['->' '--' '++'] ['js[':']' 'write[':']' 's[':']' 'err[':']' 'dl[':']' 'map{':'}' 'set[':']' 'vec[':']' 'append[':']'] []]
+#addStdTokenPacks ['util']
 
 #####
 # AST funcs
@@ -751,10 +768,23 @@ getAnnoName ast = _1of3 ast
 getAnnoData ast = _2of3 ast
 getAnnoBody ast = _3of3 ast
 
-
 ####
 # Util funcs
 ####
+
+requireJS file = primBind (getValue 'requiredFiles')
+  \files . contains file files
+    false
+    primBind (loadJS file)
+      \result . result
+        \x . left x
+        \_ . primBind (setValue 'requiredFiles' (cons file files))
+          \_ . right true
+
+loadJS file = primBind (readFile file)
+  \result . result
+    \err . err
+    \contents . js contents
 
 definitionList = do
   f <- funcList
@@ -764,3 +794,71 @@ definitionList = do
 eval str = do
   ast <- newParseLine 0 nil str
   ifNotErr ast (runAst ast)
+
+########
+## cond
+########
+
+tokenSrc tokens = do
+  tokens = flatten (tokenList tokens)
+  tokens = mapchunks (\l . [[
+   tokenString (head l)
+   (isNil (tail l)) '' (spacesBetween (first l) (second l))] | tail l]) tokens
+  strCat (flatten tokens)
+
+spacesBetween tok1 tok2 = tok1 \t1 p1 . tok2 \_ p2. p1 \_ l1 o1 . p2 \_ l2 o2 .
+  (l1 == l2)
+    strRep o2 - o1 - (length t1) ' '
+    (strRep l2 - l1 '\n') + (strRep o2 ' ')
+
+strRep n char = n <= 0 '' char + (strRep n - 1 char)
+
+tokenList tokens = do
+  isParens tokens
+    tokens \start end content . [
+      token '(' start
+      tokenList content
+      token ')' (end \f l o . filepos f l (max 0 o - 1))]
+    isList tokens
+      map tokenList tokens
+      [tokens]
+
+defMacro 'cond' \list .
+  foldr (\l rest . do
+    l = stripParens l
+    not and[(isSequence l) (length l) == 2]
+      error s['Bad cond format, cond expects pairs of expressions: ' (tokenSrc list)]
+      [(first l) (second l) | [((empty rest) 'false' rest)]]) nil list
+
+#############
+## backquote
+#############
+
+addToken '`'
+addToken '~'
+addToken '~@'
+
+defMacro '`' \list . consFromTokens (head list)
+
+consFromTokens toks = do
+  item = head toks
+  rest = tail toks
+  item2 = head rest
+  rest2 = tail rest
+  cond
+    (isNil toks) 'nil'
+    (isParens toks) (toks \s e c . consFromTokens c)
+    (isToken toks) (stringForToken toks)
+    (isString toks) (escapeString toks)
+    (not (isCons toks)) toks
+    (isTokenString item '~') ['cons' (stripParens item2) (consFromTokens rest2)]
+    (isTokenString item '~@')
+      empty rest2
+        stripParens item2
+        ['_append' (stripParens item2) (consFromTokens rest2)]
+    true ['cons' (consFromTokens item) (consFromTokens rest)]
+
+stringForToken tok = tok \tok pos . token (jsonStringify tok id id) pos
+
+defTokenPack 'util' [['->' '--' '++' '`' '~' '~@'] ['js[':']' 'write[':']' 's[':']' 'err[':']' 'dl[':']' 'map{':'}' 'set[':']' 'vec[':']' 'append[':']'] []]
+addStdTokenPacks ['util']

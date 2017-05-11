@@ -1,5 +1,6 @@
 Evaulation support for Leisure
 
+    'use strict'
     define.amd = true
     define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport)->
       SourceMapSupport?.install()
@@ -412,7 +413,7 @@ Evaulation support for Leisure
           [code, node] = preceding.peekLast()
           result.push sn node, code.substring start - startLen
         [preceding, target] = target.split (m)-> startLen + m > end
-        if !preceding.isEmpty()
+        if !preceding.isEmpty() || !target.isEmpty()
           for [code, node] in preceding.toArray()
             result.push sn node, code
           if !target.isEmpty()
@@ -504,7 +505,7 @@ Evaulation support for Leisure
             cont? values ? []).catch (err)->
               console.error err.stack ? err
               env.errorAt 0, err.message
-        env.executeBlock = (block, props, cont)->
+        env.executeBlock = (block, cont)->
           new Promise((succeed)=>
             @compileBlock(block).call this, (result)->
               succeed result

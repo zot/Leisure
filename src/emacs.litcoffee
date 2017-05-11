@@ -1,5 +1,6 @@
 Emacs connection
 
+    'use strict'
     define ['lodash', './ui', './editor', './editorSupport', './diag', './eval', './advice'], (_, UI, Editor, EditorSupport, Diag, Eval, Advice)->
 
       {

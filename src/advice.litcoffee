@@ -35,7 +35,7 @@ Code
 Method Advice
 
     define [], ->
-
+      'use strict'
 
 changeAdvice(object, flag, advice) is the main API method.  Using
 advice will add an "ADVICE" property to object.

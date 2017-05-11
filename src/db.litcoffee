@@ -1,5 +1,6 @@
 IndexedDb support for Leisure
 
+    'use strict'
     define ['bluebird'], (Bluebird)->
       {
         Promise

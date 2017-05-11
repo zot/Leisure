@@ -1,3 +1,4 @@
+    'use strict'
     define ['immutable', './editor', './editorSupport'], (immutable, Editor, Support)->
       {
         Map

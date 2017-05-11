@@ -4,6 +4,7 @@ Test with
 
 Leisure.tangle('#+BEGIN_SRC leisure :tangle yes\n3 + 4\n#+END_SRC')
 
+    'use strict'
     define ['./base', './org', './docOrg', './gen', './eval', 'lodash', 'handlebars', './advice', 'lib/js-yaml', 'bluebird', 'immutable', 'fingertree', 'lib/sha1'], (Base, Org, DocOrg, Gen, Eval, _, Handlebars, Advice, Yaml, Bluebird, Immutable, FingerTree, SHA1)->
       {
         parseOrgMode

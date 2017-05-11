@@ -22,6 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
+'use strict'
 if window? then window.global = window
 files = if !(window ? global).btoa then ['btoa'] else [null]
 define files, (btoa)->
@@ -57,7 +58,7 @@ define files, (btoa)->
 
   defaultEnv =
     __proto__: CodeContext.prototype
-    presentValue: (x)-> String(x) + '\n'
+    presentValue: (x)-> String(x)
     write: (v)-> console.log v
     values: {}
     errorHandlers: []

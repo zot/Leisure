@@ -10,6 +10,7 @@ This readme file is also the code.
 
 Here are some examples (I'm wrapping them in a -> to make a no-op that gets syntax highlighting in viewers that support it).
 
+    'use strict'
     ->
 
 In Leisure, I use it like this, to retrieve text from the page (scroll down to see docs on these methods, by the way):
