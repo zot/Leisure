@@ -15,6 +15,21 @@ setNameSpace 'core'
 #########################################################################
 
 #############
+# TYPES
+#############
+
+_declareType 'boolean' 0
+_declareType 'true' 'boolean'
+_declareType 'false' 'boolean'
+_declareType 'option' 0
+_declareType 'some' 'option'
+_declareType 'none' 'option'
+_declareType 'either' 0
+_declareType 'left' 'either'
+_declareType 'right' 'either'
+_declareType 'keyedSequence' 'sequence'
+
+#############
 # IO SUPPORT
 #############
 
@@ -62,51 +77,51 @@ isEither obj = or (hasType obj left) (hasType obj right)
 # DATA
 ######################
 
-isString s = == (getType s) '*string'
-isNumber s = == (getType s) '*number'
+isString s = == (getType s) 'string'
+isNumber s = == (getType s) 'number'
 
 ######################
 # STRING TYPE CHECKS
 ######################
 
-strAsc string = _strAsc (assertType 'strAsc string' '*string' string)
-strChr ascii = _strChr (assertType 'strChr string' '*number' ascii)
+strAsc string = _strAsc (assertType 'strAsc string' 'string' string)
+strChr ascii = _strChr (assertType 'strChr string' 'number' ascii)
 strAt string index = _strAt
-  assertType 'strAt string' '*string' string
-  assertType 'strAt index' '*number' index
+  assertType 'strAt string' 'string' string
+  assertType 'strAt index' 'number' index
 strStartsWith string prefix = _strStartsWith
-  assertType 'strStartsWith string' '*string' string
-  assertType 'strStartsWith prefix' '*string' prefix
-strLen string = _strLen (assertType 'strLen string' '*string' string)
-strReverse string = _strReverse (assertType 'strLen string' '*string' string)
-strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' '*string' string)
-strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' '*string' string)
+  assertType 'strStartsWith string' 'string' string
+  assertType 'strStartsWith prefix' 'string' prefix
+strLen string = _strLen (assertType 'strLen string' 'string' string)
+strReverse string = _strReverse (assertType 'strLen string' 'string' string)
+strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' 'string' string)
+strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' 'string' string)
 strReplace string pat repl = _strReplace
-  assertType 'strReplace string' '*string' string
-  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
-  assertType 'strReplace repl' '*string' repl
+  assertType 'strReplace string' 'string' string
+  assert (or (hasType pat 'string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+  assertType 'strReplace repl' 'string' repl
 strSubstring str start end = _strSubstring
-  assertType 'strSubstring str' '*string' str
-  assertType 'strSubstring start' '*number' start
-  assertType 'strSubstring end' '*number' end
+  assertType 'strSubstring str' 'string' str
+  assertType 'strSubstring start' 'number' start
+  assertType 'strSubstring end' 'number' end
 strSplit str pat = _strSplit
-  assertType 'strSplit str' '*string' str
-  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+  assertType 'strSplit str' 'string' str
+  assert (or (hasType pat 'string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
 strCat list = _strCat
   assert (isList list) (strCat (cons 'strCat list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
-strAdd str1 str2 = _strAdd (assertType 'strAdd str1' '*string' str1) (assertType 'strAdd str2' '*string' str2)
+strAdd str1 str2 = _strAdd (assertType 'strAdd str1' 'string' str1) (assertType 'strAdd str2' 'string' str2)
 strMatch str pat = _strMatch
-  assertType 'strMatch str' '*string' str
-  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
-strToList str = _strToList (assertType 'strToList str' '*string' str)
+  assertType 'strMatch str' 'string' str
+  assert (or (hasType pat 'string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+strToList str = _strToList (assertType 'strToList str' 'string' str)
 strFromList list = _strFromList
   assert (isList list) (strCat (cons 'strFromList list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
-regexp str = _regexp (assertType 'regexp str' '*string' str)
+regexp str = _regexp (assertType 'regexp str' 'string' str)
 regexpFlags str flags = _regexpFlags
-  assertType 'regexp str' '*string' str
-  assertType 'regexp flags' '*string' flags
+  assertType 'regexp str' 'string' str
+  assertType 'regexp flags' 'string' flags
 jsonParse str failure success = _jsonParse
-  assertType 'jsonParse str' '*string' str
+  assertType 'jsonParse str' 'string' str
   failure
   success
 
@@ -234,8 +249,6 @@ join list el = strCat (intersperse list el)
 ############
 # ASSOC LISTS
 ############
-_declareType 'keyedSequence' 'sequence'
-_declareType 'alist' 'keyedSequence'
 assertAlist msg value result = assert (isAlist value) (strCat (cons msg (cons ' should be a association list, but it is not; its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))) result
 acons k v alist = assertAlist "acons alist" alist (\@ type cons . \f . \@ assoc true . f (cons k v) alist)
 assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
@@ -746,7 +759,6 @@ createDef def name arity src props = \\
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
       cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))
-      #cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))) nil))))))))
 
 spliceFuncProps arity props ast = or (isNil props) (== arity 0)
   ast

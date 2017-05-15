@@ -295,9 +295,9 @@ misrepresented as being the original software.
     define('^', function(x, y) {
       return checkPartial(L_$i, arguments) || Math.pow(rz(x), rz(y));
     });
-    define('number', function(n) {
+    define('number', setDataType((function(n) {
       return Number(n);
-    });
+    }), 'number'));
     define('_show', function(data) {
       var ref1;
       if ((ref1 = typeof rz(data)) === 'string' || ref1 === 'number' || ref1 === 'boolean') {
@@ -1113,17 +1113,18 @@ misrepresented as being the original software.
     define('_declareType', function(subtype, supertype) {
       var nilSupertype, subcl, supercl;
       return checkPartial(L__declareType, arguments) || ((function() {
+        subtype = rz(subtype);
         supertype = rz(supertype);
-        nilSupertype = supertype === rz(L_nil);
-        if (!nilSupertype && !(supercl = classForType(rz(supertype)))) {
-          throw new Error("Attempt to extend a nonexistant type: " + (rz(supertype)));
+        nilSupertype = supertype === 0;
+        if (!nilSupertype && !(supercl = classForType(supertype))) {
+          throw new Error("Attempt to extend a nonexistant type: " + supertype);
         }
-        if (subcl = classForType(rz(subtype))) {
+        if (subcl = classForType(subtype)) {
           if (supercl && subcl.prototype.__proto__ !== supercl.prototype) {
             subcl.prototype.__proto__ = supercl.prototype;
           }
         } else {
-          subcl = ensureLeisureClass(rz(subtype), (nilSupertype ? null : supertype));
+          subcl = ensureLeisureClass(subtype, !nilSupertype && supertype);
         }
         return _unit;
       })());
@@ -1262,21 +1263,21 @@ misrepresented as being the original software.
     };
     nFunction = function(nArgs, def) {
       var i;
-      return (eval("(function (def) {\n  //return function (" + (((function() {
+      return (eval("(function (def) {\n  return function (" + (((function() {
         var j, ref1, results;
         results = [];
         for (i = j = 0, ref1 = nArgs; 0 <= ref1 ? j < ref1 : j > ref1; i = 0 <= ref1 ? ++j : --j) {
           results.push("arg" + i);
         }
         return results;
-      })()).join(', ')) + ") {\n  //  return checkPartial(f, arguments) || def.apply(null, arguments);\n  //};\n  var f = function (" + (((function() {
+      })()).join(', ')) + ") {\n    return checkPartial(f, arguments) || def.apply(null, arguments);\n  };\n  //var f = function (" + (((function() {
         var j, ref1, results;
         results = [];
         for (i = j = 0, ref1 = nArgs; 0 <= ref1 ? j < ref1 : j > ref1; i = 0 <= ref1 ? ++j : --j) {
           results.push("arg" + i);
         }
         return results;
-      })()).join(', ')) + ") {\n    return checkPartial(f, arguments) || def.apply(null, arguments);\n  };\n  return f;\n})"))(def);
+      })()).join(', ')) + ") {\n  //  return checkPartial(f, arguments) || def.apply(null, arguments);\n  //};\n  //return f;\n})"))(def);
     };
     define('delay', function(timeout) {
       return new Monad2(function(env, cont) {
@@ -1430,11 +1431,12 @@ misrepresented as being the original software.
         });
       };
       h.map = map;
+      setType(h, 'hamt');
       h.leisureType = 'hamt';
       return h;
     };
     hamt = makeMap(Map());
-    hamt.leisureDataType = 'hamt';
+    setDataType(hamt, 'hamt');
     define('hamt', hamt);
     define('mapSize', function(map) {
       return rz(map).map.size;
@@ -1498,11 +1500,12 @@ misrepresented as being the original software.
         });
       };
       s.set = set;
+      setType(s, 'amtSet');
       s.leisureType = 'amtSet';
       return s;
     };
     amtSet = makeSet(Set());
-    amtSet.leisureDataType = 'amtSet';
+    setDataType(amtSet, 'amtSet');
     define('amtSet', amtSet);
     define('setSize', function(set) {
       return rz(set).set.size;
@@ -1559,11 +1562,12 @@ misrepresented as being the original software.
         });
       };
       v.vector = vec;
+      setType(v, 'vector');
       v.leisureType = 'vector';
       return v;
     };
     vector = makeVector(List());
-    vector.leisureDataType = 'vector';
+    setDataType(vector, 'vector');
     define('vector', vector);
     define('vectorSize', function(value, vec) {
       return rz(vec).vector.size;

@@ -35,6 +35,7 @@ define ['./base', 'lodash'], (base, _)->
   rz = resolve
   lz = lazy
   lc = Leisure_call
+  types = {}
 
 ######
 ###### naming
@@ -111,42 +112,52 @@ define ['./base', 'lodash'], (base, _)->
 
   classNameForType = (type)-> "Leisure_#{nameSub type}"
 
-  classForType = (type)-> global[classNameForType type]
+  classForType = (type)-> types[type]
 
   ensureLeisureClass = (leisureClass, superclassName)->
-    cl = classNameForType leisureClass
-    superclass = (if superclassName? then global[classNameForType superclassName] else LeisureObject)
-    if !global[cl]?
-      global[cl] = eval "(function #{cl}(){})"
-      #console.log 'creating class', leisureClass, superclassName
-      #global[cl].prototype.__proto__ = LeisureObject.prototype
-      global[cl].prototype = new superclass
-      global[cl].prototype.constructor = global[cl]
-      root.leisureClassChange++
-    global[cl]
+    if !(type = types[leisureClass])
+      cl = classNameForType leisureClass
+      if !global[cl]?
+        supercl = (if superclassName then global[classNameForType superclassName] else LeisureObject)
+        try
+          type = types[leisureClass] = global[cl] = eval "(function #{cl}(){})"
+          if supercl && typeof supercl == 'function' && (supercl == LeisureObject || supercl.prototype instanceof LeisureObject)
+            global[cl].prototype = new supercl
+            global[cl].prototype.constructor = global[cl]
+          else throw new Error "Invalid supertype: #{superclassName}"
+          root.leisureClassChange++
+        catch err
+          console.log "Error creating class #{leisureClass}#{if superClassName? then ' extends ' + superClassName else ''}", "superclass: ", supercl
+          throw err
+      else throw new Error "System error: existing type #{leisureClass} is not in types map"
+    type
 
+  ensureLeisureClass 'string'
+  ensureLeisureClass 'number'
   ensureLeisureClass 'sequence'
-  ensureLeisureClass 'cons', 'sequence'
-  ensureLeisureClass 'nil'
-
-  isNil = (obj)-> obj instanceof Leisure_nil
-
+  # these are defined individually, below
+  #ensureLeisureClass 'list', 'sequence'
+  #ensureLeisureClass 'cons', 'list'
+  #ensureLeisureClass 'nil', 'list'
   ensureLeisureClass 'ast'
   ensureLeisureClass 'lit', 'ast'
-  Leisure_lit.prototype.toString = -> "lit(#{getLitVal @})"
   ensureLeisureClass 'ref', 'ast'
-  Leisure_ref.prototype.toString = -> "ref(#{getRefName @})"
   ensureLeisureClass 'lambda', 'ast'
-  Leisure_lambda.prototype.toString = -> "lambda(#{astString @})"
   ensureLeisureClass 'apply', 'ast'
-  Leisure_apply.prototype.toString = -> "apply(#{astString @})"
   ensureLeisureClass 'let', 'ast'
-  Leisure_let.prototype.toString = -> "let(#{astString @})"
   ensureLeisureClass 'anno', 'ast'
-  Leisure_anno.prototype.toString = -> "anno(#{astString @})"
   ensureLeisureClass 'doc'
   ensureLeisureClass 'srcLocation'
   ensureLeisureClass 'pattern'
+
+  isNil = (obj)-> obj instanceof Leisure_nil
+
+  Leisure_lit.prototype.toString = -> "lit(#{getLitVal @})"
+  Leisure_ref.prototype.toString = -> "ref(#{getRefName @})"
+  Leisure_lambda.prototype.toString = -> "lambda(#{astString @})"
+  Leisure_apply.prototype.toString = -> "apply(#{astString @})"
+  Leisure_let.prototype.toString = -> "let(#{astString @})"
+  Leisure_anno.prototype.toString = -> "anno(#{astString @})"
 
   astString = (ast)->
     switch getType ast
@@ -172,7 +183,7 @@ define ['./base', 'lodash'], (base, _)->
 ######### LISTS
 #########
 
-  class Leisure_BaseCons extends LeisureObject
+  class Leisure_list extends Leisure_sequence
     head: -> throw new Error("Not Implemented")
     tail: -> throw new Error("Not Implemented")
     isNil: -> false
@@ -211,18 +222,20 @@ define ['./base', 'lodash'], (base, _)->
     toString: -> "#{@stringName()}[#{@elementString()}]"
     stringName: -> "BaseCons"
 
+  types.list = global.Leisure_list = Leisure_list
+
   consEq = (a, b)-> a == b or (a instanceof Leisure_BaseCons and a.equals(b))
 
 # cons and Nil are Leisure-based so that Leisure code can work with it transparently
 # they look like ordinary JS classes, but the "instances" are actually functions
-  class Leisure_cons extends Leisure_BaseCons
+  class Leisure_cons extends Leisure_list
     head: -> @ ->(a)->(b)->rz a
     tail: -> @ ->(a)->(b)->rz b
     stringName: -> "Cons"
 
-  global.Leisure_cons = Leisure_cons
+  types.cons = global.Leisure_cons = Leisure_cons
 
-  class Leisure_nil extends LeisureObject
+  class Leisure_nil extends Leisure_list
     isNil: -> true
     find: -> @
     removeAll: -> @
@@ -239,7 +252,7 @@ define ['./base', 'lodash'], (base, _)->
     toString: -> "Cons[]"
     elementString: -> ''
 
-  global.Leisure_nil = Leisure_nil
+  types.nil = global.Leisure_nil = Leisure_nil
 
   jsType = (v)->
     t = typeof v
@@ -366,10 +379,11 @@ define ['./base', 'lodash'], (base, _)->
 
   getType = (f)->
     t = typeof f
-    if t == 'null' then "*null"
-    else if t == 'undefined' then "*undefined"
+    if t in ['string', 'number'] then t
+    else if t == 'undefined' then "undefined"
     else if f.leisureType then f.leisureType
-    else (t == 'function' and f?.type) or "*#{((t == 'object') && f.constructor?.name) || t}"
+    else if t == 'function' and f?.type then f.type
+    else "*#{((t == 'object') && f.constructor?.name) || t}"
 
   define 'getType', ((value)-> getType rz value), 1
 
@@ -566,5 +580,6 @@ define ['./base', 'lodash'], (base, _)->
   root.rangeToJson = rangeToJson
   root.classNameForType = classNameForType
   root.classForType = classForType
+  root.types = types
 
   root

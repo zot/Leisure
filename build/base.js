@@ -210,7 +210,7 @@ misrepresented as being the original software.
         return function() {
           var args;
           args = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
-          return baseLeisureCall(f, 0, args);
+          return baseLeisureCall(f, 0, args, f.length);
         };
       }
     };

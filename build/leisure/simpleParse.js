@@ -3,6 +3,16 @@ define([], function(){
   if (typeof module != 'undefined') require('source-map-support').install();
   return L_runMonads([
     function(){return (resolve(L_setNameSpace)("core"));}, 
+    function(){return (resolve(L__declareType)("boolean", 0));}, 
+    function(){return (resolve(L__declareType)("true", "boolean"));}, 
+    function(){return (resolve(L__declareType)("false", "boolean"));}, 
+    function(){return (resolve(L__declareType)("option", 0));}, 
+    function(){return (resolve(L__declareType)("some", "option"));}, 
+    function(){return (resolve(L__declareType)("none", "option"));}, 
+    function(){return (resolve(L__declareType)("either", 0));}, 
+    function(){return (resolve(L__declareType)("left", "either"));}, 
+    function(){return (resolve(L__declareType)("right", "either"));}, 
+    function(){return (resolve(L__declareType)("keyedSequence", "sequence"));}, 
     function(){return (resolve(L_define)("asIO", 1, "asIO x = x", lazy((function(){
   var L_$F = (function(L_x){return resolve(L_x)});
   L_$F.leisureFunctionId = 0;
@@ -210,33 +220,33 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("isString", 1, "isString s = == (getType s) '*string'", lazy((function(){
-  var L_$F = (function(L_s){return resolve(L_$p$p)(function(){return resolve(L_getType)(L_s);}, "*string")});
+    function(){return (resolve(L_define)("isString", 1, "isString s = == (getType s) 'string'", lazy((function(){
+  var L_$F = (function(L_s){return resolve(L_$p$p)(function(){return resolve(L_getType)(L_s);}, "string")});
   L_$F.leisureFunctionId = 37;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("isNumber", 1, "isNumber s = == (getType s) '*number'", lazy((function(){
-  var L_$F = (function(L_s){return resolve(L_$p$p)(function(){return resolve(L_getType)(L_s);}, "*number")});
+    function(){return (resolve(L_define)("isNumber", 1, "isNumber s = == (getType s) 'number'", lazy((function(){
+  var L_$F = (function(L_s){return resolve(L_$p$p)(function(){return resolve(L_getType)(L_s);}, "number")});
   L_$F.leisureFunctionId = 38;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strAsc", 1, "strAsc string = _strAsc (assertType 'strAsc string' '*string' string)", lazy((function(){
-  var L_$F = (function(L_string){return resolve(L__strAsc)(function(){return L$(resolve(L_assertType))("strAsc string", "*string", L_string);})});
+    function(){return (resolve(L_define)("strAsc", 1, "strAsc string = _strAsc (assertType 'strAsc string' 'string' string)", lazy((function(){
+  var L_$F = (function(L_string){return resolve(L__strAsc)(function(){return L$(resolve(L_assertType))("strAsc string", "string", L_string);})});
   L_$F.leisureFunctionId = 39;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strChr", 1, "strChr ascii = _strChr (assertType 'strChr string' '*number' ascii)", lazy((function(){
-  var L_$F = (function(L_ascii){return resolve(L__strChr)(function(){return L$(resolve(L_assertType))("strChr string", "*number", L_ascii);})});
+    function(){return (resolve(L_define)("strChr", 1, "strChr ascii = _strChr (assertType 'strChr string' 'number' ascii)", lazy((function(){
+  var L_$F = (function(L_ascii){return resolve(L__strChr)(function(){return L$(resolve(L_assertType))("strChr string", "number", L_ascii);})});
   L_$F.leisureFunctionId = 40;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strAt", 2, "strAt string index = _strAt\n  assertType 'strAt string' '*string' string\n  assertType 'strAt index' '*number' index", lazy((function(){
+    function(){return (resolve(L_define)("strAt", 2, "strAt string index = _strAt\n  assertType 'strAt string' 'string' string\n  assertType 'strAt index' 'number' index", lazy((function(){
   var L_$F = (function(L_string){return (function(){
-  var L_$F = (function(L_index){return resolve(L__strAt)(function(){return L$(resolve(L_assertType))("strAt string", "*string", L_string);}, function(){return L$(resolve(L_assertType))("strAt index", "*number", L_index);})});
+  var L_$F = (function(L_index){return resolve(L__strAt)(function(){return L$(resolve(L_assertType))("strAt string", "string", L_string);}, function(){return L$(resolve(L_assertType))("strAt index", "number", L_index);})});
   L_$F.leisureFunctionId = 42;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -245,9 +255,9 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strStartsWith", 2, "strStartsWith string prefix = _strStartsWith\n  assertType 'strStartsWith string' '*string' string\n  assertType 'strStartsWith prefix' '*string' prefix", lazy((function(){
+    function(){return (resolve(L_define)("strStartsWith", 2, "strStartsWith string prefix = _strStartsWith\n  assertType 'strStartsWith string' 'string' string\n  assertType 'strStartsWith prefix' 'string' prefix", lazy((function(){
   var L_$F = (function(L_string){return (function(){
-  var L_$F = (function(L_prefix){return resolve(L__strStartsWith)(function(){return L$(resolve(L_assertType))("strStartsWith string", "*string", L_string);}, function(){return L$(resolve(L_assertType))("strStartsWith prefix", "*string", L_prefix);})});
+  var L_$F = (function(L_prefix){return resolve(L__strStartsWith)(function(){return L$(resolve(L_assertType))("strStartsWith string", "string", L_string);}, function(){return L$(resolve(L_assertType))("strStartsWith prefix", "string", L_prefix);})});
   L_$F.leisureFunctionId = 44;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -256,34 +266,34 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strLen", 1, "strLen string = _strLen (assertType 'strLen string' '*string' string)", lazy((function(){
-  var L_$F = (function(L_string){return resolve(L__strLen)(function(){return L$(resolve(L_assertType))("strLen string", "*string", L_string);})});
+    function(){return (resolve(L_define)("strLen", 1, "strLen string = _strLen (assertType 'strLen string' 'string' string)", lazy((function(){
+  var L_$F = (function(L_string){return resolve(L__strLen)(function(){return L$(resolve(L_assertType))("strLen string", "string", L_string);})});
   L_$F.leisureFunctionId = 45;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strReverse", 1, "strReverse string = _strReverse (assertType 'strLen string' '*string' string)", lazy((function(){
-  var L_$F = (function(L_string){return resolve(L__strReverse)(function(){return L$(resolve(L_assertType))("strLen string", "*string", L_string);})});
+    function(){return (resolve(L_define)("strReverse", 1, "strReverse string = _strReverse (assertType 'strLen string' 'string' string)", lazy((function(){
+  var L_$F = (function(L_string){return resolve(L__strReverse)(function(){return L$(resolve(L_assertType))("strLen string", "string", L_string);})});
   L_$F.leisureFunctionId = 46;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strToLowerCase", 1, "strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' '*string' string)", lazy((function(){
-  var L_$F = (function(L_string){return resolve(L__strToLowerCase)(function(){return L$(resolve(L_assertType))("strToLowerCase string", "*string", L_string);})});
+    function(){return (resolve(L_define)("strToLowerCase", 1, "strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' 'string' string)", lazy((function(){
+  var L_$F = (function(L_string){return resolve(L__strToLowerCase)(function(){return L$(resolve(L_assertType))("strToLowerCase string", "string", L_string);})});
   L_$F.leisureFunctionId = 47;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strToUpperCase", 1, "strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' '*string' string)", lazy((function(){
-  var L_$F = (function(L_string){return resolve(L__strToUpperCase)(function(){return L$(resolve(L_assertType))("strToUpperCase string", "*string", L_string);})});
+    function(){return (resolve(L_define)("strToUpperCase", 1, "strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' 'string' string)", lazy((function(){
+  var L_$F = (function(L_string){return resolve(L__strToUpperCase)(function(){return L$(resolve(L_assertType))("strToUpperCase string", "string", L_string);})});
   L_$F.leisureFunctionId = 48;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strReplace", 3, "strReplace string pat repl = _strReplace\n  assertType 'strReplace string' '*string' string\n  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat\n  assertType 'strReplace repl' '*string' repl", lazy((function(){
+    function(){return (resolve(L_define)("strReplace", 3, "strReplace string pat repl = _strReplace\n  assertType 'strReplace string' 'string' string\n  assert (or (hasType pat 'string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat\n  assertType 'strReplace repl' 'string' repl", lazy((function(){
   var L_$F = (function(L_string){return (function(){
   var L_$F = (function(L_pat){return (function(){
-  var L_$F = (function(L_repl){return resolve(L__strReplace)(function(){return L$(resolve(L_assertType))("strReplace string", "*string", L_string);}, function(){return resolve(L_assert)(function(){return L$(resolve(L_or))(function(){return resolve(L_hasType)(L_pat, "*string");}, function(){return resolve(L_hasType)(L_pat, "*RegExp");});})(function(){return resolve(L_strCat)(function(){return L$(resolve(L_cons))("strStartsWith pat should be type string or RegExp but it is type ", function(){return L$(resolve(L_cons))(function(){return resolve(L_getType)(L_pat);}, function(){return L$(resolve(L_cons))(": ", function(){return L$(resolve(L_cons))(function(){return resolve(L_show)(L_pat);}, L_nil);});});});});})(L_pat);}, function(){return L$(resolve(L_assertType))("strReplace repl", "*string", L_repl);})});
+  var L_$F = (function(L_repl){return resolve(L__strReplace)(function(){return L$(resolve(L_assertType))("strReplace string", "string", L_string);}, function(){return resolve(L_assert)(function(){return L$(resolve(L_or))(function(){return resolve(L_hasType)(L_pat, "string");}, function(){return resolve(L_hasType)(L_pat, "*RegExp");});})(function(){return resolve(L_strCat)(function(){return L$(resolve(L_cons))("strStartsWith pat should be type string or RegExp but it is type ", function(){return L$(resolve(L_cons))(function(){return resolve(L_getType)(L_pat);}, function(){return L$(resolve(L_cons))(": ", function(){return L$(resolve(L_cons))(function(){return resolve(L_show)(L_pat);}, L_nil);});});});});})(L_pat);}, function(){return L$(resolve(L_assertType))("strReplace repl", "string", L_repl);})});
   L_$F.leisureFunctionId = 51;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -296,10 +306,10 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strSubstring", 3, "strSubstring str start end = _strSubstring\n  assertType 'strSubstring str' '*string' str\n  assertType 'strSubstring start' '*number' start\n  assertType 'strSubstring end' '*number' end", lazy((function(){
+    function(){return (resolve(L_define)("strSubstring", 3, "strSubstring str start end = _strSubstring\n  assertType 'strSubstring str' 'string' str\n  assertType 'strSubstring start' 'number' start\n  assertType 'strSubstring end' 'number' end", lazy((function(){
   var L_$F = (function(L_str){return (function(){
   var L_$F = (function(L_start){return (function(){
-  var L_$F = (function(L_end){return resolve(L__strSubstring)(function(){return L$(resolve(L_assertType))("strSubstring str", "*string", L_str);}, function(){return L$(resolve(L_assertType))("strSubstring start", "*number", L_start);}, function(){return L$(resolve(L_assertType))("strSubstring end", "*number", L_end);})});
+  var L_$F = (function(L_end){return resolve(L__strSubstring)(function(){return L$(resolve(L_assertType))("strSubstring str", "string", L_str);}, function(){return L$(resolve(L_assertType))("strSubstring start", "number", L_start);}, function(){return L$(resolve(L_assertType))("strSubstring end", "number", L_end);})});
   L_$F.leisureFunctionId = 54;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -312,9 +322,9 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strSplit", 2, "strSplit str pat = _strSplit\n  assertType 'strSplit str' '*string' str\n  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat", lazy((function(){
+    function(){return (resolve(L_define)("strSplit", 2, "strSplit str pat = _strSplit\n  assertType 'strSplit str' 'string' str\n  assert (or (hasType pat 'string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat", lazy((function(){
   var L_$F = (function(L_str){return (function(){
-  var L_$F = (function(L_pat){return resolve(L__strSplit)(function(){return L$(resolve(L_assertType))("strSplit str", "*string", L_str);}, function(){return resolve(L_assert)(function(){return L$(resolve(L_or))(function(){return resolve(L_hasType)(L_pat, "*string");}, function(){return resolve(L_hasType)(L_pat, "*RegExp");});})(function(){return resolve(L_strCat)(function(){return L$(resolve(L_cons))("strSplit pat should be type string or RegExp but it is type ", function(){return L$(resolve(L_cons))(function(){return resolve(L_getType)(L_pat);}, function(){return L$(resolve(L_cons))(": ", function(){return L$(resolve(L_cons))(function(){return resolve(L_show)(L_pat);}, L_nil);});});});});})(L_pat);})});
+  var L_$F = (function(L_pat){return resolve(L__strSplit)(function(){return L$(resolve(L_assertType))("strSplit str", "string", L_str);}, function(){return resolve(L_assert)(function(){return L$(resolve(L_or))(function(){return resolve(L_hasType)(L_pat, "string");}, function(){return resolve(L_hasType)(L_pat, "*RegExp");});})(function(){return resolve(L_strCat)(function(){return L$(resolve(L_cons))("strSplit pat should be type string or RegExp but it is type ", function(){return L$(resolve(L_cons))(function(){return resolve(L_getType)(L_pat);}, function(){return L$(resolve(L_cons))(": ", function(){return L$(resolve(L_cons))(function(){return resolve(L_show)(L_pat);}, L_nil);});});});});})(L_pat);})});
   L_$F.leisureFunctionId = 56;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -329,9 +339,9 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strAdd", 2, "strAdd str1 str2 = _strAdd (assertType 'strAdd str1' '*string' str1) (assertType 'strAdd str2' '*string' str2)", lazy((function(){
+    function(){return (resolve(L_define)("strAdd", 2, "strAdd str1 str2 = _strAdd (assertType 'strAdd str1' 'string' str1) (assertType 'strAdd str2' 'string' str2)", lazy((function(){
   var L_$F = (function(L_str1){return (function(){
-  var L_$F = (function(L_str2){return resolve(L__strAdd)(function(){return L$(resolve(L_assertType))("strAdd str1", "*string", L_str1);}, function(){return L$(resolve(L_assertType))("strAdd str2", "*string", L_str2);})});
+  var L_$F = (function(L_str2){return resolve(L__strAdd)(function(){return L$(resolve(L_assertType))("strAdd str1", "string", L_str1);}, function(){return L$(resolve(L_assertType))("strAdd str2", "string", L_str2);})});
   L_$F.leisureFunctionId = 59;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -340,9 +350,9 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strMatch", 2, "strMatch str pat = _strMatch\n  assertType 'strMatch str' '*string' str\n  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat", lazy((function(){
+    function(){return (resolve(L_define)("strMatch", 2, "strMatch str pat = _strMatch\n  assertType 'strMatch str' 'string' str\n  assert (or (hasType pat 'string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat", lazy((function(){
   var L_$F = (function(L_str){return (function(){
-  var L_$F = (function(L_pat){return resolve(L__strMatch)(function(){return L$(resolve(L_assertType))("strMatch str", "*string", L_str);}, function(){return resolve(L_assert)(function(){return L$(resolve(L_or))(function(){return resolve(L_hasType)(L_pat, "*string");}, function(){return resolve(L_hasType)(L_pat, "*RegExp");});})(function(){return resolve(L_strCat)(function(){return L$(resolve(L_cons))("strMatch pat should be type string or RegExp but it is type ", function(){return L$(resolve(L_cons))(function(){return resolve(L_getType)(L_pat);}, function(){return L$(resolve(L_cons))(": ", function(){return L$(resolve(L_cons))(function(){return resolve(L_show)(L_pat);}, L_nil);});});});});})(L_pat);})});
+  var L_$F = (function(L_pat){return resolve(L__strMatch)(function(){return L$(resolve(L_assertType))("strMatch str", "string", L_str);}, function(){return resolve(L_assert)(function(){return L$(resolve(L_or))(function(){return resolve(L_hasType)(L_pat, "string");}, function(){return resolve(L_hasType)(L_pat, "*RegExp");});})(function(){return resolve(L_strCat)(function(){return L$(resolve(L_cons))("strMatch pat should be type string or RegExp but it is type ", function(){return L$(resolve(L_cons))(function(){return resolve(L_getType)(L_pat);}, function(){return L$(resolve(L_cons))(": ", function(){return L$(resolve(L_cons))(function(){return resolve(L_show)(L_pat);}, L_nil);});});});});})(L_pat);})});
   L_$F.leisureFunctionId = 61;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -351,8 +361,8 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("strToList", 1, "strToList str = _strToList (assertType 'strToList str' '*string' str)", lazy((function(){
-  var L_$F = (function(L_str){return resolve(L__strToList)(function(){return L$(resolve(L_assertType))("strToList str", "*string", L_str);})});
+    function(){return (resolve(L_define)("strToList", 1, "strToList str = _strToList (assertType 'strToList str' 'string' str)", lazy((function(){
+  var L_$F = (function(L_str){return resolve(L__strToList)(function(){return L$(resolve(L_assertType))("strToList str", "string", L_str);})});
   L_$F.leisureFunctionId = 62;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -363,15 +373,15 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("regexp", 1, "regexp str = _regexp (assertType 'regexp str' '*string' str)", lazy((function(){
-  var L_$F = (function(L_str){return resolve(L__regexp)(function(){return L$(resolve(L_assertType))("regexp str", "*string", L_str);})});
+    function(){return (resolve(L_define)("regexp", 1, "regexp str = _regexp (assertType 'regexp str' 'string' str)", lazy((function(){
+  var L_$F = (function(L_str){return resolve(L__regexp)(function(){return L$(resolve(L_assertType))("regexp str", "string", L_str);})});
   L_$F.leisureFunctionId = 64;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("regexpFlags", 2, "regexpFlags str flags = _regexpFlags\n  assertType 'regexp str' '*string' str\n  assertType 'regexp flags' '*string' flags", lazy((function(){
+    function(){return (resolve(L_define)("regexpFlags", 2, "regexpFlags str flags = _regexpFlags\n  assertType 'regexp str' 'string' str\n  assertType 'regexp flags' 'string' flags", lazy((function(){
   var L_$F = (function(L_str){return (function(){
-  var L_$F = (function(L_flags){return resolve(L__regexpFlags)(function(){return L$(resolve(L_assertType))("regexp str", "*string", L_str);}, function(){return L$(resolve(L_assertType))("regexp flags", "*string", L_flags);})});
+  var L_$F = (function(L_flags){return resolve(L__regexpFlags)(function(){return L$(resolve(L_assertType))("regexp str", "string", L_str);}, function(){return L$(resolve(L_assertType))("regexp flags", "string", L_flags);})});
   L_$F.leisureFunctionId = 66;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -380,10 +390,10 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("jsonParse", 3, "jsonParse str failure success = _jsonParse\n  assertType 'jsonParse str' '*string' str\n  failure\n  success", lazy((function(){
+    function(){return (resolve(L_define)("jsonParse", 3, "jsonParse str failure success = _jsonParse\n  assertType 'jsonParse str' 'string' str\n  failure\n  success", lazy((function(){
   var L_$F = (function(L_str){return (function(){
   var L_$F = (function(L_failure){return (function(){
-  var L_$F = (function(L_success){return resolve(L__jsonParse)(function(){return L$(resolve(L_assertType))("jsonParse str", "*string", L_str);}, L_failure, L_success)});
+  var L_$F = (function(L_success){return resolve(L__jsonParse)(function(){return L$(resolve(L_assertType))("jsonParse str", "string", L_str);}, L_failure, L_success)});
   L_$F.leisureFunctionId = 69;
   L_$F.leisureLength = L_$F.length;
   return L_$F;
@@ -907,8 +917,6 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L__declareType)("keyedSequence", "sequence"));}, 
-    function(){return (resolve(L__declareType)("alist", "keyedSequence"));}, 
     function(){return (resolve(L_define)("assertAlist", 3, "assertAlist msg value result = assert (isAlist value) (strCat (cons msg (cons ' should be a association list, but it is not; its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))) result", lazy((function(){
   var L_$F = (function(L_msg){return (function(){
   var L_$F = (function(L_value){return (function(){
@@ -3259,7 +3267,7 @@ define([], function(){
   L_$F.leisureLength = L_$F.length;
   return L_$F;
 })())));}, 
-    function(){return (resolve(L_define)("createDef", 5, "createDef def name arity src props = \\\\\n  #tok str = token str (position def)\n  tok str = token str (position name)\n  .\n  jsonStringify (tokenString name) (\\err . parseErr (strCat (cons \"Bad function name \" (cons (loc name) nil))) err) \\nameStr .\n    jsonStringify src (\\err . parseErr (strCat (cons \"Bad source \" (cons (loc name) nil))) err) \\srcStr .\n      cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))\n      #cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (cons '\\\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))) nil))))))))", lazy((function(){
+    function(){return (resolve(L_define)("createDef", 5, "createDef def name arity src props = \\\\\n  #tok str = token str (position def)\n  tok str = token str (position name)\n  .\n  jsonStringify (tokenString name) (\\err . parseErr (strCat (cons \"Bad function name \" (cons (loc name) nil))) err) \\nameStr .\n    jsonStringify src (\\err . parseErr (strCat (cons \"Bad source \" (cons (loc name) nil))) err) \\srcStr .\n      cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))", lazy((function(){
   var L_$F = (function(L_def){return (function(){
   var L_$F = (function(L_name){return (function(){
   var L_$F = (function(L_arity){return (function(){

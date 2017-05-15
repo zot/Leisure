@@ -132,8 +132,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     define 'eq', (a, b)-> checkPartial(L_eq, arguments) || booleanFor rz(a) == rz(b)
     define '==', (a, b)-> checkPartial(L_$p$p, arguments) || booleanFor rz(a) == rz(b)
     define '!=', (a, b)-> checkPartial(L_$k$p, arguments) || booleanFor rz(a) != rz(b)
-    define 'hasType', (data, func)-> checkPartial(L_hasType, arguments) ||(if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
-    else booleanFor getType(rz data) == getDataType(rz func))
+    define 'hasType', (data, func)-> checkPartial(L_hasType, arguments) ||(
+      if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
+      else booleanFor getType(rz data) == getDataType(rz func))
+      #typeName = rz func
+      #if typeof typeName != 'string' then typeName = getDataType(rz func))
+      #rz(data) instanceof types[typeName]
     define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
     # using arity makes compiling parseAst.lsr crash
     define 'assert', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
@@ -187,7 +191,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     makeSyncMonad (env, cont)->
       cont (Math.floor(rz(low) + Math.random() * rz(high)))
   define '^', (x, y)-> checkPartial(L_$i, arguments) || Math.pow(rz(x), rz(y))
-  define 'number', (n)-> Number n
+  define 'number', setDataType ((n)-> Number n), 'number'
 
 ############
 # STRINGS
@@ -754,15 +758,16 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     _unit)
 
   define '_declareType', (subtype, supertype)-> checkPartial(L__declareType, arguments) || (
-    supertype = rz(supertype)
-    nilSupertype = supertype == rz(L_nil)
-    if !nilSupertype && !supercl = classForType rz(supertype)
-      throw new Error "Attempt to extend a nonexistant type: #{rz supertype}"
-    if subcl = classForType rz subtype
+    subtype = rz subtype
+    supertype = rz supertype
+    nilSupertype = supertype == 0
+    if !nilSupertype && !supercl = classForType supertype
+      throw new Error "Attempt to extend a nonexistant type: #{supertype}"
+    if subcl = classForType subtype
       if supercl && subcl.prototype.__proto__ != supercl.prototype
         subcl.prototype.__proto__ = supercl.prototype
     else
-      subcl = ensureLeisureClass rz(subtype), (if nilSupertype then null else supertype)
+      subcl = ensureLeisureClass subtype, !nilSupertype && supertype
       #if supercl
       #  subcl.prototype = Object.create(supercl.prototype)
       #  subcl.prototype.constructor = subcl
@@ -868,13 +873,13 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   nFunction = (nArgs, def)->
     (eval """
       (function (def) {
-        //return function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
-        //  return checkPartial(f, arguments) || def.apply(null, arguments);
-        //};
-        var f = function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
+        return function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
           return checkPartial(f, arguments) || def.apply(null, arguments);
         };
-        return f;
+        //var f = function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
+        //  return checkPartial(f, arguments) || def.apply(null, arguments);
+        //};
+        //return f;
       })
     """) def
 
@@ -975,11 +980,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   makeMap = (map)->
     h = (f)-> f(-> mapFirst map)(-> mapRest map)
     h.map = map
+    setType h, 'hamt'
     h.leisureType = 'hamt'
     h
 
   hamt = makeMap Map()
-  hamt.leisureDataType = 'hamt'
+  setDataType hamt, 'hamt'
 
   define 'hamt', hamt
   
@@ -1026,11 +1032,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   makeSet = (set)->
     s = (f)-> f(-> set.first())(-> setRest set)
     s.set = set
+    setType s, 'amtSet'
     s.leisureType = 'amtSet'
     s
 
   amtSet = makeSet Set()
-  amtSet.leisureDataType = 'amtSet'
+  setDataType amtSet, 'amtSet'
 
   define 'amtSet', amtSet
 
@@ -1071,11 +1078,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   makeVector = (vec)->
     v = (f)-> f(-> vec.first())(-> vectorRest vec)
     v.vector = vec
+    setType v, 'vector'
     v.leisureType = 'vector'
     v
 
   vector = makeVector List()
-  vector.leisureDataType = 'vector'
+  setDataType vector, 'vector'
 
   define 'vector', vector
 

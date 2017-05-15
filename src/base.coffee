@@ -123,7 +123,7 @@ define files, (btoa)->
 
   (window ? global).L$ = (f)->
     f = rz(f)
-    if f.length > 1 then f else (args...)-> baseLeisureCall(f, 0, args)
+    if f.length > 1 then f else (args...)-> baseLeisureCall(f, 0, args, f.length)
 
   (window ? global).Leisure_call = leisureCall = (f)-> baseLeisureCall f, 1, arguments
 
