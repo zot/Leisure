@@ -211,7 +211,6 @@
     editor.set$($, function(obj) {
       return obj instanceof $;
     });
-    debugger;
     return require(['acorn', 'acorn_walk'], function() {
       return require(['acorn_loose'], function() {
         return require(['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage', './presentation'], init);

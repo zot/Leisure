@@ -147,8 +147,6 @@ misrepresented as being the original software.
     statFile = function(fileName, cont) {
       return defaultEnv.statFile(fileName, cont);
     };
-    root.trackCreation = false;
-    root.trackVars = true;
     funcInfo = function(func) {
       var callInfo, info;
       if (func.leisureInfoNew) {

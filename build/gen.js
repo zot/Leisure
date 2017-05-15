@@ -28,16 +28,17 @@ misrepresented as being the original software.
   'use strict';
   var slice = [].slice;
 
-  define(['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support'], function(Base, Ast, Runtime, _, SourceMap, SourceMapSupport) {
-    var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceMapGenerator, SourceNode, ThunkStack, USE_STRICT, _false, _true, _unit, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, codeNum, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dumpAnno, dumpMonadStack, findName, functionInfo, gen, genApplyArg, genArifiedApply, genArifiedLambda, genLambda, genLetAssign, genLets, genMap, genNode, genPushThunk, genRefName, genSource, genThunkStack, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, jsCodeFor, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, ref1, ref2, resolve, reverseThunks, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, stackSize, trace, uniqName, useArity, varNameSub, verboseMsg, withFile;
+  define(['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support', 'lib/js-yaml'], function(Base, Ast, Runtime, _, SourceMap, SourceMapSupport, Yaml) {
+    var CodeGenerator, Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceMapGenerator, SourceNode, ThunkStack, USE_STRICT, _false, _true, _unit, addLambdaProperties, addUniq, arrayify, assocListProps, ast2Json, booleanFor, check, checkChild, codeNum, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dump, dumpAnno, dumpMonadStack, findName, functionId, functionInfo, gen, genMap, genPushThunk, genSource, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, jsCodeFor, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, rangeToJson, ref1, ref2, resolve, reverseThunks, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, stackSize, trace, uniqName, useArity, useThunkStacks, varNameSub, verboseMsg, withFile, wrapContext;
     if (SourceMapSupport != null) {
       SourceMapSupport.install();
     }
     simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog;
+    dump = Yaml.dump;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
-    ref1 = root = Ast, nameSub = ref1.nameSub, getLitVal = ref1.getLitVal, getRefName = ref1.getRefName, getLambdaVar = ref1.getLambdaVar, getLambdaBody = ref1.getLambdaBody, getApplyFunc = ref1.getApplyFunc, getApplyArg = ref1.getApplyArg, getAnnoName = ref1.getAnnoName, getAnnoData = ref1.getAnnoData, getAnnoBody = ref1.getAnnoBody, getLetName = ref1.getLetName, getLetValue = ref1.getLetValue, getLetBody = ref1.getLetBody, Leisure_lit = ref1.Leisure_lit, Leisure_ref = ref1.Leisure_ref, Leisure_lambda = ref1.Leisure_lambda, Leisure_apply = ref1.Leisure_apply, Leisure_let = ref1.Leisure_let, Leisure_anno = ref1.Leisure_anno, setType = ref1.setType, setDataType = ref1.setDataType, cons = ref1.cons, Nil = ref1.Nil, define = ref1.define, functionInfo = ref1.functionInfo, getPos = ref1.getPos, isNil = ref1.isNil, getType = ref1.getType;
+    ref1 = root = Ast, nameSub = ref1.nameSub, getLitVal = ref1.getLitVal, getRefName = ref1.getRefName, getLambdaVar = ref1.getLambdaVar, getLambdaBody = ref1.getLambdaBody, getApplyFunc = ref1.getApplyFunc, getApplyArg = ref1.getApplyArg, getAnnoName = ref1.getAnnoName, getAnnoData = ref1.getAnnoData, getAnnoBody = ref1.getAnnoBody, getLetName = ref1.getLetName, getLetValue = ref1.getLetValue, getLetBody = ref1.getLetBody, Leisure_lit = ref1.Leisure_lit, Leisure_ref = ref1.Leisure_ref, Leisure_lambda = ref1.Leisure_lambda, Leisure_apply = ref1.Leisure_apply, Leisure_let = ref1.Leisure_let, Leisure_anno = ref1.Leisure_anno, setType = ref1.setType, setDataType = ref1.setDataType, cons = ref1.cons, Nil = ref1.Nil, define = ref1.define, functionInfo = ref1.functionInfo, getPos = ref1.getPos, isNil = ref1.isNil, getType = ref1.getType, ast2Json = ref1.ast2Json, rangeToJson = ref1.rangeToJson, getPos = ref1.getPos;
     Monad2 = Runtime.Monad2, _true = Runtime._true, _false = Runtime._false, _unit = Runtime._unit, left = Runtime.left, right = Runtime.right, booleanFor = Runtime.booleanFor, newConsFrom = Runtime.newConsFrom, dumpMonadStack = Runtime.dumpMonadStack;
     consFrom = newConsFrom;
     SourceNode = SourceMap.SourceNode, SourceMapConsumer = SourceMap.SourceMapConsumer, SourceMapGenerator = SourceMap.SourceMapGenerator;
@@ -50,8 +51,8 @@ misrepresented as being the original software.
     trace = false;
     trace = true;
     stackSize = 20;
-    genThunkStack = false;
-    USE_STRICT = '"use strict";';
+    useThunkStacks = false;
+    USE_STRICT = '"use strict";\n';
     setMegaArity = function(setting) {
       return megaArity = setting;
     };
@@ -118,52 +119,331 @@ misrepresented as being the original software.
         return new SourceNode(line, offset, currentFile, str);
       }
     };
-    genNode = function(ast) {
-      return genUniq(ast, Nil, [Nil, 0]);
-    };
-    gen = function(ast) {
-      return jsCodeFor(new SourceNode(1, 0, currentFile, ['(', genMap(ast), ')']).toStringWithSourceMap({
-        file: currentFile
-      }));
-    };
     jsCodeFor = function(codeMap) {
       return codeMap.code + "\n//# sourceMappingURL=data:application/json;base64," + (btoa(JSON.stringify(codeMap.map.toJSON()))) + "\n";
     };
+    functionId = 0;
     codeNum = 0;
-    genSource = function(source, ast) {
-      var funcname;
-      funcname = ast instanceof Leisure_anno && getAnnoName(ast) === 'leisureName' ? getAnnoData(ast) : null;
-      return withFile("dynamic code with source " + (++codeNum), funcname, function() {
-        var code, err, error, map, sm;
-        try {
-          sm = genNode(ast).prepend("\n").toStringWithSourceMap({
-            file: "dynamic code with source"
+    CodeGenerator = (function() {
+      function CodeGenerator(fileName, useContext, noFile) {
+        this.useContext = useContext;
+        this.noFile = noFile;
+        this.fileName = fileName != null ? fileName : "dynamic code with source " + (++codeNum);
+        this.startId = functionId;
+        this.funcInfo = [];
+      }
+
+      CodeGenerator.prototype.contextInit = function() {
+        if (this.useContext) {
+          return '\n  L_$F.context = L_$context;';
+        } else {
+          return '';
+        }
+      };
+
+      CodeGenerator.prototype.addFunc = function(ast) {
+        this.funcInfo.push({
+          type: 'function',
+          id: functionId,
+          srcRange: rangeToJson(getPos(ast))
+        });
+        return functionId++;
+      };
+
+      CodeGenerator.prototype.addSubfunc = function(id, index, ast) {
+        this.funcInfo.push({
+          type: 'subfuncion',
+          id: functionId,
+          primaryId: id,
+          index: index
+        });
+        return functionId++;
+      };
+
+      CodeGenerator.prototype.genSource = function(source, ast) {
+        var funcName, map, result, sm;
+        if (this.noFile) {
+          sm = this.genNode(ast).prepend(USE_STRICT + '(').add(')').toStringWithSourceMap({
+            file: this.fileName
           });
           map = JSON.parse(sm.map.toString());
-          map.sourcesContent = [source];
-          code = "(" + sm.code + ")\n//# sourceMappingURL=data:application/json;utf-8;base64," + (btoa(JSON.stringify(map))) + "\n";
-          return code;
-        } catch (error) {
-          err = error;
-          err.message = "Error generating code for:\n  " + (source.trim().replace(/\n/g, '\n  ')) + "\n" + err.message;
-          throw err;
+          result = sm.code;
+        } else {
+          funcName = ast instanceof Leisure_anno && getAnnoName(ast) === 'leisureName' ? getAnnoData(ast) : null;
+          withFile(this.fileName, funcName, (function(_this) {
+            return function() {
+              var err, error;
+              try {
+                sm = _this.genNode(ast).toStringWithSourceMap({
+                  file: _this.fileName
+                });
+                map = JSON.parse(sm.map.toString());
+                map.sourcesContent = [source];
+                return result = sm.code;
+              } catch (error) {
+                err = error;
+                err.message = "Error generating code for:\n  " + (source.trim().replace(/\n/g, '\n  ')) + "\n" + err.message;
+                throw err;
+              }
+            };
+          })(this));
         }
-      });
+        this.endId = functionId;
+        return result + "\n//# sourceMappingURL=data:application/json;utf-8;base64," + (btoa(JSON.stringify(map))) + "\n";
+      };
+
+      CodeGenerator.prototype.genNode = function(ast) {
+        var result;
+        result = this.genUniq(ast, Nil, [Nil, 0]);
+        this.endId = functionId;
+        return result;
+      };
+
+      CodeGenerator.prototype.genMap = function(ast) {
+        var filename, funcname, hasFile, line, nameAst, offset, ref2, sub;
+        hasFile = ast instanceof Leisure_anno && getAnnoName(ast) === 'filename';
+        filename = hasFile ? getAnnoData(ast) : this.fileName;
+        nameAst = hasFile ? getAnnoBody(ast) : null;
+        funcname = nameAst instanceof Leisure_anno && getAnnoName(nameAst) === 'leisureName' ? getAnnoData(nameAst) : currentFuncName;
+        sub = withFile(filename, null, (function(_this) {
+          return function() {
+            return _this.genNode(ast);
+          };
+        })(this));
+        ref2 = locateAst(ast), line = ref2[0], offset = ref2[1];
+        this.endId = functionId;
+        if (funcname) {
+          return new SourceNode(line, offset, filename, sub, funcname);
+        } else {
+          return sub;
+        }
+      };
+
+      CodeGenerator.prototype.gen = function(ast) {
+        return new SourceNode(1, 0, currentFile, ['(', this.genMap(ast), ')']).toStringWithSourceMap({
+          file: currentFile
+        }).code;
+      };
+
+      CodeGenerator.prototype.genUniq = function(ast, names, uniq, lambdaContext) {
+        var arity, data, funcName, genned, name, newContext, oldDef, ref2, src;
+        switch (ast.constructor) {
+          case Leisure_lit:
+            return sn(ast, JSON.stringify(getLitVal(ast)));
+          case Leisure_ref:
+            return sn(ast, "resolve(", this.genRefName(ast, uniq, names), ")");
+          case Leisure_lambda:
+            newContext = lambdaContext == null ? {
+              count: 0,
+              id: this.addFunc(ast)
+            } : {
+              count: lambdaContext.count + 1,
+              id: this.addSubfunc(lambdaContext.id, lambdaContext.count + 1, ast)
+            };
+            return this.genLambda(ast, names, uniq, _.defaults(newContext, lambdaContext));
+          case Leisure_apply:
+            if (useArity) {
+              return this.genArifiedApply(ast, names, uniq, arity);
+            } else {
+              return sn(ast, this.genUniq(getApplyFunc(ast), names, uniq), "(", this.genApplyArg(getApplyArg(ast), names, uniq), ")");
+            }
+            break;
+          case Leisure_let:
+            return sn(ast, "(function(){", this.genLets(ast, names, uniq), "})()");
+          case Leisure_anno:
+            name = getAnnoName(ast);
+            data = getAnnoData(ast);
+            if (name === 'arity' && useArity && data > 1) {
+              return this.genArifiedLambda(getAnnoBody(ast), names, uniq, data);
+            } else {
+              try {
+                if (trace && name === 'leisureName') {
+                  oldDef = curDef;
+                  curDef = data;
+                }
+                genned = this.genUniq(getAnnoBody(ast), names, uniq);
+                switch (name) {
+                  case 'type':
+                    return sn(ast, "setType(", genned, ", '", data, "')");
+                  case 'dataType':
+                    return sn(ast, "setDataType(", genned, ", '", data, "')");
+                  case 'define':
+                    ref2 = data.toArray(), funcName = ref2[0], arity = ref2[1], src = ref2[2];
+                    return sn(ast, "define('", funcName, "', lazify(ast, genned), ", arity, ", ", JSON.stringify(src), ")");
+                  case 'leisureName':
+                    return genned;
+                  default:
+                    return genned;
+                }
+              } finally {
+                if (trace && name === 'leisureName') {
+                  curDef = oldDef;
+                }
+              }
+            }
+            break;
+          default:
+            return "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: " + ast + ", " + ast.constructor + " " + Leisure_lambda;
+        }
+      };
+
+      CodeGenerator.prototype.genArifiedApply = function(ast, names, uniq) {
+        var argCode, args, arity, defaultArity, dmp, func, funcName, i, info, j, m, ref2, ref3, ref4;
+        args = [];
+        func = ast;
+        while (dumpAnno(func) instanceof Leisure_apply) {
+          args.push(getApplyArg(dumpAnno(func)));
+          func = getApplyFunc(dumpAnno(func));
+        }
+        args.reverse();
+        defaultArity = false;
+        if (args.length > 1 && ((dmp = dumpAnno(func)) instanceof Leisure_ref) && (((info = functionInfo[funcName = getRefName(dmp)]) && ((info.newArity && (arity = info.arity) && arity <= args.length) || (!arity && megaArity))) || (!info && isNil(names.find(function(el) {
+          return el === funcName;
+        }))))) {
+          if (defaultArity = !arity) {
+            arity = args.length;
+          }
+          argCode = [];
+          argCode.push(ast);
+          if (defaultArity) {
+            argCode.push('L$(');
+          }
+          argCode.push(this.genUniq(func, names, uniq));
+          if (defaultArity) {
+            argCode.push(')(');
+          } else {
+            argCode.push('(');
+          }
+          for (i = j = 0, ref2 = arity; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
+            if (i > 0) {
+              argCode.push(', ');
+            }
+            argCode.push(sn(args[i], this.genApplyArg(args[i], names, uniq)));
+          }
+          argCode.push(')');
+          for (i = m = ref3 = arity, ref4 = args.length; m < ref4; i = m += 1) {
+            argCode.push('(', sn(args[i], this.genApplyArg(args[i], names, uniq)), ')');
+          }
+          return sn.apply(null, argCode);
+        } else {
+          ast = dumpAnno(ast);
+          return sn(ast, this.genUniq(getApplyFunc(ast), names, uniq), "(", this.genApplyArg(getApplyArg(ast), names, uniq), ")");
+        }
+      };
+
+      CodeGenerator.prototype.genLambda = function(ast, names, uniq, ctx) {
+        var code, id, n, name, u;
+        name = getLambdaVar(ast);
+        u = addUniq(name, names, uniq);
+        n = cons(name, names);
+        id = ctx.count ? ctx.id : void 0;
+        code = curDef && useThunkStacks ? "function(" + (uniqName(name, u)) + "){var old = " + (genPushThunk(ast)) + "; var ret = " + (this.genUniq(getLambdaBody(ast), n, u, ctx)) + "; L$setThunkStack(old); return ret;};" : "function(" + (uniqName(name, u)) + "){return " + (this.genUniq(getLambdaBody(ast), n, u, ctx)) + "}";
+        return addLambdaProperties(ast, sn(ast, "(function(){\n  var L_$F = (" + code + ");\n  L_$F.leisureFunctionId = " + ctx.id + ";" + (this.contextInit()) + "\n  L_$F.leisureLength = L_$F.length;\n  return L_$F;\n})()"));
+      };
+
+      CodeGenerator.prototype.genArifiedLambda = function(ast, names, uniq, arity) {
+        var annoAst, argList, args, data, mainFunc, name, result;
+        if (arity < 2) {
+          return this.genLambda(ast, names, uniq, 0);
+        } else {
+          args = getNArgs(arity, ast).toArray();
+          argList = _.map(args, (function(x) {
+            return 'L_' + x;
+          })).join(', ');
+          mainFunc = sn(ast, "(function(){\n  var L_$F = function(" + argList + ") {\n    return L_checkPartial(L_$F, arguments) || " + (this.genUniq(getNthLambdaBody(ast, arity), names, uniq)) + ";\n  };\n  L_$F.leisureFunctionId = " + (this.addFunc(ast)) + ";\n  L_$F.leisureLength = " + args.length + ";\n  return L_$F;\n})()");
+          result = addLambdaProperties(ast, sn(ast, mainFunc));
+          annoAst = ast;
+          while (annoAst instanceof Leisure_anno) {
+            name = getAnnoName(annoAst);
+            data = getAnnoData(annoAst);
+            switch (name) {
+              case 'type':
+                result = sn(ast, "setType(", result, ", '", data, "')");
+                break;
+              case 'dataType':
+                result = sn(ast, "setDataType(", result, ", '", data, "')");
+            }
+            annoAst = getAnnoBody(annoAst);
+          }
+          return result;
+        }
+      };
+
+      CodeGenerator.prototype.genRefName = function(ref, uniq, names) {
+        var name, ns, val;
+        name = getRefName(ref);
+        if (isNil((val = names.find(function(el) {
+          return el === name;
+        })))) {
+          ns = findName(nameSub(name));
+          if (ns === root.currentNameSpace) {
+            nsLog("LOCAL NAME: " + name + " FOR " + root.currentNameSpace + " " + (location(ref)));
+          } else if (!ns) {
+            nsLog("GUESSING LOCAL NAME " + name + " FOR " + root.currentNameSpace + " " + (location(ref)));
+          }
+          return varNameSub(name);
+        } else {
+          return uniqName(name, uniq);
+        }
+      };
+
+      CodeGenerator.prototype.genApplyArg = function(arg, names, uniq) {
+        var d;
+        d = dumpAnno(arg);
+        if (d instanceof Leisure_apply) {
+          return lazify(d, this.genUniq(arg, names, uniq));
+        } else if (d instanceof Leisure_ref) {
+          return this.genRefName(d, uniq, names);
+        } else if (d instanceof Leisure_lit) {
+          return sn(arg, JSON.stringify(getLitVal(d)));
+        } else if (d instanceof Leisure_let) {
+          return lazify(arg, this.genUniq(arg, names, uniq));
+        } else if (d instanceof Leisure_lambda) {
+          return sn(arg, 'lazy(', this.genUniq(arg, names, uniq), ')');
+        } else {
+          return lazify(arg, this.genUniq(arg, names, uniq));
+        }
+      };
+
+      CodeGenerator.prototype.genLetAssign = function(arg, names, uniq) {
+        if (dumpAnno(arg) instanceof Leisure_let) {
+          return lazify(arg, this.genLets(arg, names, uniq));
+        } else {
+          return lazify(arg, this.genUniq(arg, names, uniq));
+        }
+      };
+
+      CodeGenerator.prototype.genLets = function(ast, names, uniq) {
+        var assigns, bindings, decs, letNames, letUniq, ref2;
+        bindings = letList(ast, []);
+        letNames = _.reduce(bindings, (function(n, l) {
+          return cons(getLetName(l), n);
+        }), names);
+        ref2 = _.reduce(bindings, ((function(_this) {
+          return function(result, l) {
+            var assigns, code, letName, newU, u;
+            u = result[0], code = result[1], assigns = result[2];
+            newU = addUniq(getLetName(l), letNames, u);
+            letName = uniqName(getLetName(l), newU);
+            return [newU, cons(sn(ast, letName + ' = ', _this.genLetAssign(getLetValue(l), letNames, u)), code), cons(letName, assigns)];
+          };
+        })(this)), [uniq, Nil, Nil]), letUniq = ref2[0], decs = ref2[1], assigns = ref2[2];
+        return sn(ast, "  var ", assigns.reverse().join(', '), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", this.genUniq(getLastLetBody(ast), letNames, letUniq));
+      };
+
+      return CodeGenerator;
+
+    })();
+    wrapContext = function(node, fileName) {
+      return new SourceNode(1, 0, fileName, "(function(L_$context){\n  return ", node, "})");
     };
-    genMap = function(ast) {
-      var filename, funcname, hasFile, line, nameAst, offset, ref2, sub;
-      hasFile = ast instanceof Leisure_anno && getAnnoName(ast) === 'filename';
-      filename = hasFile ? getAnnoData(ast) : 'GENFORUNKNOWNFILE.lsr';
-      nameAst = hasFile ? getAnnoBody(ast) : null;
-      funcname = nameAst instanceof Leisure_anno && getAnnoName(nameAst) === 'leisureName' ? getAnnoData(nameAst) : currentFuncName;
-      sub = withFile(filename, null, function() {
-        return genNode(ast);
-      });
-      ref2 = locateAst(ast), line = ref2[0], offset = ref2[1];
-      if (funcname) {
-        return new SourceNode(line, offset, filename, sub, funcname);
+    genPushThunk = function(ast) {
+      var line, offset, ref2;
+      if (useThunkStacks) {
+        ref2 = locateAst(ast), line = ref2[0], offset = ref2[1];
+        return "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '" + curDef + ":" + line + ":" + offset + "')";
       } else {
-        return sub;
+        return '';
       }
     };
     findName = function(name) {
@@ -184,131 +464,6 @@ misrepresented as being the original software.
       ref2 = locateAst(ast), line = ref2[0], col = ref2[1];
       return line + ":" + col;
     };
-    genRefName = function(ref, uniq, names) {
-      var name, ns, val;
-      name = getRefName(ref);
-      if (isNil((val = names.find(function(el) {
-        return el === name;
-      })))) {
-        ns = findName(nameSub(name));
-        if (ns === root.currentNameSpace) {
-          nsLog("LOCAL NAME: " + name + " FOR " + root.currentNameSpace + " " + (location(ref)));
-        } else if (!ns) {
-          nsLog("GUESSING LOCAL NAME " + name + " FOR " + root.currentNameSpace + " " + (location(ref)));
-        }
-        return varNameSub(name);
-      } else {
-        return uniqName(name, uniq);
-      }
-    };
-    genUniq = function(ast, names, uniq, count) {
-      var arity, data, funcName, genned, name, oldDef, ref2, src;
-      switch (ast.constructor) {
-        case Leisure_lit:
-          return sn(ast, JSON.stringify(getLitVal(ast)));
-        case Leisure_ref:
-          return sn(ast, "resolve(", genRefName(ast, uniq, names), ")");
-        case Leisure_lambda:
-          return genLambda(ast, names, uniq, count != null ? count : 0);
-        case Leisure_apply:
-          if (useArity) {
-            return genArifiedApply(ast, names, uniq, arity);
-          } else {
-            return sn(ast, genUniq(getApplyFunc(ast), names, uniq), "(", genApplyArg(getApplyArg(ast), names, uniq), ")");
-          }
-          break;
-        case Leisure_let:
-          return sn(ast, "(function(){" + USE_STRICT + "\n", genLets(ast, names, uniq), "})()");
-        case Leisure_anno:
-          name = getAnnoName(ast);
-          data = getAnnoData(ast);
-          if (name === 'arity' && useArity && data > 1) {
-            return genArifiedLambda(getAnnoBody(ast), names, uniq, data);
-          } else {
-            try {
-              if (trace && name === 'leisureName') {
-                oldDef = curDef;
-                curDef = data;
-              }
-              genned = genUniq(getAnnoBody(ast), names, uniq);
-              switch (name) {
-                case 'type':
-                  return sn(ast, "setType(", genned, ", '", data, "')");
-                case 'dataType':
-                  return sn(ast, "setDataType(", genned, ", '", data, "')");
-                case 'define':
-                  ref2 = data.toArray(), funcName = ref2[0], arity = ref2[1], src = ref2[2];
-                  return sn(ast, "define('", funcName, "', lazify(ast, genned), ", arity, ", ", JSON.stringify(src), ")");
-                case 'leisureName':
-                  return genned;
-                default:
-                  return genned;
-              }
-            } finally {
-              if (trace && name === 'leisureName') {
-                curDef = oldDef;
-              }
-            }
-          }
-          break;
-        default:
-          return "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: " + ast + ", " + ast.constructor + " " + Leisure_lambda;
-      }
-    };
-    genArifiedApply = function(ast, names, uniq) {
-      var argCode, args, arity, defaultArity, dmp, func, funcName, i, info, j, m, ref2, ref3, ref4;
-      args = [];
-      func = ast;
-      while (dumpAnno(func) instanceof Leisure_apply) {
-        args.push(getApplyArg(dumpAnno(func)));
-        func = getApplyFunc(dumpAnno(func));
-      }
-      args.reverse();
-      defaultArity = false;
-      if (args.length > 1 && ((dmp = dumpAnno(func)) instanceof Leisure_ref) && (((info = functionInfo[funcName = getRefName(dmp)]) && ((info.newArity && (arity = info.arity) && arity <= args.length) || (!arity && megaArity))) || (!info && isNil(names.find(function(el) {
-        return el === funcName;
-      }))))) {
-        if (defaultArity = !arity) {
-          arity = args.length;
-        }
-        argCode = [];
-        argCode.push(ast);
-        if (defaultArity) {
-          argCode.push('L$(');
-        }
-        argCode.push(genUniq(func, names, uniq));
-        if (defaultArity) {
-          argCode.push(')(');
-        } else {
-          argCode.push('(');
-        }
-        for (i = j = 0, ref2 = arity; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
-          if (i > 0) {
-            argCode.push(', ');
-          }
-          argCode.push(sn(args[i], genApplyArg(args[i], names, uniq)));
-        }
-        argCode.push(')');
-        for (i = m = ref3 = arity, ref4 = args.length; m < ref4; i = m += 1) {
-          argCode.push('(', sn(args[i], genApplyArg(args[i], names, uniq)), ')');
-        }
-        return sn.apply(null, argCode);
-      } else {
-        ast = dumpAnno(ast);
-        return sn(ast, genUniq(getApplyFunc(ast), names, uniq), "(", genApplyArg(getApplyArg(ast), names, uniq), ")");
-      }
-    };
-    genLambda = function(ast, names, uniq, count) {
-      var n, name, u;
-      name = getLambdaVar(ast);
-      u = addUniq(name, names, uniq);
-      n = cons(name, names);
-      if (curDef && genThunkStack) {
-        return addLambdaProperties(ast, sn(ast, 'function(', uniqName(name, u), '){var old = ', genPushThunk(ast), '; var ret = ', genUniq(getLambdaBody(ast), n, u, 1), '; L$setThunkStack(old); return ret;}'));
-      } else {
-        return addLambdaProperties(ast, sn(ast, 'function(', uniqName(name, u), '){return ', genUniq(getLambdaBody(ast), n, u, 1), '}'));
-      }
-    };
     getLambdaArgs = function(ast) {
       var args;
       args = [];
@@ -317,33 +472,6 @@ misrepresented as being the original software.
         ast = getLambdaBody(ast);
       }
       return [args, ast];
-    };
-    genArifiedLambda = function(ast, names, uniq, arity) {
-      var annoAst, argList, args, data, mainFunc, name, result;
-      if (arity < 2) {
-        return genLambda(ast, names, uniq, 0);
-      } else {
-        args = getNArgs(arity, ast).toArray();
-        argList = _.map(args, (function(x) {
-          return 'L_' + x;
-        })).join(', ');
-        mainFunc = sn(ast, "(function(){\n  var L_$_F = function(" + argList + ") {\n    return L_checkPartial(L_$_F, arguments) || " + (genUniq(getNthLambdaBody(ast, arity), names, uniq)) + ";\n  };\n  return L_$_F;\n})()");
-        result = addLambdaProperties(ast, sn(ast, mainFunc));
-        annoAst = ast;
-        while (annoAst instanceof Leisure_anno) {
-          name = getAnnoName(annoAst);
-          data = getAnnoData(annoAst);
-          switch (name) {
-            case 'type':
-              result = sn(ast, "setType(", result, ", '", data, "')");
-              break;
-            case 'dataType':
-              result = sn(ast, "setDataType(", result, ", '", data, "')");
-          }
-          annoAst = getAnnoBody(annoAst);
-        }
-        return result;
-      }
     };
     getNthLambdaBody = function(ast, n) {
       var d;
@@ -526,20 +654,11 @@ misrepresented as being the original software.
     (typeof global !== "undefined" && global !== null ? global : window).L$setThunkStack = function(stack) {
       return (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = stack;
     };
-    genPushThunk = function(ast) {
-      var line, offset, ref3;
-      if (genThunkStack) {
-        ref3 = locateAst(ast), line = ref3[0], offset = ref3[1];
-        return "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '" + curDef + ":" + line + ":" + offset + "')";
-      } else {
-        return '';
-      }
-    };
     lazify = function(ast, body) {
-      if (curDef && genThunkStack) {
-        return sn(ast, "(function(){" + USE_STRICT + "var stack = L$thunkStack; var f = function(){var old = ", genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()');
+      if (curDef && useThunkStacks) {
+        return sn(ast, "(function(){var stack = L$thunkStack; var f = function(){var old = ", genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()');
       } else {
-        return sn(ast, "function(){" + USE_STRICT + "return ", body, ';}');
+        return sn(ast, "function(){return ", body, ';}');
       }
     };
     dumpAnno = function(ast) {
@@ -548,45 +667,6 @@ misrepresented as being the original software.
       } else {
         return ast;
       }
-    };
-    genApplyArg = function(arg, names, uniq) {
-      var d;
-      d = dumpAnno(arg);
-      if (d instanceof Leisure_apply) {
-        return lazify(d, genUniq(arg, names, uniq));
-      } else if (d instanceof Leisure_ref) {
-        return genRefName(d, uniq, names);
-      } else if (d instanceof Leisure_lit) {
-        return sn(arg, JSON.stringify(getLitVal(d)));
-      } else if (d instanceof Leisure_let) {
-        return lazify(arg, genUniq(arg, names, uniq));
-      } else if (d instanceof Leisure_lambda) {
-        return sn(arg, 'lazy(', genUniq(arg, names, uniq), ')');
-      } else {
-        return lazify(arg, genUniq(arg, names, uniq));
-      }
-    };
-    genLetAssign = function(arg, names, uniq) {
-      if (dumpAnno(arg) instanceof Leisure_let) {
-        return lazify(arg, genLets(arg, names, uniq));
-      } else {
-        return lazify(arg, genUniq(arg, names, uniq));
-      }
-    };
-    genLets = function(ast, names, uniq) {
-      var assigns, bindings, decs, letNames, letUniq, ref3;
-      bindings = letList(ast, []);
-      letNames = _.reduce(bindings, (function(n, l) {
-        return cons(getLetName(l), n);
-      }), names);
-      ref3 = _.reduce(bindings, (function(result, l) {
-        var assigns, code, letName, newU, u;
-        u = result[0], code = result[1], assigns = result[2];
-        newU = addUniq(getLetName(l), letNames, u);
-        letName = uniqName(getLetName(l), newU);
-        return [newU, cons(sn(ast, letName + ' = ', genLetAssign(getLetValue(l), letNames, u)), code), cons(letName, assigns)];
-      }), [uniq, Nil, Nil]), letUniq = ref3[0], decs = ref3[1], assigns = ref3[2];
-      return sn(ast, "  var ", assigns.reverse().join(', '), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", genUniq(getLastLetBody(ast), letNames, letUniq));
     };
     addUniq = function(name, names, uniq) {
       var num, overrides;
@@ -636,7 +716,11 @@ misrepresented as being the original software.
           var baseMsg, codeMsg, err, error, jsCode;
           jsCode = null;
           try {
-            jsCode = genSource(rz(code), rz(ast));
+            jsCode = env.fileName ? withFile(env.fileName, null, (function(_this) {
+              return function() {
+                return new CodeGenerator(env.fileName, false, true).genSource(null, rz(ast));
+              };
+            })(this)) : new CodeGenerator().genSource(rz(code), rz(ast));
             return cont(eval(jsCode));
           } catch (error) {
             err = error;
@@ -659,18 +743,27 @@ misrepresented as being the original software.
         return parseErr(lz('\n\nParse error: ' + err.toString() + "AST: "), ast);
       }
     }), null, null, null, 'parser');
+    gen = function(ast) {
+      return new CodeGenerator().gen(ast);
+    };
+    genMap = function(ast) {
+      return new CodeGenerator().genMap(ast);
+    };
+    genSource = function(source, ast) {
+      return new CodeGenerator().genSource(source, ast);
+    };
     return {
       gen: gen,
       genMap: genMap,
       genSource: genSource,
-      genNode: genNode,
       sourceNode: sn,
       withFile: withFile,
       curryCall: curryCall,
       SourceNode: SourceNode,
       SourceMapConsumer: SourceMapConsumer,
       SourceMapGenerator: SourceMapGenerator,
-      setMegaArity: setMegaArity
+      setMegaArity: setMegaArity,
+      CodeGenerator: CodeGenerator
     };
   });
 

@@ -1,35 +1,45 @@
 #+TITLE: Data access
 * Scratch
-#+BEGIN_SRC leisure :results dynamic
-#simplify '`+ ~(first list) ~(second list)'
-defMacro 'pl' \list . `(+ ~(first list) ~(second list))
-defMacro 'a' \list . do
-  list = stripParens list
-  `(~@(first list) ~@(second list))
-simplify 'pl 2 3'
-#simplify '3 + 4'
-pl 2 33
-simplify 'a [1 2 3] [4 5 6]'
-a [1 2 33] [4 5 6]
-x = [1 2 3]
-y = [4 5 6]
-#c = 4
-#`~@x ~@y
+#+BEGIN_SRC leisure :results def
+#transaction set['a'] map{'b':'c'} set['d'] set['e'] map{'f':'g'} dl[]
+floop x = 'floop'
+a x = \f . f x
+b x = \f . f x
+declareType a
+declareType b a
+defTypeCase floop.b x -> x id
+defTypeCase floop.a anA -> (anA id) + 1
+#+END_SRC
+
+
+#+BEGIN_SRC leisure
+floop 1
+floop (b 2)
+floop (a 3)
 #+END_SRC
 #+RESULTS:
-: 
-: 
-: ["+" "2" "3"]
-: 35
-: ["cons" "1" ["cons" "2" ["cons" "3" "nil"]]]
-: [1 2 33]
-: 
-: 
+: "floop"
+: 2
+: 4
 
+#+BEGIN_SRC leisure
+equal [1] [1]
+#equal 1 1
+#+END_SRC
+#+RESULTS:
+: true
 
-* Page maxes out memory if left for too long when there's a major stack trace
-* Or something
-* 
+* Tests
+#+BEGIN_SRC leisure :results def
+#testTr1 = transaction
+  set[]
+  map{}
+  set[]
+  set[]
+  map{}
+  dl[]
+#+END_SRC
+
 * Transaction Objects
 #+BEGIN_SRC leisure :results def
 transaction creates reads updates deletes data errors = \f .

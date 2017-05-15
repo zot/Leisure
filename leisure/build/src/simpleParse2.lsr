@@ -262,29 +262,32 @@ useTokenPack 'infix'
 ## DO
 ################
 
-defMacro 'do' \list . withRecur handleDo list false nil id
+defMacro 'do' \list . withRecur handleDo list false id
 
-handleDo list inLet foldVar cont = list
+handleDo list inLet cont = list
   \h t D . isNil t
     cont (inLet ['.' h] [h])
     \\
-      next = doClause (stripParens h) h nil inLet foldVar
-      newInLet = triple1 next
-      newFoldVar = triple2 next
-      chain = triple3 next
+      next = doClause (stripParens h) h nil inLet
+      newInLet = head next
+      chain = tail next
       .
-      recur handleDo t newInLet newFoldVar \rest . cont (chain rest)
+      recur handleDo t newInLet \rest . cont (chain rest)
   cont nil
 
-doClause steppingClause clause prefix inLet foldVar = \\
-  makeBind var value = triple false foldVar \rest . inLet (cons '.') id
+# doClause returns [inLet chain]
+# inLet is whether it is in a let clause
+# chain is a continuation function that takes the rest of the do block
+#
+doClause steppingClause clause prefix inLet = \\
+  makeBind var value = cons false \rest . inLet (cons '.') id
     ['bind' value ['\\' var '.' | rest]]
   h = head steppingClause
   t = tail steppingClause
   .
   isCons steppingClause
     isTokenString h '='
-      triple true foldVar \rest . inLet
+      cons true \rest . inLet
         [clause | rest]
         ['\\\\' clause | rest]
       isTokenString h '<-'
@@ -295,10 +298,10 @@ doClause steppingClause clause prefix inLet foldVar = \\
               makeBind (isNil prefix '_' (head prefix)) t
               any (\el . not (or (isString el) (isToken el))) prefix
                 parseErr "Non-variable for bind in do clause: " clause
-                triple false foldVar \rest . inLet (cons '.') id
+                cons false \rest . inLet (cons '.') id
                   ['bind' t (_append ['\\' | prefix] ['.' | rest])]
             makeBind '_' t
-        doClause t clause [h | prefix] inLet foldVar
+        doClause t clause [h | prefix] inLet
     makeBind '_' clause
 
 triple a b c = \f . f a b c

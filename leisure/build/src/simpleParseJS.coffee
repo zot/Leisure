@@ -473,7 +473,7 @@ compileFile = (text, filename)->
   #"if (typeof module != 'undefined') require('source-map-support').install();\n" +
   #   _.map(lines, (line)-> "runMonad2(#{genLine line.trim(), names, id, id}, null, function(){});\n").join('') +
   #  (if filename then "\n//@ sourceURL=#{filename}\n" else "")
-  "define([], function(){\n  if (typeof module != 'undefined') require('source-map-support').install();\n  return L_runMonads([\n    " +
+  "'use strict';\ndefine([], function(){\n  if (typeof module != 'undefined') require('source-map-support').install();\n  return L_runMonads([\n    " +
      _.map(lines, (line)-> "function(){return #{genLine line.trim(), names, id, id};}").join(', \n    ') +
     (if filename then "\n  ]);\n});\n//@ sourceURL=#{filename}\n" else "")
 

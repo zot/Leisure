@@ -1,6 +1,10 @@
-* TODO [#A] hand optimization
-** useTokenPack->newToks
-** computeTokenPack->newPat
+* TODO [#A] Need a way to access sourcemaps
+** wrap generated code in a context function that initializes with the sourcemap
+** make $F initialization put the context into the function
+* BUG [#A] defWrapper generates faulty partial application code
+* TODO [#A] Working source in a :working: drawer, c-s transfers it to src block
+* TODO [#A] fix Leisure's sourcemap generation
+* TODO [#A] codegen optimization
 ** initialize all properties in the constructor and in the same order
 ** remove try/catch -- delegate try contents to a nested function
 * TODO [#A] make toJson cases for immutable.js data types
@@ -79,7 +83,6 @@ logger.call = (args)->
 * BUG [#A] make word-selections drag properly in adjusted selections
 * BUG [#A] leisure unterminated string doesn't throw a proper error
 * TODO [#A] disable local data access during collborative code
-* TODO [#A] Working source in a :working: drawer, c-s transfers it to src block
 * TODO [#A] More reactive visual gizmos
 ** TODO better use of heatmap
 ** TODO tree visualization package
@@ -1168,6 +1171,9 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE remove foldVar from do macro funcs
+   CLOSED: [2017-05-14 Sun 10:32]
+*** bundle args with cons instead of triple
 ** DONE delete selection doesn't to switch to caret
 CLOSED: [2016-08-21 Sun 22:10]
 ** DONE implement dofold

@@ -865,7 +865,7 @@ misrepresented as being the original software.
     };
     lines = linesForFile(text);
     names = namesForLines(lines);
-    return "define([], function(){\n  if (typeof module != 'undefined') require('source-map-support').install();\n  return L_runMonads([\n    " + _.map(lines, function(line) {
+    return "'use strict';\ndefine([], function(){\n  if (typeof module != 'undefined') require('source-map-support').install();\n  return L_runMonads([\n    " + _.map(lines, function(line) {
       return "function(){return " + (genLine(line.trim(), names, id, id)) + ";}";
     }).join(', \n    ') + (filename ? "\n  ]);\n});\n//@ sourceURL=" + filename + "\n" : "");
   };

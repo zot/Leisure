@@ -25,7 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
-  var Nil, Promise, SourceNode, _, action, ast2Json, asyncMonad, baseDir, baseLeisureDir, compile, createAstFile, createJsFile, defaultEnv, diag, doRequirements, errorString, evalInput, fs, gen, genJsFromAst, genMap, genSource, gennedAst, gennedJs, getMonadSyncMode, getParseErr, getType, getValue, help, identity, interactive, interrupted, intersperse, isMonad, jsCodeFor, json2Ast, lazy, lc, leisureCompleter, leisureFunctions, loadedParser, lz, newCall, newOptions, oldFunctionCount, outDir, pargs, path, primCompile, processArg, processedFiles, prog, prompt, promptText, readFile, readline, recompiled, ref, ref1, ref2, ref3, ref4, ref5, repl, replEnv, replaceErr, requireFiles, requireList, requireUtils, requirejs, resolve, rl, root, run, runFile, runMonad2, rz, setDataType, setMegaArity, setType, setWarnAsync, shouldNsLog, show, sourceNode, stage, stages, std, tangle, tangleOrgFile, tokenString, updateCompleter, usage, verbose, withFile, writeFile;
+  var Nil, Promise, SourceNode, _, action, ast2Json, asyncMonad, baseDir, baseLeisureDir, compile, createAstFile, createJsFile, defaultEnv, diag, doRequirements, errorString, evalInput, fs, gen, genJsFromAst, genMap, genSource, gennedAst, gennedJs, getMonadSyncMode, getParseErr, getType, getValue, help, identity, interactive, interrupted, intersperse, isIO, jsCodeFor, json2Ast, lazy, lc, leisureCompleter, leisureFunctions, loadedParser, lz, newCall, newOptions, oldFunctionCount, outDir, pargs, path, primCompile, processArg, processedFiles, prog, prompt, promptText, readFile, readline, recompiled, ref, ref1, ref2, ref3, ref4, ref5, repl, replEnv, replaceErr, requireFiles, requireList, requireUtils, requirejs, resolve, rl, root, run, runFile, runMonad2, rz, setDataType, setMegaArity, setType, setWarnAsync, shouldNsLog, show, sourceNode, stage, stages, std, tangle, tangleOrgFile, tokenString, updateCompleter, usage, verbose, withFile, writeFile;
 
   require('source-map-support').install();
 
@@ -82,7 +82,7 @@ misrepresented as being the original software.
 
   ref3 = require('./node'), readFile = ref3.readFile, writeFile = ref3.writeFile;
 
-  ref4 = requirejs('./runtime'), identity = ref4.identity, runMonad2 = ref4.runMonad2, isMonad = ref4.isMonad, asyncMonad = ref4.asyncMonad, replaceErr = ref4.replaceErr, getMonadSyncMode = ref4.getMonadSyncMode, setWarnAsync = ref4.setWarnAsync, requireFiles = ref4.requireFiles, getValue = ref4.getValue;
+  ref4 = requirejs('./runtime'), identity = ref4.identity, runMonad2 = ref4.runMonad2, isIO = ref4.isIO, asyncMonad = ref4.asyncMonad, replaceErr = ref4.replaceErr, getMonadSyncMode = ref4.getMonadSyncMode, setWarnAsync = ref4.setWarnAsync, requireFiles = ref4.requireFiles, getValue = ref4.getValue;
 
   Promise = requirejs('bluebird').Promise;
 
@@ -147,12 +147,13 @@ misrepresented as being the original software.
   };
 
   process.on('uncaughtException', function(err) {
-    return console.log("Uncaught Exception: " + (errorString(err)));
+    return console.log("Uncaught Exception: " + (err.stack || errorString(err)));
   });
 
   evalInput = function(text, cont) {
-    var err, error, result;
+    var err, error, result, source;
     if (text) {
+      source = null;
       try {
         if (newCall) {
           result = lc(L_newParseLine, 0, Nil, text);
@@ -160,7 +161,7 @@ misrepresented as being the original software.
           result = rz(L_newParseLine)(0)(lz(Nil))(lz(text));
         }
         return runMonad2(result, replEnv, function(ast) {
-          var err, error, source;
+          var err, error;
           try {
             if (getType(ast) === 'err') {
               return cont("PARSE ERORR: " + (getParseErr(ast)));
@@ -175,22 +176,23 @@ misrepresented as being the original software.
               }
               source = genSource(text, ast);
               if (diag) {
-                console.log("\nCODE: (" + source + ")");
+                console.log("\nCODE: " + source);
               }
               result = eval(source);
-              if (isMonad(result)) {
+              if (isIO(result)) {
                 console.log("(processing IO monad)");
               }
               return runMonad2(result, replEnv, cont);
             }
           } catch (error) {
             err = error;
-            console.log('caught error');
+            console.log("caught error evaluating source:\n" + source);
             return cont(rz(L_err)(lz(errorString(err))));
           }
         });
       } catch (error) {
         err = error;
+        console.log("caught error evaluating source:\n" + source);
         return cont(rz(L_err)(lz(errorString(err))));
       }
     } else {
@@ -554,7 +556,7 @@ misrepresented as being the original software.
           lastArgs = null;
           result = withFile(path.basename(bareLsr), null, function() {
             return (new SourceNode(1, 0, bareLsr, [
-              'define([], function(){\n  return L_runMonads([\n    ', intersperse(lastArgs = _.map(asts, function(item) {
+              '"use strict";\n', 'define([], function(){\n  return L_runMonads([\n    ', intersperse(lastArgs = _.map(asts, function(item) {
                 return sourceNode(item, 'function(){return ', genMap(item), '}');
               }), ',\n    '), '\n  ]);\n});'
             ])).toStringWithSourceMap({

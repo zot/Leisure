@@ -107,53 +107,46 @@ define ['./base', 'lodash'], (base, _)->
 
   global.Leisure_Object = LeisureObject
 
-  supertypes = {}
-
   root.leisureClassChange = 0
 
-  ensureLeisureClass = (leisureClass)->
-    cl = "Leisure_#{nameSub leisureClass}"
+  classNameForType = (type)-> "Leisure_#{nameSub type}"
+
+  classForType = (type)-> global[classNameForType type]
+
+  ensureLeisureClass = (leisureClass, superclassName)->
+    cl = classNameForType leisureClass
+    superclass = (if superclassName? then global[classNameForType superclassName] else LeisureObject)
     if !global[cl]?
       global[cl] = eval "(function #{cl}(){})"
-      supertypes[cl] = 'Leisure_Object'
-      global[cl].prototype.__proto__ = LeisureObject.prototype
+      #console.log 'creating class', leisureClass, superclassName
+      #global[cl].prototype.__proto__ = LeisureObject.prototype
+      global[cl].prototype = new superclass
+      global[cl].prototype.constructor = global[cl]
       root.leisureClassChange++
     global[cl]
 
-  makeSuper = (type, supertype)->
-    supertypes["Leisure_#{nameSub type}"] = "Leisure_#{nameSub supertype}"
-    root.leisureClassChange++
-
-  ensureLeisureClass 'cons'
+  ensureLeisureClass 'sequence'
+  ensureLeisureClass 'cons', 'sequence'
   ensureLeisureClass 'nil'
-  supertypes.Leisure_cons = 'Leisure_Object'
-  supertypes.Leisure_nil = 'Leisure_Object'
 
   isNil = (obj)-> obj instanceof Leisure_nil
 
   ensureLeisureClass 'ast'
-  ensureLeisureClass 'lit'
+  ensureLeisureClass 'lit', 'ast'
   Leisure_lit.prototype.toString = -> "lit(#{getLitVal @})"
-  ensureLeisureClass 'ref'
+  ensureLeisureClass 'ref', 'ast'
   Leisure_ref.prototype.toString = -> "ref(#{getRefName @})"
-  ensureLeisureClass 'lambda'
+  ensureLeisureClass 'lambda', 'ast'
   Leisure_lambda.prototype.toString = -> "lambda(#{astString @})"
-  ensureLeisureClass 'apply'
+  ensureLeisureClass 'apply', 'ast'
   Leisure_apply.prototype.toString = -> "apply(#{astString @})"
-  ensureLeisureClass 'let'
+  ensureLeisureClass 'let', 'ast'
   Leisure_let.prototype.toString = -> "let(#{astString @})"
-  ensureLeisureClass 'anno'
+  ensureLeisureClass 'anno', 'ast'
   Leisure_anno.prototype.toString = -> "anno(#{astString @})"
   ensureLeisureClass 'doc'
   ensureLeisureClass 'srcLocation'
   ensureLeisureClass 'pattern'
-
-  makeSuper 'lit', 'ast'
-  makeSuper 'ref', 'ast'
-  makeSuper 'lambda', 'ast'
-  makeSuper 'apply', 'ast'
-  makeSuper 'let', 'ast'
-  makeSuper 'anno', 'ast'
 
   astString = (ast)->
     switch getType ast
@@ -329,12 +322,14 @@ define ['./base', 'lodash'], (base, _)->
     nm = 'L_' + nameSub(name)
     if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
     #namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
-    functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = if typeof func == 'function' && func.memo
+    functionInfo[name].def = namedFunc = if typeof func == 'function' && func.memo
       func.leisureLength = arity || func.length
       func.leisureName = name
       if func.__proto__ == Function.prototype then func.__proto__ = LeisureObject
       func
     else nameFunc(func, name)
+    if LeisureObject.prototype[nm] then LeisureObject.prototype[nm] = namedFunc
+    else global[nm] = global.leisureFuncs[nm] = functionInfo[name].mainDef = namedFunc
     if root.currentNameSpace
       LeisureNameSpaces[namespace ? root.currentNameSpace][nameSub(name)] = namedFunc
       nsLog "DEFINING #{name} FOR #{root.currentNameSpace}"
@@ -558,8 +553,6 @@ define ['./base', 'lodash'], (base, _)->
   root.Leisure_let = Leisure_let
   root.Leisure_anno = Leisure_anno
   root.ensureLeisureClass = ensureLeisureClass
-  root.makeSuper = makeSuper
-  root.supertypes = supertypes
   root.functionInfo = functionInfo
   root.redefined = redefined
   root.getPos = getPos
@@ -569,5 +562,9 @@ define ['./base', 'lodash'], (base, _)->
   root.partialCall = partialCall
   root.doPartial = doPartial
   root.leisureFunctionNamed = leisureFunctionNamed
+  root.getPos = getPos
+  root.rangeToJson = rangeToJson
+  root.classNameForType = classNameForType
+  root.classForType = classForType
 
   root

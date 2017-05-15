@@ -21,7 +21,7 @@ setNameSpace 'core'
 asIO x = x
 fakereturn x = x
 #wrap x = x
-bind x cont = isMonad x
+bind x cont = isIO x
   primBind x cont
   cont x
 
@@ -234,6 +234,8 @@ join list el = strCat (intersperse list el)
 ############
 # ASSOC LISTS
 ############
+_declareType 'keyedSequence' 'sequence'
+_declareType 'alist' 'keyedSequence'
 assertAlist msg value result = assert (isAlist value) (strCat (cons msg (cons ' should be a association list, but it is not; its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))) result
 acons k v alist = assertAlist "acons alist" alist (\@ type cons . \f . \@ assoc true . f (cons k v) alist)
 assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
@@ -743,8 +745,8 @@ createDef def name arity src props = \\
   .
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
-      #cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (spliceFuncProps arity props def) nil))))))))
       cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))
+      #cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))) nil))))))))
 
 spliceFuncProps arity props ast = or (isNil props) (== arity 0)
   ast
@@ -1071,7 +1073,6 @@ resultOfRun wrapped result =
       left (errMsg result)
       right result
 
-#astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast
 astFileWrap file ast = anno 'filename' (basename file) ast
 
 basename file = strReplace file (regexp '^(.*/)?([^/]+)$') '$2'

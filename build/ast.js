@@ -30,7 +30,7 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['./base', 'lodash'], function(base, _) {
-    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, makeSuper, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, redefined, ref, ref1, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError;
+    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, classForType, classNameForType, cons, consEq, consFrom, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, redefined, ref, ref1, resolve, root, rz, save, setDataType, setType, tail, throwError;
     ref1 = root = base, resolve = ref1.resolve, lazy = ref1.lazy, nsLog = ref1.nsLog;
     rz = resolve;
     lz = lazy;
@@ -109,64 +109,59 @@ misrepresented as being the original software.
       window.global = window;
     }
     global.Leisure_Object = LeisureObject;
-    supertypes = {};
     root.leisureClassChange = 0;
-    ensureLeisureClass = function(leisureClass) {
-      var cl;
-      cl = "Leisure_" + (nameSub(leisureClass));
+    classNameForType = function(type) {
+      return "Leisure_" + (nameSub(type));
+    };
+    classForType = function(type) {
+      return global[classNameForType(type)];
+    };
+    ensureLeisureClass = function(leisureClass, superclassName) {
+      var cl, superclass;
+      cl = classNameForType(leisureClass);
+      superclass = (superclassName != null ? global[classNameForType(superclassName)] : LeisureObject);
       if (global[cl] == null) {
         global[cl] = eval("(function " + cl + "(){})");
-        supertypes[cl] = 'Leisure_Object';
-        global[cl].prototype.__proto__ = LeisureObject.prototype;
+        global[cl].prototype = new superclass;
+        global[cl].prototype.constructor = global[cl];
         root.leisureClassChange++;
       }
       return global[cl];
     };
-    makeSuper = function(type, supertype) {
-      supertypes["Leisure_" + (nameSub(type))] = "Leisure_" + (nameSub(supertype));
-      return root.leisureClassChange++;
-    };
-    ensureLeisureClass('cons');
+    ensureLeisureClass('sequence');
+    ensureLeisureClass('cons', 'sequence');
     ensureLeisureClass('nil');
-    supertypes.Leisure_cons = 'Leisure_Object';
-    supertypes.Leisure_nil = 'Leisure_Object';
     isNil = function(obj) {
       return obj instanceof Leisure_nil;
     };
     ensureLeisureClass('ast');
-    ensureLeisureClass('lit');
+    ensureLeisureClass('lit', 'ast');
     Leisure_lit.prototype.toString = function() {
       return "lit(" + (getLitVal(this)) + ")";
     };
-    ensureLeisureClass('ref');
+    ensureLeisureClass('ref', 'ast');
     Leisure_ref.prototype.toString = function() {
       return "ref(" + (getRefName(this)) + ")";
     };
-    ensureLeisureClass('lambda');
+    ensureLeisureClass('lambda', 'ast');
     Leisure_lambda.prototype.toString = function() {
       return "lambda(" + (astString(this)) + ")";
     };
-    ensureLeisureClass('apply');
+    ensureLeisureClass('apply', 'ast');
     Leisure_apply.prototype.toString = function() {
       return "apply(" + (astString(this)) + ")";
     };
-    ensureLeisureClass('let');
+    ensureLeisureClass('let', 'ast');
     Leisure_let.prototype.toString = function() {
       return "let(" + (astString(this)) + ")";
     };
-    ensureLeisureClass('anno');
+    ensureLeisureClass('anno', 'ast');
     Leisure_anno.prototype.toString = function() {
       return "anno(" + (astString(this)) + ")";
     };
     ensureLeisureClass('doc');
     ensureLeisureClass('srcLocation');
     ensureLeisureClass('pattern');
-    makeSuper('lit', 'ast');
-    makeSuper('ref', 'ast');
-    makeSuper('lambda', 'ast');
-    makeSuper('apply', 'ast');
-    makeSuper('let', 'ast');
-    makeSuper('anno', 'ast');
     astString = function(ast) {
       var argStr, funcStr, ref2;
       switch (getType(ast)) {
@@ -552,7 +547,12 @@ misrepresented as being the original software.
       if (!method && global.noredefs && (global[nm] != null)) {
         throwError("[DEF] Attempt to redefine definition: " + name);
       }
-      functionInfo[name].def = namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = typeof func === 'function' && func.memo ? (func.leisureLength = arity || func.length, func.leisureName = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
+      functionInfo[name].def = namedFunc = typeof func === 'function' && func.memo ? (func.leisureLength = arity || func.length, func.leisureName = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
+      if (LeisureObject.prototype[nm]) {
+        LeisureObject.prototype[nm] = namedFunc;
+      } else {
+        global[nm] = global.leisureFuncs[nm] = functionInfo[name].mainDef = namedFunc;
+      }
       if (root.currentNameSpace) {
         LeisureNameSpaces[namespace != null ? namespace : root.currentNameSpace][nameSub(name)] = namedFunc;
         nsLog("DEFINING " + name + " FOR " + root.currentNameSpace);
@@ -1015,8 +1015,6 @@ misrepresented as being the original software.
     root.Leisure_let = Leisure_let;
     root.Leisure_anno = Leisure_anno;
     root.ensureLeisureClass = ensureLeisureClass;
-    root.makeSuper = makeSuper;
-    root.supertypes = supertypes;
     root.functionInfo = functionInfo;
     root.redefined = redefined;
     root.getPos = getPos;
@@ -1026,6 +1024,10 @@ misrepresented as being the original software.
     root.partialCall = partialCall;
     root.doPartial = doPartial;
     root.leisureFunctionNamed = leisureFunctionNamed;
+    root.getPos = getPos;
+    root.rangeToJson = rangeToJson;
+    root.classNameForType = classNameForType;
+    root.classForType = classForType;
     return root;
   });
 

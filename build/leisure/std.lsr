@@ -141,6 +141,13 @@ runRepeat count limit f = count < limit
 ## More list stuff
 #######################
 
+all func seq = isNil seq
+  true
+  func (head seq)
+    all func (tail seq)
+    false
+    
+
 partition func list = subpartition [] func list
 
 subpartition res func list = isNil list
@@ -185,13 +192,23 @@ listifyDl list lvar =
 
 addTokenGroup 'map{' '}'
 
+_declareType 'hamt' 'keyedSequence'
+
 defMacro 'map{' \list . (listifyOp 'mapPair' (head list) 'hamt')
 
 mapPair keyValue map = keyValue \key value . mapSet key value map
 
 isMap h = hasType h hamt
 
+mapFoldr func finalValue map = empty map
+  finalValue
+  map \h t . func h (mapFoldr func finalValue t)
+
+toAlist map = mapFoldr aconsPair nil map
+
 addTokenGroup 'set[' ']'
+
+_declareType 'amtSet' 'sequence'
 
 defMacro 'set[' \list . (listifyOp 'setAdd' (head list) 'amtSet')
 
@@ -200,6 +217,8 @@ isSet s = hasType s amtSet
 setEmpty s = (setSize s) == 0
 
 addTokenGroup 'vec[' ']'
+
+_declareType 'vector' 'sequence'
 
 defMacro 'vec[' \list . (listifyOp 'vectorUnshift' (head list) 'vector')
 
@@ -271,11 +290,12 @@ sortBy cmp l = mergeSort cmp l
 # YAML and JSON
 #################
 
-toJson obj = (isKeyedSequence obj)
-  toJsonObject (_map (\pair . cons (head pair) (toJson (tail pair))) (tolist obj))
-  (isSequence obj)
-    toJsonArray (_map (\item . toJson item) (tolist obj))
-    obj
+toJson obj = isString obj obj
+  isKeyedSequence obj
+    toJsonObject (foldr (\pair rest . pair \h t . [[(toJson h)|(toJson t)] | rest]) nil obj)
+    (isSequence obj)
+      toJsonArray (foldr (\item rest . [(toJson item) | rest]) nil obj)
+      obj
 
 toYaml jsonStuff = jsonToYaml (toJson jsonStuff)
 
@@ -287,18 +307,15 @@ addToken '->'
 
 mkStr tok = concat['"' (tokenString tok) '"']
 
-defMacro 'defCase' \list . \\
+defMacro 'defCase' \list . do
   h1 = head list
   t1 = tail list
   h2 = head t1
   t2 = tail t1
   h3 = head t2
   t3 = tail t2
-  .
   and[
-    isCons list
-    isCons t1
-    isCons t2
+    all isCons [list t1 t2]
     isTokenString h2 '.']
       makeCaseArgs list (mkStr h1) (mkStr h3) t3 id
       parseErr "Error in case definition -- expected func.name args | condition -> action, but got " list
@@ -315,13 +332,47 @@ makeCaseCondition orig funcName altName args rest cond = rest
     makeCaseCondition orig funcName altName args t (dlpush cond h)
  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
+#######################
+## Cases
+#######################
+
+defMacro 'defTypeCase' \list . do
+  func = head list
+  t1 = tail list
+  dot = head t1
+  t2 = tail t1
+  type = head t2
+  rest = tail t2
+  str tok = jsonStringify (strTokenString tok) id id
+  and (all isCons [list t1 t2 rest]) (isTokenString dot '.')
+    partition (flip isTokenString '->') rest \args arrow body .
+      isNil arrow
+        parseErr s["No -> in defTypeCase: " list]
+        ['_defTypeCase' (str func) (str type) ['\\@' 'arity' s[(length args)] '.' '\\' | (_append args ['.' | body])]]
+    parseErr s["Not enough arguments to defTypeCase: " list]
+
+defMacro 'declareType' \list . do
+  type1 = strTokenString (head list)
+  t1 = tail list
+  type2 = strTokenString (head t1)
+  not (isList list)
+    parseErr "Extends needs 1 or 2 arguments but there were none"
+    isCons t1
+      ['_declareType' (jsonStringify type1 id id) (jsonStringify type2 id id)]
+      ['_declareType' (jsonStringify type1 id id) 'nil']
+
 ######################
 # equality
 ######################
 
-defCase equal.cons a b | and (isCons a) (isCons b) -> and
+#defCase equal.cons a b | and (isCons a) (isCons b) -> and
+#  equal (head a) (head b)
+#  equal (tail a) (tail b)
+
+defTypeCase equal.cons a b -> and[
+  isCons b
   equal (head a) (head b)
-  equal (tail a) (tail b)
+  equal (tail a) (tail b)]
 
 ######################
 # sequences
@@ -395,6 +446,17 @@ defCase tolist.differenceList l | isDl l -> l []
 defCase tolist.map h | isMap h -> mapPairs h
 defCase tolist.set s | isSet s -> setItems s
 defCase tolist.vector v | isVector v -> vectorItems v
+
+#defTypeCase tolist.list l | isList l -> l
+#defTypeCase tolist.repeat r | isRepeat r -> runRepeat 0 (r id) id
+#defTypeCase tolist.range r | isRange r -> r \a b . runRepeat a b id
+#defTypeCase tolist.opt o | isOption o -> o (\x . [x]) []
+#defTypeCase tolist.either e | isEither e -> e (\_ . []) (\x . [x])
+#defTypeCase tolist.string s | isString s -> strToList s
+#defTypeCase tolist.differenceList l | isDl l -> l []
+#defTypeCase tolist.map h | isMap h -> mapPairs h
+#defTypeCase tolist.set s | isSet s -> setItems s
+#defTypeCase tolist.vector v | isVector v -> vectorItems v
 
 defCase conj.range v r | isRange r -> r \a b .
   b == v
@@ -494,6 +556,7 @@ defCase map.vector func v | isVector v ->
 defCase foldl.any func init l | not (isList l) -> _foldl func init (tolist l)
 defCase foldl1.any func l | not (isList l) -> _foldl1 func (tolist l)
 defCase foldr.any func final l | not (isList l) -> _foldr func final (tolist l)
+defCase foldr.map func final m | isMap m -> mapFoldr func final m
 defCase foldr1.any func l | not (isList l) -> _foldr1 func (tolist l)
 
 defCase reverse.alist l | isAlist l -> foldr (\el rest . acons (head el) (tail el) rest) {} (_reverse l)
@@ -514,6 +577,7 @@ defCase contains.differenceList item l | isDl l -> _contains item (l [])
 defCase contains.map item h | isMap h -> mapContains item h
 defCase contains.set item s | isSet s -> setContains item s
 defCase contains.vector item v | isVector v -> vectorContains item v
+
 ######################
 # maps
 ######################
@@ -694,7 +758,7 @@ monadicMap cont list = _foldr (\el acc . maybeBind (cont el) \elVal . maybeBind 
     accVal
     [elVal | accVal]) [] (tolist list)
 
-maybeBind item cont = isMonad item
+maybeBind item cont = isIO item
   primBind item cont
   cont item
 
@@ -725,10 +789,10 @@ defMacro 'defWrapper' \list . partition (flip isTokenString '->') list \left arr
 
 #defWrapper head oldHead list -> assertType 'head argument' cons list \h t . h
 #defWrapper tail oldTail list -> assertType 'tail argument' cons list \h t . t
-defWrapper mapSet oldMapSet key value aMap -> oldMapSet
-  key
-  value
-  assertType 'mapSet map' hamt aMap
+#defWrapper mapSet oldMapSet key value aMap -> oldMapSet
+#  key
+#  value
+#  assertType 'mapSet map' hamt aMap
 
 #######################
 ## output tag functions
@@ -838,24 +902,6 @@ addToken '`'
 addToken '~'
 addToken '~@'
 
-#defMacro '`' \list . [(consFromTokens list)]
-#
-#consFromTokens toks = do
-#  item = head toks
-#  rest = tail toks
-#  item2 = head rest
-#  rest2 = tail rest
-#  cond
-#    (isNil toks) 'nil'
-#    (isParens toks) (toks \s e c . parens s e (consFromTokens c))
-#    (isToken toks) (stringForToken toks)
-#    (not (isCons toks)) toks
-#    (isTokenString item '~') ['cons' item2 (consFromTokens rest2)]
-#    (isTokenString item '~@') ['_append' item2 (consFromTokens rest2)]
-#    true ['cons' (consFromTokens item) (consFromTokens rest)]
-#
-#stringForToken tok = tok \tok pos . token s['"' tok '"'] pos
-
 defMacro '`' \list . consFromTokens (head list)
 
 consFromTokens toks = do
@@ -867,13 +913,13 @@ consFromTokens toks = do
     (isNil toks) 'nil'
     (isParens toks) (toks \s e c . consFromTokens c)
     (isToken toks) (stringForToken toks)
-    (isString toks) (escapeString toks)
+    (isString toks) (jsonStringify toks id id)
     (not (isCons toks)) toks
     (isTokenString item '~') ['cons' (stripParens item2) (consFromTokens rest2)]
     (isTokenString item '~@')
       empty rest2
         stripParens item2
-        ['_append' (stripParens item2) (consFromTokens rest2)]
+        ['_append' ['tolist' (stripParens item2)] (consFromTokens rest2)]
     true ['cons' (consFromTokens item) (consFromTokens rest)]
 
 stringForToken tok = tok \tok pos . token (jsonStringify tok id id) pos

@@ -21,7 +21,7 @@ setNameSpace 'core'
 asIO x = x
 fakereturn x = x
 #wrap x = x
-bind x cont = isMonad x
+bind x cont = isIO x
   primBind x cont
   cont x
 
@@ -234,6 +234,8 @@ join list el = strCat (intersperse list el)
 ############
 # ASSOC LISTS
 ############
+_declareType 'keyedSequence' 'sequence'
+_declareType 'alist' 'keyedSequence'
 assertAlist msg value result = assert (isAlist value) (strCat (cons msg (cons ' should be a association list, but it is not; its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))) result
 acons k v alist = assertAlist "acons alist" alist (\@ type cons . \f . \@ assoc true . f (cons k v) alist)
 assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
@@ -743,8 +745,8 @@ createDef def name arity src props = \\
   .
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
-      #cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (spliceFuncProps arity props def) nil))))))))
       cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))
+      #cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))) nil))))))))
 
 spliceFuncProps arity props ast = or (isNil props) (== arity 0)
   ast
@@ -1071,7 +1073,6 @@ resultOfRun wrapped result =
       left (errMsg result)
       right result
 
-#astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast
 astFileWrap file ast = anno 'filename' (basename file) ast
 
 basename file = strReplace file (regexp '^(.*/)?([^/]+)$') '$2'
@@ -1164,7 +1165,6 @@ useTokenPack name = primBind (getValue 'tokenPacks')
           \filters . assoc name packs
             \pack . \\
               groupToks = _foldl (\value el . el \h t . cons h (cons t value)) nil (head (tail pack))
-              #newToks = mergeSort (\a b . > (strLen a) (strLen b)) (_append (head pack) (_append groupToks tokens))
               newToks = _sort (\a b . > (strLen a) (strLen b)) (_append (head pack) (_append groupToks tokens))
               .
               primBind (setValue 'tokenList' newToks)
@@ -1483,29 +1483,32 @@ useTokenPack 'infix'
 ## DO
 ################
 
-defMacro 'do' \list . withRecur handleDo list false nil id
+defMacro 'do' \list . withRecur handleDo list false id
 
-handleDo list inLet foldVar cont = list
+handleDo list inLet cont = list
   \h t D . isNil t
     cont (inLet ['.' h] [h])
     \\
-      next = doClause (stripParens h) h nil inLet foldVar
-      newInLet = triple1 next
-      newFoldVar = triple2 next
-      chain = triple3 next
+      next = doClause (stripParens h) h nil inLet
+      newInLet = head next
+      chain = tail next
       .
-      recur handleDo t newInLet newFoldVar \rest . cont (chain rest)
+      recur handleDo t newInLet \rest . cont (chain rest)
   cont nil
 
-doClause steppingClause clause prefix inLet foldVar = \\
-  makeBind var value = triple false foldVar \rest . inLet (cons '.') id
+# doClause returns [inLet chain]
+# inLet is whether it is in a let clause
+# chain is a continuation function that takes the rest of the do block
+#
+doClause steppingClause clause prefix inLet = \\
+  makeBind var value = cons false \rest . inLet (cons '.') id
     ['bind' value ['\\' var '.' | rest]]
   h = head steppingClause
   t = tail steppingClause
   .
   isCons steppingClause
     isTokenString h '='
-      triple true foldVar \rest . inLet
+      cons true \rest . inLet
         [clause | rest]
         ['\\\\' clause | rest]
       isTokenString h '<-'
@@ -1516,10 +1519,10 @@ doClause steppingClause clause prefix inLet foldVar = \\
               makeBind (isNil prefix '_' (head prefix)) t
               any (\el . not (or (isString el) (isToken el))) prefix
                 parseErr "Non-variable for bind in do clause: " clause
-                triple false foldVar \rest . inLet (cons '.') id
+                cons false \rest . inLet (cons '.') id
                   ['bind' t (_append ['\\' | prefix] ['.' | rest])]
             makeBind '_' t
-        doClause t clause [h | prefix] inLet foldVar
+        doClause t clause [h | prefix] inLet
     makeBind '_' clause
 
 triple a b c = \f . f a b c

@@ -76,13 +76,6 @@ define files, (btoa)->
         value.memo = value()
     else value
 
-  #global.lazy = (l)-> ->l
-  #global.lazy = (l)-> if typeof l == 'function'
-  #  count=0
-  #  ->
-  #    if count++ > 0 then console.log "EXTRA EXECUTION OF #{l}, #{new Error('stack').stack}"
-  #    l
-  #else l
   (window ? global).lazy = (l)-> if typeof l == 'function' then l.memo = l else l
 
   readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
@@ -92,12 +85,7 @@ define files, (btoa)->
   readDir = (fileName, cont)-> defaultEnv.readDir fileName, cont
 
   statFile = (fileName, cont)-> defaultEnv.statFile fileName, cont
-
-  root.trackCreation = false
-  #root.trackVars = false
-  #root.trackCreation = true
-  root.trackVars = true
-
+  
   funcInfo = (func)->
     if func.leisureInfoNew then primConsFrom func.leisureInfoNew, 0
     else if func.leisureInfo

@@ -93,7 +93,7 @@ global.btoa = require 'btoa'
 {
   identity
   runMonad2
-  isMonad
+  isIO
   asyncMonad
   replaceErr
   getMonadSyncMode
@@ -153,10 +153,11 @@ errorString = (err)->
   else err.stack ? err.toString()
 
 process.on 'uncaughtException', (err)->
-  console.log "Uncaught Exception: #{errorString err}"
+  console.log "Uncaught Exception: #{err.stack || errorString err}"
 
 evalInput = (text, cont)->
   if text
+    source = null
     try
       if newCall
         result = lc L_newParseLine, 0, Nil, text
@@ -173,16 +174,15 @@ evalInput = (text, cont)->
               console.log "\nAST: #{ast}"
             source = genSource text, ast
             if diag
-              #console.log "\nCODE: (#{gen ast})"
-              console.log "\nCODE: (#{source})"
-            #result = eval genSource text, ast
+              console.log "\nCODE: #{source}"
             result = eval source
-            if isMonad result then console.log "(processing IO monad)"
+            if isIO result then console.log "(processing IO monad)"
             runMonad2 result, replEnv, cont
         catch err
-          console.log 'caught error'
+          console.log "caught error evaluating source:\n#{source}"
           cont rz(L_err)(lz (errorString err))
     catch err
+      console.log "caught error evaluating source:\n#{source}"
       cont rz(L_err)(lz (errorString err))
   else cont ''
 
@@ -413,6 +413,7 @@ compile = (file, cont)->
       try
         lastArgs = null
         result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
+          '"use strict";\n',
           #"module.exports = L_runMonads([\n  ",
           'define([], function(){\n  return L_runMonads([\n    ',
           intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, 'function(){return ', (genMap item), '}'), ',\n    '),

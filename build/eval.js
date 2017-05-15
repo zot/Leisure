@@ -7,7 +7,7 @@
   define.amd = true;
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport) {
-    var ErrorCache, Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeFor, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, dump, envTemplate, errCache, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, gensym, gensymCounter, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, left, leisureEnv, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, newEvalFuncString, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, right, runLeisureMonad, runMonad, runMonad2, runNextResult, runWithPromiseCont, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, stringFor, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
+    var CodeGenerator, ErrorCache, Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeFor, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, defineSourceFile, dump, envTemplate, errCache, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, gensym, gensymCounter, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, left, leisureEnv, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, newEvalFuncString, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, right, runLeisureMonad, runMonad, runMonad2, runNextResult, runWithPromiseCont, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, stringFor, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
     if (SourceMapSupport != null) {
       SourceMapSupport.install();
     }
@@ -22,7 +22,7 @@
     lc = Leisure_call;
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert, getLeisurePromise = Runtime.getLeisurePromise, left = Runtime.left, right = Runtime.right;
     Promise = Bluebird.Promise;
-    genSource = Gen.genSource, SourceNode = Gen.SourceNode, sourceNode = Gen.sourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator, genMap = Gen.genMap, withFile = Gen.withFile;
+    genSource = Gen.genSource, SourceNode = Gen.SourceNode, sourceNode = Gen.sourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator, genMap = Gen.genMap, CodeGenerator = Gen.CodeGenerator, withFile = Gen.withFile;
     dump = Yaml.dump;
     getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, parseYaml = DocOrg.parseYaml;
     generatedFileCount = 0;
@@ -262,16 +262,20 @@
       env.generateCode = function(text, noFunc, cont) {
         return setLounge(this, (function(_this) {
           return function() {
-            var exec;
+            var exec, fileName;
+            fileName = currentGeneratedFileName();
             exec = function() {
+              env.fileName = fileName;
+              defineSourceFile(fileName, text);
               return leisureExec(_this, text, L_nil, (function(result) {
-                var asts, errs, fileName, results;
+                var asts, errs, results;
+                env.fileName = null;
                 errs = [];
                 results = [];
                 asts = _.map(result.toArray(), function(el) {
                   result = getRight(el.tail());
                   if (result instanceof Error) {
-                    errs.push(err);
+                    errs.push(result);
                   } else if (cont) {
                     results.push(result);
                   }
@@ -282,15 +286,24 @@
                     return el.message;
                   }).join('\n'));
                 } else {
-                  return withFile((fileName = currentGeneratedFileName()), null, function() {
+                  return withFile(fileName, null, function() {
+                    var code, gen, item, node;
                     if (typeof cont === "function") {
                       cont(results);
                     }
-                    return codeMap(new SourceNode(1, 0, fileName, [
-                      (!noFunc ? '(function(cont){return ' : []), 'L_runMonads([\n    ', intersperse(_.map(asts, function(item) {
-                        return sourceNode(item, 'function(){return ', genMap(item), '}');
-                      }), ',\n    '), (!noFunc ? '\n  ], null, cont)' : '\n  ])'), (!noFunc ? ';})' : [])
-                    ]), text, fileName);
+                    code = (function() {
+                      var j, len, results1;
+                      results1 = [];
+                      for (j = 0, len = asts.length; j < len; j++) {
+                        item = asts[j];
+                        gen = new CodeGenerator(fileName, false, true);
+                        node = gen.genNode(item);
+                        results1.push(sourceNode(item, 'function(){return ', node, ';}'));
+                      }
+                      return results1;
+                    })();
+                    node = new SourceNode(1, 0, fileName, ['"use strict";\n', (!noFunc ? '(function(cont){return ' : []), 'L_runMonads([\n    ', intersperse(code, ',\n    '), (!noFunc ? '\n  ], null, cont)' : '\n  ])'), (!noFunc ? ';})' : [])]);
+                    return codeMap(node, text, fileName, true);
                   });
                 }
               }), function(err) {
@@ -361,13 +374,16 @@
         return codeObject.code;
       }
     };
-    codeMap = function(sourceNode, content, fileName) {
+    codeMap = function(sourceNode, content, fileName, tagContext) {
       var cm;
       fileName = fileName != null ? fileName : currentGeneratedFileName();
       cm = sourceNode.toStringWithSourceMap({
         file: fileName
       });
       cm.map.setSourceContent(fileName, content);
+      if (tagContext) {
+        cm.useContext = true;
+      }
       return cm;
     };
     sourceNodeFromCodeMap = function(codeMap) {
@@ -1241,6 +1257,9 @@
         pos = newPos + 1;
       }
       return Math.min(str.length, pos + 1 + column);
+    };
+    defineSourceFile = function(fileName, contents) {
+      return eval(jsCodeFor(codeMap(new SourceNode(1, 0, fileName, 'void(0)'), contents, fileName, true)));
     };
     Object.assign(Leisure, {
       evalLeisure: evalLeisure,

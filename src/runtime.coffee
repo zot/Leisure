@@ -23,7 +23,8 @@ misrepresented as being the original software.
 ###
 
 'use strict'
-define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird)->
+define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird', 'browser-source-map-support'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird)->
+  SourceMapSupport?.install()
   {
     readFile,
     statFile,
@@ -60,6 +61,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     isPartial
     partialCall
     leisureFunctionNamed
+    LeisureObject
+    classNameForType
+    classForType
   } = Ast
   {
     Map
@@ -77,6 +81,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   lz = lazy
   lc = Leisure_call
   gensymCounter = 0
+  functionInfo = (window ? global).LeisureFunctionInfo
   #(window ? global).L_PROMISE_MONAD = true
 
 #########
@@ -104,6 +109,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   noMemo = (f)->
     Object.defineProperty f, 'memo', set: ->
     f
+
+  argNames = (func)->
+    arg.trim() for arg in Function.prototype.toString.call(func).match(/\(([^)]*)\)/)[1].split ','
 
 ############
 # LOGIC
@@ -349,7 +357,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     env = env ? root.defaultEnv
     withSyncModeDo true, -> newRunMonad monad, env, cont, []
 
-  isMonad = (m)-> typeof m == 'function' && m.cmd?
+  isIO = (v)-> typeof v == 'function' && v.cmd?
 
   continueMonads = (contStack, env)->
     (result)-> withSyncModeDo false, -> newRunMonad result, env, null, contStack
@@ -370,7 +378,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
         #monad = L_asIO?()(lz monad) ? monad
         if monad instanceof Monad2
           return runMonad2 monad, env, continueMonads(contStack, env), []
-        else if isMonad monad
+        else if isIO monad
           if monad.binding
             do (bnd = monad.binding)-> contStack.push (x)-> rz(bnd) lz x
             monad = rz monad.monad
@@ -396,11 +404,11 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     func = contStack.pop()
     val = lz value
     tmp = L_bind()(val)(lz func)
-    if isMonad(tmp) && (tmp.monad == val || tmp.monad == value)
+    if isIO(tmp) && (tmp.monad == val || tmp.monad == value)
       console.log "peeling bind"
       func value
     else tmp
-    #if isMonad(tmp) && tmp?.binding? then func value else tmp
+    #if isIO(tmp) && tmp?.binding? then func value else tmp
 
   class Monad
     toString: -> "Monad: #{@cmd.toString()}"
@@ -417,7 +425,6 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   _unit = mkProto Leisure_unit, setType ((_x)-> rz(_x)), 'unit'
 
   define 'define', (name, arity, src, def)-> checkPartial(L_define, arguments) ||
-    #console.log "DEFINE: #{name}"
     makeSyncMonad (env, cont)->
       nakedDefine rz(name), def, rz(arity), rz(src)
       cont _unit
@@ -450,20 +457,20 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
         catch err
           dumpMonadStack err, env
           throw err
-      else if isMonad monad
+      else if isIO monad
         #console.log "OLD MONAD: #{monad}"
         monad.cmd(env, cont)
       else cont monad
   else if (window ? global).L_PROMISE_MONAD
     (window ? global).runMonad2 = runMonad2 = (monad, env, cont)->
       if monad instanceof Monad2 then new window.Promise((resolve, reject)-> monad.cmd(env, resolve)).then cont
-      else if isMonad monad
+      else if isIO monad
         #console.log "OLD MONAD: #{monad}"
         monad.cmd(env, cont)
       else cont monad
   else
     (window ? global).runMonad2 = runMonad2 = (monad, env, cont)->
-      if (monad instanceof Monad2) || isMonad monad
+      if (monad instanceof Monad2) || isIO monad
         sync = false
         promiseSucceed = null
         r = null
@@ -520,9 +527,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       (console.log "#{n.name}: #{n.stack()}") for n in env.monadStack
       console.log()
 
-  define 'isMonad', (m)->
+  define 'isIO', (m)->
     val = rz(m)
-    if isMonad(val) || val instanceof Monad2 || val instanceof Monad3 then _true else _false
+    if isIO(val) || val instanceof Monad2 || val instanceof Monad3 then _true else _false
 
   define 'dumpStack', new Monad2 (env, cont)->
     e = new Error()
@@ -712,6 +719,56 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       cont _unit
 
 #######################
+# type cases
+#######################
+
+  define '_defTypeCase', (funcName, type, func)-> checkPartial(L__defTypeCase, arguments) || (
+    funcName = rz funcName
+    type = rz type
+    func = rz func
+    n = "L_#{nameSub funcName}"
+    oldDef = global[n]
+    #if oldDef && func.length != oldDef.length
+    #  throw new Error "Attempt to define a type case with different arity than the base"
+    if !cl = classForType type
+      throw new Error "Attempt to define a type case for a nonexistent type: #{type}"
+    if !LeisureObject.prototype[n]
+      LeisureObject.prototype[n] = oldDef
+      args = argNames oldDef ? func
+      code = """
+        (resolve(#{args[0]}).#{n} || LeisureObject.prototype.#{n}).apply(null, arguments)
+      """
+      #if args.length >= 2 then code = "checkPartial(#{n}, arguments) || #{code}"
+      dispatch = """
+        "use strict";
+        (function(#{args.join ', '}) {
+          debugger;
+          return #{code};
+        })
+      """
+      dispFunc = lz eval dispatch
+      if !global[n] then nakedDefine funcName, dispFunc, args.length, dispatch
+      else
+        global[n] = global.leisureFuncs[n] = functionInfo[funcName].mainDef = dispFunc
+    cl.prototype[n] = func
+    _unit)
+
+  define '_declareType', (subtype, supertype)-> checkPartial(L__declareType, arguments) || (
+    supertype = rz(supertype)
+    nilSupertype = supertype == rz(L_nil)
+    if !nilSupertype && !supercl = classForType rz(supertype)
+      throw new Error "Attempt to extend a nonexistant type: #{rz supertype}"
+    if subcl = classForType rz subtype
+      if supercl && subcl.prototype.__proto__ != supercl.prototype
+        subcl.prototype.__proto__ = supercl.prototype
+    else
+      subcl = ensureLeisureClass rz(subtype), (if nilSupertype then null else supertype)
+      #if supercl
+      #  subcl.prototype = Object.create(supercl.prototype)
+      #  subcl.prototype.constructor = subcl
+    _unit)
+
+#######################
 # IO
 #######################
 
@@ -796,7 +853,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'js', (str)->
     makeSyncMonad (env, cont)-> (Leisure.setLounge ? (e, cont)-> cont()) env, ->
       try
-        cont right leisurify eval rz str
+        cont right leisurify eval rz '"use strict";\n' + str
       catch err
         cont left err
 
@@ -811,6 +868,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   nFunction = (nArgs, def)->
     (eval """
       (function (def) {
+        //return function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
+        //  return checkPartial(f, arguments) || def.apply(null, arguments);
+        //};
         var f = function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
           return checkPartial(f, arguments) || def.apply(null, arguments);
         };
@@ -923,8 +983,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'hamt', hamt
   
-  define 'mapSize', (map)-> checkPartial(L_mapSize, arguments) ||
-    rz(map).map.size
+  define 'mapSize', (map)-> rz(map).map.size
 
   define 'mapSet', (key, value, map)-> checkPartial(L_mapSet, arguments) ||
     makeMap rz(map).map.set rz(key), rz(value)
@@ -940,8 +999,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     makeMap rz(map).map.remove rz(key)
 
   mapFirst = (map)->
-    key = map.reverse().keySeq().first()
-    rz(L_cons)(lz key)(lz map.get key)
+    entry = map.entrySeq().last()
+    rz(L_cons) lz(entry[0]), lz(entry[1])
 
   define 'mapFirst', (map)-> mapFirst rz(map).map
 
@@ -1199,16 +1258,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'funcInfo', (f)-> funcInfo rz f
 
   define 'funcName', (f)-> if rz(f).leisureName then some rz(f).leisureName else none
-
-  define 'trackCreation', (flag)->
-    makeSyncMonad (env, cont)->
-      root.trackCreation = rz(flag)(lz true)(lz false)
-      cont _unit
-  define 'trackVars', (flag)->
-    makeSyncMonad (env, cont)->
-      root.trackVars = rz(flag)(lz true)(lz false)
-      cont _unit
-
+  
   define 'getFunction', (name)->
     f = rz global['L_' + (nameSub rz name)]
     if f then some f else none
@@ -1236,7 +1286,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     runMonad
     runMonad2
     newRunMonad
-    isMonad
+    isIO
     Monad2
     identity
     setValue
