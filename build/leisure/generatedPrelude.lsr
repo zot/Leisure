@@ -18,11 +18,13 @@ setNameSpace 'core'
 # TYPES
 #############
 
+_declareType 'err' 0
 _declareType 'boolean' 0
 _declareType 'true' 'boolean'
 _declareType 'false' 'boolean'
 _declareType 'option' 0
 _declareType 'some' 'option'
+_declareType 'some2' 0
 _declareType 'none' 'option'
 _declareType 'either' 0
 _declareType 'left' 'either'
@@ -36,9 +38,6 @@ _declareType 'keyedSequence' 'sequence'
 asIO x = x
 fakereturn x = x
 #wrap x = x
-bind x cont = isIO x
-  primBind x cont
-  cont x
 
 ############
 # Trampolines
@@ -222,7 +221,7 @@ _find predicate list = isNil list
   none
   predicate (head list) (some (head list)) (_find predicate (tail list))
 find = _find
-_contains item list = find (\el . eq el item) list (\x . true) false
+_contains list item = find (\el . eq el item) list (\x . true) false
 
 findIndex func list = idx list func 0
 idx list func pos = list
@@ -577,8 +576,8 @@ convertStringEscape char codes values =
 convertStringEscapes orig str cont = \\
   res = _convertStringEscapes orig str
   .
-  hasType res parseErr
-    parseErr
+  hasType res err
+    res
     cont res
 
 _convertStringEscapes orig str =
@@ -588,7 +587,7 @@ _convertStringEscapes orig str =
         \\
           rest = _convertStringEscapes orig (strSubstring str 2 0)
           .
-          hasType rest parseErr
+          hasType rest err
             rest
             strAdd
               convertStringEscape (strAt str 1) backslashCodes backslashValues
@@ -596,7 +595,7 @@ _convertStringEscapes orig str =
       \\
         rest = _convertStringEscapes orig (strSubstring str 1 0)
         .
-        hasType rest parseErr
+        hasType rest err
           rest
           strAdd
             strAt str 0
@@ -610,7 +609,7 @@ createLitOrRef token names = \\
   tok = tokenString token
   tokRange = (fileposList (position token))
   .
-  _contains tok names
+  _contains names tok
     ref tok tokRange
     or (strStartsWith tok '\"') (strStartsWith tok "'")
       parseString tok \str . lit str tokRange
@@ -656,7 +655,7 @@ createApply inList names = withStripped inList \list .
 blockStarts = cons '\\' (cons '\\\\' (cons '\\@' nil))
 
 chainApply func list names = withCons list func \argItem rest .
-  and (isToken argItem) (_contains (tokenString argItem) blockStarts)
+  and (isToken argItem) (_contains blockStarts (tokenString argItem))
     ifNotErr (createAst nil list names) \arg . apply func arg
     ifNotErr (createAst nil argItem names) \arg . chainApply (apply func arg) rest names
 
@@ -713,7 +712,7 @@ countedScanLineG lineStarts str pat groups props onDef onExpr = \\
   groupToks = _foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
   .
   # check if it's a definition
-  find (\tok . or (_contains (tokenString tok) groupToks) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
+  find (\tok . or (_contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
     toks \name rest . \\
       parseIt func = \\
         parsed = parseToks (checkSetDataType func rest name) groups
@@ -881,7 +880,7 @@ runParseFilters filters line = filters
 
 isBlockStart tok = and
   or (isToken tok) (isString tok)
-  _contains (strTokenString tok) blockStarts
+  _contains blockStarts (strTokenString tok)
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
@@ -963,7 +962,7 @@ delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#[^\\r\\n
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
 addToken del = primBind (getValue 'tokenList')
-  \dels . _contains del dels
+  \dels . _contains dels del
     false
     \\
       newDels = insertSorted (\a b . > (strLen a) (strLen b)) del dels
@@ -1135,7 +1134,7 @@ load file = primBind (baseLoad file)
       left errs
 
 require file = primBind (getValue 'requiredFiles')
-  \files . _contains file files
+  \files . _contains files file
     right false
     primBind (setValue 'requiredFiles' (cons file files))
       \_. primBind (load file)
@@ -1246,6 +1245,12 @@ setNameSpace 'core'
 #######################################################################
 
 #################
+# TYPES
+#################
+
+_declareType 'triple' 0
+
+#################
 # Utilities
 #################
 
@@ -1311,7 +1316,7 @@ listify list = listifyOp 'cons' list 'nil'
 
 listFilter code = primBind (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
-    and (isToken h) (_contains (tokenString h) listMacros)
+    and (isToken h) (_contains listMacros (tokenString h))
       listFilterTail list
       list
 
@@ -1439,7 +1444,7 @@ absorbArgument opPrec prec right closes head1 head2 tail2 head3 len = \\
   tail4 = tail tail3
   head5 = head tail4
   .
-  infixShouldEatNext opPrec prec (_contains (strTokenString head2) right) head3 head4 head5 closes len
+  infixShouldEatNext opPrec prec (_contains right (strTokenString head2)) head3 head4 head5 closes len
     [head1 head2 | absorbArgument (getPrec prec head4) prec right closes head3 head4 tail4 head5 (- len 2)]
     [[head2 head1 head3] | tail3]
 
@@ -1448,7 +1453,7 @@ isInfixArg closes item = or[
   isCons item
   and[
     isToken item
-    not (_contains (tokenString item) closes)
+    not (_contains closes (tokenString item))
     not (isBlockStart item)]]
 
 isInfix opPrec head1 head2 len = and[
@@ -1460,7 +1465,7 @@ getPrec prec token = \\
   str = tokenString token
   .
   isToken token
-    findIndex (\level . _contains str level) prec
+    findIndex (\level . _contains level str) prec
     -1
 
 infixShouldEatNext opPrec prec isRight curArg nextOp nextArg closes len = \\
@@ -1541,6 +1546,13 @@ triple a b c = \f . f a b c
 triple1 t = t \a b c . a
 triple2 t = t \a b c . b
 triple3 t = t \a b c . c
+
+bind x cont = isIO x
+  primBind x cont
+  cont x
+
+#bind x cont = cont x
+#_defTypeCase 'bind' 'io' \x cont . primBind x cont
 
 addToken '<-'
 

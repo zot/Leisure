@@ -30,7 +30,7 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['./base', 'lodash'], function(base, _) {
-    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_cons, Leisure_list, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, classForType, classNameForType, cons, consEq, consFrom, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, redefined, ref, ref1, resolve, root, rz, save, setDataType, setType, tail, throwError, types;
+    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_cons, Leisure_list, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, classForType, classNameForType, cons, consEq, consFrom, declareTypeFunc, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, redefined, ref, ref1, resolve, root, rz, save, setDataType, setType, tail, throwError, types;
     ref1 = root = base, resolve = ref1.resolve, lazy = ref1.lazy, nsLog = ref1.nsLog;
     rz = resolve;
     lz = lazy;
@@ -76,6 +76,7 @@ misrepresented as being the original software.
       }
       return s;
     };
+    global.LeisureFunctionInfo = functionInfo = {};
     redefined = {};
     leisureFunctionNamed = function(n) {
       return LeisureFunctionInfo[nameSub(n)].def;
@@ -117,6 +118,28 @@ misrepresented as being the original software.
     classForType = function(type) {
       return types[type];
     };
+    declareTypeFunc = function(leisureClass, constructor) {
+      var f, funcName;
+      if (constructor) {
+        types[leisureClass] = global['Leisure_' + nameSub(leisureClass)] = constructor;
+      }
+      funcName = 'L_' + nameSub(leisureClass);
+      f = global[funcName] = lz(function(x) {
+        throw new Error("Attempt to call type function " + funcName);
+      });
+      functionInfo[leisureClass] = {
+        arity: 1,
+        leisureName: leisureClass,
+        alts: {},
+        altList: [],
+        def: f
+      };
+      f.leisureLength = 1;
+      f.leisureName = leisureClass;
+      f.typeFunction = true;
+      f.__proto__ = LeisureObject;
+      return setDataType(f, leisureClass);
+    };
     ensureLeisureClass = function(leisureClass, superclassName) {
       var cl, err, error, supercl, type;
       if (!(type = types[leisureClass])) {
@@ -130,6 +153,9 @@ misrepresented as being the original software.
               global[cl].prototype.constructor = global[cl];
             } else {
               throw new Error("Invalid supertype: " + superclassName);
+            }
+            if (!functionInfo[leisureClass]) {
+              declareTypeFunc(leisureClass);
             }
             root.leisureClassChange++;
           } catch (error) {
@@ -306,11 +332,11 @@ misrepresented as being the original software.
 
       Leisure_list.prototype.elementString = function() {
         var ref2;
-        return "" + (((ref2 = this.head()) != null ? ref2.constructor : void 0) === this.constructor || this.head() instanceof Leisure_nil ? '[' + this.head().elementString() + ']' : this.head()) + (this.tail() instanceof Leisure_nil ? '' : this.tail() instanceof Leisure_BaseCons ? " " + (this.tail().elementString()) : " | " + (this.tail()));
+        return "" + (((ref2 = this.head()) != null ? ref2.constructor : void 0) === this.constructor || this.head() instanceof Leisure_nil ? '[' + this.head().elementString() + ']' : this.head()) + (this.tail() instanceof Leisure_nil ? '' : this.tail() instanceof Leisure_list ? " " + (this.tail().elementString()) : " | " + (this.tail()));
       };
 
       Leisure_list.prototype.equals = function(other) {
-        return this === other || (other instanceof Leisure_BaseCons && consEq(this.head(), other.head()) && consEq(this.tail(), other.tail()));
+        return this === other || (other instanceof Leisure_list && consEq(this.head(), other.head()) && consEq(this.tail(), other.tail()));
       };
 
       Leisure_list.prototype.each = function(block) {
@@ -337,15 +363,15 @@ misrepresented as being the original software.
       };
 
       Leisure_list.prototype.stringName = function() {
-        return "BaseCons";
+        return "list";
       };
 
       return Leisure_list;
 
     })(Leisure_sequence);
-    types.list = global.Leisure_list = Leisure_list;
+    declareTypeFunc('list', Leisure_list);
     consEq = function(a, b) {
-      return a === b || (a instanceof Leisure_BaseCons && a.equals(b));
+      return a === b || (a instanceof Leisure_list && a.equals(b));
     };
     Leisure_cons = (function(superClass) {
       extend(Leisure_cons, superClass);
@@ -508,7 +534,6 @@ misrepresented as being the original software.
     };
     root.evalFunc = evalFunc = eval;
     root.functionCount = 0;
-    global.LeisureFunctionInfo = functionInfo = {};
     nameFunc = function(func, name) {
       var f;
       f = null;
@@ -560,7 +585,7 @@ misrepresented as being the original software.
         functionInfo[name].newArity = true;
       }
       nm = 'L_' + nameSub(name);
-      if (!method && global.noredefs && (global[nm] != null)) {
+      if (!method && global.noredefs && (global[nm] != null) && global[nm].typeFunc) {
         throwError("[DEF] Attempt to redefine definition: " + name);
       }
       functionInfo[name].def = namedFunc = typeof func === 'function' && func.memo ? (func.leisureLength = arity || func.length, func.leisureName = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
@@ -1047,6 +1072,7 @@ misrepresented as being the original software.
     root.classNameForType = classNameForType;
     root.classForType = classForType;
     root.types = types;
+    root.declareTypeFunc = declareTypeFunc;
     return root;
   });
 

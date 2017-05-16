@@ -32,13 +32,13 @@ misrepresented as being the original software.
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird', 'browser-source-map-support'], function(Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird) {
-    var LeisureObject, Leisure_unit, List, Map, Monad, Monad2, Monad3, Nil, Promise, Runtime, Set, SimpyCons, _false, _identity, _true, _unit, actors, advise, amtSet, argNames, ast2Json, asyncMonad, basicCall, bind, booleanFor, call, callBind, callMonad, checkPartial, classForType, classNameForType, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, envTag, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isIO, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeMap, makeMonad, makeSet, makeSyncMonad, makeVector, mapFirst, mapRest, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextMapPair, nextMonad, nextSetItem, nextVectorItem, noMemo, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setRest, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, unescapePresentationHtml, values, vector, vectorRest, warnAsync, withSyncModeDo, writeFile;
+    var LeisureObject, Leisure_unit, List, Map, Monad2, Monad3, Nil, Promise, Runtime, Set, SimpyCons, _false, _identity, _true, _unit, actors, advise, amtSet, argNames, ast2Json, asyncMonad, basicCall, bind, booleanFor, buildAdvisedFunc, call, callBind, callMonad, checkPartial, classForType, classNameForType, cons, consFrom, continueMonads, curry, declareTypeFunc, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, envTag, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, io, isIO, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeMap, makeMonad, makeSet, makeSyncMonad, makeVector, mapFirst, mapRest, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextMapPair, nextMonad, nextSetItem, nextVectorItem, noMemo, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setRest, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, types, unescapePresentationHtml, values, vector, vectorRest, warnAsync, withSyncModeDo, writeFile;
     if (typeof SourceMapSupport !== "undefined" && SourceMapSupport !== null) {
       SourceMapSupport.install();
     }
     ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
     parseYaml = DocOrg.parseYaml;
-    define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall, leisureFunctionNamed = Ast.leisureFunctionNamed, LeisureObject = Ast.LeisureObject, classNameForType = Ast.classNameForType, classForType = Ast.classForType;
+    define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall, leisureFunctionNamed = Ast.leisureFunctionNamed, LeisureObject = Ast.LeisureObject, classNameForType = Ast.classNameForType, classForType = Ast.classForType, types = Ast.types, declareTypeFunc = Ast.declareTypeFunc;
     Map = Immutable.Map, Set = Immutable.Set, List = Immutable.List;
     dump = Yaml.dump;
     Promise = Bluebird.Promise;
@@ -165,7 +165,8 @@ misrepresented as being the original software.
         return checkPartial(L_$k$p, arguments) || booleanFor(rz(a) !== rz(b));
       });
       define('hasType', function(data, func) {
-        return checkPartial(L_hasType, arguments) || (typeof rz(func) === 'string' ? booleanFor(getType(rz(data)) === rz(func)) : booleanFor(getType(rz(data)) === getDataType(rz(func))));
+        var hadFunc, type, typeName;
+        return checkPartial(L_hasType, arguments) || (typeName = rz(func), typeof typeName !== 'string' ? (hadFunc = true, typeName = getDataType(rz(func))) : void 0, booleanFor(typeName === 'string' || typeName === 'number' ? typeof rz(data) === typeName : (type = typeName[0] === '*' ? (typeof window !== "undefined" && window !== null ? window : global)[typeName.substring(1)] : types[typeName], !type ? (!hadFunc ? console.log(new Error("Warning, undeclared type " + typeName + ", doing simple string compare")) : void 0, getType(rz(data)) === typeName) : rz(data) instanceof type)));
       });
       define('getDataType', function(func) {
         if (typeof rz(func) === 'string') {
@@ -500,9 +501,9 @@ misrepresented as being the original software.
       m = function() {
         throw new Error("ILLEGAL CALL TO MONAD FUNCTION!");
       };
-      m.__proto__ = Monad.prototype;
+      m.__proto__ = io.prototype;
       m.cmd = guts;
-      m.type = 'monad';
+      m.type = 'io';
       return m;
     };
     makeSyncMonad = function(guts) {
@@ -627,16 +628,21 @@ misrepresented as being the original software.
         return tmp;
       }
     };
-    Monad = (function() {
-      function Monad() {}
+    io = (function(superClass) {
+      extend(io, superClass);
 
-      Monad.prototype.toString = function() {
+      function io() {
+        return io.__super__.constructor.apply(this, arguments);
+      }
+
+      io.prototype.toString = function() {
         return "Monad: " + (this.cmd.toString());
       };
 
-      return Monad;
+      return io;
 
-    })();
+    })(LeisureObject);
+    declareTypeFunc('io', io);
     (typeof global !== "undefined" && global !== null ? global : window).L_runMonads = function(array, env, cont) {
       return runMonad2(array.slice().reverse().reduce(function(result, element) {
         return bind(element, lz(function(x) {
@@ -746,20 +752,20 @@ misrepresented as being the original software.
       Monad2 = (function(superClass) {
         extend(Monad2, superClass);
 
-        function Monad2(name1, cmd, cmdToString) {
-          this.name = name1;
+        function Monad2(mname1, cmd, cmdToString) {
+          this.mname = mname1;
           this.cmd = cmd;
           this.cmdToString = cmdToString;
           this.err = new Error();
-          if (typeof this.name === 'function') {
+          if (typeof this.mname === 'function') {
             this.cmdToString = this.cmd;
-            this.cmd = this.name;
-            this.name = null;
+            this.cmd = this.mname;
+            this.mname = null;
           }
           if (!this.cmdToString) {
             this.cmdToString = (function(_this) {
               return function() {
-                return (name ? name + ": " : '') + _this.cmd.toString();
+                return (name ? mname + ": " : '') + _this.cmd.toString();
               };
             })(this);
           }
@@ -776,24 +782,24 @@ misrepresented as being the original software.
 
         return Monad2;
 
-      })(Monad);
+      })(io);
     } else {
       Monad2 = (function(superClass) {
         extend(Monad2, superClass);
 
-        function Monad2(name1, cmd, cmdToString) {
-          this.name = name1;
+        function Monad2(mname1, cmd, cmdToString) {
+          this.mname = mname1;
           this.cmd = cmd;
           this.cmdToString = cmdToString;
-          if (typeof this.name === 'function') {
+          if (typeof this.mname === 'function') {
             this.cmdToString = this.cmd;
-            this.cmd = this.name;
-            this.name = null;
+            this.cmd = this.mname;
+            this.mname = null;
           }
           if (!this.cmdToString) {
             this.cmdToString = (function(_this) {
               return function() {
-                return (_this.name ? _this.name + ": " : '') + _this.cmd.toString();
+                return (_this.mname ? _this.mname + ": " : '') + _this.cmd.toString();
               };
             })(this);
           }
@@ -801,7 +807,7 @@ misrepresented as being the original software.
 
         return Monad2;
 
-      })(Monad);
+      })(io);
     }
     Monad2.prototype.toString = function() {
       return "Monad2: " + (this.cmdToString());
@@ -809,19 +815,19 @@ misrepresented as being the original software.
     Monad3 = (function(superClass) {
       extend(Monad3, superClass);
 
-      function Monad3(name1, cmd, cmdToString) {
-        this.name = name1;
+      function Monad3(mname1, cmd, cmdToString) {
+        this.mname = mname1;
         this.cmd = cmd;
         this.cmdToString = cmdToString;
         this.err = new Error();
-        if (typeof this.name === 'function') {
+        if (typeof this.mname === 'function') {
           this.cmdToString = this.cmd;
-          this.cmd = this.name;
-          this.name = null;
+          this.cmd = this.mname;
+          this.mname = null;
           if (!this.cmdToString) {
             this.cmdToString = (function(_this) {
               return function() {
-                return (name ? name + ": " : '') + _this.cmd.toString();
+                return (name ? mname + ": " : '') + _this.cmd.toString();
               };
             })(this);
           }
@@ -830,7 +836,7 @@ misrepresented as being the original software.
 
       return Monad3;
 
-    })(Monad);
+    })(io);
     Monad3.prototype.toString = function() {
       return "Monad3: " + (this.cmdToString());
     };
@@ -842,7 +848,7 @@ misrepresented as being the original software.
         ref1 = env.monadStack;
         for (j = 0, len = ref1.length; j < len; j++) {
           n = ref1[j];
-          console.log(n.name + ": " + (n.stack()));
+          console.log(n.mname + ": " + (n.stack()));
         }
         return console.log();
       }
@@ -1086,25 +1092,30 @@ misrepresented as being the original software.
     define('_defTypeCase', function(funcName, type, func) {
       var args, cl, code, dispFunc, dispatch, n, oldDef;
       return checkPartial(L__defTypeCase, arguments) || ((function() {
+        var ref1, ref2;
         funcName = rz(funcName);
         type = rz(type);
         func = rz(func);
         n = "L_" + (nameSub(funcName));
-        oldDef = global[n];
+        oldDef = (ref1 = (ref2 = functionInfo[funcName]) != null ? ref2.mainDef : void 0) != null ? ref1 : global[n];
         if (!(cl = classForType(type))) {
           throw new Error("Attempt to define a type case for a nonexistent type: " + type);
         }
         if (!LeisureObject.prototype[n]) {
-          LeisureObject.prototype[n] = oldDef;
           args = argNames(oldDef != null ? oldDef : func);
           code = "(resolve(" + args[0] + ")." + n + " || LeisureObject.prototype." + n + ").apply(null, arguments)";
-          dispatch = "\"use strict\";\n(function(" + (args.join(', ')) + ") {\n  debugger;\n  return " + code + ";\n})";
+          dispatch = "\"use strict\";\n(function(" + (args.join(', ')) + ") {\n  return " + code + ";\n})";
           dispFunc = lz(eval(dispatch));
           if (!global[n]) {
             nakedDefine(funcName, dispFunc, args.length, dispatch);
           } else {
             global[n] = global.leisureFuncs[n] = functionInfo[funcName].mainDef = dispFunc;
+            dispFunc.leisureLength = args.length;
+            if (functionInfo[funcName].altList.length) {
+              buildAdvisedFunc(funcName);
+            }
           }
+          LeisureObject.prototype[n] = oldDef;
         }
         cl.prototype[n] = func;
         return _unit;
@@ -1302,21 +1313,9 @@ misrepresented as being the original software.
         }
       };
     })()));
-    advise = function(name, alt, arity, def) {
+    buildAdvisedFunc = function(name) {
       var alts, i, info, newDef, nm;
       info = functionInfo[name];
-      if (!info) {
-        info = functionInfo[name] = {
-          src: '',
-          arity: -1,
-          alts: {},
-          altList: []
-        };
-      }
-      if (!info.alts[alt]) {
-        info.altList.push(alt);
-      }
-      info.alts[alt] = def;
       alts = (function() {
         var j, len, ref1, results;
         ref1 = info.altList;
@@ -1330,7 +1329,7 @@ misrepresented as being the original software.
       alts.reverse();
       nm = "L_" + (nameSub(name));
       newDef = function() {
-        var arg, j, len, len1, len2, o, opt, p, q, res;
+        var alt, arg, j, len, len1, len2, o, opt, p, q, res;
         if (p = checkPartial(info.mainDef, arguments)) {
           return p;
         } else {
@@ -1362,7 +1361,24 @@ misrepresented as being the original software.
       functionInfo[name].newArity = true;
       LeisureFunctionInfo.def = newDef;
       newDef.leisureName = name;
-      global[nm] = global.leisureFuncNames[nm] = lz(newDef);
+      return global[nm] = global.leisureFuncNames[nm] = lz(newDef);
+    };
+    advise = function(name, alt, arity, def) {
+      var info;
+      info = functionInfo[name];
+      if (!info) {
+        info = functionInfo[name] = {
+          src: '',
+          arity: -1,
+          alts: {},
+          altList: []
+        };
+      }
+      if (!info.alts[alt]) {
+        info.altList.push(alt);
+      }
+      info.alts[alt] = def;
+      buildAdvisedFunc(name);
       return def;
     };
     define('advise', function(name, alt, arity, def) {
@@ -1588,7 +1604,7 @@ misrepresented as being the original software.
       return checkPartial(L_vectorUnshift, arguments) || makeVector(rz(vec).vector.unshift(rz(value)));
     });
     define('vectorConcat', function(vecA, vecB) {
-      return checkPartial(L_vectorConcat, arguments) || makeSet(rz(vecA).vector.concat(rz(vecB).vector));
+      return checkPartial(L_vectorConcat, arguments) || makeVector(rz(vecA).vector.concat(rz(vecB).vector));
     });
     define('vectorItems', function(vec) {
       return nextVectorItem(rz(vec).vector);
@@ -1835,6 +1851,13 @@ misrepresented as being the original software.
       } else {
         return none;
       }
+    });
+    define('isType', function(f) {
+      f = rz(f);
+      return booleanFor(typeof f === 'function' && (f.typeFunction || f.dataType));
+    });
+    define('typeName', function(f) {
+      return rz(f).leisureName;
     });
     if (typeof window !== "undefined" && window !== null) {
       window.runMonad = runMonad;

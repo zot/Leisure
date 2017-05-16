@@ -13,23 +13,33 @@ defTypeCase floop.a anA -> (anA id) + 1
 
 
 #+BEGIN_SRC leisure
-floop 1
-floop (b 22)
-floop (a 3)
+defTypeCase toJson.transaction ->
+  tr \c r u d data errs .
+    toJsonObject {
+      'type':'transaction'
+      'creates':(toJson c)
+      'reads':(toJson r)
+      'updates':(toJson u)
+      'deletes':(toJson d)
+      'errs':(toJson errs)}
+
+
+
 #+END_SRC
 #+RESULTS:
-: "floop"
-: 2
-: 4
+: unit
 
 #+BEGIN_SRC leisure
 #equal [1] [1]
 #tolist set[1 2]
-hasType 'hello' string
+#hasType 'hello' string
 #equal 1 1
+#conj [1] 2
+debugX present cons
+
 #+END_SRC
 #+RESULTS:
-: false
+: function (L_a, L_b) {\n    return L_checkPartial(L_$F, arguments) || setType((function(){\n  var L_$F = (function(L_f){return resolve(L_f)(L_a)(L_b)});\n  L_$F.leisureFunctionId = 815;\n  L_$F.leisureLength = L_$F.length;\n  return L_$F;\n})(), 'cons');\n  }
 
 * Tests
 #+BEGIN_SRC leisure :results def
@@ -44,6 +54,8 @@ hasType 'hello' string
 
 * Transaction Objects
 #+BEGIN_SRC leisure :results def
+declareType transaction
+ 
 transaction creates reads updates deletes data errors = \f .
   f creates reads updates deletes data errors
 
@@ -74,14 +86,14 @@ trSetData data tr = tr \c r u d data errs .
 
 nlist l = s['[' (join (tolist l) ' ') ']']
 
-defCase showBase.transaction func obj | isTransaction obj ->
+defTypeCase showBase.transaction obj func ->
   (trEmpty obj) '(transaction)'
     obj \c r u d data errs . do
       r = map head (tolist r)
       s = s['(transaction ' (nlist c) ' ' (nlist r) ' ' (nlist u) ' ' (nlist d)]
-      s[s ((empty errs) '' s[' ' (showBase func (tolist errs))]) ')']
+      s[s ((empty errs) '' s[' ' (showBase tolist (func errs))]) ')']
 
-defCase toJson.transaction tr | isTransaction tr ->
+defTypeCase toJson.transaction tr ->
   tr \c r u d data errs .
     toJsonObject {
       'type':'transaction'

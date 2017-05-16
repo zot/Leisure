@@ -1,3 +1,5 @@
+* TODO [#A] convert rest of defCases to defTypeCase (bind is problematic)
+* TODO [#A] Leisure impl of defCase, defTypeCase, etc.
 * TODO [#A] Need a way to access sourcemaps
 ** wrap generated code in a context function that initializes with the sourcemap
 ** make $F initialization put the context into the function
@@ -23,13 +25,6 @@ simplify 'ignoreFirst blah head [1 2 3]'
 : "first arg: token blah EMPTYFILE.lsr 1 12"
 : 
 : ["head" ["[" ["1" "2" "3"] "]"]]
-* TODO [#A] Leisure impl of defCase, defTypeCase, etc.
-* TODO [#A] Make defTypeCase func.type that adds a method to the type's class
-** defTypeCase should add a method named L__FUNC
-** Original definition creates a method in LeisureObject and makes the base function send the message
-** Make sure each type declares a class L__TYPE
-** Make (extend type superType) function use Object.create() or set __proto__ for preexisting types
-*** extend on a preexising type should issue a warning
 * TODO [#A] Generate direct JS syntax using annotation \@js . "3 + 4"
 * TODO [#A] Make +-*/% be macros that compile directly to JS
 * TODO [#A] Make text/block/yaml connection more tenuous and generated on demand?
@@ -1171,6 +1166,13 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE [#A] Make defTypeCase func.type that adds a method to the type's class
+   CLOSED: [2017-05-16 Tue 01:32]
+*** defTypeCase should add a method named L__FUNC
+*** Original definition creates a method in LeisureObject and makes the base function send the message
+*** Make sure each type declares a class L__TYPE
+*** Make (extend type superType) function use Object.create() or set __proto__ for preexisting types
+**** extend on a preexising type should issue a warning
 ** DONE remove foldVar from do macro funcs
    CLOSED: [2017-05-14 Sun 10:32]
 *** bundle args with cons instead of triple

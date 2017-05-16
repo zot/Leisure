@@ -13,6 +13,12 @@ setNameSpace 'core'
 #######################################################################
 
 #################
+# TYPES
+#################
+
+_declareType 'triple' 0
+
+#################
 # Utilities
 #################
 
@@ -78,7 +84,7 @@ listify list = listifyOp 'cons' list 'nil'
 
 listFilter code = primBind (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
-    and (isToken h) (_contains (tokenString h) listMacros)
+    and (isToken h) (_contains listMacros (tokenString h))
       listFilterTail list
       list
 
@@ -206,7 +212,7 @@ absorbArgument opPrec prec right closes head1 head2 tail2 head3 len = \\
   tail4 = tail tail3
   head5 = head tail4
   .
-  infixShouldEatNext opPrec prec (_contains (strTokenString head2) right) head3 head4 head5 closes len
+  infixShouldEatNext opPrec prec (_contains right (strTokenString head2)) head3 head4 head5 closes len
     [head1 head2 | absorbArgument (getPrec prec head4) prec right closes head3 head4 tail4 head5 (- len 2)]
     [[head2 head1 head3] | tail3]
 
@@ -215,7 +221,7 @@ isInfixArg closes item = or[
   isCons item
   and[
     isToken item
-    not (_contains (tokenString item) closes)
+    not (_contains closes (tokenString item))
     not (isBlockStart item)]]
 
 isInfix opPrec head1 head2 len = and[
@@ -227,7 +233,7 @@ getPrec prec token = \\
   str = tokenString token
   .
   isToken token
-    findIndex (\level . _contains str level) prec
+    findIndex (\level . _contains level str) prec
     -1
 
 infixShouldEatNext opPrec prec isRight curArg nextOp nextArg closes len = \\
@@ -308,6 +314,13 @@ triple a b c = \f . f a b c
 triple1 t = t \a b c . a
 triple2 t = t \a b c . b
 triple3 t = t \a b c . c
+
+bind x cont = isIO x
+  primBind x cont
+  cont x
+
+#bind x cont = cont x
+#_defTypeCase 'bind' 'io' \x cont . primBind x cont
 
 addToken '<-'
 

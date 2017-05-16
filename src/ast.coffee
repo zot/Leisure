@@ -79,6 +79,7 @@ define ['./base', 'lodash'], (base, _)->
       code = charCodes[name[i]]
       s += code ? name[i]
     s
+  global.LeisureFunctionInfo = functionInfo = {}
 
 ######
 ###### definitions
@@ -114,6 +115,22 @@ define ['./base', 'lodash'], (base, _)->
 
   classForType = (type)-> types[type]
 
+  declareTypeFunc = (leisureClass, constructor)->
+    if constructor then types[leisureClass] = global['Leisure_' + nameSub(leisureClass)] = constructor
+    funcName = 'L_' + nameSub(leisureClass)
+    f = global[funcName] = lz (x)-> throw new Error "Attempt to call type function #{funcName}"
+    functionInfo[leisureClass] =
+      arity: 1
+      leisureName: leisureClass
+      alts: {}
+      altList: []
+      def: f
+    f.leisureLength = 1
+    f.leisureName = leisureClass
+    f.typeFunction = true
+    f.__proto__ = LeisureObject
+    setDataType f, leisureClass
+
   ensureLeisureClass = (leisureClass, superclassName)->
     if !(type = types[leisureClass])
       cl = classNameForType leisureClass
@@ -125,6 +142,7 @@ define ['./base', 'lodash'], (base, _)->
             global[cl].prototype = new supercl
             global[cl].prototype.constructor = global[cl]
           else throw new Error "Invalid supertype: #{superclassName}"
+          if !functionInfo[leisureClass] then declareTypeFunc leisureClass
           root.leisureClassChange++
         catch err
           console.log "Error creating class #{leisureClass}#{if superClassName? then ' extends ' + superClassName else ''}", "superclass: ", supercl
@@ -209,8 +227,8 @@ define ['./base', 'lodash'], (base, _)->
     intersperse: (item)-> cons @head(), @tail().foldr ((el, res)-> cons item, cons el, res), Nil
     reverse: -> @rev Nil
     rev: (result)-> @tail().rev cons(@head(), result)
-    elementString: -> "#{if @head()?.constructor == @.constructor || @head() instanceof Leisure_nil then '[' + @head().elementString() + ']' else @head()}#{if @tail() instanceof Leisure_nil then '' else if @tail() instanceof Leisure_BaseCons then " #{@tail().elementString()}" else " | #{@tail()}"}"
-    equals: (other)-> @ == other or (other instanceof Leisure_BaseCons and consEq(@head(), other.head()) and consEq(@tail(), other.tail()))
+    elementString: -> "#{if @head()?.constructor == @.constructor || @head() instanceof Leisure_nil then '[' + @head().elementString() + ']' else @head()}#{if @tail() instanceof Leisure_nil then '' else if @tail() instanceof Leisure_list then " #{@tail().elementString()}" else " | #{@tail()}"}"
+    equals: (other)-> @ == other or (other instanceof Leisure_list and consEq(@head(), other.head()) and consEq(@tail(), other.tail()))
     each: (block)->
       block(@head())
       @tail().each(block)
@@ -220,11 +238,11 @@ define ['./base', 'lodash'], (base, _)->
       if t == Nil then @head() else t.last()
     append: (l)->cons @head(), @tail().append(l)
     toString: -> "#{@stringName()}[#{@elementString()}]"
-    stringName: -> "BaseCons"
+    stringName: -> "list"
 
-  types.list = global.Leisure_list = Leisure_list
+  declareTypeFunc 'list', Leisure_list
 
-  consEq = (a, b)-> a == b or (a instanceof Leisure_BaseCons and a.equals(b))
+  consEq = (a, b)-> a == b or (a instanceof Leisure_list and a.equals(b))
 
 # cons and Nil are Leisure-based so that Leisure code can work with it transparently
 # they look like ordinary JS classes, but the "instances" are actually functions
@@ -287,8 +305,6 @@ define ['./base', 'lodash'], (base, _)->
 
   root.functionCount = 0
 
-  global.LeisureFunctionInfo = functionInfo = {}
-
 # name a function on the first access
   nameFunc = (func, name)->
     f = null
@@ -333,7 +349,8 @@ define ['./base', 'lodash'], (base, _)->
       altList: []
     if isNew then functionInfo[name].newArity = true
     nm = 'L_' + nameSub(name)
-    if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
+    if !method and global.noredefs and global[nm]? and global[nm].typeFunc
+      throwError("[DEF] Attempt to redefine definition: #{name}")
     #namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
     functionInfo[name].def = namedFunc = if typeof func == 'function' && func.memo
       func.leisureLength = arity || func.length
@@ -581,5 +598,6 @@ define ['./base', 'lodash'], (base, _)->
   root.classNameForType = classNameForType
   root.classForType = classForType
   root.types = types
+  root.declareTypeFunc = declareTypeFunc
 
   root
