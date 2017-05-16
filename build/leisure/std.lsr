@@ -54,6 +54,20 @@
 #
 
 ########################
+## types
+########################
+
+_declareType 'repeat' 'sequence'
+_declareType 'range' 'sequence'
+_declareType 'hamt' 'keyedSequence'
+_declareType 'amtSet' 'sequence'
+_declareType 'vector' 'sequence'
+_declareType 'fold' 0
+_declareType 'flatWrapper' 0
+_declareType 'wrapped' 0
+_declareType 'html' 0
+
+########################
 ## convenience functions
 ########################
 
@@ -68,6 +82,16 @@ addTokenGroup 's[' ']'
 defMacro 'err[' \list . ['err' ['strCat' [(listify (head list))]]]
 
 addTokenGroup 'err[' ']'
+
+defMacro 'declareType' \list . do
+  type1 = strTokenString (head list)
+  t1 = tail list
+  type2 = strTokenString (head t1)
+  not (isList list)
+    parseErr "Extends needs 1 or 2 arguments but there were none"
+    isCons t1
+      ['_declareType' (jsonStringify type1 id id) (jsonStringify type2 id id)]
+      ['_declareType' (jsonStringify type1 id id) '0']
 
 ######
 ##
@@ -99,7 +123,7 @@ addToken '++'
 
 # Strings
 intercalate x l = strCat (intersperse x l)
-string = show
+string = \x . show x
 
 # Simplification
 visit func l = \\
@@ -141,6 +165,13 @@ runRepeat count limit f = count < limit
 ## More list stuff
 #######################
 
+all func seq = isNil seq
+  true
+  func (head seq)
+    all func (tail seq)
+    false
+    
+
 partition func list = subpartition [] func list
 
 subpartition res func list = isNil list
@@ -158,13 +189,13 @@ findOption func list = do
       result
 
 ## difference lists
-differenceList = \@dataType differenceList .\@type differenceList . \x . x
-dlitem item = \@type differenceList . \rest . item : rest
+differencelist = \@dataType differencelist .\@type differencelist . \x . x
+dlitem item = \@type differencelist . \rest . item : rest
 dlpush list item = dlappend list \rest . item : rest
-dlappend a b = \@type differenceList . \rest . a (b rest)
-dllist l = \@type differenceList . \rest . _append l rest
+dlappend a b = \@type differencelist . \rest . a (b rest)
+dllist l = \@type differencelist . \rest . _append l rest
 
-isDl x = hasType x differenceList
+isDl x = hasType x differencelist
 
 addTokenGroup 'append[' ']'
 
@@ -173,7 +204,7 @@ defMacro 'append[' \list . foldr1 (\item rest . ['append' item rest]) (head list
 addTokenGroup 'dl[' ']'
 
 defMacro 'dl[' \list .
-  ['\\@' 'type' 'differenceList' '.' '\\' 'rest' '.' (listifyDl (head list) 'rest')]
+  ['\\@' 'type' 'differencelist' '.' '\\' 'rest' '.' (listifyDl (head list) 'rest')]
 
 listifyDl list lvar =
   isNil list
@@ -190,6 +221,12 @@ defMacro 'map{' \list . (listifyOp 'mapPair' (head list) 'hamt')
 mapPair keyValue map = keyValue \key value . mapSet key value map
 
 isMap h = hasType h hamt
+
+mapFoldr func finalValue map = empty map
+  finalValue
+  map \h t . func h (mapFoldr func finalValue t)
+
+toAlist map = mapFoldr aconsPair nil map
 
 addTokenGroup 'set[' ']'
 
@@ -271,11 +308,12 @@ sortBy cmp l = mergeSort cmp l
 # YAML and JSON
 #################
 
-toJson obj = (isKeyedSequence obj)
-  toJsonObject (_map (\pair . cons (head pair) (toJson (tail pair))) (tolist obj))
-  (isSequence obj)
-    toJsonArray (_map (\item . toJson item) (tolist obj))
-    obj
+toJson obj = isString obj obj
+  isKeyedSequence obj
+    toJsonObject (foldr (\pair rest . pair \h t . [[(toJson h)|(toJson t)] | rest]) nil obj)
+    isSequence obj
+      toJsonArray (foldr (\item rest . [(toJson item) | rest]) nil obj)
+      obj
 
 toYaml jsonStuff = jsonToYaml (toJson jsonStuff)
 
@@ -287,18 +325,15 @@ addToken '->'
 
 mkStr tok = concat['"' (tokenString tok) '"']
 
-defMacro 'defCase' \list . \\
+defMacro 'defCase' \list . do
   h1 = head list
   t1 = tail list
   h2 = head t1
   t2 = tail t1
   h3 = head t2
   t3 = tail t2
-  .
   and[
-    isCons list
-    isCons t1
-    isCons t2
+    all isCons [list t1 t2]
     isTokenString h2 '.']
       makeCaseArgs list (mkStr h1) (mkStr h3) t3 id
       parseErr "Error in case definition -- expected func.name args | condition -> action, but got " list
@@ -309,25 +344,46 @@ makeCaseArgs orig funcName altName rest args = rest
     makeCaseArgs orig funcName altName t (dlpush args h)
   parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
-makeCaseCondition orig funcName altName args rest cond = rest
+makeCaseCondition orig funcName altName args rest condition = rest
   \h t D . isTokenString h '->'
-    ['bind' (_foldr1 _append [['advise' funcName altName (length args) '\\'] args ['.' (cond nil) ['some' t] 'none']]) ['\\' '_' '.' 'unit']]
-    makeCaseCondition orig funcName altName args t (dlpush cond h)
+    ['bind' (_foldr1 _append [['advise' funcName altName (length args) '\\'] args ['.' (condition nil) ['some' t] 'none']]) ['\\' '_' '.' 'unit']]
+    makeCaseCondition orig funcName altName args t (dlpush condition h)
  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
+
+#######################
+## Cases
+#######################
+
+defMacro 'defTypeCase' \list . do
+  func = head list
+  t1 = tail list
+  dot = head t1
+  t2 = tail t1
+  type = head t2
+  rest = tail t2
+  str tok = jsonStringify (strTokenString tok) id id
+  and (all isCons [list t1 t2 rest]) (isTokenString dot '.')
+    partition (flip isTokenString '->') rest \args arrow body .
+      isNil arrow
+        parseErr s["No -> in defTypeCase: " list]
+        ['_defTypeCase' (str func) (str type) ['\\@' 'arity' s[(length args)] '.' '\\' | (_append args ['.' | body])]]
+    parseErr s["Not enough arguments to defTypeCase: " list]
 
 ######################
 # equality
 ######################
 
-defCase equal.cons a b | and (isCons a) (isCons b) -> and
+defTypeCase equal.cons a b -> and[
+  isCons b
   equal (head a) (head b)
-  equal (tail a) (tail b)
+  equal (tail a) (tail b)]
 
 ######################
 # sequences
 ######################
 
-conj a list = cons a list
+#conj a list = cons a list
+conj seq item = cons item seq
 
 zip a b = isNil a
   nil
@@ -385,146 +441,180 @@ isKeyedSequence l = isSome (find (\f . f l) [isAlist isMap])
 
 tolist x = [x]
 
-defCase tolist.list l | isList l -> l
-defCase tolist.repeat r | isRepeat r -> runRepeat 0 (r id) id
-defCase tolist.range r | isRange r -> r \a b . runRepeat a b id
-defCase tolist.opt o | isOption o -> o (\x . [x]) []
-defCase tolist.either e | isEither e -> e (\_ . []) (\x . [x])
-defCase tolist.string s | isString s -> strToList s
-defCase tolist.differenceList l | isDl l -> l []
-defCase tolist.map h | isMap h -> mapPairs h
-defCase tolist.set s | isSet s -> setItems s
-defCase tolist.vector v | isVector v -> vectorItems v
+defTypeCase tolist.list l -> l
+defTypeCase tolist.repeat r -> runRepeat 0 (r id) id
+defTypeCase tolist.range r -> r \a b . runRepeat a b id
+defTypeCase tolist.option o -> o (\x . [x]) []
+defTypeCase tolist.either e -> e (\_ . []) (\x . [x])
+defTypeCase tolist.string s -> strToList s
+defTypeCase tolist.differencelist l -> l []
+defTypeCase tolist.hamt h -> mapPairs h
+defTypeCase tolist.amtSet s -> setItems s
+defTypeCase tolist.vector v -> vectorItems v
 
-defCase conj.range v r | isRange r -> r \a b .
-  b == v
-    range a b + 1
-    a - 1 == v
-      range v a
-      a < v && v < b
-        r
-        v < a
-          [v | tolist r]
-          dlpush (dllist (tolist r)) v
-defCase conj.repeat v r | isRepeat r -> r \count .
-  count == v
-    repeat count + 1
-    (0 <= v) && v < count
+defTypeCase conj.repeat r v -> r \count .
+  v < 0
+    range v count
+    v <= count
       r
-      v < 0
-        [v | tolist r]
-        dlpush (dllist (tolist r)) v
-defCase conj.string v s | isString s -> s + v
-defCase conj.differenceList v l | isDl l -> dlpush l v
-defCase conj.alist v h | (isAlist h) || (isCons v) || (!isCons (tail v)) ->
-  aconsf (head v) (tail v) h
-defCase conj.map v h | (isMap h) || (isCons v) || (!isCons (tail v)) ->
-  mapSet (head v) (tail v) h
-defCase conj.set v s | isSet s -> setAdd v s
-defCase conj.vector val vec | isVector vec -> vectorPush val vec
+      repeat v
 
-defCase head.any x | not (isList x) -> head (tolist x)
-defCase head.range r | isRange r -> r \a b . a < b a nil
-defCase head.string s | isString s -> strAt s 0
-defCase head.map h | isMap h -> mapFirst h
-defCase head.set s | isSet s -> setFirst s
-defCase head.vector v | isVector v -> vectorFirst v
+defTypeCase conj.range r v -> r \a b .
+  v < a
+    range v b
+    b < v
+      range a v
+      range a b
 
-defCase tail.any x | not (isList x) -> tail (tolist x)
-defCase tail.range r | isRange r -> r \a b . a < b (range a + 1 b) r
-defCase tail.string s | isString s -> strSubstring s 1 (strLen s)
-defCase tail.differenceList l | isDl l -> dllist (tail (tolist l))
-defCase tail.map h | isMap h -> mapRest h
-defCase tail.set s | isSet s -> setRest s
-defCase tail.vector v | isVector v -> vectorRest v
+defTypeCase conj.string s b -> s + v
+defTypeCase conj.differencelist l v -> dlpush l v
+defTypeCase conj.cons l v -> isAlist l
+  aconsPair v l
+  cons v l
+defTypeCase conj.hamt h v -> mapPair v h
+defTypeCase conj.amtSet s v -> setAdd v s
+defTypeCase conj.vector vec val -> vectorPush val vec
 
-defCase length.range r | isRange r -> r \a b . b - a
-defCase length.repeat r | isRepeat r -> r \count . count == 0
-defCase length.string s | isString s -> strLen s
-defCase length.differenceList l | isDl l -> length (tolist l)
-defCase length.map h | isMap h -> mapSize h
-defCase length.set s | isSet s -> setSize s
-defCase length.vector v | isVector v -> vectorSize v
+defTypeCase head.list x -> x \h t . h
+defTypeCase head.repeat r -> (r id) == 0 nil 0
+defTypeCase head.range r -> r \a b . a < b a nil
+defTypeCase head.string s -> strAt s 0
+defTypeCase head.hamt h -> mapFirst h
+defTypeCase head.amtSet s -> setFirst s
+defTypeCase head.vector v -> vectorFirst v
+head x = x
+
+defTypeCase tail.cons x -> x \h t . t
+defTypeCase tail.repeat r -> (r id) == 0
+  nil
+  range 1 (r id)
+defTypeCase tail.range r -> r \a b . a < b (range a + 1 b) r
+defTypeCase tail.string s -> strSubstring s 1 (length s)
+defTypeCase tail.hamt h -> mapRest h
+defTypeCase tail.amtSet s -> setRest s
+defTypeCase tail.vector v -> vectorRest v
+tail x = nil
+
+consLength list = isNil list
+  0
+  assert (hasType list cons) (strCat (cons "length argument is not a proper list: " (cons list nil))) 1 + (consLength (tail list))
+
+defTypeCase length.list l -> consLength l
+defTypeCase length.range r -> r \a b . b - a
+defTypeCase length.repeat r -> r \count . count == 0
+defTypeCase length.string s -> strLen s
+defTypeCase length.differencelist l -> length (tolist l)
+defTypeCase length.hamt h -> mapSize h
+defTypeCase length.amtSet s -> setSize s
+defTypeCase length.vector v -> vectorSize v
+length x = 1
 
 empty l = (length l) == 0
-defCase empty.cons l | isCons l -> false
-defCase empty.nil l | isNil l -> true
+defTypeCase empty.cons l -> false
+defTypeCase empty.nil l -> true
 
-defCase append.any x y | not (and (isList x) (isList y)) -> _append (tolist x) (tolist y)
-defCase append.range x y | and[(isRange x) (isRange y) (x \xa xb . y \ya yb . xb == ya)] ->
-  x \xa xb . y \ya yb . range xa yb
-defCase append.string x y | isString x -> x + y
-defCase append.differenceList x y | isDl x -> dlappend x (isDl y y (dllist (tolist y)))
-defCase append.map x y | and (isMap x) (isKeyedSequence y) ->
+defTypeCase append.list x y -> _append x (tolist y)
+defTypeCase append.range x y ->
+  (isRange y)
+    x \xa xb . y \ya yb . range (min xa ya) (max xb yb)
+    _append (tolist x) (tolist y)
+defTypeCase append.string x y -> x + y
+defTypeCase append.differencelist x y -> dlappend x (isDl y y (dllist (tolist y)))
+defTypeCase append.hamt x y ->
   isMap y
     mapMerge x y
-    _foldr (\el result . el \k v . set k v result) x (tolist y)
-defCase append.set x y | isSet x ->
+    isKeyedSequence y
+      _foldr (\el result . el \k v . set k v result) x (tolist y)
+      _append (tolist x) (tolist y)
+defTypeCase append.amtSet x y ->
   isSet y
     setUnion x y
     _foldr (\el result . setAdd el result) x (tolist y)
-defCase append.vector x y | isVector x ->
-  isSet y
+defTypeCase append.vector x y ->
+  isVector y
     vectorConcat x y
-    _foldr (\el result . vectorPush el result) x (tolist (vectorReverse y))
+    _foldr (\el result . vectorPush el result) x (reverse (tolist y))
+append a b = _append (tolist a) (tolist b)
 
-delete item list = filter (item !=) list
-defCase delete.alist key alist | isAlist alist -> aremove key alist
-defCase delete.set item set | isSet set -> setRemove item set
-defCase delete.vector item vec | isVector vec -> vectorRemove item vec
-defCase delete.map key map | isMap map -> mapRemove key map
-defCase delete.differenceList item dl | isDl dl -> dllist (filter (item !=) (tolist dl))
+delete list item = item == list nil list
+defTypeCase delete.cons list key ->
+  isAlist list
+    aremove key alist
+    filter (item !=) list
+defTypeCase delete.amtSet set item -> setRemove item set
+defTypeCase delete.vector vec item -> vectorRemove item vec
+defTypeCase delete.hamt map key -> mapRemove key map
+defTypeCase delete.differencelist dl item -> dllist (filter (item !=) (tolist dl))
 
-defCase map.any func l | not (isList l) -> _map func (tolist l)
-defCase map.repeat func r | isRepeat r -> runRepeat 0 (r id) func
-defCase map.range func r | isRange r -> r \a b . runRepeat a b func
-defCase map.opt func o | isOption o -> o (compose some func) none
-defCase map.either func e | isEither e -> e (\_ . e) (compose right func)
-defCase map.string func s | isString s -> strCat (_map func (strToList s))
-defCase map.alist func alist | isAlist alist ->
-  _foldr (\el result . set (head el) (func (tail el)) result) nil alist
-defCase map.differenceList func l | isDl l -> dllist (_map func (l []))
-defCase map.map func h | isMap h ->
+dispatchMap l func = _map func (tolist l)
+defTypeCase dispatchMap.list l func ->
+  isAlist l
+    _foldr (\el result . set (head el) (func (tail el)) result) nil alist
+    _map func l
+defTypeCase dispatchMap.repeat r func -> runRepeat 0 (r id) func
+defTypeCase dispatchMap.range r func -> r \a b . runRepeat a b func
+defTypeCase dispatchMap.option o func -> o (compose some func) none
+defTypeCase dispatchMap.either e func -> e (\_ . e) (compose right func)
+defTypeCase dispatchMap.string s func -> strCat (_map func (strToList s))
+defTypeCase dispatchMap.differencelist l func -> dllist (_map func (l []))
+defTypeCase dispatchMap.hamt h func ->
   _foldr (\el result . set (head el) (func (tail el)) result) hamt (tolist h)
-defCase map.set func s | isSet s ->
-  _foldr (\el result . set (head el) (func (tail el)) result) amtSet (setItems s)
-defCase map.vector func v | isVector v ->
+defTypeCase dispatchMap.amtSet s func ->
+  _foldr (\el result . setAdd (func el) result) amtSet (setItems s)
+defTypeCase dispatchMap.vector v func ->
   _foldr (\el result . vectorPush (func el) result) vector (vectorItems v)
+map func l = dispatchMap l func
 
 defCase foldl.any func init l | not (isList l) -> _foldl func init (tolist l)
 defCase foldl1.any func l | not (isList l) -> _foldl1 func (tolist l)
 defCase foldr.any func final l | not (isList l) -> _foldr func final (tolist l)
+defCase foldr.map func final m | isMap m -> mapFoldr func final m
 defCase foldr1.any func l | not (isList l) -> _foldr1 func (tolist l)
 
-defCase reverse.alist l | isAlist l -> foldr (\el rest . acons (head el) (tail el) rest) {} (_reverse l)
-defCase reverse.range r | isRange r -> r
-defCase reverse.repeat r | isRepeat r -> r
-defCase reverse.string s | isString s -> strReverse s
-defCase reverse.differenceList l | isDl l -> dllist (reverse (l []))
-defCase reverse.map h | isMap h -> mapReverse h
-defCase reverse.set s | isSet s -> setReverse s
-defCase reverse.vector v | isVector v -> vectorReverse v
+defTypeCase reverse.list l ->
+  isAlist l
+    foldr (\el rest . aconPair el rest) {} (_reverse l)
+    _reverse l
+defTypeCase reverse.range r -> r
+defTypeCase reverse.repeat r -> r
+defTypeCase reverse.string s -> strReverse s
+defTypeCase reverse.differencelist l -> dllist (reverse (l []))
+defTypeCase reverse.hamt h -> mapReverse h
+defTypeCase reverse.amtSet s -> setReverse s
+defTypeCase reverse.vector v -> vectorReverse v
 
-contains item l = _contains item l
-defCase contains.any item l | not (isList l) -> _contains item (tolist l)
-defCase contains.alist item l | isAlist l -> isSome (_find (\el . item == (head el)) l)
-defCase contains.range item r | isRange r -> r \ a b . (isNumber item) && ((a <= item) || (item < b))
-defCase contains.repeat item r | isRepeat r -> r \ count . (isNumber item) && ((0 <= item) || (item < count))
-defCase contains.differenceList item l | isDl l -> _contains item (l [])
-defCase contains.map item h | isMap h -> mapContains item h
-defCase contains.set item s | isSet s -> setContains item s
-defCase contains.vector item v | isVector v -> vectorContains item v
+contains l item = _contains (tolist l) item
+defTypeCase contains.list l item ->
+  isAlist l
+    isSome (_find (\el . item == (head el)) l)
+    _contains l item
+defTypeCase contains.range r item -> r \ a b . (isNumber item) && ((a <= item) || (item < b))
+defTypeCase contains.repeat r item -> r \ count . (isNumber item) && ((0 <= item) || (item < count))
+defTypeCase contains.differencelist l item -> _contains item (l [])
+defTypeCase contains.hamt h item -> mapContains item h
+defTypeCase contains.amtSet s item -> setContains item s
+defTypeCase contains.vector v item -> vectorContains item v
+
 ######################
 # maps
 ######################
-get key alist = find (\el . eq key (head el)) alist (\cell . cell \head tail . tail) unit
-defCase get.map key h | isMap h -> mapGet key h
+defTypeCase get.cons alist key ->
+  isAlist alist
+    find (\el . eq key (head el)) alist (\cell . cell \head tail . tail) unit
+    nil
+defTypeCase get.hamt h key -> mapGet key h
 
-getOpt key alist = find (\el . eq key (head el)) alist (\cell . cell \head tail . some tail) none
-defCase getOpt.map key h | isMap h -> mapGetOpt key h
+defTypeCase getOpt.cons alist key ->
+  isAlist alist
+    find (\el . eq key (head el)) alist (\cell . cell \head tail . some tail) none
+    none
+defTypeCase getOpt.hamt h key -> mapGetOpt key h
 
-set key value alist = acons key value (aremove key alist)
-defCase set.map key value h | isMap h -> mapSet key value h
+defTypeCase set.cons alist key value ->
+  isAlist alist
+    acons key value (aremove key alist)
+    [[key | value] | alist]
+defTypeCase set.hamt h key value -> mapSet key value h
 
 ######################
 # numbers
@@ -539,69 +629,65 @@ naturals = tail wholes
 ######################
 ## Generic presentation
 
-showBase func obj = func obj
+showBase obj func = func obj
 
-defCase showBase.unit func obj | hasType obj unit -> ''
-defCase showBase.some func obj | hasType obj some -> concat["(some " (showBase func (obj id false)) ")"]
-defCase showBase.some2 func obj | hasType obj some2 -> concat["(some2 " (obj (\a b . showBase func [a ', ' b]) false) ")"]
-defCase showBase.err func obj | hasType obj err -> concat["(err " (obj id) ")"]
-defCase showBase.token func obj | hasType obj token -> obj \str pos .
+defTypeCase showBase.unit obj func -> ''
+defTypeCase showBase.some obj func -> s["(some " (showBase (obj id false) func) ")"]
+defTypeCase showBase.some2 obj func -> obj \a b . concat["(some2 " (showBase a func) ' ' (showBase b func) ")"]
+defTypeCase showBase.err obj func -> s["(err " (obj id) ")"]
+defTypeCase showBase.token obj func -> obj \str pos .
   isFilepos pos
-    pos \file line offset . concat['token ' str ' ' file ' ' line ' ' offset]
+    pos \file line offset . s['(token ' str ' ' file ' ' line ' ' offset ')']
     concat['(token ' str ' ' pos ')']
-defCase showBase.filepos func obj | hasType obj filepos -> obj \file line offset . concat['(filepos ' file ' ' line ' ' offset ')']
-defCase showBase.cons func obj | hasType obj cons -> concatFlat['[' (showBase func (head obj)) (showConsElements func (tail obj))  ']']
+defTypeCase showBase.filepos obj func -> obj \file line offset . s['(filepos ' file ' ' line ' ' offset ')']
+defTypeCase showBase.cons obj func ->
+  isAlist obj
+    concatFlat[
+      '{'
+      intersperse (_map (\item . [(showBase (head item) func) ':' (showBase (tail item) func)]) obj) ' '
+      '}']
+    concatFlat['[' (showBase (head obj) func) (showConsElements (tail obj) func)  ']']
 
-showConsElements func list = isCons list
-  [' ' (showBase func (head list)) (showConsElements func (tail list))]
+showConsElements list func = isCons list
+  [' ' (showBase (head list) func) (showConsElements (tail list) func)]
   isNil list
     ''
-    [' | ' (showBase func list)]
+    [' | ' (showBase list func)]
 
-defCase showBase.range func obj | hasType obj range -> obj \start end .
-  concat['(range ' start ' ' end ')']
-
-defCase showBase.repeat func obj | hasType obj repeat -> concat['(repeat ' (obj id) ')']
-defCase showBase.map func obj | hasType obj hamt -> concatFlat[
+defTypeCase showBase.range obj func -> obj \start end . s['(range ' start ' ' end ')']
+defTypeCase showBase.repeat obj func -> s['(repeat ' (obj id) ')']
+defTypeCase showBase.hamt obj func -> concatFlat[
   'map{'
-  intersperse (_map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) (mapPairs obj)) ' '
+  intersperse (_map (\item . [(showBase (head item) func) ':' (showBase (tail item) func)]) (mapPairs obj)) ' '
   '}']
 
-defCase showBase.set func obj | isSet obj -> concatFlat[
+defTypeCase showBase.amtSet obj func -> concatFlat[
   'set['
-  intersperse (setItems obj) ' '
+  intersperse (_map (\item . showBase item func) (setItems obj)) ' '
   ']']
 
-defCase showBase.vector func obj | isVector obj -> concatFlat[
+defTypeCase showBase.vector obj func -> concatFlat[
   'vec['
-  intersperse (vectorItems obj) ' '
+  intersperse (_map (\item . showBase item func) (vectorItems obj)) ' '
   ']']
 
-defCase showBase.assoc func obj | (isAlist obj) && (not (isNil obj)) -> concatFlat[
-  '{'
-  intersperse (_map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) obj) ' '
-  '}']
-
-defCase showBase.left func obj | hasType obj left -> concat["(left " (showBase func (obj id id)) ")"]
-defCase showBase.right func obj | hasType obj right -> concat["(right " (showBase func (obj id id)) ")"]
-defCase showBase.differenceList func l | isDl l -> concatFlat[
+defTypeCase showBase.left obj func -> s["(left " (showBase (obj id id) func) ")"]
+defTypeCase showBase.right obj func -> s["(right " (showBase (obj id id) func) ")"]
+defTypeCase showBase.differencelist l func -> concatFlat[
   'dl['
-  intersperse (_map (showBase func) (l [])) ' '
+  intersperse (_map (\item . showBase item func) (l [])) ' '
   ']']
-defCase showBase.triple func obj | hasType obj triple ->
-  obj \a b c . concat["(triple " (showBase func a) " " (showBase func b) " " (showBase func c) ")"]
+defTypeCase showBase.triple obj func -> obj \a b c .
+  s["(triple " (showBase a func) " " (showBase b func) " " (showBase c func) ")"]
 
 ## presentation
 
-showHtml x = showBase presentHtml x
+showHtml x = showBase x presentHtml
 
-show x = showBase present x
+show x = showBase x present
 
 present x = x
 
-presentHtml x = escapeHtml (present x)
-
-defCase present.string obj | (getType obj) == '*string' -> jsonStringify obj id id
 defCase present.func obj | (getType obj) == '*function' -> presentFunction obj
 
 presentFunction obj = do
@@ -615,14 +701,20 @@ presentFunction obj = do
       cons (head info) (_map present (tail info))
   concat["(" (join guts ' ') ")"]
 
+defCase present.type t | isType t -> typeName t
+
+defTypeCase present.string obj -> jsonStringify obj id id
+
+defTypeCase present.nil obj -> 'nil'
+
+defTypeCase present.none obj -> "none"
+
+presentHtml x = escapeHtml (present x)
+
 defCase presentHtml.func obj | (getType obj) == '*function' ->
   concat['<span class="partial-application">' (presentFunction obj) '</span>']
 
-defCase present.nil obj | hasType obj nil -> 'nil'
-
-defCase present.none obj | hasType obj none -> "none"
-
-defCase presentHtml.html obj | hasType obj html -> obj id
+defTypeCase presentHtml.html obj -> obj id
 
 ######################
 # binding
@@ -640,7 +732,7 @@ wrapped x = \f . f x
 
 defMacro 'wrap' \list . ['wrapped' list]
 
-defCase showBase.wrapped func v | hasType v wrapped -> concat['wrap ' (showBase func (v id))]
+defTypeCase showBase.wrapped v func -> s['(wrap ' (showBase (v id) func) ')']
 
 defCase bind.wrapped v cont | hasType v wrapped -> cont (v id)
 
@@ -662,20 +754,19 @@ defMacro 'flat' \list . ['flatWrapper' list]
 
 flatWrapper m = \f . f m
 
-defCase showBase.flat func v | hasType v flatWrapper -> concat['flat ' (showBase func (v id))]
+defTypeCase showBase.flatWrapper v func -> s['(flat ' (showBase (v id) func) ')']
 
 defCase bind.flat fe cont | hasType fe flatWrapper -> monadicFlatMap cont (fe id)
 
 defCase bind.list l cont | isList l -> monadicMap cont l
 
-defCase bind.differenceList l cont | isDl l -> primBind (monadicMap cont l) \l . dllist l
+defCase bind.differencelist l cont | isDl l -> primBind (monadicMap cont l) \l . dllist l
 
 # add 2-variable bind for alist and map?
 
 fold l i = \f . f l i
 
-defCase showBase.fold func v | hasType v fold ->
-  concat['fold ' (showBase func \l i . l) (showBase func \l i . i)]
+defTypeCase showBase.fold v func -> v \l i . s['(fold ' (showBase l func) ' ' (showBase i func) ')']
 
 defCase bind.fold fr cont | hasType fr fold -> fr \list init .
   _foldl (\acc el . maybeBind acc \accVal . do
@@ -694,7 +785,7 @@ monadicMap cont list = _foldr (\el acc . maybeBind (cont el) \elVal . maybeBind 
     accVal
     [elVal | accVal]) [] (tolist list)
 
-maybeBind item cont = isMonad item
+maybeBind item cont = isIO item
   primBind item cont
   cont item
 
@@ -725,10 +816,10 @@ defMacro 'defWrapper' \list . partition (flip isTokenString '->') list \left arr
 
 #defWrapper head oldHead list -> assertType 'head argument' cons list \h t . h
 #defWrapper tail oldTail list -> assertType 'tail argument' cons list \h t . t
-defWrapper mapSet oldMapSet key value aMap -> oldMapSet
-  key
-  value
-  assertType 'mapSet map' hamt aMap
+#defWrapper mapSet oldMapSet key value aMap -> oldMapSet
+#  key
+#  value
+#  assertType 'mapSet map' hamt aMap
 
 #######################
 ## output tag functions
@@ -773,7 +864,7 @@ getAnnoBody ast = _3of3 ast
 ####
 
 requireJS file = primBind (getValue 'requiredFiles')
-  \files . contains file files
+  \files . contains files file
     false
     primBind (loadJS file)
       \result . result
@@ -827,7 +918,7 @@ defMacro 'cond' \list .
   foldr (\l rest . do
     l = stripParens l
     not and[(isSequence l) (length l) == 2]
-      error s['Bad cond format, cond expects pairs of expressions: ' (tokenSrc list)]
+      error s['Bad cond clause: ' (tokenSrc l) ', cond expects pairs of expressions: ' (tokenSrc list)]
       [(first l) (second l) | [((empty rest) 'false' rest)]]) nil list
 
 #############
@@ -849,13 +940,13 @@ consFromTokens toks = do
     (isNil toks) 'nil'
     (isParens toks) (toks \s e c . consFromTokens c)
     (isToken toks) (stringForToken toks)
-    (isString toks) (escapeString toks)
+    (isString toks) (jsonStringify toks id id)
     (not (isCons toks)) toks
     (isTokenString item '~') ['cons' (stripParens item2) (consFromTokens rest2)]
     (isTokenString item '~@')
       empty rest2
         stripParens item2
-        ['_append' (stripParens item2) (consFromTokens rest2)]
+        ['_append' ['tolist' (stripParens item2)] (consFromTokens rest2)]
     true ['cons' (consFromTokens item) (consFromTokens rest)]
 
 stringForToken tok = tok \tok pos . token (jsonStringify tok id id) pos

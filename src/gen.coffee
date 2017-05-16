@@ -23,7 +23,7 @@ misrepresented as being the original software.
 ###
 
 'use strict'
-define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support'], (Base, Ast, Runtime, _, SourceMap, SourceMapSupport)->
+define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support', 'lib/js-yaml'], (Base, Ast, Runtime, _, SourceMap, SourceMapSupport, Yaml)->
   SourceMapSupport?.install()
   {
     simpyCons,
@@ -32,6 +32,9 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     verboseMsg,
     nsLog,
   } = Base
+  {
+    dump
+  } = Yaml
   rz = resolve
   lz = lazy
   lc = Leisure_call
@@ -64,6 +67,9 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     getPos,
     isNil,
     getType
+    ast2Json
+    rangeToJson
+    getPos
   } = root = Ast
   {
     Monad2
@@ -88,15 +94,14 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
   varNameSub = (n)-> "L_#{nameSub n}"
 
   useArity = true
-  #useArity = false
   megaArity = false
   curDef = null
   trace = false
   trace = true
-  #stackSize = 9
   stackSize = 20
-  genThunkStack = false
-  USE_STRICT = '"use strict";'
+  useThunkStacks = false
+  USE_STRICT = '"use strict";\n'
+  #USE_STRICT = ''
 
   setMegaArity = (setting)-> megaArity = setting
 
@@ -136,64 +141,227 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       currentFuncName = oldFuncName
 
   sn = (ast, str...)->
-    #(collectArgs str, []).join('')
-    #[file, line, col] = getPos(ast).toArray()
     [line, offset] = locateAst ast
-    #console.log "SN #{line} #{offset}"
     check typeof line == 'number', 'line'
     check typeof offset == 'number', 'offset'
     checkChild str
     if line < 1 then line = 1
     if currentFile == 'NEVERGIVENFILE.lsr' then console.log new Error("SN CALLED WITHOUT FILE").stack
     if currentFuncName?
-      #console.log "USING NAME: #{currentFuncName}"
       new SourceNode(line, offset, currentFile, str, currentFuncName)
     else new SourceNode(line, offset, currentFile, str)
-    #else new SourceNode(line, offset, currentFile, str)
-
-  genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
-
-  gen = (ast)-> jsCodeFor new SourceNode(1, 0, currentFile, ['(', genMap(ast), ')']).toStringWithSourceMap(file: currentFile)
 
   jsCodeFor = (codeMap)->
     "#{codeMap.code}\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify codeMap.map.toJSON()}\n"
 
+  functionId = 0
   codeNum = 0
 
-  genSource = (source, ast)->
-    #console.log "SOURCE: #{source}\nAST: #{ast}"
-    funcname = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName' then getAnnoData ast else null
-    #withFile "data:text/plain;base64,#{btoa source}", funcname, ->
-    withFile "dynamic code with source #{++codeNum}", funcname, ->
-      try
-        sm = genNode(ast).prepend("\n").toStringWithSourceMap
-          file: "dynamic code with source"
+  class CodeGenerator
+    constructor: (fileName, @useContext, @noFile)->
+      @fileName = fileName ? "dynamic code with source #{++codeNum}"
+      @startId = functionId
+      @funcInfo = []
+    contextInit: ->
+      if @useContext then '\n  L_$F.context = L_$context;'
+      else ''
+    addFunc: (ast)->
+      @funcInfo.push
+        type: 'function'
+        id: functionId
+        srcRange: rangeToJson getPos ast
+      functionId++
+    addSubfunc: (id, index, ast)->
+      @funcInfo.push
+        type: 'subfuncion'
+        id: functionId
+        primaryId: id
+        index: index
+      functionId++
+    genSource: (source, ast)->
+      if @noFile
+        sm = @genNode(ast).prepend(USE_STRICT + '(').add(')').toStringWithSourceMap file: @fileName
         map = JSON.parse sm.map.toString()
-        map.sourcesContent =  [source]
-        code = "(#{sm.code})\n//# sourceMappingURL=data:application/json;utf-8;base64,#{btoa JSON.stringify map}\n"
-        #code = "(#{sm.code})\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify map}\n"
-        #console.log "CODE: #{code}"
-        #console.log "MAP: #{JSON.stringify map}"
-        code
-      catch err
-        err.message = "Error generating code for:\n  #{source.trim().replace /\n/g, '\n  '}\n#{err.message}"
-        throw err
+        result = sm.code
+      else
+        funcName = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName' then getAnnoData ast else null
+        #fileName = "dynamic code with source #{++codeNum}"
+        withFile @fileName, funcName, =>
+          try
+            sm = @genNode(ast).toStringWithSourceMap file: @fileName
+            map = JSON.parse sm.map.toString()
+            map.sourcesContent =  [source]
+            result = sm.code
+          catch err
+            err.message = "Error generating code for:\n  #{source.trim().replace /\n/g, '\n  '}\n#{err.message}"
+            throw err
+      @endId = functionId
+      "#{result}\n//# sourceMappingURL=data:application/json;utf-8;base64,#{btoa JSON.stringify map}\n"
+    genNode: (ast)->
+      result = @genUniq ast, Nil, [Nil, 0]
+      @endId = functionId
+      result
+    genMap: (ast)->
+      hasFile = ast instanceof Leisure_anno && getAnnoName(ast) == 'filename'
+      #filename = if hasFile then getAnnoData ast else 'GENFORUNKNOWNFILE.lsr'
+      filename = if hasFile then getAnnoData ast else @fileName
+      nameAst = if hasFile then getAnnoBody ast else null
+      funcname = if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then getAnnoData nameAst else currentFuncName
+      sub = withFile filename, null, => @genNode(ast)
+      [line, offset] = locateAst ast
+      @endId = functionId
+      if funcname then new SourceNode line, offset, filename, sub, funcname
+      else sub
+    gen: (ast)-> new SourceNode(1, 0, currentFile, ['(', @genMap(ast), ')']).toStringWithSourceMap(file: currentFile).code
+    genUniq: (ast, names, uniq, lambdaContext)->
+      switch ast.constructor
+        when Leisure_lit then sn ast, JSON.stringify getLitVal ast
+        when Leisure_ref then sn ast, "resolve(", (@genRefName ast, uniq, names), ")"
+        when Leisure_lambda
+          newContext = if !lambdaContext?
+            count: 0
+            id: @addFunc ast
+          else
+            count: lambdaContext.count + 1
+            id: @addSubfunc lambdaContext.id, lambdaContext.count + 1, ast
+          @genLambda ast, names, uniq, _.defaults newContext, lambdaContext
+        when Leisure_apply
+          if useArity then @genArifiedApply ast, names, uniq, arity
+          else sn ast, (@genUniq (getApplyFunc ast), names, uniq), "(", (@genApplyArg (getApplyArg ast), names, uniq), ")"
+        when Leisure_let then sn ast, "(function(){", (@genLets ast, names, uniq), "})()"
+        when Leisure_anno
+          name = getAnnoName ast
+          data = getAnnoData ast
+          if name == 'arity' && useArity && data > 1
+            @genArifiedLambda (getAnnoBody ast), names, uniq, data
+          else
+            try
+              if trace && name == 'leisureName'
+                oldDef = curDef
+                curDef = data
+              genned = @genUniq (getAnnoBody ast), names, uniq
+              switch name
+                when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
+                when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
+                when 'define'
+                  [funcName, arity, src] = data.toArray()
+                  sn ast, "define('", funcName, "', lazify(ast, genned), ", arity, ", ", JSON.stringify(src), ")"
+                when 'leisureName'
+                  genned
+                else genned
+            finally
+              if trace && name == 'leisureName' then curDef = oldDef
+        else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
+    genArifiedApply: (ast, names, uniq)->
+      args = []
+      func = ast
+      while dumpAnno(func) instanceof Leisure_apply
+        args.push getApplyArg dumpAnno func
+        func = getApplyFunc dumpAnno func
+      args.reverse()
+      defaultArity = false
+      if args.length > 1 && ((dmp = dumpAnno(func)) instanceof Leisure_ref) && (((info = functionInfo[funcName = getRefName dmp]) && ((info.newArity && (arity = info.arity) && arity <= args.length) || (!arity && megaArity))) || (!info && isNil names.find (el)-> el == funcName))
+        if defaultArity = !arity then arity = args.length
+        argCode = []
+        argCode.push ast
+        if defaultArity then argCode.push 'L$('
+        argCode.push @genUniq func, names, uniq
+        if defaultArity then argCode.push ')('
+        else argCode.push '('
+        for i in [0...arity]
+          if i > 0 then argCode.push ', '
+          argCode.push sn args[i], @genApplyArg args[i], names, uniq
+        argCode.push ')'
+        for i in [arity...args.length] by 1
+          argCode.push '(', (sn args[i], @genApplyArg args[i], names, uniq), ')'
+        sn argCode...
+      else
+        ast = dumpAnno ast
+        sn ast, (@genUniq (getApplyFunc ast), names, uniq), "(", (@genApplyArg (getApplyArg ast), names, uniq), ")"
+    genLambda: (ast, names, uniq, ctx)->
+      name = getLambdaVar ast
+      u = addUniq name, names, uniq
+      n = cons name, names
+      id = if ctx.count then ctx.id
+      code = if curDef && useThunkStacks
+        "function(#{(uniqName name, u)}){var old = #{genPushThunk(ast)}; var ret = #{(@genUniq (getLambdaBody ast), n, u, ctx)}; L$setThunkStack(old); return ret;};"
+      else "function(#{(uniqName name, u)}){return #{(@genUniq (getLambdaBody ast), n, u, ctx)}}"
+      addLambdaProperties ast, sn ast, """
+        (function(){
+          var L_$F = (#{code});
+          L_$F.leisureFunctionId = #{ctx.id};#{@contextInit()}
+          L_$F.leisureLength = L_$F.length;
+          return L_$F;
+        })()
+      """
+    genArifiedLambda: (ast, names, uniq, arity)->
+      if arity < 2 then @genLambda ast, names, uniq, 0
+      else
+        args = getNArgs(arity, ast).toArray()
+        argList = _.map(args, ((x)-> 'L_' + x)).join ', '
+        mainFunc = sn ast, """
+          (function(){
+            var L_$F = function(#{argList}) {
+              return L_checkPartial(L_$F, arguments) || #{@genUniq(getNthLambdaBody(ast, arity), names, uniq)};
+            };
+            L_$F.leisureFunctionId = #{@addFunc ast};
+            L_$F.leisureLength = #{args.length};
+            return L_$F;
+          })()
+        """
+        result = addLambdaProperties ast, (sn ast, mainFunc)
+        annoAst = ast
+        while annoAst instanceof Leisure_anno
+          name = getAnnoName annoAst
+          data = getAnnoData annoAst
+          switch name
+            when 'type' then result = sn ast, "setType(", result, ", '", data, "')"
+            when 'dataType' then result = sn ast, "setDataType(", result, ", '", data, "')"
+          annoAst = getAnnoBody annoAst
+        result
+    genRefName: (ref, uniq, names)->
+      name = getRefName ref
+      if isNil (val = names.find (el)-> el == name)
+        ns = findName nameSub name
+        if ns == root.currentNameSpace then nsLog "LOCAL NAME: #{name} FOR #{root.currentNameSpace} #{location ref}"
+        else if !ns then nsLog "GUESSING LOCAL NAME #{name} FOR #{root.currentNameSpace} #{location ref}"
+        varNameSub name
+      else uniqName name, uniq
+    genApplyArg: (arg, names, uniq)->
+      d = dumpAnno arg
+      if d instanceof Leisure_apply then lazify d, @genUniq arg, names, uniq
+      else if d instanceof Leisure_ref then @genRefName d, uniq, names
+      else if d instanceof Leisure_lit then sn arg, JSON.stringify getLitVal d
+      else if d instanceof Leisure_let then lazify arg, (@genUniq arg, names, uniq)
+      else if d instanceof Leisure_lambda then sn arg, 'lazy(', (@genUniq arg, names, uniq), ')'
+      else lazify arg, (@genUniq arg, names, uniq)
+    genLetAssign: (arg, names, uniq)->
+      if dumpAnno(arg) instanceof Leisure_let then lazify arg, (@genLets arg, names, uniq)
+      else lazify arg, (@genUniq arg, names, uniq)
+    genLets: (ast, names, uniq)->
+      bindings = letList ast, []
+      letNames = _.reduce bindings, ((n, l)-> cons (getLetName l), n), names
+      [letUniq, decs, assigns] = _.reduce bindings, ((result, l)=>
+        [u, code, assigns] = result
+        newU = addUniq (getLetName l), letNames, u
+        letName = uniqName (getLetName l), newU
+        [newU,
+          (cons (sn ast, letName + ' = ', @genLetAssign(getLetValue(l), letNames, u)), code),
+          (cons letName, assigns)]), [uniq, Nil, Nil]
+      sn ast, "  var ", assigns.reverse().join(', '), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", (@genUniq (getLastLetBody ast), letNames, letUniq)
 
-  genMap = (ast)->
-    #console.log "GEN AST: #{ast}"
-    #file = getPos(ast).head().replace /\.lsr$/, '.js.map'
-    hasFile = ast instanceof Leisure_anno && getAnnoName(ast) == 'filename'
-    filename = if hasFile then getAnnoData ast else 'GENFORUNKNOWNFILE.lsr'
-    nameAst = if hasFile then getAnnoBody ast else null
-    #funcname = if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then getAnnoData nameAst else null
-    funcname = if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then getAnnoData nameAst else currentFuncName
-    #console.log "File: #{filename}, func: #{funcname}, nameast: #{nameAst instanceof Leisure_anno}"
-    #if funcname then verboseMsg 'gen', "compiling ast: #{funcname}"
-    #sub = withFile filename, funcname, -> genNode(ast)
-    sub = withFile filename, null, -> genNode(ast)
-    [line, offset] = locateAst ast
-    if funcname then new SourceNode line, offset, filename, sub, funcname
-    else sub
+  wrapContext = (node, fileName)->
+    new SourceNode 1, 0, fileName, """
+      (function(L_$context){
+        return """, node, """
+      })
+    """
+
+  genPushThunk = (ast)->
+    if useThunkStacks
+      [line, offset] = locateAst ast
+      "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '#{curDef}:#{line}:#{offset}')"
+    else ''
 
   findName = (name)->
     for i in [root.nameSpacePath.length - 1 .. 0]
@@ -205,126 +373,12 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     [line, col] = locateAst ast
     "#{line}:#{col}"
 
-  genRefName = (ref, uniq, names)->
-    name = getRefName ref
-    #if isNil (val = names.find (el)-> el == name) then console.log("GLOBAL: #{name}, val = #{val}")
-    #else console.log("LOCAL: #{name}, val = #{val}")
-    #if isNil (val = names.find (el)-> el == name) then "#{currentNameSpace}#{name}"
-    if isNil (val = names.find (el)-> el == name)
-      ns = findName nameSub name
-      if ns == root.currentNameSpace then nsLog "LOCAL NAME: #{name} FOR #{root.currentNameSpace} #{location ref}"
-      else if !ns then nsLog "GUESSING LOCAL NAME #{name} FOR #{root.currentNameSpace} #{location ref}"
-      varNameSub name
-    else uniqName name, uniq
-
-  genUniq = (ast, names, uniq, count)->
-    switch ast.constructor
-      when Leisure_lit then sn ast, JSON.stringify getLitVal ast
-      when Leisure_ref then sn ast, "resolve(", (genRefName ast, uniq, names), ")"
-      when Leisure_lambda then genLambda ast, names, uniq, count ? 0
-      when Leisure_apply
-        if useArity then genArifiedApply ast, names, uniq, arity
-        else sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
-      when Leisure_let then sn ast, "(function(){#{USE_STRICT}\n", (genLets ast, names, uniq), "})()"
-      when Leisure_anno
-        name = getAnnoName ast
-        data = getAnnoData ast
-        if name == 'arity' && useArity && data > 1
-          genArifiedLambda (getAnnoBody ast), names, uniq, data
-        else
-          try
-            if trace && name == 'leisureName'
-              oldDef = curDef
-              curDef = data
-            genned = genUniq (getAnnoBody ast), names, uniq
-            switch name
-              when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
-              when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
-              when 'define'
-                [funcName, arity, src] = data.toArray()
-                #sn ast, "define('", funcName, "', (function(){return ", genned, "}), ", arity, ", ", JSON.stringify(src), ")"
-                sn ast, "define('", funcName, "', lazify(ast, genned), ", arity, ", ", JSON.stringify(src), ")"
-              when 'leisureName'
-                #console.log "DEFINE #{getAnnoData ast} = #{getApplyArg getAnnoBody ast}"
-                genned
-                #if curDef
-                #  sn ast, 'function(){var old = L$thunkStack; var stack = (global ? window).L$thunkStack = L$thunkStack.slice(); stack.push("', data, '"); var ret = ', genned, '; (global ? window).L$thunkStack = old; return ret;}()'
-                #else genned
-              else genned
-          finally
-            if trace && name == 'leisureName' then curDef = oldDef
-      else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
-
-  genArifiedApply = (ast, names, uniq)->
-    args = []
-    func = ast
-    while dumpAnno(func) instanceof Leisure_apply
-      args.push getApplyArg dumpAnno func
-      func = getApplyFunc dumpAnno func
-    args.reverse()
-    #if (dmp = dumpAnno(func)) instanceof Leisure_ref && (info = functionInfo[getRefName dmp]) && info?.newArity && (arity = info?.arity) && arity <= args.length
-    #if true
-    #  if (dmp = dumpAnno(func)) instanceof Leisure_ref && (info = functionInfo[getRefName dmp]) && info?.newArity && (arity = info?.arity) && arity <= args.length
-    #  else arity = args.length
-    defaultArity = false
-    if args.length > 1 && ((dmp = dumpAnno(func)) instanceof Leisure_ref) && (((info = functionInfo[funcName = getRefName dmp]) && ((info.newArity && (arity = info.arity) && arity <= args.length) || (!arity && megaArity))) || (!info && isNil names.find (el)-> el == funcName))
-      if defaultArity = !arity then arity = args.length
-      argCode = []
-      argCode.push ast
-      if defaultArity then argCode.push 'L$('
-      argCode.push genUniq func, names, uniq
-      if defaultArity then argCode.push ')('
-      else argCode.push '('
-      for i in [0...arity]
-        if i > 0 then argCode.push ', '
-        argCode.push sn args[i], genApplyArg args[i], names, uniq
-      argCode.push ')'
-      for i in [arity...args.length] by 1
-        argCode.push '(', (sn args[i], genApplyArg args[i], names, uniq), ')'
-      #console.log sn(argCode...).toString()
-      sn argCode...
-    else
-      ast = dumpAnno ast
-      sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
-
-  genLambda = (ast, names, uniq, count)->
-    name = getLambdaVar ast
-    u = addUniq name, names, uniq
-    n = cons name, names
-    if curDef && genThunkStack
-      addLambdaProperties ast, sn ast, 'function(', (uniqName name, u), '){var old = ', genPushThunk(ast), '; var ret = ', (genUniq (getLambdaBody ast), n, u, 1), '; L$setThunkStack(old); return ret;}'
-    else addLambdaProperties ast, sn ast, 'function(', (uniqName name, u), '){return ', (genUniq (getLambdaBody ast), n, u, 1), '}'
-
   getLambdaArgs = (ast)->
     args = []
     while ast instanceof Leisure_lambda
       args.push getLambdaVar ast
       ast = getLambdaBody ast
     [args, ast]
-
-  genArifiedLambda = (ast, names, uniq, arity)->
-    if arity < 2 then genLambda ast, names, uniq, 0
-    else
-      args = getNArgs(arity, ast).toArray()
-      argList = _.map(args, ((x)-> 'L_' + x)).join ', '
-      mainFunc = sn ast, """
-        (function(){
-          var L_$_F = function(#{argList}) {
-            return L_checkPartial(L_$_F, arguments) || #{genUniq(getNthLambdaBody(ast, arity), names, uniq)};
-          };
-          return L_$_F;
-        })()
-      """
-      result = addLambdaProperties ast, (sn ast, mainFunc)
-      annoAst = ast
-      while annoAst instanceof Leisure_anno
-        name = getAnnoName annoAst
-        data = getAnnoData annoAst
-        switch name
-          when 'type' then result = sn ast, "setType(", result, ", '", data, "')"
-          when 'dataType' then result = sn ast, "setDataType(", result, ", '", data, "')"
-        annoAst = getAnnoBody annoAst
-      result
 
   getNthLambdaBody = (ast, n)->
     if n == 0 then ast
@@ -366,7 +420,6 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     else def
 
   lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
-  #parseErr = (a, b)-> rz(L_parseErr)(a)(b)
   parseErr = (a, b)-> rz(L_parseErr)(a, b)
 
   lconsFrom = (array)->
@@ -430,17 +483,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       stack = stack[1]
     result
 
-  #(global ? window).L$thunkStack = L$emptyThunkStack
-
   (global ? window).L$thunkStack = []
-
-  #(global ? window).L$convertError = (err, args)->
-  #  if !err.L_stack
-  #    console.log 'CONVERTING ERROR:', err
-  #    (global ? window).ERR = err
-  #    err.L_stack = args.callee.L$stack.items()
-  #    err.L_args = args
-  #  err
 
   (global ? window).L$convertError = (err, args)->
     if !err.L_stack
@@ -449,11 +492,6 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       err.L_stack = args.callee.L$stack
       err.L_args = args
     err
-
-  #(global ? window).L$pushThunk = (stack, entry)->
-  #  old = L$thunkStack
-  #  (global ? window).L$thunkStack = stack.push entry
-  #  old
 
   (global ? window).L$pushThunk = (stack, entry)->
     old = L$thunkStack
@@ -464,45 +502,12 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
   (global ? window).L$setThunkStack = (stack)->
     (global ? window).L$thunkStack = stack
 
-  genPushThunk = (ast)->
-    if genThunkStack
-      [line, offset] = locateAst ast
-      "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '#{curDef}:#{line}:#{offset}')"
-    else ''
-
   lazify = (ast, body)->
-    if curDef && genThunkStack
-      sn ast, "(function(){#{USE_STRICT}var stack = L$thunkStack; var f = function(){var old = ", genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()'
-    else sn ast, "function(){#{USE_STRICT}return ", body, ';}'
-
-  #lazify = (ast, body)-> sn ast, 'function(){return ', body, ';}'
+    if curDef && useThunkStacks
+      sn ast, "(function(){var stack = L$thunkStack; var f = function(){var old = ", genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()'
+    else sn ast, "function(){return ", body, ';}'
 
   dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
-
-  genApplyArg = (arg, names, uniq)->
-    d = dumpAnno arg
-    if d instanceof Leisure_apply then lazify d, genUniq arg, names, uniq
-    else if d instanceof Leisure_ref then genRefName d, uniq, names
-    else if d instanceof Leisure_lit then sn arg, JSON.stringify getLitVal d
-    else if d instanceof Leisure_let then lazify arg, (genUniq arg, names, uniq)
-    else if d instanceof Leisure_lambda then sn arg, 'lazy(', (genUniq arg, names, uniq), ')'
-    else lazify arg, (genUniq arg, names, uniq)
-
-  genLetAssign = (arg, names, uniq)->
-    if dumpAnno(arg) instanceof Leisure_let then lazify arg, (genLets arg, names, uniq)
-    else lazify arg, (genUniq arg, names, uniq)
-
-  genLets = (ast, names, uniq)->
-    bindings = letList ast, []
-    letNames = _.reduce bindings, ((n, l)-> cons (getLetName l), n), names
-    [letUniq, decs, assigns] = _.reduce bindings, ((result, l)->
-      [u, code, assigns] = result
-      newU = addUniq (getLetName l), letNames, u
-      letName = uniqName (getLetName l), newU
-      [newU,
-        (cons (sn ast, letName + ' = ', genLetAssign(getLetValue(l), letNames, u)), code),
-        (cons letName, assigns)]), [uniq, Nil, Nil]
-    sn ast, "  var ", assigns.reverse().join(', '), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", (genUniq (getLastLetBody ast), letNames, letUniq)
 
   addUniq = (name, names, uniq)->
     if (names.find (el)-> el == name) != Nil
@@ -536,8 +541,9 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       #console.log "running code", code
       jsCode = null
       try
-        #jsCode = gen rz ast
-        jsCode = genSource rz(code), rz(ast)
+        jsCode = if env.fileName then withFile env.fileName, null, =>
+          new CodeGenerator(env.fileName, false, true).genSource null, rz(ast)
+        else new CodeGenerator().genSource rz(code), rz(ast)
         cont eval jsCode
       catch err
         dumpMonadStack err, env
@@ -553,11 +559,23 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     catch err
       parseErr (lz '\n\nParse error: ' + err.toString() + "AST: "), (ast)), null, null, null, 'parser'
 
+
+#####
+# TMP HOOKS
+#####
+
+#####
+# END TMP HOOKS
+#####
+
+  gen = (ast)-> new CodeGenerator().gen ast
+  genMap = (ast)-> new CodeGenerator().genMap ast
+  genSource = (source, ast)-> new CodeGenerator().genSource source, ast
+
   {
     gen
     genMap
     genSource
-    genNode
     sourceNode: sn
     withFile
     curryCall
@@ -571,4 +589,5 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     SourceMapConsumer
     SourceMapGenerator
     setMegaArity
+    CodeGenerator
   }

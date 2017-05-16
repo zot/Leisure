@@ -15,15 +15,29 @@ setNameSpace 'core'
 #########################################################################
 
 #############
+# TYPES
+#############
+
+_declareType 'err' 0
+_declareType 'boolean' 0
+_declareType 'true' 'boolean'
+_declareType 'false' 'boolean'
+_declareType 'option' 0
+_declareType 'some' 'option'
+_declareType 'some2' 0
+_declareType 'none' 'option'
+_declareType 'either' 0
+_declareType 'left' 'either'
+_declareType 'right' 'either'
+_declareType 'keyedSequence' 'sequence'
+
+#############
 # IO SUPPORT
 #############
 
 asIO x = x
 fakereturn x = x
 #wrap x = x
-bind x cont = isMonad x
-  primBind x cont
-  cont x
 
 ############
 # Trampolines
@@ -62,51 +76,51 @@ isEither obj = or (hasType obj left) (hasType obj right)
 # DATA
 ######################
 
-isString s = == (getType s) '*string'
-isNumber s = == (getType s) '*number'
+isString s = == (getType s) 'string'
+isNumber s = == (getType s) 'number'
 
 ######################
 # STRING TYPE CHECKS
 ######################
 
-strAsc string = _strAsc (assertType 'strAsc string' '*string' string)
-strChr ascii = _strChr (assertType 'strChr string' '*number' ascii)
+strAsc string = _strAsc (assertType 'strAsc string' 'string' string)
+strChr ascii = _strChr (assertType 'strChr string' 'number' ascii)
 strAt string index = _strAt
-  assertType 'strAt string' '*string' string
-  assertType 'strAt index' '*number' index
+  assertType 'strAt string' 'string' string
+  assertType 'strAt index' 'number' index
 strStartsWith string prefix = _strStartsWith
-  assertType 'strStartsWith string' '*string' string
-  assertType 'strStartsWith prefix' '*string' prefix
-strLen string = _strLen (assertType 'strLen string' '*string' string)
-strReverse string = _strReverse (assertType 'strLen string' '*string' string)
-strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' '*string' string)
-strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' '*string' string)
+  assertType 'strStartsWith string' 'string' string
+  assertType 'strStartsWith prefix' 'string' prefix
+strLen string = _strLen (assertType 'strLen string' 'string' string)
+strReverse string = _strReverse (assertType 'strLen string' 'string' string)
+strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' 'string' string)
+strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' 'string' string)
 strReplace string pat repl = _strReplace
-  assertType 'strReplace string' '*string' string
-  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
-  assertType 'strReplace repl' '*string' repl
+  assertType 'strReplace string' 'string' string
+  assert (or (hasType pat 'string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+  assertType 'strReplace repl' 'string' repl
 strSubstring str start end = _strSubstring
-  assertType 'strSubstring str' '*string' str
-  assertType 'strSubstring start' '*number' start
-  assertType 'strSubstring end' '*number' end
+  assertType 'strSubstring str' 'string' str
+  assertType 'strSubstring start' 'number' start
+  assertType 'strSubstring end' 'number' end
 strSplit str pat = _strSplit
-  assertType 'strSplit str' '*string' str
-  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+  assertType 'strSplit str' 'string' str
+  assert (or (hasType pat 'string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
 strCat list = _strCat
   assert (isList list) (strCat (cons 'strCat list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
-strAdd str1 str2 = _strAdd (assertType 'strAdd str1' '*string' str1) (assertType 'strAdd str2' '*string' str2)
+strAdd str1 str2 = _strAdd (assertType 'strAdd str1' 'string' str1) (assertType 'strAdd str2' 'string' str2)
 strMatch str pat = _strMatch
-  assertType 'strMatch str' '*string' str
-  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
-strToList str = _strToList (assertType 'strToList str' '*string' str)
+  assertType 'strMatch str' 'string' str
+  assert (or (hasType pat 'string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+strToList str = _strToList (assertType 'strToList str' 'string' str)
 strFromList list = _strFromList
   assert (isList list) (strCat (cons 'strFromList list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
-regexp str = _regexp (assertType 'regexp str' '*string' str)
+regexp str = _regexp (assertType 'regexp str' 'string' str)
 regexpFlags str flags = _regexpFlags
-  assertType 'regexp str' '*string' str
-  assertType 'regexp flags' '*string' flags
+  assertType 'regexp str' 'string' str
+  assertType 'regexp flags' 'string' flags
 jsonParse str failure success = _jsonParse
-  assertType 'jsonParse str' '*string' str
+  assertType 'jsonParse str' 'string' str
   failure
   success
 
@@ -207,7 +221,7 @@ _find predicate list = isNil list
   none
   predicate (head list) (some (head list)) (_find predicate (tail list))
 find = _find
-_contains item list = find (\el . eq el item) list (\x . true) false
+_contains list item = find (\el . eq el item) list (\x . true) false
 
 findIndex func list = idx list func 0
 idx list func pos = list
@@ -562,8 +576,8 @@ convertStringEscape char codes values =
 convertStringEscapes orig str cont = \\
   res = _convertStringEscapes orig str
   .
-  hasType res parseErr
-    parseErr
+  hasType res err
+    res
     cont res
 
 _convertStringEscapes orig str =
@@ -573,7 +587,7 @@ _convertStringEscapes orig str =
         \\
           rest = _convertStringEscapes orig (strSubstring str 2 0)
           .
-          hasType rest parseErr
+          hasType rest err
             rest
             strAdd
               convertStringEscape (strAt str 1) backslashCodes backslashValues
@@ -581,7 +595,7 @@ _convertStringEscapes orig str =
       \\
         rest = _convertStringEscapes orig (strSubstring str 1 0)
         .
-        hasType rest parseErr
+        hasType rest err
           rest
           strAdd
             strAt str 0
@@ -595,7 +609,7 @@ createLitOrRef token names = \\
   tok = tokenString token
   tokRange = (fileposList (position token))
   .
-  _contains tok names
+  _contains names tok
     ref tok tokRange
     or (strStartsWith tok '\"') (strStartsWith tok "'")
       parseString tok \str . lit str tokRange
@@ -641,7 +655,7 @@ createApply inList names = withStripped inList \list .
 blockStarts = cons '\\' (cons '\\\\' (cons '\\@' nil))
 
 chainApply func list names = withCons list func \argItem rest .
-  and (isToken argItem) (_contains (tokenString argItem) blockStarts)
+  and (isToken argItem) (_contains blockStarts (tokenString argItem))
     ifNotErr (createAst nil list names) \arg . apply func arg
     ifNotErr (createAst nil argItem names) \arg . chainApply (apply func arg) rest names
 
@@ -698,7 +712,7 @@ countedScanLineG lineStarts str pat groups props onDef onExpr = \\
   groupToks = _foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
   .
   # check if it's a definition
-  find (\tok . or (_contains (tokenString tok) groupToks) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
+  find (\tok . or (_contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\r?\n'))) toks (\item . isTokenString item '=') false
     toks \name rest . \\
       parseIt func = \\
         parsed = parseToks (checkSetDataType func rest name) groups
@@ -743,7 +757,6 @@ createDef def name arity src props = \\
   .
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
-      #cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (spliceFuncProps arity props def) nil))))))))
       cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))
 
 spliceFuncProps arity props ast = or (isNil props) (== arity 0)
@@ -867,7 +880,7 @@ runParseFilters filters line = filters
 
 isBlockStart tok = and
   or (isToken tok) (isString tok)
-  _contains (strTokenString tok) blockStarts
+  _contains blockStarts (strTokenString tok)
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
@@ -949,7 +962,7 @@ delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\r?\\n *#[^\\r\\n
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
 addToken del = primBind (getValue 'tokenList')
-  \dels . _contains del dels
+  \dels . _contains dels del
     false
     \\
       newDels = insertSorted (\a b . > (strLen a) (strLen b)) del dels
@@ -1071,7 +1084,6 @@ resultOfRun wrapped result =
       left (errMsg result)
       right result
 
-#astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast
 astFileWrap file ast = anno 'filename' (basename file) ast
 
 basename file = strReplace file (regexp '^(.*/)?([^/]+)$') '$2'
@@ -1122,7 +1134,7 @@ load file = primBind (baseLoad file)
       left errs
 
 require file = primBind (getValue 'requiredFiles')
-  \files . _contains file files
+  \files . _contains files file
     right false
     primBind (setValue 'requiredFiles' (cons file files))
       \_. primBind (load file)

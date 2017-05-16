@@ -48,6 +48,7 @@ Evaulation support for Leisure
         SourceMapConsumer
         SourceMapGenerator
         genMap
+        CodeGenerator
         withFile
       } = Gen
       {
@@ -184,27 +185,36 @@ Evaulation support for Leisure
         env.genBlock = (block, cont)-> @generateCode blockSource(block), true, cont
         env.executeBlock = (block, cont)-> runWithPromiseCont ((c)=> @genBlock block, c), cont
         env.generateCode = (text, noFunc, cont)-> setLounge this, =>
+          fileName = currentGeneratedFileName()
           exec = =>
+            env.fileName = fileName
+            defineSourceFile fileName, text
             leisureExec this, text, L_nil, ((result)->
+              env.fileName = null
               errs = []
               results = []
               #asts = _.map result.toArray(), (el)-> el.head()
               asts = _.map result.toArray(), (el)->
                 result = getRight el.tail()
-                if result instanceof Error then errs.push err
+                if result instanceof Error then errs.push result
                 else if cont then results.push result
                 el.head()
               if errs.length then throw new Error _.map(errs, (el)-> el.message).join('\n')
-              else withFile (fileName = currentGeneratedFileName()), null, ->
+              else withFile fileName, null, ->
                 cont? results
-                codeMap new SourceNode(1, 0, fileName, [
+                code = for item in asts
+                  gen = new CodeGenerator(fileName, false, true)
+                  node = gen.genNode item
+                  sourceNode item, 'function(){return ', node, ';}'
+                node = new SourceNode 1, 0, fileName, [
+                  '"use strict";\n',
                   (if !noFunc then '(function(cont){return ' else []),
                   'L_runMonads([\n    ',
-                  intersperse(_.map(asts, (item)-> sourceNode item, 'function(){return ', (genMap item), '}'), ',\n    '),
-                  #'\n  ])'
+                  intersperse(code, ',\n    '),
                   (if !noFunc then '\n  ], null, cont)' else '\n  ])'),
                   (if !noFunc then ';})' else [])
-                ]), text, fileName), (err)-> throw err
+                ]
+                codeMap node, text, fileName, true), (err)-> throw err
           if getLeisurePromise().isResolved() then exec() else getLeisurePromise().then exec
         env.compileBlock = (block)->
           p = @generateCode blockSource(block)
@@ -238,10 +248,11 @@ Evaulation support for Leisure
         else if codeObject.map? then jsCodeFor codeObject
         else codeObject.code
 
-      codeMap = (sourceNode, content, fileName)->
+      codeMap = (sourceNode, content, fileName, tagContext)->
         fileName = fileName ? currentGeneratedFileName()
         cm = sourceNode.toStringWithSourceMap(file: fileName)
         cm.map.setSourceContent fileName, content
+        if tagContext then cm.useContext = true
         cm
 
       sourceNodeFromCodeMap = (codeMap)-> SourceNode.fromStringWithSourceMap codeMap.code, new SourceMapConsumer codeMap.map.toJSON()
@@ -741,6 +752,9 @@ Evaulation support for Leisure
             return str.length
           pos = newPos + 1
         Math.min str.length, pos + 1 + column
+
+      defineSourceFile = (fileName, contents)->
+        eval jsCodeFor codeMap new SourceNode(1, 0, fileName, 'void(0)'), contents, fileName, true
 
       Object.assign Leisure, {
         evalLeisure

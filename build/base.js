@@ -147,8 +147,6 @@ misrepresented as being the original software.
     statFile = function(fileName, cont) {
       return defaultEnv.statFile(fileName, cont);
     };
-    root.trackCreation = false;
-    root.trackVars = true;
     funcInfo = function(func) {
       var callInfo, info;
       if (func.leisureInfoNew) {
@@ -212,7 +210,7 @@ misrepresented as being the original software.
         return function() {
           var args;
           args = 1 <= arguments.length ? slice1.call(arguments, 0) : [];
-          return baseLeisureCall(f, 0, args);
+          return baseLeisureCall(f, 0, args, f.length);
         };
       }
     };

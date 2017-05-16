@@ -23,7 +23,8 @@ misrepresented as being the original software.
 ###
 
 'use strict'
-define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird)->
+define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird', 'browser-source-map-support'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird)->
+  SourceMapSupport?.install()
   {
     readFile,
     statFile,
@@ -60,6 +61,11 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     isPartial
     partialCall
     leisureFunctionNamed
+    LeisureObject
+    classNameForType
+    classForType
+    types
+    declareTypeFunc
   } = Ast
   {
     Map
@@ -77,6 +83,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   lz = lazy
   lc = Leisure_call
   gensymCounter = 0
+  functionInfo = (window ? global).LeisureFunctionInfo
   #(window ? global).L_PROMISE_MONAD = true
 
 #########
@@ -105,6 +112,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     Object.defineProperty f, 'memo', set: ->
     f
 
+  argNames = (func)->
+    arg.trim() for arg in Function.prototype.toString.call(func).match(/\(([^)]*)\)/)[1].split ','
+
 ############
 # LOGIC
 ############
@@ -124,8 +134,18 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     define 'eq', (a, b)-> checkPartial(L_eq, arguments) || booleanFor rz(a) == rz(b)
     define '==', (a, b)-> checkPartial(L_$p$p, arguments) || booleanFor rz(a) == rz(b)
     define '!=', (a, b)-> checkPartial(L_$k$p, arguments) || booleanFor rz(a) != rz(b)
-    define 'hasType', (data, func)-> checkPartial(L_hasType, arguments) ||(if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
-    else booleanFor getType(rz data) == getDataType(rz func))
+    define 'hasType', (data, func)-> checkPartial(L_hasType, arguments) ||(
+      typeName = rz func
+      if typeof typeName != 'string'
+        hadFunc = true
+        typeName = getDataType(rz func)
+      booleanFor if typeName in ['string','number'] then typeof rz(data) == typeName
+      else
+        type = if typeName[0] == '*' then (window ? global)[typeName.substring 1] else types[typeName]
+        if !type
+          if !hadFunc then console.log new Error "Warning, undeclared type #{typeName}, doing simple string compare"
+          getType(rz data) == typeName
+        else rz(data) instanceof type)
     define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
     # using arity makes compiling parseAst.lsr crash
     define 'assert', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
@@ -179,7 +199,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     makeSyncMonad (env, cont)->
       cont (Math.floor(rz(low) + Math.random() * rz(high)))
   define '^', (x, y)-> checkPartial(L_$i, arguments) || Math.pow(rz(x), rz(y))
-  define 'number', (n)-> Number n
+  define 'number', setDataType ((n)-> Number n), 'number'
 
 ############
 # STRINGS
@@ -310,9 +330,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 # so people won't accidentally fire off side effects
   makeMonad = (guts)->
     m = -> throw new Error "ILLEGAL CALL TO MONAD FUNCTION!"
-    m.__proto__ = Monad.prototype
+    m.__proto__ = io.prototype
     m.cmd = guts
-    m.type = 'monad'
+    m.type = 'io'
     m
 
   makeSyncMonad = (guts)->
@@ -349,7 +369,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     env = env ? root.defaultEnv
     withSyncModeDo true, -> newRunMonad monad, env, cont, []
 
-  isMonad = (m)-> typeof m == 'function' && m.cmd?
+  isIO = (v)-> typeof v == 'function' && v.cmd?
 
   continueMonads = (contStack, env)->
     (result)-> withSyncModeDo false, -> newRunMonad result, env, null, contStack
@@ -370,7 +390,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
         #monad = L_asIO?()(lz monad) ? monad
         if monad instanceof Monad2
           return runMonad2 monad, env, continueMonads(contStack, env), []
-        else if isMonad monad
+        else if isIO monad
           if monad.binding
             do (bnd = monad.binding)-> contStack.push (x)-> rz(bnd) lz x
             monad = rz monad.monad
@@ -396,14 +416,16 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     func = contStack.pop()
     val = lz value
     tmp = L_bind()(val)(lz func)
-    if isMonad(tmp) && (tmp.monad == val || tmp.monad == value)
+    if isIO(tmp) && (tmp.monad == val || tmp.monad == value)
       console.log "peeling bind"
       func value
     else tmp
-    #if isMonad(tmp) && tmp?.binding? then func value else tmp
+    #if isIO(tmp) && tmp?.binding? then func value else tmp
 
-  class Monad
+  class io extends LeisureObject
     toString: -> "Monad: #{@cmd.toString()}"
+
+  declareTypeFunc 'io', io
 
   (global ? window).L_runMonads = (array, env, cont)->
     runMonad2 array.slice().reverse().reduce((result, element)->
@@ -417,7 +439,6 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   _unit = mkProto Leisure_unit, setType ((_x)-> rz(_x)), 'unit'
 
   define 'define', (name, arity, src, def)-> checkPartial(L_define, arguments) ||
-    #console.log "DEFINE: #{name}"
     makeSyncMonad (env, cont)->
       nakedDefine rz(name), def, rz(arity), rz(src)
       cont _unit
@@ -450,20 +471,20 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
         catch err
           dumpMonadStack err, env
           throw err
-      else if isMonad monad
+      else if isIO monad
         #console.log "OLD MONAD: #{monad}"
         monad.cmd(env, cont)
       else cont monad
   else if (window ? global).L_PROMISE_MONAD
     (window ? global).runMonad2 = runMonad2 = (monad, env, cont)->
       if monad instanceof Monad2 then new window.Promise((resolve, reject)-> monad.cmd(env, resolve)).then cont
-      else if isMonad monad
+      else if isIO monad
         #console.log "OLD MONAD: #{monad}"
         monad.cmd(env, cont)
       else cont monad
   else
     (window ? global).runMonad2 = runMonad2 = (monad, env, cont)->
-      if (monad instanceof Monad2) || isMonad monad
+      if (monad instanceof Monad2) || isIO monad
         sync = false
         promiseSucceed = null
         r = null
@@ -478,38 +499,38 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       else cont monad
 
   if global.L_DEBUG
-    class Monad2 extends Monad
-      constructor: (@name, @cmd, @cmdToString)->
+    class Monad2 extends io
+      constructor: (@mname, @cmd, @cmdToString)->
         @err = new Error()
-        if typeof @name == 'function'
+        if typeof @mname == 'function'
           @cmdToString = @cmd
-          @cmd = @name
-          @name = null
-        if !@cmdToString then @cmdToString = => (if name then "#{name}: " else '') + @cmd.toString()
+          @cmd = @mname
+          @mname = null
+        if !@cmdToString then @cmdToString = => (if name then "#{mname}: " else '') + @cmd.toString()
       stack: ->
         n = 0
         for i in [0...3]
           n = @err.stack.indexOf('\n', n) + 1
         @err.stack.substring(n, @err.stack.indexOf('\n', n)).trim().substring 3
   else
-    class Monad2 extends Monad
-      constructor: (@name, @cmd, @cmdToString)->
-        if typeof @name == 'function'
+    class Monad2 extends io
+      constructor: (@mname, @cmd, @cmdToString)->
+        if typeof @mname == 'function'
           @cmdToString = @cmd
-          @cmd = @name
-          @name = null
-        if !@cmdToString then @cmdToString = => (if @name then "#{@name}: " else '') + @cmd.toString()
+          @cmd = @mname
+          @mname = null
+        if !@cmdToString then @cmdToString = => (if @mname then "#{@mname}: " else '') + @cmd.toString()
 
   Monad2::toString = -> "Monad2: #{@cmdToString()}"
 
-  class Monad3 extends Monad
-    constructor: (@name, @cmd, @cmdToString)->
+  class Monad3 extends io
+    constructor: (@mname, @cmd, @cmdToString)->
       @err = new Error()
-      if typeof @name == 'function'
+      if typeof @mname == 'function'
         @cmdToString = @cmd
-        @cmd = @name
-        @name = null
-        if !@cmdToString then @cmdToString = => (if name then "#{name}: " else '') + @cmd.toString()
+        @cmd = @mname
+        @mname = null
+        if !@cmdToString then @cmdToString = => (if name then "#{mname}: " else '') + @cmd.toString()
 
   Monad3::toString = -> "Monad3: #{@cmdToString()}"
 
@@ -517,12 +538,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     if global.L_DEBUG && !err.L_LOGGED && env.monadStack
       err.L_LOGGED = true
       console.log 'ERROR IN MONAD, STACK...'
-      (console.log "#{n.name}: #{n.stack()}") for n in env.monadStack
+      (console.log "#{n.mname}: #{n.stack()}") for n in env.monadStack
       console.log()
 
-  define 'isMonad', (m)->
+  define 'isIO', (m)->
     val = rz(m)
-    if isMonad(val) || val instanceof Monad2 || val instanceof Monad3 then _true else _false
+    if isIO(val) || val instanceof Monad2 || val instanceof Monad3 then _true else _false
 
   define 'dumpStack', new Monad2 (env, cont)->
     e = new Error()
@@ -712,6 +733,57 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       cont _unit
 
 #######################
+# type cases
+#######################
+
+  define '_defTypeCase', (funcName, type, func)-> checkPartial(L__defTypeCase, arguments) || (
+    funcName = rz funcName
+    type = rz type
+    func = rz func
+    n = "L_#{nameSub funcName}"
+    oldDef = functionInfo[funcName]?.mainDef ? global[n]
+    #if oldDef && func.length != oldDef.length
+    #  throw new Error "Attempt to define a type case with different arity than the base"
+    if !cl = classForType type
+      throw new Error "Attempt to define a type case for a nonexistent type: #{type}"
+    if !LeisureObject.prototype[n]
+      args = argNames oldDef ? func
+      code = """
+        (resolve(#{args[0]}).#{n} || LeisureObject.prototype.#{n}).apply(null, arguments)
+      """
+      dispatch = """
+        "use strict";
+        (function(#{args.join ', '}) {
+          return #{code};
+        })
+      """
+      dispFunc = lz eval dispatch
+      if !global[n] then nakedDefine funcName, dispFunc, args.length, dispatch
+      else
+        global[n] = global.leisureFuncs[n] = functionInfo[funcName].mainDef = dispFunc
+        dispFunc.leisureLength = args.length
+        if functionInfo[funcName].altList.length then buildAdvisedFunc funcName
+      LeisureObject.prototype[n] = oldDef
+    cl.prototype[n] = func
+    _unit)
+
+  define '_declareType', (subtype, supertype)-> checkPartial(L__declareType, arguments) || (
+    subtype = rz subtype
+    supertype = rz supertype
+    nilSupertype = supertype == 0
+    if !nilSupertype && !supercl = classForType supertype
+      throw new Error "Attempt to extend a nonexistant type: #{supertype}"
+    if subcl = classForType subtype
+      if supercl && subcl.prototype.__proto__ != supercl.prototype
+        subcl.prototype.__proto__ = supercl.prototype
+    else
+      subcl = ensureLeisureClass subtype, !nilSupertype && supertype
+      #if supercl
+      #  subcl.prototype = Object.create(supercl.prototype)
+      #  subcl.prototype.constructor = subcl
+    _unit)
+
+#######################
 # IO
 #######################
 
@@ -796,7 +868,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'js', (str)->
     makeSyncMonad (env, cont)-> (Leisure.setLounge ? (e, cont)-> cont()) env, ->
       try
-        cont right leisurify eval rz str
+        cont right leisurify eval rz '"use strict";\n' + str
       catch err
         cont left err
 
@@ -811,10 +883,13 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   nFunction = (nArgs, def)->
     (eval """
       (function (def) {
-        var f = function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
+        return function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
           return checkPartial(f, arguments) || def.apply(null, arguments);
         };
-        return f;
+        //var f = function (#{("arg#{i}" for i in [0...nArgs]).join ', '}) {
+        //  return checkPartial(f, arguments) || def.apply(null, arguments);
+        //};
+        //return f;
       })
     """) def
 
@@ -838,15 +913,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 ##################
 
 # later advice overrides earlier advice
-  advise = (name, alt, arity, def)->
+  buildAdvisedFunc = (name)->
     info = functionInfo[name]
-    if !info then info = functionInfo[name] =
-      src: ''
-      arity: -1
-      alts: {}
-      altList: []
-    if !info.alts[alt] then info.altList.push alt
-    info.alts[alt] = def
     alts = (info.alts[i] for i in info.altList)
     alts.reverse()
     nm = "L_#{nameSub name}"
@@ -867,6 +935,17 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     LeisureFunctionInfo.def = newDef
     newDef.leisureName = name
     global[nm] = global.leisureFuncNames[nm] = lz newDef
+
+  advise = (name, alt, arity, def)->
+    info = functionInfo[name]
+    if !info then info = functionInfo[name] =
+      src: ''
+      arity: -1
+      alts: {}
+      altList: []
+    if !info.alts[alt] then info.altList.push alt
+    info.alts[alt] = def
+    buildAdvisedFunc name
     def
 
   define 'advise', (name, alt, arity, def)-> checkPartial(L_advise, arguments) ||
@@ -915,16 +994,16 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   makeMap = (map)->
     h = (f)-> f(-> mapFirst map)(-> mapRest map)
     h.map = map
+    setType h, 'hamt'
     h.leisureType = 'hamt'
     h
 
   hamt = makeMap Map()
-  hamt.leisureDataType = 'hamt'
+  setDataType hamt, 'hamt'
 
   define 'hamt', hamt
   
-  define 'mapSize', (map)-> checkPartial(L_mapSize, arguments) ||
-    rz(map).map.size
+  define 'mapSize', (map)-> rz(map).map.size
 
   define 'mapSet', (key, value, map)-> checkPartial(L_mapSet, arguments) ||
     makeMap rz(map).map.set rz(key), rz(value)
@@ -940,8 +1019,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     makeMap rz(map).map.remove rz(key)
 
   mapFirst = (map)->
-    key = map.reverse().keySeq().first()
-    rz(L_cons)(lz key)(lz map.get key)
+    entry = map.entrySeq().last()
+    rz(L_cons) lz(entry[0]), lz(entry[1])
 
   define 'mapFirst', (map)-> mapFirst rz(map).map
 
@@ -967,11 +1046,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   makeSet = (set)->
     s = (f)-> f(-> set.first())(-> setRest set)
     s.set = set
+    setType s, 'amtSet'
     s.leisureType = 'amtSet'
     s
 
   amtSet = makeSet Set()
-  amtSet.leisureDataType = 'amtSet'
+  setDataType amtSet, 'amtSet'
 
   define 'amtSet', amtSet
 
@@ -1012,11 +1092,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   makeVector = (vec)->
     v = (f)-> f(-> vec.first())(-> vectorRest vec)
     v.vector = vec
+    setType v, 'vector'
     v.leisureType = 'vector'
     v
 
   vector = makeVector List()
-  vector.leisureDataType = 'vector'
+  setDataType vector, 'vector'
 
   define 'vector', vector
 
@@ -1038,7 +1119,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     makeVector rz(vec).vector.unshift rz value
 
   define 'vectorConcat', (vecA, vecB)-> checkPartial(L_vectorConcat, arguments) ||
-    makeSet rz(vecA).vector.concat rz(vecB).vector
+    makeVector rz(vecA).vector.concat rz(vecB).vector
 
   define 'vectorItems', (vec)-> nextVectorItem rz(vec).vector
 
@@ -1199,19 +1280,16 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'funcInfo', (f)-> funcInfo rz f
 
   define 'funcName', (f)-> if rz(f).leisureName then some rz(f).leisureName else none
-
-  define 'trackCreation', (flag)->
-    makeSyncMonad (env, cont)->
-      root.trackCreation = rz(flag)(lz true)(lz false)
-      cont _unit
-  define 'trackVars', (flag)->
-    makeSyncMonad (env, cont)->
-      root.trackVars = rz(flag)(lz true)(lz false)
-      cont _unit
-
+  
   define 'getFunction', (name)->
     f = rz global['L_' + (nameSub rz name)]
     if f then some f else none
+
+  define 'isType', (f)->
+    f = rz f
+    booleanFor (typeof f == 'function' && (f.typeFunction || f.dataType))
+
+  define 'typeName', (f)-> rz(f).leisureName
 
 #######################
 # Exports
@@ -1236,7 +1314,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     runMonad
     runMonad2
     newRunMonad
-    isMonad
+    isIO
     Monad2
     identity
     setValue

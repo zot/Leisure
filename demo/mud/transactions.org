@@ -1,37 +1,61 @@
 #+TITLE: Data access
 * Scratch
-#+BEGIN_SRC leisure :results dynamic
-#simplify '`+ ~(first list) ~(second list)'
-defMacro 'pl' \list . `(+ ~(first list) ~(second list))
-defMacro 'a' \list . do
-  list = stripParens list
-  `(~@(first list) ~@(second list))
-simplify 'pl 2 3'
-#simplify '3 + 4'
-pl 2 33
-simplify 'a [1 2 3] [4 5 6]'
-a [1 2 33] [4 5 6]
-x = [1 2 3]
-y = [4 5 6]
-#c = 4
-#`~@x ~@y
+#+BEGIN_SRC leisure :results def
+#transaction set['a'] map{'b':'c'} set['d'] set['e'] map{'f':'g'} dl[]
+floop x = 'floop'
+a x = \f . f x
+b x = \f . f x
+declareType a
+declareType b a
+defTypeCase floop.b x -> x id
+defTypeCase floop.a anA -> (anA id) + 1
+#+END_SRC
+
+
+#+BEGIN_SRC leisure
+defTypeCase toJson.transaction ->
+  tr \c r u d data errs .
+    toJsonObject {
+      'type':'transaction'
+      'creates':(toJson c)
+      'reads':(toJson r)
+      'updates':(toJson u)
+      'deletes':(toJson d)
+      'errs':(toJson errs)}
+
+
+
 #+END_SRC
 #+RESULTS:
-: 
-: 
-: ["+" "2" "3"]
-: 35
-: ["cons" "1" ["cons" "2" ["cons" "3" "nil"]]]
-: [1 2 33]
-: 
-: 
+: unit
 
+#+BEGIN_SRC leisure
+#equal [1] [1]
+#tolist set[1 2]
+#hasType 'hello' string
+#equal 1 1
+#conj [1] 2
+debugX present cons
 
-* Page maxes out memory if left for too long when there's a major stack trace
-* Or something
-* 
+#+END_SRC
+#+RESULTS:
+: function (L_a, L_b) {\n    return L_checkPartial(L_$F, arguments) || setType((function(){\n  var L_$F = (function(L_f){return resolve(L_f)(L_a)(L_b)});\n  L_$F.leisureFunctionId = 815;\n  L_$F.leisureLength = L_$F.length;\n  return L_$F;\n})(), 'cons');\n  }
+
+* Tests
+#+BEGIN_SRC leisure :results def
+#testTr1 = transaction
+  set[]
+  map{}
+  set[]
+  set[]
+  map{}
+  dl[]
+#+END_SRC
+
 * Transaction Objects
 #+BEGIN_SRC leisure :results def
+declareType transaction
+ 
 transaction creates reads updates deletes data errors = \f .
   f creates reads updates deletes data errors
 
@@ -62,14 +86,14 @@ trSetData data tr = tr \c r u d data errs .
 
 nlist l = s['[' (join (tolist l) ' ') ']']
 
-defCase showBase.transaction func obj | isTransaction obj ->
+defTypeCase showBase.transaction obj func ->
   (trEmpty obj) '(transaction)'
     obj \c r u d data errs . do
       r = map head (tolist r)
       s = s['(transaction ' (nlist c) ' ' (nlist r) ' ' (nlist u) ' ' (nlist d)]
-      s[s ((empty errs) '' s[' ' (showBase func (tolist errs))]) ')']
+      s[s ((empty errs) '' s[' ' (showBase tolist (func errs))]) ')']
 
-defCase toJson.transaction tr | isTransaction tr ->
+defTypeCase toJson.transaction tr ->
   tr \c r u d data errs .
     toJsonObject {
       'type':'transaction'
