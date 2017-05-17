@@ -26,11 +26,12 @@ misrepresented as being the original software.
 define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support', 'lib/js-yaml'], (Base, Ast, Runtime, _, SourceMap, SourceMapSupport, Yaml)->
   SourceMapSupport?.install()
   {
-    simpyCons,
-    resolve,
-    lazy,
-    verboseMsg,
-    nsLog,
+    simpyCons
+    resolve
+    lazy
+    verboseMsg
+    nsLog
+    isResolved
   } = Base
   {
     dump
@@ -39,33 +40,33 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
   lz = lazy
   lc = Leisure_call
   {
-    nameSub,
-    getLitVal,
-    getRefName,
-    getLambdaVar,
-    getLambdaBody,
-    getApplyFunc,
-    getApplyArg,
-    getAnnoName,
-    getAnnoData,
-    getAnnoBody,
-    getLetName,
-    getLetValue,
-    getLetBody,
-    Leisure_lit,
-    Leisure_ref,
-    Leisure_lambda,
-    Leisure_apply,
-    Leisure_let,
-    Leisure_anno,
-    setType,
-    setDataType,
-    cons,
-    Nil,
-    define,
-    functionInfo,
-    getPos,
-    isNil,
+    nameSub
+    getLitVal
+    getRefName
+    getLambdaVar
+    getLambdaBody
+    getApplyFunc
+    getApplyArg
+    getAnnoName
+    getAnnoData
+    getAnnoBody
+    getLetName
+    getLetValue
+    getLetBody
+    Leisure_lit
+    Leisure_ref
+    Leisure_lambda
+    Leisure_apply
+    Leisure_let
+    Leisure_anno
+    setType
+    setDataType
+    cons
+    Nil
+    define
+    functionInfo
+    getPos
+    isNil
     getType
     ast2Json
     rangeToJson
@@ -336,18 +337,19 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       else if d instanceof Leisure_lambda then sn arg, 'lazy(', (@genUniq arg, names, uniq), ')'
       else lazify arg, (@genUniq arg, names, uniq)
     genLetAssign: (arg, names, uniq)->
-      if dumpAnno(arg) instanceof Leisure_let then lazify arg, (@genLets arg, names, uniq)
-      else lazify arg, (@genUniq arg, names, uniq)
+      lazify arg, (@genUniq arg, names, uniq)
     genLets: (ast, names, uniq)->
       bindings = letList ast, []
       letNames = _.reduce bindings, ((n, l)-> cons (getLetName l), n), names
-      [letUniq, decs, assigns] = _.reduce bindings, ((result, l)=>
-        [u, code, assigns] = result
-        newU = addUniq (getLetName l), letNames, u
+      [letUniq, decs, assigns, ln] = _.reduce bindings, ((result, l)=>
+        [u, code, assigns, ln] = result
+        newU = addUniq (getLetName l), ln, u
         letName = uniqName (getLetName l), newU
+        newNames = cons (getLetName l), ln
         [newU,
-          (cons (sn ast, letName + ' = ', @genLetAssign(getLetValue(l), letNames, u)), code),
-          (cons letName, assigns)]), [uniq, Nil, Nil]
+          (cons (sn ast, letName + ' = ', @genLetAssign(getLetValue(l), newNames, u)), code),
+          (cons letName, assigns),
+          newNames]), [uniq, Nil, Nil, names]
       sn ast, "  var ", assigns.reverse().join(', '), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", (@genUniq (getLastLetBody ast), letNames, letUniq)
 
   wrapContext = (node, fileName)->

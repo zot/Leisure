@@ -36,7 +36,7 @@ misrepresented as being the original software.
   files = !(typeof window !== "undefined" && window !== null ? window : global).btoa ? ['btoa'] : [null];
 
   define(files, function(btoa) {
-    var CodeContext, SimpyCons, baseLeisureCall, concat, defaultEnv, errors, funcInfo, genInfo, leisureCall, primConsFrom, readDir, readFile, ref, root, rz, serverIncrement, simpyCons, slice, statFile, test, testCount, verboseMsg, writeFile;
+    var CodeContext, SimpyCons, baseLeisureCall, concat, defaultEnv, errors, funcInfo, genInfo, isResolved, leisureCall, primConsFrom, readDir, readFile, ref, root, rz, serverIncrement, simpyCons, slice, statFile, test, testCount, verboseMsg, writeFile;
     if (!btoa) {
       btoa = (typeof window !== "undefined" && window !== null ? window : global).btoa;
     }
@@ -127,6 +127,9 @@ misrepresented as being the original software.
       } else {
         return value;
       }
+    };
+    isResolved = function(value) {
+      return typeof value !== 'function' || value.memo;
     };
     (typeof window !== "undefined" && window !== null ? window : global).lazy = function(l) {
       if (typeof l === 'function') {
@@ -383,6 +386,7 @@ misrepresented as being the original software.
     root.minInt = -root.maxInt;
     root.funcInfo = funcInfo;
     root.CodeContext = CodeContext;
+    root.isResolved = isResolved;
     return root;
   });
 

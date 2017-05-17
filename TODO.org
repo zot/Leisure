@@ -1,3 +1,4 @@
+* TODO [#A] Vele character sheet computer
 * TODO [#A] convert rest of defCases to defTypeCase (bind is problematic)
 * TODO [#A] Leisure impl of defCase, defTypeCase, etc.
 * TODO [#A] Need a way to access sourcemaps
