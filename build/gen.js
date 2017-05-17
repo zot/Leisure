@@ -29,11 +29,11 @@ misrepresented as being the original software.
   var slice = [].slice;
 
   define(['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support', 'lib/js-yaml'], function(Base, Ast, Runtime, _, SourceMap, SourceMapSupport, Yaml) {
-    var CodeGenerator, Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceMapGenerator, SourceNode, ThunkStack, USE_STRICT, _false, _true, _unit, addLambdaProperties, addUniq, arrayify, assocListProps, ast2Json, booleanFor, check, checkChild, codeNum, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dump, dumpAnno, dumpMonadStack, findName, functionId, functionInfo, gen, genMap, genPushThunk, genSource, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, jsCodeFor, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, rangeToJson, ref1, ref2, resolve, reverseThunks, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, stackSize, trace, uniqName, useArity, useThunkStacks, varNameSub, verboseMsg, withFile, wrapContext;
+    var CodeGenerator, Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceMapGenerator, SourceNode, ThunkStack, USE_STRICT, _false, _true, _unit, addLambdaProperties, addUniq, arrayify, assocListProps, ast2Json, booleanFor, check, checkChild, codeNum, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dump, dumpAnno, dumpMonadStack, findName, functionId, functionInfo, gen, genMap, genPushThunk, genSource, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, isResolved, jsCodeFor, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, rangeToJson, ref1, ref2, resolve, reverseThunks, right, root, rz, setDataType, setMegaArity, setType, simpyCons, sn, specialAnnotations, stackSize, trace, uniqName, useArity, useThunkStacks, varNameSub, verboseMsg, withFile, wrapContext;
     if (SourceMapSupport != null) {
       SourceMapSupport.install();
     }
-    simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog;
+    simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog, isResolved = Base.isResolved;
     dump = Yaml.dump;
     rz = resolve;
     lz = lazy;
@@ -406,28 +406,25 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genLetAssign = function(arg, names, uniq) {
-        if (dumpAnno(arg) instanceof Leisure_let) {
-          return lazify(arg, this.genLets(arg, names, uniq));
-        } else {
-          return lazify(arg, this.genUniq(arg, names, uniq));
-        }
+        return lazify(arg, this.genUniq(arg, names, uniq));
       };
 
       CodeGenerator.prototype.genLets = function(ast, names, uniq) {
-        var assigns, bindings, decs, letNames, letUniq, ref2;
+        var assigns, bindings, decs, letNames, letUniq, ln, ref2;
         bindings = letList(ast, []);
         letNames = _.reduce(bindings, (function(n, l) {
           return cons(getLetName(l), n);
         }), names);
         ref2 = _.reduce(bindings, ((function(_this) {
           return function(result, l) {
-            var assigns, code, letName, newU, u;
-            u = result[0], code = result[1], assigns = result[2];
-            newU = addUniq(getLetName(l), letNames, u);
+            var assigns, code, letName, ln, newNames, newU, u;
+            u = result[0], code = result[1], assigns = result[2], ln = result[3];
+            newU = addUniq(getLetName(l), ln, u);
             letName = uniqName(getLetName(l), newU);
-            return [newU, cons(sn(ast, letName + ' = ', _this.genLetAssign(getLetValue(l), letNames, u)), code), cons(letName, assigns)];
+            newNames = cons(getLetName(l), ln);
+            return [newU, cons(sn(ast, letName + ' = ', _this.genLetAssign(getLetValue(l), newNames, u)), code), cons(letName, assigns), newNames];
           };
-        })(this)), [uniq, Nil, Nil]), letUniq = ref2[0], decs = ref2[1], assigns = ref2[2];
+        })(this)), [uniq, Nil, Nil, names]), letUniq = ref2[0], decs = ref2[1], assigns = ref2[2], ln = ref2[3];
         return sn(ast, "  var ", assigns.reverse().join(', '), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", this.genUniq(getLastLetBody(ast), letNames, letUniq));
       };
 

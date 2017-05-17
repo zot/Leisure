@@ -65,6 +65,7 @@ _declareType 'vector' 'sequence'
 _declareType 'fold' 0
 _declareType 'flatWrapper' 0
 _declareType 'wrapped' 0
+_declareType 'wrappedRun' 0
 _declareType 'html' 0
 
 ########################
@@ -633,7 +634,6 @@ showBase obj func = func obj
 
 defTypeCase showBase.unit obj func -> ''
 defTypeCase showBase.some obj func -> s["(some " (showBase (obj id false) func) ")"]
-defTypeCase showBase.some2 obj func -> obj \a b . concat["(some2 " (showBase a func) ' ' (showBase b func) ")"]
 defTypeCase showBase.err obj func -> s["(err " (obj id) ")"]
 defTypeCase showBase.token obj func -> obj \str pos .
   isFilepos pos
@@ -734,17 +734,17 @@ defMacro 'wrap' \list . ['wrapped' list]
 
 defTypeCase showBase.wrapped v func -> s['(wrap ' (showBase (v id) func) ')']
 
-defCase bind.wrapped v cont | hasType v wrapped -> cont (v id)
+defTypeCase bind.wrapped v cont -> cont (v id)
 
-defCase bind.bool bool cont | or (bool == true) (bool == false) -> bool
+defTypeCase bind.boolean bool cont -> bool
   cont true
   false
 
-defCase bind.option opt cont | isOption opt -> log "USING OPTION BIND" opt
+defTypeCase bind.option opt cont -> opt
   \value . cont value
   none
 
-defCase bind.either either cont | isEither either -> either
+defTypeCase bind.either either cont -> either
   \_ . either
   \value . cont value
 
@@ -756,11 +756,11 @@ flatWrapper m = \f . f m
 
 defTypeCase showBase.flatWrapper v func -> s['(flat ' (showBase (v id) func) ')']
 
-defCase bind.flat fe cont | hasType fe flatWrapper -> monadicFlatMap cont (fe id)
+defTypeCase bind.flatWrapper fe cont -> monadicFlatMap cont (fe id)
 
-defCase bind.list l cont | isList l -> monadicMap cont l
+defTypeCase bind.list l cont -> monadicMap cont l
 
-defCase bind.differencelist l cont | isDl l -> primBind (monadicMap cont l) \l . dllist l
+defTypeCase bind.differencelist l cont -> primBind (monadicMap cont l) \l . dllist l
 
 # add 2-variable bind for alist and map?
 
@@ -768,7 +768,7 @@ fold l i = \f . f l i
 
 defTypeCase showBase.fold v func -> v \l i . s['(fold ' (showBase l func) ' ' (showBase i func) ')']
 
-defCase bind.fold fr cont | hasType fr fold -> fr \list init .
+defTypeCase bind.fold fr cont -> fr \list init .
   _foldl (\acc el . maybeBind acc \accVal . do
     ret = cont accVal el
     ret == unit
@@ -791,7 +791,7 @@ maybeBind item cont = isIO item
 
 check condition elseResult = condition true elseResult
 
-defCase bind.err err cont | isErr err -> err
+defTypeCase bind.err err cont -> err
 
 #######################
 ## running
@@ -801,7 +801,7 @@ defMacro 'run' \list . ['wrappedRun' list]
 
 wrappedRun m = \f . f m
 
-defCase bind.wrappedRun m cont | hasType m wrappedRun -> bind (m id) \x . bind x cont
+defTypeCase bind.wrappedRun m cont -> bind (m id) \x . bind x cont
 
 #######################
 ## pre/postconditions

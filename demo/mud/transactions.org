@@ -13,33 +13,47 @@ defTypeCase floop.a anA -> (anA id) + 1
 
 
 #+BEGIN_SRC leisure
-defTypeCase toJson.transaction ->
-  tr \c r u d data errs .
-    toJsonObject {
-      'type':'transaction'
-      'creates':(toJson c)
-      'reads':(toJson r)
-      'updates':(toJson u)
-      'deletes':(toJson d)
-      'errs':(toJson errs)}
+#defTypeCase toJson.transaction ->
+#  tr \c r u d data errs .
+#    toJsonObject {
+#      'type':'transaction'
+#      'creates':(toJson c)
+#      'reads':(toJson r)
+#      'updates':(toJson u)
+#      'deletes':(toJson d)
+#      'errs':(toJson errs)}
 
+#do
+#  x = 3
+#  \a . c x
 
+#cons 1 nil
 
+f x = do
+  a = do (a = 4) a
+  a = 3
+  b = do (a = 5) a
+  a
 #+END_SRC
 #+RESULTS:
 : unit
 
 #+BEGIN_SRC leisure
-#equal [1] [1]
-#tolist set[1 2]
-#hasType 'hello' string
-#equal 1 1
-#conj [1] 2
-debugX present cons
+tfoldr func finalValue trackFunc trackValue list = do
+  a = 1
+  subfold finalValue trackValue list = isNil list
+    finalValue
+    func (head list) (subfold finalValue (trackFunc trackValue) (tail list)) trackValue
+  b = 2
+  subfold finalValue trackValue list
+33
+tfoldr (\el rest track . el == 3 track rest) nil (1+) 0 [2 2 2 3 4 5]
 
 #+END_SRC
 #+RESULTS:
-: function (L_a, L_b) {\n    return L_checkPartial(L_$F, arguments) || setType((function(){\n  var L_$F = (function(L_f){return resolve(L_f)(L_a)(L_b)});\n  L_$F.leisureFunctionId = 815;\n  L_$F.leisureLength = L_$F.length;\n  return L_$F;\n})(), 'cons');\n  }
+: unit
+: 33
+: 3
 
 * Tests
 #+BEGIN_SRC leisure :results def

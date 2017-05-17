@@ -76,6 +76,8 @@ define files, (btoa)->
         value.memo = value()
     else value
 
+  isResolved = (value)-> typeof value != 'function' || value.memo
+
   (window ? global).lazy = (l)-> if typeof l == 'function' then l.memo = l else l
 
   readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
@@ -207,5 +209,6 @@ define files, (btoa)->
   root.minInt = -root.maxInt
   root.funcInfo = funcInfo
   root.CodeContext = CodeContext
+  root.isResolved = isResolved
 
   root
