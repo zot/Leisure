@@ -14,10 +14,10 @@ number: 2
 
 #+BEGIN_SRC leisure :results dynamic
 #currentTransaction
-set 1 + 2 -274 map{} 
+set 1 + 2 -435 map{} 
 #+END_SRC
 #+RESULTS:
-: map{3:-274}
+: map{3:-435}
 
 #+BEGIN_SRC leisure
 #defTypeCase toJson.transaction ->
