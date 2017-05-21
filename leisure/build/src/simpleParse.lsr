@@ -905,9 +905,13 @@ baseMacroSub macs expr = isToken expr
             withToken subH
               cons subH (_map (baseMacroSub macs) t)
               \tok pos . baseMacroSub macs (cons subH t)
-          \tok pos . assoc tok macs
-            \def . baseMacroSub macs (def t)
-            cons h (_map (baseMacroSub macs) t)
+          \tok pos . \\
+            def = mapGet tok macs
+            .
+            mapContains tok macs
+              baseMacroSub macs (def t)
+              cons h (_map (baseMacroSub macs) t)
+              
 
 macroSubLet macs list = list
   \h t D . isTokenString h '.'
@@ -945,7 +949,7 @@ postProcessMacro before after expr = isString expr
         expr
 
 defMacro name def = primBind (getValue 'macroDefs')
-  \macs . setValue 'macroDefs' (acons name def macs)
+  \macs . setValue 'macroDefs' (mapSet name def macs)
 
 #################
 # Token Patterns
@@ -1217,7 +1221,7 @@ testParse str = countedParseLine nil (head (countedLinesForFile 'parse' str))
 ## SETTINGS
 ############
 
-setValue 'macroDefs' nil
+setValue 'macroDefs' hamt
 setValue 'requiredFiles' nil
 setValue 'tokenPacks' nil
 setValue 'activeTokenPacks' nil

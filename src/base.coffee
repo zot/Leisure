@@ -29,9 +29,63 @@ define files, (btoa)->
   if !btoa then btoa = (window ? global).btoa
 
   root = {}
+  traceValues = []
 
   root.currentNameSpace = 'core'
   root.nameSpacePath = ['core']
+  (window ? global).Leisure_generateDebuggingCode = true
+  #(window ? global).Leisure_generateDebuggingCode = false
+  (window ? global).Leisure_traceContext = 0
+  (window ? global).Leisure_traceInstance = 0
+
+  root.useDebugging = ->
+    (window ? global).Leisure_usingDebugging = true
+    (window ? global).Leisure_traceLazyValue = (context, id, instanceId, parentInstanceId, value)->
+      if typeof value == 'function' then value.L$instanceId = instanceId
+      # tie value to AST in the log here
+      traceLog ['value', context, id, instanceId, parentInstanceId]
+      value
+    (window ? global).Leisure_traceResolve = (value)->
+      traceLog addArgs ['resolve', value.L$instanceId], value
+      value
+    (window ? global).Leisure_traceLambda = (lambda, context, id, instanceId)->
+      # tie lambda to AST in the log here
+      traceLog ['lambda', context, id, instanceId]
+    (window ? global).Leisure_traceCall = (lambda, value, args...)->
+      traceArgs = ['call', lambda.L$context, lambda.L$id]
+      traceLog addArgs traceArgs, args
+    (window ? global).Leisure_traceReturn = (lambda, result)->
+      traceArgs = ['return', lambda.L$instanceId]
+      traceLog addValue result, traceArgs
+      result
+    (window ? global).Leisure_traceTopLevel = (context)->
+
+  root.noDebugging = ->
+    (window ? global).Leisure_usingDebugging = false
+    (window ? global).Leisure_traceLazyValue = (context, id, instanceId, parentInstanceId, value)->
+      if typeof value == 'function' then value.L$instanceId = instanceId
+      value
+    (window ? global).Leisure_traceResolve = (value)-> value
+    (window ? global).Leisure_traceLambda = (lambda, context, id, parentInstanceId)->
+    (window ? global).Leisure_traceCall = (lambda)->
+    (window ? global).Leisure_traceReturn = (lambda, result)-> result
+    (window ? global).Leisure_traceTopLevel = (context)->
+
+  root.noDebugging()
+  #root.useDebugging()
+
+  traceLog = (args)-> traceValues.push args
+
+  addArgIds = (traceArgs, args)->
+    for arg in args
+      addValue arg, traceArgs
+    traceArgs
+
+  addValue = (value, traceArgs)->
+    if arg.L$id? then traceArgs.push arg.L$id
+    else if typeof arg == 'number' then traceArgs.push -1
+    else traceArgs.push arg
+    traceArgs
 
   #root.shouldNsLog = true
   root.shouldNsLog = false
@@ -60,7 +114,6 @@ define files, (btoa)->
     __proto__: CodeContext.prototype
     presentValue: (x)-> String(x)
     write: (v)-> console.log v
-    values: {}
     errorHandlers: []
     prompt: -> null
     executeText: -> null

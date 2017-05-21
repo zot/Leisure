@@ -212,9 +212,7 @@ misrepresented as being the original software.
     var ref6, ref7;
     if (root.functionCount !== oldFunctionCount) {
       oldFunctionCount = root.functionCount;
-      return leisureFunctions = global.leisureFuncNames.toArray().concat((ref6 = (ref7 = getValue('macroDefs')) != null ? ref7.map(function(x) {
-        return x.head();
-      }).toArray() : void 0) != null ? ref6 : []);
+      return leisureFunctions = global.leisureFuncNames.toArray().concat((ref6 = (ref7 = getValue('macroDefs')) != null ? ref7.map.keySeq().toArray() : void 0) != null ? ref6 : []);
     }
   };
 

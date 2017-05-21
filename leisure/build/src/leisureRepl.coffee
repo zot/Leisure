@@ -208,7 +208,7 @@ leisureFunctions = null
 updateCompleter = (rl)->
   if root.functionCount != oldFunctionCount
     oldFunctionCount = root.functionCount
-    leisureFunctions = global.leisureFuncNames.toArray().concat (getValue('macroDefs')?.map((x)->x.head()).toArray() ? [])
+    leisureFunctions = global.leisureFuncNames.toArray().concat (getValue('macroDefs')?.map.keySeq().toArray() ? [])
 
 tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
 rl = null

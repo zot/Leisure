@@ -680,28 +680,29 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'envHas', (name)->
     makeSyncMonad (env, cont)->
-      cont booleanFor env.values[rz name]?
+      cont booleanFor env.values?[rz name]?
 
   define 'envGetOr', (name, defaultValue)-> checkPartial(L_envGetOr, arguments) ||
     makeSyncMonad (env, cont)->
-      cont(env.values[rz name] ? rz(defaultValue))
+      cont(env.values?[rz name] ? rz(defaultValue))
 
   define 'envGet', (name)->
     makeSyncMonad (env, cont)->
-      cont env.values[rz name] ? _unit
+      cont env.values?[rz name] ? _unit
 
   define 'envGetOpt', (name)->
     makeSyncMonad (env, cont)->
-      cont if v = env.values[rz name] then some v else none
+      cont if (v = env.values?[rz name])? then some v else none
 
   define 'envSet', (name, value)-> checkPartial(L_envSet, arguments) ||
     makeSyncMonad (env, cont)->
+      if !env.values? then env.values = {}
       env.values[rz name] = rz(value)
       cont _unit
 
   define 'envDelete', (name)->
     makeSyncMonad (env, cont)->
-      delete env.values[rz name]
+      if env.values? then delete env.values[rz name]
       cont _unit
 
   setValue 'macros', Nil
@@ -746,15 +747,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     #  throw new Error "Attempt to define a type case with different arity than the base"
     if !cl = classForType type
       throw new Error "Attempt to define a type case for a nonexistent type: #{type}"
-    if !LeisureObject.prototype[n]
+    if !functionInfo[funcName]?.typeCase
       args = argNames oldDef ? func
-      code = """
-        (resolve(#{args[0]}).#{n} || LeisureObject.prototype.#{n}).apply(null, arguments)
-      """
       dispatch = """
         "use strict";
         (function(#{args.join ', '}) {
-          return #{code};
+          return (resolve(#{args[0]}).#{n} || LeisureObject.prototype.#{n} || function(){throw new Error("No typecase for #{funcName}." + L_getType(#{args[0]}))}).apply(null, arguments);
         })
       """
       dispFunc = lz eval dispatch
@@ -763,6 +761,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
         global[n] = global.leisureFuncs[n] = functionInfo[funcName].mainDef = dispFunc
         dispFunc.leisureLength = args.length
         if functionInfo[funcName].altList.length then buildAdvisedFunc funcName
+      functionInfo[funcName].typeCase = true
       LeisureObject.prototype[n] = oldDef
     cl.prototype[n] = func
     _unit)
@@ -1008,8 +1007,10 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'mapSet', (key, value, map)-> checkPartial(L_mapSet, arguments) ||
     makeMap rz(map).map.set rz(key), rz(value)
 
-  define 'mapGet', (key, map)-> checkPartial(L_mapGet, arguments) ||
-    rz(map).map.get rz(key)
+  define 'mapGet', (key, map)-> checkPartial(L_mapGet, arguments) || (
+    m = rz(map).map
+    k = rz(key)
+    if m.has rz(key) then m.get(rz(key)) else Nil)
 
   define 'mapGetOpt', (key, map)-> checkPartial(L_mapGetOpt, arguments) || (
     v = rz(map).map.get rz(key)
@@ -1039,7 +1040,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     if !keys.size then rz L_nil
     else
       k = keys.first()
-      rz(L_acons)(lz(k), lz(map.get(k)), -> nextMapPair map, keys.rest())
+      rz(L_cons)(lz(rz(L_cons)(lz(k), lz(map.get(k)))), -> nextMapPair map, keys.rest())
 
   define 'mapReverse', (map)-> makeMap rz(map).map.reverse()
 

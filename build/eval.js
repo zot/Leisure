@@ -7,7 +7,7 @@
   define.amd = true;
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport) {
-    var CodeGenerator, ErrorCache, Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeFor, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, defineSourceFile, dump, envTemplate, errCache, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, gensym, gensymCounter, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, left, leisureEnv, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, newEvalFuncString, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, right, runLeisureMonad, runMonad, runMonad2, runNextResult, runWithPromiseCont, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, stringFor, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
+    var CodeGenerator, ErrorCache, Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeFor, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, defineSourceFile, dump, envTemplate, errCache, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, gensym, gensymCounter, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, left, leisureEnv, leisureErrorHtml, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, newEvalFuncString, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, right, runLeisureMonad, runMonad, runMonad2, runNextResult, runWithPromiseCont, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, stringFor, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
     if (SourceMapSupport != null) {
       SourceMapSupport.install();
     }
@@ -164,15 +164,19 @@
     })();
     errCache = new ErrorCache;
     Leisure.errCache = errCache.cacheSet;
+    leisureErrorHtml = function(err) {
+      var errId;
+      errId = errCache.addError(err);
+      return "<span class='error'><a href='javascript:void(Leisure.errCache." + errId + " ? console.log([Leisure.errCache." + errId + "], Leisure.errCache." + errId + ") : console.log(\"Error no longer avable: " + errId + "\"))' style='font-weight: bold; font-size: xx-large; font-style: italic'>Print in console to convert source maps</a><br>Error computing value: " + (err.stack.replace(/\n/g, '<br>')) + "</span>";
+    };
     leisureEnv = function(env) {
       env.presentValue = function(v) {
-        var err, errId, error, str;
+        var err, error, str;
         try {
-          str = rz(L_showHtml)(lz(v));
+          str = v instanceof Error ? leisureErrorHtml(v) : rz(L_showHtml)(lz(v));
         } catch (error) {
           err = error;
-          errId = errCache.addError(err);
-          str = "<span class='error'><a href='javascript:void(Leisure.errCache." + errId + " ? console.log([Leisure.errCache." + errId + "], Leisure.errCache." + errId + ") : console.log(\"Error no longer avable: " + errId + "\"))'>Print in console</a><br>Error computing value: " + (err.stack.replace(/\n/g, '<br>')) + "</span>";
+          str = leisureErrorHtml(err);
         }
         return html(str);
       };
@@ -273,18 +277,15 @@
                 errs = [];
                 results = [];
                 asts = _.map(result.toArray(), function(el) {
-                  result = getRight(el.tail());
-                  if (result instanceof Error) {
-                    errs.push(result);
+                  if (getType(el.tail()) === 'left') {
+                    errs.push(getLeft(el.tail()));
                   } else if (cont) {
-                    results.push(result);
+                    results.push(getRight(el.tail()));
                   }
                   return el.head();
                 });
                 if (errs.length) {
-                  throw new Error(_.map(errs, function(el) {
-                    return el.message;
-                  }).join('\n'));
+                  return typeof cont === "function" ? cont(errs[0]) : void 0;
                 } else {
                   return withFile(fileName, null, function() {
                     var code, gen, item, node;

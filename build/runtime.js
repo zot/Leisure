@@ -1017,36 +1017,42 @@ misrepresented as being the original software.
     };
     define('envHas', function(name) {
       return makeSyncMonad(function(env, cont) {
-        return cont(booleanFor(env.values[rz(name)] != null));
+        var ref1;
+        return cont(booleanFor(((ref1 = env.values) != null ? ref1[rz(name)] : void 0) != null));
       });
     });
     define('envGetOr', function(name, defaultValue) {
       return checkPartial(L_envGetOr, arguments) || makeSyncMonad(function(env, cont) {
-        var ref1;
-        return cont((ref1 = env.values[rz(name)]) != null ? ref1 : rz(defaultValue));
+        var ref1, ref2;
+        return cont((ref1 = (ref2 = env.values) != null ? ref2[rz(name)] : void 0) != null ? ref1 : rz(defaultValue));
       });
     });
     define('envGet', function(name) {
       return makeSyncMonad(function(env, cont) {
-        var ref1;
-        return cont((ref1 = env.values[rz(name)]) != null ? ref1 : _unit);
+        var ref1, ref2;
+        return cont((ref1 = (ref2 = env.values) != null ? ref2[rz(name)] : void 0) != null ? ref1 : _unit);
       });
     });
     define('envGetOpt', function(name) {
       return makeSyncMonad(function(env, cont) {
-        var v;
-        return cont((v = env.values[rz(name)]) ? some(v) : none);
+        var ref1, v;
+        return cont((v = (ref1 = env.values) != null ? ref1[rz(name)] : void 0) != null ? some(v) : none);
       });
     });
     define('envSet', function(name, value) {
       return checkPartial(L_envSet, arguments) || makeSyncMonad(function(env, cont) {
+        if (env.values == null) {
+          env.values = {};
+        }
         env.values[rz(name)] = rz(value);
         return cont(_unit);
       });
     });
     define('envDelete', function(name) {
       return makeSyncMonad(function(env, cont) {
-        delete env.values[rz(name)];
+        if (env.values != null) {
+          delete env.values[rz(name)];
+        }
         return cont(_unit);
       });
     });
@@ -1090,9 +1096,9 @@ misrepresented as being the original software.
       });
     });
     define('_defTypeCase', function(funcName, type, func) {
-      var args, cl, code, dispFunc, dispatch, n, oldDef;
+      var args, cl, dispFunc, dispatch, n, oldDef;
       return checkPartial(L__defTypeCase, arguments) || ((function() {
-        var ref1, ref2;
+        var ref1, ref2, ref3;
         funcName = rz(funcName);
         type = rz(type);
         func = rz(func);
@@ -1101,10 +1107,9 @@ misrepresented as being the original software.
         if (!(cl = classForType(type))) {
           throw new Error("Attempt to define a type case for a nonexistent type: " + type);
         }
-        if (!LeisureObject.prototype[n]) {
+        if (!((ref3 = functionInfo[funcName]) != null ? ref3.typeCase : void 0)) {
           args = argNames(oldDef != null ? oldDef : func);
-          code = "(resolve(" + args[0] + ")." + n + " || LeisureObject.prototype." + n + ").apply(null, arguments)";
-          dispatch = "\"use strict\";\n(function(" + (args.join(', ')) + ") {\n  return " + code + ";\n})";
+          dispatch = "\"use strict\";\n(function(" + (args.join(', ')) + ") {\n  return (resolve(" + args[0] + ")." + n + " || LeisureObject.prototype." + n + " || function(){throw new Error(\"No typecase for " + funcName + ".\" + L_getType(" + args[0] + "))}).apply(null, arguments);\n})";
           dispFunc = lz(eval(dispatch));
           if (!global[n]) {
             nakedDefine(funcName, dispFunc, args.length, dispatch);
@@ -1115,6 +1120,7 @@ misrepresented as being the original software.
               buildAdvisedFunc(funcName);
             }
           }
+          functionInfo[funcName].typeCase = true;
           LeisureObject.prototype[n] = oldDef;
         }
         cl.prototype[n] = func;
@@ -1461,7 +1467,8 @@ misrepresented as being the original software.
       return checkPartial(L_mapSet, arguments) || makeMap(rz(map).map.set(rz(key), rz(value)));
     });
     define('mapGet', function(key, map) {
-      return checkPartial(L_mapGet, arguments) || rz(map).map.get(rz(key));
+      var k, m;
+      return checkPartial(L_mapGet, arguments) || (m = rz(map).map, k = rz(key), m.has(rz(key)) ? m.get(rz(key)) : Nil);
     });
     define('mapGetOpt', function(key, map) {
       var v;
@@ -1498,7 +1505,7 @@ misrepresented as being the original software.
         return rz(L_nil);
       } else {
         k = keys.first();
-        return rz(L_acons)(lz(k), lz(map.get(k)), function() {
+        return rz(L_cons)(lz(rz(L_cons)(lz(k), lz(map.get(k)))), function() {
           return nextMapPair(map, keys.rest());
         });
       }

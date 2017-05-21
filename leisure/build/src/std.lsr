@@ -550,7 +550,7 @@ defTypeCase delete.differencelist dl item -> dllist (filter (item !=) (tolist dl
 dispatchMap l func = _map func (tolist l)
 defTypeCase dispatchMap.list l func ->
   isAlist l
-    _foldr (\el result . set (head el) (func (tail el)) result) nil alist
+    _foldr (\el result . set (head el) (func (tail el)) result) nil l
     _map func l
 defTypeCase dispatchMap.repeat r func -> runRepeat 0 (r id) func
 defTypeCase dispatchMap.range r func -> r \a b . runRepeat a b func
@@ -611,11 +611,15 @@ defTypeCase getOpt.cons alist key ->
     none
 defTypeCase getOpt.hamt h key -> mapGetOpt key h
 
-defTypeCase set.cons alist key value ->
+set k v seq = dispatchSet seq k v
+
+defTypeCase dispatchSet.nil seq k v -> acons k v seq
+
+defTypeCase dispatchSet.cons alist key value ->
   isAlist alist
     acons key value (aremove key alist)
     [[key | value] | alist]
-defTypeCase set.hamt h key value -> mapSet key value h
+defTypeCase dispatchSet.hamt h key value -> mapSet key value h
 
 ######################
 # numbers

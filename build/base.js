@@ -36,13 +36,87 @@ misrepresented as being the original software.
   files = !(typeof window !== "undefined" && window !== null ? window : global).btoa ? ['btoa'] : [null];
 
   define(files, function(btoa) {
-    var CodeContext, SimpyCons, baseLeisureCall, concat, defaultEnv, errors, funcInfo, genInfo, isResolved, leisureCall, primConsFrom, readDir, readFile, ref, root, rz, serverIncrement, simpyCons, slice, statFile, test, testCount, verboseMsg, writeFile;
+    var CodeContext, SimpyCons, addArgIds, addValue, baseLeisureCall, concat, defaultEnv, errors, funcInfo, genInfo, isResolved, leisureCall, primConsFrom, readDir, readFile, ref, root, rz, serverIncrement, simpyCons, slice, statFile, test, testCount, traceLog, traceValues, verboseMsg, writeFile;
     if (!btoa) {
       btoa = (typeof window !== "undefined" && window !== null ? window : global).btoa;
     }
     root = {};
+    traceValues = [];
     root.currentNameSpace = 'core';
     root.nameSpacePath = ['core'];
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure_generateDebuggingCode = true;
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceContext = 0;
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceInstance = 0;
+    root.useDebugging = function() {
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_usingDebugging = true;
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceLazyValue = function(context, id, instanceId, parentInstanceId, value) {
+        if (typeof value === 'function') {
+          value.L$instanceId = instanceId;
+        }
+        traceLog(['value', context, id, instanceId, parentInstanceId]);
+        return value;
+      };
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceResolve = function(value) {
+        traceLog(addArgs(['resolve', value.L$instanceId], value));
+        return value;
+      };
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceLambda = function(lambda, context, id, instanceId) {
+        return traceLog(['lambda', context, id, instanceId]);
+      };
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceCall = function() {
+        var args, lambda, traceArgs, value;
+        lambda = arguments[0], value = arguments[1], args = 3 <= arguments.length ? slice1.call(arguments, 2) : [];
+        traceArgs = ['call', lambda.L$context, lambda.L$id];
+        return traceLog(addArgs(traceArgs, args));
+      };
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceReturn = function(lambda, result) {
+        var traceArgs;
+        traceArgs = ['return', lambda.L$instanceId];
+        traceLog(addValue(result, traceArgs));
+        return result;
+      };
+      return (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceTopLevel = function(context) {};
+    };
+    root.noDebugging = function() {
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_usingDebugging = false;
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceLazyValue = function(context, id, instanceId, parentInstanceId, value) {
+        if (typeof value === 'function') {
+          value.L$instanceId = instanceId;
+        }
+        return value;
+      };
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceResolve = function(value) {
+        return value;
+      };
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceLambda = function(lambda, context, id, parentInstanceId) {};
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceCall = function(lambda) {};
+      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceReturn = function(lambda, result) {
+        return result;
+      };
+      return (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceTopLevel = function(context) {};
+    };
+    root.noDebugging();
+    traceLog = function(args) {
+      return traceValues.push(args);
+    };
+    addArgIds = function(traceArgs, args) {
+      var arg, i, len1;
+      for (i = 0, len1 = args.length; i < len1; i++) {
+        arg = args[i];
+        addValue(arg, traceArgs);
+      }
+      return traceArgs;
+    };
+    addValue = function(value, traceArgs) {
+      if (arg.L$id != null) {
+        traceArgs.push(arg.L$id);
+      } else if (typeof arg === 'number') {
+        traceArgs.push(-1);
+      } else {
+        traceArgs.push(arg);
+      }
+      return traceArgs;
+    };
     root.shouldNsLog = false;
     root.nsLog = function() {
       var args;
@@ -96,7 +170,6 @@ misrepresented as being the original software.
       write: function(v) {
         return console.log(v);
       },
-      values: {},
       errorHandlers: [],
       prompt: function() {
         return null;

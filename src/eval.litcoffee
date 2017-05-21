@@ -146,13 +146,17 @@ Evaulation support for Leisure
       errCache = new ErrorCache
       Leisure.errCache = errCache.cacheSet
 
+      leisureErrorHtml = (err)->
+        errId = errCache.addError err
+        "<span class='error'><a href='javascript:void(Leisure.errCache.#{errId} ? console.log([Leisure.errCache.#{errId}], Leisure.errCache.#{errId}) : console.log(\"Error no longer avable: #{errId}\"))' style='font-weight: bold; font-size: xx-large; font-style: italic'>Print in console to convert source maps</a><br>Error computing value: #{err.stack.replace(/\n/g, '<br>')}</span>"
+
       leisureEnv = (env)->
         env.presentValue = (v)->
           try
-            str = rz(L_showHtml) lz v
+            str = if v instanceof Error then leisureErrorHtml v
+            else rz(L_showHtml) lz v
           catch err
-            errId = errCache.addError err
-            str = "<span class='error'><a href='javascript:void(Leisure.errCache.#{errId} ? console.log([Leisure.errCache.#{errId}], Leisure.errCache.#{errId}) : console.log(\"Error no longer avable: #{errId}\"))'>Print in console</a><br>Error computing value: #{err.stack.replace(/\n/g, '<br>')}</span>"
+            str = leisureErrorHtml err
           html str
         env.executeText = (text, props, cont)-> setLounge this, =>
           if opts = @opts then console.log "OPTS:", opts
@@ -195,11 +199,10 @@ Evaulation support for Leisure
               results = []
               #asts = _.map result.toArray(), (el)-> el.head()
               asts = _.map result.toArray(), (el)->
-                result = getRight el.tail()
-                if result instanceof Error then errs.push result
-                else if cont then results.push result
+                if getType(el.tail()) == 'left' then errs.push getLeft el.tail()
+                else if cont then results.push getRight el.tail()
                 el.head()
-              if errs.length then throw new Error _.map(errs, (el)-> el.message).join('\n')
+              if errs.length then cont? errs[0]
               else withFile fileName, null, ->
                 cont? results
                 code = for item in asts
