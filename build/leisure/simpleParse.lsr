@@ -18,6 +18,7 @@ setNameSpace 'core'
 # TYPES
 #############
 
+debugType 'Std'
 _declareType 'err' 0
 _declareType 'boolean' 0
 _declareType 'true' 'boolean'
@@ -171,9 +172,9 @@ last l = isNil (tail l)
 removeLast l = isNil (tail l)
   nil
   cons (head l) (removeLast (tail l))
-length list = isCons list
-  + 1 (length (tail list))
-  assert (hasType list nil) (strCat (cons "length argument is not a proper list: " (cons list nil))) 0
+consLength list = isCons list
+  + 1 (consLength (tail list))
+  assert (hasType list nil) (strCat (cons "consLength argument is not a proper list: " (cons list nil))) 0
 
 # foldl (\prev el . ...) initial list 
 # foldr (\el next . ...) list final
@@ -311,6 +312,7 @@ ifNotErr thing cont = (isErr thing) thing (cont thing)
 ############
 ############
 
+debugType 'Parser'
 setNameSpace 'parser'
 
 ############
@@ -829,7 +831,7 @@ countedLinesForFile name text = filter
 #    isNil m
 #      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) nil
 #      cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk)
-#        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
+#        countedLines filename (+ lineOffset (consLength chunkLines)) (strSubstring str next 0)
 
 countedLines filename lineOffset str = _reverse
   _withRecur
@@ -847,7 +849,7 @@ _countedLines filename lineOffset str lines = \\
     isNil m
       cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) lines
       _recur
-        _countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
+        _countedLines filename (+ lineOffset (consLength chunkLines)) (strSubstring str next 0)
           cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk) lines
 
 defPat = regexp '^[^ =]+.* =( |$)'

@@ -13,7 +13,8 @@ requirejs = require('requirejs')
 
 fs = require 'fs'
 
-defaultEnv.readFile = (fileName, cont)-> fs.readFile fileName, encoding: 'utf8', cont
+defaultEnv.readFile = (fileName, cont)-> fs.readFile fileName, encoding: 'utf8', (err, contents)->
+  cont err, contents?.replace /\r\n/g, '\n'
 
 defaultEnv.writeFile = (fileName, data, cont)-> fs.writeFile fileName, data, (encoding: 'utf8'), cont
 

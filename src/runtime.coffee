@@ -26,17 +26,18 @@ misrepresented as being the original software.
 define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird', 'browser-source-map-support'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird)->
   SourceMapSupport?.install()
   {
-    readFile,
-    statFile,
-    readDir,
-    writeFile,
-    defaultEnv,
-    SimpyCons,
-    simpyCons,
-    resolve,
-    lazy,
-    nsLog,
-    funcInfo,
+    readFile
+    statFile
+    readDir
+    writeFile
+    defaultEnv
+    SimpyCons
+    simpyCons
+    resolve
+    lazy
+    nsLog
+    funcInfo
+    argNames
   } = root = Base
   {
     parseYaml
@@ -90,9 +91,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 # code
 #########
 
-  checkPartial = (window ? global).L_checkPartial = (func, args)->
+  checkPartial = (window ? global).L_checkPartial = (func, args, traceCall)->
     if typeof func == 'string' then func = leisureFunctionNamed func
-    if func.leisureLength != args.length then Leisure_primCall func, 0, args
+    if func.leisureLength != args.length then Leisure_primCall func, 0, args, func.length, traceCall
 
   call = (args...)-> basicCall(args, defaultEnv, identity)
 
@@ -111,9 +112,6 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   noMemo = (f)->
     Object.defineProperty f, 'memo', set: ->
     f
-
-  argNames = (func)->
-    arg.trim() for arg in Function.prototype.toString.call(func).match(/\(([^)]*)\)/)[1].split ','
 
 ############
 # LOGIC
@@ -148,7 +146,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
         else rz(data) instanceof type)
     define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
     # using arity makes compiling parseAst.lsr crash
-    define 'assert', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
+    define 'assert', (bool, msg, expr)-> checkPartial(L_assert, arguments) || rz(bool)(expr)(->
       err = new Error(rz msg)
       err.stack = "Leisure stack:\n#{err}\n   at #{L$thunkStack.reverse().join '\n   at '}\n\nJS Stack:\n#{err.stack}"
       console.error err.stack

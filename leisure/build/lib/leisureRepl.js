@@ -25,7 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
-  var Nil, Promise, SourceNode, _, action, ast2Json, asyncMonad, baseDir, baseLeisureDir, compile, createAstFile, createJsFile, defaultEnv, diag, doRequirements, errorString, evalInput, fs, gen, genJsFromAst, genMap, genSource, gennedAst, gennedJs, getMonadSyncMode, getParseErr, getType, getValue, help, identity, interactive, interrupted, intersperse, isIO, jsCodeFor, json2Ast, lazy, lc, leisureCompleter, leisureFunctions, loadedParser, lz, newCall, newOptions, oldFunctionCount, outDir, pargs, path, primCompile, processArg, processedFiles, prog, prompt, promptText, readFile, readline, recompiled, ref, ref1, ref2, ref3, ref4, ref5, repl, replEnv, replaceErr, requireFiles, requireList, requireUtils, requirejs, resolve, rl, root, run, runFile, runMonad2, rz, setDataType, setMegaArity, setType, setWarnAsync, shouldNsLog, show, sourceNode, stage, stages, std, tangle, tangleOrgFile, tokenString, updateCompleter, usage, verbose, withFile, writeFile;
+  var CodeGenerator, Nil, Promise, SourceNode, _, action, ast2Json, asyncMonad, baseDir, baseLeisureDir, compile, createAstFile, createJsFile, defaultEnv, diag, doRequirements, errorString, evalInput, fs, gen, genCreateCompilerContext, genFilePrefix, genJsFromAst, genMap, genSource, gennedAst, gennedJs, gennedLsrFile, getMonadSyncMode, getParseErr, getType, getValue, help, identity, interactive, interrupted, intersperse, isIO, jsCodeFor, json2Ast, lazy, lc, leisureCompleter, leisureFunctions, loadedParser, lz, newCall, newOptions, oldFunctionCount, outDir, pargs, path, primCompile, processArg, processedFiles, prog, prompt, promptText, readFile, readline, recompiled, ref, ref1, ref2, ref3, ref4, repl, replEnv, replaceErr, requireFiles, requireList, requireUtils, requirejs, resolve, rl, root, run, runFile, runMonad2, rz, setDataType, setMegaArity, setType, setWarnAsync, shouldNsLog, show, sourceNode, stage, stages, std, tangle, tangleOrgFile, tokenString, updateCompleter, usage, verbose, withFile, writeFile;
 
   require('source-map-support').install();
 
@@ -60,6 +60,8 @@ misrepresented as being the original software.
 
   ref = root = module.exports = requirejs('./base'), newCall = ref.newCall, resolve = ref.resolve, lazy = ref.lazy, defaultEnv = ref.defaultEnv;
 
+  global.Leisure_generateDebuggingCode = false;
+
   rz = resolve;
 
   lz = lazy;
@@ -70,6 +72,10 @@ misrepresented as being the original software.
 
   fs = require('fs');
 
+  genFilePrefix = null;
+
+  gennedLsrFile = null;
+
   if (_.includes(process.argv, '-x')) {
     global.L_DEBUG = true;
   }
@@ -78,7 +84,7 @@ misrepresented as being the original software.
 
   global.btoa = require('btoa');
 
-  ref2 = requirejs('./gen'), gen = ref2.gen, genMap = ref2.genMap, genSource = ref2.genSource, withFile = ref2.withFile, sourceNode = ref2.sourceNode, SourceNode = ref2.SourceNode, setMegaArity = ref2.setMegaArity;
+  ref2 = requirejs('./gen'), gen = ref2.gen, genMap = ref2.genMap, genSource = ref2.genSource, withFile = ref2.withFile, sourceNode = ref2.sourceNode, SourceNode = ref2.SourceNode, setMegaArity = ref2.setMegaArity, CodeGenerator = ref2.CodeGenerator, jsCodeFor = ref2.jsCodeFor;
 
   ref3 = require('./node'), readFile = ref3.readFile, writeFile = ref3.writeFile;
 
@@ -86,7 +92,7 @@ misrepresented as being the original software.
 
   Promise = requirejs('bluebird').Promise;
 
-  ref5 = requirejs('./tangle'), tangle = ref5.tangle, jsCodeFor = ref5.jsCodeFor;
+  tangle = requirejs('./tangle').tangle;
 
   global.setType = setType;
 
@@ -136,13 +142,13 @@ misrepresented as being the original software.
   };
 
   errorString = function(err) {
-    var ref6, s;
+    var ref5, s;
     if (L$thunkStack) {
       s = L$thunkStack.join('\n   at ');
       (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = [];
       return err.toString() + ":\n   at " + s;
     } else {
-      return (ref6 = err.stack) != null ? ref6 : err.toString();
+      return (ref5 = err.stack) != null ? ref5 : err.toString();
     }
   };
 
@@ -209,10 +215,10 @@ misrepresented as being the original software.
   leisureFunctions = null;
 
   updateCompleter = function(rl) {
-    var ref6, ref7;
+    var ref5, ref6;
     if (root.functionCount !== oldFunctionCount) {
       oldFunctionCount = root.functionCount;
-      return leisureFunctions = global.leisureFuncNames.toArray().concat((ref6 = (ref7 = getValue('macroDefs')) != null ? ref7.map.keySeq().toArray() : void 0) != null ? ref6 : []);
+      return leisureFunctions = global.leisureFuncNames.toArray().concat((ref5 = (ref6 = getValue('macroDefs')) != null ? ref6.map.keySeq().toArray() : void 0) != null ? ref5 : []);
     }
   };
 
@@ -314,8 +320,8 @@ misrepresented as being the original software.
         multiline = false;
         prompt();
         root.defaultEnv.err = function(err) {
-          var ref6;
-          console.log("REPL Error: " + ((ref6 = err.stack) != null ? ref6 : err));
+          var ref5;
+          console.log("REPL Error: " + ((ref5 = err.stack) != null ? ref5 : err));
           multiline = false;
           return prompt();
         };
@@ -475,16 +481,24 @@ misrepresented as being the original software.
     });
   };
 
+  genCreateCompilerContext = function() {
+    if (gennedLsrFile) {
+      return "Leisure_addContext({source:" + (JSON.stringify(gennedLsrFile)) + "})";
+    } else {
+      return '++Leisure_traceContext';
+    }
+  };
+
   compile = function(file, cont) {
-    var ext, ref6;
-    if ((ref6 = defaultEnv.errorHandlers) != null) {
-      ref6.push(function(e) {
+    var ext, ref5;
+    if ((ref5 = defaultEnv.errorHandlers) != null) {
+      ref5.push(function(e) {
         return process.exit(1);
       });
     }
     ext = path.extname(file);
     return runMonad2(rz(L_baseLoad)(lz(file)), defaultEnv, function(result) {
-      var asts, bareFile, bareJs, bareLsr, bareOutputMap, err, error, errors, inspect, j, lastArgs, len, outputFile, outputFileBase, outputMap, ref7;
+      var asts, bareFile, bareJs, bareLsr, bareOutputMap, codeGen, err, error, errors, gennedMapFile, inspect, j, lastArgs, len, outputFile, outputFileBase, outputMap, ref6;
       if (verbose) {
         console.log("Preparing to write code for " + file);
       }
@@ -504,7 +518,7 @@ misrepresented as being the original software.
           }));
         }
         if (result instanceof Error) {
-          result = replaceErr(result, "Error compiling line: " + (lines.head()) + "...\n" + ast.message);
+          result = replaceErr(result, "Error compiling line: " + (lineData.head()) + "...\n" + ast.message);
           errors.push[result];
         }
         return lineData.head();
@@ -543,6 +557,8 @@ misrepresented as being the original software.
         bareJs = bareFile + ".js";
         bareLsr = bareFile + ".lsr";
         bareOutputMap = bareFile + ".map";
+        gennedLsrFile = (genFilePrefix ? genFilePrefix + path.basename(bareFile) : bareFile) + ".lsr";
+        gennedMapFile = (genFilePrefix ? genFilePrefix + path.basename(bareFile) : bareFile) + ".map";
         if (outDir) {
           outputFile = path.join(outDir, path.basename(outputFile));
           outputMap = path.join(outDir, path.basename(outputMap));
@@ -550,20 +566,25 @@ misrepresented as being the original software.
         if (verbose) {
           console.log("JS FILE: " + outputFile);
         }
+        codeGen = new CodeGenerator(gennedLsrFile, false, false, true);
+        codeGen.sourceMap = true;
+        codeGen.createContext = false;
         try {
           lastArgs = null;
           result = withFile(path.basename(bareLsr), null, function() {
-            return (new SourceNode(1, 0, bareLsr, [
-              '"use strict";\n', 'define([], function(){\n  return L_runMonads([\n    ', intersperse(lastArgs = _.map(asts, function(item) {
-                return sourceNode(item, 'function(){return ', genMap(item), '}');
+            var nodes;
+            nodes = new SourceNode(1, 0, bareLsr, [
+              intersperse(lastArgs = _.map(asts, function(ast) {
+                return sourceNode(ast, 'function(){return ', codeGen.genMap(ast), '}');
               }), ',\n    '), '\n  ]);\n});'
-            ])).toStringWithSourceMap({
+            ]);
+            return (new SourceNode(1, 0, bareLsr, ['"use strict";\n', "define([], function(){" + (Leisure_generateDebuggingCode ? codeGen.genContext() : '') + "\n  return L_runMonads([\n    ", nodes])).toStringWithSourceMap({
               file: path.basename(bareJs)
             });
           });
         } catch (error) {
           err = error;
-          inspect = (ref7 = typeof require === "function" ? require('util').inspect : void 0) != null ? ref7 : function(x) {
+          inspect = (ref6 = typeof require === "function" ? require('util').inspect : void 0) != null ? ref6 : function(x) {
             return x;
           };
           console.log("Error in source node,\nargs: " + (inspect(lastArgs, {
@@ -574,7 +595,7 @@ misrepresented as being the original software.
         if (verbose) {
           console.log("FILE: " + outputFile + ", MAP: " + outputMap);
         }
-        return writeFile(outputFile, result.code + ("\n//# sourceMappingURL=" + (path.basename(bareOutputMap)) + "\n"), function(err) {
+        return writeFile(outputFile, jsCodeFor(result, 'external', gennedMapFile), function(err) {
           if (!err) {
             return writeFile(outputMap, JSON.stringify(result.map, null, "  "), function(err) {
               if (!err) {
@@ -596,12 +617,12 @@ misrepresented as being the original software.
   };
 
   intersperse = function(array, element) {
-    var i, j, ref6, result;
+    var i, j, ref5, result;
     if (array.length < 2) {
       return array;
     } else {
       result = [array[0]];
-      for (i = j = 1, ref6 = array.length; 1 <= ref6 ? j < ref6 : j > ref6; i = 1 <= ref6 ? ++j : --j) {
+      for (i = j = 1, ref5 = array.length; 1 <= ref5 ? j < ref5 : j > ref5; i = 1 <= ref5 ? ++j : --j) {
         result.push(element, array[i]);
       }
       return result;
@@ -609,9 +630,9 @@ misrepresented as being the original software.
   };
 
   primCompile = function(file, cont) {
-    var compileFile, ext, parseLine, ref6;
+    var compileFile, ext, parseLine, ref5;
     root.shouldNsLog = shouldNsLog;
-    ref6 = require(stages[stage]), parseLine = ref6.parseLine, compileFile = ref6.compileFile;
+    ref5 = require(stages[stage]), parseLine = ref5.parseLine, compileFile = ref5.compileFile;
     ext = path.extname(file);
     return readFile(file, function(err, contents) {
       var compiled, outputFile;
@@ -646,7 +667,7 @@ misrepresented as being the original software.
   };
 
   usage = function() {
-    console.log("Usage repl [-v | -t | -a | -0 | -1 | -c | -coffee | -j | -d DIR] [FILE ...]\n\n-v            verbose\n-t            tangle, FILE is interpreted as an org file\n-a            only parse to AST\n-0            use CoffeeScript parser\n-1            use simple Leisure parser\n-2            use normal Leisure parser but don't load std\n-c            for -0, compile to JS using CoffeeScript compiler\n              for -1, or normal case, create AST and JS file\n-r FILE       require JS FILE\n-d DIR        specify output directory for .ast and .js files\n-j            run JavaScript interactively after requiring Leisure files\n-coffee       run CoffeeScript interactively after requiring Leisure files\n\nWith no FILE arguments, runs interactive REPL");
+    console.log("Usage repl [-v | -t | -a | -0 | -1 | -c | -coffee | -j | -d DIR] [FILE ...]\n\n-v            verbose\n-g            generate debugging code\n-t            tangle, FILE is interpreted as an org file\n-a            only parse to AST\n-0            use CoffeeScript parser\n-1            use simple Leisure parser\n-2            use normal Leisure parser but don't load std\n-c            for -0, compile to JS using CoffeeScript compiler\n              for -1, or normal case, create AST and JS file\n-r FILE       require JS FILE\n-d DIR        specify output directory for .ast and .js files\n-j            run JavaScript interactively after requiring Leisure files\n-coffee       run CoffeeScript interactively after requiring Leisure files\n-prefix       filename prefix for code generation file references\n\nWith no FILE arguments, runs interactive REPL");
     return process.exit(0);
   };
 
@@ -708,6 +729,9 @@ misrepresented as being the original software.
         break;
       case '-x':
         break;
+      case '-g':
+        global.Leisure_generateDebuggingCode = true;
+        break;
       case '-v':
         verbose = true;
         global.verbose.gen = true;
@@ -758,6 +782,9 @@ misrepresented as being the original software.
         }
         requireList.push(pargs[pos + 1]);
         pos++;
+        break;
+      case '-prefix':
+        genFilePrefix = pargs[++pos];
         break;
       default:
         newOptions = true;

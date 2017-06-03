@@ -15,7 +15,9 @@
   defaultEnv.readFile = function(fileName, cont) {
     return fs.readFile(fileName, {
       encoding: 'utf8'
-    }, cont);
+    }, function(err, contents) {
+      return cont(err, contents != null ? contents.replace(/\r\n/g, '\n') : void 0);
+    });
   };
 
   defaultEnv.writeFile = function(fileName, data, cont) {

@@ -1067,7 +1067,6 @@ misrepresented as being the original software.
     root.partialCall = partialCall;
     root.doPartial = doPartial;
     root.leisureFunctionNamed = leisureFunctionNamed;
-    root.getPos = getPos;
     root.rangeToJson = rangeToJson;
     root.classNameForType = classNameForType;
     root.classForType = classForType;

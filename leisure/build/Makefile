@@ -5,14 +5,17 @@ LEISURE_SRC=generatedPrelude std svg parseAst simpleParse
 LEISURE_JS=lib/simpleParseJS.js $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.js)
 NODE=$(CURDIR)/runNode
 #REPL=$(NODE) src/runRepl
-REPL=$(CURDIR)/../repl $(DEBUG)
+DEBUG=-g
+#DEBUG=
+REPL=$(CURDIR)/../repl
+PREPL=$(REPL) $(DEBUG) -prefix build/leisure/
 OUTPUT_PARSE_AST=$(OUTPUT_DIR)/parseAst.js
 BASE_LEISURE=std svg parseAst
 SRC_JS=source-map
 #OUTPUT_SRC=$(OUTPUT_DIR)/generatedPrelude $(BASE_LEISURE:%=src/%)
 LEISURE_GEN=$(LEISURE_JS) $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.ast) $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.map) $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.lsr)
 
-all: node_modules lib/leisureRepl.js $(OUTPUT_DIR) $(LEISURE_JS) $(SRC_JS:%=$(OUTPUT_DIR)/%.js) $(BASE_LESURE:%=$(OUTPUT_DIR)/%.lsr)
+all: node_modules lib/node.js lib/leisureRepl.js $(OUTPUT_DIR) $(LEISURE_JS) $(SRC_JS:%=$(OUTPUT_DIR)/%.js) $(BASE_LESURE:%=$(OUTPUT_DIR)/%.lsr)
 
 base: $(OUTPUT_DIR)/generatedPrelude.js
 
@@ -59,31 +62,31 @@ $(OUTPUT_DIR)/simpleParse.js: src/simpleParse.lsr lib/simpleParseJS.js
 
 #$(OUTPUT_DIR)/generatedPrelude.js: lib/leisureRepl.js $(OUTPUT_DIR)/simpleParse.js $(OUTPUT_DIR)/generatedPrelude.lsr
 $(OUTPUT_DIR)/generatedPrelude.js: $(OUTPUT_DIR)/simpleParse.js $(OUTPUT_DIR)/generatedPrelude.lsr
-	$(REPL) -1 -d $(OUTPUT_DIR) -c $(OUTPUT_DIR)/generatedPrelude.lsr
+	$(PREPL) -1 -d $(OUTPUT_DIR) -c $(OUTPUT_DIR)/generatedPrelude.lsr
 
 $(OUTPUT_DIR)/std.js: src/std.lsr $(OUTPUT_DIR)/generatedPrelude.js
-	$(REPL) -2 -d $(OUTPUT_DIR) -c src/std.lsr
+	$(PREPL) -2 -d $(OUTPUT_DIR) -c src/std.lsr
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
 	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
 $(OUTPUT_DIR)/svg.js: src/svg.lsr $(OUTPUT_DIR)/std.js
-	$(REPL) -d $(OUTPUT_DIR) -c src/svg.lsr
+	$(PREPL) -d $(OUTPUT_DIR) -c src/svg.lsr
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
 	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
 $(OUTPUT_DIR)/parseAst.js: src/parseAst.lsr $(OUTPUT_DIR)/std.js
-	$(REPL) -d $(OUTPUT_DIR) -c -r leisure/svg src/parseAst.lsr
+	$(PREPL) -d $(OUTPUT_DIR) -c -r leisure/svg src/parseAst.lsr
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)
 	cp $(@:$(OUTPUT_DIR)/%.js=src/%.lsr) $(OUTPUT_DIR)
 
 $(OUTPUT_DIR)/%.js: src/%.lsr
-	$(REPL) -d $(OUTPUT_DIR) -c $<
+	$(PREPL) -d $(OUTPUT_DIR) -c $<
 	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
 	mv temp $(@:%.js=%.map)

@@ -29,7 +29,14 @@ define files, (btoa)->
   if !btoa then btoa = (window ? global).btoa
 
   root = {}
+
   traceValues = []
+  traceLen = 100
+  traceHandler = ->
+  lambdaInfo = {}
+  debugTypes = new Set()
+  traceMessageCount = 0
+  sourceFiles = {}
 
   root.currentNameSpace = 'core'
   root.nameSpacePath = ['core']
@@ -38,54 +45,143 @@ define files, (btoa)->
   (window ? global).Leisure_traceContext = 0
   (window ? global).Leisure_traceInstance = 0
 
-  root.useDebugging = ->
-    (window ? global).Leisure_usingDebugging = true
-    (window ? global).Leisure_traceLazyValue = (context, id, instanceId, parentInstanceId, value)->
-      if typeof value == 'function' then value.L$instanceId = instanceId
-      # tie value to AST in the log here
-      traceLog ['value', context, id, instanceId, parentInstanceId]
-      value
-    (window ? global).Leisure_traceResolve = (value)->
-      traceLog addArgs ['resolve', value.L$instanceId], value
-      value
-    (window ? global).Leisure_traceLambda = (lambda, context, id, instanceId)->
-      # tie lambda to AST in the log here
-      traceLog ['lambda', context, id, instanceId]
-    (window ? global).Leisure_traceCall = (lambda, value, args...)->
-      traceArgs = ['call', lambda.L$context, lambda.L$id]
-      traceLog addArgs traceArgs, args
-    (window ? global).Leisure_traceReturn = (lambda, result)->
-      traceArgs = ['return', lambda.L$instanceId]
-      traceLog addValue result, traceArgs
-      result
-    (window ? global).Leisure_traceTopLevel = (context)->
+  addSourceFile = (fileName, contents)->
+    if !sourceFiles[fileName] then sourceFiles[fileName] = contents
+    fileName
 
-  root.noDebugging = ->
-    (window ? global).Leisure_usingDebugging = false
-    (window ? global).Leisure_traceLazyValue = (context, id, instanceId, parentInstanceId, value)->
-      if typeof value == 'function' then value.L$instanceId = instanceId
-      value
-    (window ? global).Leisure_traceResolve = (value)-> value
-    (window ? global).Leisure_traceLambda = (lambda, context, id, parentInstanceId)->
-    (window ? global).Leisure_traceCall = (lambda)->
-    (window ? global).Leisure_traceReturn = (lambda, result)-> result
-    (window ? global).Leisure_traceTopLevel = (context)->
+  sourceFile = (fileName)->
+    if sourceFiles[fileName] then Promise.resolve(sourceFiles[fileName])
+    else $.ajax(new URL(fileName, location))
 
-  root.noDebugging()
-  #root.useDebugging()
+  addDebugType = (type)->
+    debugTypes.add type
+    if !(window ? global)["Leisure_traceCall#{type}"]?
+      root.noDebugging type
 
-  traceLog = (args)-> traceValues.push args
+  argNames = (func)->
+    arg.trim() for arg in Function.prototype.toString.call(func).match(/\(([^)]*)\)/)[1].split ','
 
-  addArgIds = (traceArgs, args)->
+######
+# The trace API
+# 
+# Leisure_traceLazyValue{TYPE}(instanceId, context, id, parentInstanceId, value)
+#   Must return value
+# 
+# Leisure_traceResolve{TYPE}(instanceId, value)
+#   Must return value
+# 
+# Leisure_traceLambda{TYPE}(instanceId, lambda, name, context, id, parentInstanceId)
+# 
+# Leisure_traceCall{TYPE}(lambda)
+# 
+# Leisure_traceReturn{TYPE}(lambda, result)
+#   Must return result
+# 
+# Leisure_traceTopLevel{TYPE}(context)
+#   Must return context
+# 
+# Leisure_traceMessage{TYPE}(message)
+#   Must return the message count (traceMessageCount++)
+######
+
+  root.trackDebugging = (len, handler, type)->
+    root.noDebugging type
+    if len
+      traceLen = len
+      traceHandler = handler
+    (if type then new Set([type]) else debugTypes).forEach (type)->
+      (window ? global)["Leisure_traceLambda#{type}"] = (instanceId, lambda, name, context, id, parentInstanceId)->
+        if !lambda.L$traced
+          lambda.L$traced = true
+          traceValues.push 'lambdaDef', context.id, id, name, argNames(lambda)
+        # tie lambda to AST in the log here
+        traceValues.push 'lambda', instanceId, context.id, id, parentInstanceId
+        checkTraceLog()
+      (window ? global)["Leisure_traceTopLevel#{type}"] = (context)->
+        traceValues.push 'context', context
+        context
+
+  root.useDebugging = (len, handler, type)->
+    if len
+      traceLen = len
+      traceHandler = handler
+    if !type then (window ? global).Leisure_usingDebugging = true
+    (if type then new Set([type]) else debugTypes).forEach (type)->
+      (window ? global)["Leisure_traceLazyValue#{type}"] = (context, id, parentInstanceId, value)->
+        if typeof value == 'function' then value.L$instanceId = ++Leisure_traceInstance
+        # tie value to AST in the log here
+        traceValues.push 'lazyValue', value.L$instanceId, context.id, id, parentInstanceId
+        checkTraceLog()
+        value
+      (window ? global)["Leisure_traceResolve#{type}"] = (instanceId, value)->
+        traceValues.push 'resolve', instanceId
+        addValue value
+        checkTraceLog()
+        value
+      (window ? global)["Leisure_traceLambda#{type}"] = (instanceId, lambda, context, id, parentInstanceId)->
+        # tie lambda to AST in the log here
+        traceValues.push 'lambda', instanceId, context.id, id, parentInstanceId
+        checkTraceLog()
+      (window ? global)["Leisure_traceCall#{type}"] = (lambda, args...)->
+        traceValues.push 'call', lambda.L$instanceId
+        addArgs args
+        checkTraceLog()
+      (window ? global)["Leisure_tracePartial#{type}"] = (lambda, args)->
+        traceValues.push 'partial', lambda.L$instanceId
+        addArgs args
+        checkTraceLog()
+      (window ? global)["Leisure_traceReturn#{type}"] = (lambda, result)->
+        traceValues.push 'return', lambda.L$instanceId
+        addValue result
+        checkTraceLog()
+        result
+      (window ? global)["Leisure_traceTopLevel#{type}"] = (context)->
+        traceValues.push 'context', context
+        context
+      (window ? global)["Leisure_traceMark#{type}"] = ->
+        count = traceMarkCount++
+        traceValues.push 'mark', count
+        checkTraceLog()
+        count
+
+  root.noDebugging = (type)->
+    if !type then (window ? global).Leisure_usingDebugging = false
+    (if type then new Set([type]) else debugTypes).forEach (type)->
+      (window ? global)["Leisure_traceLazyValue#{type}"] = (context, id, parentInstanceId, value)-> value
+      (window ? global)["Leisure_traceResolve#{type}"] = (instanceId, value)-> value
+      (window ? global)["Leisure_traceLambda#{type}"] = (instanceId, lambda, name, context, id, parentInstanceId)->
+      (window ? global)["Leisure_traceCall#{type}"] = (lambda)->
+      (window ? global)["Leisure_tracePartial#{type}"] = (lambda)->
+      (window ? global)["Leisure_traceReturn#{type}"] = (lambda, result)-> result
+      (window ? global)["Leisure_traceTopLevel#{type}"] = (context)-> context
+      (window ? global)["Leisure_traceMark#{type}"] = -> traceMarkCount++
+
+  for type in ['User', 'Std', 'Parser']
+    addDebugType type
+
+  checkTraceLog = (args)-> if traceValues.length > traceLen then flushTraceLog()
+
+  flushTraceLog = ->
+    if traceValues.length
+      setTimeout (->
+        traceHandler traceValues
+        traceValues.length = 0), 1
+
+  getTraceValues = -> traceValues
+
+  addArgs = (args)->
+    traceValues.push args.length
     for arg in args
-      addValue arg, traceArgs
-    traceArgs
+      addValue arg
+    traceValues
 
-  addValue = (value, traceArgs)->
-    if arg.L$id? then traceArgs.push arg.L$id
-    else if typeof arg == 'number' then traceArgs.push -1
-    else traceArgs.push arg
-    traceArgs
+  addValue = (value)->
+    if value.L$instanceId? then traceValues.push value.L$instanceId
+    else if typeof value == 'function' then traceValues.push "function: #{value.leisureName ? value.name}"
+    else if typeof value == 'number' then traceValues.push -1, value
+    else if typeof value == 'object' then traceValues.push "object: #{value}"
+    else traceValues.push value
+    traceValues
 
   #root.shouldNsLog = true
   root.shouldNsLog = false
@@ -94,6 +190,7 @@ define files, (btoa)->
 
   (window ? global).verbose = {}
   (window ? global).Leisure = (window ? global).Leisure ? {}
+  Leisure.sourceFiles = sourceFiles
 
   verboseMsg = (label, msg...)-> if (window ? global).verbose[label] then console.log msg...
 
@@ -114,19 +211,29 @@ define files, (btoa)->
     __proto__: CodeContext.prototype
     presentValue: (x)-> String(x)
     write: (v)-> console.log v
+    writeTraceMessage: (count, msg)-> @write msg
     errorHandlers: []
     prompt: -> null
     executeText: -> null
     executeBlock: -> null
     compileBlock: -> null
+    userEvent: ->
 
   rz = (window ? global).resolve = (value)->
-    if typeof value == 'function' && value.length == 0
+    #if typeof value == 'function' && value.length == 0
+    #  if typeof value.memo != 'undefined' then value.memo
+    #  else
+    #    if value.creationStack then value.creationStack = null
+    #    if value.args then value.args = null
+    #    value.memo = value()
+    #else value
+    if typeof value == 'function'
       if typeof value.memo != 'undefined' then value.memo
-      else
-        if value.creationStack then value.creationStack = null
-        if value.args then value.args = null
+      else if value.length == 0
+        #if value.creationStack then value.creationStack = null
+        #if value.args then value.args = null
         value.memo = value()
+      else value
     else value
 
   isResolved = (value)-> typeof value != 'function' || value.memo
@@ -178,11 +285,12 @@ define files, (btoa)->
 
   (window ? global).L$ = (f)->
     f = rz(f)
-    if f.length > 1 then f else (args...)-> baseLeisureCall(f, 0, args, f.length)
+    if typeof f != 'function' || f.length > 1 then f
+    else (args...)-> baseLeisureCall(f, 0, args, f.length)
 
   (window ? global).Leisure_call = leisureCall = (f)-> baseLeisureCall f, 1, arguments
 
-  (window ? global).Leisure_primCall = baseLeisureCall = (f, pos, args, len)->
+  (window ? global).Leisure_primCall = baseLeisureCall = (f, pos, args, len, traceCall)->
     len = len ? f.length
     while pos < args.length
       if typeof f != 'function' then throw new Error "TypeError: #{typeof f} is not a function: #{f}"
@@ -204,6 +312,7 @@ define files, (btoa)->
         prev = slice.call args, pos
         partial = ->
           newArgs = concat.call prev, slice.call arguments
+          #traceCall? f, newArgs
           if !f.apply then console.log "No apply! #{f} #{newArgs[0]}"
           if newArgs.length == len then f.apply null, newArgs
           else baseLeisureCall f, 0, newArgs, len
@@ -247,6 +356,10 @@ define files, (btoa)->
     else if typeof amount == 'function' then cont "Error, no amount given to serverIncrement"
     else Meteor.call 'incrementField', root.currentDocument.leisure.name, path, amount, cont
 
+  (window ? global).Leisure_addSourceFile = addSourceFile
+
+  Leisure.Base = root
+
   root.serverIncrement = serverIncrement
   root.defaultEnv = defaultEnv
   root.readFile = readFile
@@ -263,5 +376,11 @@ define files, (btoa)->
   root.funcInfo = funcInfo
   root.CodeContext = CodeContext
   root.isResolved = isResolved
+  root.getTraceValues = getTraceValues
+  root.argNames = argNames
+  root.flushTraceLog = flushTraceLog
+  root.addDebugType = addDebugType
+  root.addSourceFile = addSourceFile
+  root.sourceFile = sourceFile
 
   root

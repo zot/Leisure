@@ -77,7 +77,7 @@ checkFlatArgs name args cont = (find
   args) (\x . ['err' (stringify concat['Arguments to def "' (strTokenString name) '" should be flat: (' (strTrim (tokenSource args)) ')'])]) cont
 
 makeDef name args def = do
-  arity = length args
+  arity = consLength args
   checkFlatArgs name args
     ['\\@' 'leisureName' name '.' 'newDefine' (stringify (strTokenString name)) arity (stringify concat[(strTrim (tokenSource [name args])) ' = ' (strTrim (tokenSource def))]) ['\\@' 'arity' arity '.' ((arity == 0) def ['\\' | (append args ['.' | def])])]]
 

@@ -141,9 +141,9 @@ last l = isNil (tail l)
 removeLast l = isNil (tail l)
   nil
   cons (head l) (removeLast (tail l))
-length list = isCons list
-  + 1 (length (tail list))
-  assert (hasType list nil) (strCat (cons "length argument is not a proper list: " (cons list nil))) 0
+consLength list = isCons list
+  + 1 (consLength (tail list))
+  assert (hasType list nil) (strCat (cons "consLength argument is not a proper list: " (cons list nil))) 0
 append a b = isNil a
   b
   cons (head a) (append (tail a) b)

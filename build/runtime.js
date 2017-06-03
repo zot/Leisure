@@ -36,7 +36,7 @@ misrepresented as being the original software.
     if (typeof SourceMapSupport !== "undefined" && SourceMapSupport !== null) {
       SourceMapSupport.install();
     }
-    ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo;
+    ref = root = Base, readFile = ref.readFile, statFile = ref.statFile, readDir = ref.readDir, writeFile = ref.writeFile, defaultEnv = ref.defaultEnv, SimpyCons = ref.SimpyCons, simpyCons = ref.simpyCons, resolve = ref.resolve, lazy = ref.lazy, nsLog = ref.nsLog, funcInfo = ref.funcInfo, argNames = ref.argNames;
     parseYaml = DocOrg.parseYaml;
     define = Ast.define, nakedDefine = Ast.nakedDefine, cons = Ast.cons, Nil = Ast.Nil, head = Ast.head, tail = Ast.tail, getType = Ast.getType, getDataType = Ast.getDataType, ast2Json = Ast.ast2Json, ensureLeisureClass = Ast.ensureLeisureClass, LeisureObject = Ast.LeisureObject, mkProto = Ast.mkProto, setType = Ast.setType, setDataType = Ast.setDataType, functionInfo = Ast.functionInfo, nameSub = Ast.nameSub, isPartial = Ast.isPartial, partialCall = Ast.partialCall, leisureFunctionNamed = Ast.leisureFunctionNamed, LeisureObject = Ast.LeisureObject, classNameForType = Ast.classNameForType, classForType = Ast.classForType, types = Ast.types, declareTypeFunc = Ast.declareTypeFunc;
     Map = Immutable.Map, Set = Immutable.Set, List = Immutable.List;
@@ -47,12 +47,12 @@ misrepresented as being the original software.
     lc = Leisure_call;
     gensymCounter = 0;
     functionInfo = (typeof window !== "undefined" && window !== null ? window : global).LeisureFunctionInfo;
-    checkPartial = (typeof window !== "undefined" && window !== null ? window : global).L_checkPartial = function(func, args) {
+    checkPartial = (typeof window !== "undefined" && window !== null ? window : global).L_checkPartial = function(func, args, traceCall) {
       if (typeof func === 'string') {
         func = leisureFunctionNamed(func);
       }
       if (func.leisureLength !== args.length) {
-        return Leisure_primCall(func, 0, args);
+        return Leisure_primCall(func, 0, args, func.length, traceCall);
       }
     };
     call = function() {
@@ -90,16 +90,6 @@ misrepresented as being the original software.
         set: function() {}
       });
       return f;
-    };
-    argNames = function(func) {
-      var arg, j, len, ref1, results;
-      ref1 = Function.prototype.toString.call(func).match(/\(([^)]*)\)/)[1].split(',');
-      results = [];
-      for (j = 0, len = ref1.length; j < len; j++) {
-        arg = ref1[j];
-        results.push(arg.trim());
-      }
-      return results;
     };
     identity = function(x) {
       return x;
@@ -175,18 +165,14 @@ misrepresented as being the original software.
           return getDataType(rz(func));
         }
       });
-      define('assert', function(bool) {
-        return function(msg) {
-          return function(expr) {
-            return rz(bool)(expr)(function() {
-              var err;
-              err = new Error(rz(msg));
-              err.stack = "Leisure stack:\n" + err + "\n   at " + (L$thunkStack.reverse().join('\n   at ')) + "\n\nJS Stack:\n" + err.stack;
-              console.error(err.stack);
-              throw err;
-            });
-          };
-        };
+      define('assert', function(bool, msg, expr) {
+        return checkPartial(L_assert, arguments) || rz(bool)(expr)(function() {
+          var err;
+          err = new Error(rz(msg));
+          err.stack = "Leisure stack:\n" + err + "\n   at " + (L$thunkStack.reverse().join('\n   at ')) + "\n\nJS Stack:\n" + err.stack;
+          console.error(err.stack);
+          throw err;
+        });
       });
       define('assertLog', function(bool) {
         return function(msg) {

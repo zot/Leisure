@@ -53,6 +53,8 @@
 # MORE DOCUMETATION NEEDED :)
 #
 
+debugType 'Std'
+
 ########################
 ## types
 ########################
@@ -347,7 +349,7 @@ makeCaseArgs orig funcName altName rest args = rest
 
 makeCaseCondition orig funcName altName args rest condition = rest
   \h t D . isTokenString h '->'
-    ['bind' (_foldr1 _append [['advise' funcName altName (length args) '\\'] args ['.' (condition nil) ['some' t] 'none']]) ['\\' '_' '.' 'unit']]
+    ['bind' (_foldr1 _append [['advise' funcName altName (consLength args) '\\'] args ['.' (condition nil) ['some' t] 'none']]) ['\\' '_' '.' 'unit']]
     makeCaseCondition orig funcName altName args t (dlpush condition h)
  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
@@ -367,7 +369,7 @@ defMacro 'defTypeCase' \list . do
     partition (flip isTokenString '->') rest \args arrow body .
       isNil arrow
         parseErr s["No -> in defTypeCase: " list]
-        ['_defTypeCase' (str func) (str type) ['\\@' 'arity' s[(length args)] '.' '\\' | (_append args ['.' | body])]]
+        ['_defTypeCase' (str func) (str type) ['\\@' 'arity' s[(consLength args)] '.' '\\' | (_append args ['.' | body])]]
     parseErr s["Not enough arguments to defTypeCase: " list]
 
 ######################
@@ -490,21 +492,17 @@ defTypeCase tail.repeat r -> (r id) == 0
   nil
   range 1 (r id)
 defTypeCase tail.range r -> r \a b . a < b (range a + 1 b) r
-defTypeCase tail.string s -> strSubstring s 1 (length s)
+defTypeCase tail.string s -> strSubstring s 1 (strLen s)
 defTypeCase tail.hamt h -> mapRest h
 defTypeCase tail.amtSet s -> setRest s
 defTypeCase tail.vector v -> vectorRest v
 tail x = nil
 
-consLength list = isNil list
-  0
-  assert (hasType list cons) (strCat (cons "length argument is not a proper list: " (cons list nil))) 1 + (consLength (tail list))
-
 defTypeCase length.list l -> consLength l
 defTypeCase length.range r -> r \a b . b - a
 defTypeCase length.repeat r -> r \count . count == 0
 defTypeCase length.string s -> strLen s
-defTypeCase length.differencelist l -> length (tolist l)
+defTypeCase length.differencelist l -> consLength (tolist l)
 defTypeCase length.hamt h -> mapSize h
 defTypeCase length.amtSet s -> setSize s
 defTypeCase length.vector v -> vectorSize v
@@ -700,7 +698,7 @@ presentFunction obj = do
     [(funcName obj
       id
       'unknown')]
-    and (> (length info) 1) (getFunction (head info) (\func . hasProperty func 'infix') false)
+    and (> (consLength info) 1) (getFunction (head info) (\func . hasProperty func 'infix') false)
       [(present (head (tail info))) (head info) | _map present (tail (tail info))]
       cons (head info) (_map present (tail info))
   concat["(" (join guts ' ') ")"]
@@ -816,7 +814,7 @@ defMacro 'defWrapper' \list . partition (flip isTokenString '->') list \left arr
   name = concat["'" (strTokenString (head left)) "'"]
   oldName = head (tail left)
   args = tail (tail left)
-  ['override' name (_append ['\\' oldName '.' '\\@' 'arity' (length args) '.' '\\' | args] ['.' | right])]
+  ['override' name (_append ['\\' oldName '.' '\\@' 'arity' (consLength args) '.' '\\' | args] ['.' | right])]
 
 #defWrapper head oldHead list -> assertType 'head argument' cons list \h t . h
 #defWrapper tail oldTail list -> assertType 'tail argument' cons list \h t . t
@@ -921,7 +919,7 @@ tokenList tokens = do
 defMacro 'cond' \list .
   foldr (\l rest . do
     l = stripParens l
-    not and[(isSequence l) (length l) == 2]
+    not and[(isSequence l) (consLength l) == 2]
       error s['Bad cond clause: ' (tokenSrc l) ', cond expects pairs of expressions: ' (tokenSrc list)]
       [(first l) (second l) | [((empty rest) 'false' rest)]]) nil list
 

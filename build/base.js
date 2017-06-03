@@ -36,86 +36,200 @@ misrepresented as being the original software.
   files = !(typeof window !== "undefined" && window !== null ? window : global).btoa ? ['btoa'] : [null];
 
   define(files, function(btoa) {
-    var CodeContext, SimpyCons, addArgIds, addValue, baseLeisureCall, concat, defaultEnv, errors, funcInfo, genInfo, isResolved, leisureCall, primConsFrom, readDir, readFile, ref, root, rz, serverIncrement, simpyCons, slice, statFile, test, testCount, traceLog, traceValues, verboseMsg, writeFile;
+    var CodeContext, SimpyCons, addArgs, addDebugType, addSourceFile, addValue, argNames, baseLeisureCall, checkTraceLog, concat, debugTypes, defaultEnv, errors, flushTraceLog, funcInfo, genInfo, getTraceValues, i, isResolved, lambdaInfo, leisureCall, len1, primConsFrom, readDir, readFile, ref, ref1, root, rz, serverIncrement, simpyCons, slice, sourceFile, sourceFiles, statFile, test, testCount, traceHandler, traceLen, traceMessageCount, traceValues, type, verboseMsg, writeFile;
     if (!btoa) {
       btoa = (typeof window !== "undefined" && window !== null ? window : global).btoa;
     }
     root = {};
     traceValues = [];
+    traceLen = 100;
+    traceHandler = function() {};
+    lambdaInfo = {};
+    debugTypes = new Set();
+    traceMessageCount = 0;
+    sourceFiles = {};
     root.currentNameSpace = 'core';
     root.nameSpacePath = ['core'];
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_generateDebuggingCode = true;
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceContext = 0;
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceInstance = 0;
-    root.useDebugging = function() {
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_usingDebugging = true;
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceLazyValue = function(context, id, instanceId, parentInstanceId, value) {
-        if (typeof value === 'function') {
-          value.L$instanceId = instanceId;
-        }
-        traceLog(['value', context, id, instanceId, parentInstanceId]);
-        return value;
-      };
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceResolve = function(value) {
-        traceLog(addArgs(['resolve', value.L$instanceId], value));
-        return value;
-      };
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceLambda = function(lambda, context, id, instanceId) {
-        return traceLog(['lambda', context, id, instanceId]);
-      };
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceCall = function() {
-        var args, lambda, traceArgs, value;
-        lambda = arguments[0], value = arguments[1], args = 3 <= arguments.length ? slice1.call(arguments, 2) : [];
-        traceArgs = ['call', lambda.L$context, lambda.L$id];
-        return traceLog(addArgs(traceArgs, args));
-      };
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceReturn = function(lambda, result) {
-        var traceArgs;
-        traceArgs = ['return', lambda.L$instanceId];
-        traceLog(addValue(result, traceArgs));
-        return result;
-      };
-      return (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceTopLevel = function(context) {};
-    };
-    root.noDebugging = function() {
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_usingDebugging = false;
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceLazyValue = function(context, id, instanceId, parentInstanceId, value) {
-        if (typeof value === 'function') {
-          value.L$instanceId = instanceId;
-        }
-        return value;
-      };
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceResolve = function(value) {
-        return value;
-      };
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceLambda = function(lambda, context, id, parentInstanceId) {};
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceCall = function(lambda) {};
-      (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceReturn = function(lambda, result) {
-        return result;
-      };
-      return (typeof window !== "undefined" && window !== null ? window : global).Leisure_traceTopLevel = function(context) {};
-    };
-    root.noDebugging();
-    traceLog = function(args) {
-      return traceValues.push(args);
-    };
-    addArgIds = function(traceArgs, args) {
-      var arg, i, len1;
-      for (i = 0, len1 = args.length; i < len1; i++) {
-        arg = args[i];
-        addValue(arg, traceArgs);
+    addSourceFile = function(fileName, contents) {
+      if (!sourceFiles[fileName]) {
+        sourceFiles[fileName] = contents;
       }
-      return traceArgs;
+      return fileName;
     };
-    addValue = function(value, traceArgs) {
-      if (arg.L$id != null) {
-        traceArgs.push(arg.L$id);
-      } else if (typeof arg === 'number') {
-        traceArgs.push(-1);
+    sourceFile = function(fileName) {
+      if (sourceFiles[fileName]) {
+        return Promise.resolve(sourceFiles[fileName]);
       } else {
-        traceArgs.push(arg);
+        return $.ajax(new URL(fileName, location));
       }
-      return traceArgs;
+    };
+    addDebugType = function(type) {
+      debugTypes.add(type);
+      if ((typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] == null) {
+        return root.noDebugging(type);
+      }
+    };
+    argNames = function(func) {
+      var arg, i, len1, ref, results;
+      ref = Function.prototype.toString.call(func).match(/\(([^)]*)\)/)[1].split(',');
+      results = [];
+      for (i = 0, len1 = ref.length; i < len1; i++) {
+        arg = ref[i];
+        results.push(arg.trim());
+      }
+      return results;
+    };
+    root.trackDebugging = function(len, handler, type) {
+      root.noDebugging(type);
+      if (len) {
+        traceLen = len;
+        traceHandler = handler;
+      }
+      return (type ? new Set([type]) : debugTypes).forEach(function(type) {
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(instanceId, lambda, name, context, id, parentInstanceId) {
+          if (!lambda.L$traced) {
+            lambda.L$traced = true;
+            traceValues.push('lambdaDef', context.id, id, name, argNames(lambda));
+          }
+          traceValues.push('lambda', instanceId, context.id, id, parentInstanceId);
+          return checkTraceLog();
+        };
+        return (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
+          traceValues.push('context', context);
+          return context;
+        };
+      });
+    };
+    root.useDebugging = function(len, handler, type) {
+      if (len) {
+        traceLen = len;
+        traceHandler = handler;
+      }
+      if (!type) {
+        (typeof window !== "undefined" && window !== null ? window : global).Leisure_usingDebugging = true;
+      }
+      return (type ? new Set([type]) : debugTypes).forEach(function(type) {
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLazyValue" + type] = function(context, id, parentInstanceId, value) {
+          if (typeof value === 'function') {
+            value.L$instanceId = ++Leisure_traceInstance;
+          }
+          traceValues.push('lazyValue', value.L$instanceId, context.id, id, parentInstanceId);
+          checkTraceLog();
+          return value;
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceResolve" + type] = function(instanceId, value) {
+          traceValues.push('resolve', instanceId);
+          addValue(value);
+          checkTraceLog();
+          return value;
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(instanceId, lambda, context, id, parentInstanceId) {
+          traceValues.push('lambda', instanceId, context.id, id, parentInstanceId);
+          return checkTraceLog();
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function() {
+          var args, lambda;
+          lambda = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
+          traceValues.push('call', lambda.L$instanceId);
+          addArgs(args);
+          return checkTraceLog();
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_tracePartial" + type] = function(lambda, args) {
+          traceValues.push('partial', lambda.L$instanceId);
+          addArgs(args);
+          return checkTraceLog();
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(lambda, result) {
+          traceValues.push('return', lambda.L$instanceId);
+          addValue(result);
+          checkTraceLog();
+          return result;
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
+          traceValues.push('context', context);
+          return context;
+        };
+        return (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceMark" + type] = function() {
+          var count;
+          count = traceMarkCount++;
+          traceValues.push('mark', count);
+          checkTraceLog();
+          return count;
+        };
+      });
+    };
+    root.noDebugging = function(type) {
+      if (!type) {
+        (typeof window !== "undefined" && window !== null ? window : global).Leisure_usingDebugging = false;
+      }
+      return (type ? new Set([type]) : debugTypes).forEach(function(type) {
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLazyValue" + type] = function(context, id, parentInstanceId, value) {
+          return value;
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceResolve" + type] = function(instanceId, value) {
+          return value;
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(instanceId, lambda, name, context, id, parentInstanceId) {};
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function(lambda) {};
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_tracePartial" + type] = function(lambda) {};
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(lambda, result) {
+          return result;
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
+          return context;
+        };
+        return (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceMark" + type] = function() {
+          return traceMarkCount++;
+        };
+      });
+    };
+    ref = ['User', 'Std', 'Parser'];
+    for (i = 0, len1 = ref.length; i < len1; i++) {
+      type = ref[i];
+      addDebugType(type);
+    }
+    checkTraceLog = function(args) {
+      if (traceValues.length > traceLen) {
+        return flushTraceLog();
+      }
+    };
+    flushTraceLog = function() {
+      if (traceValues.length) {
+        return setTimeout((function() {
+          traceHandler(traceValues);
+          return traceValues.length = 0;
+        }), 1);
+      }
+    };
+    getTraceValues = function() {
+      return traceValues;
+    };
+    addArgs = function(args) {
+      var arg, j, len2;
+      traceValues.push(args.length);
+      for (j = 0, len2 = args.length; j < len2; j++) {
+        arg = args[j];
+        addValue(arg);
+      }
+      return traceValues;
+    };
+    addValue = function(value) {
+      var ref1;
+      if (value.L$instanceId != null) {
+        traceValues.push(value.L$instanceId);
+      } else if (typeof value === 'function') {
+        traceValues.push("function: " + ((ref1 = value.leisureName) != null ? ref1 : value.name));
+      } else if (typeof value === 'number') {
+        traceValues.push(-1, value);
+      } else if (typeof value === 'object') {
+        traceValues.push("object: " + value);
+      } else {
+        traceValues.push(value);
+      }
+      return traceValues;
     };
     root.shouldNsLog = false;
     root.nsLog = function() {
@@ -126,7 +240,8 @@ misrepresented as being the original software.
       }
     };
     (typeof window !== "undefined" && window !== null ? window : global).verbose = {};
-    (typeof window !== "undefined" && window !== null ? window : global).Leisure = (ref = (typeof window !== "undefined" && window !== null ? window : global).Leisure) != null ? ref : {};
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure = (ref1 = (typeof window !== "undefined" && window !== null ? window : global).Leisure) != null ? ref1 : {};
+    Leisure.sourceFiles = sourceFiles;
     verboseMsg = function() {
       var label, msg;
       label = arguments[0], msg = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
@@ -170,6 +285,9 @@ misrepresented as being the original software.
       write: function(v) {
         return console.log(v);
       },
+      writeTraceMessage: function(count, msg) {
+        return this.write(msg);
+      },
       errorHandlers: [],
       prompt: function() {
         return null;
@@ -182,20 +300,17 @@ misrepresented as being the original software.
       },
       compileBlock: function() {
         return null;
-      }
+      },
+      userEvent: function() {}
     };
     rz = (typeof window !== "undefined" && window !== null ? window : global).resolve = function(value) {
-      if (typeof value === 'function' && value.length === 0) {
+      if (typeof value === 'function') {
         if (typeof value.memo !== 'undefined') {
           return value.memo;
-        } else {
-          if (value.creationStack) {
-            value.creationStack = null;
-          }
-          if (value.args) {
-            value.args = null;
-          }
+        } else if (value.length === 0) {
           return value.memo = value();
+        } else {
+          return value;
         }
       } else {
         return value;
@@ -258,8 +373,8 @@ misrepresented as being the original software.
       }
 
       SimpyCons.prototype.toArray = function() {
-        var array, h, ref1;
-        return (ref1 = this._array) != null ? ref1 : ((function() {
+        var array, h, ref2;
+        return (ref2 = this._array) != null ? ref2 : ((function() {
           h = this;
           array = [];
           while (h !== null) {
@@ -280,7 +395,7 @@ misrepresented as being the original software.
     concat = Array.prototype.concat;
     (typeof window !== "undefined" && window !== null ? window : global).L$ = function(f) {
       f = rz(f);
-      if (f.length > 1) {
+      if (typeof f !== 'function' || f.length > 1) {
         return f;
       } else {
         return function() {
@@ -293,7 +408,7 @@ misrepresented as being the original software.
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_call = leisureCall = function(f) {
       return baseLeisureCall(f, 1, arguments);
     };
-    (typeof window !== "undefined" && window !== null ? window : global).Leisure_primCall = baseLeisureCall = function(f, pos, args, len) {
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure_primCall = baseLeisureCall = function(f, pos, args, len, traceCall) {
       var oldLen, partial, prev;
       len = len != null ? len : f.length;
       while (pos < args.length) {
@@ -350,9 +465,9 @@ misrepresented as being the original software.
       return f;
     };
     genInfo = function(func, args, oldInfo) {
-      var arg, i, len1;
-      for (i = 0, len1 = args.length; i < len1; i++) {
-        arg = args[i];
+      var arg, j, len2;
+      for (j = 0, len2 = args.length; j < len2; j++) {
+        arg = args[j];
         if (!oldInfo) {
           oldInfo = {
             name: func.leisureName,
@@ -444,6 +559,8 @@ misrepresented as being the original software.
         return Meteor.call('incrementField', root.currentDocument.leisure.name, path, amount, cont);
       }
     };
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure_addSourceFile = addSourceFile;
+    Leisure.Base = root;
     root.serverIncrement = serverIncrement;
     root.defaultEnv = defaultEnv;
     root.readFile = readFile;
@@ -460,6 +577,12 @@ misrepresented as being the original software.
     root.funcInfo = funcInfo;
     root.CodeContext = CodeContext;
     root.isResolved = isResolved;
+    root.getTraceValues = getTraceValues;
+    root.argNames = argNames;
+    root.flushTraceLog = flushTraceLog;
+    root.addDebugType = addDebugType;
+    root.addSourceFile = addSourceFile;
+    root.sourceFile = sourceFile;
     return root;
   });
 

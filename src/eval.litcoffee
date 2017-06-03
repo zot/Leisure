@@ -2,9 +2,9 @@ Evaulation support for Leisure
 
     'use strict'
     define.amd = true
-    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport)->
+    define ['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support', 'lib/sourcemapped-stacktrace'], (Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport, SourcemappedStackTrace)->
       SourceMapSupport?.install()
-      
+
       acorn = Acorn
       acornWalk = AcornWalk
       acornLoose = AcornLoose
@@ -20,6 +20,8 @@ Evaulation support for Leisure
         resolve
         lazy
         defaultEnv
+        flushTraceLog
+        addSourceFile
       } = Base
       (window ? global).resolve = rz = resolve
       (window ? global).lazy = lz = lazy
@@ -50,6 +52,7 @@ Evaulation support for Leisure
         genMap
         CodeGenerator
         withFile
+        jsCodeFor
       } = Gen
       {
         dump
@@ -59,6 +62,9 @@ Evaulation support for Leisure
         blockSource
         parseYaml
       } = DocOrg
+      {
+        mapStackTrace
+      } = SourcemappedStackTrace
 
       #########
       # init
@@ -86,6 +92,7 @@ Evaulation support for Leisure
             .then -> requirePromise './leisure/svg'
             .then -> new Promise (resolve, reject)->
               simpleEval 'resetStdTokenPacks', resolve, reject
+            .then -> console.log "LOADED LEISURE"
             .catch (err)-> console.error "ERROR LOADING LEISURE SYSTEM!\n#{err.stack}"
         leisurePromise
 
@@ -130,6 +137,11 @@ Evaulation support for Leisure
         env.presentValue = (v)-> v
         runMonad2 value, env, cont
 
+      # force Chrome to register this source file by compiling dummy JS code associated with the file
+      defineSourceFile = (fileName, contents)->
+        addSourceFile fileName, contents
+        eval jsCodeFor codeMap new SourceNode(1, 0, fileName, 'void(0)'), contents, fileName, true
+
       class ErrorCache
         constructor: (@limit = 10)->
           @cacheArray = []
@@ -147,13 +159,12 @@ Evaulation support for Leisure
       Leisure.errCache = errCache.cacheSet
 
       leisureErrorHtml = (err)->
-        errId = errCache.addError err
-        "<span class='error'><a href='javascript:void(Leisure.errCache.#{errId} ? console.log([Leisure.errCache.#{errId}], Leisure.errCache.#{errId}) : console.log(\"Error no longer avable: #{errId}\"))' style='font-weight: bold; font-size: xx-large; font-style: italic'>Print in console to convert source maps</a><br>Error computing value: #{err.stack.replace(/\n/g, '<br>')}</span>"
+        "<span class='error'>Error computing value: #{err.stack.replace(/\n/g, '<br>')}</span>"
 
       leisureEnv = (env)->
         env.presentValue = (v)->
           try
-            str = if v instanceof Error then leisureErrorHtml v
+            str = if v instanceof Error || v?.stack? then leisureErrorHtml v
             else rz(L_showHtml) lz v
           catch err
             str = leisureErrorHtml err
@@ -187,7 +198,12 @@ Evaulation support for Leisure
             (err)-> env.errorAt 0, err?.message ? err
         env.formatResult = (block, prefix, items)-> basicFormat block, prefix, [@presentValue items]
         env.genBlock = (block, cont)-> @generateCode blockSource(block), true, cont
-        env.executeBlock = (block, cont)-> runWithPromiseCont ((c)=> @genBlock block, c), cont
+        env.executeBlock = (block, cont)-> runWithPromiseCont ((c)=> @genBlock block, c), (results)->
+          results = arrayify results
+          for result in results
+            if result instanceof Error
+              return mapErrors results, cont
+          cont results
         env.generateCode = (text, noFunc, cont)-> setLounge this, =>
           fileName = currentGeneratedFileName()
           exec = =>
@@ -206,7 +222,7 @@ Evaulation support for Leisure
               else withFile fileName, null, ->
                 cont? results
                 code = for item in asts
-                  gen = new CodeGenerator(fileName, false, true)
+                  gen = new CodeGenerator(fileName, false, true, false, text)
                   node = gen.genNode item
                   sourceNode item, 'function(){return ', node, ';}'
                 node = new SourceNode 1, 0, fileName, [
@@ -219,10 +235,21 @@ Evaulation support for Leisure
                 ]
                 codeMap node, text, fileName, true), (err)-> throw err
           if getLeisurePromise().isResolved() then exec() else getLeisurePromise().then exec
+        env.userEvent = -> flushTraceLog()
         env.compileBlock = (block)->
           p = @generateCode blockSource(block)
           if p instanceof Promise then p.then (result)-> eval codeFor result else eval codeFor p
         env
+
+      mapErrors = (results, cont)->
+        Promise.all((if result instanceof Error #&& false
+          do (result)-> new Promise (succeed, fail)-> mapStackTrace result.stack, (r)->
+            tidyFrames = for frame in r
+              frame.replace(/^   */, '  ').replace /\([^/][^)]*\)/, (s)->
+                "(#{new URL s.substring(1, s.length - 1), location})"
+            succeed stack: tidyFrames.join '\n'
+        else result) for result in results)
+          .then (newResults)-> cont newResults
 
       runWithPromiseCont = (func, cont)->
         sync = false
@@ -583,9 +610,9 @@ Evaulation support for Leisure
           (new SourceNode 1, 0, fileName, ['function(){', nodes, '}']).toStringWithSourceMap()
         env
 
-      jsCodeFor = (codeMap)->
-        #"#{codeMap.code}\n"
-        "#{codeMap.code}\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify codeMap.map.toJSON()}\n"
+      #jsCodeFor = (codeMap)->
+      #  #"#{codeMap.code}\n"
+      #  "#{codeMap.code}\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify codeMap.map.toJSON()}\n"
 
       indentCode = (str)-> str.replace /\n/g, '\n  '
 
@@ -756,9 +783,6 @@ Evaulation support for Leisure
           pos = newPos + 1
         Math.min str.length, pos + 1 + column
 
-      defineSourceFile = (fileName, contents)->
-        eval jsCodeFor codeMap new SourceNode(1, 0, fileName, 'void(0)'), contents, fileName, true
-
       Object.assign Leisure, {
         evalLeisure
         runLeisureMonad
@@ -791,7 +815,6 @@ Evaulation support for Leisure
         setLounge
         hasCodeAttribute
         isYamlResult
-        jsCodeFor
         nextGeneratedFileName
         getLeisurePromise
         autoLoadEnv

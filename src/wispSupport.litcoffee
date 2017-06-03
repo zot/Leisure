@@ -4,7 +4,6 @@ Clojure support for Lounge
       {
         setLounge
         parseIt
-        jsCodeFor
         Scope
         lineColumnStrOffset
         presentHtml
@@ -19,6 +18,7 @@ Clojure support for Lounge
         SourceNode
         SourceMapConsumer
         SourceMapGenerator
+        jsCodeFor
       } = Gen
 
       Leisure.WispNS = lounge: tools: {}

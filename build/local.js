@@ -7,8 +7,9 @@
     return window.DOMCursor = DC;
   });
 
-  init = function(base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle, Storage, Presentation) {
+  init = function(base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle, Storage, Presentation, ODB) {
     var DEFAULT_PAGE, OrgData, Peer, addEmacsDataFilter, addSearchDataFilter, changeAdvice, checkImage, configureAtom, configureLocal, createEditorDisplay, createStructureDisplay, editorToolbar, fancyEditDiv, getDocumentParams, initStorage, initializePendingViews, installSelectionMenu, localActivateScripts, localResources, p2pConnections, p2pPanel, peer, plainEditDiv, renderView, runTests, setPanelExpanded, todoForEditor, useP2P, withContext;
+    ODB.trackOdb();
     OrgData = EditorSupport.OrgData, installSelectionMenu = EditorSupport.installSelectionMenu, getDocumentParams = EditorSupport.getDocumentParams, editorToolbar = EditorSupport.editorToolbar;
     plainEditDiv = Modes.plainEditDiv, fancyEditDiv = Modes.fancyEditDiv;
     createStructureDisplay = Diag.createStructureDisplay, createEditorDisplay = Diag.createEditorDisplay;
@@ -213,7 +214,7 @@
     });
     return require(['acorn', 'acorn_walk'], function() {
       return require(['acorn_loose'], function() {
-        return require(['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage', './presentation'], init);
+        return require(['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage', './presentation', './odb'], init);
       });
     });
   });

@@ -58,12 +58,15 @@ Error.stackTraceLimit = Infinity
   lazy
   defaultEnv
 } = root = module.exports = requirejs './base'
+global.Leisure_generateDebuggingCode = false
 rz = resolve
 lz = lazy
 lc = Leisure_call
 _ = requirejs 'lodash'
 fs = require 'fs'
 #compiler = require 'compiler'
+genFilePrefix = null
+gennedLsrFile = null
 
 if _.includes process.argv, '-x' then global.L_DEBUG = true
 
@@ -84,6 +87,8 @@ global.btoa = require 'btoa'
   sourceNode
   SourceNode
   setMegaArity
+  CodeGenerator
+  jsCodeFor
 } = requirejs './gen'
 {
   readFile
@@ -106,7 +111,6 @@ global.btoa = require 'btoa'
 } = requirejs 'bluebird'
 {
   tangle
-  jsCodeFor
 } = requirejs './tangle'
 
 global.setType = setType
@@ -369,6 +373,11 @@ tangleOrgFile = (file, cont)->
           console.error err.stack
           throw err
 
+#genCreateCompilerContext = -> "++Leisure_traceContext"
+genCreateCompilerContext = ->
+  if gennedLsrFile then "Leisure_addContext({source:#{JSON.stringify gennedLsrFile}})"
+  else '++Leisure_traceContext'
+
 compile = (file, cont)->
   defaultEnv.errorHandlers?.push (e)-> process.exit 1
   ext = path.extname file
@@ -381,7 +390,7 @@ compile = (file, cont)->
       else
         result = lineData.tail()(lz (x)->rz x)(lz (x)-> rz x)
       if result instanceof Error
-        result = replaceErr result, "Error compiling line: #{lines.head()}...\n#{ast.message}"
+        result = replaceErr result, "Error compiling line: #{lineData.head()}...\n#{ast.message}"
         errors.push[result]
       lineData.head()
     if errors.length
@@ -405,27 +414,41 @@ compile = (file, cont)->
       bareJs = bareFile + ".js"
       bareLsr = bareFile + ".lsr"
       bareOutputMap = bareFile + ".map"
+      gennedLsrFile = (if genFilePrefix then genFilePrefix + path.basename(bareFile)
+      else bareFile) + ".lsr"
+      gennedMapFile = (if genFilePrefix then genFilePrefix + path.basename(bareFile)
+      else bareFile) + ".map"
       if outDir
         outputFile = path.join(outDir, path.basename(outputFile))
         outputMap = path.join(outDir, path.basename(outputMap))
       if verbose then console.log "JS FILE: #{outputFile}"
       #console.log "FIRST AST: #{asts[0]}"
+      codeGen = new CodeGenerator gennedLsrFile, false, false, true
+      codeGen.sourceMap = true
+      codeGen.createContext = false
       try
         lastArgs = null
-        result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
-          '"use strict";\n',
-          #"module.exports = L_runMonads([\n  ",
-          'define([], function(){\n  return L_runMonads([\n    ',
-          intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, 'function(){return ', (genMap item), '}'), ',\n    '),
-          '\n  ]);\n});'
-        ]).toStringWithSourceMap(file: path.basename(bareJs))
+        result = withFile path.basename(bareLsr), null, ->
+          nodes = (new SourceNode 1, 0, bareLsr, [
+            intersperse(lastArgs = _.map(asts, (ast)->
+              sourceNode ast, 'function(){return ', (codeGen.genMap ast), '}'), ',\n    '),
+            '\n  ]);\n});'
+          ])
+          (new SourceNode 1, 0, bareLsr, [
+            '"use strict";\n',
+            """
+            define([], function(){#{if Leisure_generateDebuggingCode then codeGen.genContext() else ''}
+              return L_runMonads([
+                
+            """,
+            nodes]).toStringWithSourceMap(file: path.basename(bareJs))
       catch err
         inspect = require?('util').inspect ? (x)-> x
         console.log "Error in source node,\nargs: #{inspect lastArgs, depth: 128}\nError: #{err.stack}"
         throw err
       #writeFile outputFile, "L_runMonads([\n  " + _(asts).map((item)-> "function(){return #{gen item}}").join(',\n  ') + "]);\n", (err)->
       if verbose then console.log "FILE: #{outputFile}, MAP: #{outputMap}"
-      writeFile outputFile, result.code + "\n//# sourceMappingURL=#{path.basename bareOutputMap}\n", (err)->
+      writeFile outputFile, jsCodeFor(result, 'external', gennedMapFile), (err)->
         if !err
           writeFile outputMap, JSON.stringify(result.map, null, "  "), (err)->
             if !err then cont(asts)
@@ -471,6 +494,7 @@ usage = ->
   Usage repl [-v | -t | -a | -0 | -1 | -c | -coffee | -j | -d DIR] [FILE ...]
 
   -v            verbose
+  -g            generate debugging code
   -t            tangle, FILE is interpreted as an org file
   -a            only parse to AST
   -0            use CoffeeScript parser
@@ -482,6 +506,7 @@ usage = ->
   -d DIR        specify output directory for .ast and .js files
   -j            run JavaScript interactively after requiring Leisure files
   -coffee       run CoffeeScript interactively after requiring Leisure files
+  -prefix       filename prefix for code generation file references
 
   With no FILE arguments, runs interactive REPL
   """
@@ -540,6 +565,7 @@ processArg = (config, pos)->
       promptText = pargs[pos + 1]
       pos++
     when '-x' then #ignore because processed above
+    when '-g' then global.Leisure_generateDebuggingCode = true
     when '-v'
       verbose = true
       global.verbose.gen = true
@@ -577,6 +603,7 @@ processArg = (config, pos)->
       if verbose then console.log "PUSHING REQUIREMENT: #{pargs[pos + 1]}"
       requireList.push pargs[pos + 1]
       pos++
+    when '-prefix' then genFilePrefix = pargs[++pos]
     else
       newOptions = true
       if pargs[pos] == '-coffee'

@@ -12,6 +12,8 @@ setNameSpace 'core'
 #                                                                     #
 #######################################################################
 
+debugType 'Std'
+
 #################
 # TYPES
 #################
@@ -90,7 +92,7 @@ listFilter code = primBind (getValue 'listMacros')
 
 listFilterTail list = list
   \h t D . isTokenString h '|'
-    > (length t) 2
+    > (consLength t) 2
       cons h (cons (removeLast t) (cons (last t) nil))
       list
     cons h (listFilterTail t)
@@ -190,7 +192,7 @@ infix code = primBind (getValue 'infixPrecedence')
         \expr . infixRearrange prec right (_map (\cell . tail cell) groups) expr
 
 infixRearrange prec right closes list = \\
-  len = length list
+  len = consLength list
   head1 = head list
   tail1 = tail list
   head2 = head tail1

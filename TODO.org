@@ -1,3 +1,6 @@
+* TODO [#A] Make hash arguments that can position the document, etc.
+* TODO [#A] Access viewdef for a given view
+* TODO [#A] Viewdef and controler should render links to each other
 * TODO [#A] Add finger trees to Leisure
 * TODO [#A] generate debug and non-debug versions of each function
 * TODO [#A] Vele character sheet computer

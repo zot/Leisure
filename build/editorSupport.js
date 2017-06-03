@@ -2568,7 +2568,7 @@
         if (block.type === 'code' && (envM = blockEnvMaker(block))) {
           this.data.queueEval((function(_this) {
             return function() {
-              _this.executeBlock(block, envM);
+              _this.executeBlock(block, envM, true);
               return _this.data.triggerUpdate('system', 'code', block);
             };
           })(this));
@@ -2586,7 +2586,7 @@
         return env;
       };
 
-      OrgEditing.prototype.executeBlock = function(block, envM) {
+      OrgEditing.prototype.executeBlock = function(block, envM, isUserEvent) {
         var env, newBlock, opts, result, silent, source, sync;
         if (envM = blockEnvMaker(block)) {
           source = blockCodeItems(this, block).source;
@@ -2614,13 +2614,17 @@
                 return opts.update(newBlock = setResult(block, result));
               }
             };
+            env.writeTraceMessage = function(count, msg) {
+              return result += env.presentHtml(new Html("<a href='javascript:Leisure.traceMessage(" + count + ")'>trace</a>" + msg));
+            };
           }
           env.prompt = function(str, defaultValue, cont) {
             return cont(prompt(str, defaultValue));
           };
           setLounge(env, function() {
             return env.executeBlock(block, function(r) {
-              return writeResults(env, r);
+              writeResults(env, r);
+              return env.userEvent();
             });
           });
           sync = false;

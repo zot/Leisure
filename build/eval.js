@@ -6,8 +6,8 @@
 
   define.amd = true;
 
-  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport) {
-    var CodeGenerator, ErrorCache, Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeFor, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, defineSourceFile, dump, envTemplate, errCache, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, genMap, genSource, generatedFileCount, gensym, gensymCounter, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, left, leisureEnv, leisureErrorHtml, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, newConsFrom, newEvalFuncString, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, right, runLeisureMonad, runMonad, runMonad2, runNextResult, runWithPromiseCont, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, stringFor, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
+  define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support', 'lib/sourcemapped-stacktrace'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport, SourcemappedStackTrace) {
+    var CodeGenerator, ErrorCache, Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, addSourceFile, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeFor, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, defineSourceFile, dump, envTemplate, errCache, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, flushTraceLog, genMap, genSource, generatedFileCount, gensym, gensymCounter, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, left, leisureEnv, leisureErrorHtml, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mapErrors, mapStackTrace, newConsFrom, newEvalFuncString, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, right, runLeisureMonad, runMonad, runMonad2, runNextResult, runWithPromiseCont, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, stringFor, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
     if (SourceMapSupport != null) {
       SourceMapSupport.install();
     }
@@ -16,15 +16,16 @@
     acornLoose = AcornLoose;
     lispyScript = lsrequire("lispyscript");
     getType = Ast.getType, cons = Ast.cons, unescapePresentationHtml = Ast.unescapePresentationHtml, Nil = Ast.Nil;
-    Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
+    Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv, flushTraceLog = Base.flushTraceLog, addSourceFile = Base.addSourceFile;
     (typeof window !== "undefined" && window !== null ? window : global).resolve = rz = resolve;
     (typeof window !== "undefined" && window !== null ? window : global).lazy = lz = lazy;
     lc = Leisure_call;
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert, getLeisurePromise = Runtime.getLeisurePromise, left = Runtime.left, right = Runtime.right;
     Promise = Bluebird.Promise;
-    genSource = Gen.genSource, SourceNode = Gen.SourceNode, sourceNode = Gen.sourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator, genMap = Gen.genMap, CodeGenerator = Gen.CodeGenerator, withFile = Gen.withFile;
+    genSource = Gen.genSource, SourceNode = Gen.SourceNode, sourceNode = Gen.sourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator, genMap = Gen.genMap, CodeGenerator = Gen.CodeGenerator, withFile = Gen.withFile, jsCodeFor = Gen.jsCodeFor;
     dump = Yaml.dump;
     getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, parseYaml = DocOrg.parseYaml;
+    mapStackTrace = SourcemappedStackTrace.mapStackTrace;
     generatedFileCount = 0;
     defaultEnv.prompt = function(str, defaultValue, cont) {
       return cont(prompt(str, defaultValue));
@@ -53,9 +54,11 @@
         }).then(function() {
           return new Promise(function(resolve, reject) {
             return simpleEval('resetStdTokenPacks', resolve, reject);
-          })["catch"](function(err) {
-            return console.error("ERROR LOADING LEISURE SYSTEM!\n" + err.stack);
+          }).then(function() {
+            return console.log("LOADED LEISURE");
           });
+        })["catch"](function(err) {
+          return console.error("ERROR LOADING LEISURE SYSTEM!\n" + err.stack);
         });
       }
       return leisurePromise;
@@ -140,6 +143,10 @@
       };
       return runMonad2(value, env, cont);
     };
+    defineSourceFile = function(fileName, contents) {
+      addSourceFile(fileName, contents);
+      return eval(jsCodeFor(codeMap(new SourceNode(1, 0, fileName, 'void(0)'), contents, fileName, true)));
+    };
     ErrorCache = (function() {
       function ErrorCache(limit) {
         this.limit = limit != null ? limit : 10;
@@ -165,15 +172,13 @@
     errCache = new ErrorCache;
     Leisure.errCache = errCache.cacheSet;
     leisureErrorHtml = function(err) {
-      var errId;
-      errId = errCache.addError(err);
-      return "<span class='error'><a href='javascript:void(Leisure.errCache." + errId + " ? console.log([Leisure.errCache." + errId + "], Leisure.errCache." + errId + ") : console.log(\"Error no longer avable: " + errId + "\"))' style='font-weight: bold; font-size: xx-large; font-style: italic'>Print in console to convert source maps</a><br>Error computing value: " + (err.stack.replace(/\n/g, '<br>')) + "</span>";
+      return "<span class='error'>Error computing value: " + (err.stack.replace(/\n/g, '<br>')) + "</span>";
     };
     leisureEnv = function(env) {
       env.presentValue = function(v) {
         var err, error, str;
         try {
-          str = v instanceof Error ? leisureErrorHtml(v) : rz(L_showHtml)(lz(v));
+          str = v instanceof Error || ((v != null ? v.stack : void 0) != null) ? leisureErrorHtml(v) : rz(L_showHtml)(lz(v));
         } catch (error) {
           err = error;
           str = leisureErrorHtml(err);
@@ -261,7 +266,17 @@
           return function(c) {
             return _this.genBlock(block, c);
           };
-        })(this)), cont);
+        })(this)), function(results) {
+          var j, len, result;
+          results = arrayify(results);
+          for (j = 0, len = results.length; j < len; j++) {
+            result = results[j];
+            if (result instanceof Error) {
+              return mapErrors(results, cont);
+            }
+          }
+          return cont(results);
+        });
       };
       env.generateCode = function(text, noFunc, cont) {
         return setLounge(this, (function(_this) {
@@ -297,7 +312,7 @@
                       results1 = [];
                       for (j = 0, len = asts.length; j < len; j++) {
                         item = asts[j];
-                        gen = new CodeGenerator(fileName, false, true);
+                        gen = new CodeGenerator(fileName, false, true, false, text);
                         node = gen.genNode(item);
                         results1.push(sourceNode(item, 'function(){return ', node, ';}'));
                       }
@@ -319,6 +334,9 @@
           };
         })(this));
       };
+      env.userEvent = function() {
+        return flushTraceLog();
+      };
       env.compileBlock = function(block) {
         var p;
         p = this.generateCode(blockSource(block));
@@ -331,6 +349,40 @@
         }
       };
       return env;
+    };
+    mapErrors = function(results, cont) {
+      var result;
+      return Promise.all((function() {
+        var j, len, results1;
+        results1 = [];
+        for (j = 0, len = results.length; j < len; j++) {
+          result = results[j];
+          results1.push(result instanceof Error ? (function(result) {
+            return new Promise(function(succeed, fail) {
+              return mapStackTrace(result.stack, function(r) {
+                var frame, tidyFrames;
+                tidyFrames = (function() {
+                  var k, len1, results2;
+                  results2 = [];
+                  for (k = 0, len1 = r.length; k < len1; k++) {
+                    frame = r[k];
+                    results2.push(frame.replace(/^   */, '  ').replace(/\([^\/][^)]*\)/, function(s) {
+                      return "(" + (new URL(s.substring(1, s.length - 1), location)) + ")";
+                    }));
+                  }
+                  return results2;
+                })();
+                return succeed({
+                  stack: tidyFrames.join('\n')
+                });
+              });
+            });
+          })(result) : result);
+        }
+        return results1;
+      })()).then(function(newResults) {
+        return cont(newResults);
+      });
     };
     runWithPromiseCont = function(func, cont) {
       var err, error, failPromise, res, succeedPromise, sync;
@@ -991,9 +1043,6 @@
       };
       return env;
     };
-    jsCodeFor = function(codeMap) {
-      return codeMap.code + "\n//# sourceMappingURL=data:application/json;base64," + (btoa(JSON.stringify(codeMap.map.toJSON()))) + "\n";
-    };
     indentCode = function(str) {
       return str.replace(/\n/g, '\n  ');
     };
@@ -1259,9 +1308,6 @@
       }
       return Math.min(str.length, pos + 1 + column);
     };
-    defineSourceFile = function(fileName, contents) {
-      return eval(jsCodeFor(codeMap(new SourceNode(1, 0, fileName, 'void(0)'), contents, fileName, true)));
-    };
     Object.assign(Leisure, {
       evalLeisure: evalLeisure,
       runLeisureMonad: runLeisureMonad,
@@ -1293,7 +1339,6 @@
       setLounge: setLounge,
       hasCodeAttribute: hasCodeAttribute,
       isYamlResult: isYamlResult,
-      jsCodeFor: jsCodeFor,
       nextGeneratedFileName: nextGeneratedFileName,
       getLeisurePromise: getLeisurePromise,
       autoLoadEnv: autoLoadEnv,

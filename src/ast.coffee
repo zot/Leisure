@@ -592,7 +592,6 @@ define ['./base', 'lodash'], (base, _)->
   root.partialCall = partialCall
   root.doPartial = doPartial
   root.leisureFunctionNamed = leisureFunctionNamed
-  root.getPos = getPos
   root.rangeToJson = rangeToJson
   root.classNameForType = classNameForType
   root.classForType = classForType

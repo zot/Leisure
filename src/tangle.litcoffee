@@ -16,7 +16,6 @@ Leisure.tangle('#+BEGIN_SRC leisure :tangle yes\n3 + 4\n#+END_SRC')
       } = DocOrg
       {
         languageEnvMaker
-        jsCodeFor
         nextGeneratedFileName
         getLeisurePromise
       } = Eval
@@ -24,6 +23,7 @@ Leisure.tangle('#+BEGIN_SRC leisure :tangle yes\n3 + 4\n#+END_SRC')
         Promise
       } = Bluebird
       {
+        jsCodeFor
         SourceNode
         SourceMapConsumer
         SourceMapGenerator

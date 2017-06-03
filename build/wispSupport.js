@@ -6,10 +6,10 @@
 
   define(['./eval', './docOrg', 'bluebird', './gen', 'immutable', './editor', './editorSupport', 'acorn', 'lodash', 'jquery'], function(Eval, DocOrg, Bluebird, Gen, Immutable, Editor, EditorSupport, Acorn, _, $) {
     var Compiler, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, Wisp, WispScope, atOrAfter, baseFindExports, blockSource, codeOffset, compile, dumpNodes, envFunc, findExports, findNs, jsCodeFor, lastExportLoc, lineColumnStrOffset, modules, parseIt, presentHtml, setLounge, sourceMapFromCode, translateIdentifierWord, wispCompile, wispEval, wispFileCounter, wispPromise, wispRequire, wp;
-    setLounge = Eval.setLounge, parseIt = Eval.parseIt, jsCodeFor = Eval.jsCodeFor, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset, presentHtml = Eval.presentHtml;
+    setLounge = Eval.setLounge, parseIt = Eval.parseIt, Scope = Eval.Scope, lineColumnStrOffset = Eval.lineColumnStrOffset, presentHtml = Eval.presentHtml;
     blockSource = DocOrg.blockSource;
     Promise = Bluebird.Promise;
-    SourceNode = Gen.SourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator;
+    SourceNode = Gen.SourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator, jsCodeFor = Gen.jsCodeFor;
     Leisure.WispNS = {
       lounge: {
         tools: {}
