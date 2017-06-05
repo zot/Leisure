@@ -100,7 +100,7 @@ misrepresented as being the original software.
       LeisureObject.prototype.className = 'LeisureObject';
 
       LeisureObject.prototype.toString = function() {
-        return this.leisureName;
+        return this.L$info.name;
       };
 
       return LeisureObject;
@@ -134,8 +134,10 @@ misrepresented as being the original software.
         altList: [],
         def: f
       };
-      f.leisureLength = 1;
-      f.leisureName = leisureClass;
+      f.L$info = {
+        length: 1,
+        name: leisureClass
+      };
       f.typeFunction = true;
       f.__proto__ = LeisureObject;
       return setDataType(f, leisureClass);
@@ -541,7 +543,10 @@ misrepresented as being the original software.
         if (f === null) {
           f = rz(func);
           if (typeof f === 'function') {
-            f.leisureName = name;
+            if (!f.L$info) {
+              f.L$info = {};
+            }
+            f.L$info.name = name;
           }
           return f;
         } else {
@@ -565,7 +570,6 @@ misrepresented as being the original software.
       }
     };
     define = function(name, func, arity, src, method, namespace, isNew) {
-      func.leisureName = name;
       arity = arity != null ? arity : (typeof func === 'function' && func.length) || 0;
       return nakedDefine(name, lz(func), arity, src, method, namespace, isNew || (arity > 1));
     };
@@ -588,7 +592,7 @@ misrepresented as being the original software.
       if (!method && global.noredefs && (global[nm] != null) && global[nm].typeFunc) {
         throwError("[DEF] Attempt to redefine definition: " + name);
       }
-      functionInfo[name].def = namedFunc = typeof func === 'function' && func.memo ? (func.leisureLength = arity || func.length, func.leisureName = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
+      functionInfo[name].def = namedFunc = typeof func === 'function' && func.memo ? (!func.L$info ? func.L$info = {} : void 0, func.L$info.length = arity || func.length, func.L$info.name = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
       if (LeisureObject.prototype[nm]) {
         LeisureObject.prototype[nm] = namedFunc;
       } else {

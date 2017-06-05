@@ -51,7 +51,7 @@ misrepresented as being the original software.
       if (typeof func === 'string') {
         func = leisureFunctionNamed(func);
       }
-      if (func.leisureLength !== args.length) {
+      if (func.L$info.length !== args.length) {
         return Leisure_primCall(func, 0, args, func.length, traceCall);
       }
     };
@@ -1056,9 +1056,9 @@ misrepresented as being the original software.
       return cont(lz(global.leisureFuncNames));
     }));
     define('funcSrc', function(func) {
-      var info;
+      var info, ref1;
       if (typeof rz(func) === 'function') {
-        info = functionInfo[rz(func).leisureName];
+        info = functionInfo[(ref1 = rz(func).L$info) != null ? ref1.name : void 0];
         if (info != null ? info.src : void 0) {
           return some(info.src);
         } else {
@@ -1101,7 +1101,10 @@ misrepresented as being the original software.
             nakedDefine(funcName, dispFunc, args.length, dispatch);
           } else {
             global[n] = global.leisureFuncs[n] = functionInfo[funcName].mainDef = dispFunc;
-            dispFunc.leisureLength = args.length;
+            if (!dispFunc.L$info) {
+              dispFunc.L$info = {};
+            }
+            dispFunc.L$info.length = args.length;
             if (functionInfo[funcName].altList.length) {
               buildAdvisedFunc(funcName);
             }
@@ -1349,10 +1352,12 @@ misrepresented as being the original software.
           throw new Error("No default definition for " + name);
         }
       };
-      newDef.leisureLength = info.mainDef.leisureLength;
+      newDef.L$info = {
+        length: info.mainDef.L$info.length,
+        name: name
+      };
       functionInfo[name].newArity = true;
       LeisureFunctionInfo.def = newDef;
-      newDef.leisureName = name;
       return global[nm] = global.leisureFuncNames[nm] = lz(newDef);
     };
     advise = function(name, alt, arity, def) {
@@ -1830,8 +1835,9 @@ misrepresented as being the original software.
       return funcInfo(rz(f));
     });
     define('funcName', function(f) {
-      if (rz(f).leisureName) {
-        return some(rz(f).leisureName);
+      var ref1;
+      if ((ref1 = rz(f).L$info) != null ? ref1.name : void 0) {
+        return some(rz(f).L$info.name);
       } else {
         return none;
       }
@@ -1850,7 +1856,8 @@ misrepresented as being the original software.
       return booleanFor(typeof f === 'function' && (f.typeFunction || f.dataType));
     });
     define('typeName', function(f) {
-      return rz(f).leisureName;
+      var ref1;
+      return (ref1 = rz(f).L$info) != null ? ref1.name : void 0;
     });
     if (typeof window !== "undefined" && window !== null) {
       window.runMonad = runMonad;

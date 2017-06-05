@@ -187,7 +187,7 @@ define files, (btoa)->
 
   addValue = (value)->
     if value.L$instanceId? then traceValues.push value.L$instanceId
-    else if typeof value == 'function' then traceValues.push "function: #{value.leisureName ? value.name}"
+    else if typeof value == 'function' then traceValues.push "function: #{value.L$info?.name ? value.name}"
     else if typeof value == 'number' then traceValues.push -1, value
     else if typeof value == 'object' then traceValues.push "object: #{value}"
     else traceValues.push value
@@ -339,7 +339,7 @@ define files, (btoa)->
 
   genInfo = (func, args, oldInfo)->
     for arg in args
-      if !oldInfo then oldInfo = {name: func.leisureName, arg}
+      if !oldInfo then oldInfo = {name: func.L$info?.name, arg}
       else oldInfo = {arg: arg, parent: oldInfo}
     oldInfo
 

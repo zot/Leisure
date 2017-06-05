@@ -183,6 +183,10 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     contextInit: ->
       if @useContext then '\n  L$F.context = L_$context;'
       else ''
+    funcVar: (index)-> "L$FUNC_#{index}"
+    addFuncInfo: (info)->
+      @funcInfo.push info
+      @funcVar @funcInfo.length - 1
     decl: (ast, dec)->
       if Leisure_generateDebuggingCode
         dec.id = @decls.length
@@ -207,7 +211,9 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
         map = JSON.parse sm.map.toString()
         result = sm.code
       else
-        funcName = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName' then getAnnoData ast else null
+        funcName = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName'
+          getAnnoData ast
+        else null
         #fileName = "dynamic code with source #{++codeNum}"
         withFile @fileName, funcName, =>
           try
@@ -229,7 +235,9 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       #filename = if hasFile then getAnnoData ast else 'GENFORUNKNOWNFILE.lsr'
       filename = if hasFile then getAnnoData ast else @fileName
       nameAst = if hasFile then getAnnoBody ast else null
-      funcname = if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then getAnnoData nameAst else currentFuncName
+      funcname = if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName'
+        getAnnoData nameAst
+      else currentFuncName
       sub = withFile filename, null, => @genNode(ast)
       @endId = functionId
       if !funcname then sub
@@ -387,14 +395,15 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     genLambdaDecl: (ast, name, length, code)->
       if name then nameCode = jstr name
       else nameCode = 'undefined'
+      infoVar = @addFuncInfo info = {length}
       if Leisure_generateDebuggingCode
+        info.id = _.last(@declStack).id
         sn ast, """
           (function(L$instance, L$parent){
             var L$F = """, code, """;
-            L$F.leisureLength = #{length};
+            L$F.L$info = #{infoVar};
             L$F.L$instanceId = L$instance;
-            L$F.L$context = L$context;
-            L$F.L$id = #{_.last(@declStack).id};
+            L$F.L$parentId = L$parent;
             Leisure_traceLambda#{debugType}(L$F);
             return L$F;
           })(++Leisure_traceInstance, L$instance)
@@ -402,7 +411,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       else sn ast, """
         (function(){
           var L$F = """, code, """;
-          L$F.leisureLength = #{length};
+          L$F.L$info = #{infoVar};
           return L$F;
         })()
       """
@@ -423,7 +432,13 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             return """, node, """;
           })(++Leisure_traceInstance)
         """
-      else node
+      else sn ast, """
+        (function(){
+          var L$context = null;
+          #{@genFuncInfo()}
+          return """, node, """;
+        })()
+        """
     genContext: ->
       source = if @source || @noFile then """
         source: Leisure_addSourceFile(#{jstr @fileName}, #{jstr @source}),
@@ -441,7 +456,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
         type = if decl.lazy then 'lazy' else 'lambda'
         decls.push type, decl.line, decl.col, decl.parent
         if type == 'lambda' then decls.push decl.lambda, decl.args.length, decl.args...
-      """
+      context = """
         \n  var L$context = Leisure_traceTopLevel#{debugType}({
             id: Leisure_traceContext++,
             traceCreatePartial: function(){return Leisure_traceCreatePartial#{debugType};},
@@ -449,7 +464,14 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             #{source},
             decls: #{JSON.stringify decls}
           });
-      """
+      """ + @genFuncInfo()
+    genFuncInfo: ->
+      header = ''
+      for info, i in @funcInfo
+        header += """
+          \n  var #{@funcVar i} = {context: L$context, id: #{info.id}, length: #{info.length}};
+        """
+      header
 
   lazify = (ast, body, id)->
     if Leisure_generateDebuggingCode

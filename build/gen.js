@@ -157,6 +157,15 @@ misrepresented as being the original software.
         }
       };
 
+      CodeGenerator.prototype.funcVar = function(index) {
+        return "L$FUNC_" + index;
+      };
+
+      CodeGenerator.prototype.addFuncInfo = function(info) {
+        this.funcInfo.push(info);
+        return this.funcVar(this.funcInfo.length - 1);
+      };
+
       CodeGenerator.prototype.decl = function(ast, dec) {
         var col, line, ref2;
         if (Leisure_generateDebuggingCode) {
@@ -512,16 +521,20 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genLambdaDecl = function(ast, name, length, code) {
-        var nameCode;
+        var info, infoVar, nameCode;
         if (name) {
           nameCode = jstr(name);
         } else {
           nameCode = 'undefined';
         }
+        infoVar = this.addFuncInfo(info = {
+          length: length
+        });
         if (Leisure_generateDebuggingCode) {
-          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.leisureLength = " + length + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$context = L$context;\n  L$F.L$id = " + (_.last(this.declStack).id) + ";\n  Leisure_traceLambda" + debugType + "(L$F);\n  return L$F;\n})(++Leisure_traceInstance, L$instance)");
+          info.id = _.last(this.declStack).id;
+          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$parentId = L$parent;\n  Leisure_traceLambda" + debugType + "(L$F);\n  return L$F;\n})(++Leisure_traceInstance, L$instance)");
         } else {
-          return sn(ast, "(function(){\n  var L$F = ", code, ";\n  L$F.leisureLength = " + length + ";\n  return L$F;\n})()");
+          return sn(ast, "(function(){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  return L$F;\n})()");
         }
       };
 
@@ -548,12 +561,12 @@ misrepresented as being the original software.
           }
           return sn(ast, "(function(L$instance){\n  " + header + "\n  return ", node, ";\n})(++Leisure_traceInstance)");
         } else {
-          return node;
+          return sn(ast, "(function(){\n  var L$context = null;\n  " + (this.genFuncInfo()) + "\n  return ", node, ";\n})()");
         }
       };
 
       CodeGenerator.prototype.genContext = function() {
-        var decl, decls, j, len, ref2, source, type;
+        var context, decl, decls, j, len, ref2, source, type;
         source = this.source || this.noFile ? "source: Leisure_addSourceFile(" + (jstr(this.fileName)) + ", " + (jstr(this.source)) + "),\n    map: '@SOURCEMAP@'" : this.sourceMap ? "source: " + (jstr(this.fileName)) + ",\n    map: '@SOURCEMAP@'" : "source: " + (jstr(this.fileName));
         decls = [];
         ref2 = this.decls;
@@ -565,7 +578,18 @@ misrepresented as being the original software.
             decls.push.apply(decls, [decl.lambda, decl.args.length].concat(slice.call(decl.args)));
           }
         }
-        return "\n  var L$context = Leisure_traceTopLevel" + debugType + "({\n    id: Leisure_traceContext++,\n    traceCreatePartial: function(){return Leisure_traceCreatePartial" + debugType + ";},\n    traceCallPartial: function(){return Leisure_traceCallPartial" + debugType + ";},\n    " + source + ",\n    decls: " + (JSON.stringify(decls)) + "\n  });";
+        return context = ("\n  var L$context = Leisure_traceTopLevel" + debugType + "({\n    id: Leisure_traceContext++,\n    traceCreatePartial: function(){return Leisure_traceCreatePartial" + debugType + ";},\n    traceCallPartial: function(){return Leisure_traceCallPartial" + debugType + ";},\n    " + source + ",\n    decls: " + (JSON.stringify(decls)) + "\n  });") + this.genFuncInfo();
+      };
+
+      CodeGenerator.prototype.genFuncInfo = function() {
+        var header, i, info, j, len, ref2;
+        header = '';
+        ref2 = this.funcInfo;
+        for (i = j = 0, len = ref2.length; j < len; i = ++j) {
+          info = ref2[i];
+          header += "\n  var " + (this.funcVar(i)) + " = {context: L$context, id: " + info.id + ", length: " + info.length + "};";
+        }
+        return header;
       };
 
       return CodeGenerator;

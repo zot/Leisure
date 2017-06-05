@@ -158,15 +158,15 @@
     };
     define('makeCollaborative', function(func) {
       return new Monad2('makeCollaborative', function(env, cont) {
-        var data, dispatchFunc, dispatchSrc, funcLen, i, name;
+        var data, dispatchFunc, dispatchSrc, funcLen, i, name, ref1;
         data = envData(env);
         func = rz(func);
-        name = func.leisureName;
+        name = (ref1 = func.L$info) != null ? ref1.name : void 0;
         if (func.length > 1) {
           dispatchSrc = "(function(" + (((function() {
-            var j, ref1, results;
+            var j, ref2, results;
             results = [];
-            for (i = j = 1, ref1 = func.length - 1; 1 <= ref1 ? j <= ref1 : j >= ref1; i = 1 <= ref1 ? ++j : --j) {
+            for (i = j = 1, ref2 = func.length - 1; 1 <= ref2 ? j <= ref2 : j >= ref2; i = 1 <= ref2 ? ++j : --j) {
               results.push('a' + i);
             }
             return results;

@@ -93,7 +93,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   checkPartial = (window ? global).L_checkPartial = (func, args, traceCall)->
     if typeof func == 'string' then func = leisureFunctionNamed func
-    if func.leisureLength != args.length then Leisure_primCall func, 0, args, func.length, traceCall
+    if func.L$info.length != args.length then Leisure_primCall func, 0, args, func.length, traceCall
 
   call = (args...)-> basicCall(args, defaultEnv, identity)
 
@@ -718,7 +718,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'funcSrc', (func)->
     if typeof rz(func) == 'function'
-      info = functionInfo[rz(func).leisureName]
+      info = functionInfo[rz(func).L$info?.name]
       if info?.src then some info.src else none
 
   define 'ast2Json', (ast)-> JSON.stringify ast2Json rz ast
@@ -757,7 +757,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       if !global[n] then nakedDefine funcName, dispFunc, args.length, dispatch
       else
         global[n] = global.leisureFuncs[n] = functionInfo[funcName].mainDef = dispFunc
-        dispFunc.leisureLength = args.length
+        if !dispFunc.L$info then dispFunc.L$info = {}
+        dispFunc.L$info.length = args.length
         if functionInfo[funcName].altList.length then buildAdvisedFunc funcName
       functionInfo[funcName].typeCase = true
       LeisureObject.prototype[n] = oldDef
@@ -927,10 +928,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
           res = res arg
         return res
       throw new Error "No default definition for #{name}"
-    newDef.leisureLength = info.mainDef.leisureLength
+    newDef.L$info = length: info.mainDef.L$info.length, name: name
     functionInfo[name].newArity = true
     LeisureFunctionInfo.def = newDef
-    newDef.leisureName = name
     global[nm] = global.leisureFuncNames[nm] = lz newDef
 
   advise = (name, alt, arity, def)->
@@ -1278,7 +1278,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'funcInfo', (f)-> funcInfo rz f
 
-  define 'funcName', (f)-> if rz(f).leisureName then some rz(f).leisureName else none
+  define 'funcName', (f)-> if rz(f).L$info?.name then some rz(f).L$info.name else none
   
   define 'getFunction', (name)->
     f = rz global['L_' + (nameSub rz name)]
@@ -1288,7 +1288,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     f = rz f
     booleanFor (typeof f == 'function' && (f.typeFunction || f.dataType))
 
-  define 'typeName', (f)-> rz(f).leisureName
+  define 'typeName', (f)-> rz(f).L$info?.name
 
 #######################
 # Exports

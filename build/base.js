@@ -223,11 +223,11 @@ misrepresented as being the original software.
       return traceValues;
     };
     addValue = function(value) {
-      var ref1;
+      var ref1, ref2;
       if (value.L$instanceId != null) {
         traceValues.push(value.L$instanceId);
       } else if (typeof value === 'function') {
-        traceValues.push("function: " + ((ref1 = value.leisureName) != null ? ref1 : value.name));
+        traceValues.push("function: " + ((ref1 = (ref2 = value.L$info) != null ? ref2.name : void 0) != null ? ref1 : value.name));
       } else if (typeof value === 'number') {
         traceValues.push(-1, value);
       } else if (typeof value === 'object') {
@@ -478,12 +478,12 @@ misrepresented as being the original software.
       return f;
     };
     genInfo = function(func, args, oldInfo) {
-      var arg, j, len2;
+      var arg, j, len2, ref2;
       for (j = 0, len2 = args.length; j < len2; j++) {
         arg = args[j];
         if (!oldInfo) {
           oldInfo = {
-            name: func.leisureName,
+            name: (ref2 = func.L$info) != null ? ref2.name : void 0,
             arg: arg
           };
         } else {
