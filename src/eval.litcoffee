@@ -53,6 +53,7 @@ Evaulation support for Leisure
         CodeGenerator
         withFile
         jsCodeFor
+        setDebugType
       } = Gen
       {
         dump
@@ -92,6 +93,7 @@ Evaulation support for Leisure
             .then -> requirePromise './leisure/svg'
             .then -> new Promise (resolve, reject)->
               simpleEval 'resetStdTokenPacks', resolve, reject
+            .then -> setDebugType 'User'
             .then -> console.log "LOADED LEISURE"
             .catch (err)-> console.error "ERROR LOADING LEISURE SYSTEM!\n#{err.stack}"
         leisurePromise

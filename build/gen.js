@@ -46,7 +46,6 @@ misrepresented as being the original software.
     megaArity = false;
     curDef = null;
     debugType = 'User';
-    trace = false;
     trace = true;
     stackSize = 20;
     USE_STRICT = '"use strict";\n';
@@ -147,6 +146,7 @@ misrepresented as being the original software.
         this.createContext = !this.suppressContextCreation;
         this.decls = [];
         this.declStack = [];
+        this.funcInfo = [];
       }
 
       CodeGenerator.prototype.contextInit = function() {
@@ -288,14 +288,17 @@ misrepresented as being the original software.
               return this.genArifiedLambda(getAnnoBody(ast), names, uniq, data);
             } else {
               try {
-                if (trace && name === 'leisureName') {
-                  oldDef = curDef;
-                  curDef = data;
-                } else if (name === 'debug') {
-                  oldDebugType = debugType;
-                  setDebugType(data);
-                } else if (name === 'define') {
-                  this.declLazy(getAnnoBody(ast));
+                switch (name) {
+                  case 'leisureName':
+                    oldDef = curDef;
+                    curDef = data;
+                    break;
+                  case 'debug':
+                    oldDebugType = debugType;
+                    setDebugType(data);
+                    break;
+                  case 'define':
+                    this.declLazy(getAnnoBody(ast));
                 }
                 genned = this.genUniq(getAnnoBody(ast), names, uniq);
                 if (name === 'debug') {
@@ -316,7 +319,7 @@ misrepresented as being the original software.
                     return genned;
                 }
               } finally {
-                if (trace && name === 'leisureName') {
+                if (name === 'leisureName') {
                   curDef = oldDef;
                 }
               }
@@ -372,21 +375,23 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genLambda = function(ast, names, uniq) {
-        var argName, bodyCode, code, n, name, result, u;
+        var argName, bodyCode, code, defName, n, name, result, u;
         name = getLambdaVar(ast);
         u = addUniq(name, names, uniq);
         n = cons(name, names);
         argName = uniqName(name, u);
-        this.declLambda(ast, curDef, [name]);
+        defName = curDef;
+        curDef = null;
+        this.declLambda(ast, defName, [name]);
         bodyCode = this.genUniq(getLambdaBody(ast), n, u);
         code = sn(ast, "function(" + argName + "){return ", this.genTraceCall(ast, bodyCode, argName), ";}");
-        result = this.genLambdaDecl(ast, '1', addLambdaProperties(ast, code));
+        result = this.genLambdaDecl(ast, defName, '1', addLambdaProperties(ast, code));
         this.popDecl();
         return result;
       };
 
       CodeGenerator.prototype.genArifiedLambda = function(ast, names, uniq, arity) {
-        var annoAst, argList, args, bodyCode, code, data, name, result;
+        var annoAst, argList, args, bodyCode, code, data, defName, name, result;
         if (arity < 2) {
           return this.genLambda(ast, names, uniq, 0);
         } else {
@@ -394,10 +399,12 @@ misrepresented as being the original software.
           argList = _.map(args, (function(x) {
             return 'L_' + x;
           })).join(', ');
-          this.declLambda(ast, curDef, names);
+          defName = curDef;
+          curDef = null;
+          this.declLambda(ast, defName, names);
           bodyCode = this.genUniq(getNthLambdaBody(ast, arity), names, uniq);
-          code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments, Leisure_tracePartial" + debugType + ") || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
-          result = this.genLambdaDecl(ast, args.length, addLambdaProperties(ast, code));
+          code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial" + debugType + ", Leisure_traceCallPartial" + debugType + ") || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
+          result = this.genLambdaDecl(ast, defName, args.length, addLambdaProperties(ast, code));
           annoAst = ast;
           while (annoAst instanceof Leisure_anno) {
             name = getAnnoName(annoAst);
@@ -477,16 +484,7 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.lazify = function(ast, body) {
-        var code, id;
-        if (Leisure_generateDebuggingCode) {
-          id = _.last(this.decls).is;
-        }
-        code = lazify(ast, body, true);
-        if (Leisure_generateDebuggingCode) {
-          return sn(ast, "(function(L$instance, L$parentInstance){\n  return Leisure_traceLazyValue" + debugType + "(L$context, " + id + ", L$instance, ", code, ");\n})(++Leisure_traceInstance, L$instance)");
-        } else {
-          return code;
-        }
+        return lazify(ast, body, (Leisure_generateDebuggingCode ? _.last(this.decls).id : void 0));
       };
 
       CodeGenerator.prototype.genLets = function(ast, names, uniq) {
@@ -507,22 +505,21 @@ misrepresented as being the original software.
 
       CodeGenerator.prototype.genTraceCall = function(ast, code, argNames) {
         if (Leisure_generateDebuggingCode) {
-          return sn(ast, "(\n  Leisure_traceCall" + debugType + "(L$F, " + argNames + "),\n  Leisure_traceReturn" + debugType + "(L$F, (", code, "))\n)");
+          return sn(ast, "(\n  Leisure_traceCall" + debugType + "(L$instance, " + argNames + "),\n  Leisure_traceReturn" + debugType + "(L$instance, (", code, "))\n)");
         } else {
           return code;
         }
       };
 
-      CodeGenerator.prototype.genLambdaDecl = function(ast, length, code) {
+      CodeGenerator.prototype.genLambdaDecl = function(ast, name, length, code) {
         var nameCode;
-        if (curDef) {
-          nameCode = jstr(curDef);
-          curDef = null;
+        if (name) {
+          nameCode = jstr(name);
         } else {
           nameCode = 'undefined';
         }
         if (Leisure_generateDebuggingCode) {
-          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.leisureLength = " + length + ";\n  L$F.L$instanceId = L$instance;\n  Leisure_traceLambda" + debugType + "(L$instance, L$F, L$context, " + (_.last(this.declStack).id) + ", L$parent);\n  return L$F;\n})(++Leisure_traceInstance, L$instance)");
+          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.leisureLength = " + length + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$context = L$context;\n  L$F.L$id = " + (_.last(this.declStack).id) + ";\n  Leisure_traceLambda" + debugType + "(L$F);\n  return L$F;\n})(++Leisure_traceInstance, L$instance)");
         } else {
           return sn(ast, "(function(){\n  var L$F = ", code, ";\n  L$F.leisureLength = " + length + ";\n  return L$F;\n})()");
         }
@@ -564,19 +561,19 @@ misrepresented as being the original software.
           decl = ref2[j];
           type = decl.lazy ? 'lazy' : 'lambda';
           decls.push(type, decl.line, decl.col, decl.parent);
-          if (decl.lambda) {
-            decls.push.apply(decls, [decl.name, decl.args.length].concat(slice.call(decl.args)));
+          if (type === 'lambda') {
+            decls.push.apply(decls, [decl.lambda, decl.args.length].concat(slice.call(decl.args)));
           }
         }
-        return "\n  var L$context = Leisure_traceTopLevel" + debugType + "({\n    id: Leisure_traceContext++,\n    " + source + ",\n    decls: " + (JSON.stringify(decls)) + "\n  });";
+        return "\n  var L$context = Leisure_traceTopLevel" + debugType + "({\n    id: Leisure_traceContext++,\n    traceCreatePartial: function(){return Leisure_traceCreatePartial" + debugType + ";},\n    traceCallPartial: function(){return Leisure_traceCallPartial" + debugType + ";},\n    " + source + ",\n    decls: " + (JSON.stringify(decls)) + "\n  });";
       };
 
       return CodeGenerator;
 
     })();
-    lazify = function(ast, body, hasId) {
+    lazify = function(ast, body, id) {
       if (Leisure_generateDebuggingCode) {
-        return sn(ast, "function(){\n  return Leisure_traceResolve" + debugType + "(L$instance, ", body, ");\n}");
+        return sn(ast, "(function(L$instance, L$parent) {\n  return Leisure_traceLazyValue" + debugType + "(L$instance, L$context, " + id + ", function(){\n    return Leisure_traceResolve" + debugType + "(L$instance, ", body, ");\n  });\n})(++Leisure_traceInstance, L$instance)");
       } else {
         return sn(ast, "function(){\n  return ", body, ";\n}");
       }

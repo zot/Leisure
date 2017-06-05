@@ -2624,7 +2624,9 @@
           setLounge(env, function() {
             return env.executeBlock(block, function(r) {
               writeResults(env, r);
-              return env.userEvent();
+              if (isUserEvent) {
+                return env.userEvent();
+              }
             });
           });
           sync = false;

@@ -4683,7 +4683,7 @@ define([], function(){
   L$F.leisureLength = 1;
   return L$F;
 })())));}, 
-    function(){return (resolve(L_define)("defMacro", 2, "defMacro name def = primBind (getValue 'macroDefs')\n  \\macs . setValue 'macroDefs' (mapSet name def macs)", lazy((function(){
+    function(){return (resolve(L_define)("_defMacro", 2, "_defMacro name def = primBind (getValue 'macroDefs')\n  \\macs . setValue 'macroDefs' (mapSet name def macs)", lazy((function(){
   var L$F = function(L_name){return (function(){
   var L$F = function(L_def){return resolve(L_primBind)(function(){
   return resolve(L_getValue)("macroDefs");
@@ -5864,7 +5864,32 @@ define([], function(){
 });
 });
 }));}, 
-    function(){return (resolve(L_resetStdTokenPacks));}
+    function(){return (resolve(L_resetStdTokenPacks));}, 
+    function(){return (L$(resolve(L__defMacro))("defMacro", lazy((function(){
+  var L$F = function(L_list){return L$(resolve(L_cons))("_defMacro", function(){
+  return L$(resolve(L_cons))(function(){
+  return resolve(L_head)(L_list);
+}, function(){
+  return L$(resolve(L_cons))(function(){
+  return L$(resolve(L_cons))("\\@", function(){
+  return L$(resolve(L_cons))("leisureName", function(){
+  return L$(resolve(L_cons))(function(){
+  return resolve(L_strTokenString)(function(){
+  return resolve(L_head)(L_list);
+});
+}, function(){
+  return L$(resolve(L_cons))(".", function(){
+  return resolve(L_tail)(L_list);
+});
+});
+});
+});
+}, L_nil);
+});
+});};
+  L$F.leisureLength = 1;
+  return L$F;
+})())));}
   ]);
 });
 //# sourceMappingURL=simpleParse.map

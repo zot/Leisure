@@ -6,7 +6,7 @@ Code for local-mode.  This will not be loaded under meteor.
     init = (base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle, Storage, Presentation, ODB)->
 
       ODB.trackOdb()
-      #ODB.useOdb()
+      #ODB.useOdb 'User'
 
       {
         OrgData

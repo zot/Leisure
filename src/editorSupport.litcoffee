@@ -1351,7 +1351,7 @@ NMap is a very simple trie.
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
             setLounge env, -> env.executeBlock block, (r)->
               writeResults env, r
-              env.userEvent()
+              if isUserEvent then env.userEvent()
             sync = false
             if !silent then newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock

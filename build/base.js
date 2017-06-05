@@ -82,28 +82,32 @@ misrepresented as being the original software.
       }
       return results;
     };
+    flushTraceLog = function() {
+      if (traceValues.length) {
+        return setTimeout((function() {
+          traceHandler(traceValues);
+          return traceValues.length = 0;
+        }), 1);
+      }
+    };
     root.trackDebugging = function(len, handler, type) {
+      flushTraceLog();
       root.noDebugging(type);
       if (len) {
         traceLen = len;
         traceHandler = handler;
       }
       return (type ? new Set([type]) : debugTypes).forEach(function(type) {
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(instanceId, lambda, name, context, id, parentInstanceId) {
-          if (!lambda.L$traced) {
-            lambda.L$traced = true;
-            traceValues.push('lambdaDef', context.id, id, name, argNames(lambda));
-          }
-          traceValues.push('lambda', instanceId, context.id, id, parentInstanceId);
-          return checkTraceLog();
-        };
         return (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
-          traceValues.push('context', context);
+          traceValues.push('context', context.id, context.source, context.inlineMap, context.externalMap, context.decls.length);
+          traceValues.push.apply(traceValues, context.decls);
+          checkTraceLog();
           return context;
         };
       });
     };
     root.useDebugging = function(len, handler, type) {
+      flushTraceLog();
       if (len) {
         traceLen = len;
         traceHandler = handler;
@@ -112,11 +116,14 @@ misrepresented as being the original software.
         (typeof window !== "undefined" && window !== null ? window : global).Leisure_usingDebugging = true;
       }
       return (type ? new Set([type]) : debugTypes).forEach(function(type) {
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLazyValue" + type] = function(context, id, parentInstanceId, value) {
-          if (typeof value === 'function') {
-            value.L$instanceId = ++Leisure_traceInstance;
-          }
-          traceValues.push('lazyValue', value.L$instanceId, context.id, id, parentInstanceId);
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
+          traceValues.push('context', context.id, context.source, context.inlineMap, context.externalMap, context.decls.length);
+          traceValues.push.apply(traceValues, context.decls);
+          checkTraceLog();
+          return context;
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLazyValue" + type] = function(instanceId, context, id, value) {
+          traceValues.push('lazyValue', instanceId, context.id, id);
           checkTraceLog();
           return value;
         };
@@ -126,31 +133,33 @@ misrepresented as being the original software.
           checkTraceLog();
           return value;
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(instanceId, lambda, context, id, parentInstanceId) {
-          traceValues.push('lambda', instanceId, context.id, id, parentInstanceId);
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(lambda) {
+          lambda.L$context = context;
+          traceValues.push('lambda', lambda.L$instanceId, lambda.L$context.id, lambda.L$id);
           return checkTraceLog();
         };
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function() {
-          var args, lambda;
-          lambda = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
-          traceValues.push('call', lambda.L$instanceId);
+          var args, instanceId;
+          instanceId = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
+          traceValues.push('call', instanceId);
           addArgs(args);
           return checkTraceLog();
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_tracePartial" + type] = function(lambda, args) {
-          traceValues.push('partial', lambda.L$instanceId);
-          addArgs(args);
-          return checkTraceLog();
-        };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(lambda, result) {
-          traceValues.push('return', lambda.L$instanceId);
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(instanceId, result) {
+          traceValues.push('return', instanceId);
           addValue(result);
           checkTraceLog();
           return result;
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
-          traceValues.push('context', context);
-          return context;
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCreatePartial" + type] = function(instanceId, lambda, args) {
+          traceValues.push('createPartial', instanceId, lambda.L$instanceId);
+          addArgs(args);
+          return checkTraceLog();
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCallPartial" + type] = function(instanceId, args) {
+          traceValues.push('callPartial', instanceId);
+          addArgs(args);
+          return checkTraceLog();
         };
         return (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceMark" + type] = function() {
           var count;
@@ -162,25 +171,30 @@ misrepresented as being the original software.
       });
     };
     root.noDebugging = function(type) {
+      flushTraceLog();
       if (!type) {
         (typeof window !== "undefined" && window !== null ? window : global).Leisure_usingDebugging = false;
       }
       return (type ? new Set([type]) : debugTypes).forEach(function(type) {
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLazyValue" + type] = function(context, id, parentInstanceId, value) {
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
+          return context;
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLazyValue" + type] = function(instanceId, context, id, value) {
           return value;
         };
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceResolve" + type] = function(instanceId, value) {
           return value;
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(instanceId, lambda, name, context, id, parentInstanceId) {};
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function(lambda) {};
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_tracePartial" + type] = function(lambda) {};
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(lambda, result) {
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(lambda) {};
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function() {
+          var args, instanceId;
+          instanceId = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
+        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(instanceId, result) {
           return result;
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
-          return context;
-        };
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCreatePartial" + type] = function(instanceId, lambda, args) {};
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCallPartial" + type] = function(instanceId, args) {};
         return (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceMark" + type] = function() {
           return traceMarkCount++;
         };
@@ -194,14 +208,6 @@ misrepresented as being the original software.
     checkTraceLog = function(args) {
       if (traceValues.length > traceLen) {
         return flushTraceLog();
-      }
-    };
-    flushTraceLog = function() {
-      if (traceValues.length) {
-        return setTimeout((function() {
-          traceHandler(traceValues);
-          return traceValues.length = 0;
-        }), 1);
       }
     };
     getTraceValues = function() {
@@ -408,7 +414,7 @@ misrepresented as being the original software.
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_call = leisureCall = function(f) {
       return baseLeisureCall(f, 1, arguments);
     };
-    (typeof window !== "undefined" && window !== null ? window : global).Leisure_primCall = baseLeisureCall = function(f, pos, args, len, traceCall) {
+    (typeof window !== "undefined" && window !== null ? window : global).Leisure_primCall = baseLeisureCall = function(f, pos, args, len, traceCreate, traceCall) {
       var oldLen, partial, prev;
       len = len != null ? len : f.length;
       while (pos < args.length) {
@@ -445,6 +451,9 @@ misrepresented as being the original software.
           partial = function() {
             var newArgs;
             newArgs = concat.call(prev, slice.call(arguments));
+            if (Leisure_generateDebuggingCode && traceCall) {
+              traceCall(partial.L$instanceId, f, slice.call(arguments));
+            }
             if (!f.apply) {
               console.log("No apply! " + f + " " + newArgs[0]);
             }
@@ -456,6 +465,10 @@ misrepresented as being the original software.
           };
           partial.leisurePartial = true;
           partial.leisureInfo = genInfo(f, args, f.leisureInfo);
+          if (Leisure_generateDebuggingCode && traceCreate) {
+            partial.L$instanceId = ++Leisure_traceInstance;
+            traceCreate(partial.L$instanceId, f, prev);
+          }
           return lazy(partial);
         }
       }

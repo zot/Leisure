@@ -7,7 +7,7 @@
   define.amd = true;
 
   define(['./base', './ast', './runtime', 'acorn', 'acorn_walk', 'acorn_loose', 'lispyscript', './coffee-script', 'bluebird', './gen', 'lib/js-yaml', './docOrg', 'lodash', 'fingertree', 'browser-source-map-support', 'lib/sourcemapped-stacktrace'], function(Base, Ast, Runtime, Acorn, AcornWalk, AcornLoose, LispyScript, CS, Bluebird, Gen, Yaml, DocOrg, _, FingerTree, SourceMapSupport, SourcemappedStackTrace) {
-    var CodeGenerator, ErrorCache, Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, addSourceFile, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeFor, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, defineSourceFile, dump, envTemplate, errCache, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, flushTraceLog, genMap, genSource, generatedFileCount, gensym, gensymCounter, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, left, leisureEnv, leisureErrorHtml, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mapErrors, mapStackTrace, newConsFrom, newEvalFuncString, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, right, runLeisureMonad, runMonad, runMonad2, runNextResult, runWithPromiseCont, rz, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, stringFor, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
+    var CodeGenerator, ErrorCache, Html, Nil, Node, Promise, Scope, SourceMapConsumer, SourceMapGenerator, SourceNode, _true, acorn, acornLoose, acornWalk, addSourceFile, arrayify, autoLoadEnv, autoLoadProperty, basicFormat, blockSource, blockVars, blocksObserved, callFail, codeFor, codeMap, composeSourceMaps, cons, csEnv, currentGeneratedFileName, defaultEnv, defineSourceFile, dump, envTemplate, errCache, errorDiv, escapeHtml, escapeString, escaped, evalLeisure, findError, flushTraceLog, genMap, genSource, generatedFileCount, gensym, gensymCounter, getCodeItems, getLeft, getLeisurePromise, getRight, getType, getValue, handleErrors, hasCodeAttribute, html, id, indentCode, installEnv, intersperse, isError, isYamlResult, joinSourceMaps, jsBaseEval, jsCodeFor, jsEnv, jsEval, jsGatherResults, jsGatherSourceResults, jsonConvert, knownLanguages, languageEnvMaker, lazy, lc, left, leisureEnv, leisureErrorHtml, leisureExec, leisurePromise, lineColumnStrOffset, lineLocationForOffset, lispyScript, localEval, lsEnv, lz, makeHamt, makeSyncMonad, mapErrors, mapStackTrace, newConsFrom, newEvalFuncString, nextGeneratedFileName, nodesForGeneratedText, parseYaml, presentHtml, replacements, requirePromise, resolve, right, runLeisureMonad, runMonad, runMonad2, runNextResult, runWithPromiseCont, rz, setDebugType, setLounge, setValue, show, simpleEval, slashed, sn, sourceNode, sourceNodeFromCodeMap, sourceNodeTree, specials, stringFor, textEnv, unescapePresentationHtml, unescapeString, unescaped, walk, withFile, writeResults, yamlEnv;
     if (SourceMapSupport != null) {
       SourceMapSupport.install();
     }
@@ -22,7 +22,7 @@
     lc = Leisure_call;
     runMonad = Runtime.runMonad, runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, jsonConvert = Runtime.jsonConvert, getLeisurePromise = Runtime.getLeisurePromise, left = Runtime.left, right = Runtime.right;
     Promise = Bluebird.Promise;
-    genSource = Gen.genSource, SourceNode = Gen.SourceNode, sourceNode = Gen.sourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator, genMap = Gen.genMap, CodeGenerator = Gen.CodeGenerator, withFile = Gen.withFile, jsCodeFor = Gen.jsCodeFor;
+    genSource = Gen.genSource, SourceNode = Gen.SourceNode, sourceNode = Gen.sourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator, genMap = Gen.genMap, CodeGenerator = Gen.CodeGenerator, withFile = Gen.withFile, jsCodeFor = Gen.jsCodeFor, setDebugType = Gen.setDebugType;
     dump = Yaml.dump;
     getCodeItems = DocOrg.getCodeItems, blockSource = DocOrg.blockSource, parseYaml = DocOrg.parseYaml;
     mapStackTrace = SourcemappedStackTrace.mapStackTrace;
@@ -55,8 +55,10 @@
           return new Promise(function(resolve, reject) {
             return simpleEval('resetStdTokenPacks', resolve, reject);
           }).then(function() {
-            return console.log("LOADED LEISURE");
+            return setDebugType('User');
           });
+        }).then(function() {
+          return console.log("LOADED LEISURE");
         })["catch"](function(err) {
           return console.error("ERROR LOADING LEISURE SYSTEM!\n" + err.stack);
         });

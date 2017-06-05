@@ -99,7 +99,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
   megaArity = false
   curDef = null
   debugType = 'User'
-  trace = false
+  #trace = false
   trace = true
   stackSize = 20
   USE_STRICT = '"use strict";\n'
@@ -179,6 +179,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       @createContext = !@suppressContextCreation
       @decls = []
       @declStack = []
+      @funcInfo = []
     contextInit: ->
       if @useContext then '\n  L$F.context = L_$context;'
       else ''
@@ -250,13 +251,14 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             @genArifiedLambda (getAnnoBody ast), names, uniq, data
           else
             try
-              if trace && name == 'leisureName'
-                oldDef = curDef
-                curDef = data
-              else if name == 'debug'
-                oldDebugType = debugType
-                setDebugType data
-              else if name == 'define' then @declLazy getAnnoBody ast
+              switch name
+                when 'leisureName'
+                  oldDef = curDef
+                  curDef = data
+                when 'debug'
+                  oldDebugType = debugType
+                  setDebugType data
+                when 'define' then @declLazy getAnnoBody ast
               genned = @genUniq (getAnnoBody ast), names, uniq
               if name == 'debug' then debugType = oldDebugType
               switch name
@@ -269,7 +271,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
                 when 'leisureName' then genned
                 else genned
             finally
-              if trace && name == 'leisureName' then curDef = oldDef
+              if name == 'leisureName' then curDef = oldDef
         else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
     genArifiedApply: (ast, names, uniq)->
       args = []
@@ -302,11 +304,13 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       u = addUniq name, names, uniq
       n = cons name, names
       argName = (uniqName name, u)
-      @declLambda ast, curDef, [name]
+      defName = curDef
+      curDef = null
+      @declLambda ast, defName, [name]
       bodyCode = @genUniq (getLambdaBody ast), n, u
       code = sn ast, "function(#{argName}){return ", @genTraceCall(ast, bodyCode, argName), ";}"
       #addLambdaProperties ast, @genLambdaDecl ast, 'L$F.length', code
-      result = @genLambdaDecl ast, '1', addLambdaProperties ast, code
+      result = @genLambdaDecl ast, defName, '1', addLambdaProperties ast, code
       @popDecl()
       result
     genArifiedLambda: (ast, names, uniq, arity)->
@@ -314,15 +318,17 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       else
         args = getNArgs(arity, ast).toArray()
         argList = _.map(args, ((x)-> 'L_' + x)).join ', '
-        @declLambda ast, curDef, names
+        defName = curDef
+        curDef = null
+        @declLambda ast, defName, names
         bodyCode = @genUniq(getNthLambdaBody(ast, arity), names, uniq)
         code = sn ast, """
           function(#{argList}) {
-            return L_checkPartial(L$F, arguments, Leisure_tracePartial#{debugType}) || """, @genTraceCall(ast, bodyCode, argList), """;
+            return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial#{debugType}, Leisure_traceCallPartial#{debugType}) || """, @genTraceCall(ast, bodyCode, argList), """;
           };
         """
         #result = addLambdaProperties ast, @genLambdaDecl ast, args.length, code
-        result = @genLambdaDecl ast, args.length, addLambdaProperties ast, code
+        result = @genLambdaDecl ast, defName, args.length, addLambdaProperties ast, code
         annoAst = ast
         while annoAst instanceof Leisure_anno
           name = getAnnoName annoAst
@@ -357,15 +363,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     genLetAssign: (arg, names, uniq)->
       @declLazy arg, => @lazify arg, (@genUniq arg, names, uniq)
     lazify: (ast, body)->
-      if Leisure_generateDebuggingCode then id = _.last(@decls).is
-      code = lazify ast, body, true
-      if Leisure_generateDebuggingCode
-        sn ast, """
-          (function(L$instance, L$parentInstance){
-            return Leisure_traceLazyValue#{debugType}(L$context, #{id}, L$instance, """, code, """);
-          })(++Leisure_traceInstance, L$instance)
-        """
-      else code
+      lazify ast, body, (if Leisure_generateDebuggingCode then _.last(@decls).id)
     genLets: (ast, names, uniq)->
       bindings = letList ast, []
       [letUniq, decs, assigns, ln] = _.reduce bindings, ((result, l)=>
@@ -381,15 +379,13 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     genTraceCall: (ast, code, argNames)->
       if Leisure_generateDebuggingCode then sn ast, """
         (
-          Leisure_traceCall#{debugType}(L$F, #{argNames}),
-          Leisure_traceReturn#{debugType}(L$F, (""", code, """))
+          Leisure_traceCall#{debugType}(L$instance, #{argNames}),
+          Leisure_traceReturn#{debugType}(L$instance, (""", code, """))
         )
       """
       else code
-    genLambdaDecl: (ast, length, code)->
-      if curDef
-        nameCode = jstr curDef
-        curDef = null
+    genLambdaDecl: (ast, name, length, code)->
+      if name then nameCode = jstr name
       else nameCode = 'undefined'
       if Leisure_generateDebuggingCode
         sn ast, """
@@ -397,7 +393,9 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             var L$F = """, code, """;
             L$F.leisureLength = #{length};
             L$F.L$instanceId = L$instance;
-            Leisure_traceLambda#{debugType}(L$instance, L$F, L$context, #{_.last(@declStack).id}, L$parent);
+            L$F.L$context = L$context;
+            L$F.L$id = #{_.last(@declStack).id};
+            Leisure_traceLambda#{debugType}(L$F);
             return L$F;
           })(++Leisure_traceInstance, L$instance)
         """
@@ -442,21 +440,26 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       for decl in @decls
         type = if decl.lazy then 'lazy' else 'lambda'
         decls.push type, decl.line, decl.col, decl.parent
-        if decl.lambda then decls.push decl.name, decl.args.length, decl.args...
+        if type == 'lambda' then decls.push decl.lambda, decl.args.length, decl.args...
       """
         \n  var L$context = Leisure_traceTopLevel#{debugType}({
             id: Leisure_traceContext++,
+            traceCreatePartial: function(){return Leisure_traceCreatePartial#{debugType};},
+            traceCallPartial: function(){return Leisure_traceCallPartial#{debugType};},
             #{source},
             decls: #{JSON.stringify decls}
           });
       """
 
-  lazify = (ast, body, hasId)->
-    if Leisure_generateDebuggingCode then sn ast, """
-      function(){
-        return Leisure_traceResolve#{debugType}(L$instance, """, body, """);
-      }
-    """
+  lazify = (ast, body, id)->
+    if Leisure_generateDebuggingCode
+      sn ast, """
+        (function(L$instance, L$parent) {
+          return Leisure_traceLazyValue#{debugType}(L$instance, L$context, #{id}, function(){
+            return Leisure_traceResolve#{debugType}(L$instance, """, body, """);
+          });
+        })(++Leisure_traceInstance, L$instance)
+      """
     else sn ast, """
       function(){
         return """, body, """;

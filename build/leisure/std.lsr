@@ -338,19 +338,19 @@ defMacro 'defCase' \list . do
   and[
     all isCons [list t1 t2]
     isTokenString h2 '.']
-      makeCaseArgs list (mkStr h1) (mkStr h3) t3 id
+      makeCaseArgs list h1 h3 t3 id
       parseErr "Error in case definition -- expected func.name args | condition -> action, but got " list
 
-makeCaseArgs orig funcName altName rest args = rest
+makeCaseArgs orig func alt rest args = rest
   \h t D . isTokenString h '|'
-    makeCaseCondition orig funcName altName (args nil) t id
-    makeCaseArgs orig funcName altName t (dlpush args h)
+    makeCaseCondition orig func alt (args nil) t id
+    makeCaseArgs orig func alt t (dlpush args h)
   parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
-makeCaseCondition orig funcName altName args rest condition = rest
+makeCaseCondition orig func alt args rest condition = rest
   \h t D . isTokenString h '->'
-    ['bind' (_foldr1 _append [['advise' funcName altName (consLength args) '\\'] args ['.' (condition nil) ['some' t] 'none']]) ['\\' '_' '.' 'unit']]
-    makeCaseCondition orig funcName altName args t (dlpush condition h)
+    ['bind' (_foldr1 _append [['advise' (mkStr func) (mkStr alt) (consLength args) '\\@' 'leisureName' s[(strTokenString func) '.' (strTokenString alt)] '.' '\\'] args ['.' (condition nil) ['some' t] 'none']]) ['\\' '_' '.' 'unit']]
+    makeCaseCondition orig func alt args t (dlpush condition h)
  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
 #######################
@@ -369,7 +369,7 @@ defMacro 'defTypeCase' \list . do
     partition (flip isTokenString '->') rest \args arrow body .
       isNil arrow
         parseErr s["No -> in defTypeCase: " list]
-        ['_defTypeCase' (str func) (str type) ['\\@' 'arity' s[(consLength args)] '.' '\\' | (_append args ['.' | body])]]
+        ['_defTypeCase' (str func) (str type) ['\\@' 'leisureName' s[(strTokenString func) '.' (strTokenString type)] '.' '\\@' 'arity' s[(consLength args)] '.' '\\' | (_append args ['.' | body])]]
     parseErr s["Not enough arguments to defTypeCase: " list]
 
 ######################

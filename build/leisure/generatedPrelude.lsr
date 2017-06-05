@@ -950,7 +950,7 @@ postProcessMacro before after expr = isString expr
         token (strString expr) (isEmptyPos after before after)
         expr
 
-defMacro name def = primBind (getValue 'macroDefs')
+_defMacro name def = primBind (getValue 'macroDefs')
   \macs . setValue 'macroDefs' (mapSet name def macs)
 
 #################
@@ -1233,6 +1233,16 @@ setValue 'parser_funcProps' nil
 defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
 
 resetStdTokenPacks
+
+_defMacro 'defMacro' \@ leisureName defMacro . \list .
+  cons '_defMacro'
+    cons (head list)
+      cons
+        cons '\\@'
+          cons 'leisureName'
+            cons (strTokenString (head list))
+              cons '.' (tail list)
+        nil
 setNameSpace 'core'
 
 #######################################################################
