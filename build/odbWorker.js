@@ -103,18 +103,18 @@
     };
 
     OdbWorker.prototype.lambda = function(records, pos, values) {
-      var context, id, instance, parent, type;
+      var args, i, j, ref, type, v;
       type = values[pos++];
-      instance = values[pos++];
-      context = values[pos++];
-      id = values[pos++];
-      parent = values[pos++];
+      args = [];
+      for (i = j = 0, ref = values[pos++]; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
+        args.push(v = values[pos++]);
+        if (v === -1) {
+          args.push(values[pos++]);
+        }
+      }
       records.add(records.lambdas, instance, {
         type: type,
-        instance: instance,
-        context: context,
-        id: id,
-        parent: parent
+        args: args
       });
       return pos;
     };
@@ -227,9 +227,9 @@
     };
 
     OdbWorker.prototype.context = function(records, pos, values) {
-      var argCount, args, col, context, debugType, defs, externalMap, id, inlineMap, lambdaDefs, lazyDefs, length, line, name, parent, ref, ref1, ref2, source, type;
-      ref = values.slice(pos, pos + 7), type = ref[0], context = ref[1], source = ref[2], inlineMap = ref[3], externalMap = ref[4], debugType = ref[5], length = ref[6];
-      pos += 7;
+      var argCount, args, col, context, defs, externalMap, id, inlineMap, lambdaDefs, lazyDefs, length, line, name, parent, ref, ref1, ref2, source, type;
+      ref = values.slice(pos, pos + 6), type = ref[0], context = ref[1], source = ref[2], inlineMap = ref[3], externalMap = ref[4], length = ref[5];
+      pos += 6;
       defs = [];
       lambdaDefs = {};
       lazyDefs = {};
@@ -241,8 +241,7 @@
         externalMap: externalMap,
         defs: defs,
         lambdaDefs: lambdaDefs,
-        lazyDefs: lazyDefs,
-        debugType: debugType
+        lazyDefs: lazyDefs
       };
       id = 0;
       length += pos;

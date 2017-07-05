@@ -60,16 +60,13 @@ persists between page refreshes so we can browse logs as if it were a database
         pos
       lambda: (records, pos, values)->
         type = values[pos++]
-        instance = values[pos++]
-        context = values[pos++]
-        id = values[pos++]
-        parent = values[pos++]
+        args = []
+        for i in [0...values[pos++]]
+          args.push v = values[pos++]
+          if v == -1 then args.push values[pos++]
         records.add records.lambdas, instance, {
           type
-          instance
-          context
-          id
-          parent
+          args
         }
         pos
       call: (records, pos, values)->
@@ -154,12 +151,12 @@ persists between page refreshes so we can browse logs as if it were a database
         }
         pos
       context: (records, pos, values)->
-        [type, context, source, inlineMap, externalMap, debugType, length] = values[pos...pos + 7]
-        pos += 7
+        [type, context, source, inlineMap, externalMap, length] = values[pos...pos + 6]
+        pos += 6
         defs = []
         lambdaDefs = {}
         lazyDefs = {}
-        records.contexts[context] = {type, id:context, source, inlineMap, externalMap, defs, lambdaDefs, lazyDefs, debugType}
+        records.contexts[context] = {type, id:context, source, inlineMap, externalMap, defs, lambdaDefs, lazyDefs}
         id = 0
         length += pos
         while pos < length
