@@ -222,7 +222,7 @@
               return e.stopPropagation();
             };
             return input.onkeyup = function(e) {
-              var data, end, start;
+              var data, end, renderBlock, start;
               e.stopPropagation();
               if (input.value !== oldValue) {
                 oldValue = typeof oldValue === 'number' ? Number(input.value) : input.value;
@@ -230,21 +230,26 @@
                 setter(data, oldValue);
                 start = input.selectionStart;
                 end = input.selectionEnd;
-                return dontRerender(parent != null ? parent[0] : void 0, function() {
-                  return dontRerender(view, function() {
-                    return opts.data.allowObservation(function() {
-                      console.log('render', view);
-                      block = opts.data.getBlockNamed(name);
-                      if (block.local) {
-                        return opts.setLocalData(name, data);
-                      } else {
-                        return preserveSelection(function() {
-                          return opts.data.collaborativeCode.viewBoundSet(name, data);
-                        });
-                      }
-                    });
+                renderBlock = function() {
+                  return opts.data.allowObservation(function() {
+                    var bl;
+                    console.log('render', view);
+                    bl = opts.data.getBlockNamed(name);
+                    if (bl.local) {
+                      return opts.setLocalData(name, data);
+                    } else {
+                      return preserveSelection(function() {
+                        return opts.data.collaborativeCode.viewBoundSet(name, data);
+                      });
+                    }
                   });
-                });
+                };
+                if (block.codeAttributes.allowupdates == null) {
+                  renderBlock = function() {
+                    return dontRender(view, renderBlock);
+                  };
+                }
+                return dontRerender(parent != null ? parent[0] : void 0, renderBlock);
               }
             };
           })(name, input, path));

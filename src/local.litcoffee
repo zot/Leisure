@@ -3,7 +3,10 @@ Code for local-mode.  This will not be loaded under meteor.
     'use strict'
     require ['./domCursor'], (DC)-> window.DOMCursor = DC
 
-    init = (base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle, Storage, Presentation)->
+    init = (base, jqui, EditorSupport, Modes, Diag, P2P, Tests, Defaults, UI, Search, Emacs, Todo, Advice, LoungeDefs, Atom, Tangle, Storage, Presentation, ODB)->
+
+      ODB.trackOdb()
+      #ODB.useOdb 'User'
 
       {
         OrgData
@@ -180,4 +183,4 @@ Code for local-mode.  This will not be loaded under meteor.
       editor.set$ $, (obj)-> obj instanceof $
       require ['acorn', 'acorn_walk'], ->
         require ['acorn_loose'], ->
-          require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage', './presentation'], init
+          require ['./base', 'jqueryui', './editorSupport', './modes', './diag', './leisure-client-adapter', './tests', 'text!../src/defaults.lorg', './ui', './search', './emacs', './todo', './advice', './lounge', 'atomSupport', './tangle', './storage', './presentation', './odb'], init

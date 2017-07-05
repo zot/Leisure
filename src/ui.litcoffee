@@ -172,12 +172,15 @@ choose a handlebars template.
                   setter data, oldValue
                   start = input.selectionStart
                   end = input.selectionEnd
-                  dontRerender parent?[0], -> dontRerender view, -> opts.data.allowObservation ->
+                  renderBlock = -> opts.data.allowObservation ->
                     console.log 'render', view
-                    block = opts.data.getBlockNamed name
-                    if block.local then opts.setLocalData name, data
+                    bl = opts.data.getBlockNamed name
+                    if bl.local then opts.setLocalData name, data
                     else
                       preserveSelection -> opts.data.collaborativeCode.viewBoundSet name, data
+                  if !block.codeAttributes.allowupdates?
+                    renderBlock = -> dontRender view, renderBlock
+                  dontRerender parent?[0], renderBlock
 
       traverse = (obj, func, t, key, path, set)->
         if typeof obj == 'object'

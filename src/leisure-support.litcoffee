@@ -156,7 +156,7 @@ Support code for Leisure
         new Monad2 'makeCollaborative', (env, cont)->
           data = envData env
           func = rz func
-          name = func.leisureName
+          name = func.L$info?.name
           if func.length > 1
             dispatchSrc = """
             (function(#{('a' + i for i in [1 .. func.length - 1]).join ', '}){

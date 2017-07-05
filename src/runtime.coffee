@@ -26,17 +26,18 @@ misrepresented as being the original software.
 define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird', 'browser-source-map-support'], (Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird)->
   SourceMapSupport?.install()
   {
-    readFile,
-    statFile,
-    readDir,
-    writeFile,
-    defaultEnv,
-    SimpyCons,
-    simpyCons,
-    resolve,
-    lazy,
-    nsLog,
-    funcInfo,
+    readFile
+    statFile
+    readDir
+    writeFile
+    defaultEnv
+    SimpyCons
+    simpyCons
+    resolve
+    lazy
+    nsLog
+    funcInfo
+    argNames
   } = root = Base
   {
     parseYaml
@@ -90,9 +91,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 # code
 #########
 
-  checkPartial = (window ? global).L_checkPartial = (func, args)->
+  checkPartial = (window ? global).L_checkPartial = (func, args, traceCall)->
     if typeof func == 'string' then func = leisureFunctionNamed func
-    if func.leisureLength != args.length then Leisure_primCall func, 0, args
+    if func.L$info.length != args.length then Leisure_primCall func, 0, args, func.length, traceCall
 
   call = (args...)-> basicCall(args, defaultEnv, identity)
 
@@ -111,9 +112,6 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   noMemo = (f)->
     Object.defineProperty f, 'memo', set: ->
     f
-
-  argNames = (func)->
-    arg.trim() for arg in Function.prototype.toString.call(func).match(/\(([^)]*)\)/)[1].split ','
 
 ############
 # LOGIC
@@ -148,7 +146,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
         else rz(data) instanceof type)
     define 'getDataType', (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
     # using arity makes compiling parseAst.lsr crash
-    define 'assert', (bool)->(msg)->(expr)-> rz(bool)(expr)(->
+    define 'assert', (bool, msg, expr)-> checkPartial(L_assert, arguments) || rz(bool)(expr)(->
       err = new Error(rz msg)
       err.stack = "Leisure stack:\n#{err}\n   at #{L$thunkStack.reverse().join '\n   at '}\n\nJS Stack:\n#{err.stack}"
       console.error err.stack
@@ -680,28 +678,29 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'envHas', (name)->
     makeSyncMonad (env, cont)->
-      cont booleanFor env.values[rz name]?
+      cont booleanFor env.values?[rz name]?
 
   define 'envGetOr', (name, defaultValue)-> checkPartial(L_envGetOr, arguments) ||
     makeSyncMonad (env, cont)->
-      cont(env.values[rz name] ? rz(defaultValue))
+      cont(env.values?[rz name] ? rz(defaultValue))
 
   define 'envGet', (name)->
     makeSyncMonad (env, cont)->
-      cont env.values[rz name] ? _unit
+      cont env.values?[rz name] ? _unit
 
   define 'envGetOpt', (name)->
     makeSyncMonad (env, cont)->
-      cont if v = env.values[rz name] then some v else none
+      cont if (v = env.values?[rz name])? then some v else none
 
   define 'envSet', (name, value)-> checkPartial(L_envSet, arguments) ||
     makeSyncMonad (env, cont)->
+      if !env.values? then env.values = {}
       env.values[rz name] = rz(value)
       cont _unit
 
   define 'envDelete', (name)->
     makeSyncMonad (env, cont)->
-      delete env.values[rz name]
+      if env.values? then delete env.values[rz name]
       cont _unit
 
   setValue 'macros', Nil
@@ -719,7 +718,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'funcSrc', (func)->
     if typeof rz(func) == 'function'
-      info = functionInfo[rz(func).leisureName]
+      info = functionInfo[rz(func).L$info?.name]
       if info?.src then some info.src else none
 
   define 'ast2Json', (ast)-> JSON.stringify ast2Json rz ast
@@ -746,23 +745,22 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     #  throw new Error "Attempt to define a type case with different arity than the base"
     if !cl = classForType type
       throw new Error "Attempt to define a type case for a nonexistent type: #{type}"
-    if !LeisureObject.prototype[n]
+    if !functionInfo[funcName]?.typeCase
       args = argNames oldDef ? func
-      code = """
-        (resolve(#{args[0]}).#{n} || LeisureObject.prototype.#{n}).apply(null, arguments)
-      """
       dispatch = """
         "use strict";
         (function(#{args.join ', '}) {
-          return #{code};
+          return (resolve(#{args[0]}).#{n} || LeisureObject.prototype.#{n} || function(){throw new Error("No typecase for #{funcName}." + L_getType(#{args[0]}))}).apply(null, arguments);
         })
       """
       dispFunc = lz eval dispatch
       if !global[n] then nakedDefine funcName, dispFunc, args.length, dispatch
       else
         global[n] = global.leisureFuncs[n] = functionInfo[funcName].mainDef = dispFunc
-        dispFunc.leisureLength = args.length
+        if !dispFunc.L$info then dispFunc.L$info = {}
+        dispFunc.L$info.length = args.length
         if functionInfo[funcName].altList.length then buildAdvisedFunc funcName
+      functionInfo[funcName].typeCase = true
       LeisureObject.prototype[n] = oldDef
     cl.prototype[n] = func
     _unit)
@@ -930,10 +928,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
           res = res arg
         return res
       throw new Error "No default definition for #{name}"
-    newDef.leisureLength = info.mainDef.leisureLength
+    newDef.L$info = length: info.mainDef.L$info.length, name: name
     functionInfo[name].newArity = true
     LeisureFunctionInfo.def = newDef
-    newDef.leisureName = name
     global[nm] = global.leisureFuncNames[nm] = lz newDef
 
   advise = (name, alt, arity, def)->
@@ -1008,8 +1005,10 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'mapSet', (key, value, map)-> checkPartial(L_mapSet, arguments) ||
     makeMap rz(map).map.set rz(key), rz(value)
 
-  define 'mapGet', (key, map)-> checkPartial(L_mapGet, arguments) ||
-    rz(map).map.get rz(key)
+  define 'mapGet', (key, map)-> checkPartial(L_mapGet, arguments) || (
+    m = rz(map).map
+    k = rz(key)
+    if m.has rz(key) then m.get(rz(key)) else Nil)
 
   define 'mapGetOpt', (key, map)-> checkPartial(L_mapGetOpt, arguments) || (
     v = rz(map).map.get rz(key)
@@ -1039,7 +1038,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     if !keys.size then rz L_nil
     else
       k = keys.first()
-      rz(L_acons)(lz(k), lz(map.get(k)), -> nextMapPair map, keys.rest())
+      rz(L_cons)(lz(rz(L_cons)(lz(k), lz(map.get(k)))), -> nextMapPair map, keys.rest())
 
   define 'mapReverse', (map)-> makeMap rz(map).map.reverse()
 
@@ -1279,7 +1278,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'funcInfo', (f)-> funcInfo rz f
 
-  define 'funcName', (f)-> if rz(f).leisureName then some rz(f).leisureName else none
+  define 'funcName', (f)-> if rz(f).L$info?.name then some rz(f).L$info.name else none
   
   define 'getFunction', (name)->
     f = rz global['L_' + (nameSub rz name)]
@@ -1289,7 +1288,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     f = rz f
     booleanFor (typeof f == 'function' && (f.typeFunction || f.dataType))
 
-  define 'typeName', (f)-> rz(f).leisureName
+  define 'typeName', (f)-> rz(f).L$info?.name
 
 #######################
 # Exports

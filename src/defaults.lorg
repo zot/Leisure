@@ -297,7 +297,7 @@ updateButton = (view, hiding)->
 * Blocks
 ** Source Toggle
 #+BEGIN_SRC html :defview leisure-source-toggle
-{{#if topLevel}}<button class='toggle_edit' contenteditable='false' data-noncontent><i class="fa fa-glass"></i></button><span data-noncontent contenteditable='false'> </span>{{/if}}
+{{#if topLevel}}<button class='toggle_edit' contenteditable='false' data-noncontent><i class="fa fa-glass"></i></button><span name='headlineCollapse'><i class='fa fa-caret-down' aria-hidden='true'></i></span><span data-noncontent contenteditable='false'> </span>{{/if}}
 #+END_SRC
 
 #+BEGIN_SRC cs :control leisure-source-toggle
@@ -306,6 +306,17 @@ updateButton = (view, hiding)->
   (slide = view.closest("[data-view='leisure-headline-plain']").find('[data-headline="1"]')).length ||
   (slide = view.closest('[data-view="leisure-top-chunk"]').find('[data-block]').first()).length
     view.find('button.toggle_edit').on 'click', -> Leisure.toggleSlideMode slide
+  view.find('[name=headlineCollapse]').on 'mousedown', (e)->
+    e.preventDefault()
+    button = e.currentTarget
+    codeBlock = $(button).closest('[data-block]')[0]
+    if codeBlock
+      if codeBlock.hasAttribute 'data-collapsed'
+        codeBlock.removeAttribute 'data-collapsed'
+        $(button).html '<i class="fa fa-caret-down" aria-hidden="true"></i>'
+      else
+        codeBlock.setAttribute 'data-collapsed', ''
+        $(button).html '<i class="fa fa-caret-right" aria-hidden="true"></i>'
 #+END_SRC
 ** Headline
 #+BEGIN_SRC html :defview leisure-headline-plain
@@ -795,7 +806,7 @@ Leisure.initCodeMenu = (view)->
   display: none;
 }
 [data-block=headline][data-collapsed] .maincontent > [data-org-type=text] .maintext > *:first-child::before {
-  content: " \f0da";
+  /*content: " \f0da";*/
 }
 #codeMenu {
   display: inline-block;

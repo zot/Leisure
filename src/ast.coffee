@@ -1,4 +1,3 @@
-
 ###
 Copyright (C) 2012, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
 
@@ -100,7 +99,7 @@ define ['./base', 'lodash'], (base, _)->
 
   class LeisureObject
     className: 'LeisureObject'
-    toString: -> @leisureName
+    toString: -> @L$info.name
 
   LeisureObject.prototype.__proto__ = Function.prototype
 #  LeisureObject.prototype.className = 'LeisureObject'
@@ -125,8 +124,9 @@ define ['./base', 'lodash'], (base, _)->
       alts: {}
       altList: []
       def: f
-    f.leisureLength = 1
-    f.leisureName = leisureClass
+    f.L$info =
+      length: 1
+      name: leisureClass
     f.typeFunction = true
     f.__proto__ = LeisureObject
     setDataType f, leisureClass
@@ -311,7 +311,9 @@ define ['./base', 'lodash'], (base, _)->
     ->
       if f == null
         f = rz func
-        if typeof f == 'function' then f.leisureName = name
+        if typeof f == 'function'
+          if !f.L$info then f.L$info = {}
+          f.L$info.name = name
         f
       else f
 
@@ -327,7 +329,6 @@ define ['./base', 'lodash'], (base, _)->
 
 # use AST, instead of arity?
   define = (name, func, arity, src, method, namespace, isNew) ->
-    func.leisureName = name
     arity = arity ? ((typeof func == 'function' && func.length) || 0)
     nakedDefine name, lz(func), arity, src, method, namespace, isNew || (arity > 1)
 
@@ -353,8 +354,9 @@ define ['./base', 'lodash'], (base, _)->
       throwError("[DEF] Attempt to redefine definition: #{name}")
     #namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
     functionInfo[name].def = namedFunc = if typeof func == 'function' && func.memo
-      func.leisureLength = arity || func.length
-      func.leisureName = name
+      if !func.L$info then func.L$info = {}
+      func.L$info.length = arity || func.length
+      func.L$info.name = name
       if func.__proto__ == Function.prototype then func.__proto__ = LeisureObject
       func
     else nameFunc(func, name)
@@ -593,7 +595,6 @@ define ['./base', 'lodash'], (base, _)->
   root.partialCall = partialCall
   root.doPartial = doPartial
   root.leisureFunctionNamed = leisureFunctionNamed
-  root.getPos = getPos
   root.rangeToJson = rangeToJson
   root.classNameForType = classNameForType
   root.classForType = classForType

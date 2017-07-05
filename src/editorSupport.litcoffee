@@ -1319,7 +1319,7 @@ NMap is a very simple trie.
           block = @editor.blockForCaret()
           if block.type == 'code' && envM = blockEnvMaker block
             @data.queueEval =>
-              @executeBlock block, envM
+              @executeBlock block, envM, true
               @data.triggerUpdate 'system', 'code', block
             @data.scheduleEvals()
         env: (language)->
@@ -1327,7 +1327,7 @@ NMap is a very simple trie.
           env.opts = this
           env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
           env
-        executeBlock: (block, envM)->
+        executeBlock: (block, envM, isUserEvent)->
           if envM = blockEnvMaker block
             {source} = blockCodeItems this, block
             result = ''
@@ -1342,11 +1342,16 @@ NMap is a very simple trie.
               newBlock = setError block, offset, msg
               if newBlock != block && !sync then opts.update newBlock
             if silent = isSilent block then env.write = ->
-            else env.write = (str)->
-              result += env.presentHtml str
-              if !sync then opts.update newBlock = setResult block, result
+            else
+              env.write = (str)->
+                result += env.presentHtml str
+                if !sync then opts.update newBlock = setResult block, result
+              env.writeTraceMessage = (count, msg)->
+                result += env.presentHtml new Html "<a href='javascript:Leisure.traceMessage(#{count})'>trace</a>#{msg}"
             env.prompt = (str, defaultValue, cont)-> cont prompt(str, defaultValue)
-            setLounge env, -> env.executeBlock block, (r)-> writeResults env, r
+            setLounge env, -> env.executeBlock block, (r)->
+              writeResults env, r
+              if isUserEvent then env.userEvent()
             sync = false
             if !silent then newBlock = setResult newBlock, result
             if newBlock != block then opts.update newBlock

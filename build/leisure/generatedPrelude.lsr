@@ -18,6 +18,7 @@ setNameSpace 'core'
 # TYPES
 #############
 
+debugType 'Std'
 _declareType 'err' 0
 _declareType 'boolean' 0
 _declareType 'true' 'boolean'
@@ -171,9 +172,9 @@ last l = isNil (tail l)
 removeLast l = isNil (tail l)
   nil
   cons (head l) (removeLast (tail l))
-length list = isCons list
-  + 1 (length (tail list))
-  assert (hasType list nil) (strCat (cons "length argument is not a proper list: " (cons list nil))) 0
+consLength list = isCons list
+  + 1 (consLength (tail list))
+  assert (hasType list nil) (strCat (cons "consLength argument is not a proper list: " (cons list nil))) 0
 
 # foldl (\prev el . ...) initial list 
 # foldr (\el next . ...) list final
@@ -311,6 +312,7 @@ ifNotErr thing cont = (isErr thing) thing (cont thing)
 ############
 ############
 
+debugType 'Parser'
 setNameSpace 'parser'
 
 ############
@@ -829,7 +831,7 @@ countedLinesForFile name text = filter
 #    isNil m
 #      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) nil
 #      cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk)
-#        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
+#        countedLines filename (+ lineOffset (consLength chunkLines)) (strSubstring str next 0)
 
 countedLines filename lineOffset str = _reverse
   _withRecur
@@ -847,7 +849,7 @@ _countedLines filename lineOffset str lines = \\
     isNil m
       cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) lines
       _recur
-        _countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
+        _countedLines filename (+ lineOffset (consLength chunkLines)) (strSubstring str next 0)
           cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk) lines
 
 defPat = regexp '^[^ =]+.* =( |$)'
@@ -905,9 +907,13 @@ baseMacroSub macs expr = isToken expr
             withToken subH
               cons subH (_map (baseMacroSub macs) t)
               \tok pos . baseMacroSub macs (cons subH t)
-          \tok pos . assoc tok macs
-            \def . baseMacroSub macs (def t)
-            cons h (_map (baseMacroSub macs) t)
+          \tok pos . \\
+            def = mapGet tok macs
+            .
+            mapContains tok macs
+              baseMacroSub macs (def t)
+              cons h (_map (baseMacroSub macs) t)
+              
 
 macroSubLet macs list = list
   \h t D . isTokenString h '.'
@@ -944,8 +950,8 @@ postProcessMacro before after expr = isString expr
         token (strString expr) (isEmptyPos after before after)
         expr
 
-defMacro name def = primBind (getValue 'macroDefs')
-  \macs . setValue 'macroDefs' (acons name def macs)
+_defMacro name def = primBind (getValue 'macroDefs')
+  \macs . setValue 'macroDefs' (mapSet name def macs)
 
 #################
 # Token Patterns
@@ -1217,7 +1223,7 @@ testParse str = countedParseLine nil (head (countedLinesForFile 'parse' str))
 ## SETTINGS
 ############
 
-setValue 'macroDefs' nil
+setValue 'macroDefs' hamt
 setValue 'requiredFiles' nil
 setValue 'tokenPacks' nil
 setValue 'activeTokenPacks' nil
@@ -1227,6 +1233,16 @@ setValue 'parser_funcProps' nil
 defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
 
 resetStdTokenPacks
+
+_defMacro 'defMacro' \@ leisureName defMacro . \list .
+  cons '_defMacro'
+    cons (head list)
+      cons
+        cons '\\@'
+          cons 'leisureName'
+            cons (strTokenString (head list))
+              cons '.' (tail list)
+        nil
 setNameSpace 'core'
 
 #######################################################################
@@ -1240,6 +1256,8 @@ setNameSpace 'core'
 # std parse filter, basic token groups, do macro                      #
 #                                                                     #
 #######################################################################
+
+debugType 'Std'
 
 #################
 # TYPES
@@ -1319,7 +1337,7 @@ listFilter code = primBind (getValue 'listMacros')
 
 listFilterTail list = list
   \h t D . isTokenString h '|'
-    > (length t) 2
+    > (consLength t) 2
       cons h (cons (removeLast t) (cons (last t) nil))
       list
     cons h (listFilterTail t)
@@ -1419,7 +1437,7 @@ infix code = primBind (getValue 'infixPrecedence')
         \expr . infixRearrange prec right (_map (\cell . tail cell) groups) expr
 
 infixRearrange prec right closes list = \\
-  len = length list
+  len = consLength list
   head1 = head list
   tail1 = tail list
   head2 = head tail1

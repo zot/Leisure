@@ -24,7 +24,7 @@ misrepresented as being the original software.
 
 'use strict'
 define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support', 'lib/js-yaml'], (Base, Ast, Runtime, _, SourceMap, SourceMapSupport, Yaml)->
-  SourceMapSupport?.install()
+  #SourceMapSupport?.install()
   {
     simpyCons
     resolve
@@ -32,6 +32,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     verboseMsg
     nsLog
     isResolved
+    addDebugType
   } = Base
   {
     dump
@@ -97,10 +98,10 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
   useArity = true
   megaArity = false
   curDef = null
-  trace = false
+  debugType = 'User'
+  #trace = false
   trace = true
   stackSize = 20
-  useThunkStacks = false
   USE_STRICT = '"use strict";\n'
   #USE_STRICT = ''
 
@@ -109,6 +110,10 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
 #########
 # Code
 #########
+
+  setDebugType = (type)->
+    addDebugType type
+    debugType = type
 
   collectArgs = (args, result)->
     for i in args
@@ -147,45 +152,68 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     check typeof offset == 'number', 'offset'
     checkChild str
     if line < 1 then line = 1
-    if currentFile == 'NEVERGIVENFILE.lsr' then console.log new Error("SN CALLED WITHOUT FILE").stack
+    if currentFile == 'NEVERGIVENFILE.lsr'
+      console.log new Error("SN CALLED WITHOUT FILE").stack
     if currentFuncName?
       new SourceNode(line, offset, currentFile, str, currentFuncName)
     else new SourceNode(line, offset, currentFile, str)
 
-  jsCodeFor = (codeMap)->
-    "#{codeMap.code}\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify codeMap.map.toJSON()}\n"
+  jstr = (str)-> JSON.stringify str
+
+  jsCodeFor = (codeMap, mapType, externalMap)->
+    code = codeMap.code
+    if mapType == 'inline'
+      code = code.replace /map: '@SOURCEMAP@'/, 'inlineMap: ' + jstr codeMap.map.toJSON()
+    else if mapType == 'external'
+      code = code.replace /map: '@SOURCEMAP@'/, 'externalMap: ' + jstr externalMap
+    "#{code}\n//# sourceMappingURL=data:application/json;base64,#{btoa jstr codeMap.map.toJSON()}\n"
 
   functionId = 0
   codeNum = 0
 
   class CodeGenerator
-    constructor: (fileName, @useContext, @noFile)->
+    constructor: (fileName, @useContext, @noFile, @suppressContextCreation, @source)->
       @fileName = fileName ? "dynamic code with source #{++codeNum}"
       @startId = functionId
+      @positions = []
+      @createContext = !@suppressContextCreation
+      @decls = []
+      @declStack = []
       @funcInfo = []
     contextInit: ->
-      if @useContext then '\n  L_$F.context = L_$context;'
+      if @useContext then '\n  L$F.context = L_$context;'
       else ''
-    addFunc: (ast)->
-      @funcInfo.push
-        type: 'function'
-        id: functionId
-        srcRange: rangeToJson getPos ast
-      functionId++
-    addSubfunc: (id, index, ast)->
-      @funcInfo.push
-        type: 'subfuncion'
-        id: functionId
-        primaryId: id
-        index: index
-      functionId++
+    funcVar: (index)-> "L$FUNC_#{index}"
+    addFuncInfo: (info)->
+      @funcInfo.push info
+      @funcVar @funcInfo.length - 1
+    decl: (ast, dec)->
+      if Leisure_generateDebuggingCode
+        dec.id = @decls.length
+        [line, col] = getPos(ast).toArray()
+        dec.line = line
+        dec.col = col
+        if @declStack.length then dec.parent = _.last(@declStack).id
+        @decls.push dec
+        @declStack.push dec
+    declLazy: (ast, arg)->
+      @decl ast, lazy: true
+      if arg?
+        result = arg()
+        @popDecl()
+        result
+    declLambda: (ast, name, args)-> @decl ast, lambda: name, args: args
+    popDecl: ->
+      if Leisure_generateDebuggingCode then @declStack.pop()
     genSource: (source, ast)->
       if @noFile
         sm = @genNode(ast).prepend(USE_STRICT + '(').add(')').toStringWithSourceMap file: @fileName
         map = JSON.parse sm.map.toString()
         result = sm.code
       else
-        funcName = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName' then getAnnoData ast else null
+        funcName = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName'
+          getAnnoData ast
+        else null
         #fileName = "dynamic code with source #{++codeNum}"
         withFile @fileName, funcName, =>
           try
@@ -197,35 +225,29 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             err.message = "Error generating code for:\n  #{source.trim().replace /\n/g, '\n  '}\n#{err.message}"
             throw err
       @endId = functionId
-      "#{result}\n//# sourceMappingURL=data:application/json;utf-8;base64,#{btoa JSON.stringify map}\n"
+      jsCodeFor sm, 'inline'
     genNode: (ast)->
       result = @genUniq ast, Nil, [Nil, 0]
       @endId = functionId
-      result
+      @genTopLevel ast, result
     genMap: (ast)->
       hasFile = ast instanceof Leisure_anno && getAnnoName(ast) == 'filename'
       #filename = if hasFile then getAnnoData ast else 'GENFORUNKNOWNFILE.lsr'
       filename = if hasFile then getAnnoData ast else @fileName
       nameAst = if hasFile then getAnnoBody ast else null
-      funcname = if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then getAnnoData nameAst else currentFuncName
+      funcname = if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName'
+        getAnnoData nameAst
+      else currentFuncName
       sub = withFile filename, null, => @genNode(ast)
-      [line, offset] = locateAst ast
       @endId = functionId
-      if funcname then new SourceNode line, offset, filename, sub, funcname
-      else sub
+      if !funcname then sub
+      else withFile filename, funcname, -> sn ast, sub
     gen: (ast)-> new SourceNode(1, 0, currentFile, ['(', @genMap(ast), ')']).toStringWithSourceMap(file: currentFile).code
-    genUniq: (ast, names, uniq, lambdaContext)->
+    genUniq: (ast, names, uniq)->
       switch ast.constructor
-        when Leisure_lit then sn ast, JSON.stringify getLitVal ast
-        when Leisure_ref then sn ast, "resolve(", (@genRefName ast, uniq, names), ")"
-        when Leisure_lambda
-          newContext = if !lambdaContext?
-            count: 0
-            id: @addFunc ast
-          else
-            count: lambdaContext.count + 1
-            id: @addSubfunc lambdaContext.id, lambdaContext.count + 1, ast
-          @genLambda ast, names, uniq, _.defaults newContext, lambdaContext
+        when Leisure_lit then sn ast, jstr getLitVal ast
+        when Leisure_ref then sn ast, "resolve(", (@genRefName ast, uniq, names, true), ")"
+        when Leisure_lambda then @genLambda ast, names, uniq
         when Leisure_apply
           if useArity then @genArifiedApply ast, names, uniq, arity
           else sn ast, (@genUniq (getApplyFunc ast), names, uniq), "(", (@genApplyArg (getApplyArg ast), names, uniq), ")"
@@ -237,21 +259,27 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             @genArifiedLambda (getAnnoBody ast), names, uniq, data
           else
             try
-              if trace && name == 'leisureName'
-                oldDef = curDef
-                curDef = data
+              switch name
+                when 'leisureName'
+                  oldDef = curDef
+                  curDef = data
+                when 'debug'
+                  oldDebugType = debugType
+                  setDebugType data
+                when 'define' then @declLazy getAnnoBody ast
               genned = @genUniq (getAnnoBody ast), names, uniq
+              if name == 'debug' then debugType = oldDebugType
               switch name
                 when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
                 when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
                 when 'define'
                   [funcName, arity, src] = data.toArray()
-                  sn ast, "define('", funcName, "', lazify(ast, genned), ", arity, ", ", JSON.stringify(src), ")"
-                when 'leisureName'
-                  genned
+                  @popDecl()
+                  sn ast, "define('", funcName, "', ", lazify(ast, genned), ", ", arity, ", ", jstr(src), ")"
+                when 'leisureName' then genned
                 else genned
             finally
-              if trace && name == 'leisureName' then curDef = oldDef
+              if name == 'leisureName' then curDef = oldDef
         else "CANNOT GENERATE CODE FOR UNKNOWN AST TYPE: #{ast}, #{ast.constructor} #{Leisure_lambda}"
     genArifiedApply: (ast, names, uniq)->
       args = []
@@ -279,38 +307,36 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       else
         ast = dumpAnno ast
         sn ast, (@genUniq (getApplyFunc ast), names, uniq), "(", (@genApplyArg (getApplyArg ast), names, uniq), ")"
-    genLambda: (ast, names, uniq, ctx)->
+    genLambda: (ast, names, uniq)->
       name = getLambdaVar ast
       u = addUniq name, names, uniq
       n = cons name, names
-      id = if ctx.count then ctx.id
-      code = if curDef && useThunkStacks
-        "function(#{(uniqName name, u)}){var old = #{genPushThunk(ast)}; var ret = #{(@genUniq (getLambdaBody ast), n, u, ctx)}; L$setThunkStack(old); return ret;};"
-      else "function(#{(uniqName name, u)}){return #{(@genUniq (getLambdaBody ast), n, u, ctx)}}"
-      addLambdaProperties ast, sn ast, """
-        (function(){
-          var L_$F = (#{code});
-          L_$F.leisureFunctionId = #{ctx.id};#{@contextInit()}
-          L_$F.leisureLength = L_$F.length;
-          return L_$F;
-        })()
-      """
+      argName = (uniqName name, u)
+      defName = curDef
+      curDef = null
+      @declLambda ast, defName, [name]
+      bodyCode = @genUniq (getLambdaBody ast), n, u
+      code = sn ast, "function(#{argName}){return ", @genTraceCall(ast, bodyCode, argName), ";}"
+      #addLambdaProperties ast, @genLambdaDecl ast, 'L$F.length', code
+      result = @genLambdaDecl ast, defName, '1', addLambdaProperties ast, code
+      @popDecl()
+      result
     genArifiedLambda: (ast, names, uniq, arity)->
       if arity < 2 then @genLambda ast, names, uniq, 0
       else
         args = getNArgs(arity, ast).toArray()
         argList = _.map(args, ((x)-> 'L_' + x)).join ', '
-        mainFunc = sn ast, """
-          (function(){
-            var L_$F = function(#{argList}) {
-              return L_checkPartial(L_$F, arguments) || #{@genUniq(getNthLambdaBody(ast, arity), names, uniq)};
-            };
-            L_$F.leisureFunctionId = #{@addFunc ast};
-            L_$F.leisureLength = #{args.length};
-            return L_$F;
-          })()
+        defName = curDef
+        curDef = null
+        @declLambda ast, defName, names
+        bodyCode = @genUniq(getNthLambdaBody(ast, arity), names, uniq)
+        code = sn ast, """
+          function(#{argList}) {
+            return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial#{debugType}, Leisure_traceCallPartial#{debugType}) || """, @genTraceCall(ast, bodyCode, argList), """;
+          };
         """
-        result = addLambdaProperties ast, (sn ast, mainFunc)
+        #result = addLambdaProperties ast, @genLambdaDecl ast, args.length, code
+        result = @genLambdaDecl ast, defName, args.length, addLambdaProperties ast, code
         annoAst = ast
         while annoAst instanceof Leisure_anno
           name = getAnnoName annoAst
@@ -319,28 +345,35 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             when 'type' then result = sn ast, "setType(", result, ", '", data, "')"
             when 'dataType' then result = sn ast, "setDataType(", result, ", '", data, "')"
           annoAst = getAnnoBody annoAst
+        @popDecl()
         result
-    genRefName: (ref, uniq, names)->
+    genRefName: (ref, uniq, names, checkMacro)->
       name = getRefName ref
       if isNil (val = names.find (el)-> el == name)
+        vname = varNameSub name
+        if !(window ? global)[vname] && Leisure.stateValues.macroDefs?.map.has name
+          throw new Error "Attempt to use a macro as a value: #{name}"
         ns = findName nameSub name
         if ns == root.currentNameSpace then nsLog "LOCAL NAME: #{name} FOR #{root.currentNameSpace} #{location ref}"
         else if !ns then nsLog "GUESSING LOCAL NAME #{name} FOR #{root.currentNameSpace} #{location ref}"
-        varNameSub name
+        vname
       else uniqName name, uniq
     genApplyArg: (arg, names, uniq)->
       d = dumpAnno arg
-      if d instanceof Leisure_apply then lazify d, @genUniq arg, names, uniq
+      if d instanceof Leisure_apply
+        @declLazy arg, => @lazify d, @genUniq arg, names, uniq
       else if d instanceof Leisure_ref then @genRefName d, uniq, names
-      else if d instanceof Leisure_lit then sn arg, JSON.stringify getLitVal d
-      else if d instanceof Leisure_let then lazify arg, (@genUniq arg, names, uniq)
+      else if d instanceof Leisure_lit then sn arg, jstr getLitVal d
+      else if d instanceof Leisure_let
+        @declLazy arg, => @lazify arg, (@genUniq arg, names, uniq)
       else if d instanceof Leisure_lambda then sn arg, 'lazy(', (@genUniq arg, names, uniq), ')'
-      else lazify arg, (@genUniq arg, names, uniq)
+      else @declLazy arg, => @lazify arg, (@genUniq arg, names, uniq)
     genLetAssign: (arg, names, uniq)->
-      lazify arg, (@genUniq arg, names, uniq)
+      @declLazy arg, => @lazify arg, (@genUniq arg, names, uniq)
+    lazify: (ast, body)->
+      lazify ast, body, (if Leisure_generateDebuggingCode then _.last(@decls).id)
     genLets: (ast, names, uniq)->
       bindings = letList ast, []
-      letNames = _.reduce bindings, ((n, l)-> cons (getLetName l), n), names
       [letUniq, decs, assigns, ln] = _.reduce bindings, ((result, l)=>
         [u, code, assigns, ln] = result
         newU = addUniq (getLetName l), ln, u
@@ -350,20 +383,110 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
           (cons (sn ast, letName + ' = ', @genLetAssign(getLetValue(l), newNames, u)), code),
           (cons letName, assigns),
           newNames]), [uniq, Nil, Nil, names]
-      sn ast, "  var ", assigns.reverse().join(', '), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", (@genUniq (getLastLetBody ast), letNames, letUniq)
+      sn ast, "  var ", assigns.reverse().intersperse(', ').toArray(), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", (@genUniq (getLastLetBody ast), ln, letUniq)
+    genTraceCall: (ast, code, argNames)->
+      if Leisure_generateDebuggingCode then sn ast, """
+        (
+          Leisure_traceCall#{debugType}(L$instance, #{argNames}),
+          Leisure_traceReturn#{debugType}(L$instance, (""", code, """))
+        )
+      """
+      else code
+    genLambdaDecl: (ast, name, length, code)->
+      if name then nameCode = jstr name
+      else nameCode = 'undefined'
+      infoVar = @addFuncInfo info = {length}
+      if Leisure_generateDebuggingCode
+        info.id = _.last(@declStack).id
+        sn ast, """
+          (function(L$instance, L$parent){
+            var L$F = """, code, """;
+            L$F.L$info = #{infoVar};
+            L$F.L$instanceId = L$instance;
+            L$F.L$parentId = L$parent;
+            Leisure_traceLambda#{debugType}(L$F);
+            return L$F;
+          })(++Leisure_traceInstance, L$instance)
+        """
+      else sn ast, """
+        (function(){
+          var L$F = """, code, """;
+          L$F.L$info = #{infoVar};
+          return L$F;
+        })()
+      """
+    genAddSource: ->
+      if @source then "\n  Leisure_addSourceFile(@fileName, #{jstr @source});"
+      else ''
+    genTraceMemos: ->
+      # memos for trace codes
+      ''
+    genTopLevel: (ast, node)->
+      if dumpAnno(ast).constructor in [Leisure_lit, Leisure_ref] then node
+      else if Leisure_generateDebuggingCode
+        header = "var L$ret;"
+        if @createContext then header += @genContext()
+        sn ast, """
+          (function(L$instance){
+            #{header}
+            return """, node, """;
+          })(++Leisure_traceInstance)
+        """
+      else sn ast, """
+        (function(){
+          var L$context = null;
+          #{@genFuncInfo()}
+          return """, node, """;
+        })()
+        """
+    genContext: ->
+      source = if @source || @noFile then """
+        source: Leisure_addSourceFile(#{jstr @fileName}, #{jstr @source}),
+            map: '@SOURCEMAP@'
+      """
+      else if @sourceMap then """
+        source: #{jstr @fileName},
+            map: '@SOURCEMAP@'
+      """
+      else """
+        source: #{jstr @fileName}
+      """
+      decls = []
+      for decl in @decls
+        type = if decl.lazy then 'lazy' else 'lambda'
+        decls.push type, decl.line, decl.col, decl.parent
+        if type == 'lambda' then decls.push decl.lambda, decl.args.length, decl.args...
+      context = """
+        \n  var L$context = Leisure_traceTopLevel#{debugType}({
+            id: Leisure_traceContext++,
+            traceCreatePartial: function(){return Leisure_traceCreatePartial#{debugType};},
+            traceCallPartial: function(){return Leisure_traceCallPartial#{debugType};},
+            #{source},
+            decls: #{JSON.stringify decls}
+          });
+      """ + @genFuncInfo()
+    genFuncInfo: ->
+      header = ''
+      for info, i in @funcInfo
+        header += """
+          \n  var #{@funcVar i} = {context: L$context, id: #{info.id}, length: #{info.length}};
+        """
+      header
 
-  wrapContext = (node, fileName)->
-    new SourceNode 1, 0, fileName, """
-      (function(L_$context){
-        return """, node, """
-      })
+  lazify = (ast, body, id)->
+    if Leisure_generateDebuggingCode
+      sn ast, """
+        (function(L$instance, L$parent) {
+          return Leisure_traceLazyValue#{debugType}(L$instance, L$context, #{id}, function(){
+            return Leisure_traceResolve#{debugType}(L$instance, """, body, """);
+          });
+        })(++Leisure_traceInstance, L$instance)
+      """
+    else sn ast, """
+      function(){
+        return """, body, """;
+      }
     """
-
-  genPushThunk = (ast)->
-    if useThunkStacks
-      [line, offset] = locateAst ast
-      "L$pushThunk((typeof stack != 'undefined' ? stack : L$thunkStack || L$emptyThunkStack), '#{curDef}:#{line}:#{offset}')"
-    else ''
 
   findName = (name)->
     for i in [root.nameSpacePath.length - 1 .. 0]
@@ -418,7 +541,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       p = {}
       if props then _.merge p, props
       if extras then _.merge p, extras
-      sn ast, "setLambdaProperties(", def, ", ", (JSON.stringify p), ")"
+      sn ast, "setLambdaProperties(", def, ", ", (jstr p), ")"
     else def
 
   lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
@@ -452,41 +575,6 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     def.properties = p
     def
 
-# The ThunkStack is a list of at most stackLimit items, using the
-# functional queue technique given in Purely Functional Data Structures
-# by Okasaki.  No need for a pop() operation here, just push() and items().
-
-  class ThunkStack
-    constructor: (@front, @back, @frontLen, @backLen)->
-    push: (item)->
-      if @backLen + @frontLen >= stackSize
-        if @backLen == 0 then new ThunkStack null, reverseThunks([item, @front])[1], 0, @frontLen
-        else new ThunkStack [item, @front], @back[1], @frontLen + 1, @backLen - 1
-      else new ThunkStack [item, @front], @back, @frontLen + 1, @backLen
-    items: ->
-      items = []
-      frontItems = []
-      stack = @back
-      while stack
-        items.push stack[0]
-        stack = stack[1]
-      stack = @front
-      while stack
-        frontItems.push stack[0]
-        stack = stack[1]
-      items.concat frontItems.reverse()
-
-  (global ? window).L$emptyThunkStack = new ThunkStack null, null, 0, 0
-
-  reverseThunks = (stack)->
-    result = null
-    while stack
-      result = [stack[0], result]
-      stack = stack[1]
-    result
-
-  (global ? window).L$thunkStack = []
-
   (global ? window).L$convertError = (err, args)->
     if !err.L_stack
       console.log 'CONVERTING ERROR:', err
@@ -494,20 +582,6 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       err.L_stack = args.callee.L$stack
       err.L_args = args
     err
-
-  (global ? window).L$pushThunk = (stack, entry)->
-    old = L$thunkStack
-    (global ? window).L$thunkStack = stack.slice(Math.max(0, stack.length - 9))
-    stack.push entry
-    old
-
-  (global ? window).L$setThunkStack = (stack)->
-    (global ? window).L$thunkStack = stack
-
-  lazify = (ast, body)->
-    if curDef && useThunkStacks
-      sn ast, "(function(){var stack = L$thunkStack; var f = function(){var old = ", genPushThunk(ast), '; var ret = ', body, '; L$setThunkStack(old); if (f.memo) stack = null; return ret;}; return f;})()'
-    else sn ast, "function(){return ", body, ';}'
 
   dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
 
@@ -529,6 +603,17 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     else buf
 
   getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
+
+  define 'debugType', (lvl)->
+    new Monad2 'debugType', (env, cont)->
+      setDebugType String rz lvl
+      cont _unit
+
+  define 'debugMessage', (type, msg)-> checkPartial(L_vectorRemove, arguments) || (
+    new Monad2 'debugMessage', (env, cont)->
+      count = (window ? global)["Leisure_traceMessage#{rz type}"] rz msg
+      env.writeTraceMessage count, rz msg
+      cont _unit)
 
   define 'traceOff', new Monad2 'traceOff', (env, cont)->
     trace = false
@@ -552,8 +637,8 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
         codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else '')
         baseMsg = "\n\nParse error: #{err.message}\n#{codeMsg}AST: "
         err.message = "#{baseMsg}#{ast()}"
-        console.log err
-        cont parseErr (lz baseMsg), (ast)), null, null, null, 'parser'
+        err.L$ast = ast
+        cont err), null, null, null, 'parser'
 
   define 'genAst', ((ast)->
     try
@@ -571,7 +656,8 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
 #####
 
   gen = (ast)-> new CodeGenerator().gen ast
-  genMap = (ast)-> new CodeGenerator().genMap ast
+  genMap = (ast, fileName)->
+    new CodeGenerator(fileName, false, false, fileName).genMap ast
   genSource = (source, ast)-> new CodeGenerator().genSource source, ast
 
   {
@@ -592,4 +678,6 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     SourceMapGenerator
     setMegaArity
     CodeGenerator
+    setDebugType
+    jsCodeFor
   }

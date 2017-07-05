@@ -30,8 +30,168 @@ define files, (btoa)->
 
   root = {}
 
+  traceValues = []
+  traceLen = 100
+  traceHandler = ->
+  lambdaInfo = {}
+  debugTypes = new Set()
+  traceMessageCount = 0
+  sourceFiles = {}
+
   root.currentNameSpace = 'core'
   root.nameSpacePath = ['core']
+  (window ? global).Leisure_generateDebuggingCode = true
+  #(window ? global).Leisure_generateDebuggingCode = false
+  (window ? global).Leisure_traceContext = 0
+  (window ? global).Leisure_traceInstance = 0
+
+  addSourceFile = (fileName, contents)->
+    if !sourceFiles[fileName] then sourceFiles[fileName] = contents
+    fileName
+
+  sourceFile = (fileName)->
+    if sourceFiles[fileName] then Promise.resolve(sourceFiles[fileName])
+    else $.ajax(new URL(fileName, location))
+
+  addDebugType = (type)->
+    debugTypes.add type
+    if !(window ? global)["Leisure_traceCall#{type}"]?
+      root.noDebugging type
+
+  argNames = (func)->
+    arg.trim() for arg in Function.prototype.toString.call(func).match(/\(([^)]*)\)/)[1].split ','
+
+######
+# The trace API
+# 
+# Leisure_traceLazyValue{TYPE}(instanceId, context, id, parentInstanceId, value)
+#   Must return value
+# 
+# Leisure_traceResolve{TYPE}(instanceId, value)
+#   Must return value
+# 
+# Leisure_traceLambda{TYPE}(instanceId, lambda, name, context, id, parentInstanceId)
+# 
+# Leisure_traceCall{TYPE}(lambda)
+# 
+# Leisure_traceReturn{TYPE}(lambda, result)
+#   Must return result
+# 
+# Leisure_traceTopLevel{TYPE}(context)
+#   Must return context
+# 
+# Leisure_traceMessage{TYPE}(message)
+#   Must return the message count (traceMessageCount++)
+######
+
+  flushTraceLog = ->
+    if traceValues.length
+      setTimeout (->
+        traceHandler traceValues
+        traceValues.length = 0), 1
+
+  root.trackDebugging = (len, handler, type)->
+    flushTraceLog()
+    root.noDebugging type
+    if len
+      traceLen = len
+      traceHandler = handler
+    (if type then new Set([type]) else debugTypes).forEach (type)->
+      (window ? global)["Leisure_traceTopLevel#{type}"] = (context)->
+        traceValues.push 'context', context.id, context.source, context.inlineMap, context.externalMap, context.decls.length
+        traceValues.push.apply traceValues, context.decls
+        checkTraceLog()
+        context
+      #(window ? global)["Leisure_traceLambda#{type}"] = (parentId, context, id, lambda)->
+      #  # tie lambda to AST in the log here
+      #  lambda.L$context = context
+      #  traceValues.push 'lambda', lambda.instanceId, context.id, id
+      #  checkTraceLog()
+
+  root.useDebugging = (len, handler, type)->
+    flushTraceLog()
+    if len
+      traceLen = len
+      traceHandler = handler
+    if !type then (window ? global).Leisure_usingDebugging = true
+    (if type then new Set([type]) else debugTypes).forEach (type)->
+      (window ? global)["Leisure_traceTopLevel#{type}"] = (context)->
+        traceValues.push 'context', context.id, context.source, context.inlineMap, context.externalMap, context.decls.length
+        traceValues.push.apply traceValues, context.decls
+        checkTraceLog()
+        context
+      (window ? global)["Leisure_traceLazyValue#{type}"] = (instanceId, context, id, value)->
+        traceValues.push 'lazyValue', instanceId, context.id, id
+        checkTraceLog()
+        value
+      (window ? global)["Leisure_traceResolve#{type}"] = (instanceId, value)->
+        traceValues.push 'resolve', instanceId
+        addValue value
+        checkTraceLog()
+        value
+      (window ? global)["Leisure_traceLambda#{type}"] = (lambda)->
+        # tie lambda to AST in the log here
+        lambda.L$context = context
+        # need parentId?
+        traceValues.push 'lambda', lambda.L$instanceId, lambda.L$context.id, lambda.L$id
+        checkTraceLog()
+      (window ? global)["Leisure_traceCall#{type}"] = (instanceId, args...)->
+        traceValues.push 'call', instanceId
+        addArgs args
+        checkTraceLog()
+      (window ? global)["Leisure_traceReturn#{type}"] = (instanceId, result)->
+        traceValues.push 'return', instanceId
+        addValue result
+        checkTraceLog()
+        result
+      (window ? global)["Leisure_traceCreatePartial#{type}"] = (instanceId, lambda, args)->
+        traceValues.push 'createPartial', instanceId, lambda.L$instanceId
+        addArgs args
+        checkTraceLog()
+      (window ? global)["Leisure_traceCallPartial#{type}"] = (instanceId, args)->
+        traceValues.push 'callPartial', instanceId
+        addArgs args
+        checkTraceLog()
+      (window ? global)["Leisure_traceMark#{type}"] = ->
+        count = traceMarkCount++
+        traceValues.push 'mark', count
+        checkTraceLog()
+        count
+
+  root.noDebugging = (type)->
+    flushTraceLog()
+    if !type then (window ? global).Leisure_usingDebugging = false
+    (if type then new Set([type]) else debugTypes).forEach (type)->
+      (window ? global)["Leisure_traceTopLevel#{type}"] = (context)-> context
+      (window ? global)["Leisure_traceLazyValue#{type}"] = (instanceId, context, id, value)-> value
+      (window ? global)["Leisure_traceResolve#{type}"] = (instanceId, value)-> value
+      (window ? global)["Leisure_traceLambda#{type}"] = (lambda)->
+      (window ? global)["Leisure_traceCall#{type}"] = (instanceId, args...)->
+      (window ? global)["Leisure_traceReturn#{type}"] = (instanceId, result)-> result
+      (window ? global)["Leisure_traceCreatePartial#{type}"] = (instanceId, lambda, args)->
+      (window ? global)["Leisure_traceCallPartial#{type}"] = (instanceId, args)->
+      (window ? global)["Leisure_traceMark#{type}"] = -> traceMarkCount++
+
+  for type in ['User', 'Std', 'Parser']
+    addDebugType type
+
+  checkTraceLog = (args)-> if traceValues.length > traceLen then flushTraceLog()
+
+  getTraceValues = -> traceValues
+
+  addArgs = (args)->
+    traceValues.push args.length
+    for arg in args
+      addValue arg
+    traceValues
+
+  addValue = (value)->
+    if value.L$instanceId? then traceValues.push value.L$instanceId
+    else if typeof value == 'function' then traceValues.push "function: #{value.L$info?.name ? value.name}"
+    else if typeof value == 'number' then traceValues.push -1, value
+    else if typeof value == 'object' then traceValues.push "object: #{value}"
+    else traceValues.push value
+    traceValues
 
   #root.shouldNsLog = true
   root.shouldNsLog = false
@@ -40,6 +200,7 @@ define files, (btoa)->
 
   (window ? global).verbose = {}
   (window ? global).Leisure = (window ? global).Leisure ? {}
+  Leisure.sourceFiles = sourceFiles
 
   verboseMsg = (label, msg...)-> if (window ? global).verbose[label] then console.log msg...
 
@@ -60,20 +221,29 @@ define files, (btoa)->
     __proto__: CodeContext.prototype
     presentValue: (x)-> String(x)
     write: (v)-> console.log v
-    values: {}
+    writeTraceMessage: (count, msg)-> @write msg
     errorHandlers: []
     prompt: -> null
     executeText: -> null
     executeBlock: -> null
     compileBlock: -> null
+    userEvent: ->
 
   rz = (window ? global).resolve = (value)->
-    if typeof value == 'function' && value.length == 0
+    #if typeof value == 'function' && value.length == 0
+    #  if typeof value.memo != 'undefined' then value.memo
+    #  else
+    #    if value.creationStack then value.creationStack = null
+    #    if value.args then value.args = null
+    #    value.memo = value()
+    #else value
+    if typeof value == 'function'
       if typeof value.memo != 'undefined' then value.memo
-      else
-        if value.creationStack then value.creationStack = null
-        if value.args then value.args = null
+      else if value.length == 0
+        #if value.creationStack then value.creationStack = null
+        #if value.args then value.args = null
         value.memo = value()
+      else value
     else value
 
   isResolved = (value)-> typeof value != 'function' || value.memo
@@ -125,11 +295,12 @@ define files, (btoa)->
 
   (window ? global).L$ = (f)->
     f = rz(f)
-    if f.length > 1 then f else (args...)-> baseLeisureCall(f, 0, args, f.length)
+    if typeof f != 'function' || f.length > 1 then f
+    else (args...)-> baseLeisureCall(f, 0, args, f.length)
 
   (window ? global).Leisure_call = leisureCall = (f)-> baseLeisureCall f, 1, arguments
 
-  (window ? global).Leisure_primCall = baseLeisureCall = (f, pos, args, len)->
+  (window ? global).Leisure_primCall = baseLeisureCall = (f, pos, args, len, traceCreate, traceCall)->
     len = len ? f.length
     while pos < args.length
       if typeof f != 'function' then throw new Error "TypeError: #{typeof f} is not a function: #{f}"
@@ -151,18 +322,24 @@ define files, (btoa)->
         prev = slice.call args, pos
         partial = ->
           newArgs = concat.call prev, slice.call arguments
+          #traceCall? f, newArgs
+          if Leisure_generateDebuggingCode && traceCall
+            traceCall partial.L$instanceId, f, slice.call arguments
           if !f.apply then console.log "No apply! #{f} #{newArgs[0]}"
           if newArgs.length == len then f.apply null, newArgs
           else baseLeisureCall f, 0, newArgs, len
         partial.leisurePartial = true
         partial.leisureInfo = genInfo f, args, f.leisureInfo
+        if Leisure_generateDebuggingCode && traceCreate
+          partial.L$instanceId = ++Leisure_traceInstance
+          traceCreate partial.L$instanceId, f, prev
         return lazy partial
     if pos != args.length then console.log "BAD FINAL POSITION IN LEISURE CALL, ARG LENGTH IS #{args.length} BUT POSITION IS #{pos}"
     f
 
   genInfo = (func, args, oldInfo)->
     for arg in args
-      if !oldInfo then oldInfo = {name: func.leisureName, arg}
+      if !oldInfo then oldInfo = {name: func.L$info?.name, arg}
       else oldInfo = {arg: arg, parent: oldInfo}
     oldInfo
 
@@ -194,6 +371,10 @@ define files, (btoa)->
     else if typeof amount == 'function' then cont "Error, no amount given to serverIncrement"
     else Meteor.call 'incrementField', root.currentDocument.leisure.name, path, amount, cont
 
+  (window ? global).Leisure_addSourceFile = addSourceFile
+
+  Leisure.Base = root
+
   root.serverIncrement = serverIncrement
   root.defaultEnv = defaultEnv
   root.readFile = readFile
@@ -210,5 +391,11 @@ define files, (btoa)->
   root.funcInfo = funcInfo
   root.CodeContext = CodeContext
   root.isResolved = isResolved
+  root.getTraceValues = getTraceValues
+  root.argNames = argNames
+  root.flushTraceLog = flushTraceLog
+  root.addDebugType = addDebugType
+  root.addSourceFile = addSourceFile
+  root.sourceFile = sourceFile
 
   root

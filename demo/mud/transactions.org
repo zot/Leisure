@@ -1,16 +1,43 @@
 #+TITLE: Data access
 * Scratch
-#+BEGIN_SRC leisure :results def
-#transaction set['a'] map{'b':'c'} set['d'] set['e'] map{'f':'g'} dl[]
-floop x = 'floop'
-a x = \f . f x
-b x = \f . f x
-declareType a
-declareType b a
-defTypeCase floop.b x -> x id
-defTypeCase floop.a anA -> (anA id) + 1
+#+BEGIN_SRC leisure :results dynamic
+#add a b = debugX a + b
+#add 3 (head [4])
+35
+#+END_SRC
+#+RESULTS:
+: 35
+
+#+BEGIN_SRC leisure
+a a b = a + b
+c a b = cons a b
+c 1 nil
+a 1 2
+#+END_SRC
+#+RESULTS:
+: unit
+: unit
+: [1]
+: 3
+
+#+NAME: bubba
+#+BEGIN_SRC yaml
+name: bubba
+number: 34
 #+END_SRC
 
+#+NAME: fred
+#+BEGIN_SRC yaml
+name: fred
+number: 2
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamicx
+#currentTransaction
+set 1 + 2 -405 map{} 
+#+END_SRC
+#+RESULTS:
+: map{3:-405}
 
 #+BEGIN_SRC leisure
 #defTypeCase toJson.transaction ->
@@ -23,20 +50,22 @@ defTypeCase floop.a anA -> (anA id) + 1
 #      'deletes':(toJson d)
 #      'errs':(toJson errs)}
 
+set 'a' 1 {}
+currentTransaction
+do
+  b <- trRead 'bubba'
+  b = set 'number' 2 b
+  trUpdate 'bubba' b
+  #print s['b: ' b]
+  #currentTransaction
+  #b
 #do
-#  x = 3
-#  \a . c x
-
-#cons 1 nil
-
-f x = do
-  a = do (a = 4) a
-  a = 3
-  b = do (a = 5) a
-  a
+#  tr <- currentTransaction
 #+END_SRC
 #+RESULTS:
-: unit
+: {a:1}
+: (transaction)
+: (transaction [] [bubba] [bubba] [])
 
 #+BEGIN_SRC leisure
 tfoldr func finalValue trackFunc trackValue list = do
@@ -47,13 +76,13 @@ tfoldr func finalValue trackFunc trackValue list = do
   b = 2
   subfold finalValue trackValue list
 33
-tfoldr (\el rest track . el == 3 track rest) nil (1+) 0 [2 2 2 3 4 5]
+tfoldr (\el rest track . el == 3 track rest) nil (1+) 0 [0 1 3 4 5]
 
 #+END_SRC
 #+RESULTS:
 : unit
 : 33
-: 3
+: 2
 
 * Tests
 #+BEGIN_SRC leisure :results def
@@ -93,6 +122,8 @@ trData transaction = transaction \c r u d data errs . data
 trErrs transaction = transaction \c r u d data errs . errs
 
 trNoErrs transaction = empty (trErrs transaction)
+  true
+  err s['Errors in transaction: ' (intercalate (tolist (trErrs)) '\n')]
 
 trSetData data tr = tr \c r u d data errs .
   transaction c r u d data errs
@@ -105,7 +136,7 @@ defTypeCase showBase.transaction obj func ->
     obj \c r u d data errs . do
       r = map head (tolist r)
       s = s['(transaction ' (nlist c) ' ' (nlist r) ' ' (nlist u) ' ' (nlist d)]
-      s[s ((empty errs) '' s[' ' (showBase tolist (func errs))]) ')']
+      s[s ((empty errs) '' s[' ' (showBase (tolist errs) func)]) ')']
 
 defTypeCase toJson.transaction tr ->
   tr \c r u d data errs .
@@ -134,19 +165,19 @@ trCreate name value = do
 trRead name = do
   trans <- currentTransaction
   trNoErrs trans
-  valueOpt = getOpt name (trData trans)
-  valueOpt id do
-    value <- getDataUnsafe name
-    trans \c r u d data errs . setTransaction
-      transaction c (set name value r) u d (set name value data) errs
-    value
+  valueOpt = getOpt (trData trans) name
+  valueOpt id
+    do
+      value <- getDataUnsafe name
+      trans \c r u d data errs . setTransaction
+        transaction c (set name value r) u d (set name value data) errs
+      value
 
 trUpdate name value = do
   trans <- currentTransaction
   trNoErrs trans
-  trans \c r u d data errs . do
-    u = (contains name c) u (conj name u)
-    setTransaction (transaction c r u d (set name value data) errs)
+  trans \c r u d data errs .
+    setTransaction (transaction c r (conj u name) d (set name value data) errs)
 
 trDelete name value = do
   trans <- currentTransaction
@@ -240,18 +271,6 @@ do
 #+RESULTS:
 : {"number":5 "name":"bubba"}
 : 
-
-#+NAME: bubba
-#+BEGIN_SRC yaml
-name: bubba
-number: 34
-#+END_SRC
-
-#+NAME: fred
-#+BEGIN_SRC yaml
-name: fred
-number: 2
-#+END_SRC
 
 #+BEGIN_SRC leisure :results dynamic
 set 'a' 1 {}

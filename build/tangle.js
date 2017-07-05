@@ -5,9 +5,9 @@
     var Promise, SourceMapConsumer, SourceMapGenerator, SourceNode, blockSource, codeBlocksFor, codeForBlock, defaultEnv, extractCode, getLeisurePromise, jsCodeFor, languageEnvMaker, nextGeneratedFileName, orgDoc, parseBlocks, parseOrgMode, parseYaml, shouldTangle, tangle, tangleBlock, tangleType, viewSource;
     parseOrgMode = Org.parseOrgMode;
     orgDoc = DocOrg.orgDoc, blockSource = DocOrg.blockSource, parseYaml = DocOrg.parseYaml;
-    languageEnvMaker = Eval.languageEnvMaker, jsCodeFor = Eval.jsCodeFor, nextGeneratedFileName = Eval.nextGeneratedFileName, getLeisurePromise = Eval.getLeisurePromise;
+    languageEnvMaker = Eval.languageEnvMaker, nextGeneratedFileName = Eval.nextGeneratedFileName, getLeisurePromise = Eval.getLeisurePromise;
     Promise = Bluebird.Promise;
-    SourceNode = Gen.SourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator;
+    jsCodeFor = Gen.jsCodeFor, SourceNode = Gen.SourceNode, SourceMapConsumer = Gen.SourceMapConsumer, SourceMapGenerator = Gen.SourceMapGenerator;
     defaultEnv = Base.defaultEnv;
     parseBlocks = function(text) {
       if (text === '') {

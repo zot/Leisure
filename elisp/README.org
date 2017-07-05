@@ -253,16 +253,14 @@ Leisure uses [[http://handlebarsjs.com/][Handlebars]] templates and it use data 
 when it renders them.
 
 #+NAME: fred
-This is a data block named "Fred".  The HTML snippet below displays Fred's name and the
-name's length.  Change it to see the HTML below update.
 #+BEGIN_SRC yaml
 name: Fred
 #+END_SRC
 
 Here's some Html that uses Fred and Fred's controller.
 
-#+BEGIN_HTML :var block=fred :controller fred-controller
-<b>Hello {{block.name}}</b>
+#+BEGIN_HTML :var block=fred :controller fred-controller :allowupdates
+<b>Hello <input type='text' data-value='fred.name'></input></b><br>
 Name length: <b name='len'></b>
 #+END_HTML
 
