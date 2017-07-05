@@ -1,3 +1,11 @@
+* anon
+#+BEGIN_SRC leisure :results dynamic
+person name addr = \f . f name addr
+person 3
+#+END_SRC
+#+RESULTS:
+: unit
+: <span class="partial-application">(person 3)</span>
 * numbers
 #+BEGIN_SRC leisure :results dynamic
 ascending x = [x | ascending x + 1]
