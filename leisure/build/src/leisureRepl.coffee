@@ -148,13 +148,7 @@ replEnv.__proto__ = defaultEnv
 
 getParseErr = (x)-> x lz (value)->rz value
 
-errorString = (err)->
-  if L$thunkStack
-    #s = L$thunkStack.items().join '\n   at '
-    s = L$thunkStack.join '\n   at '
-    (global ? window).L$thunkStack = []
-    err.toString() + ":\n   at " + s
-  else err.stack ? err.toString()
+errorString = (err)-> err.stack ? err.toString()
 
 process.on 'uncaughtException', (err)->
   console.log "Uncaught Exception: #{err.stack || errorString err}"

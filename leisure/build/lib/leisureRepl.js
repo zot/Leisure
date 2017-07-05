@@ -142,14 +142,8 @@ misrepresented as being the original software.
   };
 
   errorString = function(err) {
-    var ref5, s;
-    if (L$thunkStack) {
-      s = L$thunkStack.join('\n   at ');
-      (typeof global !== "undefined" && global !== null ? global : window).L$thunkStack = [];
-      return err.toString() + ":\n   at " + s;
-    } else {
-      return (ref5 = err.stack) != null ? ref5 : err.toString();
-    }
+    var ref5;
+    return (ref5 = err.stack) != null ? ref5 : err.toString();
   };
 
   process.on('uncaughtException', function(err) {
