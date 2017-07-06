@@ -1049,10 +1049,12 @@
       return str.replace(/\n/g, '\n  ');
     };
     stringFor = function(v) {
-      if (v.toString) {
-        return v.toString();
+      var str;
+      str = typeof v === 'function' ? v.toString() || 'UNKNOWN' : v.toString ? v.toString() : String(v);
+      if (typeof str === 'string') {
+        return str;
       } else {
-        return String(v);
+        return 'undefined';
       }
     };
     Html = (function() {

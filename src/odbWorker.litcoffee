@@ -151,12 +151,12 @@ persists between page refreshes so we can browse logs as if it were a database
         }
         pos
       context: (records, pos, values)->
-        [type, context, source, inlineMap, externalMap, length] = values[pos...pos + 6]
-        pos += 6
+        [type, context, source, inlineMap, externalMap, debugType, length] = values[pos...pos + 7]
+        pos += 7
         defs = []
         lambdaDefs = {}
         lazyDefs = {}
-        records.contexts[context] = {type, id:context, source, inlineMap, externalMap, defs, lambdaDefs, lazyDefs}
+        records.contexts[context] = {type, id:context, source, inlineMap, externalMap, defs, lambdaDefs, lazyDefs, debugType}
         id = 0
         length += pos
         while pos < length

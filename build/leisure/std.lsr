@@ -690,6 +690,17 @@ show x = showBase x present
 
 present x = x
 
+isVowel c = c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u'
+
+aOrAn word = isVowel (strAt word 0)
+  s['an ' word]
+  s['a ' word]
+
+defCase present.hasType obj | not (contains ['number' 'string'] (getType obj)) ->
+  hasType obj obj
+    typeName obj
+    aOrAn (getType obj)
+
 defCase present.func obj | (getType obj) == '*function' -> presentFunction obj
 
 presentFunction obj = do
@@ -706,10 +717,6 @@ presentFunction obj = do
 defCase present.type t | isType t -> typeName t
 
 defTypeCase present.string obj -> jsonStringify obj id id
-
-defTypeCase present.nil obj -> 'nil'
-
-defTypeCase present.none obj -> "none"
 
 presentHtml x = escapeHtml (present x)
 

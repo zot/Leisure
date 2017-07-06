@@ -227,9 +227,9 @@
     };
 
     OdbWorker.prototype.context = function(records, pos, values) {
-      var argCount, args, col, context, defs, externalMap, id, inlineMap, lambdaDefs, lazyDefs, length, line, name, parent, ref, ref1, ref2, source, type;
-      ref = values.slice(pos, pos + 6), type = ref[0], context = ref[1], source = ref[2], inlineMap = ref[3], externalMap = ref[4], length = ref[5];
-      pos += 6;
+      var argCount, args, col, context, debugType, defs, externalMap, id, inlineMap, lambdaDefs, lazyDefs, length, line, name, parent, ref, ref1, ref2, source, type;
+      ref = values.slice(pos, pos + 7), type = ref[0], context = ref[1], source = ref[2], inlineMap = ref[3], externalMap = ref[4], debugType = ref[5], length = ref[6];
+      pos += 7;
       defs = [];
       lambdaDefs = {};
       lazyDefs = {};
@@ -241,7 +241,8 @@
         externalMap: externalMap,
         defs: defs,
         lambdaDefs: lambdaDefs,
-        lazyDefs: lazyDefs
+        lazyDefs: lazyDefs,
+        debugType: debugType
       };
       id = 0;
       length += pos;

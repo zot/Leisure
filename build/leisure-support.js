@@ -5,13 +5,13 @@
     slice = [].slice;
 
   define(['./base', './ast', './runtime', './gen', './eval', './org', './transaction'], function(Base, Ast, Runtime, Gen, Eval, Org, Transaction) {
-    var Monad2, Nil, Node, _false, _identity, _true, _unit, acons, baseElements, baseStrokeWidth, bind, collabId, cons, createNode, currentDataChange, defaultEnv, defaultEnvWithData, define, dispatchCollaborative, doPartial, endMonitor, envData, evalLeisure, foldLeft, getMaxStrokeWidth, getSvgElement, getType, getValue, isNil, isPartial, jsonConvert, lazy, lc, left, lz, makeHamt, makeSyncMonad, newConsFrom, none, parseCodeAttributes, partialCall, primFoldLeft, primSvgMeasure, ref, resolve, right, root, runMonad2, rz, setValue, some, startMonitor, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml;
+    var Monad2, Nil, Node, _false, _identity, _true, acons, baseElements, baseStrokeWidth, bind, collabId, cons, createNode, currentDataChange, defaultEnv, defaultEnvWithData, define, dispatchCollaborative, doPartial, endMonitor, envData, evalLeisure, foldLeft, getMaxStrokeWidth, getSvgElement, getType, getValue, isNil, isPartial, jsonConvert, lazy, lc, left, lz, makeHamt, makeSyncMonad, newConsFrom, none, parseCodeAttributes, partialCall, primFoldLeft, primSvgMeasure, ref, resolve, right, root, runMonad2, rz, setValue, some, startMonitor, svgBetterMeasure, svgMeasure, svgMeasureText, transformStrokeWidth, unescapePresentationHtml, unit;
     ref = root = Ast, define = ref.define, getType = ref.getType, cons = ref.cons, unescapePresentationHtml = ref.unescapePresentationHtml, isNil = ref.isNil, isPartial = ref.isPartial, partialCall = ref.partialCall, doPartial = ref.doPartial, Nil = ref.Nil;
     Node = Base.Node, resolve = Base.resolve, lazy = Base.lazy, defaultEnv = Base.defaultEnv;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
-    runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, _false = Runtime._false, _identity = Runtime._identity, _unit = Runtime._unit, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2, some = Runtime.some, none = Runtime.none, acons = Runtime.lacons, right = Runtime.right, left = Runtime.left, bind = Runtime.bind;
+    runMonad2 = Runtime.runMonad2, newConsFrom = Runtime.newConsFrom, setValue = Runtime.setValue, getValue = Runtime.getValue, makeSyncMonad = Runtime.makeSyncMonad, makeHamt = Runtime.makeHamt, _true = Runtime._true, _false = Runtime._false, _identity = Runtime._identity, unit = Runtime.unit, jsonConvert = Runtime.jsonConvert, Monad2 = Runtime.Monad2, some = Runtime.some, none = Runtime.none, acons = Runtime.lacons, right = Runtime.right, left = Runtime.left, bind = Runtime.bind;
     evalLeisure = Eval.evalLeisure;
     parseCodeAttributes = Org.parseCodeAttributes;
     currentDataChange = null;
@@ -132,7 +132,7 @@
     define('setTheme', function(theme) {
       return new Monad2(function(env, cont) {
         env.opts.setTheme(theme);
-        return cont(_unit);
+        return cont(unit());
       });
     });
     collabId = 0;
@@ -189,7 +189,7 @@
           return runMonad2(func.apply(null, cvtArgs), defaultEnvWithData(data), function() {});
         });
         data.closeRegistration();
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('getData', function(name) {
@@ -199,7 +199,7 @@
         if (d) {
           return cont(jsonConvert(d));
         } else {
-          return cont(_unit);
+          return cont(unit());
         }
       });
     });
@@ -221,7 +221,7 @@
         if (d) {
           return cont(jsonConvert(d));
         } else {
-          return cont(_unit);
+          return cont(unit());
         }
       });
     });
@@ -243,7 +243,7 @@
         if (d) {
           return cont(jsonConvert(d));
         } else {
-          return cont(_unit);
+          return cont(unit());
         }
       });
     });
@@ -303,7 +303,7 @@
     define('removeData', function(name) {
       return new Monad2('removeData', function(env, cont) {
         envData(env).removeData(rz(name));
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('getImage', function(name) {

@@ -1,11 +1,23 @@
 * anon
 #+BEGIN_SRC leisure :results dynamic
 person name addr = \f . f name addr
-person 3
+getType (person 3 4)
+funcInfo (person 1 2)
+funcName (person 1 2)
+getType 1
+getType \x . x
+p = person 1 2
+person 1 2
 #+END_SRC
 #+RESULTS:
 : unit
-: <span class="partial-application">(person 3)</span>
+: person
+: nil
+: none
+: number
+: *function
+: unit
+: UNKNOWN
 * numbers
 #+BEGIN_SRC leisure :results dynamic
 ascending x = [x | ascending x + 1]

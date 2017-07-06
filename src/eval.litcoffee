@@ -618,7 +618,11 @@ Evaulation support for Leisure
 
       indentCode = (str)-> str.replace /\n/g, '\n  '
 
-      stringFor = (v)-> if v.toString then v.toString() else String v
+      stringFor = (v)->
+        str = if typeof v == 'function' then v.toString() || 'UNKNOWN'
+        else if v.toString then v.toString()
+        else String v
+        if typeof str == 'string' then str else 'undefined'
 
       class Html
         constructor: (content)-> @content = stringFor content

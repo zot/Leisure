@@ -32,7 +32,7 @@ misrepresented as being the original software.
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird', 'browser-source-map-support'], function(Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird) {
-    var LeisureObject, Leisure_unit, List, Map, Monad2, Monad3, Nil, Promise, Runtime, Set, SimpyCons, _false, _identity, _true, _unit, actors, advise, amtSet, argNames, ast2Json, asyncMonad, basicCall, bind, booleanFor, buildAdvisedFunc, call, callBind, callMonad, checkPartial, classForType, classNameForType, cons, consFrom, continueMonads, curry, declareTypeFunc, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, envTag, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, io, isIO, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeMap, makeMonad, makeSet, makeSyncMonad, makeVector, mapFirst, mapRest, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextMapPair, nextMonad, nextSetItem, nextVectorItem, noMemo, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setRest, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, types, unescapePresentationHtml, values, vector, vectorRest, warnAsync, withSyncModeDo, writeFile;
+    var LeisureObject, Leisure_unit, List, Map, Monad2, Monad3, Nil, Promise, Runtime, Set, SimpyCons, _false, _identity, _true, _unit, actors, advise, amtSet, argNames, ast2Json, asyncMonad, basicCall, bind, booleanFor, buildAdvisedFunc, call, callBind, callMonad, checkPartial, classForType, classNameForType, cons, consFrom, continueMonads, curry, declareTypeFunc, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, envTag, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, io, isIO, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeMap, makeMonad, makeSet, makeSyncMonad, makeVector, mapFirst, mapRest, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextMapPair, nextMonad, nextSetItem, nextVectorItem, noMemo, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, ref, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setRest, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, types, unescapePresentationHtml, unit, values, vector, vectorRest, warnAsync, withSyncModeDo, writeFile;
     if (typeof SourceMapSupport !== "undefined" && SourceMapSupport !== null) {
       SourceMapSupport.install();
     }
@@ -100,16 +100,16 @@ misrepresented as being the original software.
     _unit = setType((function(x) {
       return rz(x);
     }), 'unit');
-    _true = setType((function(a) {
+    _true = setDataType(setType((function(a) {
       return function(b) {
         return rz(a);
       };
-    }), 'true');
-    _false = setType((function(a) {
+    }), 'true'), 'true');
+    _false = setDataType(setType((function(a) {
       return function(b) {
         return rz(b);
       };
-    }), 'false');
+    }), 'false'), 'false');
     left = function(x) {
       return setType((function(lCase) {
         return function(rCase) {
@@ -654,10 +654,13 @@ misrepresented as being the original software.
     _unit = mkProto(Leisure_unit, setType((function(_x) {
       return rz(_x);
     }), 'unit'));
+    unit = function() {
+      return L_unit || _unit;
+    };
     define('define', function(name, arity, src, def) {
       return checkPartial(L_define, arguments) || makeSyncMonad(function(env, cont) {
         nakedDefine(rz(name), def, rz(arity), rz(src));
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('newDefine', function(name, arity, src, def) {
@@ -667,7 +670,7 @@ misrepresented as being the original software.
           console.log("DEFINE: " + name);
         }
         nakedDefine(rz(name), def, rz(arity), rz(src), null, null, true);
-        return cont(_unit);
+        return cont(unit());
       });
     });
     if (global.L_DEBUG) {
@@ -853,7 +856,7 @@ misrepresented as being the original software.
       e = new Error();
       dumpMonadStack(e, env);
       console.log(e.stack);
-      return cont(_unit);
+      return cont(unit());
     }));
     define('defer', function(v) {
       return new Monad2((function(env, cont) {
@@ -979,20 +982,20 @@ misrepresented as being the original software.
         if (v = values[rz(name)]) {
           return cont(v);
         } else {
-          return cont(_unit);
+          return cont(unit());
         }
       });
     });
     define('setValue', function(name, value) {
       return checkPartial(L_setValue, arguments) || new Monad2('setValue', function(env, cont) {
         values[rz(name)] = rz(value);
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('deleteValue', function(name) {
       return new Monad2(function(env, cont) {
         delete values[rz(name)];
-        return cont(_unit);
+        return cont(unit());
       });
     });
     setValue = function(key, value) {
@@ -1016,7 +1019,7 @@ misrepresented as being the original software.
     define('envGet', function(name) {
       return makeSyncMonad(function(env, cont) {
         var ref1, ref2;
-        return cont((ref1 = (ref2 = env.values) != null ? ref2[rz(name)] : void 0) != null ? ref1 : _unit);
+        return cont((ref1 = (ref2 = env.values) != null ? ref2[rz(name)] : void 0) != null ? ref1 : unit());
       });
     });
     define('envGetOpt', function(name) {
@@ -1031,7 +1034,7 @@ misrepresented as being the original software.
           env.values = {};
         }
         env.values[rz(name)] = rz(value);
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('envDelete', function(name) {
@@ -1039,14 +1042,14 @@ misrepresented as being the original software.
         if (env.values != null) {
           delete env.values[rz(name)];
         }
-        return cont(_unit);
+        return cont(unit());
       });
     });
     setValue('macros', Nil);
     define('defMacro', function(name, def) {
       return checkPartial(L_defMacro, arguments) || makeSyncMonad(function(env, cont) {
         values.macros = cons(cons(rz(name), rz(def)), values.macros);
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('funcList', makeSyncMonad(function(env, cont) {
@@ -1078,7 +1081,7 @@ misrepresented as being the original software.
           throw new Error("No definition for " + (rz(name)));
         }
         global[n] = lz(rz(newFunc)(oldDef));
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('_defTypeCase', function(funcName, type, func) {
@@ -1113,7 +1116,7 @@ misrepresented as being the original software.
           LeisureObject.prototype[n] = oldDef;
         }
         cl.prototype[n] = func;
-        return _unit;
+        return unit();
       })());
     });
     define('_declareType', function(subtype, supertype) {
@@ -1132,12 +1135,12 @@ misrepresented as being the original software.
         } else {
           subcl = ensureLeisureClass(subtype, !nilSupertype && supertype);
         }
-        return _unit;
+        return unit();
       })());
     });
     define('debug', function() {
       debugger;
-      return _unit;
+      return unit();
     });
     noMemo(L_debug);
     define('debugX', function(x) {
@@ -1150,13 +1153,13 @@ misrepresented as being the original software.
     define('print', function(msg) {
       return makeSyncMonad(function(env, cont) {
         env.write(env.presentValue(rz(msg)));
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('print2', function(msg) {
       return new Monad2('print2', (function(env, cont) {
         env.write(env.presentValue(rz(msg)));
-        return cont(_unit);
+        return cont(unit());
       }), function() {
         return "print2 " + (rz(msg));
       });
@@ -1164,7 +1167,7 @@ misrepresented as being the original software.
     define('write', function(msg) {
       return new Monad2('write', (function(env, cont) {
         env.write(String(rz(msg)));
-        return cont(_unit);
+        return cont(unit());
       }), function() {
         return "write " + (rz(msg));
       });
@@ -1195,7 +1198,7 @@ misrepresented as being the original software.
     define('oldWrite', function(msg) {
       return makeSyncMonad(function(env, cont) {
         env.write(String(rz(msg)));
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('readFile', function(name) {
@@ -1288,7 +1291,7 @@ misrepresented as being the original software.
     define('delay', function(timeout) {
       return new Monad2(function(env, cont) {
         return setTimeout((function() {
-          return cont(_unit);
+          return cont(unit());
         }), rz(timeout));
       });
     });
@@ -1302,7 +1305,7 @@ misrepresented as being the original software.
         if (!ran) {
           console.log("RUNNING");
           ran = true;
-          return cont(_unit);
+          return cont(unit());
         } else {
           return console.log("ALREADY RAN");
         }
@@ -1724,7 +1727,7 @@ misrepresented as being the original software.
     });
     define('clearNameSpacePath', makeSyncMonad(function(env, cont) {
       root.nameSpacePath = [];
-      return cont(_unit);
+      return cont(unit());
     }));
     define('resetNameSpaceInfo', makeSyncMonad(function(enf, cont) {
       var old;
@@ -1739,7 +1742,7 @@ misrepresented as being the original software.
         var ref1;
         ref1 = rz(info), root.nameSpacePath = ref1[0], root.currentNameSpace = ref1[1];
         nsLog("SETTING NAME SPACE: " + root.currentNameSpace);
-        return cont(_unit);
+        return cont(unit());
       });
     });
     ensureLeisureClass('token');
@@ -1870,7 +1873,7 @@ misrepresented as being the original software.
       requireFiles: requireFiles,
       _true: _true,
       _false: _false,
-      _unit: _unit,
+      unit: unit,
       _identity: _identity,
       some: some,
       none: none,
