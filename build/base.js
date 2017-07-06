@@ -36,7 +36,7 @@ misrepresented as being the original software.
   files = !(typeof window !== "undefined" && window !== null ? window : global).btoa ? ['btoa'] : [null];
 
   define(files, function(btoa) {
-    var CodeContext, SimpyCons, addArgs, addDebugType, addSourceFile, addValue, argNames, baseLeisureCall, checkTraceLog, concat, debugTypes, defaultEnv, errors, flushTraceLog, funcInfo, genInfo, getTraceValues, i, isResolved, lambdaInfo, leisureCall, len1, primConsFrom, readDir, readFile, ref, ref1, root, rz, serverIncrement, simpyCons, slice, sourceFile, sourceFiles, statFile, test, testCount, traceHandler, traceLen, traceMessageCount, traceValues, type, verboseMsg, writeFile;
+    var CodeContext, SimpyCons, addArgs, addDebugType, addSourceFile, addValue, argNames, baseLeisureCall, checkTraceLog, concat, debugType, debugTypes, defaultEnv, errors, flushTraceLog, funcInfo, genInfo, getDebugType, getTraceValues, i, isResolved, lambdaInfo, leisureCall, len1, primConsFrom, readDir, readFile, ref, ref1, root, rz, serverIncrement, setDebugType, simpyCons, slice, sourceFile, sourceFiles, statFile, test, testCount, traceHandler, traceLen, traceMessageCount, traceValues, type, verboseMsg, writeFile;
     if (!btoa) {
       btoa = (typeof window !== "undefined" && window !== null ? window : global).btoa;
     }
@@ -45,6 +45,7 @@ misrepresented as being the original software.
     traceLen = 100;
     traceHandler = function() {};
     lambdaInfo = {};
+    debugType = 'core';
     debugTypes = new Set();
     traceMessageCount = 0;
     sourceFiles = {};
@@ -99,7 +100,7 @@ misrepresented as being the original software.
       }
       return (type ? new Set([type]) : debugTypes).forEach(function(type) {
         return (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
-          traceValues.push('context', context.id, context.source, context.inlineMap, context.externalMap, context.decls.length);
+          traceValues.push('context', context.id, context.source, context.inlineMap, context.externalMap, context.debugType, context.decls.length);
           traceValues.push.apply(traceValues, context.decls);
           checkTraceLog();
           return context;
@@ -117,7 +118,7 @@ misrepresented as being the original software.
       }
       return (type ? new Set([type]) : debugTypes).forEach(function(type) {
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceTopLevel" + type] = function(context) {
-          traceValues.push('context', context.id, context.source, context.inlineMap, context.externalMap, context.decls.length);
+          traceValues.push('context', context.id, context.source, context.inlineMap, context.externalMap, context.debugType, context.decls.length);
           traceValues.push.apply(traceValues, context.decls);
           checkTraceLog();
           return context;
@@ -572,6 +573,12 @@ misrepresented as being the original software.
         return Meteor.call('incrementField', root.currentDocument.leisure.name, path, amount, cont);
       }
     };
+    getDebugType = function() {
+      return debugType;
+    };
+    setDebugType = function(t) {
+      return debugType = t;
+    };
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_addSourceFile = addSourceFile;
     Leisure.Base = root;
     root.serverIncrement = serverIncrement;
@@ -596,6 +603,8 @@ misrepresented as being the original software.
     root.addDebugType = addDebugType;
     root.addSourceFile = addSourceFile;
     root.sourceFile = sourceFile;
+    root.getDebugType = getDebugType;
+    root.setDebugType = setDebugType;
     return root;
   });
 

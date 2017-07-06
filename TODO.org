@@ -1,3 +1,5 @@
+* TODO [#A] seems to be a problem with defCase
+** present.type doesn't seem to override present.hasType
 * TODO [#A] Make hash arguments that can position the document, etc.
 * TODO [#A] Access viewdef for a given view
 * TODO [#A] Viewdef and controler should render links to each other

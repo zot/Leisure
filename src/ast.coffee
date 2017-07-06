@@ -333,6 +333,7 @@ define ['./base', 'lodash'], (base, _)->
     nakedDefine name, lz(func), arity, src, method, namespace, isNew || (arity > 1)
 
   nakedDefine = (name, func, arity, src, method, namespace, isNew, redef) ->
+  #nakedDefine = (name, func, arity, src, method, namespace, isNew, redef, debugType, debugDef) ->
     #can't use func(), because it might do something or might fail
     #if typeof func() == 'function'
     #  func().src = src
@@ -539,6 +540,8 @@ define ['./base', 'lodash'], (base, _)->
   head = (l)-> l.head()
 
   tail = (l)-> l.tail()
+
+  Leisure.Ast = root
 
   root.head = head
   root.tail = tail

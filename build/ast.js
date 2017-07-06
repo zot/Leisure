@@ -1016,6 +1016,7 @@ misrepresented as being the original software.
     tail = function(l) {
       return l.tail();
     };
+    Leisure.Ast = root;
     root.head = head;
     root.tail = tail;
     root.consFrom = consFrom;

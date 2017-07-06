@@ -29,14 +29,14 @@ misrepresented as being the original software.
   var slice = [].slice;
 
   define(['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-source-map-support', 'lib/js-yaml'], function(Base, Ast, Runtime, _, SourceMap, SourceMapSupport, Yaml) {
-    var CodeGenerator, Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceMapGenerator, SourceNode, USE_STRICT, _false, _true, _unit, addDebugType, addLambdaProperties, addUniq, arrayify, assocListProps, ast2Json, booleanFor, check, checkChild, codeNum, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, debugType, define, dump, dumpAnno, dumpMonadStack, findName, functionId, functionInfo, gen, genMap, genSource, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, isResolved, jsCodeFor, jstr, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, rangeToJson, ref1, ref2, resolve, right, root, rz, setDataType, setDebugType, setMegaArity, setType, simpyCons, sn, specialAnnotations, stackSize, trace, uniqName, useArity, varNameSub, verboseMsg, withFile;
-    simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog, isResolved = Base.isResolved, addDebugType = Base.addDebugType;
+    var CodeGenerator, Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Monad2, Nil, SourceMapConsumer, SourceMapGenerator, SourceNode, USE_STRICT, _false, _true, addDebugType, addLambdaProperties, addUniq, arrayify, assocListProps, ast2Json, booleanFor, check, checkChild, codeNum, collectArgs, cons, consFrom, curDef, currentFile, currentFuncName, curryCall, define, dump, dumpAnno, dumpMonadStack, findName, functionId, functionInfo, gen, genMap, genSource, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getDebugType, getLambdaArgs, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNArgs, getNthLambdaBody, getPos, getRefName, getType, isNil, isResolved, jsCodeFor, jstr, lacons, lazify, lazy, lc, lcons, lconsFrom, left, letList, locateAst, location, lz, megaArity, nameSub, newConsFrom, nsLog, parseErr, rangeToJson, ref1, ref2, resolve, right, root, rz, setDataType, setDebugType, setMegaArity, setType, simpyCons, sn, specialAnnotations, stackSize, trace, uniqName, unit, useArity, varNameSub, verboseMsg, withFile;
+    simpyCons = Base.simpyCons, resolve = Base.resolve, lazy = Base.lazy, verboseMsg = Base.verboseMsg, nsLog = Base.nsLog, isResolved = Base.isResolved, addDebugType = Base.addDebugType, getDebugType = Base.getDebugType, setDebugType = Base.setDebugType;
     dump = Yaml.dump;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
     ref1 = root = Ast, nameSub = ref1.nameSub, getLitVal = ref1.getLitVal, getRefName = ref1.getRefName, getLambdaVar = ref1.getLambdaVar, getLambdaBody = ref1.getLambdaBody, getApplyFunc = ref1.getApplyFunc, getApplyArg = ref1.getApplyArg, getAnnoName = ref1.getAnnoName, getAnnoData = ref1.getAnnoData, getAnnoBody = ref1.getAnnoBody, getLetName = ref1.getLetName, getLetValue = ref1.getLetValue, getLetBody = ref1.getLetBody, Leisure_lit = ref1.Leisure_lit, Leisure_ref = ref1.Leisure_ref, Leisure_lambda = ref1.Leisure_lambda, Leisure_apply = ref1.Leisure_apply, Leisure_let = ref1.Leisure_let, Leisure_anno = ref1.Leisure_anno, setType = ref1.setType, setDataType = ref1.setDataType, cons = ref1.cons, Nil = ref1.Nil, define = ref1.define, functionInfo = ref1.functionInfo, getPos = ref1.getPos, isNil = ref1.isNil, getType = ref1.getType, ast2Json = ref1.ast2Json, rangeToJson = ref1.rangeToJson, getPos = ref1.getPos;
-    Monad2 = Runtime.Monad2, _true = Runtime._true, _false = Runtime._false, _unit = Runtime._unit, left = Runtime.left, right = Runtime.right, booleanFor = Runtime.booleanFor, newConsFrom = Runtime.newConsFrom, dumpMonadStack = Runtime.dumpMonadStack;
+    Monad2 = Runtime.Monad2, _true = Runtime._true, _false = Runtime._false, unit = Runtime.unit, left = Runtime.left, right = Runtime.right, booleanFor = Runtime.booleanFor, newConsFrom = Runtime.newConsFrom, dumpMonadStack = Runtime.dumpMonadStack;
     consFrom = newConsFrom;
     SourceNode = SourceMap.SourceNode, SourceMapConsumer = SourceMap.SourceMapConsumer, SourceMapGenerator = SourceMap.SourceMapGenerator;
     varNameSub = function(n) {
@@ -45,16 +45,16 @@ misrepresented as being the original software.
     useArity = true;
     megaArity = false;
     curDef = null;
-    debugType = 'User';
     trace = true;
     stackSize = 20;
     USE_STRICT = '"use strict";\n';
     setMegaArity = function(setting) {
       return megaArity = setting;
     };
+    setDebugType('User');
     setDebugType = function(type) {
       addDebugType(type);
-      return debugType = type;
+      return Base.setDebugType(type);
     };
     collectArgs = function(args, result) {
       var i, j, len;
@@ -140,6 +140,7 @@ misrepresented as being the original software.
         this.noFile = noFile;
         this.suppressContextCreation = suppressContextCreation;
         this.source = source1;
+        this.debugType = getDebugType();
         this.fileName = fileName != null ? fileName : "dynamic code with source " + (++codeNum);
         this.startId = functionId;
         this.positions = [];
@@ -273,7 +274,7 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genUniq = function(ast, names, uniq) {
-        var arity, data, funcName, genned, name, oldDebugType, oldDef, ref2, src;
+        var arity, data, debugType, funcName, genned, name, oldDebugType, oldDef, ref2, src;
         switch (ast.constructor) {
           case Leisure_lit:
             return sn(ast, jstr(getLitVal(ast)));
@@ -412,7 +413,7 @@ misrepresented as being the original software.
           curDef = null;
           this.declLambda(ast, defName, names);
           bodyCode = this.genUniq(getNthLambdaBody(ast, arity), names, uniq);
-          code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial" + debugType + ", Leisure_traceCallPartial" + debugType + ") || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
+          code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial" + this.debugType + ", Leisure_traceCallPartial" + this.debugType + ") || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
           result = this.genLambdaDecl(ast, defName, args.length, addLambdaProperties(ast, code));
           annoAst = ast;
           while (annoAst instanceof Leisure_anno) {
@@ -493,7 +494,7 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.lazify = function(ast, body) {
-        return lazify(ast, body, (Leisure_generateDebuggingCode ? _.last(this.decls).id : void 0));
+        return lazify(ast, body, (Leisure_generateDebuggingCode ? _.last(this.decls).id : void 0), this.debugType);
       };
 
       CodeGenerator.prototype.genLets = function(ast, names, uniq) {
@@ -514,7 +515,7 @@ misrepresented as being the original software.
 
       CodeGenerator.prototype.genTraceCall = function(ast, code, argNames) {
         if (Leisure_generateDebuggingCode) {
-          return sn(ast, "(\n  Leisure_traceCall" + debugType + "(L$instance, " + argNames + "),\n  Leisure_traceReturn" + debugType + "(L$instance, (", code, "))\n)");
+          return sn(ast, "(\n  Leisure_traceCall" + this.debugType + "(L$instance, " + argNames + "),\n  Leisure_traceReturn" + this.debugType + "(L$instance, (", code, "))\n)");
         } else {
           return code;
         }
@@ -532,7 +533,7 @@ misrepresented as being the original software.
         });
         if (Leisure_generateDebuggingCode) {
           info.id = _.last(this.declStack).id;
-          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$parentId = L$parent;\n  Leisure_traceLambda" + debugType + "(L$F);\n  return L$F;\n})(++Leisure_traceInstance, L$instance)");
+          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$parentId = L$parent;\n  Leisure_traceLambda" + this.debugType + "(L$F);\n  return L$F;\n})(++Leisure_traceInstance, L$instance)");
         } else {
           return sn(ast, "(function(){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  return L$F;\n})()");
         }
@@ -578,7 +579,7 @@ misrepresented as being the original software.
             decls.push.apply(decls, [decl.lambda, decl.args.length].concat(slice.call(decl.args)));
           }
         }
-        return context = ("\n  var L$context = Leisure_traceTopLevel" + debugType + "({\n    id: Leisure_traceContext++,\n    traceCreatePartial: function(){return Leisure_traceCreatePartial" + debugType + ";},\n    traceCallPartial: function(){return Leisure_traceCallPartial" + debugType + ";},\n    " + source + ",\n    decls: " + (JSON.stringify(decls)) + "\n  });") + this.genFuncInfo();
+        return context = ("\n  var L$context = Leisure_traceTopLevel" + this.debugType + "({\n    id: Leisure_traceContext++,\n    traceCreatePartial: function(){return Leisure_traceCreatePartial" + this.debugType + ";},\n    traceCallPartial: function(){return Leisure_traceCallPartial" + this.debugType + ";},\n    debugType: " + (JSON.stringify(this.debugType)) + ",\n    " + source + ",\n    decls: " + (JSON.stringify(decls)) + "\n  });") + this.genFuncInfo();
       };
 
       CodeGenerator.prototype.genFuncInfo = function() {
@@ -595,7 +596,7 @@ misrepresented as being the original software.
       return CodeGenerator;
 
     })();
-    lazify = function(ast, body, id) {
+    lazify = function(ast, body, id, debugType) {
       if (Leisure_generateDebuggingCode) {
         return sn(ast, "(function(L$instance, L$parent) {\n  return Leisure_traceLazyValue" + debugType + "(L$instance, L$context, " + id + ", function(){\n    return Leisure_traceResolve" + debugType + "(L$instance, ", body, ");\n  });\n})(++Leisure_traceInstance, L$instance)");
       } else {
@@ -793,7 +794,7 @@ misrepresented as being the original software.
     define('debugType', function(lvl) {
       return new Monad2('debugType', function(env, cont) {
         setDebugType(String(rz(lvl)));
-        return cont(_unit);
+        return cont(unit());
       });
     });
     define('debugMessage', function(type, msg) {
@@ -801,16 +802,16 @@ misrepresented as being the original software.
         var count;
         count = (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceMessage" + (rz(type))](rz(msg));
         env.writeTraceMessage(count, rz(msg));
-        return cont(_unit);
+        return cont(unit());
       }));
     });
     define('traceOff', new Monad2('traceOff', function(env, cont) {
       trace = false;
-      return cont(_unit);
+      return cont(unit());
     }));
     define('traceOn', new Monad2('traceOn', function(env, cont) {
       trace = true;
-      return cont(_unit);
+      return cont(unit());
     }));
     define('runAst', (function(code) {
       return function(ast) {

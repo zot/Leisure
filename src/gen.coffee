@@ -33,6 +33,8 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     nsLog
     isResolved
     addDebugType
+    getDebugType
+    setDebugType
   } = Base
   {
     dump
@@ -77,7 +79,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     Monad2
     _true
     _false
-    _unit
+    unit
     left
     right
     booleanFor
@@ -98,7 +100,6 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
   useArity = true
   megaArity = false
   curDef = null
-  debugType = 'User'
   #trace = false
   trace = true
   stackSize = 20
@@ -107,13 +108,15 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
 
   setMegaArity = (setting)-> megaArity = setting
 
+  setDebugType 'User'
+
 #########
 # Code
 #########
 
   setDebugType = (type)->
     addDebugType type
-    debugType = type
+    Base.setDebugType type
 
   collectArgs = (args, result)->
     for i in args
@@ -173,6 +176,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
 
   class CodeGenerator
     constructor: (fileName, @useContext, @noFile, @suppressContextCreation, @source)->
+      @debugType = getDebugType()
       @fileName = fileName ? "dynamic code with source #{++codeNum}"
       @startId = functionId
       @positions = []
@@ -332,7 +336,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
         bodyCode = @genUniq(getNthLambdaBody(ast, arity), names, uniq)
         code = sn ast, """
           function(#{argList}) {
-            return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial#{debugType}, Leisure_traceCallPartial#{debugType}) || """, @genTraceCall(ast, bodyCode, argList), """;
+            return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial#{@debugType}, Leisure_traceCallPartial#{@debugType}) || """, @genTraceCall(ast, bodyCode, argList), """;
           };
         """
         #result = addLambdaProperties ast, @genLambdaDecl ast, args.length, code
@@ -371,7 +375,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     genLetAssign: (arg, names, uniq)->
       @declLazy arg, => @lazify arg, (@genUniq arg, names, uniq)
     lazify: (ast, body)->
-      lazify ast, body, (if Leisure_generateDebuggingCode then _.last(@decls).id)
+      lazify ast, body, (if Leisure_generateDebuggingCode then _.last(@decls).id), @debugType
     genLets: (ast, names, uniq)->
       bindings = letList ast, []
       [letUniq, decs, assigns, ln] = _.reduce bindings, ((result, l)=>
@@ -387,8 +391,8 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
     genTraceCall: (ast, code, argNames)->
       if Leisure_generateDebuggingCode then sn ast, """
         (
-          Leisure_traceCall#{debugType}(L$instance, #{argNames}),
-          Leisure_traceReturn#{debugType}(L$instance, (""", code, """))
+          Leisure_traceCall#{@debugType}(L$instance, #{argNames}),
+          Leisure_traceReturn#{@debugType}(L$instance, (""", code, """))
         )
       """
       else code
@@ -404,7 +408,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             L$F.L$info = #{infoVar};
             L$F.L$instanceId = L$instance;
             L$F.L$parentId = L$parent;
-            Leisure_traceLambda#{debugType}(L$F);
+            Leisure_traceLambda#{@debugType}(L$F);
             return L$F;
           })(++Leisure_traceInstance, L$instance)
         """
@@ -457,10 +461,11 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
         decls.push type, decl.line, decl.col, decl.parent
         if type == 'lambda' then decls.push decl.lambda, decl.args.length, decl.args...
       context = """
-        \n  var L$context = Leisure_traceTopLevel#{debugType}({
+        \n  var L$context = Leisure_traceTopLevel#{@debugType}({
             id: Leisure_traceContext++,
-            traceCreatePartial: function(){return Leisure_traceCreatePartial#{debugType};},
-            traceCallPartial: function(){return Leisure_traceCallPartial#{debugType};},
+            traceCreatePartial: function(){return Leisure_traceCreatePartial#{@debugType};},
+            traceCallPartial: function(){return Leisure_traceCallPartial#{@debugType};},
+            debugType: #{JSON.stringify @debugType},
             #{source},
             decls: #{JSON.stringify decls}
           });
@@ -473,7 +478,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
         """
       header
 
-  lazify = (ast, body, id)->
+  lazify = (ast, body, id, debugType)->
     if Leisure_generateDebuggingCode
       sn ast, """
         (function(L$instance, L$parent) {
@@ -607,21 +612,21 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
   define 'debugType', (lvl)->
     new Monad2 'debugType', (env, cont)->
       setDebugType String rz lvl
-      cont _unit
+      cont unit()
 
   define 'debugMessage', (type, msg)-> checkPartial(L_vectorRemove, arguments) || (
     new Monad2 'debugMessage', (env, cont)->
       count = (window ? global)["Leisure_traceMessage#{rz type}"] rz msg
       env.writeTraceMessage count, rz msg
-      cont _unit)
+      cont unit())
 
   define 'traceOff', new Monad2 'traceOff', (env, cont)->
     trace = false
-    cont _unit
+    cont unit()
 
   define 'traceOn', new Monad2 'traceOn', (env, cont)->
     trace = true
-    cont _unit
+    cont unit()
 
   define 'runAst', ((code)->(ast)->
     new Monad2 'runAst', (env, cont)->

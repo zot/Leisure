@@ -34,6 +34,7 @@ define files, (btoa)->
   traceLen = 100
   traceHandler = ->
   lambdaInfo = {}
+  debugType = 'core'
   debugTypes = new Set()
   traceMessageCount = 0
   sourceFiles = {}
@@ -98,7 +99,7 @@ define files, (btoa)->
       traceHandler = handler
     (if type then new Set([type]) else debugTypes).forEach (type)->
       (window ? global)["Leisure_traceTopLevel#{type}"] = (context)->
-        traceValues.push 'context', context.id, context.source, context.inlineMap, context.externalMap, context.decls.length
+        traceValues.push 'context', context.id, context.source, context.inlineMap, context.externalMap, context.debugType, context.decls.length
         traceValues.push.apply traceValues, context.decls
         checkTraceLog()
         context
@@ -116,7 +117,7 @@ define files, (btoa)->
     if !type then (window ? global).Leisure_usingDebugging = true
     (if type then new Set([type]) else debugTypes).forEach (type)->
       (window ? global)["Leisure_traceTopLevel#{type}"] = (context)->
-        traceValues.push 'context', context.id, context.source, context.inlineMap, context.externalMap, context.decls.length
+        traceValues.push 'context', context.id, context.source, context.inlineMap, context.externalMap, context.debugType, context.decls.length
         traceValues.push.apply traceValues, context.decls
         checkTraceLog()
         context
@@ -371,6 +372,10 @@ define files, (btoa)->
     else if typeof amount == 'function' then cont "Error, no amount given to serverIncrement"
     else Meteor.call 'incrementField', root.currentDocument.leisure.name, path, amount, cont
 
+  getDebugType = -> debugType
+
+  setDebugType = (t)-> debugType = t
+
   (window ? global).Leisure_addSourceFile = addSourceFile
 
   Leisure.Base = root
@@ -397,5 +402,7 @@ define files, (btoa)->
   root.addDebugType = addDebugType
   root.addSourceFile = addSourceFile
   root.sourceFile = sourceFile
+  root.getDebugType = getDebugType
+  root.setDebugType = setDebugType
 
   root

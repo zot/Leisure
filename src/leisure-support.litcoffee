@@ -32,7 +32,7 @@ Support code for Leisure
         _true
         _false
         _identity
-        _unit
+        unit
         jsonConvert
         Monad2
         some
@@ -135,7 +135,7 @@ Support code for Leisure
       define 'setTheme', (theme)->
         new Monad2 (env, cont)->
           env.opts.setTheme theme
-          cont _unit
+          cont unit()
 
       collabId = 0
 
@@ -175,13 +175,13 @@ Support code for Leisure
             cvtArgs.unshift acons 'options', context.options, acons('slaveId', context.slaveId, L_nil)
             runMonad2 func.apply(null, cvtArgs), defaultEnvWithData(data), ->
           data.closeRegistration()
-          cont _unit
+          cont unit()
 
       define 'getData', (name)->
         new Monad2 'getData', (env, cont)->
           d = envData(env).getData rz(name)
           if d then cont jsonConvert d
-          else cont _unit
+          else cont unit()
 
       define 'getDataOpt', (name)->
         new Monad2 'getData', (env, cont)->
@@ -193,7 +193,7 @@ Support code for Leisure
         new Monad2 'getData', (env, cont)->
           d = envData(env).getData rz(name), true
           if d then cont jsonConvert d
-          else cont _unit
+          else cont unit()
 
       define 'getDataUnsafeOpt', (name)->
         new Monad2 'getData', (env, cont)->
@@ -205,7 +205,7 @@ Support code for Leisure
         new Monad2 'getLocalData', (env, cont)->
           d = envData(env).getLocalData rz(name), true
           if d then cont jsonConvert d
-          else cont _unit
+          else cont unit()
 
       define 'getLocalDataOpt', (name)->
         new Monad2 'getLocalData', (env, cont)->
@@ -235,7 +235,7 @@ Support code for Leisure
       define 'removeData', (name)->
         new Monad2 'removeData', (env, cont)->
           envData(env).removeData rz(name)
-          cont _unit
+          cont unit()
 
       define 'getImage', (name)-> if isPartial arguments then partialCall arguments else
         data = Lounge.opts.data

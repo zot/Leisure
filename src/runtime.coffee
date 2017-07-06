@@ -120,8 +120,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   identity = (x)-> x
   _identity = (x)-> rz x
   _unit = setType ((x)->rz x), 'unit'
-  _true = setType ((a)->(b)->rz a), 'true'
-  _false = setType ((a)->(b)->rz b), 'false'
+  _true = setDataType (setType ((a)->(b)->rz a), 'true'), 'true'
+  _false = setDataType (setType ((a)->(b)->rz b), 'false'), 'false'
   left = (x)-> setType ((lCase)->(rCase)-> rz(lCase)(lz x)), 'left'
   right = (x)-> setType ((lCase)->(rCase)-> rz(rCase)(lz x)), 'right'
   some = (x)-> setType ((someCase)->(noneCase)-> rz(someCase)(lz x)), 'some'
@@ -436,16 +436,18 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   _unit = mkProto Leisure_unit, setType ((_x)-> rz(_x)), 'unit'
 
+  unit = -> L_unit || _unit
+
   define 'define', (name, arity, src, def)-> checkPartial(L_define, arguments) ||
     makeSyncMonad (env, cont)->
       nakedDefine rz(name), def, rz(arity), rz(src)
-      cont _unit
+      cont unit()
 
   define 'newDefine', (name, arity, src, def)-> checkPartial(L_newDefine, arguments) ||
     new Monad2 (env, cont)->
       if global.verbose?.gen then console.log "DEFINE: #{name}"
       nakedDefine rz(name), def, rz(arity), rz(src), null, null, true
-      cont _unit
+      cont unit()
 
 #  runMonads = (monads, i, arg)->
 #    if i < monads.length
@@ -547,7 +549,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     e = new Error()
     dumpMonadStack e, env
     console.log e.stack
-    cont _unit
+    cont unit()
 
 #  define 'return', (v)-> new Monad2 ((env, cont)-> cont rz v), -> "return #{rz v}"
 
@@ -651,7 +653,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'getValue', (name)->
     new Monad2 'getValue', (env, cont)->
       if v = values[rz name] then cont v
-      else cont _unit
+      else cont unit()
 
 # New getValue for when the option monad is integrated with the parser
 #define 'getValue', (name)->
@@ -661,12 +663,12 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'setValue', (name, value)-> checkPartial(L_setValue, arguments) ||
     new Monad2 'setValue', (env, cont)->
       values[rz name] = rz value
-      cont _unit
+      cont unit()
 
   define 'deleteValue', (name)->
     new Monad2 (env, cont)->
       delete values[rz name]
-      cont _unit
+      cont unit()
 
   setValue = (key, value)-> values[key] = value
 
@@ -686,7 +688,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'envGet', (name)->
     makeSyncMonad (env, cont)->
-      cont env.values?[rz name] ? _unit
+      cont env.values?[rz name] ? unit()
 
   define 'envGetOpt', (name)->
     makeSyncMonad (env, cont)->
@@ -696,19 +698,19 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     makeSyncMonad (env, cont)->
       if !env.values? then env.values = {}
       env.values[rz name] = rz(value)
-      cont _unit
+      cont unit()
 
   define 'envDelete', (name)->
     makeSyncMonad (env, cont)->
       if env.values? then delete env.values[rz name]
-      cont _unit
+      cont unit()
 
   setValue 'macros', Nil
 
   define 'defMacro', (name, def)-> checkPartial(L_defMacro, arguments) ||
     makeSyncMonad (env, cont)->
       values.macros = cons cons(rz(name), rz(def)), values.macros
-      cont _unit
+      cont unit()
 
   define 'funcList', makeSyncMonad (env, cont)->
     cont consFrom global.leisureFuncNames.toArray().sort()
@@ -729,7 +731,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       oldDef = global[n]
       if !oldDef then throw new Error("No definition for #{rz name}")
       global[n] = lz rz(newFunc)(oldDef)
-      cont _unit
+      cont unit()
 
 #######################
 # type cases
@@ -763,7 +765,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       functionInfo[funcName].typeCase = true
       LeisureObject.prototype[n] = oldDef
     cl.prototype[n] = func
-    _unit)
+    unit())
 
   define '_declareType', (subtype, supertype)-> checkPartial(L__declareType, arguments) || (
     subtype = rz subtype
@@ -779,7 +781,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       #if supercl
       #  subcl.prototype = Object.create(supercl.prototype)
       #  subcl.prototype.constructor = subcl
-    _unit)
+    unit())
 
 #######################
 # IO
@@ -791,7 +793,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'debug', ->
     debugger
-    _unit
+    unit()
 
   noMemo L_debug
 
@@ -801,7 +803,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   #define 'debug', new Monad2 'debug', (env, cont)->
   #    debugger
-  #    cont _unit
+  #    cont unit()
 
 # TODO make this use eval.litcoffee's gensym
 
@@ -810,17 +812,17 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'print', (msg)->
     makeSyncMonad (env, cont)->
       env.write env.presentValue rz msg
-      cont _unit
+      cont unit()
 
   define 'print2', (msg)->
     new Monad2 'print2', ((env, cont)->
       env.write env.presentValue rz msg
-      cont _unit), -> "print2 #{rz msg}"
+      cont unit()), -> "print2 #{rz msg}"
 
   define 'write', (msg)->
     new Monad2 'write', ((env, cont)->
       env.write String(rz msg)
-      cont _unit), -> "write #{rz msg}"
+      cont unit()), -> "write #{rz msg}"
 
   define 'prompt', (msg)->
     new Monad2 'promptDefault', ((env, cont)->
@@ -838,7 +840,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'oldWrite', (msg)->
     makeSyncMonad (env, cont)->
       env.write String(rz msg)
-      cont _unit
+      cont unit()
 
   define 'readFile', (name)->
     new Monad2 'readFile', (env, cont)->
@@ -893,7 +895,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'delay', (timeout)->
     new Monad2 (env, cont)->
-      setTimeout (-> cont _unit), rz(timeout)
+      setTimeout (-> cont unit()), rz(timeout)
 
   define 'currentTime', new Monad2 (env, cont)-> cont Date.now
 
@@ -903,7 +905,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       if !ran
         console.log "RUNNING"
         ran = true
-        cont _unit
+        cont unit()
       else console.log "ALREADY RAN")()
 
 ##################
@@ -919,6 +921,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     newDef = -> if p = checkPartial(info.mainDef, arguments) then p else
       for alt in alts
         opt = alt
+        # TODO -- once lambdas are properly generated, opt.apply(null, arguments)
         for arg in arguments
           opt = opt arg
         if getType(opt) == 'some' then return opt(lz (x)->rz x)(lz _false)
@@ -1214,7 +1217,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   define 'clearNameSpacePath', makeSyncMonad (env, cont)->
     root.nameSpacePath = []
-    cont _unit
+    cont unit()
 
   define 'resetNameSpaceInfo', makeSyncMonad (enf, cont)->
     old = [root.nameSpacePath, root.currentNameSpace]
@@ -1228,7 +1231,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       #console.log "RESTORING NAME SPACE INFO: #{require('util').inspect rz info}"
       [root.nameSpacePath, root.currentNameSpace] = rz info
       nsLog "SETTING NAME SPACE: #{root.currentNameSpace}"
-      cont _unit
+      cont unit()
 
 #######################
 # Classes for Printing
@@ -1305,7 +1308,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     requireFiles
     _true
     _false
-    _unit
+    unit
     _identity
     some
     none
