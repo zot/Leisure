@@ -468,7 +468,7 @@ primCompile = (file, cont)->
   {
     parseLine,
     compileFile,
-  } = require stages[stage]
+  } = requirejs './leisure/' + stages[stage]
   ext = path.extname file
   readFile file, (err, contents)->
     if !err

@@ -1,6 +1,5 @@
 'use strict';
 define([], function(){
-  if (typeof module != 'undefined') require('source-map-support').install();
   return L_runMonads([
     function(){return ((function(){
   var L$context = null;

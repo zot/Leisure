@@ -626,7 +626,7 @@ misrepresented as being the original software.
   primCompile = function(file, cont) {
     var compileFile, ext, parseLine, ref5;
     root.shouldNsLog = shouldNsLog;
-    ref5 = require(stages[stage]), parseLine = ref5.parseLine, compileFile = ref5.compileFile;
+    ref5 = requirejs('./leisure/' + stages[stage]), parseLine = ref5.parseLine, compileFile = ref5.compileFile;
     ext = path.extname(file);
     return readFile(file, function(err, contents) {
       var compiled, outputFile;
