@@ -533,7 +533,7 @@ misrepresented as being the original software.
         });
         if (Leisure_generateDebuggingCode) {
           info.id = _.last(this.declStack).id;
-          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$parentId = L$parent;\n  Leisure_traceLambda" + this.debugType + "(L$F);\n  return L$F;\n})(++Leisure_traceInstance, L$instance)");
+          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$parentId = L$parent;\n  return Leisure_traceLambda" + this.debugType + "(L$F);\n})(++Leisure_traceInstance, L$instance)");
         } else {
           return sn(ast, "(function(){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  return L$F;\n})()");
         }

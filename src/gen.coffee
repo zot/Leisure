@@ -408,8 +408,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             L$F.L$info = #{infoVar};
             L$F.L$instanceId = L$instance;
             L$F.L$parentId = L$parent;
-            Leisure_traceLambda#{@debugType}(L$F);
-            return L$F;
+            return Leisure_traceLambda#{@debugType}(L$F);
           })(++Leisure_traceInstance, L$instance)
         """
       else sn ast, """

@@ -71,9 +71,14 @@ define files, (btoa)->
 # Leisure_traceResolve{TYPE}(instanceId, value)
 #   Must return value
 # 
-# Leisure_traceLambda{TYPE}(instanceId, lambda, name, context, id, parentInstanceId)
+# Leisure_traceLambda{TYPE}(lambda)
+#   Must return lambda
 # 
 # Leisure_traceCall{TYPE}(lambda)
+# 
+# Leisure_traceCreatePartial{TYPE}(instanceId, lambda, args)
+# 
+# Leisure_traceCallPartial{TYPE}(instanceId, lambda, args)
 # 
 # Leisure_traceReturn{TYPE}(lambda, result)
 #   Must return result
@@ -103,11 +108,6 @@ define files, (btoa)->
         traceValues.push.apply traceValues, context.decls
         checkTraceLog()
         context
-      #(window ? global)["Leisure_traceLambda#{type}"] = (parentId, context, id, lambda)->
-      #  # tie lambda to AST in the log here
-      #  lambda.L$context = context
-      #  traceValues.push 'lambda', lambda.instanceId, context.id, id
-      #  checkTraceLog()
 
   root.useDebugging = (len, handler, type)->
     flushTraceLog()
@@ -131,11 +131,9 @@ define files, (btoa)->
         checkTraceLog()
         value
       (window ? global)["Leisure_traceLambda#{type}"] = (lambda)->
-        # tie lambda to AST in the log here
-        lambda.L$context = context
-        # need parentId?
-        traceValues.push 'lambda', lambda.L$instanceId, lambda.L$context.id, lambda.L$id
+        traceValues.push 'lambda', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id, lambda.L$info.parent?.id
         checkTraceLog()
+        lambda
       (window ? global)["Leisure_traceCall#{type}"] = (instanceId, args...)->
         traceValues.push 'call', instanceId
         addArgs args
@@ -166,7 +164,7 @@ define files, (btoa)->
       (window ? global)["Leisure_traceTopLevel#{type}"] = (context)-> context
       (window ? global)["Leisure_traceLazyValue#{type}"] = (instanceId, context, id, value)-> value
       (window ? global)["Leisure_traceResolve#{type}"] = (instanceId, value)-> value
-      (window ? global)["Leisure_traceLambda#{type}"] = (lambda)->
+      (window ? global)["Leisure_traceLambda#{type}"] = (lambda)-> lambda
       (window ? global)["Leisure_traceCall#{type}"] = (instanceId, args...)->
       (window ? global)["Leisure_traceReturn#{type}"] = (instanceId, result)-> result
       (window ? global)["Leisure_traceCreatePartial#{type}"] = (instanceId, lambda, args)->

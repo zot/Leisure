@@ -103,18 +103,18 @@
     };
 
     OdbWorker.prototype.lambda = function(records, pos, values) {
-      var args, i, j, ref, type, v;
+      var context, id, instance, parent, type;
       type = values[pos++];
-      args = [];
-      for (i = j = 0, ref = values[pos++]; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
-        args.push(v = values[pos++]);
-        if (v === -1) {
-          args.push(values[pos++]);
-        }
-      }
+      instance = values[pos++];
+      context = values[pos++];
+      id = values[pos++];
+      parent = values[pos++];
       records.add(records.lambdas, instance, {
         type: type,
-        args: args
+        instance: instance,
+        context: context,
+        id: id,
+        parent: parent
       });
       return pos;
     };

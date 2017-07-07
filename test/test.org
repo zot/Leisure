@@ -32,10 +32,10 @@ print (at evens 4)
 : 10
 
 #+BEGIN_SRC leisure :results dynamic
-at [1 2 3 4] 2
+at [1 2 3 4] 1 
 #+END_SRC
 #+RESULTS:
-: 3
+: 2
 
 * Hello
 duhasdfasdfasdfdas
