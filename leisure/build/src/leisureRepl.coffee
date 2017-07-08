@@ -431,7 +431,7 @@ compile = (file, cont)->
           (new SourceNode 1, 0, bareLsr, [
             '"use strict";\n',
             """
-            define([], function(){#{if Leisure_generateDebuggingCode then codeGen.genContext() else ''}
+            define([], function(){#{if codeGen.decls.length then codeGen.genContext() else 'var L$context = null;\n  ' + codeGen.genFuncInfo()}
               return L_runMonads([
                 
             """,

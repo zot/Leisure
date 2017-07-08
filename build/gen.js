@@ -275,7 +275,7 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genUniq = function(ast, names, uniq) {
-        var arity, data, funcName, genned, name, oldDef, ref2, src;
+        var arity, data, funcName, genned, name, oldDebug, oldDef, ref2, src;
         switch (ast.constructor) {
           case Leisure_lit:
             return sn(ast, jstr(getLitVal(ast)));
@@ -304,10 +304,19 @@ misrepresented as being the original software.
                     oldDef = curDef;
                     curDef = data;
                     break;
+                  case 'debug':
+                    if (Leisure_generateDebuggingCode) {
+                      oldDebug = this.debug;
+                      this.debug = true;
+                    }
+                    break;
                   case 'define':
                     this.declLazy(getAnnoBody(ast));
                 }
                 genned = this.genUniq(getAnnoBody(ast), names, uniq);
+                if (name === 'debug' && Leisure_generateDebuggingCode) {
+                  this.debug = oldDebug;
+                }
                 switch (name) {
                   case 'type':
                     return sn(ast, "setType(", genned, ", '", data, "')");
@@ -553,7 +562,7 @@ misrepresented as being the original software.
         var header, ref2;
         if ((ref2 = dumpAnno(ast).constructor) === Leisure_lit || ref2 === Leisure_ref) {
           return node;
-        } else if (this.debug) {
+        } else if (this.decls.length || this.debug) {
           header = "var L$ret;";
           if (this.createContext) {
             header += this.genContext();

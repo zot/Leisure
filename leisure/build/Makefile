@@ -5,8 +5,8 @@ LEISURE_SRC=generatedPrelude std svg parseAst simpleParse
 LEISURE_JS=lib/simpleParseJS.js $(LEISURE_SRC:%=$(OUTPUT_DIR)/%.js)
 NODE=$(CURDIR)/runNode
 #REPL=$(NODE) src/runRepl
-#DEBUG=-g
-DEBUG=
+DEBUG=-g
+#DEBUG=
 REPL=$(CURDIR)/../repl
 PREPL=$(REPL) $(DEBUG) -prefix build/leisure/
 OUTPUT_PARSE_AST=$(OUTPUT_DIR)/parseAst.js

@@ -268,12 +268,13 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
                 when 'leisureName'
                   oldDef = curDef
                   curDef = data
-                #when 'debug'
-                #  oldDebug = @debug
-                #  @debug = true
+                when 'debug'
+                  if Leisure_generateDebuggingCode
+                    oldDebug = @debug
+                    @debug = true
                 when 'define' then @declLazy getAnnoBody ast
               genned = @genUniq (getAnnoBody ast), names, uniq
-              #if name == 'debug' then @debug = oldDebug
+              if name == 'debug' && Leisure_generateDebuggingCode then @debug = oldDebug
               switch name
                 when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
                 when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
@@ -432,7 +433,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       ''
     genTopLevel: (ast, node)->
       if dumpAnno(ast).constructor in [Leisure_lit, Leisure_ref] then node
-      else if @debug
+      else if @decls.length || @debug
         header = "var L$ret;"
         if @createContext then header += @genContext()
         sn ast, """

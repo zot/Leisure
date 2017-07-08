@@ -5405,7 +5405,7 @@ define([], function(){
   var L$FUNC_7 = {context: L$context, id: undefined, length: 1};
   var L$FUNC_8 = {context: L$context, id: undefined, length: 1};
   var L$FUNC_9 = {context: L$context, id: undefined, length: 1};
-  return resolve(L_define)("createDef", 5, "createDef def name arity src props = \\\\\n  tok str = token str (position name)\n  code = cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons '\\\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))\n  debugCode = cons '\\\\@' (cons 'debug' (cons 'true' (cons '.' code)))\n  .\n  jsonStringify (tokenString name) (\\err . parseErr (strCat (cons \"Bad function name \" (cons (loc name) nil))) err) \\nameStr .\n    jsonStringify src (\\err . parseErr (strCat (cons \"Bad source \" (cons (loc name) nil))) err) \\srcStr .\n      #cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) code)))\n      cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons code (cons debugCode nil)))))", lazy((function(){
+  return resolve(L_define)("createDef", 5, "createDef def name arity src props = \\\\\n  tok str = token str (position name)\n  code = cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons '\\\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))\n  debugCode = cons '\\\\@' (cons 'debug' (cons 'true' (cons '.' code)))\n  .\n  jsonStringify (tokenString name) (\\err . parseErr (strCat (cons \"Bad function name \" (cons (loc name) nil))) err) \\nameStr .\n    jsonStringify src (\\err . parseErr (strCat (cons \"Bad source \" (cons (loc name) nil))) err) \\srcStr .\n      #cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) code)))\n      #cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons code (cons debugCode nil)))))\n      cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) debugCode)))", lazy((function(){
   var L$F = function(L_def){return (function(){
   var L$F = function(L_name){return (function(){
   var L$F = function(L_arity){return (function(){
@@ -5494,11 +5494,7 @@ define([], function(){
 }, function(){
   return L$(resolve(L_cons))(function(){
   return resolve(L_tok)(L_srcStr);
-}, function(){
-  return L$(resolve(L_cons))(L_code, function(){
-  return L$(resolve(L_cons))(L_debugCode, L_nil);
-});
-});
+}, L_debugCode);
 });
 });
 });};

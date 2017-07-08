@@ -572,7 +572,7 @@ misrepresented as being the original software.
                 return sourceNode(ast, 'function(){return ', codeGen.genMap(ast), '}');
               }), ',\n    '), '\n  ]);\n});'
             ]);
-            return (new SourceNode(1, 0, bareLsr, ['"use strict";\n', "define([], function(){" + (Leisure_generateDebuggingCode ? codeGen.genContext() : '') + "\n  return L_runMonads([\n    ", nodes])).toStringWithSourceMap({
+            return (new SourceNode(1, 0, bareLsr, ['"use strict";\n', "define([], function(){" + (codeGen.decls.length ? codeGen.genContext() : 'var L$context = null;\n  ' + codeGen.genFuncInfo()) + "\n  return L_runMonads([\n    ", nodes])).toStringWithSourceMap({
               file: path.basename(bareJs)
             });
           });
