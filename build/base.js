@@ -36,7 +36,7 @@ misrepresented as being the original software.
   files = !(typeof window !== "undefined" && window !== null ? window : global).btoa ? ['btoa'] : [null];
 
   define(files, function(btoa) {
-    var CodeContext, SimpyCons, addArgs, addDebugType, addSourceFile, addValue, argNames, baseLeisureCall, checkTraceLog, concat, debugType, debugTypes, defaultEnv, errors, flushTraceLog, funcInfo, genInfo, getDebugType, getTraceValues, i, isResolved, lambdaInfo, leisureCall, len1, primConsFrom, readDir, readFile, ref, ref1, root, rz, serverIncrement, setDebugType, simpyCons, slice, sourceFile, sourceFiles, statFile, test, testCount, traceHandler, traceLen, traceMessageCount, traceValues, type, verboseMsg, writeFile;
+    var CodeContext, SimpyCons, activeDebugTypes, addArgs, addDebugType, addSourceFile, addValue, argNames, baseLeisureCall, checkTraceLog, concat, debugFuncs, debugType, debugTypes, defaultEnv, errors, flushTraceLog, funcInfo, genInfo, getDebugType, getTraceValues, i, isResolved, lambdaInfo, leisureCall, len1, nameForFunction, normalFuncs, primConsFrom, readDir, readFile, ref, ref1, root, rz, serverIncrement, setDebugType, simpyCons, slice, sourceFile, sourceFiles, statFile, test, testCount, traceHandler, traceLen, traceMessageCount, traceValues, type, verboseMsg, writeFile;
     if (!btoa) {
       btoa = (typeof window !== "undefined" && window !== null ? window : global).btoa;
     }
@@ -47,8 +47,11 @@ misrepresented as being the original software.
     lambdaInfo = {};
     debugType = 'core';
     debugTypes = new Set();
+    activeDebugTypes = new Set();
     traceMessageCount = 0;
     sourceFiles = {};
+    normalFuncs = {};
+    debugFuncs = {};
     root.currentNameSpace = 'core';
     root.nameSpacePath = ['core'];
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_generateDebuggingCode = true;
@@ -140,26 +143,24 @@ misrepresented as being the original software.
           checkTraceLog();
           return lambda;
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function() {
-          var args, instanceId;
-          instanceId = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
-          traceValues.push('call', instanceId);
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function(lambda, args) {
+          traceValues.push('call', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id);
           addArgs(args);
           return checkTraceLog();
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(instanceId, result) {
-          traceValues.push('return', instanceId);
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(lambda, result) {
+          traceValues.push('return', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id);
           addValue(result);
           checkTraceLog();
           return result;
         };
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCreatePartial" + type] = function(instanceId, lambda, args) {
-          traceValues.push('createPartial', instanceId, lambda.L$instanceId);
+          traceValues.push('createPartial', instanceId, lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id);
           addArgs(args);
           return checkTraceLog();
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCallPartial" + type] = function(instanceId, args) {
-          traceValues.push('callPartial', instanceId);
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCallPartial" + type] = function(instanceId, lambda, args) {
+          traceValues.push('callPartial', instanceId, lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id);
           addArgs(args);
           return checkTraceLog();
         };
@@ -190,15 +191,12 @@ misrepresented as being the original software.
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(lambda) {
           return lambda;
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function() {
-          var args, instanceId;
-          instanceId = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];
-        };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(instanceId, result) {
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function(lambda, args) {};
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceReturn" + type] = function(lambda, result) {
           return result;
         };
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCreatePartial" + type] = function(instanceId, lambda, args) {};
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCallPartial" + type] = function(instanceId, args) {};
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCallPartial" + type] = function(instanceId, lambda, args) {};
         return (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceMark" + type] = function() {
           return traceMarkCount++;
         };
@@ -226,16 +224,31 @@ misrepresented as being the original software.
       }
       return traceValues;
     };
+    nameForFunction = function(func) {
+      var info, name;
+      if (func.name) {
+        return func.name;
+      } else {
+        info = func.L$info;
+        while (info && !info.name) {
+          info = info.parent;
+        }
+        name = (info != null ? info.name : void 0) || func.name || "unknown";
+        if (info && info !== func.L$info) {
+          name += "[" + info.id + "]";
+        }
+        return name;
+      }
+    };
     addValue = function(value) {
-      var ref1, ref2;
       if (value.L$instanceId != null) {
         traceValues.push(value.L$instanceId);
       } else if (typeof value === 'function') {
-        traceValues.push("function: " + ((ref1 = (ref2 = value.L$info) != null ? ref2.name : void 0) != null ? ref1 : value.name));
+        traceValues.push("function: " + (nameForFunction(value)));
       } else if (typeof value === 'number') {
         traceValues.push(-1, value);
       } else if (typeof value === 'object') {
-        traceValues.push("object: " + value);
+        traceValues.push("object: " + (JSON.stringify(value)));
       } else {
         traceValues.push(value);
       }
@@ -580,10 +593,17 @@ misrepresented as being the original software.
       return debugType;
     };
     setDebugType = function(t) {
+      if (!debugFuncs[t]) {
+        debugFuncs[t] = {};
+      }
       return debugType = t;
     };
     (typeof window !== "undefined" && window !== null ? window : global).Leisure_addSourceFile = addSourceFile;
     Leisure.Base = root;
+    Leisure.normalFuncs = normalFuncs;
+    Leisure.debugFuncs = debugFuncs;
+    root.normalFuncs = normalFuncs;
+    root.debugFuncs = debugFuncs;
     root.serverIncrement = serverIncrement;
     root.defaultEnv = defaultEnv;
     root.readFile = readFile;
@@ -608,6 +628,8 @@ misrepresented as being the original software.
     root.sourceFile = sourceFile;
     root.getDebugType = getDebugType;
     root.setDebugType = setDebugType;
+    root.debugTypes = debugTypes;
+    root.activeDebugTypes = activeDebugTypes;
     return root;
   });
 

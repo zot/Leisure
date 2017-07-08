@@ -164,8 +164,9 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.addFuncInfo = function(info) {
+        info.funcId = this.funcInfo.length;
         this.funcInfo.push(info);
-        return this.funcVar(this.funcInfo.length - 1);
+        return this.funcVar(info.funcId);
       };
 
       CodeGenerator.prototype.decl = function(ast, dec) {
@@ -196,10 +197,20 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.declLambda = function(ast, name, args) {
-        return this.decl(ast, {
+        var dec, info, varName;
+        this.decl(ast, dec = {
           lambda: name,
           args: args
         });
+        varName = this.addFuncInfo(info = {
+          length: args.length,
+          name: name,
+          args: args,
+          parent: dec.parent,
+          id: dec.id
+        });
+        dec.funcId = info.funcId;
+        return varName;
       };
 
       CodeGenerator.prototype.popDecl = function() {
@@ -269,7 +280,10 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.gen = function(ast) {
-        return new SourceNode(1, 0, currentFile, ['(', this.genMap(ast), ')']).toStringWithSourceMap({
+        var result;
+        result = this.genMap(ast);
+        checkChild(result);
+        return new SourceNode(1, 0, currentFile, ['(', result, ')']).toStringWithSourceMap({
           file: currentFile
         }).code;
       };
@@ -285,7 +299,7 @@ misrepresented as being the original software.
             return this.genLambda(ast, names, uniq);
           case Leisure_apply:
             if (useArity) {
-              return this.genArifiedApply(ast, names, uniq, arity);
+              return this.genArifiedApply(ast, names, uniq);
             } else {
               return sn(ast, this.genUniq(getApplyFunc(ast), names, uniq), "(", this.genApplyArg(getApplyArg(ast), names, uniq), ")");
             }
@@ -388,23 +402,23 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genLambda = function(ast, names, uniq) {
-        var argName, bodyCode, code, defName, n, name, result, u;
+        var argName, bodyCode, code, defName, infoVar, n, name, result, u;
         name = getLambdaVar(ast);
         u = addUniq(name, names, uniq);
         n = cons(name, names);
         argName = uniqName(name, u);
         defName = curDef;
         curDef = null;
-        this.declLambda(ast, defName, [name]);
+        infoVar = this.declLambda(ast, defName, [name]);
         bodyCode = this.genUniq(getLambdaBody(ast), n, u);
         code = sn(ast, "function(" + argName + "){return ", this.genTraceCall(ast, bodyCode, argName), ";}");
-        result = this.genLambdaDecl(ast, defName, '1', addLambdaProperties(ast, code));
+        result = this.genLambdaDecl(ast, infoVar, defName, [name], 1, addLambdaProperties(ast, code));
         this.popDecl();
         return result;
       };
 
       CodeGenerator.prototype.genArifiedLambda = function(ast, names, uniq, arity) {
-        var annoAst, argList, args, bodyCode, code, data, defName, name, result;
+        var annoAst, argList, args, bodyCode, code, data, defName, infoVar, name, result;
         if (arity < 2) {
           return this.genLambda(ast, names, uniq, 0);
         } else {
@@ -414,14 +428,14 @@ misrepresented as being the original software.
           })).join(', ');
           defName = curDef;
           curDef = null;
-          this.declLambda(ast, defName, names);
+          infoVar = this.declLambda(ast, defName, args);
           bodyCode = this.genUniq(getNthLambdaBody(ast, arity), names, uniq);
           if (this.debug) {
             code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial" + this.debugType + ", Leisure_traceCallPartial" + this.debugType + ") || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
           } else {
             code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments) || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
           }
-          result = this.genLambdaDecl(ast, defName, args.length, addLambdaProperties(ast, code));
+          result = this.genLambdaDecl(ast, infoVar, defName, args, args.length, addLambdaProperties(ast, code));
           annoAst = ast;
           while (annoAst instanceof Leisure_anno) {
             name = getAnnoName(annoAst);
@@ -522,14 +536,14 @@ misrepresented as being the original software.
 
       CodeGenerator.prototype.genTraceCall = function(ast, code, argNames) {
         if (this.debug) {
-          return sn(ast, "(\n  Leisure_traceCall" + this.debugType + "(L$instance, " + argNames + "),\n  Leisure_traceReturn" + this.debugType + "(L$instance, (", code, "))\n)");
+          return sn(ast, "(\n  Leisure_traceCall" + this.debugType + "(L$F, arguments),\n  Leisure_traceReturn" + this.debugType + "(L$F, (", code, "))\n)");
         } else {
           return code;
         }
       };
 
-      CodeGenerator.prototype.genLambdaDecl = function(ast, name, length, code) {
-        var info, infoVar, nameCode;
+      CodeGenerator.prototype.genLambdaDecl = function(ast, infoVar, name, args, length, code) {
+        var info, nameCode;
         if (name) {
           nameCode = jstr(name);
         } else {
@@ -590,12 +604,25 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genFuncInfo = function() {
-        var header, i, info, j, len, ref2;
+        var header, i, info, j, len, len1, m, parent, ref2, ref3;
         header = '';
-        ref2 = this.funcInfo;
-        for (i = j = 0, len = ref2.length; j < len; i = ++j) {
-          info = ref2[i];
-          header += "\n  var " + (this.funcVar(i)) + " = {context: L$context, id: " + info.id + ", length: " + info.length + "};";
+        if (this.decls.length) {
+          ref2 = this.funcInfo;
+          for (i = j = 0, len = ref2.length; j < len; i = ++j) {
+            info = ref2[i];
+            parent = (info.parent != null) && this.decls[info.parent];
+            while (parent && parent.lazy) {
+              parent = this.decls[parent.parent];
+            }
+            parent = (parent != null ? parent.funcId : void 0) ? this.funcVar(parent.funcId) : 'null';
+            header += "\n  var " + (this.funcVar(i)) + " = {name: " + (JSON.stringify(info.name)) + ", args: " + (JSON.stringify(info.args)) + ", id: " + info.id + ", length: " + info.length + ", parent: " + parent + ", context: L$context};";
+          }
+        } else {
+          ref3 = this.funcInfo;
+          for (i = m = 0, len1 = ref3.length; m < len1; i = ++m) {
+            info = ref3[i];
+            header += "\n  var " + (this.funcVar(i)) + " = {name: " + (JSON.stringify(info.name)) + ", length: " + info.length + "};";
+          }
         }
         return header;
       };

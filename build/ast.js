@@ -30,8 +30,8 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['./base', 'lodash'], function(base, _) {
-    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_cons, Leisure_list, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, classForType, classNameForType, cons, consEq, consFrom, declareTypeFunc, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, redefined, ref, ref1, resolve, root, rz, save, setDataType, setType, tail, throwError, types;
-    ref1 = root = base, resolve = ref1.resolve, lazy = ref1.lazy, nsLog = ref1.nsLog;
+    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_cons, Leisure_list, Leisure_nil, Nil, activeDebugTypes, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, classForType, classNameForType, cons, consEq, consFrom, declareTypeFunc, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, installFunc, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, redefined, ref, ref1, resolve, root, rz, save, setDataType, setType, tail, throwError, types;
+    ref1 = root = base, resolve = ref1.resolve, lazy = ref1.lazy, nsLog = ref1.nsLog, activeDebugTypes = ref1.activeDebugTypes;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
@@ -569,42 +569,53 @@ misrepresented as being the original software.
         return Leisure_primCall(args.callee, 0, args);
       }
     };
-    define = function(name, func, arity, src, method, namespace, isNew) {
+    define = function(name, func, arity, src, method, namespace, isNewStyle) {
       arity = arity != null ? arity : (typeof func === 'function' && func.length) || 0;
-      return nakedDefine(name, lz(func), arity, src, method, namespace, isNew || (arity > 1));
+      return nakedDefine(name, lz(func), arity, src, method, namespace, isNewStyle || (arity > 1));
     };
-    nakedDefine = function(name, func, arity, src, method, namespace, isNew, redef, debugType, debugDef) {
-      var namedFunc, nm;
+    nakedDefine = function(name, func, arity, src, method, namespace, isNewStyle, redef, debugType, debugDef) {
+      var currentFunc, info, namedDebugFunc, namedFunc, nm;
       if (!redef && functionInfo[name]) {
         redefined[name] = true;
       }
-      functionInfo[name] = {
+      functionInfo[name] = info = {
         src: src,
         arity: arity,
         leisureName: name,
         alts: {},
-        altList: []
+        debugAlts: {},
+        altList: [],
+        debugType: debugType
       };
-      if (isNew) {
-        functionInfo[name].newArity = true;
+      if (isNewStyle) {
+        info.newArity = true;
       }
       nm = 'L_' + nameSub(name);
       if (!method && global.noredefs && (global[nm] != null) && global[nm].typeFunc) {
         throwError("[DEF] Attempt to redefine definition: " + name);
       }
-      functionInfo[name].def = namedFunc = typeof func === 'function' && func.memo ? (!func.L$info ? func.L$info = {} : void 0, func.L$info.length = arity || func.length, func.L$info.name = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
-      if (LeisureObject.prototype[nm]) {
-        LeisureObject.prototype[nm] = namedFunc;
-      } else {
-        global[nm] = global.leisureFuncs[nm] = functionInfo[name].mainDef = namedFunc;
+      info.def = namedFunc = typeof func === 'function' && func.memo ? (!func.L$info ? func.L$info = {} : void 0, func.L$info.length = arity || func.length, func.L$info.name = name, func.__proto__ === Function.prototype ? func.__proto__ = LeisureObject : void 0, func) : nameFunc(func, name);
+      info.mainDef = Leisure.normalFuncs[name] = namedFunc;
+      if (debugDef) {
+        info.debugDef = namedDebugFunc = typeof debugDef === 'function' && debugDef.memo ? (!debugDef.L$info ? debugDef.L$info = {} : void 0, debugDef.__proto__ === Function.prototype ? debugDef.__proto__ = LeisureObject : void 0, debugDef) : nameFunc(debugDef, name);
+        info.mainDebugDef = Leisure.debugFuncs[name] = namedDebugFunc;
       }
-      if (root.currentNameSpace) {
-        LeisureNameSpaces[namespace != null ? namespace : root.currentNameSpace][nameSub(name)] = namedFunc;
-        nsLog("DEFINING " + name + " FOR " + root.currentNameSpace);
-      }
+      currentFunc = activeDebugTypes.has(debugType) ? namedDebugFunc : namedFunc;
+      installFunc(name, nm, currentFunc);
       leisureAddFunc(name);
       root.functionCount++;
       return func;
+    };
+    installFunc = function(name, nm, func) {
+      if (LeisureObject.prototype[nm]) {
+        LeisureObject.prototype[nm] = func;
+      } else {
+        global[nm] = global.leisureFuncs[nm] = func;
+      }
+      if (root.currentNameSpace) {
+        LeisureNameSpaces[typeof namespace !== "undefined" && namespace !== null ? namespace : root.currentNameSpace][nameSub(name)] = func;
+        return nsLog("DEFINING " + name + " FOR " + root.currentNameSpace);
+      }
     };
     L_lit = setDataType((function(_x) {
       return function(_r) {

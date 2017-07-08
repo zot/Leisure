@@ -36,8 +36,11 @@ define files, (btoa)->
   lambdaInfo = {}
   debugType = 'core'
   debugTypes = new Set()
+  activeDebugTypes = new Set()
   traceMessageCount = 0
   sourceFiles = {}
+  normalFuncs = {}
+  debugFuncs = {}
 
   root.currentNameSpace = 'core'
   root.nameSpacePath = ['core']
@@ -134,21 +137,21 @@ define files, (btoa)->
         traceValues.push 'lambda', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id, lambda.L$info.parent?.id
         checkTraceLog()
         lambda
-      (window ? global)["Leisure_traceCall#{type}"] = (instanceId, args...)->
-        traceValues.push 'call', instanceId
+      (window ? global)["Leisure_traceCall#{type}"] = (lambda, args)->
+        traceValues.push 'call', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id
         addArgs args
         checkTraceLog()
-      (window ? global)["Leisure_traceReturn#{type}"] = (instanceId, result)->
-        traceValues.push 'return', instanceId
+      (window ? global)["Leisure_traceReturn#{type}"] = (lambda, result)->
+        traceValues.push 'return', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id
         addValue result
         checkTraceLog()
         result
       (window ? global)["Leisure_traceCreatePartial#{type}"] = (instanceId, lambda, args)->
-        traceValues.push 'createPartial', instanceId, lambda.L$instanceId
+        traceValues.push 'createPartial', instanceId, lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id
         addArgs args
         checkTraceLog()
-      (window ? global)["Leisure_traceCallPartial#{type}"] = (instanceId, args)->
-        traceValues.push 'callPartial', instanceId
+      (window ? global)["Leisure_traceCallPartial#{type}"] = (instanceId, lambda, args)->
+        traceValues.push 'callPartial', instanceId, lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id
         addArgs args
         checkTraceLog()
       (window ? global)["Leisure_traceMark#{type}"] = ->
@@ -165,10 +168,10 @@ define files, (btoa)->
       (window ? global)["Leisure_traceLazyValue#{type}"] = (instanceId, context, id, value)-> value
       (window ? global)["Leisure_traceResolve#{type}"] = (instanceId, value)-> value
       (window ? global)["Leisure_traceLambda#{type}"] = (lambda)-> lambda
-      (window ? global)["Leisure_traceCall#{type}"] = (instanceId, args...)->
-      (window ? global)["Leisure_traceReturn#{type}"] = (instanceId, result)-> result
+      (window ? global)["Leisure_traceCall#{type}"] = (lambda, args)->
+      (window ? global)["Leisure_traceReturn#{type}"] = (lambda, result)-> result
       (window ? global)["Leisure_traceCreatePartial#{type}"] = (instanceId, lambda, args)->
-      (window ? global)["Leisure_traceCallPartial#{type}"] = (instanceId, args)->
+      (window ? global)["Leisure_traceCallPartial#{type}"] = (instanceId, lambda, args)->
       (window ? global)["Leisure_traceMark#{type}"] = -> traceMarkCount++
 
   for type in ['User', 'Std', 'Parser']
@@ -184,11 +187,22 @@ define files, (btoa)->
       addValue arg
     traceValues
 
+  nameForFunction = (func)->
+    if func.name then func.name
+    else
+      info = func.L$info
+      while info && !info.name
+        info = info.parent
+      name = info?.name || func.name || "unknown"
+      if info && info != func.L$info
+        name += "[#{info.id}]"
+      name
+
   addValue = (value)->
     if value.L$instanceId? then traceValues.push value.L$instanceId
-    else if typeof value == 'function' then traceValues.push "function: #{value.L$info?.name ? value.name}"
+    else if typeof value == 'function' then traceValues.push "function: #{nameForFunction value}"
     else if typeof value == 'number' then traceValues.push -1, value
-    else if typeof value == 'object' then traceValues.push "object: #{value}"
+    else if typeof value == 'object' then traceValues.push "object: #{JSON.stringify value}"
     else traceValues.push value
     traceValues
 
@@ -372,12 +386,18 @@ define files, (btoa)->
 
   getDebugType = -> debugType
 
-  setDebugType = (t)-> debugType = t
+  setDebugType = (t)->
+    if !debugFuncs[t] then debugFuncs[t] = {}
+    debugType = t
 
   (window ? global).Leisure_addSourceFile = addSourceFile
 
   Leisure.Base = root
+  Leisure.normalFuncs = normalFuncs
+  Leisure.debugFuncs = debugFuncs
 
+  root.normalFuncs = normalFuncs
+  root.debugFuncs = debugFuncs
   root.serverIncrement = serverIncrement
   root.defaultEnv = defaultEnv
   root.readFile = readFile
@@ -402,5 +422,7 @@ define files, (btoa)->
   root.sourceFile = sourceFile
   root.getDebugType = getDebugType
   root.setDebugType = setDebugType
+  root.debugTypes = debugTypes
+  root.activeDebugTypes = activeDebugTypes
 
   root
