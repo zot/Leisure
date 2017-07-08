@@ -573,7 +573,7 @@ misrepresented as being the original software.
       arity = arity != null ? arity : (typeof func === 'function' && func.length) || 0;
       return nakedDefine(name, lz(func), arity, src, method, namespace, isNew || (arity > 1));
     };
-    nakedDefine = function(name, func, arity, src, method, namespace, isNew, redef) {
+    nakedDefine = function(name, func, arity, src, method, namespace, isNew, redef, debugType, debugDef) {
       var namedFunc, nm;
       if (!redef && functionInfo[name]) {
         redefined[name] = true;

@@ -274,7 +274,7 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genUniq = function(ast, names, uniq) {
-        var arity, data, debugType, funcName, genned, name, oldDebugType, oldDef, ref2, src;
+        var arity, data, funcName, genned, name, oldDef, ref2, src;
         switch (ast.constructor) {
           case Leisure_lit:
             return sn(ast, jstr(getLitVal(ast)));
@@ -303,17 +303,10 @@ misrepresented as being the original software.
                     oldDef = curDef;
                     curDef = data;
                     break;
-                  case 'debug':
-                    oldDebugType = debugType;
-                    setDebugType(data);
-                    break;
                   case 'define':
                     this.declLazy(getAnnoBody(ast));
                 }
                 genned = this.genUniq(getAnnoBody(ast), names, uniq);
-                if (name === 'debug') {
-                  debugType = oldDebugType;
-                }
                 switch (name) {
                   case 'type':
                     return sn(ast, "setType(", genned, ", '", data, "')");

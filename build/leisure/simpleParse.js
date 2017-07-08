@@ -5402,12 +5402,12 @@ define([], function(){
   var L$FUNC_7 = {context: L$context, id: undefined, length: 1};
   var L$FUNC_8 = {context: L$context, id: undefined, length: 1};
   var L$FUNC_9 = {context: L$context, id: undefined, length: 1};
-  return resolve(L_define)("createDef", 5, "createDef def name arity src props = \\\\\n  #tok str = token str (position def)\n  tok str = token str (position name)\n  .\n  jsonStringify (tokenString name) (\\err . parseErr (strCat (cons \"Bad function name \" (cons (loc name) nil))) err) \\nameStr .\n    jsonStringify src (\\err . parseErr (strCat (cons \"Bad source \" (cons (loc name) nil))) err) \\srcStr .\n      cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))", lazy((function(){
+  return resolve(L_define)("createDef", 5, "createDef def name arity src props = \\\\\n  tok str = token str (position name)\n  code = cons '\\\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons '\\\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))\n  .\n  jsonStringify (tokenString name) (\\err . parseErr (strCat (cons \"Bad function name \" (cons (loc name) nil))) err) \\nameStr .\n    jsonStringify src (\\err . parseErr (strCat (cons \"Bad source \" (cons (loc name) nil))) err) \\srcStr .\n      cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) code)))", lazy((function(){
   var L$F = function(L_def){return (function(){
   var L$F = function(L_name){return (function(){
   var L$F = function(L_arity){return (function(){
   var L$F = function(L_src){return (function(){
-  var L$F = function(L_props){return (function(){  var L_tok;
+  var L$F = function(L_props){return (function(){  var L_tok, L_code;
   L_tok = function(){
   return (function(){
   var L$F = function(L_str){return resolve(L_token)(L_str)(function(){
@@ -5416,6 +5416,29 @@ define([], function(){
   L$F.L$info = L$FUNC_0;
   return L$F;
 })();
+};
+  L_code = function(){
+  return L$(resolve(L_cons))("\\@", function(){
+  return L$(resolve(L_cons))("leisureName", function(){
+  return L$(resolve(L_cons))(function(){
+  return resolve(L_tokenString)(L_name);
+}, function(){
+  return L$(resolve(L_cons))(".", function(){
+  return L$(resolve(L_cons))("\\@", function(){
+  return L$(resolve(L_cons))("arity", function(){
+  return L$(resolve(L_cons))(L_arity, function(){
+  return L$(resolve(L_cons))(".", function(){
+  return L$(resolve(L_cons))(function(){
+  return L$(resolve(L_spliceFuncProps))(L_arity, L_props, L_def);
+}, L_nil);
+});
+});
+});
+});
+});
+});
+});
+});
 };
 
   return resolve(L_jsonStringify)(function(){
@@ -5446,13 +5469,7 @@ define([], function(){
   L$F.L$info = L$FUNC_2;
   return L$F;
 })()), lazy((function(){
-  var L$F = function(L_srcStr){return L$(resolve(L_cons))("\\@", function(){
-  return L$(resolve(L_cons))("leisureName", function(){
-  return L$(resolve(L_cons))(function(){
-  return resolve(L_tokenString)(L_name);
-}, function(){
-  return L$(resolve(L_cons))(".", function(){
-  return L$(resolve(L_cons))(function(){
+  var L$F = function(L_srcStr){return L$(resolve(L_cons))(function(){
   return resolve(L_tok)("newDefine");
 }, function(){
   return L$(resolve(L_cons))(function(){
@@ -5465,23 +5482,7 @@ define([], function(){
 }, function(){
   return L$(resolve(L_cons))(function(){
   return resolve(L_tok)(L_srcStr);
-}, function(){
-  return L$(resolve(L_cons))("\\@", function(){
-  return L$(resolve(L_cons))("arity", function(){
-  return L$(resolve(L_cons))(L_arity, function(){
-  return L$(resolve(L_cons))(".", function(){
-  return L$(resolve(L_cons))(function(){
-  return L$(resolve(L_spliceFuncProps))(L_arity, L_props, L_def);
-}, L_nil);
-});
-});
-});
-});
-});
-});
-});
-});
-});
+}, L_code);
 });
 });
 });};

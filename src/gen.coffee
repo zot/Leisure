@@ -267,12 +267,12 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
                 when 'leisureName'
                   oldDef = curDef
                   curDef = data
-                when 'debug'
-                  oldDebugType = debugType
-                  setDebugType data
+                #when 'debug'
+                #  oldDebugType = @debugType
+                #  setDebugType data
                 when 'define' then @declLazy getAnnoBody ast
               genned = @genUniq (getAnnoBody ast), names, uniq
-              if name == 'debug' then debugType = oldDebugType
+              #if name == 'debug' then debugType = oldDebugType
               switch name
                 when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
                 when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
