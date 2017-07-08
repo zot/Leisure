@@ -274,7 +274,7 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genUniq = function(ast, names, uniq) {
-        var arity, data, debugType, funcName, genned, name, oldDebugType, oldDef, ref2, src;
+        var arity, data, funcName, genned, name, oldDef, ref2, src;
         switch (ast.constructor) {
           case Leisure_lit:
             return sn(ast, jstr(getLitVal(ast)));
@@ -303,17 +303,10 @@ misrepresented as being the original software.
                     oldDef = curDef;
                     curDef = data;
                     break;
-                  case 'debug':
-                    oldDebugType = debugType;
-                    setDebugType(data);
-                    break;
                   case 'define':
                     this.declLazy(getAnnoBody(ast));
                 }
                 genned = this.genUniq(getAnnoBody(ast), names, uniq);
-                if (name === 'debug') {
-                  debugType = oldDebugType;
-                }
                 switch (name) {
                   case 'type':
                     return sn(ast, "setType(", genned, ", '", data, "')");
@@ -413,7 +406,11 @@ misrepresented as being the original software.
           curDef = null;
           this.declLambda(ast, defName, names);
           bodyCode = this.genUniq(getNthLambdaBody(ast, arity), names, uniq);
-          code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial" + this.debugType + ", Leisure_traceCallPartial" + this.debugType + ") || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
+          if (Leisure_generateDebuggingCode) {
+            code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial" + this.debugType + ", Leisure_traceCallPartial" + this.debugType + ") || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
+          } else {
+            code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments) || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
+          }
           result = this.genLambdaDecl(ast, defName, args.length, addLambdaProperties(ast, code));
           annoAst = ast;
           while (annoAst instanceof Leisure_anno) {
@@ -533,7 +530,7 @@ misrepresented as being the original software.
         });
         if (Leisure_generateDebuggingCode) {
           info.id = _.last(this.declStack).id;
-          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$parentId = L$parent;\n  Leisure_traceLambda" + this.debugType + "(L$F);\n  return L$F;\n})(++Leisure_traceInstance, L$instance)");
+          return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$parentId = L$parent;\n  return Leisure_traceLambda" + this.debugType + "(L$F);\n})(++Leisure_traceInstance, L$instance)");
         } else {
           return sn(ast, "(function(){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  return L$F;\n})()");
         }

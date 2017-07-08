@@ -135,9 +135,10 @@ misrepresented as being the original software.
           return value;
         };
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(lambda) {
-          lambda.L$context = context;
-          traceValues.push('lambda', lambda.L$instanceId, lambda.L$context.id, lambda.L$id);
-          return checkTraceLog();
+          var ref;
+          traceValues.push('lambda', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id, (ref = lambda.L$info.parent) != null ? ref.id : void 0);
+          checkTraceLog();
+          return lambda;
         };
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function() {
           var args, instanceId;
@@ -186,7 +187,9 @@ misrepresented as being the original software.
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceResolve" + type] = function(instanceId, value) {
           return value;
         };
-        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(lambda) {};
+        (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceLambda" + type] = function(lambda) {
+          return lambda;
+        };
         (typeof window !== "undefined" && window !== null ? window : global)["Leisure_traceCall" + type] = function() {
           var args, instanceId;
           instanceId = arguments[0], args = 2 <= arguments.length ? slice1.call(arguments, 1) : [];

@@ -1,5 +1,5 @@
 * anon
-#+BEGIN_SRC leisure :results dynamic
+#+BEGIN_SRC leisure :results dynamicX
 person name addr = \f . f name addr
 getType (person 3 4)
 funcInfo (person 1 2)
@@ -7,17 +7,18 @@ funcName (person 1 2)
 getType 1
 getType \x . x
 p = person 1 2
-person 1 2
+person 2 3
+
 #+END_SRC
 #+RESULTS:
-: unit
+: 
 : person
 : nil
-: none
+: a none
 : number
 : *function
-: unit
-: UNKNOWN
+: 
+: a person
 * numbers
 #+BEGIN_SRC leisure :results dynamic
 ascending x = [x | ascending x + 1]
@@ -31,10 +32,10 @@ print (at evens 4)
 : 10
 
 #+BEGIN_SRC leisure :results dynamic
-at [1 2 3 4] 2
+at [1 2 3 4] 1 
 #+END_SRC
 #+RESULTS:
-: 3
+: 2
 
 * Hello
 duhasdfasdfasdfdas

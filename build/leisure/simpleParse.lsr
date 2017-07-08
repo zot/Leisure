@@ -660,10 +660,12 @@ chainApply func list names = withCons list func \argItem rest .
 
 cleanTokens start toks cont = isToken toks
   cont (tokenString toks)
-  withCons toks (cont toks) \head tail .
-    cleanTokens start head \head .
+  withCons toks (cont toks) \head tail . \\
+    cleaned = cleanTokens start head \head .
       cleanTokens start tail \tail .
-        cont (cons head tail)
+        cons head tail
+    .
+    cont cleaned
 
 createLet start list names = withCons list
   parseErr "No variable or body for let " (loc start)
@@ -751,12 +753,14 @@ setDataTypeAnno toks name = \\
   cons (tok '\\@') (cons (tok 'dataType') (cons (tok (tokenString name)) (cons (tok '.') toks)))
 
 createDef def name arity src props = \\
-  #tok str = token str (position def)
   tok str = token str (position name)
+  code = cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))
+  debugCode = cons '\\@' (cons 'debug' (cons 'true' (cons '.' code)))
   .
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
-      cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))
+      #cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) code)))
+      cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons code (cons debugCode nil)))))
 
 spliceFuncProps arity props ast = or (isNil props) (== arity 0)
   ast

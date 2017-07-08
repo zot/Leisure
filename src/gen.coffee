@@ -267,12 +267,12 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
                 when 'leisureName'
                   oldDef = curDef
                   curDef = data
-                when 'debug'
-                  oldDebugType = debugType
-                  setDebugType data
+                #when 'debug'
+                #  oldDebugType = @debugType
+                #  setDebugType data
                 when 'define' then @declLazy getAnnoBody ast
               genned = @genUniq (getAnnoBody ast), names, uniq
-              if name == 'debug' then debugType = oldDebugType
+              #if name == 'debug' then debugType = oldDebugType
               switch name
                 when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
                 when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
@@ -334,9 +334,14 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
         curDef = null
         @declLambda ast, defName, names
         bodyCode = @genUniq(getNthLambdaBody(ast, arity), names, uniq)
-        code = sn ast, """
+        if Leisure_generateDebuggingCode then code = sn ast, """
           function(#{argList}) {
             return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial#{@debugType}, Leisure_traceCallPartial#{@debugType}) || """, @genTraceCall(ast, bodyCode, argList), """;
+          };
+        """
+        else code = sn ast, """
+          function(#{argList}) {
+            return L_checkPartial(L$F, arguments) || """, @genTraceCall(ast, bodyCode, argList), """;
           };
         """
         #result = addLambdaProperties ast, @genLambdaDecl ast, args.length, code
@@ -408,8 +413,7 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
             L$F.L$info = #{infoVar};
             L$F.L$instanceId = L$instance;
             L$F.L$parentId = L$parent;
-            Leisure_traceLambda#{@debugType}(L$F);
-            return L$F;
+            return Leisure_traceLambda#{@debugType}(L$F);
           })(++Leisure_traceInstance, L$instance)
         """
       else sn ast, """

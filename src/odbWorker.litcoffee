@@ -60,13 +60,16 @@ persists between page refreshes so we can browse logs as if it were a database
         pos
       lambda: (records, pos, values)->
         type = values[pos++]
-        args = []
-        for i in [0...values[pos++]]
-          args.push v = values[pos++]
-          if v == -1 then args.push values[pos++]
+        instance = values[pos++]
+        context = values[pos++]
+        id = values[pos++]
+        parent = values[pos++]
         records.add records.lambdas, instance, {
           type
-          args
+          instance
+          context
+          id
+          parent
         }
         pos
       call: (records, pos, values)->
