@@ -663,7 +663,7 @@ misrepresented as being the original software.
         return cont(unit());
       });
     });
-    define('newDefine', function(name, arity, src, def) {
+    define('newDefine', function(name, arity, src, def, debugDef) {
       return checkPartial(L_newDefine, arguments) || new Monad2(function(env, cont) {
         var ref1;
         if ((ref1 = global.verbose) != null ? ref1.gen : void 0) {

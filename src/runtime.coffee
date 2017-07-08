@@ -444,17 +444,18 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
       nakedDefine rz(name), def, rz(arity), rz(src)
       cont unit()
 
-  define 'newDefine', (name, arity, src, def)-> checkPartial(L_newDefine, arguments) ||
-    new Monad2 (env, cont)->
-      if global.verbose?.gen then console.log "DEFINE: #{name}"
-      nakedDefine rz(name), def, rz(arity), rz(src), null, null, true
-      cont unit()
-
-#  define 'newDefine', (name, arity, src, def, debugDef)-> checkPartial(L_newDefine, arguments) ||
+#  define 'newDefine', (name, arity, src, def)-> checkPartial(L_newDefine, arguments) ||
 #    new Monad2 (env, cont)->
 #      if global.verbose?.gen then console.log "DEFINE: #{name}"
-#      nakedDefine rz(name), def, rz(arity), rz(src), null, null, true, false, getDebugType(), debugDef
+#      nakedDefine rz(name), def, rz(arity), rz(src), null, null, true
 #      cont unit()
+
+  define 'newDefine', (name, arity, src, def, debugDef)-> checkPartial(L_newDefine, arguments) ||
+    new Monad2 (env, cont)->
+      if global.verbose?.gen then console.log "DEFINE: #{name}"
+      #nakedDefine rz(name), def, rz(arity), rz(src), null, null, true, false, getDebugType(), debugDef
+      nakedDefine rz(name), def, rz(arity), rz(src), null, null, true
+      cont unit()
 
 #  runMonads = (monads, i, arg)->
 #    if i < monads.length

@@ -148,6 +148,7 @@ misrepresented as being the original software.
         this.decls = [];
         this.declStack = [];
         this.funcInfo = [];
+        this.debug = false;
       }
 
       CodeGenerator.prototype.contextInit = function() {
@@ -169,7 +170,7 @@ misrepresented as being the original software.
 
       CodeGenerator.prototype.decl = function(ast, dec) {
         var col, line, ref2;
-        if (Leisure_generateDebuggingCode) {
+        if (this.debug) {
           dec.id = this.decls.length;
           ref2 = getPos(ast).toArray(), line = ref2[0], col = ref2[1];
           dec.line = line;
@@ -202,7 +203,7 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.popDecl = function() {
-        if (Leisure_generateDebuggingCode) {
+        if (this.debug) {
           return this.declStack.pop();
         }
       };
@@ -406,7 +407,11 @@ misrepresented as being the original software.
           curDef = null;
           this.declLambda(ast, defName, names);
           bodyCode = this.genUniq(getNthLambdaBody(ast, arity), names, uniq);
-          code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial" + this.debugType + ", Leisure_traceCallPartial" + this.debugType + ") || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
+          if (this.debug) {
+            code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments, Leisure_traceCreatePartial" + this.debugType + ", Leisure_traceCallPartial" + this.debugType + ") || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
+          } else {
+            code = sn(ast, "function(" + argList + ") {\n  return L_checkPartial(L$F, arguments) || ", this.genTraceCall(ast, bodyCode, argList), ";\n};");
+          }
           result = this.genLambdaDecl(ast, defName, args.length, addLambdaProperties(ast, code));
           annoAst = ast;
           while (annoAst instanceof Leisure_anno) {
@@ -487,7 +492,7 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.lazify = function(ast, body) {
-        return lazify(ast, body, (Leisure_generateDebuggingCode ? _.last(this.decls).id : void 0), this.debugType);
+        return lazify(ast, body, (this.debug ? _.last(this.decls).id : void 0), this.debug && this.debugType);
       };
 
       CodeGenerator.prototype.genLets = function(ast, names, uniq) {
@@ -507,7 +512,7 @@ misrepresented as being the original software.
       };
 
       CodeGenerator.prototype.genTraceCall = function(ast, code, argNames) {
-        if (Leisure_generateDebuggingCode) {
+        if (this.debug) {
           return sn(ast, "(\n  Leisure_traceCall" + this.debugType + "(L$instance, " + argNames + "),\n  Leisure_traceReturn" + this.debugType + "(L$instance, (", code, "))\n)");
         } else {
           return code;
@@ -524,7 +529,7 @@ misrepresented as being the original software.
         infoVar = this.addFuncInfo(info = {
           length: length
         });
-        if (Leisure_generateDebuggingCode) {
+        if (this.debug) {
           info.id = _.last(this.declStack).id;
           return sn(ast, "(function(L$instance, L$parent){\n  var L$F = ", code, ";\n  L$F.L$info = " + infoVar + ";\n  L$F.L$instanceId = L$instance;\n  L$F.L$parentId = L$parent;\n  return Leisure_traceLambda" + this.debugType + "(L$F);\n})(++Leisure_traceInstance, L$instance)");
         } else {
@@ -548,7 +553,7 @@ misrepresented as being the original software.
         var header, ref2;
         if ((ref2 = dumpAnno(ast).constructor) === Leisure_lit || ref2 === Leisure_ref) {
           return node;
-        } else if (Leisure_generateDebuggingCode) {
+        } else if (this.debug) {
           header = "var L$ret;";
           if (this.createContext) {
             header += this.genContext();
@@ -590,7 +595,7 @@ misrepresented as being the original software.
 
     })();
     lazify = function(ast, body, id, debugType) {
-      if (Leisure_generateDebuggingCode) {
+      if (debugType) {
         return sn(ast, "(function(L$instance, L$parent) {\n  return Leisure_traceLazyValue" + debugType + "(L$instance, L$context, " + id + ", function(){\n    return Leisure_traceResolve" + debugType + "(L$instance, ", body, ");\n  });\n})(++Leisure_traceInstance, L$instance)");
       } else {
         return sn(ast, "function(){\n  return ", body, ";\n}");
