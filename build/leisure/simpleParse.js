@@ -5569,7 +5569,7 @@ define([], function(){
   var L$FUNC_35 = {name: undefined, length: 1};
   var L$FUNC_36 = {name: undefined, length: 1};
   var L$FUNC_37 = {name: undefined, length: 1};
-  return resolve(L_define)("countedScanLineG", 7, "countedScanLineG lineStarts str pat groups props onDef onExpr = \\\\\n  toks = countedTokens lineStarts str pat\n  groupToks = _foldr (\\el value . el \\h t . cons h (cons t value)) (cons '=' blockStarts) groups\n  .\n  # check if it's a definition\n  find (\\tok . or (_contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\\r?\\n'))) toks (\\item . isTokenString item '=') false\n    toks \\name rest . \\\\\n      parseIt func = \\\\\n        parsed = parseToks (checkSetDataType func rest name) groups\n        .\n        onDef (ifNotErr parsed \\list . createDef list name (arity rest 0) str props)\n      .\n      isTokenString (head rest) '='\n        isTokenString (head (tail rest)) '\\\\'\n          parseIt (setTypeAnno (tail rest) (tokenString name))\n          parseIt (tail rest)\n        ifNotErr (transformDef name rest) \\def .\n          parseIt (cons (token '\\\\' (addFilepos (position (head rest)) -1)) def)\n    ifNotErr (parseToks toks groups) \\list . onExpr list", lazy((function(){
+  return resolve(L_define)("countedScanLineG", 7, "countedScanLineG lineStarts str pat groups props onDef onExpr = \\\\\n  toks = map subLambda (countedTokens lineStarts str pat)\n  groupToks = _foldr (\\el value . el \\h t . cons h (cons t value)) (cons '=' blockStarts) groups\n  .\n  # check if it's a definition\n  find (\\tok . or (_contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\\r?\\n'))) toks (\\item . isTokenString item '=') false\n    toks \\name rest . \\\\\n      parseIt func = \\\\\n        parsed = parseToks (checkSetDataType func rest name) groups\n        .\n        onDef (ifNotErr parsed \\list . createDef list name (arity rest 0) str props)\n      .\n      isTokenString (head rest) '='\n        isTokenString (head (tail rest)) '\\\\'\n          parseIt (setTypeAnno (tail rest) (tokenString name))\n          parseIt (tail rest)\n        ifNotErr (transformDef name rest) \\def .\n          parseIt (cons (token '\\\\' (addFilepos (position (head rest)) -1)) def)\n    ifNotErr (parseToks toks groups) \\list . onExpr list", lazy((function(){
   var L$F = function(L_lineStarts){return (function(){
   var L$F = function(L_str){return (function(){
   var L$F = function(L_pat){return (function(){
@@ -5578,7 +5578,9 @@ define([], function(){
   var L$F = function(L_onDef){return (function(){
   var L$F = function(L_onExpr){return (function(){  var L_toks, L_groupToks;
   L_toks = function(){
+  return L$(resolve(L_map))(L_subLambda, function(){
   return L$(resolve(L_countedTokens))(L_lineStarts, L_str, L_pat);
+});
 };
   L_groupToks = function(){
   return L$(resolve(L__foldr))(lazy((function(){
@@ -5722,6 +5724,31 @@ define([], function(){
   return L$F;
 })();};
   L$F.L$info = L$FUNC_37;
+  return L$F;
+})()));
+})());}, 
+    function(){return ((function(){
+  var L$context = null;
+  
+  var L$FUNC_0 = {name: null, length: 1};
+  var L$FUNC_1 = {name: null, length: 1};
+  var L$FUNC_2 = {name: null, length: 1};
+  var L$FUNC_3 = {name: undefined, length: 1};
+  var L$FUNC_4 = {name: undefined, length: 1};
+  var L$FUNC_5 = {name: undefined, length: 1};
+  return resolve(L_define)("subLambda", 1, "subLambda tok = isTokenString tok 'λ'\n  tok \\txt pos . token '\\\\' pos\n  tok", lazy((function(){
+  var L$F = function(L_tok){return L$(resolve(L_isTokenString))(L_tok, "λ", function(){
+  return resolve(L_tok)(lazy((function(){
+  var L$F = function(L_txt){return (function(){
+  var L$F = function(L_pos){return resolve(L_token)("\\")(L_pos);};
+  L$F.L$info = L$FUNC_3;
+  return L$F;
+})();};
+  L$F.L$info = L$FUNC_4;
+  return L$F;
+})()));
+}, L_tok);};
+  L$F.L$info = L$FUNC_5;
   return L$F;
 })()));
 })());}, 
@@ -8785,9 +8812,11 @@ define([], function(){
   return L$(resolve(L_defTokenPack))("std", function(){
   return L$(resolve(L_cons))(function(){
   return L$(resolve(L_cons))(".", function(){
+  return L$(resolve(L_cons))("λ", function(){
   return L$(resolve(L_cons))("\\", function(){
   return L$(resolve(L_cons))("\\\\", function(){
   return L$(resolve(L_cons))("\\@", L_nil);
+});
 });
 });
 });

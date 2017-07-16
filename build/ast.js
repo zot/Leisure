@@ -598,7 +598,7 @@ misrepresented as being the original software.
       info.mainDef = Leisure.normalFuncs[name] = namedFunc;
       if (debugDef) {
         info.debugDef = namedDebugFunc = typeof debugDef === 'function' && debugDef.memo ? (!debugDef.L$info ? debugDef.L$info = {} : void 0, debugDef.__proto__ === Function.prototype ? debugDef.__proto__ = LeisureObject : void 0, debugDef) : nameFunc(debugDef, name);
-        info.mainDebugDef = Leisure.debugFuncs[name] = namedDebugFunc;
+        info.mainDebugDef = Leisure.debugFuncs[debugType][name] = namedDebugFunc;
       }
       currentFunc = activeDebugTypes.has(debugType) ? namedDebugFunc : namedFunc;
       installFunc(name, nm, currentFunc);
@@ -1088,6 +1088,7 @@ misrepresented as being the original software.
     root.classForType = classForType;
     root.types = types;
     root.declareTypeFunc = declareTypeFunc;
+    root.installFunc = installFunc;
     return root;
   });
 

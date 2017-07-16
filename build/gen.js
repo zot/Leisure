@@ -130,7 +130,7 @@ misrepresented as being the original software.
       } else if (mapType === 'external') {
         code = code.replace(/map: '@SOURCEMAP@'/, 'externalMap: ' + jstr(externalMap));
       }
-      return code + "\n//# sourceMappingURL=data:application/json;base64," + (btoa(jstr(codeMap.map.toJSON()))) + "\n";
+      return code + "\n//# sourceMappingURL=data:application/json," + (jstr(codeMap.map.toJSON())) + "\n";
     };
     functionId = 0;
     codeNum = 0;

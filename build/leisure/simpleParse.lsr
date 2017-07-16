@@ -709,7 +709,7 @@ getLetLambda pos def args names =
 #scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
 
 countedScanLineG lineStarts str pat groups props onDef onExpr = \\
-  toks = countedTokens lineStarts str pat
+  toks = map subLambda (countedTokens lineStarts str pat)
   groupToks = _foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
   .
   # check if it's a definition
@@ -727,6 +727,10 @@ countedScanLineG lineStarts str pat groups props onDef onExpr = \\
         ifNotErr (transformDef name rest) \def .
           parseIt (cons (token '\\' (addFilepos (position (head rest)) -1)) def)
     ifNotErr (parseToks toks groups) \list . onExpr list
+
+subLambda tok = isTokenString tok 'λ'
+  tok \txt pos . token '\\' pos
+  tok
 
 scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
 
@@ -1233,7 +1237,7 @@ setValue 'activeTokenPacks' nil
 setValue 'stdTokenPacks' (cons 'std' nil)
 setValue 'parser_funcProps' nil
 
-defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
+defTokenPack 'std' (cons (cons '.' (cons 'λ' (cons '\\' (cons '\\\\' (cons '\\@' nil))))) (cons (acons '(' ')' nil) (cons nil nil)))
 
 resetStdTokenPacks
 

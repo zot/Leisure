@@ -1,5 +1,5 @@
 ###
-Copyright (C) 2013, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
+Copyright (C) 2013, Bill Burdick: https://github.com/zot/Leisure
 
 (licensed with ZLIB license)
 

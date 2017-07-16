@@ -169,7 +169,8 @@ define ['./base', './ast', './runtime', 'lodash', 'lib/source-map', 'browser-sou
       code = code.replace /map: '@SOURCEMAP@'/, 'inlineMap: ' + jstr codeMap.map.toJSON()
     else if mapType == 'external'
       code = code.replace /map: '@SOURCEMAP@'/, 'externalMap: ' + jstr externalMap
-    "#{code}\n//# sourceMappingURL=data:application/json;base64,#{btoa jstr codeMap.map.toJSON()}\n"
+    #"#{code}\n//# sourceMappingURL=data:application/json;base64,#{btoa jstr codeMap.map.toJSON()}\n"
+    "#{code}\n//# sourceMappingURL=data:application/json,#{jstr codeMap.map.toJSON()}\n"
 
   functionId = 0
   codeNum = 0

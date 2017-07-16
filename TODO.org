@@ -1,3 +1,5 @@
+* TODO [#A] use generated function name to indicate info in order to eliminate the L$info assignment
+** provide a unique tag to CodeGenerator to append to generated function IDs
 * TODO [#A] seems to be a problem with defCase
 ** present.type doesn't seem to override present.hasType
 * TODO [#A] Make hash arguments that can position the document, etc.

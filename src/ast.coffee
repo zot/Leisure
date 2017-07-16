@@ -371,7 +371,7 @@ define ['./base', 'lodash'], (base, _)->
         if debugDef.__proto__ == Function.prototype then debugDef.__proto__ = LeisureObject
         debugDef
       else nameFunc(debugDef, name)
-      info.mainDebugDef = Leisure.debugFuncs[name] = namedDebugFunc
+      info.mainDebugDef = Leisure.debugFuncs[debugType][name] = namedDebugFunc
     currentFunc = if activeDebugTypes.has debugType then namedDebugFunc else namedFunc
     installFunc name, nm, currentFunc
     #if LeisureObject.prototype[nm] then LeisureObject.prototype[nm] = currentFunc
@@ -623,5 +623,6 @@ define ['./base', 'lodash'], (base, _)->
   root.classForType = classForType
   root.types = types
   root.declareTypeFunc = declareTypeFunc
+  root.installFunc = installFunc
 
   root
