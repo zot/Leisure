@@ -3,34 +3,24 @@
   var slice = [].slice;
 
   define(['./base', 'bluebird'], function(Base, Bluebird) {
-    var Promise, addRecord, clearEntries, deleteEntries, flushTraceLog, getEntry, getLatestEntry, handleTraceValues, messageId, postRequest, requestPromises, trackDebugging, trackOdb, useDebugging, useOdb, worker;
+    var ODB, Promise, clearEntries, currentOdb, deleteEntries, dumpTraceValues, flushTraceLog, getCallGraphEntry, getCallGraphInfo, getContextDef, getEntry, getLambdaDef, getLatestEntry, handleTraceValues, messageId, requestPromises, setVerbose, trackDebugging, trackOdb, useDebugging, useOdb, worker;
     useDebugging = Base.useDebugging, trackDebugging = Base.trackDebugging, flushTraceLog = Base.flushTraceLog;
     Promise = Bluebird.Promise;
-    messageId = 0;
+    messageId = 1;
     requestPromises = {};
+    currentOdb = null;
     worker = new Worker('build/odbWorker.js');
     worker.onmessage = function(e) {
       var p;
-      if (e.data.requestId && (p = requestPromises[e.data.requestId])) {
-        requestPromises[e.data.requestId] = null;
-        return p(e.data["return"]);
+      console.log("Received response: " + (JSON.stringify(e)));
+      if (e.data.msgId && (p = requestPromises[e.data.msgId])) {
+        requestPromises[e.data.msgId] = null;
+        if (e.data["return"]) {
+          return p.resolve(e.data["return"]);
+        } else {
+          return p.reject(e.data.error);
+        }
       }
-    };
-    postRequest = function(msg) {
-      var msgId, p;
-      msgId = msg.msgId = messageId++;
-      p = new Promise(function(resolve, reject) {
-        return requestPromises[msgId] = resolve;
-      });
-      worker.postMessage(msg);
-      return p;
-    };
-    handleTraceValues = function(values) {
-      return worker.postMessage({
-        msg: 'queueValues',
-        logName: 'testLog',
-        values: values
-      });
     };
     useOdb = function() {
       var i, len, results, type, types;
@@ -46,48 +36,159 @@
       console.log('ODB tracking');
       return trackDebugging(100, handleTraceValues);
     };
-    addRecord = function(map, instanceId, record) {
-      var seq;
-      seq = record.sequence = traceRecords.sequenceNum++;
-      traceRecords.sequence[seq] = map[instanceId] = record;
-      if (traceRecords.items[seq] == null) {
-        return traceRecords.items[seq] = record;
-      }
+    handleTraceValues = function(values) {
+      return currentOdb.handleTraceValues(values);
+    };
+    dumpTraceValues = function() {
+      return currentOdb.dumpTraceValues();
+    };
+    setVerbose = function(state) {
+      return currentOdb.setVerbose(state);
     };
     getLatestEntry = function() {
-      return postRequest({
-        msg: 'latestEntry',
-        logName: 'testLog'
-      });
+      return currentOdb.getLatestEntry();
     };
     getEntry = function(type, key) {
-      return postRequest({
-        msg: 'getEntry',
-        logName: 'testLog',
-        type: type,
-        key: key
-      });
+      return currentOdb.getEntry(type, key);
+    };
+    getCallGraphInfo = function() {
+      return currentOdb.getCallGraphInfo;
+    };
+    getCallGraphEntry = function(n) {
+      return currentOdb.getCallGraphEntry;
+    };
+    getContextDef = function(contextId, defId) {
+      return currentOdb.getContextDef(contextId, defId);
+    };
+    getLambdaDef = function(name) {
+      return currentOdb.getLambdaDef(name);
     };
     clearEntries = function() {
-      return worker.postMessage({
-        msg: 'clearEntries',
-        logName: 'testLog'
-      });
+      return currentOdb.clearEntries();
     };
     deleteEntries = function() {
-      return worker.postMessage({
-        msg: 'deleteEntries',
-        logName: 'testLog'
-      });
+      return currentOdb.deleteEntries();
     };
+    ODB = (function() {
+      function ODB(logName) {
+        this.logName = logName;
+      }
+
+      ODB.prototype.postRequest = function(msg) {
+        var msgId, p;
+        flushTraceLog();
+        msg.logName = this.logName;
+        msgId = msg.msgId = messageId++;
+        p = new Promise(function(resolve, reject) {
+          return requestPromises[msgId] = {
+            resolve: resolve,
+            reject: reject
+          };
+        });
+        worker.postMessage(msg);
+        return p;
+      };
+
+      ODB.prototype.postMessage = function(req, suppressFlush) {
+        if (!suppressFlush) {
+          flushTraceLog();
+        }
+        req.logName = this.logName;
+        return worker.postMessage(req);
+      };
+
+      ODB.prototype.handleTraceValues = function(values) {
+        return this.postMessage({
+          msg: 'queueValues',
+          values: values
+        }, true);
+      };
+
+      ODB.prototype.dumpTraceValues = function() {
+        return this.postMessage({
+          msg: 'dumpValues'
+        });
+      };
+
+      ODB.prototype.getLatestEntry = function() {
+        return this.postRequest({
+          msg: 'latestEntry'
+        });
+      };
+
+      ODB.prototype.getEntry = function(type, key) {
+        return this.postRequest({
+          type: type,
+          key: key,
+          msg: 'getEntry'
+        });
+      };
+
+      ODB.prototype.getContextDef = function(contextId, defId) {
+        return this.postRequest({
+          id: id,
+          msg: 'getContextDef',
+          context: contextId
+        });
+      };
+
+      ODB.prototype.getLambdaDef = function(name) {
+        return this.postRequest({
+          msg: 'getContextDef',
+          lambdaName: name
+        });
+      };
+
+      ODB.prototype.getCallGraph = function(number) {
+        return this.postRequest({
+          number: number,
+          msg: 'getCallGraph'
+        });
+      };
+
+      ODB.prototype.getCallGraphInfo = function() {
+        return this.postRequest({
+          msg: 'getCallGraphInfo'
+        });
+      };
+
+      ODB.prototype.clearEntries = function() {
+        return this.postMessage({
+          msg: 'clearEntries'
+        });
+      };
+
+      ODB.prototype.deleteEntries = function() {
+        return this.postMessage({
+          msg: 'deleteEntries'
+        });
+      };
+
+      ODB.prototype.setVerbose = function(state) {
+        return this.postMessage({
+          msg: 'setVerbose',
+          verbose: state
+        });
+      };
+
+      return ODB;
+
+    })();
+    currentOdb = new ODB('testLog');
     window.useOdb = useOdb;
-    return window.ODB = {
+    return window.ODB = Leisure.ODB = {
+      dump: dumpTraceValues,
       useOdb: useOdb,
       trackOdb: trackOdb,
       getEntry: getEntry,
+      dumpTraceValues: dumpTraceValues,
       getLatestEntry: getLatestEntry,
+      getEntry: getEntry,
+      getContextDef: getContextDef,
+      getLambdaDef: getLambdaDef,
       clearEntries: clearEntries,
-      deleteEntries: deleteEntries
+      deleteEntries: deleteEntries,
+      setVerbose: setVerbose
     };
   });
 

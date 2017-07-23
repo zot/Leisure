@@ -30,8 +30,8 @@ misrepresented as being the original software.
     hasProp = {}.hasOwnProperty;
 
   define(['./base', 'lodash'], function(base, _) {
-    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_cons, Leisure_list, Leisure_nil, Nil, activeDebugTypes, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, classForType, classNameForType, cons, consEq, consFrom, declareTypeFunc, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, installFunc, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, redefined, ref, ref1, resolve, root, rz, save, setDataType, setType, tail, throwError, types;
-    ref1 = root = base, resolve = ref1.resolve, lazy = ref1.lazy, nsLog = ref1.nsLog, activeDebugTypes = ref1.activeDebugTypes;
+    var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_cons, Leisure_list, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, classForType, classNameForType, cons, consEq, consFrom, debugTypes, declareTypeFunc, define, doPartial, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, installFunc, isNil, isPartial, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, lc, leisureAddFunc, leisureFunctionNamed, letStr, lit, llet, lz, mkProto, nakedDefine, nameFunc, nameSub, nsLog, partialCall, primCons, primFoldLeft, rangeToJson, redefined, ref, ref1, resolve, root, rz, save, setDataType, setType, tail, throwError, types;
+    ref1 = root = base, resolve = ref1.resolve, lazy = ref1.lazy, nsLog = ref1.nsLog, debugTypes = ref1.debugTypes;
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
@@ -130,6 +130,7 @@ misrepresented as being the original software.
       functionInfo[leisureClass] = {
         arity: 1,
         leisureName: leisureClass,
+        jsName: funcName,
         alts: {},
         altList: [],
         def: f
@@ -575,6 +576,7 @@ misrepresented as being the original software.
     };
     nakedDefine = function(name, func, arity, src, method, namespace, isNewStyle, redef, debugType, debugDef) {
       var currentFunc, info, namedDebugFunc, namedFunc, nm;
+      nm = 'L_' + nameSub(name);
       if (!redef && functionInfo[name]) {
         redefined[name] = true;
       }
@@ -582,6 +584,7 @@ misrepresented as being the original software.
         src: src,
         arity: arity,
         leisureName: name,
+        jsName: nm,
         alts: {},
         debugAlts: {},
         altList: [],
@@ -590,7 +593,6 @@ misrepresented as being the original software.
       if (isNewStyle) {
         info.newArity = true;
       }
-      nm = 'L_' + nameSub(name);
       if (!method && global.noredefs && (global[nm] != null) && global[nm].typeFunc) {
         throwError("[DEF] Attempt to redefine definition: " + name);
       }
@@ -600,7 +602,7 @@ misrepresented as being the original software.
         info.debugDef = namedDebugFunc = typeof debugDef === 'function' && debugDef.memo ? (!debugDef.L$info ? debugDef.L$info = {} : void 0, debugDef.__proto__ === Function.prototype ? debugDef.__proto__ = LeisureObject : void 0, debugDef) : nameFunc(debugDef, name);
         info.mainDebugDef = Leisure.debugFuncs[debugType][name] = namedDebugFunc;
       }
-      currentFunc = activeDebugTypes.has(debugType) ? namedDebugFunc : namedFunc;
+      currentFunc = debugTypes[debugType] === 'active' ? namedDebugFunc : namedFunc;
       installFunc(name, nm, currentFunc);
       leisureAddFunc(name);
       root.functionCount++;

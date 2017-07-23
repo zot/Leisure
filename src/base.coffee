@@ -29,14 +29,17 @@ define files, (btoa)->
   if !btoa then btoa = (window ? global).btoa
 
   root = {}
+  (window ? global).verbose = {}
+  (window ? global).Leisure = (window ? global).Leisure ? {}
 
   traceValues = []
   traceLen = 100
   traceHandler = ->
   lambdaInfo = {}
   debugType = 'core'
-  debugTypes = new Set()
-  activeDebugTypes = new Set()
+  # possible debug modes are 'none', 'tracking', and 'active'
+  defaultDebugMode = 'tracking'
+  debugTypes = {}
   traceMessageCount = 0
   sourceFiles = {}
   normalFuncs = {}
@@ -58,9 +61,9 @@ define files, (btoa)->
     else $.ajax(new URL(fileName, location))
 
   addDebugType = (type)->
-    debugTypes.add type
-    if !(window ? global)["Leisure_traceCall#{type}"]?
-      root.noDebugging type
+    if defaultDebugMode == 'none' then root.noDebugging traceLen, traceHandler, type
+    else if defaultDebugMode == 'active' then root.useDebugging traceLen, traceHandler, type
+    else if defaultDebugMode == 'tracking' then root.trackDebugging traceLen, traceHandler, type
 
   argNames = (func)->
     arg.trim() for arg in Function.prototype.toString.call(func).match(/\(([^)]*)\)/)[1].split ','
@@ -93,86 +96,136 @@ define files, (btoa)->
 #   Must return the message count (traceMessageCount++)
 ######
 
-  flushTraceLog = ->
-    if traceValues.length
-      setTimeout (->
-        traceHandler traceValues
-        traceValues.length = 0), 1
+  contexts = {}
 
-  root.trackDebugging = (len, handler, type)->
-    flushTraceLog()
-    root.noDebugging type
-    if len
-      traceLen = len
-      traceHandler = handler
-    (if type then new Set([type]) else debugTypes).forEach (type)->
-      (window ? global)["Leisure_traceTopLevel#{type}"] = (context)->
+  debuggingHooks =
+    none:
+      traceTopLevel: (context)->
+        contexts[context.id] = context
+        context
+      traceLazyValue: (instanceId, context, id, value)-> value
+      traceResolve: (instanceId, value)-> value
+      traceLambda: (lambda)-> lambda
+      traceCall: (lambda, args)->
+      traceReturn: (lambda, result)-> result
+      traceCreatePartial: (instanceId, lambda, args)->
+      traceCallPartial: (instanceId, lambda, args)->
+      traceMark: -> traceMarkCount++
+    active:
+      traceTopLevel: (context)->
+        contexts[context.id] = context
         traceValues.push 'context', context.id, context.source, context.inlineMap, context.externalMap, context.debugType, context.decls.length
         traceValues.push.apply traceValues, context.decls
         checkTraceLog()
         context
-
-  root.useDebugging = (len, handler, type)->
-    flushTraceLog()
-    if len
-      traceLen = len
-      traceHandler = handler
-    if !type then (window ? global).Leisure_usingDebugging = true
-    (if type then new Set([type]) else debugTypes).forEach (type)->
-      (window ? global)["Leisure_traceTopLevel#{type}"] = (context)->
-        traceValues.push 'context', context.id, context.source, context.inlineMap, context.externalMap, context.debugType, context.decls.length
-        traceValues.push.apply traceValues, context.decls
-        checkTraceLog()
-        context
-      (window ? global)["Leisure_traceLazyValue#{type}"] = (instanceId, context, id, value)->
+      traceLazyValue: (instanceId, context, id, value)->
         traceValues.push 'lazyValue', instanceId, context.id, id
         checkTraceLog()
         value
-      (window ? global)["Leisure_traceResolve#{type}"] = (instanceId, value)->
+      traceResolve: (instanceId, value)->
         traceValues.push 'resolve', instanceId
         addValue value
         checkTraceLog()
         value
-      (window ? global)["Leisure_traceLambda#{type}"] = (lambda)->
+      traceLambda: (lambda)->
         traceValues.push 'lambda', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id, lambda.L$info.parent?.id
         checkTraceLog()
         lambda
-      (window ? global)["Leisure_traceCall#{type}"] = (lambda, args)->
+      traceCall: (lambda, args)->
         traceValues.push 'call', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id
         addArgs args
         checkTraceLog()
-      (window ? global)["Leisure_traceReturn#{type}"] = (lambda, result)->
+      traceReturn: (lambda, result)->
         traceValues.push 'return', lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id
         addValue result
         checkTraceLog()
         result
-      (window ? global)["Leisure_traceCreatePartial#{type}"] = (instanceId, lambda, args)->
+      traceCreatePartial: (instanceId, lambda, args)->
         traceValues.push 'createPartial', instanceId, lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id
         addArgs args
         checkTraceLog()
-      (window ? global)["Leisure_traceCallPartial#{type}"] = (instanceId, lambda, args)->
+      traceCallPartial: (instanceId, lambda, args)->
         traceValues.push 'callPartial', instanceId, lambda.L$instanceId, lambda.L$info.context.id, lambda.L$info.id
         addArgs args
         checkTraceLog()
-      (window ? global)["Leisure_traceMark#{type}"] = ->
+      traceMark: ->
         count = traceMarkCount++
         traceValues.push 'mark', count
         checkTraceLog()
         count
 
-  root.noDebugging = (type)->
+  debuggingHooks.tracking =
+    __proto__: debuggingHooks.none
+    traceTopLevel: debuggingHooks.active.traceTopLevel
+
+  installDebuggingHooks = (mode, type)->
+    for name, hook of debuggingHooks[mode]
+      (window ? global)["Leisure_#{name}#{type}"] = hook
+
+  setDebugMode = (mode, types)->
+    result = []
+    for type in types
+      if debugTypes[type] != mode
+        debugTypes[type] = mode
+        result.add type
+    result
+
+  flushTraceLog = ->
+    if traceValues.length
+      t = traceValues
+      traceValues = []
+      traceHandler t
+
+  installDebugFuncs = (type)->
+    if !Leisure.Ast then return
+    for name of debugFuncs[type]
+      info = Leisure.Ast.functionInfo[name]
+      nm = info.jsName
+      Leisure.Ast.installFunc name, nm, info.mainDebugDef || info.mainDef
+      if info.altList?.length
+        Leisure.Runtime.buildAdvisedFuncDef name, nm, info, info.debugAlts, info.alts, info.mainDebugDef || info.mainDef
+
+  installNormalFuncs = (type)->
+    if !Leisure.Ast then return
+    for name of normalFuncs[type]
+      info = Leisure.Ast.functionInfo[name]
+      nm = info.jsName
+      Leisure.Ast.installFunc name, nm, info.mainDef
+      if info.altList?.length
+        Leisure.Runtime.buildAdvisedFuncDef name, nm, info, info.alts, info.alts, info.mainDef
+
+  root.trackDebugging = (len, handler, givenType)->
+    root.noDebugging len, handler, givenType
+    if !givenType then defaultDebugMode = 'tracking'
+    if handler
+      traceLen = len
+      traceHandler = handler
+    if !givenType then (window ? global).Leisure_usingDebugging = true
+    for type of (if givenType then ("#{givenType}": true) else debugTypes)
+      debugTypes[type] = 'tracking'
+      installDebuggingHooks 'tracking', type
+
+  root.useDebugging = (len, handler, givenType)->
     flushTraceLog()
-    if !type then (window ? global).Leisure_usingDebugging = false
-    (if type then new Set([type]) else debugTypes).forEach (type)->
-      (window ? global)["Leisure_traceTopLevel#{type}"] = (context)-> context
-      (window ? global)["Leisure_traceLazyValue#{type}"] = (instanceId, context, id, value)-> value
-      (window ? global)["Leisure_traceResolve#{type}"] = (instanceId, value)-> value
-      (window ? global)["Leisure_traceLambda#{type}"] = (lambda)-> lambda
-      (window ? global)["Leisure_traceCall#{type}"] = (lambda, args)->
-      (window ? global)["Leisure_traceReturn#{type}"] = (lambda, result)-> result
-      (window ? global)["Leisure_traceCreatePartial#{type}"] = (instanceId, lambda, args)->
-      (window ? global)["Leisure_traceCallPartial#{type}"] = (instanceId, lambda, args)->
-      (window ? global)["Leisure_traceMark#{type}"] = -> traceMarkCount++
+    if !givenType then defaultDebugMode = 'active'
+    if handler
+      traceLen = len
+      traceHandler = handler
+    if !givenType then (window ? global).Leisure_usingDebugging = true
+    for type of (if givenType then ("#{givenType}": true) else debugTypes)
+      if debugTypes[type] != 'active'
+        installDebugFuncs type
+        debugTypes[type] = 'active'
+        installDebuggingHooks 'active', type
+
+  root.noDebugging = (len, handler, givenType)->
+    flushTraceLog()
+    if !givenType then defaultDebugMode = 'none'
+    if !givenType then (window ? global).Leisure_usingDebugging = false
+    for type of (if givenType then ("#{givenType}": true) else debugTypes)
+      installNormalFuncs type
+      debugTypes[type] = 'none'
+      installDebuggingHooks 'none', type
 
   for type in ['User', 'Std', 'Parser']
     addDebugType type
@@ -211,8 +264,6 @@ define files, (btoa)->
 
   root.nsLog = (args...)-> if root.shouldNsLog then console.log args...
 
-  (window ? global).verbose = {}
-  (window ? global).Leisure = (window ? global).Leisure ? {}
   Leisure.sourceFiles = sourceFiles
 
   verboseMsg = (label, msg...)-> if (window ? global).verbose[label] then console.log msg...
@@ -423,6 +474,5 @@ define files, (btoa)->
   root.getDebugType = getDebugType
   root.setDebugType = setDebugType
   root.debugTypes = debugTypes
-  root.activeDebugTypes = activeDebugTypes
 
   root

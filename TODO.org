@@ -1,3 +1,5 @@
+* TODO [#A] add trace call for let assigns in genLets
+* TODO [#A] move debugging stuff into ast.coffee
 * TODO [#A] use generated function name to indicate info in order to eliminate the L$info assignment
 ** provide a unique tag to CodeGenerator to append to generated function IDs
 * TODO [#A] seems to be a problem with defCase

@@ -39,7 +39,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     funcInfo
     argNames
     getDebugType
-    activeDebugTypes
+    debugTypes
   } = root = Base
   {
     parseYaml
@@ -928,7 +928,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     main = buildAdvisedFuncDef name, nm, info, info.alts, info.alts, info.mainDef
     if info.debugType
       debugMain = buildAdvisedFuncDef name, nm, info, info.debugAlts, info.alts, info.mainDebugDef || info.mainDef
-    currentDef = if activeDebugTypes.has info.debugType then debugMain else main
+    currentDef = if debugTypes[info.debugType] == 'active' then debugMain else main
     global[nm] = global.leisureFuncNames[nm] = lz currentDef
 
   buildAdvisedFuncDef = (name, nm, info, alts, fallbackAlts, mainDef)->
@@ -1359,6 +1359,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     isPartial
     partialCall
     bind
+    buildAdvisedFuncDef
   }
 
   Object.assign Leisure, {

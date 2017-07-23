@@ -96,6 +96,9 @@
       {
         Promise
       } = Bluebird
+      {
+        dump
+      } = Yaml
 
       singleControllers = {}
       numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/
@@ -190,6 +193,11 @@
                 prev = prev.nextSibling
           initializePendingViews()
           updateSelection()
+
+      Handlebars.registerHelper 'yaml', (item, opts)->
+        console.log "YAML: #{item}"
+        #escapeHtml dump item
+        "<pre class='name-label' data-org-src style='height: initial'>#{prismHighlight 'yaml', dump item}</pre>"
 
       Handlebars.registerHelper 'render', (block)->
         fancyMode.render(UI.context.opts, block, UI.context.prefix)[0]

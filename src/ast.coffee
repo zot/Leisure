@@ -29,7 +29,7 @@ define ['./base', 'lodash'], (base, _)->
     resolve
     lazy
     nsLog
-    activeDebugTypes
+    debugTypes
   } = root = base
 
   rz = resolve
@@ -122,6 +122,7 @@ define ['./base', 'lodash'], (base, _)->
     functionInfo[leisureClass] =
       arity: 1
       leisureName: leisureClass
+      jsName: funcName
       alts: {}
       altList: []
       def: f
@@ -341,6 +342,7 @@ define ['./base', 'lodash'], (base, _)->
     #  func().leisureContexts = []
     #  func().leisureName = name
     #  func().leisureArity = arity
+    nm = 'L_' + nameSub(name)
     if !redef && functionInfo[name]
       #console.error new Error "WARNING, REDEFINING #{name}"
       redefined[name] = true
@@ -348,12 +350,12 @@ define ['./base', 'lodash'], (base, _)->
       src: src
       arity: arity
       leisureName: name
+      jsName: nm
       alts: {}
       debugAlts: {}
       altList: []
       debugType: debugType
     if isNewStyle then info.newArity = true
-    nm = 'L_' + nameSub(name)
     if !method and global.noredefs and global[nm]? and global[nm].typeFunc
       throwError("[DEF] Attempt to redefine definition: #{name}")
     #namedFunc = info.mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
@@ -372,7 +374,7 @@ define ['./base', 'lodash'], (base, _)->
         debugDef
       else nameFunc(debugDef, name)
       info.mainDebugDef = Leisure.debugFuncs[debugType][name] = namedDebugFunc
-    currentFunc = if activeDebugTypes.has debugType then namedDebugFunc else namedFunc
+    currentFunc = if debugTypes[debugType] == 'active' then namedDebugFunc else namedFunc
     installFunc name, nm, currentFunc
     #if LeisureObject.prototype[nm] then LeisureObject.prototype[nm] = currentFunc
     #else global[nm] = global.leisureFuncs[nm] = info.mainDef = currentFunc
