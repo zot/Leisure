@@ -1,3 +1,4 @@
+* TODO [#A] links don't render an error if the type changes to a bad one
 * TODO [#A] add trace call for let assigns in genLets
 * TODO [#A] move debugging stuff into ast.coffee
 * TODO [#A] use generated function name to indicate info in order to eliminate the L$info assignment

@@ -698,13 +698,14 @@
               "No type field in object #{objectName}"
             else if !hasView type, viewName
               "No view '#{viewKey type, viewName}'"
-            if error
+            content = if error
               if objectName
                 attrs = " data-view-block-name='#{objectName}'#{if viewName then ' data-view-name=\'' + viewName + '\'' else ''}"
               else attrs = ''
-              "<span class='error' title='#{escapeAttr error}'#{attrs}><b data-noncontent >✖</b>#{fancyHtml org.allText()}<span>"
+              "<span class='error' title='#{escapeAttr error}'#{attrs}><b>✖</b>#{fancyHtml org.allText()}<span>"
             else
-              "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block, objectName}</span>"
+              renderView type, viewName, obj, null, block, objectName
+            "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{content}</span>"
           else if org.isImage()
             title = (if desc = org.descriptionText() then " title='#{fancyHtml desc}'" else "")
             src = fancyHtml org.path

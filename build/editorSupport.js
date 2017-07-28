@@ -2068,18 +2068,14 @@
                 node = ref4[s];
                 node = $(node);
                 results1.push((function() {
-                  var len5, ref5, ref6, ref7, results2, u;
+                  var len5, ref5, results2, u;
                   ref5 = node.attr('data-view-block-name').split(/\s+/);
                   results2 = [];
                   for (u = 0, len5 = ref5.length; u < len5; u++) {
                     blkName = ref5[u];
                     if (data = this.data.getYaml(blk = this.data.getBlockNamed(blkName))) {
-                      if (node.hasClass('error')) {
-                        view = data.type;
-                        name = node.attr('data-view-name');
-                      } else {
-                        ref7 = ((ref6 = node.attr('data-requested-view')) != null ? ref6 : '').split('/'), view = ref7[0], name = ref7[1];
-                      }
+                      view = data.type;
+                      name = node.attr('data-view-name');
                       results2.push(renderView(view, name, data, node, blk, blkName));
                     } else {
                       results2.push(void 0);

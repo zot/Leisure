@@ -11,14 +11,17 @@
     currentOdb = null;
     worker = new Worker('build/odbWorker.js');
     worker.onmessage = function(e) {
-      var p;
+      var err, p;
       console.log("Received response: " + (JSON.stringify(e)));
       if (e.data.msgId && (p = requestPromises[e.data.msgId])) {
         requestPromises[e.data.msgId] = null;
-        if (e.data["return"]) {
-          return p.resolve(e.data["return"]);
+        if (e.data.error) {
+          err = new Error();
+          err.message = e.data.error.message;
+          err.stack = e.data.error.stack;
+          return p.reject(err);
         } else {
-          return p.reject(e.data.error);
+          return p.resolve(e.data["return"]);
         }
       }
     };
@@ -52,10 +55,10 @@
       return currentOdb.getEntry(type, key);
     };
     getCallGraphInfo = function() {
-      return currentOdb.getCallGraphInfo;
+      return currentOdb.getCallGraphInfo();
     };
     getCallGraphEntry = function(n) {
-      return currentOdb.getCallGraphEntry;
+      return currentOdb.getCallGraphEntry(n);
     };
     getContextDef = function(contextId, defId) {
       return currentOdb.getContextDef(contextId, defId);
@@ -139,16 +142,16 @@
         });
       };
 
-      ODB.prototype.getCallGraph = function(number) {
-        return this.postRequest({
-          number: number,
-          msg: 'getCallGraph'
-        });
-      };
-
       ODB.prototype.getCallGraphInfo = function() {
         return this.postRequest({
           msg: 'getCallGraphInfo'
+        });
+      };
+
+      ODB.prototype.getCallGraphEntry = function(number) {
+        return this.postRequest({
+          number: number,
+          msg: 'getCallGraphEntry'
         });
       };
 
@@ -188,7 +191,9 @@
       getLambdaDef: getLambdaDef,
       clearEntries: clearEntries,
       deleteEntries: deleteEntries,
-      setVerbose: setVerbose
+      setVerbose: setVerbose,
+      getCallGraphInfo: getCallGraphInfo,
+      getCallGraphEntry: getCallGraphEntry
     };
   });
 

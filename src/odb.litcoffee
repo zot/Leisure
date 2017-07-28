@@ -19,8 +19,12 @@ Basic omniscient debugger
         console.log "Received response: #{JSON.stringify e}"
         if e.data.msgId && p = requestPromises[e.data.msgId]
           requestPromises[e.data.msgId] = null
-          if e.data.return then p.resolve e.data.return
-          else p.reject e.data.error
+          if e.data.error
+            err = new Error()
+            err.message = e.data.error.message
+            err.stack = e.data.error.stack
+            p.reject err
+          else p.resolve e.data.return
 
       useOdb = (types...)->
         for type in types
@@ -40,9 +44,9 @@ Basic omniscient debugger
 
       getEntry = (type, key)-> currentOdb.getEntry type, key
 
-      getCallGraphInfo = -> currentOdb.getCallGraphInfo
+      getCallGraphInfo = -> currentOdb.getCallGraphInfo()
 
-      getCallGraphEntry = (n)-> currentOdb.getCallGraphEntry
+      getCallGraphEntry = (n)-> currentOdb.getCallGraphEntry n
 
       getContextDef = (contextId, defId)-> currentOdb.getContextDef contextId, defId
 
@@ -73,8 +77,8 @@ Basic omniscient debugger
         getContextDef: (contextId, defId)->
           @postRequest {id, msg: 'getContextDef', context: contextId}
         getLambdaDef: (name)-> @postRequest msg: 'getContextDef', lambdaName: name
-        getCallGraph: (number)-> @postRequest {number, msg: 'getCallGraph'}
         getCallGraphInfo: -> @postRequest msg: 'getCallGraphInfo'
+        getCallGraphEntry: (number)-> @postRequest {number, msg: 'getCallGraphEntry'}
         clearEntries: -> @postMessage msg: 'clearEntries'
         deleteEntries: -> @postMessage msg: 'deleteEntries'
         setVerbose: (state)-> @postMessage msg: 'setVerbose', verbose: state
@@ -96,4 +100,6 @@ Basic omniscient debugger
         clearEntries
         deleteEntries
         setVerbose
+        getCallGraphInfo
+        getCallGraphEntry
       }

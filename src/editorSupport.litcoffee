@@ -1088,10 +1088,12 @@ NMap is a very simple trie.
                 node = $(node)
                 for blkName in node.attr('data-view-block-name').split(/\s+/)
                   if data = @data.getYaml blk = @data.getBlockNamed(blkName)
-                    if node.hasClass 'error'
-                      view = data.type
-                      name = node.attr 'data-view-name'
-                    else [view, name] = (node.attr('data-requested-view') ? '').split '/'
+                    #if node.hasClass 'error'
+                    #  view = data.type
+                    #  name = node.attr 'data-view-name'
+                    #else [view, name] = (node.attr('data-requested-view') ? '').split '/'
+                    view = data.type
+                    name = node.attr 'data-view-name'
                     renderView view, name, data, node, blk, blkName
           else super changes
         blockForNode: (node)->
