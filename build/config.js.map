@@ -3,7 +3,7 @@
   "file": "config.js",
   "sourceRoot": "..",
   "sources": [
-    "src\\config.litcoffee"
+    "src/config.litcoffee"
   ],
   "names": [],
   "mappings": ";AAEI;EAAA,SAAS,CAAC,MAAV,CAKE;IAAA,mBAAA,EAAqB,SAAS,CAAC,eAA/B;IACA,KAAA,EAUE;MAAA,MAAA,EAAQ,kBAAR;MACA,QAAA,EAAa,0BADb;MAGA,KAAA,EAAa,iBAHb;MAIA,WAAA,EAAa,uBAJb;MAKA,UAAA,EAAa,sBALb;MAMA,SAAA,EAAa,yBANb;MAOA,UAAA,EAAa,uBAPb;MAQA,MAAA,EAAa,sBARb;MASA,WAAA,EAAa,gCATb;MAUA,MAAA,EAAa,wBAVb;MAWA,QAAA,EAAa,oBAXb;MAYA,UAAA,EAAa,gBAZb;MAaA,4BAAA,EAA8B,uCAb9B;KAXF;GALF;AAAA"
