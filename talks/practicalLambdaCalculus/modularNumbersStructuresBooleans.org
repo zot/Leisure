@@ -455,12 +455,18 @@ thirdOf3  a b c = c
 firstOf3 A B C
 secondOf3 D E F
 #+END_SRC
+#+RESULTS:
+: A
+: E
 
 ** You can also use them AS values
 #+BEGIN_SRC leisure
 firstOf3
 secondOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
+: <span class="partial-application">(secondOf3)</span>
 
 * Modular Numbers: Defining Them
 ** Can we define a "next" function, together?
@@ -468,16 +474,24 @@ secondOf3
 #+BEGIN_SRC leisure
 myNext thirdOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
 ** Definition
 #+BEGIN_SRC leisure
-next num = ???
+next num = num secondOf3 thirdOf3 firstOf3
 #+END_SRC
+#+RESULTS:
+: 
 ** Tests
 #+BEGIN_SRC leisure
 next firstOf3
 next secondOf3
 next thirdOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(secondOf3)</span>
+: <span class="partial-application">(thirdOf3)</span>
+: <span class="partial-application">(firstOf3)</span>
 * Modular Numbers: Defining Them
 ** Here's my definition
 #+BEGIN_SRC leisure :results def
@@ -486,12 +500,18 @@ myNext num = num secondOf3 thirdOf3 firstOf3
 * Modular Numbers: Defining Them
 ** Can we define an "add" function, together?
 #+BEGIN_SRC leisure
-myAdd firstOf3 secondOf3
+add firstOf3 secondOf3
+#LC: a b c
+#Java: a(b, c)
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(thirdOf3)</span>
 
 #+BEGIN_SRC leisure
-add a b = ???
+add a b = a (next b) (next (next b)) b
 #+END_SRC
+#+RESULTS:
+: 
 * Modular Numbers: Defining Them
 ** Here's my definition
 #+BEGIN_SRC leisure :results def
@@ -513,25 +533,36 @@ sun a b c d e f g = g
 true firstOf3 secondOf3
 false firstOf3 secondOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
+: <span class="partial-application">(secondOf3)</span>
 ** Example erroneous code
 #+BEGIN_SRC leisure
-myNext Q
+#myNext Q
 #+END_SRC
 ** What will this do?
 #+BEGIN_SRC leisure
 true firstOf3 (myNext Q)
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
 * Booleans: Let's Define Our Own, Together (t and f)
 ** Definition
 #+BEGIN_SRC leisure
-t a b = ???
-f a b = ???
+t a b = a
+f a b = b
 #+END_SRC
+#+RESULTS:
+: 
+: 
 ** Tests
 #+BEGIN_SRC leisure
 t firstOf3 (myNext Q)
 f firstOf3 secondOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
+: <span class="partial-application">(secondOf3)</span>
 * Booleans: My Definitions
 #+BEGIN_SRC leisure
 true a b = a
@@ -559,8 +590,10 @@ false a b = b
 * Booleans: And (myAnd)
 ** Definition
 #+BEGIN_SRC leisure
-myAnd a b = ???
+myAnd a b = a b f
 #+END_SRC
+#+RESULTS:
+: 
 ** Tests
 #+BEGIN_SRC leisure
 myAnd t t
@@ -568,6 +601,11 @@ myAnd t f
 myAnd f t
 myAnd f f
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(t)</span>
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(f)</span>
 * Booleans: And (myAnd), My Definition
 ** Definition
 #+BEGIN_SRC leisure
@@ -583,8 +621,10 @@ myAnd f f
 * Booleans: Let's Implement Numeric Equality!
 ** Definition
 #+BEGIN_SRC leisure
-equal a b = ???
+equal a b = a (b t f f) (b f t f) (b f f t)
 #+END_SRC
+#+RESULTS:
+: 
 ** Tests
 #+BEGIN_SRC leisure
 A
@@ -600,6 +640,19 @@ equal thirdOf3 firstOf3
 equal thirdOf3 secondOf3
 equal thirdOf3 thirdOf3
 #+END_SRC
+#+RESULTS:
+: A
+: <span class="partial-application">(t)</span>
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(f)</span>
+: B
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(t)</span>
+: <span class="partial-application">(f)</span>
+: C
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(t)</span>
 * Booleans: Let's Implement Numeric Equality! (my version)
 ** Definition
 #+BEGIN_SRC leisure
@@ -646,37 +699,65 @@ myEqual thirdOf3 thirdOf3
 * Simple Data Structures: Let's Define a Person ADT, Together
 ** Definition
 #+BEGIN_SRC leisure
-person name address phone = ???
-getName person = ???
-getAddress person = ???
-getPhone person = ???
-setName person newName = ???
+person name address phone = \ f . f name address phone
+getName aPerson = aPerson \n a p . n
+getAddress aPerson = aPerson secondOf3
+getPhone aPerson = aPerson thirdOf3
+setName aPerson newName = aPerson newName (getAddress person) (getPhone person)
 #+END_SRC
+#+RESULTS:
+: 
+: 
+: 
+: 
+: 
 ** Tests (note lazy behavior)
-#+BEGIN_SRC 
-p1 = person A B Q
+#+BEGIN_SRC leisure
+p1 = person A B (next Q)
 p2 = person D E F
 getName p1
+p1 \n a p . n
 getName p2
-getName (setName p1 F)
+#getName (setName p1 F)
 #+END_SRC
+#+RESULTS:
+: 
+: 
+: A
+: A
+: D
 * Simple Data Structures: My Definitions
 ** Definition
 #+BEGIN_SRC leisure
 person name address phone = λf . f name address phone
-getName person            = person firstOfThree
-getAddress person         = person secondOfThree
-getPhone person           = person thirdOfThree
-setName person newName    = person λname address phone . person newName address phone
+getName person            = person firstf3e
+getAddress person         = person secondf3e
+getPhone person           = person thirdf3e
+setNam eaperson newName    =aperson λname address phon. p person newName address phone
 #+END_SRC
-** Tests
-#+BEGIN_SRC 
-p1 = person A B Q
+#+RESULTS:
+: 
+: 
+: 
+: 
+: 
+** Te
+
+#+BEGIN_SRC leisure
+p1 = person A B (next Q)
 p2 = person D E F
 getName p1
 getName p2
 getName (setName p1 F)
 #+END_SRC
+#+RESULTS:
+: 
+: 
+: A
+: D
+: F
+
+C
 * Simple Data Structures
 ** Accessor functions are modular numbers (and booleans for 2-item structures)
 * Let's Apply These Ideas to Space Invaders
