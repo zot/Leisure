@@ -44,8 +44,7 @@ degrees: 98
 #+END_SRC
 
 A couple rotator views: [[leisure:rotator]] [[leisure:rotator/two]]
-** Fiddle with these view definitions and you'll see the views change.
-
+** Fiddle with these view definitions and you'll see the views change
 #+BEGIN_SRC html :defview rotator
 <div style='padding: 25px; display: inline-block; vertical-align: middle'>
   <div style='transform: rotate({{degrees}}deg); height: 100px;width: 100px;background: green'></div>

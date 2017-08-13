@@ -39,6 +39,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     funcInfo
     argNames
     getDebugType
+    debugTypes
   } = root = Base
   {
     parseYaml
@@ -92,9 +93,9 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 # code
 #########
 
-  checkPartial = (window ? global).L_checkPartial = (func, args, traceCall)->
+  checkPartial = (window ? global).L_checkPartial = (func, args, traceCreate, traceCall)->
     if typeof func == 'string' then func = leisureFunctionNamed func
-    if func.L$info.length != args.length then Leisure_primCall func, 0, args, func.length, traceCall
+    if func.L$info.length != args.length then Leisure_primCall func, 0, args, func.length, traceCreate, traceCall
 
   call = (args...)-> basicCall(args, defaultEnv, identity)
 
@@ -453,8 +454,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   define 'newDefine', (name, arity, src, def, debugDef)-> checkPartial(L_newDefine, arguments) ||
     new Monad2 (env, cont)->
       if global.verbose?.gen then console.log "DEFINE: #{name}"
-      #nakedDefine rz(name), def, rz(arity), rz(src), null, null, true, false, getDebugType(), debugDef
-      nakedDefine rz(name), def, rz(arity), rz(src), null, null, true
+      nakedDefine rz(name), def, rz(arity), rz(src), null, null, true, false, getDebugType(), debugDef
+      #nakedDefine rz(name), def, rz(arity), rz(src), null, null, true
       cont unit()
 
 #  runMonads = (monads, i, arg)->
@@ -922,27 +923,33 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
 # later advice overrides earlier advice
   buildAdvisedFunc = (name)->
-    info = functionInfo[name]
-    alts = (info.alts[i] for i in info.altList)
-    alts.reverse()
     nm = "L_#{nameSub name}"
-    newDef = -> if p = checkPartial(info.mainDef, arguments) then p else
+    info = functionInfo[name]
+    main = buildAdvisedFuncDef name, nm, info, info.alts, info.alts, info.mainDef
+    if info.debugType
+      debugMain = buildAdvisedFuncDef name, nm, info, info.debugAlts, info.alts, info.mainDebugDef || info.mainDef
+    currentDef = if debugTypes[info.debugType] == 'active' then debugMain else main
+    global[nm] = global.leisureFuncNames[nm] = lz currentDef
+
+  buildAdvisedFuncDef = (name, nm, info, alts, fallbackAlts, mainDef)->
+    alts = (alts[i] || fallbackAlts[i] for i in info.altList)
+    alts.reverse()
+    newDef = -> if p = checkPartial(mainDef, arguments) then p else
       for alt in alts
         opt = alt
         # TODO -- once lambdas are properly generated, opt.apply(null, arguments)
         for arg in arguments
           opt = opt arg
         if getType(opt) == 'some' then return opt(lz (x)->rz x)(lz _false)
-      if info.mainDef
-        res = info.mainDef
+      if mainDef
+        res = mainDef
         for arg in arguments
           res = res arg
         return res
       throw new Error "No default definition for #{name}"
-    newDef.L$info = length: info.mainDef.L$info.length, name: name
+    newDef.L$info = length: info.mainDef?.L$info.length, name: name
     functionInfo[name].newArity = true
-    LeisureFunctionInfo.def = newDef
-    global[nm] = global.leisureFuncNames[nm] = lz newDef
+    newDef
 
   advise = (name, alt, arity, def)->
     info = functionInfo[name]
@@ -1352,6 +1359,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     isPartial
     partialCall
     bind
+    buildAdvisedFuncDef
   }
 
   Object.assign Leisure, {

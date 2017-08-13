@@ -101,7 +101,7 @@ body.cthulhu {
 }
 .cthulhu [data-edit-mode='fancy'] [data-org-src],
 .cthulhu .coderesults,
-.cthulhu .coderesults /deep/ .resultsline,
+.cthulhu .coderesults .resultsline,
 .cthulhu .codeexpected,
 .cthulhu #sourceblock,
 .cthulhu .ui-tooltip-content,
@@ -151,7 +151,7 @@ body.cthulhu {
     border: solid #f1c40f 2px;
     background: #20451c;
 }
-.cthulhu .showcomments.comments div, .cthulhu /deep/ .ast svg {
+.cthulhu .showcomments.comments div, .cthulhu .ast svg {
     border: solid #f1c40f 2px;
     border-radius: 10px;
     background: #20451c;
@@ -205,7 +205,7 @@ body.cthulhu {
 .cthulhu.bar_collapse #nextSlide, .cthulhu.bar_collapse #prevSlide {
     top: 75px;
 }
-.cthulhu /deep/ .page > .border {
+.cthulhu .page > .border {
     border-radius: 0;
     background: url(images/cthulhu_rising_dark.jpg) repeat-y;
 }
@@ -250,7 +250,7 @@ body.googie {
     /*height: 240px;*/
     height: 15em;
 }
-.googie [data-edit-mode='fancy'], .googie /deep/ .ui-button-text {
+.googie [data-edit-mode='fancy'], .googie .ui-button-text {
     /* font-family: SpacePatrol, SpaceshipBullet; */
     font-family: SpaceshipBullet;
     font-size: 28px;
@@ -303,7 +303,7 @@ body.googie {
 }
 .googie [data-edit-mode='fancy'] [data-org-src],
 .googie .coderesults,
-.googie .coderesults /deep/ .resultsline,
+.googie .coderesults .resultsline,
 .googie #sourceblock,
 .googie .ui-tooltip-content,
 .googie .org-plain {
@@ -361,7 +361,7 @@ body.googie {
 .googie .codeborder {
     border: solid #666 8px;
 }
-.googie .showcomments.comments div, .googie /deep/ .ast svg {
+.googie .showcomments.comments div, .googie .ast svg {
     border: solid rgb(56, 104, 194) 8px;
     border-radius: 10px;
     background: #4c8efb;
@@ -420,7 +420,7 @@ body.googie {
 .googie.bar_collapse #nextSlide, .googie.bar_collapse #prevSlide {
     top: 75px;
 }
-.googie /deep/ .page > .border {
+.googie .page > .border {
     border-radius: 0;
     background: url(images/googie_background.png) repeat;
 }
@@ -518,7 +518,7 @@ body.console {
     border: none;
     border-radius: 0px;
 }
-.console .showcomments.comments div, .console /deep/ .ast svg, .console .ui-tooltip {
+.console .showcomments.comments div, .console .ast svg, .console .ui-tooltip {
     border: solid #0f0 1px;
     border-radius:0px;
     background: linear-gradient(#010, #030);
@@ -539,11 +539,11 @@ body.console {
     font-family: Inconsolata;
     /*font-size: large;*/
 }
-.console /deep/ .partial-application {
+.console .partial-application {
     background: #0c0;
     color: black;
 }
-.console /deep/ .sidebar_notes {
+.console .sidebar_notes {
     background: #090;
 }
 .console :focus {
@@ -675,7 +675,7 @@ body.console {
 .steampunk.slides #dummy_headline {
     height: 0px;
 }
-.steampunk /deep/ .pagecontent {
+.steampunk .pagecontent {
     margin-left: 100px;
     padding: 120px 10px;
     overflow: visible;
@@ -684,7 +684,7 @@ body.console {
 .steampunk [data-edit-mode='fancy'][data-org-headline='1'] {
     margin-bottom: 0;
 }
-.steampunk [data-edit-mode='fancy'], .steampunk #loading, .steampunk /deep/ .ui-button-text {
+.steampunk [data-edit-mode='fancy'], .steampunk #loading, .steampunk .ui-button-text {
     /*font-family: Ciudad;*/
     font-family: MouseDeco;
 /*font-family: SavilleRow;*/
@@ -717,7 +717,7 @@ body.console {
     border: solid rgb(156, 122, 15) 2px;
     background-color: #e6dcc3;
 }
-.steampunk /deep/ .ast svg {
+.steampunk .ast svg {
     border: solid rgb(48, 36, 71) 2px;
     background-color: #e6dcc3;
 }
@@ -761,7 +761,7 @@ body.console {
     border-width: 46px;
     border-image: url(images/clean_rivets_bkgnd.png) 46 46;
 }
-.steampunk /deep/ .page > .border {
+.steampunk .page > .border {
     border-radius: 0;
     border-width: 193px 178px 193px 178px;
     border-image: url(images/steampunk_border.png) 193 178 193 178;
@@ -933,7 +933,7 @@ body.bar_collapse .steampunk .currentSlide .page > .border {
     border: none;
     border-radius: 2px;
 }
-.steampunk /deep/ .page {
+.steampunk .page {
 /*background-color: #A58C4D;*/
 }
 .steampunk .results-indicator {
@@ -1099,6 +1099,9 @@ body {
 }
 .org-fancy [data-property-hidden='true'],
 .org-fancy .hidden-slide,
+.currentSlide [data-view=leisure-headline].view {
+    min-width: 100ex;
+}
 .slides .hidden-slide {
     display: none;
 }
@@ -1603,7 +1606,7 @@ button:hover {
     left: 20px;
     z-index: 1000;
 }
-* /deep/ .ast svg {
+.ast svg {
     position: relative;
     top: 24px;
     left: -300px;
@@ -1613,7 +1616,7 @@ button:hover {
     border: solid black 2px;
     border-radius: 10px;
 }
-* /deep/ .showcomments.ast {
+.showcomments.ast {
     display: inline-block;
 }
 
@@ -1647,7 +1650,7 @@ button:hover {
     color: #e74c3c;
     position: relative;
 }
-* /deep/ .page > .border {
+.page > .border {
     top: 0;
     bottom: 0;
     left: 0;
@@ -1660,10 +1663,10 @@ button:hover {
 .currentSlide .page > .border {
     position: fixed;
 }
-* /deep/ .currentSlide > .border {
+.currentSlide > .border {
     border: none;
 }
-* /deep/ .pagecontent {
+.pagecontent {
     padding: 10px 10px;
     overflow: visible;
 }
@@ -1846,7 +1849,7 @@ body.loading, body.slides {
 :focus {
     outline: none;
 }
-* /deep/ .sidebar {
+.sidebar {
 /*
   float: right;
   */
@@ -1854,10 +1857,10 @@ body.loading, body.slides {
 [data-org-floats="true"] {
     height: 0px;
 }
-* /deep/ .sidebarholder {
+.sidebarholder {
     vertical-align: top;
 }
-* /deep/ .sidebar.float {
+.sidebar.float {
     float: right;
 }
 [data-org-note-content] {
@@ -1873,7 +1876,7 @@ body.loading, body.slides {
     background: #FFFF66;
     border: solid black 1px;
 }
-* /deep/ .sidebar_notes {
+.sidebar_notes {
     background: #FFFF66;
     border: none;
     padding: 10px;
@@ -1886,7 +1889,7 @@ body.loading, body.slides {
 }
 .slides .toggle_edit,
 .slides .create_note,
-* /deep/ .sidebar_notes .maincontent .create_note {
+.sidebar_notes .maincontent .create_note {
     display: none;
 }
 h2.note_drag_handle {
@@ -1902,20 +1905,20 @@ h2.note_drag_handle {
 i.fa + div, i.fa + span, i.fa + div + span {
     padding-left: 10px;
 }
-* /deep/ .slideshadow {
+.slideshadow {
     width: 100%;
 }
 .slideholder {
     position: relative;
 }
-* /deep/ .slidemain {
+.slidemain {
     vertical-align: top;
 }
 /*
- * /deep/ .slideshadowrow > td > * {
+ .slideshadowrow > td > * {
  height: 100%;
  }
- * /deep/ .sidebar {
+ .sidebar {
  position: relative;
  width: 200px;
  }
@@ -1939,10 +1942,10 @@ i.fa + div, i.fa + span, i.fa + div + span {
 }
 .flat [data-edit-mode='fancy'] [data-org-src],
 .flat .coderesults,
-.flat .coderesults /deep/ .resultsline,
+.flat .coderesults .resultsline,
 .flat #sourceblock,
 .flat .ui-tooltip-content,
-.flat .org-plain, .flat  /deep/ .ui-button-text {
+.flat .org-plain, .flat .ui-button-text {
     font-family: Inconsolata;
 }
 .flat [data-edit-mode='fancy'] .import span {
@@ -1977,12 +1980,14 @@ i.fa + div, i.fa + span, i.fa + div + span {
 .flat.slides [data-edit-mode='fancy'][data-org-headline='1'] td > [data-org-type='text'] > [data-org-type='headline-content'] {
     color: white;
 }
-.flat [data-edit-mode='fancy'] [data-org-src], .flat .coderesults /deep/ {
+/*
+.flat [data-edit-mode='fancy'] [data-org-src], .flat .coderesults {
     background: white;
-    border-radius: 4px1;
+    border-radius: 4px;
     color: black;
     border: none;
 }
+*/
 .flat [data-org-test="unknown"] {
     background: url(images/untested.png) no-repeat 0% 0% / 100% 100%;
     background-position: center;
@@ -2012,10 +2017,10 @@ i.fa + div, i.fa + span, i.fa + div + span {
     -webkit-user-select: none;
     user-select: none;
 }
-.flat /deep/ .page > .border {
+.flat .page > .border {
     border: none;
 }
-* /deep/ .flat.ast svg {
+.flat.ast svg {
     border: none;
     border-radius: 5px;
     background: #2c3e50;
@@ -2094,14 +2099,14 @@ i.fa + div, i.fa + span, i.fa + div + span {
     outline: none;
 }
 /* styles for Leisure output */
-body /deep/ .partial-application {
+body .partial-application {
     display: inline-block;
     border-radius: 5px;
     border: black 2px solid;
     background: lightgray;
     font-weight: bold;
 }
-body /deep/ .resultsline > * {
+body .resultsline > * {
     vertical-align: middle;
     margin-bottom: 0.25em;
 }

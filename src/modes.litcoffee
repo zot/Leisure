@@ -96,10 +96,28 @@
       {
         Promise
       } = Bluebird
+      {
+        dump
+      } = Yaml
 
       singleControllers = {}
       numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/
       currentSlider = null
+
+      validateBlock = (opts, block, force)->
+        if opts.validateMode || force
+          node = opts.nodeForId(block._id)[0]
+          offset = opts.data.offsetForBlock block._id
+          rendered = opts.editor.domCursor(node, 0)
+            .filterTextNodes()
+            .filterParent node
+            .firstText()
+            .getText block.text.length
+          if block.text != rendered
+            console.log "Invalid rendering for block", block, ", exptected:"
+            console.log block.text
+            console.log "but got this for node", node
+            console.log rendered
 
       plainMode =
         name: 'plain'
@@ -131,6 +149,7 @@
             if results? then text += "#{escapeHtml results?.text ? ''}#{escapeHtml block.text.substring(results.offset + results.text.length)}"
           result = "<span #{attrs}>#{text}</span>"
           maybeReplaceHtml block, prefix, result, replace
+          if replace then validateBlock opts, block
           [result, block.next]
         renderMainBlock: (block)->
           txt = block.text
@@ -190,6 +209,11 @@
                 prev = prev.nextSibling
           initializePendingViews()
           updateSelection()
+
+      Handlebars.registerHelper 'yaml', (item, opts)->
+        console.log "YAML: #{item}"
+        #escapeHtml dump item
+        "<pre class='name-label' data-org-src style='height: initial'>#{prismHighlight 'yaml', dump item}</pre>"
 
       Handlebars.registerHelper 'render', (block)->
         fancyMode.render(UI.context.opts, block, UI.context.prefix)[0]
@@ -271,20 +295,23 @@
         src.text.substring 0, src.contentPos
 
       Handlebars.registerHelper 'sourceBoiler', ->
-        {source: src} = @codeItems
-        src.text.substring 0, src.infoPos
+        {name, source: src} = @codeItems
+        if name && src.text[src.infoPos - 1] == ' ' then src.text.substring 0, src.infoPos - 1
+        else src.text.substring 0, src.infoPos
 
       Handlebars.registerHelper 'sourceInfo', ->
-        {source: src} = @codeItems
-        src.text.substring(src.infoPos, src.contentPos)
+        {name, source: src} = @codeItems
+        if name && src.text[src.infoPos - 1] == ' ' then src.text.substring src.infoPos - 1, src.contentPos
+        else src.text.substring src.infoPos, src.contentPos
 
       Handlebars.registerHelper 'renderSource', ->
         {error, source} = @codeItems
+        src = source.content.substring 0, source.content.length - 1
         if error
           [ignore, pos, msg] = error.info.match(/([^,]*), *(.*)/)
           pos = Number(pos) - 1
-          prismHighlight(this.language, source.content.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span><span class='errorMessage' contenteditable='false' data-noncontent title='#{escapeHtml unescapeString(msg).replace(/\n/g, '<br>')}'>✖</span><span class='errorSource'>" + prismHighlight(this.language, source.content.substring(pos)) + "</span>"
-        else prismHighlight this.language, this.source
+          prismHighlight(this.language, src.substring(0, pos)) + "<span class='errorMark' contenteditable='false' data-noncontent>✖</span><span class='errorMessage' contenteditable='false' data-noncontent title='#{escapeHtml unescapeString(msg).replace(/\n/g, '<br>')}'>✖</span><span class='errorSource'>" + prismHighlight(this.language, src.substring(pos)) + "</span>"
+        else prismHighlight this.language, src
 
       Handlebars.registerHelper 'sourceFooter', ->
         {source: src} = @codeItems
@@ -474,9 +501,11 @@
               UI.context.currentView = opts.nodeForId block._id
               UI.context.block = block
               addPendingTooltip opts, block._id
-              if block.type == 'headline' then @renderHeadline opts, block, prefix, replace
+              result = if block.type == 'headline' then @renderHeadline opts, block, prefix, replace
               else if !block.prev then @renderFirstBlocks opts, block, prefix, replace
               else @renderNontop opts, block, prefix, replace
+              if replace then validateBlock opts, block
+              result
         renderNontop: (opts, block, prefix, replace)->
           if block.type == 'chunk' then @renderChunk opts, block, prefix, replace
           else if block.type == 'code' then @renderCode opts, block, prefix, replace
@@ -585,7 +614,7 @@
               block
               header: block.text.substring 0, block.codePrelen
               source: blockSource block
-              footer: block.text.substring block.text.length - block.codePostlen, source.end()
+              footer: block.text.substring block.text.length - block.codePostlen - 1, source.end() - 1
               nameBoiler: nameBoiler ? ''
               nameText: if name then name.text.substring nameBoiler.length, name.text.length - 1 else ''
               name: if name then name.text.substring name.info else ''
@@ -693,10 +722,14 @@
             if error
               if objectName
                 attrs = " data-view-block-name='#{objectName}'#{if viewName then ' data-view-name=\'' + viewName + '\'' else ''}"
+                attrs += " data-requested-view='#{objectName}"
+                if viewName then attrs += "/#{viewName}"
+                attrs += "'"
               else attrs = ''
-              "<span class='error' title='#{escapeAttr error}'#{attrs}><b data-noncontent >✖</b>#{fancyHtml org.allText()}<span>"
+              "<span class='error link' title='#{escapeAttr error}'#{attrs}><b data-noncontent contenteditable='false'>✖</b>#{fancyHtml org.allText()}</span></span>"
             else
-              "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{renderView type, viewName, obj, null, block, objectName}</span>"
+              content = renderView type, viewName, obj, null, block, objectName
+              "<span class='hidden link'>#{escapeHtml org.allText()}</span><span data-noncontent contenteditable='false'>#{content}</span>"
           else if org.isImage()
             title = (if desc = org.descriptionText() then " title='#{fancyHtml desc}'" else "")
             src = fancyHtml org.path
@@ -829,7 +862,7 @@ Returns [] if org does not fit the pattern.
           "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='white-space: pre; height: 2em' data-noncontent></div></span><div style='height: 1em; white-spaceX: pre' data-noncontent>\n</div><span class='hidden'></span>"
         else "\n<span class='hidden'>\n</span><span contenteditable='false'><div style='height: 2em; white-space: pre' data-noncontent></div></span>"
 
-      prefixBreak = (text)-> if text[0] == '\n' && text[1] != '\n' then "\n<div style='height: 2em; white-space: pre' data-noncontent>\n</div>#{text.substring 1}" else text
+      prefixBreak = (text)-> if text[0] == '\n' && text[1] != '\n' then "<span class='hidden'>\n</span><div style='height: 2em; white-space: pre' data-noncontent contenteditable='false'>\n</div>#{text.substring 1}" else text
 
       createValueSliders = ->
         for num in $(UI.context.currentView).find('.token.number')

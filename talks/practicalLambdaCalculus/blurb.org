@@ -1,0 +1,3 @@
+Understanding the oldest functional programming language through Space Invaders
+
+Mastering Lambda Calculus will fundamentally change how you program. Imagine a programming language with no numbers, data structures, or even booleans, where computation doesn't take place until you "observe" a value.  Delve into the "quantum mechanics" of computing and strengthen your computational foundation. This talk will show you how you can define all of these from first principles and present fun and intuitive uses for Lambda Calculus, the basis for modern functional programming languages. You'll find that once you are familiar with the idioms, Lambda Calculus becomes just as easy to use as any programming language.

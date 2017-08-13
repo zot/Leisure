@@ -26,9 +26,10 @@ misrepresented as being the original software.
 
 define ['./base', 'lodash'], (base, _)->
   {
-    resolve,
-    lazy,
-    nsLog,
+    resolve
+    lazy
+    nsLog
+    debugTypes
   } = root = base
 
   rz = resolve
@@ -121,6 +122,7 @@ define ['./base', 'lodash'], (base, _)->
     functionInfo[leisureClass] =
       arity: 1
       leisureName: leisureClass
+      jsName: funcName
       alts: {}
       altList: []
       def: f
@@ -328,47 +330,67 @@ define ['./base', 'lodash'], (base, _)->
   doPartial = (args)-> if isPartial args then Leisure_primCall args.callee, 0, args
 
 # use AST, instead of arity?
-  define = (name, func, arity, src, method, namespace, isNew) ->
+  define = (name, func, arity, src, method, namespace, isNewStyle) ->
     arity = arity ? ((typeof func == 'function' && func.length) || 0)
-    nakedDefine name, lz(func), arity, src, method, namespace, isNew || (arity > 1)
+    nakedDefine name, lz(func), arity, src, method, namespace, isNewStyle || (arity > 1)
 
-  #nakedDefine = (name, func, arity, src, method, namespace, isNew, redef) ->
-  nakedDefine = (name, func, arity, src, method, namespace, isNew, redef, debugType, debugDef) ->
+  #nakedDefine = (name, func, arity, src, method, namespace, isNewStyle, redef) ->
+  nakedDefine = (name, func, arity, src, method, namespace, isNewStyle, redef, debugType, debugDef) ->
     #can't use func(), because it might do something or might fail
     #if typeof func() == 'function'
     #  func().src = src
     #  func().leisureContexts = []
     #  func().leisureName = name
     #  func().leisureArity = arity
+    nm = 'L_' + nameSub(name)
     if !redef && functionInfo[name]
       #console.error new Error "WARNING, REDEFINING #{name}"
       redefined[name] = true
-    functionInfo[name] =
+    functionInfo[name] = info = 
       src: src
       arity: arity
       leisureName: name
+      jsName: nm
       alts: {}
+      debugAlts: {}
       altList: []
-    if isNew then functionInfo[name].newArity = true
-    nm = 'L_' + nameSub(name)
+      debugType: debugType
+    if isNewStyle then info.newArity = true
     if !method and global.noredefs and global[nm]? and global[nm].typeFunc
       throwError("[DEF] Attempt to redefine definition: #{name}")
-    #namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
-    functionInfo[name].def = namedFunc = if typeof func == 'function' && func.memo
+    #namedFunc = info.mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
+    info.def = namedFunc = if typeof func == 'function' && func.memo
       if !func.L$info then func.L$info = {}
       func.L$info.length = arity || func.length
       func.L$info.name = name
       if func.__proto__ == Function.prototype then func.__proto__ = LeisureObject
       func
     else nameFunc(func, name)
-    if LeisureObject.prototype[nm] then LeisureObject.prototype[nm] = namedFunc
-    else global[nm] = global.leisureFuncs[nm] = functionInfo[name].mainDef = namedFunc
-    if root.currentNameSpace
-      LeisureNameSpaces[namespace ? root.currentNameSpace][nameSub(name)] = namedFunc
-      nsLog "DEFINING #{name} FOR #{root.currentNameSpace}"
+    info.mainDef = Leisure.normalFuncs[name] = namedFunc
+    if debugDef
+      info.debugDef = namedDebugFunc = if typeof debugDef == 'function' && debugDef.memo
+        if !debugDef.L$info then debugDef.L$info = {}
+        if debugDef.__proto__ == Function.prototype then debugDef.__proto__ = LeisureObject
+        debugDef
+      else nameFunc(debugDef, name)
+      info.mainDebugDef = Leisure.debugFuncs[debugType][name] = namedDebugFunc
+    currentFunc = if debugTypes[debugType] == 'active' then namedDebugFunc else namedFunc
+    installFunc name, nm, currentFunc
+    #if LeisureObject.prototype[nm] then LeisureObject.prototype[nm] = currentFunc
+    #else global[nm] = global.leisureFuncs[nm] = info.mainDef = currentFunc
+    #if root.currentNameSpace
+    #  LeisureNameSpaces[namespace ? root.currentNameSpace][nameSub(name)] = currentFunc
+    #  nsLog "DEFINING #{name} FOR #{root.currentNameSpace}"
     leisureAddFunc name
     root.functionCount++
     func
+
+  installFunc = (name, nm, func)->
+    if LeisureObject.prototype[nm] then LeisureObject.prototype[nm] = func
+    else global[nm] = global.leisureFuncs[nm] = func
+    if root.currentNameSpace
+      LeisureNameSpaces[namespace ? root.currentNameSpace][nameSub(name)] = func
+      nsLog "DEFINING #{name} FOR #{root.currentNameSpace}"
 
 ######
 ###### ASTs
@@ -603,5 +625,6 @@ define ['./base', 'lodash'], (base, _)->
   root.classForType = classForType
   root.types = types
   root.declareTypeFunc = declareTypeFunc
+  root.installFunc = installFunc
 
   root

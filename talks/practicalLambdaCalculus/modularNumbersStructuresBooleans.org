@@ -1,0 +1,735 @@
+#+TITLE:Understanding Lambda Calculus Through Space Invaders: Modular Numbers, Data Structures, and Booleans
+* Understanding Lambda Calculus Through Space Invaders: Modular Numbers, Data Structures, and Booleans
+#+BEGIN_HTML
+<img id='splash' src='facebook_event_8.17.jpg'>
+#+END_HTML
+* WARNING
+** Geek Quotient for This Talk
+#+BEGIN_HTML
+<span style='font-size: 64px; font-family: bold'><span style='vertical-align: sub'>+</span><span style='font-size: 150%; vertical-align: middle'>&infin;</span></span>
+#+END_HTML
+* Calculus
+** From Webster's first definition:
+*** a: a method of computation or calculation in a special notation (as of logic or symbolic logic)
+*** b: the mathematical methods comprising differential and integral calculus — often used with /the/
+* Calculus
+** From Webster's first definition:
+*** a: a method of computation or calculation in a special notation (as of logic or symbolic logic)
+*** b: the mathematical methods comprising differential and integral calculus — often used with /the/
+** So each programming languages is a calculus
+* What is Lambda Calculus
+* What is Lambda Calculus
+** Lambda Calculus is (probably) not your grandfather's calculus
+* What is Lambda Calculus
+** Lambda Calculus is (probably) not your grandfather's calculus
+** It's not the calculus of Newton and Leibnitz
+* What is Lambda Calculus
+** Lambda Calculus is (probably) not your grandfather's calculus
+** It's not the calculus of Newton and Leibnitz
+** It's the world's oldest functional programming language
+* What is Lambda Calculus
+** Lambda Calculus is (probably) not your grandfather's calculus
+** It's not the calculus of Newton and Leibnitz
+** It's the world's oldest functional programming language
+** Created by Alan Turing's professor...
+* What is Lambda Calculus
+** Lambda Calculus is (probably) not your grandfather's calculus
+** It's not the calculus of Newton and Leibnitz
+** It's the world's oldest functional programming language
+** Created by Alan Turing's professor...
+** ...in 1928...
+* What is Lambda Calculus
+** Lambda Calculus is (probably) not your grandfather's calculus
+** It's not the calculus of Newton and Leibnitz
+** It's the world's oldest functional programming language
+** Created by Alan Turing's professor...
+** ...in 1928...
+** ...before computers existed
+* What is Lambda Calculus
+** Lambda Calculus is (probably) not your grandfather's calculus
+** It's not the calculus of Newton and Leibnitz
+** It's the world's oldest functional programming language
+** Created by Alan Turing's professor...
+** ...in 1928...
+** ...before computers existed
+** It's also the basis for all other functional programming languages
+* Who is TEAM CTHULHU?
+* Who is TEAM CTHULHU?
+** Independent computer science researchers since 1988
+* Who is TEAM CTHULHU?
+** Independent computer science researchers since 1988
+** We like to write new types of...
+* Who is TEAM CTHULHU?
+** Independent computer science researchers since 1988
+** We like to write new types of...
+*** games (like MUDs)
+* Who is TEAM CTHULHU?
+** Independent computer science researchers since 1988
+** We like to write new types of...
+*** games (like MUDs)
+*** programming languages (like Leisure)
+* Who is TEAM CTHULHU?
+** Independent computer science researchers since 1988
+** We like to write new types of...
+*** games (like MUDs)
+*** programming languages (like Leisure)
+*** development environments (like Lounge)
+* Who is TEAM CTHULHU?
+** Independent computer science researchers since 1988
+** We like to write new types of...
+*** games (like MUDs)
+*** programming languages (like Leisure)
+*** development environments (like Lounge)
+*** ...
+* Leisure and Lounge
+** Leisure is a new functional language we are developing
+*** Based on Untyped Lambda Calculus
+*** Dynamically typed and lazy, with strong metaprograming support
+*** Like if Lisp and Haskell had a baby
+* Leisure and Lounge
+** Leisure is a new functional language we are developing
+*** Based on Untyped Lambda Calculus
+*** Dynamically typed and lazy, with strong metaprograming support
+*** Like if Lisp and Haskell had a baby
+** Lounge is where Leisure happens.  It's...
+*** IN DEVELOPMENT
+*** Document-based, polyglot, fully collaborative
+**** JavaScript, CoffeeScript, Wisp, Leisure, HTML, CSS, YAML, Newspeak
+*** A collaborative execution environment
+*** A collaborative document editor
+*** A presentation tool (you're seeing it right now)
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+*** ALL values are functions
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+*** ALL values are functions
+** Every function returns the same results for the same arguments
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+*** ALL values are functions
+** Every function returns the same results for the same arguments
+** No exceptions to these two rules
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+*** ALL values are functions
+** Every function returns the same results for the same arguments
+** No exceptions to these two rules
+** i.e. no pointer equality and no function that returns the current time
+* Lambda Calculus is an "Ideal" Language
+** It's not practical for everything but it actually IS for some things
+** It only consists of single-argument, anonymous functions
+** It has no...
+* Lambda Calculus is an "Ideal" Language
+** It's not practical for everything but it actually IS for some things
+** It only consists of single-argument, anonymous functions
+** It has no...
+*** global definitions
+*** multi-argument functions
+*** built-in functions or operators
+*** user-defined types
+*** CONTROL STRUCTURES
+*** booleans or comparison operators or boolean operators
+*** numbers or arithmetic operators
+*** strings
+*** RECURSION
+* Lambda Calculus is an "Ideal" Language
+** It's not practical for everything but it actually IS for some things
+** It only consists of single-argument, anonymous functions
+** It has no...
+*** global definitions
+*** multi-argument functions
+*** built-in functions or operators
+*** user-defined types
+*** CONTROL STRUCTURES
+*** booleans or comparison operators or boolean operators
+*** numbers or arithmetic operators
+*** strings
+*** RECURSION
+** but...
+* Lambda Calculus is an "Ideal" Language
+** It's not practical for everything but it actually IS for some things
+** It only consists of single-argument, anonymous functions
+** It has no...
+*** global definitions
+*** multi-argument functions
+*** built-in functions or operators
+*** user-defined types
+*** CONTROL STRUCTURES
+*** booleans or comparison operators or boolean operators
+*** numbers or arithmetic operators
+*** strings
+*** RECURSION
+** but...
+** WE CAN DEFINE ALL OF THESE THINGS
+* Let's Use Space Invaders as a Way to Understand Lambda Calculus...
+* Let's Use Space Invaders as a Way to Understand Lambda Calculus...
+** Cuz that's what I did...
+* Let's Use Space Invaders as a Way to Understand Lambda Calculus...
+** Cuz that's what I did...
+** Here is what a snippet looks like...
+#+BEGIN_EXAMPLE
+start     = λstatef . statef gridStart shipStart t slowest
+checkDir  = λgrid left? . left? (grid isAllFirstEmpty) (not (grid isAllLastEmpty))
+next      = λgrid ship left? ctr statef . (λdir . statef (ctr cTrue (grid (dir allLeft allRight) allFlip) grid) ship dir (ctr cNext)) (checkDir grid left?)
+moveLeft  = λgrid ship left? ctr . next grid (ship (ship onFirstEmpty left)) left? ctr
+moveRight = λgrid ship left? ctr . next grid (ship (ship right onFirstEmpty right)) left? ctr
+stay      = λgrid ship left? ctr . next grid ship left? ctr
+#+END_EXAMPLE
+* Let's Use Space Invaders as a Way to Understand Lambda Calculus...
+** Cuz that's what I did...
+** Here is what a snippet looks like...
+#+BEGIN_EXAMPLE
+start     = λstatef . statef gridStart shipStart t slowest
+checkDir  = λgrid left? . left? (grid isAllFirstEmpty) (not (grid isAllLastEmpty))
+next      = λgrid ship left? ctr statef . (λdir . statef (ctr cTrue (grid (dir allLeft allRight) allFlip) grid) ship dir (ctr cNext)) (checkDir grid left?)
+moveLeft  = λgrid ship left? ctr . next grid (ship (ship onFirstEmpty left)) left? ctr
+moveRight = λgrid ship left? ctr . next grid (ship (ship right onFirstEmpty right)) left? ctr
+stay      = λgrid ship left? ctr . next grid ship left? ctr
+#+END_EXAMPLE
+
+** [[../lambdaCalculus/invaders-pretty.html][Here]] it is
+* The Concepts
+** Church Encoding
+** How to implement (from the ground-up)
+*** Modular numbers
+*** Booleans and control structures (if, for, while, ...)
+*** Data structures
+* The Point: A Deeper Understanding of Computation
+** Lambda Calculus is one of the simplest models of computation
+** A complete BNF for it is only 5 lines (Java is about [[https://users-cs.au.dk/amoeller/dRegAut/JavaBNF.html][144 lines]], gross?)
+#+BEGIN_EXAMPLE
+LC    ::= PARAM | CALL | GROUP | FUNC
+PARAM ::= IDENT
+CALL  ::= (CALL | PARAM | GROUP) (IDENT | GROUP | FUNC)
+GROUP ::= '(' LC ')'
+FUNC  ::= 'λ' IDENT '.' LC
+#+END_EXAMPLE
+* The Point: A Deeper Understanding of Computation
+** Lambda Calculus is one of the simplest models of computation
+** A complete BNF for it is only 5 lines (Java is about [[https://users-cs.au.dk/amoeller/dRegAut/JavaBNF.html][144 lines]], gross?)
+#+BEGIN_EXAMPLE
+LC    ::= PARAM | CALL | GROUP | FUNC
+PARAM ::= IDENT
+CALL  ::= (CALL | PARAM | GROUP) (IDENT | GROUP | FUNC)
+GROUP ::= '(' LC ')'
+FUNC  ::= 'λ' IDENT '.' LC
+#+END_EXAMPLE
+
+
+** Lambda Calculus can be intuitive
+* The Point: A Deeper Understanding of Computation
+** Lambda Calculus is one of the simplest models of computation
+** A complete BNF for it is only 5 lines (Java is about [[https://users-cs.au.dk/amoeller/dRegAut/JavaBNF.html][144 lines]], gross?)
+#+BEGIN_EXAMPLE
+LC    ::= PARAM | CALL | GROUP | FUNC
+PARAM ::= IDENT
+CALL  ::= (CALL | PARAM | GROUP) (IDENT | GROUP | FUNC)
+GROUP ::= '(' LC ')'
+FUNC  ::= 'λ' IDENT '.' LC
+#+END_EXAMPLE
+
+
+** Lambda Calculus can be intuitive
+** It's just a programming language!
+* The Point: A Deeper Understanding of Computation
+** Lambda Calculus is one of the simplest models of computation
+** A complete BNF for it is only 5 lines (Java is about [[https://users-cs.au.dk/amoeller/dRegAut/JavaBNF.html][144 lines]], gross?)
+#+BEGIN_EXAMPLE
+LC    ::= PARAM | CALL | GROUP | FUNC
+PARAM ::= IDENT
+CALL  ::= (CALL | PARAM | GROUP) (IDENT | GROUP | FUNC)
+GROUP ::= '(' LC ')'
+FUNC  ::= 'λ' IDENT '.' LC
+#+END_EXAMPLE
+
+
+** Lambda Calculus can be intuitive
+**  It's just a programming language!
+** Really!
+* Introductory Lambda Calculus
+** A function in Lambda Calculus
+#+BEGIN_EXAMPLE
+λx . plusOne x
+#+END_EXAMPLE
+
+
+IS (ROUGHLY) LIKE THIS IN JAVASCRIPT
+
+#+BEGIN_EXAMPLE
+(x) => plusOne(x)
+#+END_EXAMPLE
+
+
+OR (CIRCA 2014 or earlier)
+
+#+BEGIN_EXAMPLE
+function(x) {return plusOne(x);}
+#+END_EXAMPLE
+* Introductory Lambda Calculus
+** A function in Lambda Calculus
+#+BEGIN_EXAMPLE
+λx . plusOne x
+#+END_EXAMPLE
+
+
+*** BUT LAMBDA CALCULUS IS LAZY, SO IT'S REALLY MORE LIKE THIS
+#+BEGIN_EXAMPLE
+// (x) => plusOne(x)
+   (x) => plusOne()(x)
+#+END_EXAMPLE
+
+
+OR (CIRCA 2014 or earlier)
+
+#+BEGIN_EXAMPLE
+// function(x) {return plusOne(x);}
+   function(x) {return plusOne()(x);}
+#+END_EXAMPLE
+* Introductory Lambda Calculus
+** A function in Lambda Calculus
+#+BEGIN_EXAMPLE
+λx . plusOne x
+#+END_EXAMPLE
+
+
+*** BUT LAMBDA CALCULUS IS LAZY, SO IT'S REALLY MORE LIKE THIS
+#+BEGIN_EXAMPLE
+// (x) => plusOne(x)
+   (x) => plusOne()(x)
+#+END_EXAMPLE
+
+
+OR (CIRCA 2014 or earlier)
+
+#+BEGIN_EXAMPLE
+// function(x) {return plusOne(x);}
+   function(x) {return plusOne()(x);}
+#+END_EXAMPLE
+
+
+*** Lazy means code is not executed until it is used
+* Introductory Lambda Calculus
+** A function in Lambda Calculus
+#+BEGIN_EXAMPLE
+λx . plusOne x
+#+END_EXAMPLE
+
+
+*** BUT LAMBDA CALCULUS IS LAZY, SO IT'S REALLY MORE LIKE THIS
+#+BEGIN_EXAMPLE
+// (x) => plusOne(x)
+   (x) => plusOne()(x)
+#+END_EXAMPLE
+
+
+OR (CIRCA 2014 or earlier)
+
+#+BEGIN_EXAMPLE
+// function(x) {return plusOne(x);}
+   function(x) {return plusOne()(x);}
+#+END_EXAMPLE
+
+
+*** Lazy means code is not executed until it is used (i.e. "observed" or "measured")
+* Introductory Lambda Calculus
+** A function in Lambda Calculus
+#+BEGIN_EXAMPLE
+λx . plusOne x
+#+END_EXAMPLE
+
+
+*** BUT LAMBDA CALCULUS IS LAZY, SO IT'S REALLY MORE LIKE THIS
+#+BEGIN_EXAMPLE
+// (x) => plusOne(x)
+   (x) => plusOne()(x)
+#+END_EXAMPLE
+
+
+OR (CIRCA 2014 or earlier)
+
+#+BEGIN_EXAMPLE
+// function(x) {return plusOne(x);}
+   function(x) {return plusOne()(x);}
+#+END_EXAMPLE
+
+
+*** Lazy means code is not executed until it is used (i.e. "observed" or "measured")
+*** Kind of like Shrodinger's Cat
+* "Symbols"
+** Traditionally, Lambda Calculus uses unbound variables like symbols in Lisp
+** But trying to use an undefined symbol in Leisure produces an error (which can be useful)
+** I've provided A through F for our symbols, to use in tests
+* Gimmee Some (Syntactic) Sugar, Baby!  (a Little More Haskelly)
+** We'll use an extended syntax to make this talk a little easier
+** A backslash is equivalent to a lambda character
+** Multi-argument functions: 
+#+BEGIN_EXAMPLE
+λa b c . a
+#+END_EXAMPLE
+
+
+** Global definitions
+#+BEGIN_EXAMPLE
+firstOfThree = λa b c . a
+#+END_EXAMPLE
+
+
+** Nicer definitions
+#+BEGIN_EXAMPLE
+firstOfThree a b c = a
+#+END_EXAMPLE
+* Gimmee Some (Syntactic) Sugar, Baby!  (a Little More Haskelly)
+** We'll use an extended syntax to make this talk a little easier
+** A backslash is equivalent to a lambda character
+** Multi-argument functions: 
+#+BEGIN_EXAMPLE
+λa b c . a
+#+END_EXAMPLE
+
+
+** Global definitions
+#+BEGIN_EXAMPLE
+firstOfThree = λa b c . a
+#+END_EXAMPLE
+
+
+** Nicer definitions
+#+BEGIN_EXAMPLE
+firstOfThree a b c = a
+#+END_EXAMPLE
+
+
+** This isn't quite the syntax of Lambda Calculus
+** but you can easily transform it into valid Lambda Calculus
+* Now, We're Done With the Preliminaries
+** On to the concepts...
+* Church Encoding: Functions Are the Only Kind of Value in Lambda Calculus
+** Representing values using only functions is called "Church encoding"
+** All values compute -- they DO something
+* Church Encoding: Functions Are the Only Kind of Value in Lambda Calculus
+** Representing values using only functions is called "Church encoding"
+** All values compute -- they DO something
+** So...
+* Church Encoding: Functions Are the Only Kind of Value in Lambda Calculus
+** Representing values using only functions is called "Church encoding"
+** All values compute -- they DO something
+** So...
+*** A modular number selects one of several items
+*** A boolean returns one of two alternatives
+*** A data structure provides its values (to a callback function)
+* Modular Numbers
+* Modular Numbers: We Use Them Every Day, Mostly For Time
+** Modular numbers "wrap"
+** What is 7 hours after 21:00?
+** What is 5 days after Friday?
+** Two months after November?
+* Modular Numbers: Defining Them
+** Remember that values are functions that DO something!
+** Let's make modular numbers return their nth argument
+* Modular Numbers: Defining Them
+** Remember that values are functions that DO something!
+** Let's make modular numbers return their nth argument
+** So 1 would return the first argument
+* Modular Numbers: Defining Them
+** Remember that values are functions that DO something!
+** Let's make modular numbers return their nth argument
+** So 1 would return the first argument
+** 2 would return the second argument...
+* Modular Numbers: Defining Them
+#+BEGIN_SRC leisure :results def
+firstOf3  a b c = a
+secondOf3 a b c = b
+thirdOf3  a b c = c
+#+END_SRC
+
+** You can use them to choose values
+#+BEGIN_SRC leisure
+firstOf3 A B C
+secondOf3 D E F
+#+END_SRC
+
+** You can also use them AS values
+#+BEGIN_SRC leisure
+firstOf3
+secondOf3
+#+END_SRC
+
+* Modular Numbers: Defining Them
+** Can we define a "next" function, together?
+** Of course, you can use firstOf3, secondOf3, and thirdOf3 in your definition
+#+BEGIN_SRC leisure
+myNext thirdOf3
+#+END_SRC
+** Definition
+#+BEGIN_SRC leisure
+next num = ???
+#+END_SRC
+** Tests
+#+BEGIN_SRC leisure
+next firstOf3
+next secondOf3
+next thirdOf3
+#+END_SRC
+* Modular Numbers: Defining Them
+** Here's my definition
+#+BEGIN_SRC leisure :results def
+myNext num = num secondOf3 thirdOf3 firstOf3
+#+END_SRC
+* Modular Numbers: Defining Them
+** Can we define an "add" function, together?
+#+BEGIN_SRC leisure
+myAdd firstOf3 secondOf3
+#+END_SRC
+
+#+BEGIN_SRC leisure
+add a b = ???
+#+END_SRC
+* Modular Numbers: Defining Them
+** Here's my definition
+#+BEGIN_SRC leisure :results def
+myAdd a b = a (myNext b) (myNext (myNext b)) b
+#+END_SRC
+* Modular Numbers: a Quick Example, Week Days
+#+BEGIN_SRC leisure
+mon a b c d e f g = a
+tue a b c d e f g = b
+wed a b c d e f g = c
+thu a b c d e f g = d
+fri a b c d e f g = e
+sat a b c d e f g = f
+sun a b c d e f g = g
+#+END_SRC
+* Booleans and control
+** True and False are values that conditionally evaluate code
+#+BEGIN_SRC leisure
+true firstOf3 secondOf3
+false firstOf3 secondOf3
+#+END_SRC
+** Example erroneous code
+#+BEGIN_SRC leisure
+myNext Q
+#+END_SRC
+** What will this do?
+#+BEGIN_SRC leisure
+true firstOf3 (myNext Q)
+#+END_SRC
+* Booleans: Let's Define Our Own, Together (t and f)
+** Definition
+#+BEGIN_SRC leisure
+t a b = ???
+f a b = ???
+#+END_SRC
+** Tests
+#+BEGIN_SRC leisure
+t firstOf3 (myNext Q)
+f firstOf3 secondOf3
+#+END_SRC
+* Booleans: My Definitions
+#+BEGIN_SRC leisure
+true a b = a
+false a b = b
+#+END_SRC
+* Booleans
+** So boolean values in Lambda Calculus are ALSO "if statements"
+* Booleans
+** So boolean values in Lambda Calculus are ALSO "if statements"
+** They're functions, values, and control structures
+* Booleans
+** So boolean values in Lambda Calculus are ALSO "if statements"
+** They're functions, values, and control structures
+** THIS is why Lambda Calculus doesn't need control structures or booleans
+* Booleans
+** So boolean values in Lambda Calculus are ALSO "if statements"
+** They're functions, values, and control structures
+** THIS is why Lambda Calculus doesn't need control structures or booleans
+** You can define them yourself
+* Booleans
+** Booleans are 2-valued modular numbers
+* Booleans
+** Booleans are 2-valued modular numbers
+** Modular numbers are also control structures
+* Booleans: And (myAnd)
+** Definition
+#+BEGIN_SRC leisure
+myAnd a b = ???
+#+END_SRC
+** Tests
+#+BEGIN_SRC leisure
+myAnd t t
+myAnd t f
+myAnd f t
+myAnd f f
+#+END_SRC
+* Booleans: And (myAnd), My Definition
+** Definition
+#+BEGIN_SRC leisure
+myAnd a b = a b f
+#+END_SRC
+** Tests
+#+BEGIN_SRC leisure
+myAnd t t
+myAnd t f
+myAnd f t
+myAnd f f
+#+END_SRC
+* Booleans: Let's Implement Numeric Equality!
+** Definition
+#+BEGIN_SRC leisure
+equal a b = ???
+#+END_SRC
+** Tests
+#+BEGIN_SRC leisure
+A
+equal firstOf3 firstOf3
+equal firstOf3 secondOf3
+equal firstOf3 thirdOf3
+B
+equal secondOf3 firstOf3
+equal secondOf3 secondOf3
+equal secondOf3 thirdOf3
+C
+equal thirdOf3 firstOf3
+equal thirdOf3 secondOf3
+equal thirdOf3 thirdOf3
+#+END_SRC
+* Booleans: Let's Implement Numeric Equality! (my version)
+** Definition
+#+BEGIN_SRC leisure
+myEqual a b = a (b true false false) (b false true false) (b false false true)
+#+END_SRC
+** Tests
+#+BEGIN_SRC leisure
+A
+myEqual firstOf3 firstOf3
+myEqual firstOf3 secondOf3
+myEqual firstOf3 thirdOf3
+B
+myEqual secondOf3 firstOf3
+myEqual secondOf3 secondOf3
+myEqual secondOf3 thirdOf3
+C
+myEqual thirdOf3 firstOf3
+myEqual thirdOf3 secondOf3
+myEqual thirdOf3 thirdOf3
+#+END_SRC
+* Simple Data Structures: What Do They Do?
+* Simple Data Structures: What Do They Do?
+** Remember, every value in Lambda Calculus is a function!
+** Say you have a person with a name, address, and phone number
+** It's also a function, so what does it do?
+* Simple Data Structures: What Do They Do?
+** Remember, every value in Lambda Calculus is a function!
+** Say you have a person with a name, address, and phone number
+** It's also a function, so what does it do?
+** It provides access to its data
+* Simple Data Structures: What Do They Do?
+** Remember, every value in Lambda Calculus is a function!
+** Say you have a person with a name, address, and phone number
+** It's also a function, so what does it do?
+** It provides access to its data
+** It sends its data into a callback function
+* Simple Data Structures: What Do They Do?
+** Remember, every value in Lambda Calculus is a function!
+** Say you have a person with a name, address, and phone number
+** It's also a function, so what does it do?
+** It provides access to its data
+** It sends its data into a callback function
+** It takes that callback function as an argument
+* Simple Data Structures: Let's Define a Person ADT, Together
+** Definition
+#+BEGIN_SRC leisure
+person name address phone = ???
+getName person = ???
+getAddress person = ???
+getPhone person = ???
+setName person newName = ???
+#+END_SRC
+** Tests (note lazy behavior)
+#+BEGIN_SRC 
+p1 = person A B Q
+p2 = person D E F
+getName p1
+getName p2
+getName (setName p1 F)
+#+END_SRC
+* Simple Data Structures: My Definitions
+** Definition
+#+BEGIN_SRC leisure
+person name address phone = λf . f name address phone
+getName person            = person firstOfThree
+getAddress person         = person secondOfThree
+getPhone person           = person thirdOfThree
+setName person newName    = person λname address phone . person newName address phone
+#+END_SRC
+** Tests
+#+BEGIN_SRC 
+p1 = person A B Q
+p2 = person D E F
+getName p1
+getName p2
+getName (setName p1 F)
+#+END_SRC
+* Simple Data Structures
+** Accessor functions are modular numbers (and booleans for 2-item structures)
+* Let's Apply These Ideas to Space Invaders
+** Open discussion of [[../lambdaCalculus/invaders-pretty.html][the code]]
+* Contact Info
+#+BEGIN_HTML
+<div style='float: left; margin: 2ex'>
+  <h2>Leisure Repository</h2>
+  <h3><a href='https://github.com/zot/Leisure'>https://github.com/zot/Leisure</a></h3>
+  <img src='leisure-repo-url.png'>
+</div>
+<div style='float: right; margin: 2ex; text-align: right'>
+  <h2>Lambda Calculus Evaluator</h2>
+  <h3><a href='http://tinyconcepts.com/lcPresentation/evaluator.html'>http://tinyconcepts.com/lcPresentation/evaluator.html</a></h3>
+  <img src='evaluator-url.png'>
+</div>
+#+END_HTML
+* Defs
+:properties:
+:hidden: true
+:end:
+#+BEGIN_SRC leisure :results def
+A = λx . x
+B = λx . x
+C = λx . x
+D = λx . x
+E = λx . x
+F = λx . x
+#+END_SRC
+
+#+BEGIN_SRC css
+.slides .currentSlide .textborder {
+    background: linear-gradient(#f1c40f, #e6dcc3);
+}
+.currentSlide [name=headlineCollapse] {
+    display: none;
+}
+.currentSlide #splash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    width: 100%;
+    height: 100%;
+}
+.slides [name=nextSlide],
+.slides [name=prevSlide] {
+    background-color: #1f8dd6;
+}
+.slideholder .page .border {
+    background-color: ghostwhite;
+}
+.slides [name=selectionBubble] {
+    display: none;
+}
+#+END_SRC

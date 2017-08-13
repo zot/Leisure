@@ -141,6 +141,7 @@ Code for local-mode.  This will not be loaded under meteor.
           createStructureDisplay data
           #window.ED = plainEditDiv $("[maindoc]"), data
           window.ED = fancyEditDiv $("[maindoc]"), data
+          ED.options.validateMode = true
           if useP2P then window.PEER.setEditor ED
           createEditorDisplay ED
           todoForEditor ED

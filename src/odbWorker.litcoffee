@@ -16,47 +16,92 @@ persists between page refreshes so we can browse logs as if it were a database
       init: (@port)->
         @port.onmessage = (e)->
           verbose "message ", e.data.msg
-          worker[e.data.msg] e, e.data
+          try
+            worker[e.data.msg] e, e.data
+          catch err
+            console.log err.stack
+            if e.data.msgId then @port.postMessage {
+              msgId
+              error:
+                message: err.message
+                stack: err.stack
+            }
+      setVerbose: (e, {verbose: state})->
+        verbose = if state then (args...)-> console.log args...
+        else ->
       queueValues: (e, {logName, values})->
         records = traceRecords[logName] ? newTraceRecords(logName)
         pos = 0
         while pos < values.length
           pos = this[values[pos]] records, pos, values
         null
+      getTraceRecords: (e)->
+        if logName = e.data.logName
+          traceRecords[logName] || throw new Error "No trace log named #{logName}"
+        else throw new Error "No trace log specified"
+      dumpValues: (e, {logName})-> console.log(traceRecords[logName].dump())
       latestEntry: (e, {logName, msgId})->
+        console.log "GETTING LATEST ENTRY"
         @port.postMessage {
-          return: (records = traceRecords[logName]) && records.sequence[records.sequenceCount - 1]
+          return: (r = @getTraceRecords e) && r.sequence[r.sequenceCount - 1]
           msgId
         }
       getEntry: (e, {logName, type, key, msgId})->
+        if !type then type = 'sequence'
         @port.postMessage {
-          return: (records = traceRecords[logName]) && records[type]?[key]
+          return: (records = @getTraceRecords e) && records[type]?[key]
           msgId
         }
-      clearEntries: (e, logName)-> newTraceRecords logName
-      deleteEntries: (e, logName)-> traceRecords[logName] = {}
+      getCallGraphInfo: (e, {logName, msgId})->
+        records = @getTraceRecords e
+        @port.postMessage {
+          return:
+            length: records.callGraphs.length
+            latest: records.callGraphs[records.callGraphs.length - 10..]
+          msgId
+        }
+      getCallGraphEntry: (e, {logName, msgId, number})->
+        @port.postMessage {
+          return: @getTraceRecords(e).callGraphs[number]
+          msgId
+        }
+      clearEntries: (e, {logName})-> newTraceRecords logName
+      deleteEntries: (e, {logName})-> traceRecords[logName] = {}
+      getContextDef: (e, {logName, context, id, msgId})->
+        context = @getTraceRecords(e).contexts[context]
+        @port.postMessage {
+          return: context.lazyDefs[id] || context.lambdaDefs[id]
+          msgId
+        }
+      getLambdaDef: (e, {logName, lambdaName})->
+        @port.postMessage {
+          return: @getTraceRecords(e).lambdaDefsByName[lambdaName]
+          msgId
+        }
       lazyValue: (records, pos, values)->
         type = values[pos++]
         instance = values[pos++]
         context = values[pos++]
         id = values[pos++]
-        records.add records.values, instance, {
+        record = records.add records.values, instance, {
           type
           instance
           context
           id
         }
+        records.addCallGraphEntry 0, record.sequence
         pos
       resolve: (records, pos, values)->
         type = values[pos++]
         instance = values[pos++]
         result = [values[pos++]]
         if result[0] == -1 then result.push values[pos++]
-        records.add records.resolves, instance, {
+        record = records.add records.resolves, instance, {
           type
           instance
           value: result
         }
+        records.addCallGraphEntry 0, record.sequence
         pos
       lambda: (records, pos, values)->
         type = values[pos++]
@@ -71,6 +116,7 @@ persists between page refreshes so we can browse logs as if it were a database
           id
           parent
         }
+        records.lambdaList.push instance
         pos
       call: (records, pos, values)->
         type = values[pos++]
@@ -89,6 +135,7 @@ persists between page refreshes so we can browse logs as if it were a database
           args
         }
         records.stack.push record
+        records.addCallGraphEntry 1, record.sequence
         pos
       return: (records, pos, values)->
         type = values[pos++]
@@ -98,7 +145,7 @@ persists between page refreshes so we can browse logs as if it were a database
         result = [values[pos++]]
         if result[0] == -1 then result.push values[pos++]
         caller = records.stack.pop()
-        records.add records.returns, null, {
+        record = records.add records.returns, null, {
           type
           instance
           context
@@ -106,6 +153,7 @@ persists between page refreshes so we can browse logs as if it were a database
           caller: caller.sequence
           value: result
         }
+        records.addCallGraphEntry -1, record.sequence
         pos
       createPartial: (records, pos, values)->
         type = values[pos++]
@@ -144,6 +192,7 @@ persists between page refreshes so we can browse logs as if it were a database
           id
           args
         }
+        records.addCallGraphEntry 0, record.sequence
         pos
       mark: (records, pos, values)->
         type = values[pos++]
@@ -177,7 +226,8 @@ persists between page refreshes so we can browse logs as if it were a database
           id++
         pos
 
-    worker = new OdbWorker()
+    self.worker = worker = new OdbWorker()
+    self.traceRecords = traceRecords
 
     console.log "global: ", self
     console.log "worker: ", worker
@@ -192,6 +242,7 @@ persists between page refreshes so we can browse logs as if it were a database
 
     newTraceRecords = (name)->
       records = traceRecords[name] =
+        callGraphs: []
         sequenceCount: 0
         sequence: []
         contexts: traceRecords[name]?.contexts ? []
@@ -199,6 +250,7 @@ persists between page refreshes so we can browse logs as if it were a database
         values: {}
         resolves: {}
         lambdas: {}
+        lambdaIds: []
         calls: {}
         partials: {}
         partialCalls: {}
@@ -208,7 +260,23 @@ persists between page refreshes so we can browse logs as if it were a database
         stack: []
       records.add = addRecord.bind null, records
       records.dump = dump.bind null, name
+      records.addCallGraphEntry = addCallGraphEntry.bind null, records
       records
+
+    last = (a)-> a[a.length - 1]
+
+    addCallGraphEntry = (records, delta, seq)->
+      cg = records.callGraphs
+      if cg.length == 0 || entry = last(cg).level == 0
+        entry =
+          size: 0
+          level: 0
+          start: seq
+        cg.push entry
+      entry.size++
+      entry.level += delta
+      if entry.level < 0 then throw new Error "Call level dropped below zero"
+      else if entry.level == 0 then entry.end = seq
 
     processTrace = (records, value)->
 
