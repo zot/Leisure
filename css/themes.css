@@ -1099,6 +1099,9 @@ body {
 }
 .org-fancy [data-property-hidden='true'],
 .org-fancy .hidden-slide,
+.currentSlide [data-view=leisure-headline].view {
+    min-width: 100ex;
+}
 .slides .hidden-slide {
     display: none;
 }

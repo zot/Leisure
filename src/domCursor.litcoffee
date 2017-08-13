@@ -16,7 +16,7 @@ Here are some examples (I'm wrapping them in a -> to make a no-op that gets synt
 In Leisure, I use it like this, to retrieve text from the page (scroll down to see docs on these methods, by the way):
 
       DOMCursor.prototype.filterOrg = ->
-        @addFilter (n)-> !n.hasAttribute('data-nonorg') || 'skip'
+        @addFilter (n)-> (n.nodeType == 1 && n.hasAttribute('data-noncontent') && 'skip') || true
 
       domCursor = (node, pos)-> new DOMCursor(node, pos).filterOrg()
 
@@ -199,6 +199,9 @@ The DOMCursor class...
             selectRange r
           this
 
+        scrollIntoViewIfNeeded: ->
+          (if @node.nodeType == @node.TEXT_NODE then @node.parentNode else @node).scrollIntoViewIfNeeded()
+
         adjustForNewline: ->
           if @isEmpty() then this
           else
@@ -258,23 +261,29 @@ Include (node, 0) up to but not including (node, pos)
 **forwardChars** moves the cursor forward by count characters
 
 if contain is true and the final location is 0 then go to the end of
-the previous text node (node, node.length)
+the previous text node (node, node.length), if contain is false but
+containIfSpace is true and the final location is 0 and is also a space,
+then go to the end of the previous text node (provided we didn't start there).
 
-        forwardChars: (count, contain)->
-          if count == 0 then return this
+        forwardChars: (count, contain, containIfSpace)->
+          #if count == 0 then return this
           n = this
           count += @pos
           while !n.isEmpty() && 0 <= count
             if n.type == 'text'
               if count < n.node.length
-                if count == 0 && contain
-                  n = n.prev()
-                  while n.type != 'text' then n = n.prev()
-                  return n.newPos n.node, n.node.length
-                else return n.newPos n.node, count
+                if count == 0 && (contain || containIfSpace)
+                  if skipped = n.skipToFrontOfSpace contain then return skipped
+                return n.newPos n.node, count
               count -= n.node.length
             n = n.next()
           n.emptyNext()
+
+        skipToFrontOfSpace: (force)->
+          if force || (@pos == 0 && @type == 'text' && (@node.data[0] in ' \n\r'))
+            n = @prev()
+            while n.type != 'text' then n = n.prev()
+            n.newPos n.node, n.node.length
 
 **hasAttribute** returns true if the node is an element and has the attribute or if it is a text node and its parent has the attribute
 
@@ -288,9 +297,13 @@ the previous text node (node, node.length)
 
         filterTextNodes: -> @addFilter (n)-> n.type == 'text'
 
-**filterTextNodes** adds visible text node filtering to the current filter; the cursor will only find visible text nodes
+**filterVisibleNodes** adds visible text node filtering to the current filter; the cursor will only find visible text nodes
 
-        filterVisibleTextNodes: -> @filterTextNodes().addFilter (n)-> !n.isCollapsed()
+        filterVisibleNodes: -> @addFilter (n)-> !n.isCollapsed()
+
+**filterVisibleTextNodes** adds visible text node filtering to the current filter; the cursor will only find visible text nodes
+
+        filterVisibleTextNodes: -> @filterTextNodes().filterVisibleNodes()
 
 **filterParent** adds parent filtering to the current filter; the cursor will only find nodes that are contained in the parent (or equal to it)
 
@@ -319,16 +332,18 @@ the previous text node (node, node.length)
 
 **getText** gets all of the text at or after the cursor (useful with filtering; see above)
 
-        getText: ->
+        getText: (len)->
+          len = len ? Number.MAX_SAFE_INTEGER
           n = @mutable().firstText()
           if n.isEmpty() then ''
           else
             t = n.node.data.substring n.pos
-            while !(n = n.next()).isEmpty()
+            while !(n = n.next()).isEmpty() && t.length < len
               if n.type == 'text' then t += n.node.data
-            if t.length
+            if t.length > len then t.substring 0, len
+            else if t.length
               while n.type != 'text'
-                n.prev()
+                n = n.prev()
               n = n.newPos n.node, n.node.length
               while n.pos > 0 && reject n.filter n
                 n.pos--
@@ -490,12 +505,20 @@ position if the function is 'found'
           n = @save().forwardChar()
           if n.isEmpty() then n.prev() else n
 
-        backwardChar: ->
+**backwardChar** move backward by one character.  If spanSpace is true and
+it moves over a space and ends up at the start of a node, move to the end of
+the previous node instead.
+
+        backwardChar: (spanSpace)->
           p = this
           oldNode = @node
           while !p.isEmpty() && p.pos == 0
             p = p.prev()
-          if !p.isEmpty() then p.newPos p.node, (if p.node != oldNode then p.pos else p.pos - 1)
+          if !p.isEmpty()
+            p = p.newPos p.node, (if p.node != oldNode then p.pos else p.pos - 1)
+            if spanSpace && p.pos == 0 && p.type == 'text' && (p.node.data[0] in ' \n\r')
+              p.prev()
+            else p
           else p
 
         boundedBackwardChar: ->
@@ -539,14 +562,20 @@ position if the function is 'found'
 
         nodeAfter: (up)->
           node = @node
+          pos = @pos
           while node
-            if node.nodeType == node.ELEMENT_NODE && !up && node.childNodes.length
-              return @newPos node.childNodes[0], 0
+            if node.nodeType == node.ELEMENT_NODE && !up && pos < node.childNodes.length
+              return @newPos node.childNodes[pos], 0
             else if node.nextSibling
               return @newPos node.nextSibling, 0
-            else
+            else if node.parentNode
               up = true
+              pos = 0
+              for c in node.parentNode.childNodes
+                if c == node then break
+                pos++
               node = node.parentNode
+            else break
           @emptyNext()
 
 **emptyNext** returns an empty cursor whose prev is the current node

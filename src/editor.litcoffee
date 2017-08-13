@@ -483,10 +483,12 @@ Events:
               .countChars targ.node, targ.pos
           else -1
         loadURL: (url)-> $.get url, (text)=> @options.load url, text
-        domCursorForDocOffset: (dOff)->
+        domCursorForDocOffset: (dOff, visual)->
           bOff = @options.blockOffsetForDocOffset dOff
           node = @options.nodeForId bOff.block
-          @domCursorForText(node, 0, @node[0]).mutable().forwardChars bOff.offset
+          cur = @domCursorForText(node, 0, @node[0]).mutable().forwardChars bOff.offset
+          if visual then cur.filterVisibleNodes()
+          else cur
         docOffsetForCaret: ->
           s = getSelection()
           if s.type == 'None' then -1
@@ -522,8 +524,8 @@ Events:
               scrollLeft: @node[0].scrollLeft
             else type: 'None'
         selectDocRange: (range)->
-          if range.type != 'None' && !(start = @domCursorForDocOffset(range.start).save()).isEmpty()
-            selectRange start.range(start.mutable().forwardChars range.length)
+          if range.type != 'None' && !(start = @domCursorForDocOffset(range.start, true).save()).isEmpty()
+            selectRange (start.skipToFrontOfSpace() ? start).range(start.mutable().forwardChars range.length)
             @node[0].scrollTop = range.scrollTop
             @node[0].scrollLeft = range.scrollLeft
         getSelectedBlockRange: ->
@@ -561,10 +563,14 @@ Events:
               pos.start += text.length
             @selectDocRange pos
         backspace: (event, sel, r)->
-          if sel.type == 'Range' then return @cutText event
-          holderId = @idAtCaret sel
-          @currentBlockIds = [holderId]
-          @handleDelete event, sel, false
+          if r.collapsed || r.extractContents().textContent.length == 0
+            if sel.type == 'Range' then sel.collapseToStart()
+            holderId = @idAtCaret sel
+            @currentBlockIds = [holderId]
+            @handleDelete event, sel, false
+          else
+            console.log "cutting"
+            @cutText event
         del: (event, sel, r)->
           if sel.type == 'Range' then return @cutText event
           holderId = @idAtCaret sel
@@ -829,17 +835,24 @@ Events:
             if (pos.node != r.startContainer || pos.pos > r.startOffset) && (pos.node != r.endContainer || pos.pos < r.endOffset)
               r.setEnd pos.node, pos.pos
               selectRange r
-        moveSelectionForward: -> @showCaret @moveForward()
-        moveSelectionDown: -> @showCaret @moveDown()
-        moveSelectionBackward: -> @showCaret @moveBackward()
-        moveSelectionUp: -> @showCaret @moveUp()
+        moveSelectionForward: -> @triggerMoved @moveForward()
+        moveSelectionDown: -> @triggerMoved @moveDown()
+        moveSelectionBackward: -> @triggerMoved @moveBackward()
+        moveSelectionUp: -> @triggerMoved @moveUp()
+        #moveSelectionForward: -> @showCaret @moveForward()
+        #moveSelectionDown: -> @showCaret @moveDown()
+        #moveSelectionBackward: -> @showCaret @moveBackward()
+        #moveSelectionUp: -> @showCaret @moveUp()
+        triggerMoved: (pos)->
+          pos.scrollIntoViewIfNeeded()
+          @trigger 'moved', this
         showCaret: (pos)->
           if pos.isEmpty() then pos = pos.prev()
           pos = @domCursorForCaret()
           pos.moveCaret()
           (if pos.node.nodeType == pos.node.TEXT_NODE then pos.node.parentNode else pos.node).scrollIntoViewIfNeeded()
-          @trigger 'moved', this
-        moveForward: ->
+          @triggerMoved()
+        oldMoveForward: ->
           sel = getSelection()
           offset = if sel.type == 'None' then 0
           else
@@ -847,21 +860,31 @@ Events:
             offset = if r.endContainer == r.startContainer
               @docOffset r.endContainer, Math.max r.startOffset, r.endOffset
             else @docOffset r.endContainer, r.endOffset
-          start = pos = @domCursorForCaret().firstText().save()
-          if !pos.isEmpty() && @options.isValidDocOffset(offset) && (@domCursorForCaret().firstText().equals(start) || pos.isCollapsed())
-            pos = @domCursorForDocOffset offset
-            while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || pos.isCollapsed())
-              if pos.isCollapsed()
-                pos.next().moveCaret()
-              else pos.forwardChars(1).moveCaret()
-          if pos.isEmpty()
+          start = cur = @domCursorForCaret().firstText().save()
+          if !cur.isEmpty() && @options.isValidDocOffset(offset) && (@domCursorForCaret().firstText().equals(start) || cur.isCollapsed())
+            cur = @domCursorForDocOffset offset, true
+            while !cur.isEmpty() && (@domCursorForCaret().firstText().equals(start) || cur.isCollapsed())
+              if cur.isCollapsed()
+                cur.next().moveCaret()
+              else cur.forwardChars(1, false, true).moveCaret()
+          if cur.isEmpty()
             offset = @options.getLength() - 1
-            pos = @domCursorForDocOffset(offset).firstText()
-            while !pos.isEmpty() && pos.isCollapsed()
-              pos = @domCursorForDocOffset --offset
+            cur = @domCursorForDocOffset(offset, true).firstText()
+            while !cur.isEmpty() && cur.isCollapsed()
+              cur = @domCursorForDocOffset --offset, true
           else if !@options.isValidDocOffset(offset)
-            pos = start
-          pos.moveCaret()
+            cur = start
+          if !cur.isEmpty() && cur.pos == 0 && cur.node.data[0] in ' \n\r'
+            prev = cur.save().prev()
+            if !prev.isEmpty()
+              prev.pos = prev.node.length
+              return prev.moveCaret()
+          cur.moveCaret()
+        moveForward: ->
+          cur = @domCursorForCaret()
+          if !cur.isEmpty()
+            cur.forwardChars(1, false, true)
+            if !cur.isEmpty() then cur.moveCaret()
         moveBackward: ->
           sel = getSelection()
           offset = if sel.type == 'None' then 0
@@ -872,16 +895,16 @@ Events:
             else @docOffset r.startContainer, r.startOffset
           start = pos = @domCursorForCaret().firstText().save()
           if !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || pos.isCollapsed())
-            pos = @domCursorForDocOffset offset
+            pos = @domCursorForDocOffset offset, true
             while !pos.isEmpty() && (@domCursorForCaret().firstText().equals(start) || pos.isCollapsed())
               if pos.isCollapsed()
                 pos.prev()
-              else pos.backwardChar().moveCaret()
+              else pos.backwardChar(true).moveCaret()
           if pos.isEmpty()
             offset = 0
-            pos = @domCursorForDocOffset(offset).firstText()
+            pos = @domCursorForDocOffset(offset, true).firstText()
             while !pos.isEmpty() && pos.isCollapsed()
-              pos = @domCursorForDocOffset ++offset
+              pos = @domCursorForDocOffset ++offset, true
           pos.moveCaret()
         firstText: -> @domCursor(@node, 0).firstText().node
         moveDown: ->
@@ -915,7 +938,7 @@ Events:
               line++
               linePos = pos
             if line == 2 then return prev.moveCaret()
-            if line == 1 && @options.blockColumn(pos) <= @movementGoal
+            if line == 1 && @options.blockColumn(pos) - 3 <= @movementGoal
               return @moveToBestPosition pos, prev, linePos
             prev = pos
           pos

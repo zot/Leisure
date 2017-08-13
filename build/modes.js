@@ -4,7 +4,7 @@
   var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['./base', './org', './docOrg', './ast', './eval', './editor', 'lodash', 'jquery', './ui', 'handlebars', './lib/prism', './editorSupport', 'bluebird', './advice', './lib/prism-leisure', 'lib/js-yaml'], function(Base, Org, DocOrg, Ast, Eval, Editor, _, $, UI, Handlebars, Prism, EditorSupport, Bluebird, Advice, PrismLeisure, Yaml) {
-    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, Keyword, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addPendingTooltip, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, dump, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, findFirstLetter, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isFirstText, isHiddenSlide, isMeat, isSidebar, isViewResult, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeFirst, maybeReplaceHtml, mergeContext, mergeMeat, namedNode, nextImageSrc, nextViewId, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, parseYaml, pendingTooltips, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, touchedBlocks, unescapeString, updateSelection, viewKey, withContext, workSpan;
+    var DataStore, DataStoreEditingOptions, Drawer, Example, Fragment, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, HTML, Headline, Html, KEYWORD_, KW_BOILERPLATE, KW_INFO, Keyword, LeisureEditCore, Link, ListItem, Meat, Nil, OrgEditing, Promise, SimpleMarkup, _workSpan, addController, addPendingTooltip, addView, afterMethod, beforeMethod, blockCodeItems, blockEnvMaker, blockIsHidden, blockOrg, blockSource, blockText, blockVars, changeAdvice, classifyListItems, cleanOrg, closeList, controllerEval, copy, copyBlock, createValueSliders, createWorkSpan, currentSlider, defaultEnv, doSlideValue, dump, escapeAttr, escapeHtml, fancyEditDiv, fancyHtml, fancyMode, fancyReplacements, findEditor, findFirstLetter, getCodeItems, getEventChar, getSliderPosition, goodHtml, goodText, hasView, headlineRE, html, initializePendingViews, insertBreaks, isFirstText, isHiddenSlide, isMeat, isSidebar, isViewResult, isYamlResult, keywordRE, languageEnvMaker, last, mayHideValueSlider, maybeFirst, maybeReplaceHtml, mergeContext, mergeMeat, namedNode, nextImageSrc, nextViewId, numPat, optWrench, orgDoc, parseMeat, parseOrgMode, parseYaml, pendingTooltips, plainEditDiv, plainMode, posFor, prefixBreak, preserveSelection, prevImageSrc, prismAliases, prismHighlight, pushPendingInitialzation, removeController, removeView, renderView, replacementTargets, resultsArea, sendSliderChange, setSliderValue, setSliding, showValueSlider, showsCode, showsResults, singleControllers, slideNode, slideValue, toggleSlideMode, touchedBlocks, unescapeString, updateSelection, validateBlock, viewKey, withContext, workSpan;
     defaultEnv = Base.defaultEnv;
     changeAdvice = Advice.changeAdvice, afterMethod = Advice.afterMethod, beforeMethod = Advice.beforeMethod;
     parseOrgMode = Org.parseOrgMode, parseMeat = Org.parseMeat, Fragment = Org.Fragment, Headline = Org.Headline, SimpleMarkup = Org.SimpleMarkup, Link = Org.Link, Keyword = Org.Keyword, ListItem = Org.ListItem, Drawer = Org.Drawer, Meat = Org.Meat, Example = Org.Example, HTML = Org.HTML, Nil = Org.Nil, headlineRE = Org.headlineRE, HL_LEVEL = Org.HL_LEVEL, HL_TODO = Org.HL_TODO, HL_PRIORITY = Org.HL_PRIORITY, HL_TEXT = Org.HL_TEXT, HL_TAGS = Org.HL_TAGS, keywordRE = Org.keywordRE, KW_BOILERPLATE = Org.KW_BOILERPLATE, KW_INFO = Org.KW_INFO, KEYWORD_ = Org.KEYWORD_;
@@ -19,6 +19,20 @@
     singleControllers = {};
     numPat = /-?[0-9][0-9.]*|-?\.[0-9.]+/;
     currentSlider = null;
+    validateBlock = function(opts, block, force) {
+      var node, offset, rendered;
+      if (opts.validateMode || force) {
+        node = opts.nodeForId(block._id)[0];
+        offset = opts.data.offsetForBlock(block._id);
+        rendered = opts.editor.domCursor(node, 0).filterTextNodes().filterParent(node).firstText().getText(block.text.length);
+        if (block.text !== rendered) {
+          console.log("Invalid rendering for block", block, ", exptected:");
+          console.log(block.text);
+          console.log("but got this for node", node);
+          return console.log(rendered);
+        }
+      }
+    };
     plainMode = {
       name: 'plain',
       keyPress: function(opts, parent, e) {
@@ -78,6 +92,9 @@
         }
         result = "<span " + attrs + ">" + text + "</span>";
         maybeReplaceHtml(block, prefix, result, replace);
+        if (replace) {
+          validateBlock(opts, block);
+        }
         return [result, block.next];
       },
       renderMainBlock: function(block) {
@@ -304,24 +321,33 @@
       return src.text.substring(0, src.contentPos);
     });
     Handlebars.registerHelper('sourceBoiler', function() {
-      var src;
-      src = this.codeItems.source;
-      return src.text.substring(0, src.infoPos);
+      var name, ref, src;
+      ref = this.codeItems, name = ref.name, src = ref.source;
+      if (name && src.text[src.infoPos - 1] === ' ') {
+        return src.text.substring(0, src.infoPos - 1);
+      } else {
+        return src.text.substring(0, src.infoPos);
+      }
     });
     Handlebars.registerHelper('sourceInfo', function() {
-      var src;
-      src = this.codeItems.source;
-      return src.text.substring(src.infoPos, src.contentPos);
+      var name, ref, src;
+      ref = this.codeItems, name = ref.name, src = ref.source;
+      if (name && src.text[src.infoPos - 1] === ' ') {
+        return src.text.substring(src.infoPos - 1, src.contentPos);
+      } else {
+        return src.text.substring(src.infoPos, src.contentPos);
+      }
     });
     Handlebars.registerHelper('renderSource', function() {
-      var error, ignore, msg, pos, ref, ref1, source;
+      var error, ignore, msg, pos, ref, ref1, source, src;
       ref = this.codeItems, error = ref.error, source = ref.source;
+      src = source.content.substring(0, source.content.length - 1);
       if (error) {
         ref1 = error.info.match(/([^,]*), *(.*)/), ignore = ref1[0], pos = ref1[1], msg = ref1[2];
         pos = Number(pos) - 1;
-        return prismHighlight(this.language, source.content.substring(0, pos)) + ("<span class='errorMark' contenteditable='false' data-noncontent>✖</span><span class='errorMessage' contenteditable='false' data-noncontent title='" + (escapeHtml(unescapeString(msg).replace(/\n/g, '<br>'))) + "'>✖</span><span class='errorSource'>") + prismHighlight(this.language, source.content.substring(pos)) + "</span>";
+        return prismHighlight(this.language, src.substring(0, pos)) + ("<span class='errorMark' contenteditable='false' data-noncontent>✖</span><span class='errorMessage' contenteditable='false' data-noncontent title='" + (escapeHtml(unescapeString(msg).replace(/\n/g, '<br>'))) + "'>✖</span><span class='errorSource'>") + prismHighlight(this.language, src.substring(pos)) + "</span>";
       } else {
-        return prismHighlight(this.language, this.source);
+        return prismHighlight(this.language, src);
       }
     });
     Handlebars.registerHelper('sourceFooter', function() {
@@ -597,16 +623,15 @@
           opts.trigger('render', block);
           return opts.withNewContext((function(_this) {
             return function() {
+              var result;
               UI.context.currentView = opts.nodeForId(block._id);
               UI.context.block = block;
               addPendingTooltip(opts, block._id);
-              if (block.type === 'headline') {
-                return _this.renderHeadline(opts, block, prefix, replace);
-              } else if (!block.prev) {
-                return _this.renderFirstBlocks(opts, block, prefix, replace);
-              } else {
-                return _this.renderNontop(opts, block, prefix, replace);
+              result = block.type === 'headline' ? _this.renderHeadline(opts, block, prefix, replace) : !block.prev ? _this.renderFirstBlocks(opts, block, prefix, replace) : _this.renderNontop(opts, block, prefix, replace);
+              if (replace) {
+                validateBlock(opts, block);
               }
+              return result;
             };
           })(this));
         }
@@ -758,7 +783,7 @@
             block: block,
             header: block.text.substring(0, block.codePrelen),
             source: blockSource(block),
-            footer: block.text.substring(block.text.length - block.codePostlen, source.end()),
+            footer: block.text.substring(block.text.length - block.codePostlen - 1, source.end() - 1),
             nameBoiler: nameBoiler != null ? nameBoiler : '',
             nameText: name ? name.text.substring(nameBoiler.length, name.text.length - 1) : '',
             name: name ? name.text.substring(name.info) : '',
@@ -1152,7 +1177,7 @@
     };
     prefixBreak = function(text) {
       if (text[0] === '\n' && text[1] !== '\n') {
-        return "\n<div style='height: 2em; white-space: pre' data-noncontent>\n</div>" + (text.substring(1));
+        return "<span class='hidden'>\n</span><div style='height: 2em; white-space: pre' data-noncontent contenteditable='false'>\n</div>" + (text.substring(1));
       } else {
         return text;
       }

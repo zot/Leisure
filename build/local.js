@@ -154,6 +154,7 @@
           var join, load, ref, tanglePresent, theme;
           createStructureDisplay(data);
           window.ED = fancyEditDiv($("[maindoc]"), data);
+          ED.options.validateMode = true;
           if (useP2P) {
             window.PEER.setEditor(ED);
           }

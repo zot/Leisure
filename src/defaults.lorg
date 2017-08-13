@@ -426,8 +426,8 @@ render this
     data-org-src
     data-contain
     contenteditable='true'>{{{renderSource}}}</div><span
-class='hidden'>{{footer}}</span>{{#if
-inter}}<div>{{{inter}}}</div>{{/if}}{{#if
+class='hidden'>{{footer}}</span>
+{{#if inter}}<div>{{{inter}}}</div>{{/if}}{{#if
 results}}{{#if hideResults}}{{{results}}}{{else}}<div
 class='code-results' data-org-src>{{{results}}}</div>{{/if}}{{/if}}{{> codeMenuButton}}</span>
 #+END_SRC
@@ -445,7 +445,11 @@ class='code-results' data-org-src>{{{results}}}</div>{{/if}}{{/if}}{{> codeMenuB
 contenteditable='true' class='name'>{{nameText
 }}</span><span data-noncontent>"
 </span></span><span class='hidden'>
-</span>{{#if afterName}}<span class='code-doc-holder'><span class='code-doc-background'></span><span class='code-doc' contenteditable='true'>{{{afterName}}}</span></span>{{/if}}{{/if}}<div class='src-line-break'></div>{{> leisure-code-src-line}}</span></span>
+</span>{{#if afterName}}<span class='code-doc-holder'><span class='code-doc-background'></span><span class='code-doc' contenteditable='true'>{{{afterName}}}</span></span>{{/if}}{{/if}}{{> leisure-code-src-line}}</span></span>
+#+END_SRC
+
+#+BEGIN_SRC html :defview nl
+<div class='src-line-break'></div>
 #+END_SRC
 
 #+BEGIN_SRC html :defview leisure-code-src-line
