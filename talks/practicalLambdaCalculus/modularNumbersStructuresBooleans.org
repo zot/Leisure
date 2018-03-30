@@ -8,6 +8,15 @@
 #+BEGIN_HTML
 <span style='font-size: 64px; font-family: bold'><span style='vertical-align: sub'>+</span><span style='font-size: 150%; vertical-align: middle'>&infin;</span></span>
 #+END_HTML
+* Calculus
+** From Webster's first definition:
+*** a: a method of computation or calculation in a special notation (as of logic or symbolic logic)
+*** b: the mathematical methods comprising differential and integral calculus — often used with /the/
+* Calculus
+** From Webster's first definition:
+*** a: a method of computation or calculation in a special notation (as of logic or symbolic logic)
+*** b: the mathematical methods comprising differential and integral calculus — often used with /the/
+** So each programming languages is a calculus
 * What is Lambda Calculus
 * What is Lambda Calculus
 ** Lambda Calculus is (probably) not your grandfather's calculus
@@ -89,17 +98,35 @@
 *** A collaborative execution environment
 *** A collaborative document editor
 *** A presentation tool (you're seeing it right now)
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+*** ALL values are functions
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+*** ALL values are functions
+** Every function returns the same results for the same arguments
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+*** ALL values are functions
+** Every function returns the same results for the same arguments
+** No exceptions to these two rules
+* What is a Functional Programming Language?
+** In a pure OO language, every value is an object
+** So what is every value in a pure functional language?
+*** ALL values are functions
+** Every function returns the same results for the same arguments
+** No exceptions to these two rules
+** i.e. no pointer equality and no function that returns the current time
 * Lambda Calculus is an "Ideal" Language
 ** It's not practical for everything but it actually IS for some things
 ** It only consists of single-argument, anonymous functions
 ** It has no...
-* What is a Functional Programming Language?
-** There are many definitions
-** In a PURE functional programming language...
-*** ALL values are functions
-*** Every function returns the same results for the same arguments
-*** No exceptions to these two rules
-*** i.e. no pointer equality and no function that returns the current time
 * Lambda Calculus is an "Ideal" Language
 ** It's not practical for everything but it actually IS for some things
 ** It only consists of single-argument, anonymous functions
@@ -177,7 +204,7 @@ stay      = λgrid ship left? ctr . next grid ship left? ctr
 *** Data structures
 * The Point: A Deeper Understanding of Computation
 ** Lambda Calculus is one of the simplest models of computation
-** A complete BNF for it is only 5 lines
+** A complete BNF for it is only 5 lines (Java is about [[https://users-cs.au.dk/amoeller/dRegAut/JavaBNF.html][144 lines]], gross?)
 #+BEGIN_EXAMPLE
 LC    ::= PARAM | CALL | GROUP | FUNC
 PARAM ::= IDENT
@@ -187,7 +214,7 @@ FUNC  ::= 'λ' IDENT '.' LC
 #+END_EXAMPLE
 * The Point: A Deeper Understanding of Computation
 ** Lambda Calculus is one of the simplest models of computation
-** A complete BNF for it is only 5 lines
+** A complete BNF for it is only 5 lines (Java is about [[https://users-cs.au.dk/amoeller/dRegAut/JavaBNF.html][144 lines]], gross?)
 #+BEGIN_EXAMPLE
 LC    ::= PARAM | CALL | GROUP | FUNC
 PARAM ::= IDENT
@@ -200,7 +227,7 @@ FUNC  ::= 'λ' IDENT '.' LC
 ** Lambda Calculus can be intuitive
 * The Point: A Deeper Understanding of Computation
 ** Lambda Calculus is one of the simplest models of computation
-** A complete BNF for it is only 5 lines
+** A complete BNF for it is only 5 lines (Java is about [[https://users-cs.au.dk/amoeller/dRegAut/JavaBNF.html][144 lines]], gross?)
 #+BEGIN_EXAMPLE
 LC    ::= PARAM | CALL | GROUP | FUNC
 PARAM ::= IDENT
@@ -214,7 +241,7 @@ FUNC  ::= 'λ' IDENT '.' LC
 ** It's just a programming language!
 * The Point: A Deeper Understanding of Computation
 ** Lambda Calculus is one of the simplest models of computation
-** A complete BNF for it is only 5 lines
+** A complete BNF for it is only 5 lines (Java is about [[https://users-cs.au.dk/amoeller/dRegAut/JavaBNF.html][144 lines]], gross?)
 #+BEGIN_EXAMPLE
 LC    ::= PARAM | CALL | GROUP | FUNC
 PARAM ::= IDENT
@@ -428,12 +455,18 @@ thirdOf3  a b c = c
 firstOf3 A B C
 secondOf3 D E F
 #+END_SRC
+#+RESULTS:
+: A
+: E
 
 ** You can also use them AS values
 #+BEGIN_SRC leisure
 firstOf3
 secondOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
+: <span class="partial-application">(secondOf3)</span>
 
 * Modular Numbers: Defining Them
 ** Can we define a "next" function, together?
@@ -441,16 +474,24 @@ secondOf3
 #+BEGIN_SRC leisure
 myNext thirdOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
 ** Definition
 #+BEGIN_SRC leisure
-next num = ???
+next num = num secondOf3 thirdOf3 firstOf3
 #+END_SRC
+#+RESULTS:
+: 
 ** Tests
 #+BEGIN_SRC leisure
 next firstOf3
 next secondOf3
 next thirdOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(secondOf3)</span>
+: <span class="partial-application">(thirdOf3)</span>
+: <span class="partial-application">(firstOf3)</span>
 * Modular Numbers: Defining Them
 ** Here's my definition
 #+BEGIN_SRC leisure :results def
@@ -459,12 +500,18 @@ myNext num = num secondOf3 thirdOf3 firstOf3
 * Modular Numbers: Defining Them
 ** Can we define an "add" function, together?
 #+BEGIN_SRC leisure
-myAdd firstOf3 secondOf3
+add firstOf3 secondOf3
+#LC: a b c
+#Java: a(b, c)
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(thirdOf3)</span>
 
 #+BEGIN_SRC leisure
-add a b = ???
+add a b = a (next b) (next (next b)) b
 #+END_SRC
+#+RESULTS:
+: 
 * Modular Numbers: Defining Them
 ** Here's my definition
 #+BEGIN_SRC leisure :results def
@@ -486,35 +533,98 @@ sun a b c d e f g = g
 true firstOf3 secondOf3
 false firstOf3 secondOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
+: <span class="partial-application">(secondOf3)</span>
 ** Example erroneous code
 #+BEGIN_SRC leisure
-myNext Q
+#myNext Q
 #+END_SRC
 ** What will this do?
 #+BEGIN_SRC leisure
 true firstOf3 (myNext Q)
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
 * Booleans: Let's Define Our Own, Together (t and f)
 ** Definition
 #+BEGIN_SRC leisure
-t a b = ???
-f a b = ???
+t a b = a
+f a b = b
 #+END_SRC
+#+RESULTS:
+: 
+: 
 ** Tests
 #+BEGIN_SRC leisure
 t firstOf3 (myNext Q)
 f firstOf3 secondOf3
 #+END_SRC
+#+RESULTS:
+: <span class="partial-application">(firstOf3)</span>
+: <span class="partial-application">(secondOf3)</span>
 * Booleans: My Definitions
 #+BEGIN_SRC leisure
 true a b = a
 false a b = b
 #+END_SRC
+* Booleans
+** So boolean values in Lambda Calculus are ALSO "if statements"
+* Booleans
+** So boolean values in Lambda Calculus are ALSO "if statements"
+** They're functions, values, and control structures
+* Booleans
+** So boolean values in Lambda Calculus are ALSO "if statements"
+** They're functions, values, and control structures
+** THIS is why Lambda Calculus doesn't need control structures or booleans
+* Booleans
+** So boolean values in Lambda Calculus are ALSO "if statements"
+** They're functions, values, and control structures
+** THIS is why Lambda Calculus doesn't need control structures or booleans
+** You can define them yourself
+* Booleans
+** Booleans are 2-valued modular numbers
+* Booleans
+** Booleans are 2-valued modular numbers
+** Modular numbers are also control structures
+* Booleans: And (myAnd)
+** Definition
+#+BEGIN_SRC leisure
+myAnd a b = a b f
+#+END_SRC
+#+RESULTS:
+: 
+** Tests
+#+BEGIN_SRC leisure
+myAnd t t
+myAnd t f
+myAnd f t
+myAnd f f
+#+END_SRC
+#+RESULTS:
+: <span class="partial-application">(t)</span>
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(f)</span>
+* Booleans: And (myAnd), My Definition
+** Definition
+#+BEGIN_SRC leisure
+myAnd a b = a b f
+#+END_SRC
+** Tests
+#+BEGIN_SRC leisure
+myAnd t t
+myAnd t f
+myAnd f t
+myAnd f f
+#+END_SRC
 * Booleans: Let's Implement Numeric Equality!
 ** Definition
 #+BEGIN_SRC leisure
-equal a b = ???
+equal a b = a (b t f f) (b f t f) (b f f t)
 #+END_SRC
+#+RESULTS:
+: 
 ** Tests
 #+BEGIN_SRC leisure
 A
@@ -530,6 +640,19 @@ equal thirdOf3 firstOf3
 equal thirdOf3 secondOf3
 equal thirdOf3 thirdOf3
 #+END_SRC
+#+RESULTS:
+: A
+: <span class="partial-application">(t)</span>
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(f)</span>
+: B
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(t)</span>
+: <span class="partial-application">(f)</span>
+: C
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(f)</span>
+: <span class="partial-application">(t)</span>
 * Booleans: Let's Implement Numeric Equality! (my version)
 ** Definition
 #+BEGIN_SRC leisure
@@ -550,87 +673,93 @@ myEqual thirdOf3 firstOf3
 myEqual thirdOf3 secondOf3
 myEqual thirdOf3 thirdOf3
 #+END_SRC
-* Booleans: And (myAnd)
-** Definition
-#+BEGIN_SRC leisure
-myAnd a b = ???
-#+END_SRC
-** Tests
-#+BEGIN_SRC leisure
-myAnd t t
-myAnd t f
-myAnd f t
-myAnd f f
-#+END_SRC
-* Booleans: And (myAnd), My Definition
-** Definition
-#+BEGIN_SRC leisure
-myAnd a b = a b f
-#+END_SRC
-** Tests
-#+BEGIN_SRC leisure
-myAnd t t
-myAnd t f
-myAnd f t
-myAnd f f
-#+END_SRC
-* Data Structures: What Do They Do?
-* Data Structures: What Do They Do?
+* Simple Data Structures: What Do They Do?
+* Simple Data Structures: What Do They Do?
 ** Remember, every value in Lambda Calculus is a function!
 ** Say you have a person with a name, address, and phone number
 ** It's also a function, so what does it do?
-* Data Structures: What Do They Do?
+* Simple Data Structures: What Do They Do?
 ** Remember, every value in Lambda Calculus is a function!
 ** Say you have a person with a name, address, and phone number
 ** It's also a function, so what does it do?
-** How about providing access to its data?
-* Data Structures: What Do They Do?
+** It provides access to its data
+* Simple Data Structures: What Do They Do?
 ** Remember, every value in Lambda Calculus is a function!
 ** Say you have a person with a name, address, and phone number
 ** It's also a function, so what does it do?
-** How about providing access to its data?
+** It provides access to its data
 ** It sends its data into a callback function
-* Data Structures: What Do They Do?
+* Simple Data Structures: What Do They Do?
 ** Remember, every value in Lambda Calculus is a function!
 ** Say you have a person with a name, address, and phone number
 ** It's also a function, so what does it do?
-** How about providing access to its data?
+** It provides access to its data
 ** It sends its data into a callback function
 ** It takes that callback function as an argument
-* Data Structures: Let's Define a Person Constructor, Together
+* Simple Data Structures: Let's Define a Person ADT, Together
 ** Definition
 #+BEGIN_SRC leisure
-person name address phone = ???
-getName person = ???
-getAddress person = ???
-getPhone person = ???
-setName person newName = ???
+person name address phone = \ f . f name address phone
+getName aPerson = aPerson \n a p . n
+getAddress aPerson = aPerson secondOf3
+getPhone aPerson = aPerson thirdOf3
+setName aPerson newName = aPerson newName (getAddress person) (getPhone person)
 #+END_SRC
+#+RESULTS:
+: 
+: 
+: 
+: 
+: 
 ** Tests (note lazy behavior)
-#+BEGIN_SRC 
-p1 = person A B Q
+#+BEGIN_SRC leisure
+p1 = person A B (next Q)
 p2 = person D E F
 getName p1
+p1 \n a p . n
 getName p2
-getName (setName p1 F)
+#getName (setName p1 F)
 #+END_SRC
-* Data Structures: My Definitions
+#+RESULTS:
+: 
+: 
+: A
+: A
+: D
+* Simple Data Structures: My Definitions
 ** Definition
 #+BEGIN_SRC leisure
 person name address phone = λf . f name address phone
-getName person            = person firstOfThree
-getAddress person         = person secondOfThree
-getPhone person           = person thirdOfThree
-setName person newName    = person λname address phone . person newName address phone
+getName person            = person firstf3e
+getAddress person         = person secondf3e
+getPhone person           = person thirdf3e
+setNam eaperson newName    =aperson λname address phon. p person newName address phone
 #+END_SRC
-** Tests
-#+BEGIN_SRC 
-p1 = person A B Q
+#+RESULTS:
+: 
+: 
+: 
+: 
+: 
+** Te
+
+#+BEGIN_SRC leisure
+p1 = person A B (next Q)
 p2 = person D E F
 getName p1
 getName p2
 getName (setName p1 F)
 #+END_SRC
+#+RESULTS:
+: 
+: 
+: A
+: D
+: F
+
+C
+* Simple Data Structures
+** Accessor functions are modular numbers (and booleans for 2-item structures)
 * Let's Apply These Ideas to Space Invaders
 ** Open discussion of [[../lambdaCalculus/invaders-pretty.html][the code]]
 * Contact Info
