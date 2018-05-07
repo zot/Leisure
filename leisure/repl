@@ -5,7 +5,7 @@ STACK=4000
 #STACK=10000
 NODE=node
 
-if [ "$1" == -D ]; then
+if [ "$1" = -D ]; then
     NODE=node-debug
     shift
 fi

@@ -27,8 +27,8 @@ require('source-map-support').install()
 path = require 'path'
 
 baseDir = path.resolve path.dirname(module.filename) + '/../../../build'
-console.log "BASE DIR: #{baseDir}"
 baseLeisureDir = baseDir + '/leisure/'
+quiet = false
 
 requirejs = require('requirejs').config
   baseUrl: baseDir
@@ -131,10 +131,11 @@ shouldNsLog = false
 pargs = null
 
 diag = false
+inErr = false
 
 readline = require('readline')
 
-replEnv =
+root.replEnv = replEnv =
   prompt: (msg, cont)->
     rl.question(msg, (x)->
       try
@@ -153,7 +154,7 @@ errorString = (err)-> err.stack ? err.toString()
 process.on 'uncaughtException', (err)->
   console.log "Uncaught Exception: #{err.stack || errorString err}"
 
-evalInput = (text, cont)->
+root.evalInput = evalInput = (text, cont)->
   if text
     source = null
     try
@@ -177,12 +178,25 @@ evalInput = (text, cont)->
             if isIO result then console.log "(processing IO monad)"
             runMonad2 result, replEnv, cont
         catch err
-          console.log "caught error evaluating source:\n#{source}"
-          cont rz(L_err)(lz (errorString err))
+          #console.log "caught error evaluating source:\n#{source}"
+          #cont rz(L_err)(lz (errorString err))
+          inErr = true
+          global.handleError err, cont, text
     catch err
-      console.log "caught error evaluating source:\n#{source}"
-      cont rz(L_err)(lz (errorString err))
+      #console.log "caught error evaluating source:\n#{source}"
+      #cont rz(L_err)(lz (errorString err))
+      if !inErr
+        inErr = true
+        global.handleError err, cont, text
+    finally
+      inErr = false
   else cont ''
+
+global.handleError = (err, cont)->
+  console.log "ERROR!!!!"
+  console.log "caught error evaluating source:\n#{source}"
+  cont rz(L_err)(lz (errorString err))
+  
 
 help = ->
   console.log """
@@ -236,7 +250,7 @@ prompt = ->
   rl.setPrompt promptText
   rl.prompt()
 
-show = (obj)-> if L_show? then rz(L_show)(lz obj) else String obj
+root.show = show = (obj)-> if L_show? then rz(L_show)(lz obj) else String obj
 
 repl = (config)->
   evalInput 'resetStdTokenPacks', (->)
@@ -259,7 +273,7 @@ repl = (config)->
             console.log 'Could not create leisure dir!'
             process.exit 1
           cont()) ()->
-      help()
+      if !quiet then help()
       multiline = false
       prompt()
       root.defaultEnv.err = (err)->
@@ -289,7 +303,8 @@ repl = (config)->
             else if line.match /^!/ then console.log eval line.substring 1
             else
               evalInput line, (result)->
-                console.log 'RESULT: ' + show(result)
+                #console.log 'RESULT: ' + show(result)
+                console.log show(result)
                 prompt()
               return
           catch err
@@ -501,6 +516,7 @@ usage = ->
   -j            run JavaScript interactively after requiring Leisure files
   -coffee       run CoffeeScript interactively after requiring Leisure files
   -prefix       filename prefix for code generation file references
+  -q            quiet, suppress startup messages
 
   With no FILE arguments, runs interactive REPL
   """
@@ -598,6 +614,7 @@ processArg = (config, pos)->
       requireList.push pargs[pos + 1]
       pos++
     when '-prefix' then genFilePrefix = pargs[++pos]
+    when '-q' then quiet = true
     else
       newOptions = true
       if pargs[pos] == '-coffee'
@@ -624,6 +641,7 @@ processArg = (config, pos)->
           #console.log "PROCESSING #{pargs[pos]} with #{action}"
           action pargs[pos], -> processArg config, pos + 1
       return
+  if !quiet then console.log "BASE DIR: #{baseDir}"
   processArg config, pos + 1
 
 requireUtils = ->
@@ -634,7 +652,7 @@ requireUtils = ->
 run = (args, config)->
   pargs = args
   action = runFile
-  console.log "Run: #{args.join ', '}"
+  if !(a for a in args when a == '-q').length then console.log "Run: #{args.join ', '}"
   if args.length == 2
     #if stage < 2 then root.shouldNsLog = false
     root.shouldNsLog = shouldNsLog

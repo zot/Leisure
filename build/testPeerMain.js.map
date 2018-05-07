@@ -6,5 +6,8 @@
     "server/testPeerMain.litcoffee"
   ],
   "names": [],
-  "mappings": ";AAAI;EAAA,OAAA,CAAQ,CAAC,UAAD,EAAa,YAAb,CAAR,EAAoC,SAAA,GAAA,CAApC;AAAA"
+  "mappings": ";AAAI;EAAA,OAAA,CAAQ,CAAC,UAAD,EAAa,YAAb,CAAR,EAAoC,QAAA,CAAA,CAAA,EAAA,CAApC;AAAA",
+  "sourcesContent": [
+    "    require ['./config', './testPeer'], ->\r\n"
+  ]
 }

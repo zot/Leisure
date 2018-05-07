@@ -103,8 +103,9 @@
         else []
 
       class SearchEditor extends OrgEditing
-        constructor: (@data, @text)->
-          super @data
+        constructor: (data, @text)->
+          super data
+          @data = data
           @results = {}
           @addDataCallbacks updateSearch: => @redisplay()
           @setPrefix "search-#{editorCount++}-"

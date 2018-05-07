@@ -111,7 +111,8 @@ and previousSibling ids to indicate the tree structure of the org document
 
       class OrgData extends DataStore
         constructor: ->
-          DataStore.apply this, arguments
+          #DataStore.apply this, arguments
+          super arguments
           @disableObservation = true
           @pendingObserves = {}
           @running = {}
@@ -886,8 +887,9 @@ that must be done regardless of the source of changes
         URL.createObjectURL blob
 
       class EditorParsedCodeBlock extends ParsedCodeBlock
-        constructor: (@data, block)->
-          super @data.getBlock(block) || block
+        constructor: (data, block)->
+          super data.getBlock(block) || block
+          @data = data
         clone: -> new EditorParsedCodeBlock @data, @block
         save: (withUpdates)->
           start = @data.offsetForBlock @block._id

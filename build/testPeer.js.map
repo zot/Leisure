@@ -6,5 +6,8 @@
     "server/testPeer.litcoffee"
   ],
   "names": [],
-  "mappings": ";AAAI;EAAA,MAAA,CAAO,CAAC,QAAD,CAAP,EAAmB,SAAC,MAAD;AACjB,QAAA;IAAA,OAAO,CAAC,GAAR,CAAY,UAAZ,EAAwB,MAAxB;IACA,GAAA,GAAM;IAEN,OAAO,CAAC,GAAR,CAAY,iBAAA,GAAkB,GAAlB,GAAsB,KAAlC;IACA,IAAA,GAAO,IAAI,MAAJ,CAAW,GAAX;IACP,IAAI,CAAC,MAAL,GAAc,SAAA;MACZ,OAAO,CAAC,GAAR,CAAY,MAAZ;aACA,IAAI,CAAC,IAAL,CAAU,gCAAV;IAFY;IAGd,IAAI,CAAC,SAAL,GAAiB,SAAC,CAAD;AACf,UAAA;MAAA,OAAO,CAAC,GAAR,CAAY,SAAZ,EAAuB,CAAC,CAAC,IAAzB;MACA,6CAAqB,CAAE,cAApB,KAA4B,OAA/B;eAA4C,IAAI,CAAC,KAAL,CAAA,EAA5C;;IAFe;WAGjB,IAAI,CAAC,OAAL,GAAe,SAAA;aAAG,OAAO,CAAC,GAAR,CAAY,OAAZ;IAAH;EAZE,CAAnB;AAAA"
+  "mappings": ";AAAI;EAAA,MAAA,CAAO,CAAC,QAAD,CAAP,EAAmB,QAAA,CAAC,MAAD,CAAA;AACjB,QAAA,IAAA,EAAA;IAAA,OAAO,CAAC,GAAR,CAAY,UAAZ,EAAwB,MAAxB;IACA,GAAA,GAAM,uCADN;;IAGA,OAAO,CAAC,GAAR,CAAY,CAAA,eAAA,CAAA,CAAkB,GAAlB,CAAsB,GAAtB,CAAZ;IACA,IAAA,GAAO,IAAI,MAAJ,CAAW,GAAX;IACP,IAAI,CAAC,MAAL,GAAc,QAAA,CAAA,CAAA;MACZ,OAAO,CAAC,GAAR,CAAY,MAAZ;aACA,IAAI,CAAC,IAAL,CAAU,gCAAV;IAFY;IAGd,IAAI,CAAC,SAAL,GAAiB,QAAA,CAAC,CAAD,CAAA;AACf,UAAA;MAAA,OAAO,CAAC,GAAR,CAAY,SAAZ,EAAuB,CAAC,CAAC,IAAzB;MACA,6CAAqB,CAAE,cAApB,KAA4B,OAA/B;eAA4C,IAAI,CAAC,KAAL,CAAA,EAA5C;;IAFe;WAGjB,IAAI,CAAC,OAAL,GAAe,QAAA,CAAA,CAAA;aAAG,OAAO,CAAC,GAAR,CAAY,OAAZ;IAAH;EAZE,CAAnB;AAAA",
+  "sourcesContent": [
+    "    define ['sockjs'], (SockJS)->\r\n      console.log \"SockJS: \", SockJS\r\n      url = 'http://localhost:9090/Leisure/master'\r\n      #url = 'http://localhost:9090/Leisure/slave-f340e224-e2bf-44c3-95f8-bcf51a17de76'\r\n      console.log \"opening socket #{url}...\"\r\n      sock = new SockJS(url);\r\n      sock.onopen = ->\r\n        console.log('open')\r\n        sock.send('{\"type\": \"log\", \"msg\": \"test\"}')\r\n      sock.onmessage = (e)->\r\n        console.log('message', e.data)\r\n        if JSON.parse(e.data)?.type == 'close' then sock.close()\r\n      sock.onclose = -> console.log('close')\r\n"
+  ]
 }
