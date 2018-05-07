@@ -6,5 +6,8 @@
     "server/otserver.litcoffee"
   ],
   "names": [],
-  "mappings": ";AA2BI;AAAA,MAAA;;EAAA,OAAO,CAAC,GAAR,CAAY,QAAA,GAAQ,CAAC,OAAO,CAAC,IAAI,CAAC,IAAb,CAAkB,GAAlB,CAAD,CAApB;;EACA,IAAA,GAAO,MAAA,yCAAyB,IAAzB;;EACP,OAAO,CAAC,GAAR,CAAY,QAAA,GAAS,IAArB;;EACA,OAAA,CAAQ,wBAAR,CAAiC,CAAC,WAAlC,CAA8C,IAA9C;AAHA"
+  "mappings": ";AAAA;EAAA;;;;;;;;;;;;;;;;;;;;;;;;;;AAAA,MAAA,IAAA,EAAA;;EA2BI,OAAO,CAAC,GAAR,CAAY,CAAA,MAAA,CAAA,CAAS,OAAO,CAAC,IAAI,CAAC,IAAb,CAAkB,GAAlB,CAAT,CAAA,CAAZ;;EACA,IAAA,GAAO,MAAA,yCAAyB,IAAzB;;EACP,OAAO,CAAC,GAAR,CAAY,CAAA,MAAA,CAAA,CAAS,IAAT,CAAA,CAAZ;;EACA,OAAA,CAAQ,wBAAR,CAAiC,CAAC,WAAlC,CAA8C,IAA9C;AA9BJ",
+  "sourcesContent": [
+    "Launch Leisure's OT server\r\n==========================\r\nCopyright (C) 2015, Bill Burdick, Roy Riggs, TEAM CTHULHU\r\n\r\nLicensed with ZLIB license.\r\n=============================\r\n\r\nThis software is provided 'as-is', without any express or implied\r\nwarranty. In no event will the authors be held liable for any damages\r\narising from the use of this software.\r\n\r\nPermission is granted to anyone to use this software for any purpose,\r\nincluding commercial applications, and to alter it and redistribute it\r\nfreely, subject to the following restrictions:\r\n\r\n1. The origin of this software must not be misrepresented; you must not\r\nclaim that you wrote the original software. If you use this software\r\nin a product, an acknowledgment in the product documentation would be\r\nappreciated but is not required.\r\n\r\n2. Altered source versions must be plainly marked as such, and must not be\r\nmisrepresented as being the original software.\r\n\r\n3. This notice may not be removed or altered from any source distribution.\r\n\r\nLaunch the server\r\n\r\n    console.log \"argv: #{process.argv.join ' '}\"\r\n    port = Number process.argv[2] ? 8080\r\n    console.log \"PORT: #{port}\"\r\n    require('./lib/ot/launch-server').startServer port\r\n"
+  ]
 }

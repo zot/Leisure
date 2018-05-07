@@ -186,18 +186,22 @@ misrepresented as being the original software.
             }
           } catch (error) {
             err = error;
-            console.log("caught error evaluating source:\n" + source);
-            return cont(rz(L_err)(lz(errorString(err))));
+            return global.handleError(err, cont);
           }
         });
       } catch (error) {
         err = error;
-        console.log("caught error evaluating source:\n" + source);
-        return cont(rz(L_err)(lz(errorString(err))));
+        return global.handleError(err, cont);
       }
     } else {
       return cont('');
     }
+  };
+
+  global.handleError = function(err, cont) {
+    console.log("ERROR!!!!");
+    console.log("caught error evaluating source:\n" + source);
+    return cont(rz(L_err)(lz(errorString(err))));
   };
 
   help = function() {

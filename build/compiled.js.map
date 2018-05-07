@@ -6,5 +6,8 @@
     "src/compiled.litcoffee"
   ],
   "names": [],
-  "mappings": ";AAEI;EAAA,IAAG,CAAC,SAAS,CAAC,UAAU,CAAC,KAArB,CAA2B,SAA3B,CAAJ;IACE,QAAQ,CAAC,cAAT,CAAwB,YAAxB,CAAqC,CAAC,SAAtC,GAAkD,+FADpD;GAAA,MAAA;IAGE,SAAS,CAAC,eAAV,GAA4B;IAC5B,IAAG,QAAQ,CAAC,QAAQ,CAAC,MAAM,CAAC,KAAzB,CAA+B,MAA/B,CAAH;MAA8C,MAAM,CAAC,KAAP,CAAA,EAA9C;KAAA,MAAA;MACK,OAAA,CAAQ,CAAC,MAAD,CAAR,EADL;KAJF;;AAAA"
+  "mappings": ";AAAA;EAAA;EAEI,IAAG,CAAC,SAAS,CAAC,UAAU,CAAC,KAArB,CAA2B,SAA3B,CAAJ;IACE,QAAQ,CAAC,cAAT,CAAwB,YAAxB,CAAqC,CAAC,SAAtC,GAAkD,+FADpD;GAAA,MAAA;IAGE,SAAS,CAAC,eAAV,GAA4B;IAC5B,IAAG,QAAQ,CAAC,QAAQ,CAAC,MAAM,CAAC,KAAzB,CAA+B,MAA/B,CAAH;MAA8C,MAAM,CAAC,KAAP,CAAA,EAA9C;KAAA,MAAA;MACK,OAAA,CAAQ,CAAC,MAAD,CAAR,EADL;KAJF;;AAFJ",
+  "sourcesContent": [
+    "Compiled version of main Leisure program\n\n    if !navigator.appVersion.match /chrome/i\n      document.getElementById('globalLoad').innerHTML = \"<h1>Sorry, Leisure only supports Chrome and Chromium, for now</h1><h1>This will improve</h1>\"\n    else\n      requirejs.leisureCompiled = true\n      if document.location.search.match /pop=/ then window.close()\n      else require ['main']\n"
+  ]
 }

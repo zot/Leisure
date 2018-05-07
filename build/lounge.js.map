@@ -6,5 +6,8 @@
     "src/lounge.litcoffee"
   ],
   "names": [],
-  "mappings": ";AAEI;EAAA;EACA,MAAA,CAAO,EAAP,EAAW,SAAA;AAET,QAAA;IAAA,aAAA,GAAgB,SAAC,IAAD;aAAS,MAAM,CAAC,IAAI,CAAC,IAAI,CAAC,aAAjB,CAA+B,IAA/B;IAAT;IAEhB,MAAM,CAAC,MAAP,CAAc,OAAd,EAAuB;MACrB,eAAA,aADqB;KAAvB;WAIA;EARS,CAAX;AADA"
+  "mappings": ";AAAA;EAAA;EAEI;EACA,MAAA,CAAO,EAAP,EAAW,QAAA,CAAA,CAAA;AAET,QAAA;IAAA,aAAA,GAAgB,QAAA,CAAC,IAAD,CAAA;aAAS,MAAM,CAAC,IAAI,CAAC,IAAI,CAAC,aAAjB,CAA+B,IAA/B;IAAT;IAEhB,MAAM,CAAC,MAAP,CAAc,OAAd,EAAuB,CACrB,aADqB,CAAvB;WAIA,CAAA;EARS,CAAX;AAHJ",
+  "sourcesContent": [
+    "Lounge accessors\n\n    'use strict'\n    define [], ->\n\n      getBlockNamed = (name)-> Lounge.opts.data.getBlockNamed name\n\n      Object.assign Leisure, {\n        getBlockNamed\n      }\n\n      {}\n"
+  ]
 }

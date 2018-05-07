@@ -6,5 +6,8 @@
     "src/utilities.litcoffee"
   ],
   "names": [],
-  "mappings": ";AAEI;EAAA;EACA,MAAA,CAAO,CAAC,UAAD,CAAP,EAAqB,SAAC,QAAD;AACnB,QAAA;IACE,UACE;IAEJ,OAAA,GAAU,SAAC,GAAD;aACR,IAAI,OAAJ,CAAY,SAAC,OAAD,EAAU,MAAV;AACV,YAAA;QAAA,GAAA,GAAM,IAAI;QACV,GAAG,CAAC,YAAJ,GAAmB;QACnB,GAAG,CAAC,OAAJ,GAAc;QACd,GAAG,CAAC,MAAJ,GAAa,SAAC,CAAD;AACX,cAAA;UAAA,MAAA,GAAS;AACT;AAAA,eAAA,qCAAA;;YACE,MAAA,IAAU,MAAM,CAAC,YAAP,CAAoB,CAApB;AADZ;iBAEA,OAAA,CAAQ,MAAR;QAJW;QAKb,GAAG,CAAC,IAAJ,CAAS,KAAT,EAAgB,GAAhB;eACA,GAAG,CAAC,IAAJ,CAAS,IAAT;MAVU,CAAZ;IADQ;WAaV;MACE,SAAA,OADF;;EAlBmB,CAArB;AADA"
+  "mappings": ";AAAA;EAAA;EAEI;EACA,MAAA,CAAO,CAAC,UAAD,CAAP,EAAqB,QAAA,CAAC,QAAD,CAAA;AACnB,QAAA,OAAA,EAAA;IAAA,CAAA,CACE,OADF,CAAA,GAEI,QAFJ;IAIA,OAAA,GAAU,QAAA,CAAC,GAAD,CAAA;aACR,IAAI,OAAJ,CAAY,QAAA,CAAC,OAAD,EAAU,MAAV,CAAA;AACV,YAAA;QAAA,GAAA,GAAM,IAAI;QACV,GAAG,CAAC,YAAJ,GAAmB;QACnB,GAAG,CAAC,OAAJ,GAAc;QACd,GAAG,CAAC,MAAJ,GAAa,QAAA,CAAC,CAAD,CAAA;AACX,cAAA,MAAA,EAAA,CAAA,EAAA,CAAA,EAAA,GAAA,EAAA;UAAA,MAAA,GAAS;AACT;UAAA,KAAA,qCAAA;;YACE,MAAA,IAAU,MAAM,CAAC,YAAP,CAAoB,CAApB;UADZ;iBAEA,OAAA,CAAQ,MAAR;QAJW;QAKb,GAAG,CAAC,IAAJ,CAAS,KAAT,EAAgB,GAAhB;eACA,GAAG,CAAC,IAAJ,CAAS,IAAT;MAVU,CAAZ;IADQ;WAaV,CACE,OADF;EAlBmB,CAArB;AAHJ",
+  "sourcesContent": [
+    "Lounge utilities.\n\n    'use strict'\n    define ['bluebird'], (Bluebird)->\n      {\n        Promise\n      } = Bluebird\n\n      ajaxGet = (url)->\n        new Promise (resolve, reject)->\n          xhr = new XMLHttpRequest\n          xhr.responseType = 'arraybuffer'\n          xhr.onerror = reject\n          xhr.onload = (e)->\n            binary = ''\n            for i in new Uint8Array(e.target.response)\n              binary += String.fromCharCode i\n            resolve binary\n          xhr.open \"GET\", url\n          xhr.send null\n\n      {\n        ajaxGet\n      }\n"
+  ]
 }
