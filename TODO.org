@@ -1,3 +1,4 @@
+* TODO [#A] toolbar buttons should not steal focus
 * TODO [#A] backspace at the start of the line after a code block should remove only one newline
 * TODO [#A] error rendering views -- both views in elisp readme are the same
 * TODO [#A] links don't render an error if the type changes to a bad one

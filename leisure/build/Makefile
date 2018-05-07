@@ -99,6 +99,10 @@ $(OUTPUT_DIR)/%.js: src/%.coffee
 	./node_modules/coffee-script/bin/coffee -o $(OUTPUT_DIR) -mc $<
 	sleep 1
 
+$(OUTPUT_DIR)/%.js: src/%.litcoffee
+	./node_modules/coffee-script/bin/coffee -o $(OUTPUT_DIR) -mc $<
+	sleep 1
+
 lib/%.js: src/%.coffee
 	./node_modules/coffee-script/bin/coffee -o lib -mc $<
 	sleep 1

@@ -262,7 +262,10 @@ define ['lib/lazy'], (Lazy)->
       ret
 
   class Fragment extends Node
-    constructor: (@offset, @children)-> @text = ''
+    #constructor: (@offset, @children)-> @text = ''
+    constructor: (@offset, @children)->
+      super()
+      @text = ''
     count: ->
       count = 1
       for node in @children
@@ -335,7 +338,9 @@ define ['lib/lazy'], (Lazy)->
 
   #* bold, / italic, _ underline, = verbatim, ~ code, + strikethrough
   class SimpleMarkup extends Meat
-    constructor: (@text, @offset, @children)-> @markupType = markupTypes[@text[0]]
+    constructor: (@text, @offset, @children)->
+      super()
+      @markupType = markupTypes[@text[0]]
     count: ->
       count = 1
       for node in @children
@@ -353,6 +358,7 @@ define ['lib/lazy'], (Lazy)->
 
   class Link extends Meat
     constructor: (@text, @offset, @path, @children)->
+      super()
     count: ->
       count = 1
       for node in @children
@@ -371,7 +377,10 @@ define ['lib/lazy'], (Lazy)->
     descriptionText: -> (child.allText() for child in @children).join ' '
 
   class ListItem extends Meat
-    constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset
+    constructor: (text, offset, @level, @checked, @contentOffset, @children)->
+      super text, offset
+      @text = text
+      @offset = offset
     count: ->
       count = 1
       for node in @children
@@ -412,7 +421,10 @@ define ['lib/lazy'], (Lazy)->
     inNewMeat: -> true
 
   class Drawer extends Meat
-    constructor: (@text, @offset, @name, @contentPos, @endPos)-> super @text, @offset
+    constructor: (text, offset, @name, @contentPos, @endPos)->
+      super text, offset
+      @text = text
+      @offset = offset
     type: 'drawer'
     jsonDef: ->
       type: @type
@@ -444,6 +456,7 @@ define ['lib/lazy'], (Lazy)->
 
   class Example extends Meat
     constructor: (@text, @offset, @contentPos, @contentLength)->
+      super()
     block: true
     type: 'example'
     jsonDef: ->
@@ -455,7 +468,10 @@ define ['lib/lazy'], (Lazy)->
     exampleText: -> @text.substring @contentPos, @contentPos + @contentLength
 
   class Keyword extends Meat
-    constructor: (@text, @offset, @name, @info)-> super @text, @offset
+    constructor: (text, offset, @name, @info)->
+      super text, offset
+      @text = text
+      @offset = offset
     block: true
     type: 'keyword'
     jsonDef: ->
@@ -480,7 +496,12 @@ define ['lib/lazy'], (Lazy)->
       attr
 
   class Source extends Keyword
-    constructor: (@text, @offset, @name, @info, @infoPos, @content, @contentPos)-> super @text, @offset, @name, @info
+    constructor: (text, offset, name, info, @infoPos, @content, @contentPos)->
+      super text, offset, name, info
+      @text = text
+      @offset = offset
+      @name = name
+      @Info = info
     type: 'source'
     getLanguage: -> @lead()?.trim().toLowerCase()
     jsonDef: ->
@@ -495,7 +516,12 @@ define ['lib/lazy'], (Lazy)->
       contentLength: @content.length
 
   class HTML extends Keyword
-    constructor: (@text, @offset, @name, @contentPos, @contentLength, @info)-> super @text, @offset, @name, @info
+    constructor: (text, offset, name, @contentPos, @contentLength, info)->
+      super text, offset, name, info
+      @text = text
+      @offset = offset
+      @name = name
+      @info = info
     type: 'html'
     leading: -> @text.substring 0, @contentPos
     trailing: -> @text.substring @contentPos + @contentLength
@@ -509,7 +535,11 @@ define ['lib/lazy'], (Lazy)->
       contentLength: @contentLength
 
   class Results extends Keyword
-    constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
+    constructor: (@text, @offset, @name, @contentPos)->
+      super text, offset, name
+      @text = text
+      @offset = offset
+      @name = name
     type: 'results'
     content: -> @text.substring @contentPos
     jsonDef: ->
@@ -520,7 +550,11 @@ define ['lib/lazy'], (Lazy)->
       contentPos: @contentPos
 
   class AttrHtml extends Keyword
-    constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
+    constructor: (text, offset, name, @contentPos)->
+      super text, offset, name
+      @text = text
+      @offest = offset
+      @name = name
     type: 'attr'
     jsonDef: ->
       type: @type
@@ -531,6 +565,7 @@ define ['lib/lazy'], (Lazy)->
 
   class UnknownDeclaration extends Meat
     constructor: (@text, @offset)->
+      super()
     type: 'unknown'
     jsonDef: ->
       type: @type

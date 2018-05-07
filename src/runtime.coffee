@@ -150,7 +150,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     # using arity makes compiling parseAst.lsr crash
     define 'assert', (bool, msg, expr)-> checkPartial(L_assert, arguments) || rz(bool)(expr)(->
       err = new Error(rz msg)
-      err.stack = "Leisure stack:\n#{err}\n   at #{L$thunkStack.reverse().join '\n   at '}\n\nJS Stack:\n#{err.stack}"
+      #err.stack = "Leisure stack:\n#{err}\n   at #{L$thunkStack.reverse().join '\n   at '}\n\nJS Stack:\n#{err.stack}"
       console.error err.stack
       throw err
       )
@@ -510,6 +510,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   if global.L_DEBUG
     class Monad2 extends io
       constructor: (@mname, @cmd, @cmdToString)->
+        super()
         @err = new Error()
         if typeof @mname == 'function'
           @cmdToString = @cmd
@@ -524,6 +525,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
   else
     class Monad2 extends io
       constructor: (@mname, @cmd, @cmdToString)->
+        super()
         if typeof @mname == 'function'
           @cmdToString = @cmd
           @cmd = @mname
@@ -534,6 +536,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
   class Monad3 extends io
     constructor: (@mname, @cmd, @cmdToString)->
+      super()
       @err = new Error()
       if typeof @mname == 'function'
         @cmdToString = @cmd
