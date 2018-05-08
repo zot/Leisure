@@ -1793,6 +1793,18 @@
       }
     });
     //######################
+    // Control
+    //######################
+    define('protect', function(value) {
+      var err;
+      try {
+        return right(rz(value));
+      } catch (error) {
+        err = error;
+        return left(err);
+      }
+    });
+    //######################
     // Trampolines
     //######################
     define('_withRecur', function(value) {

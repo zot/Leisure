@@ -1204,6 +1204,16 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
 
 
 #######################
+# Control
+#######################
+
+  define 'protect', (value)->
+    try
+      right rz value
+    catch err
+      left err
+
+#######################
 # Trampolines
 #######################
 

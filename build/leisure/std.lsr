@@ -142,9 +142,12 @@ stripNesting l = isCons l
     _map stripNesting l
   l
 
+simplifyTokens list = stripNesting
+  visit (\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list
+
 simplify exprString = do
   list <- scanLineM exprString
-  stripNesting (visit (\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list)
+  simplifyTokens list
 
 #######################
 ## Monadic values
