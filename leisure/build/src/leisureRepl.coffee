@@ -154,7 +154,7 @@ errorString = (err)-> err.stack ? err.toString()
 process.on 'uncaughtException', (err)->
   console.log "Uncaught Exception: #{err.stack || errorString err}"
 
-root.evalInput = evalInput = (text, cont)->
+root.evalInput = evalInput = (text, cont, noErrHandling)->
   if text
     source = null
     try
@@ -181,18 +181,20 @@ root.evalInput = evalInput = (text, cont)->
           #console.log "caught error evaluating source:\n#{source}"
           #cont rz(L_err)(lz (errorString err))
           inErr = true
-          global.handleError err, cont, text
+          if noErrHandling then throw err
+          else global.handleError err, cont, text, source
     catch err
       #console.log "caught error evaluating source:\n#{source}"
       #cont rz(L_err)(lz (errorString err))
       if !inErr
         inErr = true
-        global.handleError err, cont, text
+        if noErrHandling then throw err
+        else global.handleError err, cont, text, source
     finally
       inErr = false
   else cont ''
 
-global.handleError = (err, cont)->
+global.handleError = (err, cont, text, source)->
   console.log "ERROR!!!!"
   console.log "caught error evaluating source:\n#{source}"
   cont rz(L_err)(lz (errorString err))
@@ -250,7 +252,7 @@ prompt = ->
   rl.setPrompt promptText
   rl.prompt()
 
-root.show = show = (obj)-> if L_show? then rz(L_show)(lz obj) else String obj
+root.show = show = (obj, handler)-> if L_show? then rz(L_show)(lz obj) else String obj
 
 repl = (config)->
   evalInput 'resetStdTokenPacks', (->)

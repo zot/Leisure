@@ -9,7 +9,7 @@
     "author": {
         "name": "Bill Burdick",
         "email": "bill.burdick@gmail.com",
-        "url":  "http://github.com/zot"
+        "url": "http://github.com/zot"
     },
     "homepage": "http://github.com/zot",
     "engines": {
@@ -19,8 +19,7 @@
     "dependencies": {
         "browserify": "*",
         "btoa": "*",
-        "coffee-script": "*",
-        "coffeeify": "*",
+        "coffeescript": "^2.3.0",
         "collections": "*",
         "js-yaml": "3.x",
         "persistent-hash-trie": "*",
@@ -30,9 +29,6 @@
         "utf8": "*",
         "xmlhttprequest": "*"
     },
-    "devDependencies": {
-        "coffee-script": "*",
-        "coffeeify": "*"
-    },
+    "devDependencies": {},
     "bundleDependencies": []
 }
