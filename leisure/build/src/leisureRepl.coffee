@@ -46,6 +46,7 @@ requirejs = require('requirejs').config
     fingertree:  'lib/fingertree'
     "browser-source-map-support": 'lib/browser-source-map-support-0.4.14'
 
+#(window ? global).requirejs = requirejs
 ((typeof window != 'undefined' && window) || global).Lazy = requirejs('lib/lazy')
 
 #require '10-namespace'
@@ -67,6 +68,7 @@ fs = require 'fs'
 #compiler = require 'compiler'
 genFilePrefix = null
 gennedLsrFile = null
+root.batchMode = false
 
 if _.includes process.argv, '-x' then global.L_DEBUG = true
 
@@ -134,16 +136,18 @@ diag = false
 inErr = false
 
 readline = require('readline')
+root.inputProcessor = null # function to process input, defaults to evalInput
 
 root.replEnv = replEnv =
   prompt: (msg, cont)->
-    rl.question(msg, (x)->
+    rl?.question(msg, (x)->
       try
         cont x
       catch err
         console.log "ERROR HANDLING PROMPT: #{err.stack}"
     )
-  presentValue: (x)-> show(x) + '\n'
+  #presentValue: (x)-> show(x) + '\n'
+  presentValue: (x)-> show(x)
 
 replEnv.__proto__ = defaultEnv
 
@@ -175,7 +179,7 @@ root.evalInput = evalInput = (text, cont, noErrHandling)->
             if diag
               console.log "\nCODE: #{source}"
             result = eval source
-            if isIO result then console.log "(processing IO monad)"
+            #if isIO result then console.log "(processing IO monad)"
             runMonad2 result, replEnv, cont
         catch err
           #console.log "caught error evaluating source:\n#{source}"
@@ -226,6 +230,10 @@ updateCompleter = (rl)->
 
 tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
 rl = null
+multiline = false
+lines = null
+historyFile = null
+leisureDir = null
 
 leisureCompleter = (line)->
   if newCall
@@ -245,28 +253,98 @@ leisureCompleter = (line)->
 
 interrupted = false
 
-promptText = 'Leisure> '
+root.promptText = 'Leisure> '
 
-prompt = ->
-  updateCompleter()
-  rl.setPrompt promptText
-  rl.prompt()
+root.processLine = null
+
+root.nextLine = -> ''
+
+root.prompt = prompt = ->
+  if root.batchMode then root.nextLine()
+  else
+    updateCompleter()
+    rl.setPrompt root.promptText
+    rl.prompt()
 
 root.show = show = (obj, handler)-> if L_show? then rz(L_show)(lz obj) else String obj
+
+root.defaultEnv.err = (err)->
+  console.log "REPL Error: #{err.stack ? err}"
+  multiline = false
+  prompt()
+
+startMultiline = ->
+  if multiline then console.log 'Already reading multiline input'
+  else
+    multiline = true
+    lines = []
+    rl?.setPrompt '... '
+
+finishMultiline = (dumpInput)->
+  multiline = false
+  line = lines.join '\n'
+  l = lines
+  lines = []
+  if dumpInput
+    prompt()
+  else
+    try
+      if line.substring(0,2) == ':s'
+        if L_simplify?
+          runMonad2 (rz(L_simplify) line.substring(2)), replEnv, (result)->
+            console.log "\n#{result}"
+        else console.log 'No simplify function.  Load std.lsr'
+      else if line.match /^!/ then console.log eval line.substring 1
+      else
+        root.inputProcessor line, (result)->
+          #console.log 'RESULT: ' + show(result)
+          if !(result instanceof Leisure_unit) then console.log show(result)
+          prompt()
+        return
+    catch err
+      console.log "ERROR: #{err.stack}"
+    prompt()
+
+root.processLine = (line)->
+  interrupted = false
+  if !root.batchMode && rl.history[0] == rl.history[1] then rl.history.shift()
+  else if line.trim() then fs.appendFile historyFile, "#{line}\n", (->)
+  switch line.trim()
+    when ':d'
+      diag = !diag
+      console.log "Diag: #{if diag then 'on' else 'off'}"
+    when ':{'
+      startMultiline()
+    when ':}'
+      if ! multiline then console.log "Not reading multiline input."
+      else
+        finishMultiline()
+    when ':h' then help()
+    else
+      if m = line.match /^:{(.*)$/
+        startMultiline()
+        if m[1] then lines.push m[1]
+      else if multiline
+        if !line then finishMultiline()
+        else lines.push line
+      else
+        lines = [line]
+        finishMultiline()
 
 repl = (config)->
   evalInput 'resetStdTokenPacks', (->)
   lines = null
   leisureDir = path.join config.home, '.leisure'
   historyFile = path.join(leisureDir, 'history')
-  rl = readline.createInterface
-    input: process.stdin
-    output: process.stdout
-    completer: leisureCompleter
+  if !root.batchMode
+    rl = readline.createInterface
+      input: process.stdin
+      output: process.stdout
+      completer: leisureCompleter
   fs.exists historyFile, (exists)->
     ((cont)->
       if exists then readFile historyFile, (err, contents)->
-        if !err then rl.history = contents.trim().split('\n').reverse()
+        if !err && !root.batchMode then rl.history = contents.trim().split('\n').reverse()
         cont()
       else fs.exists leisureDir, (exists)->
         if exists then cont()
@@ -278,74 +356,17 @@ repl = (config)->
       if !quiet then help()
       multiline = false
       prompt()
-      root.defaultEnv.err = (err)->
-        console.log "REPL Error: #{err.stack ? err}"
-        multiline = false
-        prompt()
-      startMultiline = ->
-        if multiline then console.log 'Already reading multiline input'
-        else
-          multiline = true
-          lines = []
-          rl.setPrompt '... '
-      finishMultiline = (dumpInput)->
-        multiline = false
-        line = lines.join '\n'
-        l = lines
-        lines = []
-        if dumpInput
-          prompt()
-        else
-          try
-            if line.substring(0,2) == ':s'
-              if L_simplify?
-                runMonad2 (rz(L_simplify) lz text), replEnv, (result)->
-                  console.log "\n#{result}"
-              else console.log 'No simplify function.  Load std.lsr'
-            else if line.match /^!/ then console.log eval line.substring 1
-            else
-              evalInput line, (result)->
-                #console.log 'RESULT: ' + show(result)
-                console.log show(result)
-                prompt()
-              return
-          catch err
-            console.log "ERROR: #{err.stack}"
-          prompt()
-      rl.on 'line', (line)->
-        interrupted = false
-        if rl.history[0] == rl.history[1] then rl.history.shift()
-        else if line.trim() then fs.appendFile historyFile, "#{line}\n", (->)
-        switch line.trim()
-          when ':d'
-            diag = !diag
-            console.log "Diag: #{if diag then 'on' else 'off'}"
-          when ':{'
-            startMultiline()
-          when ':}'
-            if ! multiline then console.log "Not reading multiline input."
-            else
-              finishMultiline()
-          when ':h' then help()
+      if !root.batchMode
+        rl.on 'line', (line)-> root.processLine line
+        rl.on 'close', ->
+          #console.log "EXITING 1"
+          process.exit 0
+        rl.on 'SIGINT', ->
+          if interrupted then process.exit()
+          else if multiline then finishMultiline true
           else
-            if m = line.match /^:{(.*)$/
-              startMultiline()
-              if m[1] then lines.push m[1]
-            else if multiline
-              if !line then finishMultiline()
-              else lines.push line
-            else
-              lines = [line]
-              finishMultiline()
-      rl.on 'close', ->
-        #console.log "EXITING 1"
-        process.exit 0
-      rl.on 'SIGINT', ->
-        if interrupted then process.exit()
-        else if multiline then finishMultiline true
-        else
-          console.log "\n(^C again to quit)"
-          interrupted = true
+            console.log "\n(^C again to quit)"
+            interrupted = true
 
 verbose = false
 gennedAst = false
@@ -574,8 +595,9 @@ processArg = (config, pos)->
     gennedAst = gennedJs = false
   switch pargs[pos]
     when '-p'
-      promptText = pargs[pos + 1]
+      root.promptText = pargs[pos + 1]
       pos++
+    when '-b' then root.batchMode = true
     when '-x' then #ignore because processed above
     when '-g' then global.Leisure_generateDebuggingCode = true
     when '-v'
@@ -618,6 +640,7 @@ processArg = (config, pos)->
     when '-prefix' then genFilePrefix = pargs[++pos]
     when '-q' then quiet = true
     else
+      if !quiet then console.log "BASE DIR: #{baseDir}"
       newOptions = true
       if pargs[pos] == '-coffee'
         processedFiles = true
@@ -643,7 +666,6 @@ processArg = (config, pos)->
           #console.log "PROCESSING #{pargs[pos]} with #{action}"
           action pargs[pos], -> processArg config, pos + 1
       return
-  if !quiet then console.log "BASE DIR: #{baseDir}"
   processArg config, pos + 1
 
 requireUtils = ->
@@ -672,6 +694,8 @@ run = (args, config)->
 root.runFile = runFile
 root.run = run
 root.nwrun = (line)-> run line.split(' '), home: process.env.HOME
+
+root.inputProcessor = evalInput
 
 if verbose then console.log "ARGS: #{JSON.stringify pargs}"
 

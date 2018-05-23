@@ -21,6 +21,7 @@
         "btoa": "*",
         "coffeescript": "^2.3.0",
         "collections": "*",
+        "fibers": "^2.0.2",
         "js-yaml": "3.x",
         "persistent-hash-trie": "*",
         "source-map": "*",

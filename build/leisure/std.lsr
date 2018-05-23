@@ -472,7 +472,7 @@ defTypeCase conj.range r v -> r \a b .
       range a v
       range a b
 
-defTypeCase conj.string s b -> s + v
+defTypeCase conj.string s v -> s + v
 defTypeCase conj.differencelist l v -> dlpush l v
 defTypeCase conj.cons l v -> isAlist l
   aconsPair v l
@@ -501,15 +501,16 @@ defTypeCase tail.amtSet s -> setRest s
 defTypeCase tail.vector v -> vectorRest v
 tail x = nil
 
-defTypeCase length.list l -> consLength l
-defTypeCase length.range r -> r \a b . b - a
-defTypeCase length.repeat r -> r \count . count == 0
-defTypeCase length.string s -> strLen s
-defTypeCase length.differencelist l -> consLength (tolist l)
-defTypeCase length.hamt h -> mapSize h
-defTypeCase length.amtSet s -> setSize s
-defTypeCase length.vector v -> vectorSize v
-length x = 1
+dispLength x = 1
+defTypeCase dispLength.list l -> consLength l
+defTypeCase dispLength.range r -> r \a b . b - a
+defTypeCase dispLength.repeat r -> r \count . count == 0
+defTypeCase dispLength.string s -> strLen s
+defTypeCase dispLength.differencelist l -> consLength (tolist l)
+defTypeCase dispLength.hamt h -> mapSize h
+defTypeCase dispLength.amtSet s -> setSize s
+defTypeCase dispLength.vector v -> vectorSize v
+length x = dispLength x
 
 empty l = (length l) == 0
 defTypeCase empty.cons l -> false

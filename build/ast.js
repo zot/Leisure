@@ -30,7 +30,10 @@
     rz = resolve;
     lz = lazy;
     lc = Leisure_call;
-    types = {};
+    types = {
+      string: String,
+      number: Number
+    };
     //#####
     //##### naming
     //#####
@@ -123,7 +126,7 @@
     };
     declareTypeFunc = function(leisureClass, constructor) {
       var f, funcName;
-      if (constructor) {
+      if (constructor && !types[leisureClass]) {
         types[leisureClass] = global['Leisure_' + nameSub(leisureClass)] = constructor;
       }
       funcName = 'L_' + nameSub(leisureClass);

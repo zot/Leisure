@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "amdefine": "^1.0.0",
+    "fibers": "^2.0.2",
     "finalhandler": "^0.4.0",
     "requirejs": "^2.1.20",
     "serve-static": "^1.10.0",

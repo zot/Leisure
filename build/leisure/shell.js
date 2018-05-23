@@ -5,15 +5,23 @@
   // If a line begins with a string that is unevaluable
   // * try executing it as a shell command
   // * pass any unevaluable arguments that are strings through verbatim
-  var Nil, asBool, booleanFor, defaultEnv, define, detoken, evalInput, execFileSync, inErr, lazy, lz, newCall, replEnv, resolve, rz, show, trimLastNl;
+  var ChildProcess, Fiber, Nil, asBool, booleanFor, cons, consFrom, defaultEnv, define, evalInput, evalLeisure, execFileSync, fiberReader, functionInfo, hasMacro, id, inErr, inspect, isDefined, isDollar, isToken, lazy, lineListForStream, lz, newCall, pumpStream, quote, readStream, reader, replEnv, resolve, rz, shouldSpawn, show, spawn, spawnSync, splicePipes, tokenString, trimNL, writeLinesToStream,
+    splice = [].splice,
+    indexOf = [].indexOf;
 
-  ({execFileSync} = require('child_process'));
+  ({execFileSync, spawn, spawnSync, ChildProcess} = require('child_process'));
 
-  ({define, booleanFor} = Leisure.Runtime);
+  ({define, booleanFor, hasMacro} = Leisure.Runtime);
 
   ({newCall, resolve, lazy, defaultEnv, replEnv, show, evalInput} = Leisure.Base);
 
-  ({Nil} = Leisure.Ast);
+  ({Nil, cons, consFrom, functionInfo} = Leisure.Ast);
+
+  ({fiberReader} = require('./spawn'));
+
+  ({inspect} = require('util'));
+
+  Fiber = require('fibers');
 
   rz = resolve;
 
@@ -21,18 +29,30 @@
 
   inErr = false;
 
+  reader = fiberReader();
+
   global.handleError = function(err, cont, text, source) {
     var err2;
     if (inErr) {
+      console.log("ALREADY HANDLING ERROR", inErr);
+      console.log("BUT GOT ERROR", err);
       throw err;
     }
-    inErr = true;
+    inErr = err;
     try {
-      return cont(evalInput(`e[${text}]`, show));
+      return cont(evalInput(`e[${text}]`, function(lines) {
+        var l;
+        l = lines;
+        while (l instanceof Leisure_cons) {
+          console.log(L_head(l));
+          l = L_tail(l);
+        }
+        return L_unit;
+      }));
     } catch (error) {
       err2 = error;
       if (err2.status && err2.stderr) {
-        return cont(`ERR ${trimLastNl(err2.stderr.toString())}`);
+        return cont(`ERR ${trimNl(err2.stderr.toString())}`);
       } else {
         console.log("Shell ERROR:", err, text);
         return cont('');
@@ -42,7 +62,211 @@
     }
   };
 
-  trimLastNl = function(str) {
+  asBool = function(bool) {
+    return bool instanceof Leisure_true;
+  };
+
+  quote = function(str) {
+    return "'" + str.replace(/'/, "\\'") + "'";
+  };
+
+  // extract out pipe tails that were gathered into unparenthesized lambdas
+  splicePipes = function(list) {
+    var doScan, foundPipe, i, la, last, ref, ref1;
+    foundPipe = false;
+    doScan = true;
+    last = list[list.length - 1];
+    while (doScan && last instanceof Leisure_cons && tokenString(last.head()) === '\\') {
+      la = last.toArray();
+      if ((i = la.findIndex(function(x) {
+        return tokenString(x) === '|';
+      })) > -1) {
+        foundPipe = true;
+        list[list.length - 1] = consFrom(la.slice(0, i));
+        splice.apply(list, [(ref = list.length), 9e9].concat(ref1 = la.slice(i))), ref1;
+        last = list[list.length - 1];
+      } else {
+        doScan = false;
+      }
+    }
+    return foundPipe;
+  };
+
+  define('gatherProcArgs', function(list) {
+    var arg, cmd, i, j, k, l, len, len1, len2, len3, m, mode, n, o, output, p, pargs, proc, procs, ref, t, tStr;
+    list = rz(list);
+    pargs = [];
+    procs = [];
+    l = list.toArray();
+    while (true) {
+      if (!splicePipes(l)) {
+        break;
+      }
+    }
+    for (k = 0, len = l.length; k < len; k++) {
+      t = l[k];
+      tStr = L_strTokenString(t);
+      if (tStr === '|') {
+        procs.push(pargs);
+        pargs = [];
+      } else {
+        pargs.push(t);
+      }
+    }
+    procs.push(pargs);
+    output = null;
+    for (i = m = 0, len1 = procs.length; m < len1; i = ++m) {
+      proc = procs[i];
+      if (shouldSpawn(proc[0])) {
+        cmd = tokenString(proc[0]);
+        if (cmd[0] === '$') {
+          cmd = cmd.slice(1);
+        }
+        proc[0] = quote(cmd);
+        for (j = n = 0, len2 = proc.length; n < len2; j = ++n) {
+          cmd = proc[j];
+          if (j > 0 && shouldSpawn(cmd)) {
+            cmd = tokenString(cmd);
+            if (cmd[0] === '$') {
+              cmd = cmd.slice(1);
+            }
+            proc[j] = quote(cmd);
+          }
+        }
+        list = 'nil';
+        ref = proc.reverse();
+        for (o = 0, len3 = ref.length; o < len3; o++) {
+          arg = ref[o];
+          p = L_position(arg);
+          list = consFrom([L_token('cons', p), arg, list]);
+        }
+        mode = quote((function() {
+          switch (i) {
+            case 0:
+              return 'first';
+            default:
+              return 'middle';
+          }
+        })());
+        proc = [L_token('spawnProcess', p), mode, list];
+      } else if (i > 0) {
+        proc = ['pipelineWrap', consFrom(proc)];
+      } else {
+        proc = ['toPipeCons', consFrom(proc)];
+      }
+      if (output) {
+        output = consFrom([consFrom(proc), output]);
+      } else {
+        output = consFrom(proc);
+      }
+    }
+    return output;
+  });
+
+  isDefined = function(cmd) {
+    var ref;
+    return typeof str === 'string' && ((ref = str[0], indexOf.call('\\\'"', ref) >= 0) || functionInfo[str] || hasMacro(str));
+  };
+
+  isDollar = function(cmd) {
+    return typeof str === 'string' && str[0] === '$';
+  };
+
+  shouldSpawn = function(cmd) {
+    var str;
+    str = L_strTokenString(cmd);
+    return typeof str === 'string' && (!isDefined(str) || isDollar(cmd));
+  };
+
+  define('spawnProcess', function(mode, list) {
+    var err, res;
+    if (res = L_checkPartial(L_spawnProcess, arguments)) {
+      return res;
+    } else {
+      mode = rz(mode);
+      list = rz(list).toArray();
+      switch (mode) {
+        case 'first':
+          try {
+            return readStream(spawn(list[0], list.slice(1)).stdout);
+          } catch (error) {
+            err = error;
+            if (err.stderr) {
+              return consFrom([trimNl(err.stderr.toString())]);
+            } else {
+              throw err;
+            }
+          }
+          break;
+        case 'middle':
+          return lz(function(input) {
+            var proc, procInput;
+            input = rz(input);
+            procInput = input instanceof ChildProcess ? input.stdout : 'pipe';
+            proc = spawn(list[0], list.slice(1), {
+              stdio: [procInput, 'pipe']
+            });
+            if (input instanceof Leisure_cons) {
+              writeLinesToStream(proc.stdin, input);
+            }
+            return readStream(proc.stdout);
+          });
+        default:
+          throw `${rz(args)}`;
+      }
+    }
+  });
+
+  readStream = function(stream) {
+    reader.addStream(stream);
+    return lineListForStream(stream);
+  };
+
+  lineListForStream = function(stream) {
+    var line;
+    line = reader.readLine(stream);
+    if (!line) {
+      return L_nil;
+    } else {
+      return L_cons(trimNL(line), function() {
+        return lineListForStream(stream);
+      });
+    }
+  };
+
+  writeLinesToStream = function(stream, lines) {
+    stream.on('close', function() {
+      return stream.isClosed = true;
+    });
+    stream.on('finish', function() {
+      return stream.isClosed = true;
+    });
+    stream.on('error', function() {
+      return stream.isClosed = true;
+    });
+    global.STREAM = stream;
+    return pumpStream(stream, lines);
+  };
+
+  // Write lines to a stream, like for piping function output to a process
+  pumpStream = function(stream, lines) {
+    var line;
+    while ((lines instanceof Leisure_cons) && !stream.isClosed) {
+      line = L_head(lines);
+      if (!stream.write(`${line}\n`)) {
+        stream.once('drain', function() {
+          return pumpStream(stream, L_tail(lines));
+        });
+        break;
+      }
+      lines = L_tail(lines);
+    }
+    if (!stream.isClosed) {
+      return stream.end();
+    }
+  };
+
+  trimNL = function(str) {
     if (str[str.length - 1] === '\n') {
       return str.substring(0, str.length - 1);
     } else {
@@ -50,77 +274,58 @@
     }
   };
 
-  asBool = function(bool) {
-    return bool instanceof Leisure_true;
+  isToken = function(tok) {
+    return L_isToken(tok) === L_true;
   };
 
-  define('exec', function(list) {
-    var arg, err, err2, fargs, res, t;
-    if (res = L_checkPartial(L_exec, arguments)) {
-      return res;
+  tokenString = function(tok) {
+    return L_strTokenString(tok);
+  };
+
+  id = function(x) {
+    return x;
+  };
+
+  Leisure.Base.promptText = 'lsh> ';
+
+  if (Leisure.Base.batchMode) {
+    reader.addStream(process.stdin);
+  }
+
+  Leisure.Base.nextLine = function() {
+    var input, results;
+    if (Fiber.current !== reader.fiber) {
+      return reader.run(Leisure.Base.nextLine);
     } else {
-      list = rz(list);
-      fargs = [];
-      while (list instanceof Leisure_cons) {
-        t = L_head(list);
-        arg = null;
-        err = null;
-        try {
-          arg = evalInput(detoken(t), show, true);
-        } catch (error) {
-          err2 = error;
-          err = err2;
-        }
-        if (arg == null) {
-          arg = (function() {
-            if (typeof t === 'string') {
-              return t;
-            } else if (t instanceof Leisure_token) {
-              return L_tokenString(t);
-            } else if (err) {
-              throw err;
-            }
-          })();
-        }
-        fargs.push(arg);
-        list = L_tail(list);
-      }
-      try {
-        return trimLastNl(execFileSync.call(null, fargs[0], fargs.slice(1), {
-          stdio: 'pipe'
-        }).toString());
-      } catch (error) {
-        err = error;
-        if (err.stderr) {
-          return trimLastNl(err.stderr.toString());
+      results = [];
+      while ((input = reader.readLine(process.stdin)) != null) {
+        input = trimNL(input);
+        if (input) {
+          Leisure.Base.processLine(input);
+          break;
         } else {
-          throw err;
+          results.push(void 0);
         }
       }
-    }
-  });
-
-  detoken = function(toks) {
-    if (toks instanceof Leisure_cons) {
-      return `(${toks.map(detoken).join(' ')})`;
-    } else {
-      return L_strTokenString(toks);
+      return results;
     }
   };
 
-  evalInput("stringify s = s[\"'\" s \"'\"]", identity);
+  Leisure.Base.inputProcessor = function(text, cont, noErrHandling) {
+    if (Fiber.current !== reader.fiber) {
+      return reader.run(function() {
+        return Leisure.Base.inputProcessor(text, cont, noErrHandling);
+      });
+    } else {
+      return Leisure.Base.evalInput(text, cont, noErrHandling);
+    }
+  };
 
-  evalInput("destructure toks = isCons toks\n  toks\n    \\h t D . ['cons' (destructure h) (destructure t)]\n    'nil'\n  isNil toks\n    'nil'\n    isToken toks\n      toks \\t p . p \\fil ln off . ['token' (stringify t) ['filepos' (stringify fil) ln off]]\n      isParens toks\n        toks \\s e c . ['parens' s e (destructure c)]\n        isString toks\n          stringify toks\n          toks", identity);
+  evalLeisure = function(string, cont) {
+    return runMonad2(L_baseLoadString('input', string), defaultEnv, cont != null ? cont : id);
+  };
 
-  evalInput("rewriteFlags list = isCons list\n  do\n    n = handleDash list\n    isNil n\n      do\n        x <- flat list\n        n = handleDash x\n        isNil n\n          [(rewriteFlags x)]\n          n\n      n\n  isNil list\n    nil\n    list", identity);
-
-  evalInput("handleDash list = do\n  a1 = head list\n  a1Pos = tokenFilepos a1\n  a1Line = fileposLine a1Pos\n  a1Off = fileposOffset a1Pos\n  a2 = second list\n  a2D = handleDash a2\n  a2F = isNil a2D a2 a2D\n  a3 = third list\n  a3Str = tokenString a3\n  a3Pos = tokenFilepos a3\n  a3Line = fileposLine a3Pos\n  a3Off = fileposOffset a3Pos\n  and[\n    isCons list\n    (consLength list) == 3\n    isToken a1\n    isToken a3\n    isTokenString a1 '-'\n    a1Line == a3Line\n    a1Off + 1 == a3Off]\n    a2F == a2D\n      append a2F [s['-' a3Str]]\n      [a2F s['-' a3Str]]\n    []", identity);
-
-  evalInput("defMacro 'e[' \\list . ['exec' (destructure (rewriteFlags (head (stripNesting list))))]", identity);
-
-  evalInput("defTokenPack 'shell' [[] ['e[':']'] []]", identity);
-
-  evalInput("addStdTokenPacks ['shell']", identity);
+  evalLeisure("stringify s = s[\"'\" s \"'\"]\n\nrewriteFlags list = isCons list\n  do\n    n = handleDash list\n    isNil n\n      do\n        x <- flat list\n        n = handleDash x\n        isNil n\n          [(rewriteFlags x)]\n          n\n      n\n  isNil list\n    nil\n    list\n\nhandleDash list = do\n  a1 = head list\n  a1Pos = tokenFilepos a1\n  a1Line = fileposLine a1Pos\n  a1Off = fileposOffset a1Pos\n  a2 = second list\n  a2D = handleDash a2\n  a3 = third list\n  a3Str = tokenString a3\n  a3Pos = tokenFilepos a3\n  a3Line = fileposLine a3Pos\n  a3Off = fileposOffset a3Pos\n  and[\n    isCons list\n    (length list) == 3\n    isToken a1\n    (tokenString a1) == '-'\n    isToken a3\n    a1Line == a3Line\n    a1Off + 1 == a3Off]\n    isNil a2D\n      [a2 s['-' a3Str]]\n      append a2D [s['-' a3Str]]\n    []\n\n# gather arguments for a pipeline\ndefMacro 'e[' \\list . gatherProcArgs (rewriteFlags (stripNesting (head list)))\n\ntoPipeCons x = isCons x\n  x\n  isString x\n    strSplit x '\\n'\n    [x]\n\npipelineWrap f = compose toPipeCons f\n\ndefTokenPack 'shell' [[] ['e[':']'] []]\n\naddStdTokenPacks ['shell']");
 
 }).call(this);
 

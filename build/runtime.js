@@ -28,7 +28,7 @@
     indexOf = [].indexOf;
 
   define(['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bluebird', 'browser-source-map-support'], function(Base, DocOrg, Ast, _, Immutable, Yaml, Bluebird) {
-    var LeisureObject, Leisure_unit, List, Map, Monad2, Monad3, Nil, Promise, Runtime, Set, SimpyCons, _false, _identity, _true, _unit, actors, advise, amtSet, argNames, ast2Json, asyncMonad, basicCall, bind, booleanFor, buildAdvisedFunc, buildAdvisedFuncDef, call, callBind, callMonad, checkPartial, classForType, classNameForType, cons, consFrom, continueMonads, curry, debugTypes, declareTypeFunc, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, envTag, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getDebugType, getMonadSyncMode, getType, getValue, hamt, head, identity, io, isIO, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeMap, makeMonad, makeSet, makeSyncMonad, makeVector, mapFirst, mapRest, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextMapPair, nextMonad, nextSetItem, nextVectorItem, noMemo, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setRest, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, types, unescapePresentationHtml, unit, values, vector, vectorRest, warnAsync, withSyncModeDo, writeFile;
+    var LeisureObject, Leisure_unit, List, Map, Monad2, Monad3, Nil, Promise, Runtime, Set, SimpyCons, _false, _identity, _true, _unit, actors, advise, amtSet, argNames, ast2Json, asyncMonad, basicCall, bind, booleanFor, buildAdvisedFunc, buildAdvisedFuncDef, call, callBind, callMonad, checkPartial, classForType, classNameForType, cons, consFrom, continueMonads, curry, debugTypes, declareTypeFunc, defaultEnv, define, dump, dumpMonadStack, ensureLeisureClass, envTag, escapePresentationHtml, funcInfo, functionInfo, gensymCounter, getDataType, getDebugType, getMonadSyncMode, getType, getValue, hamt, hasMacro, head, identity, io, isIO, isPartial, jsonConvert, lacons, lazy, lc, left, leisureFunctionNamed, leisurify, lz, makeMap, makeMonad, makeSet, makeSyncMonad, makeVector, mapFirst, mapRest, mkProto, monadModeSync, nFunction, nakedDefine, nameSub, newRunMonad, nextMapPair, nextMonad, nextSetItem, nextVectorItem, noMemo, none, nsLog, parensContent, parensEnd, parensStart, parseYaml, partialCall, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, replaceErr, requireFiles, resolve, right, root, runMonad, runMonad2, rz, setDataType, setRest, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, types, unescapePresentationHtml, unit, values, vector, vectorRest, warnAsync, withSyncModeDo, writeFile;
     if (typeof SourceMapSupport !== "undefined" && SourceMapSupport !== null) {
       SourceMapSupport.install();
     }
@@ -290,7 +290,7 @@
       return checkPartial(L_$i, arguments) || Math.pow(rz(x), rz(y));
     });
     define('number', setDataType((function(n) {
-      return Number(n);
+      return Number(rz(n));
     }), 'number'));
     //###########
     // STRINGS
@@ -1110,6 +1110,9 @@
         return cont(unit());
       });
     });
+    hasMacro = function(mac) {
+      return values.macros[mac];
+    };
     define('funcList', makeSyncMonad(function(env, cont) {
       return cont(consFrom(global.leisureFuncNames.toArray().sort()));
     }));
@@ -2039,7 +2042,8 @@
       isPartial,
       partialCall,
       bind,
-      buildAdvisedFuncDef
+      buildAdvisedFuncDef,
+      hasMacro
     };
     Object.assign(Leisure, {
       stateValues: values,

@@ -23,7 +23,7 @@
 
   3. This notice may not be removed or altered from any source distribution.
   */
-  var CodeGenerator, Nil, Promise, SourceNode, _, action, ast2Json, asyncMonad, baseDir, baseLeisureDir, compile, createAstFile, createJsFile, defaultEnv, diag, doRequirements, errorString, evalInput, fs, gen, genCreateCompilerContext, genFilePrefix, genJsFromAst, genMap, genSource, gennedAst, gennedJs, gennedLsrFile, getMonadSyncMode, getParseErr, getType, getValue, help, identity, inErr, interactive, interrupted, intersperse, isIO, jsCodeFor, json2Ast, lazy, lc, leisureCompleter, leisureFunctions, loadedParser, lz, newCall, newOptions, oldFunctionCount, outDir, pargs, path, primCompile, processArg, processedFiles, prog, prompt, promptText, quiet, readFile, readline, recompiled, repl, replEnv, replaceErr, requireFiles, requireList, requireUtils, requirejs, resolve, rl, root, run, runFile, runMonad2, rz, setDataType, setMegaArity, setType, setWarnAsync, shouldNsLog, show, sourceNode, stage, stages, std, tangle, tangleOrgFile, tokenString, updateCompleter, usage, verbose, withFile, writeFile;
+  var CodeGenerator, Nil, Promise, SourceNode, _, action, ast2Json, asyncMonad, baseDir, baseLeisureDir, compile, createAstFile, createJsFile, defaultEnv, diag, doRequirements, errorString, evalInput, finishMultiline, fs, gen, genCreateCompilerContext, genFilePrefix, genJsFromAst, genMap, genSource, gennedAst, gennedJs, gennedLsrFile, getMonadSyncMode, getParseErr, getType, getValue, help, historyFile, identity, inErr, interactive, interrupted, intersperse, isIO, jsCodeFor, json2Ast, lazy, lc, leisureCompleter, leisureDir, leisureFunctions, lines, loadedParser, lz, multiline, newCall, newOptions, oldFunctionCount, outDir, pargs, path, primCompile, processArg, processedFiles, prog, prompt, quiet, readFile, readline, recompiled, repl, replEnv, replaceErr, requireFiles, requireList, requireUtils, requirejs, resolve, rl, root, run, runFile, runMonad2, rz, setDataType, setMegaArity, setType, setWarnAsync, shouldNsLog, show, sourceNode, stage, stages, startMultiline, std, tangle, tangleOrgFile, tokenString, updateCompleter, usage, verbose, withFile, writeFile;
 
   require('source-map-support').install();
 
@@ -53,6 +53,7 @@
     }
   });
 
+  //(window ? global).requirejs = requirejs
   ((typeof window !== 'undefined' && window) || global).Lazy = requirejs('lib/lazy');
 
   //require '10-namespace'
@@ -77,6 +78,8 @@
   genFilePrefix = null;
 
   gennedLsrFile = null;
+
+  root.batchMode = false;
 
   if (_.includes(process.argv, '-x')) {
     global.L_DEBUG = true;
@@ -128,9 +131,11 @@
 
   readline = require('readline');
 
+  root.inputProcessor = null; // function to process input, defaults to evalInput
+
   root.replEnv = replEnv = {
     prompt: function(msg, cont) {
-      return rl.question(msg, function(x) {
+      return typeof rl !== "undefined" && rl !== null ? rl.question(msg, function(x) {
         var err;
         try {
           return cont(x);
@@ -138,10 +143,11 @@
           err = error;
           return console.log(`ERROR HANDLING PROMPT: ${err.stack}`);
         }
-      });
+      }) : void 0;
     },
+    //presentValue: (x)-> show(x) + '\n'
     presentValue: function(x) {
-      return show(x) + '\n';
+      return show(x);
     }
   };
 
@@ -191,9 +197,7 @@
                 console.log(`\nCODE: ${source}`);
               }
               result = eval(source);
-              if (isIO(result)) {
-                console.log("(processing IO monad)");
-              }
+              //if isIO result then console.log "(processing IO monad)"
               return runMonad2(result, replEnv, cont);
             }
           } catch (error) {
@@ -258,6 +262,14 @@
 
   rl = null;
 
+  multiline = false;
+
+  lines = null;
+
+  historyFile = null;
+
+  leisureDir = null;
+
   leisureCompleter = function(line) {
     var completions, last, newLast, origLast, tokens;
     if (newCall) {
@@ -291,12 +303,22 @@
 
   interrupted = false;
 
-  promptText = 'Leisure> ';
+  root.promptText = 'Leisure> ';
 
-  prompt = function() {
-    updateCompleter();
-    rl.setPrompt(promptText);
-    return rl.prompt();
+  root.processLine = null;
+
+  root.nextLine = function() {
+    return '';
+  };
+
+  root.prompt = prompt = function() {
+    if (root.batchMode) {
+      return root.nextLine();
+    } else {
+      updateCompleter();
+      rl.setPrompt(root.promptText);
+      return rl.prompt();
+    }
   };
 
   root.show = show = function(obj, handler) {
@@ -307,22 +329,119 @@
     }
   };
 
+  root.defaultEnv.err = function(err) {
+    var ref;
+    console.log(`REPL Error: ${(ref = err.stack) != null ? ref : err}`);
+    multiline = false;
+    return prompt();
+  };
+
+  startMultiline = function() {
+    if (multiline) {
+      return console.log('Already reading multiline input');
+    } else {
+      multiline = true;
+      lines = [];
+      return rl != null ? rl.setPrompt('... ') : void 0;
+    }
+  };
+
+  finishMultiline = function(dumpInput) {
+    var err, l, line;
+    multiline = false;
+    line = lines.join('\n');
+    l = lines;
+    lines = [];
+    if (dumpInput) {
+      return prompt();
+    } else {
+      try {
+        if (line.substring(0, 2) === ':s') {
+          if (typeof L_simplify !== "undefined" && L_simplify !== null) {
+            runMonad2(rz(L_simplify)(line.substring(2)), replEnv, function(result) {
+              return console.log(`\n${result}`);
+            });
+          } else {
+            console.log('No simplify function.  Load std.lsr');
+          }
+        } else if (line.match(/^!/)) {
+          console.log(eval(line.substring(1)));
+        } else {
+          root.inputProcessor(line, function(result) {
+            if (!(result instanceof Leisure_unit)) {
+              console.log(show(result));
+            }
+            return prompt();
+          });
+          return;
+        }
+      } catch (error) {
+        err = error;
+        console.log(`ERROR: ${err.stack}`);
+      }
+      return prompt();
+    }
+  };
+
+  root.processLine = function(line) {
+    var m;
+    interrupted = false;
+    if (!root.batchMode && rl.history[0] === rl.history[1]) {
+      rl.history.shift();
+    } else if (line.trim()) {
+      fs.appendFile(historyFile, `${line}\n`, (function() {}));
+    }
+    switch (line.trim()) {
+      case ':d':
+        diag = !diag;
+        return console.log(`Diag: ${(diag ? 'on' : 'off')}`);
+      case ':{':
+        return startMultiline();
+      case ':}':
+        if (!multiline) {
+          return console.log("Not reading multiline input.");
+        } else {
+          return finishMultiline();
+        }
+        break;
+      case ':h':
+        return help();
+      default:
+        if (m = line.match(/^:{(.*)$/)) {
+          startMultiline();
+          if (m[1]) {
+            return lines.push(m[1]);
+          }
+        } else if (multiline) {
+          if (!line) {
+            return finishMultiline();
+          } else {
+            return lines.push(line);
+          }
+        } else {
+          lines = [line];
+          return finishMultiline();
+        }
+    }
+  };
+
   repl = function(config) {
-    var historyFile, leisureDir, lines;
     evalInput('resetStdTokenPacks', (function() {}));
     lines = null;
     leisureDir = path.join(config.home, '.leisure');
     historyFile = path.join(leisureDir, 'history');
-    rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      completer: leisureCompleter
-    });
+    if (!root.batchMode) {
+      rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        completer: leisureCompleter
+      });
+    }
     return fs.exists(historyFile, function(exists) {
       return (function(cont) {
         if (exists) {
           return readFile(historyFile, function(err, contents) {
-            if (!err) {
+            if (!err && !root.batchMode) {
               rl.history = contents.trim().split('\n').reverse();
             }
             return cont();
@@ -343,117 +462,30 @@
           });
         }
       })(function() {
-        var finishMultiline, multiline, startMultiline;
         if (!quiet) {
           help();
         }
         multiline = false;
         prompt();
-        root.defaultEnv.err = function(err) {
-          var ref;
-          console.log(`REPL Error: ${(ref = err.stack) != null ? ref : err}`);
-          multiline = false;
-          return prompt();
-        };
-        startMultiline = function() {
-          if (multiline) {
-            return console.log('Already reading multiline input');
-          } else {
-            multiline = true;
-            lines = [];
-            return rl.setPrompt('... ');
-          }
-        };
-        finishMultiline = function(dumpInput) {
-          var err, l, line;
-          multiline = false;
-          line = lines.join('\n');
-          l = lines;
-          lines = [];
-          if (dumpInput) {
-            return prompt();
-          } else {
-            try {
-              if (line.substring(0, 2) === ':s') {
-                if (typeof L_simplify !== "undefined" && L_simplify !== null) {
-                  runMonad2(rz(L_simplify)(lz(text)), replEnv, function(result) {
-                    return console.log(`\n${result}`);
-                  });
-                } else {
-                  console.log('No simplify function.  Load std.lsr');
-                }
-              } else if (line.match(/^!/)) {
-                console.log(eval(line.substring(1)));
-              } else {
-                evalInput(line, function(result) {
-                  //console.log 'RESULT: ' + show(result)
-                  console.log(show(result));
-                  return prompt();
-                });
-                return;
-              }
-            } catch (error) {
-              err = error;
-              console.log(`ERROR: ${err.stack}`);
+        if (!root.batchMode) {
+          rl.on('line', function(line) {
+            return root.processLine(line);
+          });
+          rl.on('close', function() {
+            //console.log "EXITING 1"
+            return process.exit(0);
+          });
+          return rl.on('SIGINT', function() {
+            if (interrupted) {
+              return process.exit();
+            } else if (multiline) {
+              return finishMultiline(true);
+            } else {
+              console.log("\n(^C again to quit)");
+              return interrupted = true;
             }
-            return prompt();
-          }
-        };
-        rl.on('line', function(line) {
-          var m;
-          interrupted = false;
-          if (rl.history[0] === rl.history[1]) {
-            rl.history.shift();
-          } else if (line.trim()) {
-            fs.appendFile(historyFile, `${line}\n`, (function() {}));
-          }
-          switch (line.trim()) {
-            case ':d':
-              diag = !diag;
-              return console.log(`Diag: ${(diag ? 'on' : 'off')}`);
-            case ':{':
-              return startMultiline();
-            case ':}':
-              if (!multiline) {
-                return console.log("Not reading multiline input.");
-              } else {
-                return finishMultiline();
-              }
-              break;
-            case ':h':
-              return help();
-            default:
-              if (m = line.match(/^:{(.*)$/)) {
-                startMultiline();
-                if (m[1]) {
-                  return lines.push(m[1]);
-                }
-              } else if (multiline) {
-                if (!line) {
-                  return finishMultiline();
-                } else {
-                  return lines.push(line);
-                }
-              } else {
-                lines = [line];
-                return finishMultiline();
-              }
-          }
-        });
-        rl.on('close', function() {
-          //console.log "EXITING 1"
-          return process.exit(0);
-        });
-        return rl.on('SIGINT', function() {
-          if (interrupted) {
-            return process.exit();
-          } else if (multiline) {
-            return finishMultiline(true);
-          } else {
-            console.log("\n(^C again to quit)");
-            return interrupted = true;
-          }
-        });
+          });
+        }
       });
     });
   };
@@ -786,8 +818,11 @@
     }
     switch (pargs[pos]) {
       case '-p':
-        promptText = pargs[pos + 1];
+        root.promptText = pargs[pos + 1];
         pos++;
+        break;
+      case '-b':
+        root.batchMode = true;
         break;
       case '-x':
         break;
@@ -853,6 +888,9 @@
         quiet = true;
         break;
       default:
+        if (!quiet) {
+          console.log(`BASE DIR: ${baseDir}`);
+        }
         newOptions = true;
         if (pargs[pos] === '-coffee') {
           processedFiles = true;
@@ -891,9 +929,6 @@
           });
         }
         return;
-    }
-    if (!quiet) {
-      console.log(`BASE DIR: ${baseDir}`);
     }
     return processArg(config, pos + 1);
   };
@@ -949,6 +984,8 @@
       home: process.env.HOME
     });
   };
+
+  root.inputProcessor = evalInput;
 
   if (verbose) {
     console.log(`ARGS: ${JSON.stringify(pargs)}`);
