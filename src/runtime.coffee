@@ -199,7 +199,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     makeSyncMonad (env, cont)->
       cont (Math.floor(rz(low) + Math.random() * rz(high)))
   define '^', (x, y)-> checkPartial(L_$i, arguments) || Math.pow(rz(x), rz(y))
-  define 'number', setDataType ((n)-> Number n), 'number'
+  define 'number', setDataType ((n)-> Number rz n), 'number'
 
 ############
 # STRINGS
@@ -723,6 +723,8 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     makeSyncMonad (env, cont)->
       values.macros = cons cons(rz(name), rz(def)), values.macros
       cont unit()
+
+  hasMacro = (mac)-> values.macros[mac]
 
   define 'funcList', makeSyncMonad (env, cont)->
     cont consFrom global.leisureFuncNames.toArray().sort()
@@ -1373,6 +1375,7 @@ define ['./base', './docOrg', './ast', 'lodash', 'immutable', 'lib/js-yaml', 'bl
     partialCall
     bind
     buildAdvisedFuncDef
+    hasMacro
   }
 
   Object.assign Leisure, {

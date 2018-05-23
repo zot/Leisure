@@ -35,7 +35,9 @@ define ['./base', 'lodash'], (base, _)->
   rz = resolve
   lz = lazy
   lc = Leisure_call
-  types = {}
+  types =
+    string: String
+    number: Number
 
 ######
 ###### naming
@@ -116,7 +118,7 @@ define ['./base', 'lodash'], (base, _)->
   classForType = (type)-> types[type]
 
   declareTypeFunc = (leisureClass, constructor)->
-    if constructor then types[leisureClass] = global['Leisure_' + nameSub(leisureClass)] = constructor
+    if constructor && !types[leisureClass] then types[leisureClass] = global['Leisure_' + nameSub(leisureClass)] = constructor
     funcName = 'L_' + nameSub(leisureClass)
     f = global[funcName] = lz (x)-> throw new Error "Attempt to call type function #{funcName}"
     functionInfo[leisureClass] =
