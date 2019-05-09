@@ -535,11 +535,12 @@ define ['lib/lazy'], (Lazy)->
       contentLength: @contentLength
 
   class Results extends Keyword
-    constructor: (@text, @offset, @name, @contentPos)->
+    constructor: (text, offset, name, contentPos)->
       super text, offset, name
       @text = text
       @offset = offset
       @name = name
+      @contentPos = contentPos
     type: 'results'
     content: -> @text.substring @contentPos
     jsonDef: ->
@@ -550,11 +551,12 @@ define ['lib/lazy'], (Lazy)->
       contentPos: @contentPos
 
   class AttrHtml extends Keyword
-    constructor: (text, offset, name, @contentPos)->
+    constructor: (text, offset, name, contentPos)->
       super text, offset, name
       @text = text
       @offest = offset
       @name = name
+      @contentPos = contentPos
     type: 'attr'
     jsonDef: ->
       type: @type
