@@ -1,3 +1,9 @@
+* NEWS
+
+Leisure is evolving!
+
+Please see [[https://github.com/orgs/Leisure-tools][Leisure Tools]] for information as it develops...
+
 * What is Leisure?
 *NOTE: LEISURE CURRENTLY ONLY RUNS IN CHROMIUM-BASED BROWSERS (LIKE CHROME).*
 
